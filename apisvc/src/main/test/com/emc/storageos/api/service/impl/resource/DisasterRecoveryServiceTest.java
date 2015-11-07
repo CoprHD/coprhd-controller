@@ -62,6 +62,7 @@ import com.emc.vipr.model.sys.TargetVersionResponse;
 
 public class DisasterRecoveryServiceTest {
 
+    public static final String NONEXISTENT_ID = "nonexistent-id";
     private DisasterRecoveryService drService;
     private DbClientImpl dbClientMock;
     private CoordinatorClient coordinator;
@@ -104,7 +105,6 @@ public class DisasterRecoveryServiceTest {
         standbySite1.setState(SiteState.PRIMARY);
         standbySite1.setVdcShortId("vdc1");
         standbySite1.setNodeCount(1);
-        
 
         standbySite2 = new Site();
         standbySite2.setUuid("site-uuid-2");
@@ -175,8 +175,8 @@ public class DisasterRecoveryServiceTest {
         doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
         doReturn(standbySite1).when(drUtil).getSiteFromLocalVdc(standbySite1.getUuid());
         doReturn(standbySite2).when(drUtil).getSiteFromLocalVdc(standbySite2.getUuid());
-        doThrow(CoordinatorException.retryables.cannotFindSite("no-exist-id")).when(drUtil)
-                .getSiteFromLocalVdc("no-exist-id");
+        doThrow(CoordinatorException.retryables.cannotFindSite(NONEXISTENT_ID)).when(drUtil)
+                .getSiteFromLocalVdc(NONEXISTENT_ID);
         doReturn(primarySite.getUuid()).when(drUtil).getPrimarySiteId();
         doReturn(primarySite).when(drUtil).getSiteFromLocalVdc(primarySite.getUuid());
     }
@@ -289,13 +289,6 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testPauseStandby() {
-        String invalidSiteId = "invalid_site_id";
-        doReturn(standbySite1.toConfiguration()).when(coordinator)
-                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite1.getUuid());
-        doReturn(standbySite2.toConfiguration()).when(coordinator)
-                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite2.getUuid());
-        doReturn(null).when(coordinator).queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), invalidSiteId);
-        
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         
         try {
@@ -306,7 +299,7 @@ public class DisasterRecoveryServiceTest {
         }
         
         try {
-            drService.pauseStandby(invalidSiteId);
+            drService.pauseStandby(NONEXISTENT_ID);
         } catch (APIException e) {
             assertEquals(e.getServiceCode(), ServiceCode.API_PARAMETER_INVALID);
         }
@@ -539,7 +532,7 @@ public class DisasterRecoveryServiceTest {
         assertEquals(error.getErrorMessage(), siteError.getErrorMessage());
         
         try {
-            drService.getSiteError("no-exist-id");
+            drService.getSiteError(NONEXISTENT_ID);
             assert false;
         } catch (Exception e) {
             //ingore expected exception

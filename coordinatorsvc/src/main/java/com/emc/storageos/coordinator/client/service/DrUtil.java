@@ -114,9 +114,10 @@ public class DrUtil {
      * @return list of standby sites
      */
     public List<Site> listStandbySites() {
+        String primaryId = this.getPrimarySiteId();
         List<Site> result = new ArrayList<>();
         for(Site site : listSites()) {
-            if (site.getState() != SiteState.PRIMARY) {
+            if (!site.getUuid().equals(primaryId)) {
                 result.add(site);
             }
         }

@@ -1013,7 +1013,7 @@ public class VdcSiteManager extends AbstractManager {
         
         blockUntilZookeeperIsWritableConnected();
         
-        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_STANDBY_BARRIER, SWITCHOVER_BARRIER_TIMEOUT);
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
         
         log.info("Set state to PRIMARY");
         site.setState(SiteState.PRIMARY);
@@ -1030,8 +1030,9 @@ public class VdcSiteManager extends AbstractManager {
         
         blockUntilZookeeperIsWritableConnected();
         
-        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_PRIMARY_BARRIER, SWITCHOVER_BARRIER_TIMEOUT);
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
         
+        log.info("Set state to SYNCED");
         site.setState(SiteState.STANDBY_SYNCED);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
         

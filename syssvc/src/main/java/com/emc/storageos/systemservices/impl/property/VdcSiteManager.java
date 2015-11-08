@@ -434,7 +434,7 @@ public class VdcSiteManager extends AbstractManager {
     }
     
     private DistributedDoubleBarrier enterBarrier(String path, int timeout) throws Exception {
-        return enterBarrier(path, timeout, getChildrenCountOnBarrier());
+        return enterBarrier(path, timeout, getChildrenCountOnBarrier(), false);
     }
 
     /**
@@ -445,11 +445,14 @@ public class VdcSiteManager extends AbstractManager {
      * @return 
      * @throws Exception
      */
-    private DistributedDoubleBarrier enterBarrier(String path, int timeout, int memberQty) throws Exception {
+    private DistributedDoubleBarrier enterBarrier(String path, int timeout, int memberQty, boolean crossSite) throws Exception {
         log.info("Waiting for all nodes entering VdcPropBarrier");
 
         // key rotation is always done on primary site. when adding standby this is done on both site.
-        String barrierPath = String.format("%s/%s/&s", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId(), path);
+        String barrierPath = crossSite ? String.format("%s/%s", ZkPath.SITES, path):
+                                         String.format("%s/%s/&s", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId(), path);
+        
+        log.info("Barrier path is {}", barrierPath);
 
         // the children # should be the node # in entire VDC. before linking together, it's # in a site.
         DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, memberQty);
@@ -520,11 +523,11 @@ public class VdcSiteManager extends AbstractManager {
         
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
             log.info("Wait for barrier to reconfig/restart coordinator when switchover");
-            DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount());
+            DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
             
             localRepository.reconfigProperties("coordinator");
             
-            barrier.leave();
+            leaveBarrier(barrier);
             
             localRepository.restart("coordinatorsvc");
         } else {
@@ -1016,7 +1019,7 @@ public class VdcSiteManager extends AbstractManager {
         site.setState(SiteState.PRIMARY);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
         
-        barrier.leave();
+        leaveBarrier(barrier);
         
         log.info("Reboot this node after planned failover");
         localRepository.reboot();
@@ -1032,7 +1035,7 @@ public class VdcSiteManager extends AbstractManager {
         site.setState(SiteState.STANDBY_SYNCED);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
         
-        barrier.leave();
+        leaveBarrier(barrier);
         
         log.info("Reboot this node after planned failover");
         localRepository.reboot();

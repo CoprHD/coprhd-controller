@@ -446,7 +446,7 @@ public class VdcSiteManager extends AbstractManager {
      * @throws Exception
      */
     private DistributedDoubleBarrier enterBarrier(String path, int timeout, int memberQty, boolean crossSite) throws Exception {
-        log.info("Waiting for all nodes entering VdcPropBarrier");
+        log.info("Waiting for all nodes entering path {}", path);
 
         // key rotation is always done on primary site. when adding standby this is done on both site.
         String barrierPath = crossSite ? String.format("%s/%s", ZkPath.SITES, path):
@@ -459,7 +459,7 @@ public class VdcSiteManager extends AbstractManager {
 
         boolean allEntered = barrier.enter(timeout, TimeUnit.SECONDS);
         if (allEntered) {
-            log.info("All nodes entered VdcPropBarrier");
+            log.info("All nodes entered {}", barrierPath);
             return barrier;
         } else {
             throw new Exception(String.format("Only Part of nodes entered within %s seconds, Skip updating", timeout));

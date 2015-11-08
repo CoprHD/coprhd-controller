@@ -134,6 +134,6 @@ public interface Constants {
     
     public static final String SWITCHOVER_PRIMARY_BARRIER = "primarySwitchoverBarrier";
     public static final String SWITCHOVER_STANDBY_BARRIER = "standbySwitchoverBarrier";
-    public static final String SWITCHOVER_STANDBY_LOCK = "standbySwitchoverLock";
+    public static final String SWITCHOVER_BARRIER = "switchoverLock";
 
 }

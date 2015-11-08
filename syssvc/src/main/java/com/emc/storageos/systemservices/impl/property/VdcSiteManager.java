@@ -15,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +56,7 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
  * Data revision change and simulatenous cluster poweroff are also managed here
  */
 public class VdcSiteManager extends AbstractManager {
-    private static final int SWITCHOVER_ZK_WRITABLE_WAIT_TIMEOUT = 1000 * 5;
+    private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
 
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
 
@@ -435,20 +434,24 @@ public class VdcSiteManager extends AbstractManager {
         vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
         localRepository.setVdcPropertyInfo(vdcProperty);
     }
+    
+    private DistributedDoubleBarrier enterBarrier(String path, int timeout) throws Exception {
+        return enterBarrier(path, timeout, getChildrenCountOnBarrier());
+    }
 
     /**
      * Waiting for all nodes entering the VdcPropBarrier.
      * @return
      * @throws Exception
      */
-    private DistributedDoubleBarrier enterBarrier(String path, int timeout) throws Exception {
+    private DistributedDoubleBarrier enterBarrier(String path, int timeout, int memberQty) throws Exception {
         log.info("Waiting for all nodes entering VdcPropBarrier");
 
         // key rotation is always done on primary site. when adding standby this is done on both site.
         String barrierPath = String.format("%s/%s/&s", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId(), path);
 
         // the children # should be the node # in entire VDC. before linking together, it's # in a site.
-        DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, getChildrenCountOnBarrier());
+        DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, memberQty);
 
         boolean allEntered = barrier.enter(timeout, TimeUnit.SECONDS);
         if (allEntered) {
@@ -504,13 +507,29 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.reconfigProperties("firewall");
         localRepository.reload("firewall");
             
+        reconfigAndRestartCoordinator(site);
+        
+        finishUpdateVdcProperties();
+    }
+
+    private void reconfigAndRestartCoordinator(Site site) throws Exception {
         // Reconfigure ZK
         // TODO: think again how to make use of the dynamic zookeeper configuration
         // The previous approach disconnects all the clients, no different than a service restart.
-        localRepository.reconfigProperties("coordinator");
-        localRepository.restart("coordinatorsvc");
         
-        finishUpdateVdcProperties();
+        if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+            log.info("Wait for barrier to reconfig/restart coordinator when switchover");
+            DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount());
+            
+            localRepository.reconfigProperties("coordinator");
+            
+            barrier.leave();
+            
+            localRepository.restart("coordinatorsvc");
+        } else {
+            localRepository.reconfigProperties("coordinator");
+            localRepository.restart("coordinatorsvc");
+        }
     }
 
     private List<String> getJoiningZKNodes() {
@@ -988,7 +1007,9 @@ public class VdcSiteManager extends AbstractManager {
     private void proccessNewPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is planned failover standby site (new primary)");
         
-        DistributedDoubleBarrier barrier = enterBarrierWithRetry(Constants.SWITCHOVER_STANDBY_BARRIER, SWITCHOVER_BARRIER_TIMEOUT);
+        blockUntilZookeeperIsWritableConnected();
+        
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_STANDBY_BARRIER, SWITCHOVER_BARRIER_TIMEOUT);
         
         log.info("Set state to PRIMARY");
         site.setState(SiteState.PRIMARY);
@@ -1003,7 +1024,9 @@ public class VdcSiteManager extends AbstractManager {
     private void proccessOldPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is planned failover primary site (old primrary)");
         
-        DistributedDoubleBarrier barrier = enterBarrierWithRetry(Constants.SWITCHOVER_PRIMARY_BARRIER, SWITCHOVER_BARRIER_TIMEOUT);
+        blockUntilZookeeperIsWritableConnected();
+        
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_PRIMARY_BARRIER, SWITCHOVER_BARRIER_TIMEOUT);
         
         site.setState(SiteState.STANDBY_SYNCED);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
@@ -1014,29 +1037,35 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.reboot();
     }
     
-    private DistributedDoubleBarrier enterBarrierWithRetry(String path, int timeout) throws Exception{
+    private void blockUntilZookeeperIsWritableConnected() {
         while (true) {
             try {
                 States state = ((CoordinatorClientImpl)coordinator.getCoordinatorClient()).getZkConnection().curator().getZookeeperClient().getZooKeeper().getState();
                 
-                if (!state.equals(States.CONNECTED))
-                    continue;
-                
-                DistributedDoubleBarrier barrier = enterBarrier(path, timeout);
-                return barrier;
+                if (state.equals(States.CONNECTED))
+                    return;
             } catch (Exception e) {
-                if (e instanceof KeeperException.ConnectionLossException || e instanceof KeeperException.NotReadOnlyException) {
-                    log.info("Failed to enter barrier with ConnectionLossException or NotReadOnlyException, try again");
-                    
-                    try {
-                        Thread.sleep(SWITCHOVER_ZK_WRITABLE_WAIT_TIMEOUT);
-                    } catch (Exception ex) {
-                        log.error("Can't get Zk state {}", ex);
-                    }
-                }
-                
-                throw e;
+                log.error("Can't get Zk state {}", e);
+            } 
+            
+            try {
+                Thread.sleep(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
+            } catch (InterruptedException e) {
+                //Ingore
+            };
+        }
+    }
+    
+    private int getSwitchoverNodeCount() {
+        int count = 0;
+        
+        for (Site site : drUtil.listSites()) {
+            if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+                count += site.getNodeCount();
             }
         }
+        
+        log.info("Node count is switchover is {}", count);
+        return count;
     }
 }

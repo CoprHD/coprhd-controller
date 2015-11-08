@@ -450,7 +450,7 @@ public class VdcSiteManager extends AbstractManager {
 
         // key rotation is always done on primary site. when adding standby this is done on both site.
         String barrierPath = crossSite ? String.format("%s/%s", ZkPath.SITES, path):
-                                         String.format("%s/%s/&s", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId(), path);
+                                         String.format("%s/%s/%s", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId(), path);
         
         log.info("Barrier path is {}", barrierPath);
 

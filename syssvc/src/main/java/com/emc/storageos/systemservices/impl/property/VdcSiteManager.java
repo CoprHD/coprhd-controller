@@ -56,14 +56,12 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
  * Data revision change and simulatenous cluster poweroff are also managed here
  */
 public class VdcSiteManager extends AbstractManager {
-    private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
-
-    private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
-
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
     private static final String VDC_IDS_KEY = "vdc_ids";
     private static final int VDC_RPOP_BARRIER_TIMEOUT = 5;
+    private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
+    private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
@@ -441,7 +439,10 @@ public class VdcSiteManager extends AbstractManager {
 
     /**
      * Waiting for all nodes entering the VdcPropBarrier.
-     * @return
+     * @param path barrier path
+     * @param timeout timeout 
+     * @param memberQty total number of members that plan to wait on the barrier
+     * @return 
      * @throws Exception
      */
     private DistributedDoubleBarrier enterBarrier(String path, int timeout, int memberQty) throws Exception {

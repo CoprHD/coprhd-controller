@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.model.BulkIdParam;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -608,12 +609,17 @@ public class UnManagedFilesystemService extends TaggedResource {
                 _dbClient.createObject(fsNfsShareAcls);
             }
             // Step 9.1 : Update the same in DB & clean ingested UnManagedNFSShareACLs
-            i = 0;
-            for (UnManagedNFSShareACL nfsAcl : inActiveUnManagedShareNfs) {
-                ++i;
-                _logger.info("{} Updating UnManagedACL DB as InActive TRUE {}", nfsAcl);
-            }
-            _dbClient.updateObject(inActiveUnManagedShareNfs);
+			if (inActiveUnManagedShareNfs != null
+					&& !inActiveUnManagedShareNfs.isEmpty()) {
+				i = 0;
+				for (UnManagedNFSShareACL nfsAcl : inActiveUnManagedShareNfs) {
+					++i;
+					_logger.info(
+							"{} Updating UnManagedACL DB as InActive TRUE {}",
+							nfsAcl);
+				}
+				_dbClient.updateObject(inActiveUnManagedShareNfs);
+			}
 
             // record the events after they have been created
             for (FileShare filesystem : filesystems) {
@@ -879,32 +885,37 @@ public class UnManagedFilesystemService extends TaggedResource {
 		if (user != null) {
 			shareACL.setUser(user);
 		}
-		StringBuilder permissionText = new StringBuilder();
-		boolean isFirstPermissionSet=false;
-		for (String tempPermission : origACL.getPermissions().toLowerCase()
-				.split(",")) {
+		String aclPermissions = origACL.getPermissions();
+		if (!StringUtils.isEmpty(aclPermissions)) {
+			StringBuilder permissionText = new StringBuilder();
+			boolean isFirstPermissionSet=false;
+			for (String tempPermission : aclPermissions.toLowerCase()
+					.split(",")) {
 
-			switch (tempPermission) {
-			case "read":
-				tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_READ;
+				switch (tempPermission) {
+				case "read":
+					tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_READ;
 
-				break;
-			case "write":
-				tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_WRITE;
-				break;
-			case "execute":
-				tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE;
-				break;
+					break;
+				case "write":
+					tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_WRITE;
+					break;
+				case "execute":
+					tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE;
+					break;
+				}
+
+				if (!isFirstPermissionSet) {
+					permissionText.append(tempPermission);
+					isFirstPermissionSet = true;
+				} else {
+					permissionText.append("," + tempPermission);
+				}
 			}
-			
-			if(!isFirstPermissionSet){
-				permissionText.append(tempPermission);
-				isFirstPermissionSet=true;
-			}else{
-				permissionText.append(","+tempPermission);
-			}
+			shareACL.setPermissions(permissionText.toString());
+		}else{
+			shareACL.setPermissions("");
 		}
-		shareACL.setPermissions(permissionText.toString());
 		shareACL.setFileSystemId(fileshare.getId());
 		shareACL.setId(URIUtil.createId(NFSShareACL.class));
 		// Add new acl into ACL list

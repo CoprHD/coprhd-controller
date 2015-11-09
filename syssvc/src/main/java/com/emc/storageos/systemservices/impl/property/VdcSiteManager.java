@@ -31,7 +31,6 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
@@ -1036,10 +1035,12 @@ public class VdcSiteManager extends AbstractManager {
     private void blockUntilZookeeperIsWritableConnected() {
         while (true) {
             try {
-                States state = ((CoordinatorClientImpl)coordinator.getCoordinatorClient()).getZkConnection().curator().getZookeeperClient().getZooKeeper().getState();
+                States state = coordinator.getConnectionState();
                 
                 if (state.equals(States.CONNECTED))
                     return;
+                
+                log.info("ZK connection state is {}, wait for connected", state);
             } catch (Exception e) {
                 log.error("Can't get Zk state {}", e);
             } 

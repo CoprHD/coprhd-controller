@@ -15,6 +15,9 @@ import com.emc.storageos.db.client.upgrade.MigrateIndexHelper;
 
 /**
  * @author cgarber
+ * This migration callback handles a change made to the RelationIdex on the protectionVarraySettings 
+ ( field in the VirtualPool column family. The index table was changed from RelationIndex
+ * to VpoolProtRelationIndex
  *
  */
 public class VirtualPoolVarrayIndexFix extends BaseCustomMigrationCallback {
@@ -32,8 +35,10 @@ public class VirtualPoolVarrayIndexFix extends BaseCustomMigrationCallback {
         } else {
             throw new IllegalStateException("Migration callback " + name + " needs InternalDbClient");
         }
+        // removes the entries from RelationIndex (old) index table
         MigrateIndexHelper.migrateRemovedIndex(internalDbClient, VirtualPool.class, "protectionVarraySettings", "RelationIndex",
                 "RelationIndex");
+        // adds entries to the new index table (framework knows the new index table)
         MigrateIndexHelper.migrateAddedIndex(internalDbClient, VirtualPool.class, "protectionVarraySettings", "RelationIndex");
     }
 }

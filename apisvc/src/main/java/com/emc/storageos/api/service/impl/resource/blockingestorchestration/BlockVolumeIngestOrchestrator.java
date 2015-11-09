@@ -125,7 +125,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             snap = ingestStrategy.ingestBlockObjects(systemCache, poolCache,
                     system, unManagedVolume, vPool, virtualArray,
                     project, tenant, unManagedVolumesSuccessfullyProcessed, createdObjectMap,
-                    updatedObjectMap, true, Volume.class, taskStatusMap, vplexIngestionMethod);
+                    updatedObjectMap, true, BlockSnapshot.class, taskStatusMap, vplexIngestionMethod);
             createdObjectMap.put(snap.getNativeGuid(), snap);
         }
 

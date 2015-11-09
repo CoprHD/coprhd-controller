@@ -19,7 +19,7 @@ public class IPSecMonitor implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(IPSecMonitor.class);
 
     public static int IPSEC_CHECK_INTERVAL = 10;  // minutes
-    public static int IPSEC_CHECK_INITIAL_DELAY = 5;  // minutes
+    public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
 
     public ScheduledExecutorService scheduledExecutorService;
 
@@ -30,7 +30,7 @@ public class IPSecMonitor implements Runnable {
                 this,
                 IPSEC_CHECK_INITIAL_DELAY,
                 IPSEC_CHECK_INTERVAL,
-                TimeUnit.MINUTES);
+                TimeUnit.SECONDS);
         log.info("scheduled IPSecMonitor.");
     }
 
@@ -42,12 +42,19 @@ public class IPSecMonitor implements Runnable {
     public void run() {
         log.info("start checking ipsec connections");
         String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
+
+        if (problemNodes == null || problemNodes.length == 0) {
+            log.info("all connections are good, skip ipsec sync step");
+            return;
+        }
+
         Map<String, String> latest = getLatestIPSecProperties(problemNodes);
 
         if (isSyncNeeded(latest)) {
             String latestKey = latest.get(Constants.IPSEC_KEY);
+            log.info("syncing latest ipsec key to local: " + latestKey);
             LocalRepository.getInstance().syncIpsecKeyToLocal(latestKey);
-            log.info("synced latest ipsec key to local: " + latestKey);
+
         } else {
             log.info("local already has latest ipsec key, skip syncing");
         }
@@ -118,8 +125,14 @@ public class IPSecMonitor implements Runnable {
     }
 
     private boolean isSyncNeeded(Map<String, String> props) {
+        if (props == null) {
+            return false;
+        }
+
         String localIP = getLocalIPAddress();
         Map<String, String> localIpsecProp = LocalRepository.getInstance().getIpsecProperties(localIP);
+        log.info("local ipsec properties: ipsecKey=" + localIpsecProp.get(IPSEC_KEY)
+                + ", vdcConfigVersion=" + localIpsecProp.get(VDC_CONFIG_VERSION));
         if (localIpsecProp.get(IPSEC_KEY).equals(props.get(IPSEC_KEY))) {
             return false;
         } else {
@@ -138,7 +151,7 @@ public class IPSecMonitor implements Runnable {
         try {
             InetAddress IP = InetAddress.getLocalHost();
             String localIP = IP.getHostAddress();
-            log.info("IP of my system is := " + localIP);
+            log.info("IP of my system is : " + localIP);
             return localIP;
         } catch (Exception ex) {
             log.warn("error in getting local ip: " + ex.getMessage());

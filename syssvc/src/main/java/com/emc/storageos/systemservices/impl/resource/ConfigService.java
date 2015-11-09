@@ -103,8 +103,10 @@ public class ConfigService {
     @Autowired
     protected InvalidLoginManager _invLoginManager;
 
-    @Autowired
     private IPsecConfig ipsecConfig;
+    public void setIpsecConfig(IPsecConfig ipsecConfig) {
+        this.ipsecConfig = ipsecConfig;
+    }
 
     public static final String CERTIFICATE_VERSION = "certificate_version";
     private static final Logger _log = LoggerFactory.getLogger(ConfigService.class);

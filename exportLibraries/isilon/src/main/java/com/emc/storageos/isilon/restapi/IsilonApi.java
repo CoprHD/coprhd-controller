@@ -700,6 +700,18 @@ public class IsilonApi {
     public void modifyExport(String id, IsilonExport exp) throws IsilonException {
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
+    
+    /**
+     * Modify export in access zone
+     * 
+     * @param id identifier of the export to modify
+     * @param exp IsilonExport object with the modified properties
+     * @throws IsilonException
+     */
+    public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
+    }
 
     /**
      * Get export
@@ -720,10 +732,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonExport getExport(String id, String zoneName) throws IsilonException {
-        StringBuffer buffer = new StringBuffer(id);
-        zoneName = zoneName.replace(" ", "%20");
-        buffer.append("?zone=").append(zoneName);
-        return get(_baseUrl.resolve(URI_NFS_EXPORTS), buffer.toString(), "exports", IsilonExport.class);
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        return get(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "exports", IsilonExport.class);
     }
 
     /**
@@ -734,6 +744,17 @@ public class IsilonApi {
      */
     public void deleteExport(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export");
+    }
+    
+    /**
+     * Delete export in access zone
+     * 
+     * @param id identifier for the export object to delete
+     * @throws IsilonException
+     */
+    public void deleteExport(String id, String zoneName) throws IsilonException {
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        delete(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export");
     }
 
     /* SmartQuotas */
@@ -1021,6 +1042,18 @@ public class IsilonApi {
     public void modifyShare(String id, IsilonSMBShare s) throws IsilonException {
         modify(_baseUrl.resolve(URI_SMB_SHARES), id, "share", s);
     }
+    
+    /**
+     * Modify SMB share in access zone
+     * 
+     * @param id Identifier for the SMB share to modify
+     * @param s IsilonSMBShare object with the modified values set
+     * @throws IsilonException
+     */
+    public void modifyShare(String id, String zoneName, IsilonSMBShare s) throws IsilonException {
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        modify(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share", s);
+    }
 
     /**
      * Get SMB share properties
@@ -1042,10 +1075,8 @@ public class IsilonApi {
      */
     public IsilonSMBShare getShare(String id, String zoneName) throws IsilonException {
 
-        StringBuffer buffer = new StringBuffer(id);
-        String accessZoneName = zoneName.replace(" ", "%20");
-        buffer.append("?zone=").append(accessZoneName);
-        return get(_baseUrl.resolve(URI_SMB_SHARES), buffer.toString(), "shares", IsilonSMBShare.class);
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        return get(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "shares", IsilonSMBShare.class);
     }
 
     /**
@@ -1056,6 +1087,17 @@ public class IsilonApi {
      */
     public void deleteShare(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_SMB_SHARES), id, "share");
+    }
+    
+    /**
+     * Delete SMB share in access zone
+     * 
+     * @param id Identifier of the SMB share to delete
+     * @throws IsilonException
+     */
+    public void deleteShare(String id, String zoneName) throws IsilonException {
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        delete(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share");
     }
 
     /**
@@ -1467,6 +1509,15 @@ public class IsilonApi {
             }
         }
         return isNfsv4Enabled;
+    }
+    
+    private String getURIWithZoneName(String id, String zoneName) {
+    	
+    	StringBuffer buffer = new StringBuffer(id);
+        buffer.append("?zone=");
+        zoneName = zoneName.replace(" ", "%20");
+        buffer.append(zoneName);
+    	return buffer.toString();
     }
 
 }

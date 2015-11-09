@@ -21,6 +21,8 @@ import java.util.Set;
 
 import javax.xml.bind.JAXBElement;
 
+import org.apache.commons.lang.StringUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1852,7 +1854,8 @@ public class UcsDiscoveryWorker {
          * '24:' + hex(portchannelId) + ':' + WWN seed
          */
         String wwn = seedWwn.substring(6, seedWwn.length());
-        return "24:" + Long.toHexString(parseNumber(portChannelId).longValue()).toUpperCase() + ":" + wwn;
+        String portChannelIdHex = Long.toHexString(parseNumber(portChannelId).longValue()).toUpperCase();
+        return "24:" + StringUtils.leftPad(portChannelIdHex, 2, '0') + ":" + wwn;  // COP-17862 (add leading 0)
     }
 
     /**

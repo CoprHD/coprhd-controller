@@ -1229,11 +1229,7 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         if (storageDevice.checkIfVmax3()) {
-            CIMObjectPath[] members = {};
-            ArrayList<CIMObjectPath> volumeGroupPaths = new ArrayList<CIMObjectPath>();
-            volumeGroupPaths.add(volumeGroupPath);
-            members = volumeGroupPaths.toArray(members);
-            list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS, members));
+            list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)));
 
             // set volumeType for fully-thin or fully-allocated
             int volumeType = fullyAllocated ? STORAGE_VOLUME_FULLY_ALLOCATED : STORAGE_VOLUME_TYPE_THIN;

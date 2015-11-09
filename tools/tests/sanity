@@ -6328,6 +6328,8 @@ dr_basic_tests()
 
     # pause standby
     echo "---PAUSE SITE $standby_site---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr pause $standby_site
 
     echo "---WAIT FOR $primary_site TO STABILIZE---"
@@ -6342,8 +6344,6 @@ dr_basic_tests()
 
     # switchover to standby
     echo "---SWITCHOVER FROM TO $primary_site TO $standby_site---"
-    BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr switchover $standby_site
 
     # verify switchover status

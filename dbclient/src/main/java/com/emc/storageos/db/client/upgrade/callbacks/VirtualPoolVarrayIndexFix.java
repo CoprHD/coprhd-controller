@@ -16,7 +16,7 @@ import com.emc.storageos.db.client.upgrade.MigrateIndexHelper;
 /**
  * @author cgarber
  * This migration callback handles a change made to the RelationIdex on the protectionVarraySettings 
- ( field in the VirtualPool column family. The index table was changed from RelationIndex
+ * field in the VirtualPool column family. The index table was changed from RelationIndex
  * to VpoolProtRelationIndex
  *
  */

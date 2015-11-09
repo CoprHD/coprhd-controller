@@ -543,15 +543,12 @@ public class DisasterRecoveryServiceTest {
         sites.add(primarySite);
         sites.add(standbySite2);
         
-        DistributedAtomicInteger distributedAtomicInteger = mock(DistributedAtomicInteger.class);
-        
         SecretKey keyMock = mock(SecretKey.class);
         InternalApiSignatureKeyGenerator apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
         
         doReturn("SecreteKey".getBytes()).when(keyMock).getEncoded();
         doReturn(keyMock).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
         doReturn(sites).when(drUtil).listSites();
-        doReturn(distributedAtomicInteger).when(coordinator).getDistributedAtomicInteger(any(String.class), any(String.class));
         doNothing().when(drService).precheckForSwitchover(standbySite2.getUuid());
         
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);

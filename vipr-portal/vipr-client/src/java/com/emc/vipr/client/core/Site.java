@@ -78,7 +78,7 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.get(SiteErrorResponse.class, PathConstants.SITE_URL+"/"+uuid+"/error");
     }
     
-    public ClientResponse doFailover(String uuid) {
+    public ClientResponse doSwitchover(String uuid) {
         return client.post(ClientResponse.class, PathConstants.SITE_URL+"/"+uuid+"/switchover");
     }
 

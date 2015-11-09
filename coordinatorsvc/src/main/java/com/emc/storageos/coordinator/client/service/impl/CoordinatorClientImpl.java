@@ -38,7 +38,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
@@ -51,7 +50,6 @@ import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
 import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreMutex;
 import org.apache.curator.framework.recipes.queue.QueueSerializer;
 import org.apache.curator.framework.state.ConnectionState;
-import org.apache.curator.retry.RetryNTimes;
 import org.apache.curator.utils.EnsurePath;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.KeeperException;
@@ -80,7 +78,6 @@ import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
-import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.LicenseInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.WorkPool;
@@ -1758,15 +1755,5 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public DistributedAroundHook getDistributedOwnerLockAroundHook() {
         return ownerLockAroundHook;
-    }
-
-    @Override
-    public DistributedAtomicInteger getDistributedAtomicInteger(String siteId, String name) {
-        String counterPath = String.format(ATOMIC_INTEGER_ZK_PATH_FORMAT, ZkPath.SITES, siteId, name);
-        DistributedAtomicInteger distributedAtomicInteger = new DistributedAtomicInteger(getZkConnection().curator(), counterPath,
-                new RetryNTimes(ATOMIC_INTEGER_RETRY_TIME,
-                        ATOMIC_INTEGER_RETRY_INTERVAL_MS));
-
-        return distributedAtomicInteger;
     }
 }

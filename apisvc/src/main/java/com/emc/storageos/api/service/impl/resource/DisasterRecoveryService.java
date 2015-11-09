@@ -10,7 +10,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
@@ -27,13 +26,11 @@ import javax.ws.rs.core.Response;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
-import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.SiteMapper;
-import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
@@ -169,7 +166,7 @@ public class DisasterRecoveryService {
             standbySite.setNodeCount(standbyConfig.getNodeCount());
             standbySite.setSecretKey(standbyConfig.getSecretKey());
             standbySite.setUuid(standbyConfig.getUuid());
-            String shortId = generateShortId(existingSites);
+            String shortId = generateShortId(drUtil.listSites());
             standbySite.setStandbyShortId(shortId);
             standbySite.setDescription(param.getDescription());
             standbySite.setState(SiteState.STANDBY_ADDING);
@@ -609,7 +606,6 @@ public class DisasterRecoveryService {
 
             // Set old primary site's state, short id and key
             Site oldPrimarySite = drUtil.getSiteFromLocalVdc(oldPrimaryUUID);
-            int oldPrimaryHostCount = oldPrimarySite.getNodeCount();
             if (StringUtils.isEmpty(oldPrimarySite.getStandbyShortId())) {
                 oldPrimarySite.setStandbyShortId(newPrimarySite.getVdcShortId());
             }
@@ -620,19 +616,10 @@ public class DisasterRecoveryService {
             newPrimarySite.setState(SiteState.STANDBY_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(newPrimarySite.toConfiguration());
             
-            DistributedAtomicInteger daiNewPrimary = coordinator.getDistributedAtomicInteger(newPrimarySite.getUuid(),
-                    Constants.SWITCHOVER_STANDBY_NODECOUNT);
-            daiNewPrimary.forceSet(newPrimarySite.getNodeCount());
-
-            DistributedAtomicInteger daiOldPrimary = coordinator.getDistributedAtomicInteger(oldPrimaryUUID,
-                    Constants.SWITCHOVER_PRIMARY_NODECOUNT);
-            daiOldPrimary.forceSet(oldPrimaryHostCount);
-            
-            log.info("new primary node count: {}, old primary node count: {}", newPrimarySite.getNodeCount(),
-                    oldPrimaryHostCount);
-            
-            // trigger new primary to reconfig to make sure new ZK leader is available after other sites restart ZK
-            drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);
+            // trigger reconfig
+            for (Site eachSite : drUtil.listSites()) {
+                drUtil.updateVdcTargetVersion(eachSite.getUuid(), SiteInfo.RECONFIG_RESTART);
+            }
 
             auditDisasterRecoveryOps(OperationTypeEnum.SWITCHOVER, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
             return Response.status(Response.Status.ACCEPTED).build();
@@ -743,15 +730,11 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Standby site is not up");
         }
 
-        if (!isClusterStable()) {
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Primary site is not stable");
-        }
-
         if (standby.getState() != SiteState.STANDBY_SYNCED) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Standby site is not fully synced");
         }
 
-        List<Site> existingSites = drUtil.listStandbySites();
+        List<Site> existingSites = drUtil.listSites();
         for (Site site : existingSites) {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
             if (state != ClusterInfo.ClusterState.STABLE) {

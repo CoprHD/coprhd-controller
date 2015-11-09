@@ -88,22 +88,24 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         }
 
         // Run this always when volume NO_PUBLIC_ACCESS
-        if (markUnManagedVolumeInactive(unManagedVolume, volume,
-                unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap,
-                taskStatusMap, vplexIngestionMethod)) {
-            _logger.info("All the related replicas and parent has been ingested ",
-                    unManagedVolume.getNativeGuid());
-            // mark inactive if this is not to be exported. Else, mark as
-            // inactive after successful export
-            if (!unManagedVolumeExported) {
-                unManagedVolume.setInactive(true);
-                unManagedVolumesSuccessfullyProcessed.add(unManagedVolume);
+        if (!VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
+            if (markUnManagedVolumeInactive(unManagedVolume, volume,
+                    unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap,
+                    taskStatusMap, vplexIngestionMethod)) {
+                _logger.info("All the related replicas and parent has been ingested ",
+                        unManagedVolume.getNativeGuid());
+                // mark inactive if this is not to be exported. Else, mark as
+                // inactive after successful export
+                if (!unManagedVolumeExported) {
+                    unManagedVolume.setInactive(true);
+                    unManagedVolumesSuccessfullyProcessed.add(unManagedVolume);
+                }
+            } else if (volume != null) {
+                _logger.info(
+                        "Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
+                        unManagedVolume.getNativeGuid());
+                volume.addInternalFlags(INTERNAL_VOLUME_FLAGS);
             }
-        } else if (volume != null) {
-            _logger.info(
-                    "Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
-                    unManagedVolume.getNativeGuid());
-            volume.addInternalFlags(INTERNAL_VOLUME_FLAGS);
         }
 
         return clazz.cast(volume);

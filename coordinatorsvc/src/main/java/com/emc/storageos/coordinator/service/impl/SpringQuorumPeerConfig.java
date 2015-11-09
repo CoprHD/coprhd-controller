@@ -87,17 +87,18 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
             writer.write(Integer.toString(_id));
             writer.close();
         }
-        
+        Properties prop = new Properties();
+        prop.putAll(_properties);
         // Pre-process the properties to parse and remove server.* key/value
         // In future, if _properties is still used somewhere else after init, we need to clone it keep original values
-        preprocessQuorumServers(_properties);
-        parseProperties(_properties);
+        preprocessQuorumServers(prop);
+        parseProperties(prop);
     }
     
     protected void preprocessQuorumServers(Properties zkProp) throws ConfigException {
         log.info("Preprocess quorum server from properties before send to ZK");
 
-        Iterator<Entry<Object, Object>> iterator = _properties.entrySet().iterator();
+        Iterator<Entry<Object, Object>> iterator = zkProp.entrySet().iterator();
         while (iterator.hasNext()) {
             Entry<Object, Object> entry = iterator.next();
             String key = entry.getKey().toString().trim();
@@ -147,7 +148,6 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
         prop.putAll(getProperties());
         prop.putAll(newProp);
         newConfig.setProperties(prop);
-        newConfig.servers.putAll(servers);
         newConfig.init();
         return newConfig;
     }

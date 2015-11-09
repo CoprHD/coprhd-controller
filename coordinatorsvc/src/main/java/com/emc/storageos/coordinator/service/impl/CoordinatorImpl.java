@@ -130,8 +130,6 @@ public class CoordinatorImpl implements Coordinator {
                 _log.warn("Unable to register log4j JMX control", e);
             }
             try {
-                runFromConfig(_config);
-                
                 int serverCnt = _config.getNumberOfParitipants();
                 if (serverCnt == 2 && _config.getPeerType().equals(LearnerType.PARTICIPANT)) {
                     _log.info("Starting a shadow peer to run zk in cluster mode. Aim to bypass a ZK 3.4.6 limitation(standalone participant refuses observers)");
@@ -141,6 +139,7 @@ public class CoordinatorImpl implements Coordinator {
                     SpringQuorumPeerConfig newConfig = _config.createNewConfig(prop, 2);
                     runFromConfig(newConfig);
                 }
+                runFromConfig(_config);
             } catch (Exception ex) {
                 _log.error("Unexpected error when starting Zookeeper peer", ex);
                 throw new IllegalStateException("Fail to start zookeeper", ex);

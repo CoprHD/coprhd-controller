@@ -399,7 +399,8 @@ public enum OperationTypeEnum {
     ADD_STANDBY("ADD STANDBY", "", "operation to add a new standby to ensemble"),
     REMOVE_STANDBY("REMOVE STANDBY", "", "operation to remove an existing standby from ensemble"),
     PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to pause replication between primary and standby"),
-    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to resume replication between primary and standby");
+    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to resume replication between primary and standby"),
+    IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key");
 
     private final String _evType;
     private final String _fail_evType;

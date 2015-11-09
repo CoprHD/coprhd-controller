@@ -35,7 +35,9 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.security.helpers.SecurityUtil;
+import com.emc.storageos.security.ipsec.IPsecManager;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.security.ipsec.IPsecKeyGenerator;
 import org.apache.commons.codec.binary.Base64;
@@ -113,6 +115,9 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     @Autowired
     IPsecConfig ipsecConfig;
+
+    @Autowired
+    IPsecManager ipsecMgr;
 
     @Autowired
     IPsecKeyGenerator ipsecKeyGenerator;
@@ -657,39 +662,22 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public String rotateIPsecKey() {
-
-        String psk = ipsecKeyGenerator.generate();
-        try {
-            ipsecConfig.setPreSharedKey(psk);
-            String version = updateTargetSiteInfo();
-            // TODO: audit log
-
-            _log.info("IPsec Key gets rotated successfully to the version {}", version);
-            return version;
-        } catch (Exception e) {
-            throw SecurityException.fatals.failToRotateIPsecKey(e);
-        }
+        String version = ipsecMgr.rotateKey();
+        auditOp(OperationTypeEnum.IPSEC_KEY_ROTATE, true, null, version);
+        return version;
     }
 
-    private String updateTargetSiteInfo() {
-
-        long vdcConfigVersion = System.currentTimeMillis();
-
-        for (Site site : drUtil.listSites()) {
-            SiteInfo siteInfo;
-            String siteId = site.getUuid();
-
-            SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
-            if (currentSiteInfo != null) {
-                siteInfo = new SiteInfo(vdcConfigVersion, SiteInfo.RECONFIG_IPSEC, currentSiteInfo.getTargetDataRevision(), SiteInfo.ActionScope.VDC);
-            } else {
-                siteInfo = new SiteInfo(vdcConfigVersion, SiteInfo.RECONFIG_IPSEC, SiteInfo.ActionScope.VDC);
-            }
-            coordinator.setTargetInfo(siteId, siteInfo);
-            _log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
-        }
-
-        return Long.toString(vdcConfigVersion);
+    /**
+     * Check the status of IPsec.
+     * @return
+     */
+    @Path("/ipsec")
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    public IPsecStatus getIPsecStatus() {
+        return ipsecMgr.checkStatus();
     }
 
     /***

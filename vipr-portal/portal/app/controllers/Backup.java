@@ -78,7 +78,7 @@ public class Backup extends Controller {
 
     @FlashException(keep = true, referrer = { "create" })
     public static void save(@Valid BackupForm backupForm) {
-        backupForm.validate("name");
+        backupForm.validate("backupForm");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
@@ -101,7 +101,7 @@ public class Backup extends Controller {
         if (ids != null && ids.length > 0) {
             boolean deleteExecuted = false;
             for (String backupName : ids) {
-                BackupUtils.deleteBackup(backupName);
+                BackupUtils.deleteBackup(backupName.replaceAll("~", "\""));
                 deleteExecuted = true;
             }
             if (deleteExecuted == true) {
@@ -153,6 +153,9 @@ public class Backup extends Controller {
 
         public void validate(String fieldname) {
             Validation.valid(fieldname, this);
+            if (this.name.contains("\"")) {
+                Validation.addError(fieldname +".name", "backup.name.invalid");
+            }
         }
 
         public void save() throws ViPRException {

@@ -17,6 +17,7 @@ public class BackupDataTable extends DataTable {
 	private static final int MINIMUM_PROGRESS = 10;
 
 	public BackupDataTable() {
+	    addColumn("id").hidden();
 		addColumn("name");
 		addColumn("creationtime").setCssClass("time").setRenderFunction(
 				"render.localDate");
@@ -49,7 +50,7 @@ public class BackupDataTable extends DataTable {
 		public Integer progress = 0;
 
 		public Backup(BackupSet backup) {
-			id = backup.getName();
+			id = backup.getName().replaceAll("\"","~");
 			name = backup.getName();
 			creationtime = backup.getCreateTime();
 			size = backup.getSize();

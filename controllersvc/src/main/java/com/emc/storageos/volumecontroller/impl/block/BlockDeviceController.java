@@ -80,6 +80,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -535,12 +536,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
 
-        // Create the CG on each system it has yet to be created on. Note that
-        // typically, for a volume creation request in a CG, the system will be
-        // the same for all volumes because all volumes will reside in the CG
-        // on that array. However, it is also called when creating VPLEX distributed
-        // volumes in CGs. In this case, the backend volumes will be on different
-        // arrays and we will need the CG created on both backend arrays.
+        // Create the CG on each system it has yet to be created on. We do not want to create backend 
+        // CG for VPLEX CG.
         List<URI> deviceURIs = new ArrayList<URI>();
         for (VolumeDescriptor descr : volumes) {
             // If the descriptor's associated volume is the backing volume for a RP+VPlex
@@ -548,7 +545,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // create backing array consistency groups for RP+VPlex target volumes. Only
             // source volume.
             Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
-            if (!RPHelper.isAssociatedToRpVplexType(volume, _dbClient, PersonalityTypes.TARGET, PersonalityTypes.METADATA)) {
+            if (!RPHelper.isAssociatedToRpVplexType(volume, _dbClient, PersonalityTypes.TARGET, PersonalityTypes.METADATA) &&
+                    !VPlexUtil.isVplexBackendVolume(volume, _dbClient)) {
                 URI deviceURI = descr.getDeviceURI();
                 if (!deviceURIs.contains(deviceURI)) {
                     deviceURIs.add(deviceURI);

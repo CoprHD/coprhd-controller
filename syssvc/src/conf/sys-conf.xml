@@ -397,6 +397,4 @@
     <bean id="apiNotifier" class="com.emc.storageos.systemservices.impl.property.APINotifier">
         <property name="coordinator" ref="coordinator"/>
     </bean>
-
-    <bean id="ipsecMonitor" class="com.emc.storageos.systemservices.impl.security.IPSecMonitor" />
 </beans>

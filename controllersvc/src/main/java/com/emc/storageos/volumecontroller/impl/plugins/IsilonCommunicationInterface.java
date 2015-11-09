@@ -1219,7 +1219,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         if(tempUnManagedNfsShareACL!=null && !tempUnManagedNfsShareACL.isEmpty()){
                         	unManagedFs.setHasNFSAcl(true);
                         }
-
                         for(UnManagedNFSShareACL unManagedNFSACL : tempUnManagedNfsShareACL){
                         	_log.info("Unmanaged File share acls : {}", unManagedNFSACL);
                         	String fsShareNativeId = unManagedNFSACL.getFileSystemNfsACLIndex();
@@ -1240,13 +1239,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         		oldunManagedNfsShareACLList.add(existingNfsACL);
                         	}
                         }
-
                         
                         // get umcifs & ACLs for given filesystem
                         UnManagedCifsShareACL existingACL = null;
                         List<UnManagedCifsShareACL> tempunManagedCifsShareACL = new ArrayList<UnManagedCifsShareACL>();
-                        
-                       
                         int noOfShares = 0;
 
                         // get all shares for given file system path

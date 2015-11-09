@@ -500,7 +500,6 @@ public class UnManagedFilesystemService extends TaggedResource {
                                 inActiveUnManagedShareCifs.add(umCifsAcl);
                             }
                         }
-                        
                     }
                 }
                 
@@ -860,7 +859,6 @@ public class UnManagedFilesystemService extends TaggedResource {
 
     }
     
-    
     /**
      * copy unmanaged nfs share into new nfs share acls
      * 
@@ -868,7 +866,6 @@ public class UnManagedFilesystemService extends TaggedResource {
      * @param shareACLList
      * @param fileshare
      */
-
 	private void createNFSACL(UnManagedNFSShareACL origACL,
 			List<NFSShareACL> shareACLList, FileShare fileshare) {
 

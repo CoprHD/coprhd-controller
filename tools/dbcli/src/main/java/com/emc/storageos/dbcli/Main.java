@@ -331,14 +331,24 @@ public class Main {
                 }
 
                 if (runRepair) {
-                    // Run the repair stub
-                    System.out.printf("Going to run DbRepairStub %s for expected DB version %s\nWith parameters %s:\n",
-                            repairStub.getClass().getSimpleName(), repairStub.getExpectedDbVersion(),
-                            Joiner.on(',').join(parameters.entrySet()));
-                    System.out.printf(repairStub.getDescription());
-                    boolean success = repairStub.run(dbCli.getDbClient(), parameters, commit);
-                    if (success && !commit) {
-                        System.out.println("Dry run: no update to the DB was made");
+                    // Check the schema version
+                    String expectedDbVersion = repairStub.getExpectedDbVersion();
+                    String actualDbVersion = dbCli.getDbClient().getSchemaVersion();
+                    System.out.printf("Schema version for DB is '%s' and expecting '%s' for the DB repair.%n",
+                            actualDbVersion, expectedDbVersion);
+                    if (actualDbVersion.trim().matches(expectedDbVersion.trim())) {
+                        // Schema version checks out - run the repair stub
+                        System.out.printf("Going to run DbRepairStub %s.%n", repairStub.getClass().getSimpleName());
+                        if (!parameters.isEmpty()) {
+                            System.out.printf("Execution parameters:%n%s", Joiner.on('\n').join(parameters.entrySet()));
+                        }
+                        System.out.println(repairStub.getDescription());
+                        boolean success = repairStub.run(dbCli.getDbClient(), parameters, commit);
+                        if (success && !commit) {
+                            System.out.println("Dry run complete. No update to the DB was made.");
+                        }
+                    } else {
+                        System.out.println("DB version is not expected for this DB repair, skipping.");
                     }
                 }
                 break;

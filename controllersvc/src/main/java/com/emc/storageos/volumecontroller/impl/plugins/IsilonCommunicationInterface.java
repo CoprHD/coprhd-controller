@@ -334,7 +334,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         long totalFsCount = 0L;
         String resumeToken = null;
         String zoneName = accessZone.getName();
-        String baseDirPath = accessZone.getPath();
+        String baseDirPath = accessZone.getPath() + "/";
 
         // filesystems count & Capacity
         IsilonList<IsilonSmartQuota> quotas = null;
@@ -349,9 +349,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         totalFsCount++;
                     }
                 }
-                // sum snap cap and add to fs capacity
-                if (provisioned > GB_IN_BYTES) {
-                    provisioned = (provisioned / GB_IN_BYTES);
+              //sum snap cap and add to fs capacity
+                if (provisioned >= GB_IN_BYTES) {
+                    provisioned = (provisioned/GB_IN_BYTES);
                     totalProvCap = totalProvCap + provisioned;
                     provisioned = 0L;
                 }
@@ -359,22 +359,59 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
         } while (resumeToken != null);
 
-        // snapshots count & snap capacity
+        //get the base dir paths
+        List<String> baseDirPaths = null;
+        if (baseDirPath.equals(IFS_ROOT)) {
+            List<IsilonAccessZone> isilonAccessZoneList = isilonApi.getAccessZones(resumeToken);
+            baseDirPaths = new ArrayList<String>();
+            for (IsilonAccessZone isiAccessZone: isilonAccessZoneList) {
+                if (isiAccessZone.isSystem() == false) {
+                    baseDirPaths.add(isiAccessZone.getPath() + "/");
+                }
+            }
+        }
+        //snapshots count & snap capacity
         resumeToken = null;
         IsilonList<IsilonSnapshot> snapshots = null;
         do {
-            snapshots = isilonApi.listSnapshots(resumeToken, baseDirPath);
+            snapshots = isilonApi.listSnapshots(resumeToken);
             if (snapshots != null && !snapshots.getList().isEmpty()) {
-                for (IsilonSnapshot isiSnap : snapshots.getList()) {
-                    provisioned = provisioned + Long.valueOf(isiSnap.getSize());
-                    totalFsCount++;
+                if (!baseDirPath.equals(IFS_ROOT)) { //if it not system access zone then compare with fs path with base dir path
+                    _log.info("access zone base directory path {}", baseDirPath);
+                    for (IsilonSnapshot isilonSnap: snapshots.getList()) {
+                        if (isilonSnap.getPath().startsWith(baseDirPath)) {
+                            provisioned = provisioned + Long.valueOf(isilonSnap.getSize());
+                            totalFsCount ++;
+                        }
+                    }
+                } else {//process the snapshots for system access zone
+                    boolean snapSystem = true;
+                    for (IsilonSnapshot isilonSnap: snapshots.getList()) {
+                        snapSystem = true;
+                        //first check fs path with user defined AZ's paths
+                        if (baseDirPaths != null && !baseDirPaths.isEmpty()) {
+                            for (String basePath : baseDirPaths) {
+                                if (isilonSnap.getPath().startsWith(basePath)) {
+                                    snapSystem = false;
+                                    break;
+                                }
+                            }
+                        }
+                        //if it not matched with any user define AZ's then it is belongs system AZ
+                        if (snapSystem) {
+                            provisioned = provisioned + Long.valueOf(isilonSnap.getSize());
+                            totalFsCount ++;
+                            _log.info("System access zone base directory path: {}", accessZone.getPath());
+
+                        }
+                    }
                 }
                 resumeToken = snapshots.getToken();
-                // sum snap cap and add to fs capacity
-                if (provisioned > GB_IN_BYTES) {
-                    provisioned = (provisioned / GB_IN_BYTES);
+                //sum snap cap and add to fs capacity
+                if (provisioned >= GB_IN_BYTES) {
+                    provisioned = (provisioned/GB_IN_BYTES);
                     totalProvCap = totalProvCap + provisioned;
-                    provisioned = 0L;
+                    provisioned	 = 0L;
                 }
             }
         } while (resumeToken != null);

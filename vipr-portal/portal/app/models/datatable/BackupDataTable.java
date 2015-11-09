@@ -17,7 +17,6 @@ public class BackupDataTable extends DataTable {
 	private static final int MINIMUM_PROGRESS = 10;
 
 	public BackupDataTable() {
-	    addColumn("id").hidden();
 		addColumn("name");
 		addColumn("creationtime").setCssClass("time").setRenderFunction(
 				"render.localDate");

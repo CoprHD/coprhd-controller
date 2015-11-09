@@ -93,13 +93,17 @@ _start_services() {
     fi
 
     /etc/storageos/ipchecktool --panic
+    _quickstart_services
+} 
+
+_quickstart_services() {
     echo -n "Starting @product_brand@ ${STORAGEOS_VARIANT} services "
     for svc in @systemd_storageos@ ; do
         _startsvc ${svc}
         echo -n "."
     done
     echo " Done"
-} 
+}
  
 # Stop services
 _stop_services() {
@@ -122,6 +126,11 @@ start)
     STORAGEOS_VARIANT=""
     _set_variant
     _start_services
+    ;;
+quickstart)
+    STORAGEOS_VARIANT=""
+    _set_variant
+    _quickstart_services
     ;;
 startcoverage)
     STORAGEOS_VARIANT="-coverage"

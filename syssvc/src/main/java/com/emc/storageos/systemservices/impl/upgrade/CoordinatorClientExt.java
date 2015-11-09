@@ -15,10 +15,17 @@ import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO_L
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterInfo;
 import static com.emc.storageos.coordinator.client.model.Constants.DBSVC_NAME;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,11 +33,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
+import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.common.DbConfigConstants;
@@ -38,8 +48,11 @@ import com.emc.storageos.services.util.PlatformUtils;
 
 import org.apache.curator.utils.EnsurePath;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.client.ZooKeeperSaslClient;
 import org.apache.zookeeper.data.Stat;
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,14 +62,17 @@ import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
+import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.model.CoordinatorClassInfo;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
@@ -66,11 +82,16 @@ import com.emc.storageos.model.property.PropertyMetadata;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
+import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.SysSvcBeaconImpl;
+import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.vipr.model.sys.ClusterInfo;
+import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.google.common.collect.ImmutableSet;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 public class CoordinatorClientExt {
@@ -80,7 +101,11 @@ public class CoordinatorClientExt {
             new ImmutableSet.Builder<String>().add("sys").add("control").build();
     private static final Set<String> EXTRA_NODE_ROLES =
             new ImmutableSet.Builder<String>().add("sys").add("object").build();
-
+    private static final int COORDINATOR_PORT = 2181;
+    
+    private static final String URI_INTERNAL_GET_CLUSTER_INFO = "/control/internal/cluster/info";
+    private static final int COODINATOR_MONITORING_INTERVAL = 60; // in seconds
+    
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
     private ServiceImpl _svc;
@@ -95,6 +120,8 @@ public class CoordinatorClientExt {
     // EX: syssvc-1, syssvc-2, syssvc-10_247_100_15
     private String mySvcId = null;
     private int _nodeCount = 0;
+    
+    
     private DbServiceStatusChecker statusChecker = null;
 
     public CoordinatorClient getCoordinatorClient() {
@@ -141,7 +168,7 @@ public class CoordinatorClientExt {
     public int getNodeCount() {
         return _nodeCount;
     }
-
+    
     public void setStatusChecker(DbServiceStatusChecker checker) {
         statusChecker = checker;
     }
@@ -1366,6 +1393,144 @@ public class CoordinatorClientExt {
 
         } catch (Exception e) {
             _log.info("Fail to get the cluster information " + e.getMessage());
+        }
+        return null;
+    }
+    
+    /**
+     * Initialization method. On standby site, start a thread to monitor local coordinatorsvc status
+     * 
+     * @throws Exception
+     */
+    public void start() throws Exception {
+        DrUtil drUtil = new DrUtil(_coordinator);
+        if (drUtil.isStandby()) {
+            _log.info("Start monitoring local coordinatorsvc status on standby site");
+            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+            exe.scheduleAtFixedRate(coordinatorSvcMonitor, 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+        }
+    }
+    
+    private Runnable coordinatorSvcMonitor = new Runnable(){
+        public void run() {
+            String state = getLocalCoordinatorMode();
+            if ("observer".equals(state)) {
+                return; // expected situation. Standby zookeeper should be observer state
+            }
+            _log.info("Current zookeeper mode {}", state);
+            LocalRepository localRepository = LocalRepository.getInstance();
+            if ("read-only".equals(state)) {
+                _log.info("Standby is in read-only mode due to connection loss with active site. Reconfig it to writable");
+                try {
+                    localRepository.reconfigCoordinator("switchrw");
+                    localRepository.restart("coordinatorsvc");
+                } catch (Exception ex) {
+                    _log.warn("Unexpected errors during switching back to zk observer. Try again later", ex);
+                }
+            } else {
+                if (isActiveSiteStable()) {
+                    _log.info("Active site is back. Reconfig coordinator to observer mode");
+                    try {
+                        DistributedDoubleBarrier barrier = _coordinator.getDistributedDoubleBarrier("/config/drSwitchToZkObserver", getNodeCount());
+                        boolean allEntered = barrier.enter(120, TimeUnit.SECONDS);
+                        if (allEntered) {
+                            localRepository.reconfigCoordinator("switchro");
+                            localRepository.reload("reset-coordinator");
+                        }
+                    } catch (Exception ex) {
+                        _log.warn("Unexpected errors during switching back to zk observer. Try again later", ex);
+                    }
+                } else {
+                    _log.info("Active site is unavailable");
+                }
+            }
+        }
+    };
+    
+    /**
+     * Call syssvc API to check if remote site is stable or not
+     * 
+     * @return true for stable, otherwise false
+     */
+    private boolean isActiveSiteStable() {
+        DrUtil drUtil = new DrUtil(_coordinator);
+        Site primary = drUtil.getSite(drUtil.getPrimarySiteId());
+        
+        // Check alive coordinatorsvc on primary site
+        Collection<String> nodeAddrList = primary.getHostIPv4AddressMap().values();
+        if (nodeAddrList.isEmpty()) {
+            nodeAddrList = primary.getHostIPv6AddressMap().values();
+        }
+        boolean isLeaderAlive = false;
+        for (String nodeAddr : nodeAddrList) {
+            if (isCoordinatorAlive(nodeAddr)){
+                isLeaderAlive = true;
+                break;
+            }
+        }
+        if (!isLeaderAlive) {
+            _log.info("No zookeeper leader alive");
+            return false;
+        }
+        
+        // check if cluster state is stable
+        String vip = primary.getVip();
+        int port = _svc.getEndpoint().getPort();
+        String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, vip, port);
+        try {
+            ClusterInfo clusterInfo = SysClientFactory.getSysClient(URI.create(baseNodeURL)).get(URI.create(URI_INTERNAL_GET_CLUSTER_INFO), ClusterInfo.class, null);
+            _log.info("Get cluster info from active site {}", clusterInfo.getCurrentState());
+            if (ClusterState.STABLE.equals(ClusterState.valueOf(clusterInfo.getCurrentState()))) {
+                return true;
+            }
+        } catch (Exception ex) {
+            _log.warn("Encounter error when call Sys API on active site", ex);
+        }
+        return false;
+    }
+    
+    private boolean isCoordinatorAlive(String nodeIP) {
+        try {
+            Socket sock = new Socket(nodeIP, 2888);
+            sock.close();
+            return true;
+        } catch(IOException ex) {
+            _log.warn("Unexpected IO errors when checking local coordinator state", ex);
+        } 
+        return false;
+    }
+    
+    /**
+     * Use Zookeeper 4 letter command to check status of local coordinatorsvc. The return value could 
+     * be one of the following - follower, leader, observer, read-only
+     * 
+     * @return zookeeper mode
+     */
+    private String getLocalCoordinatorMode() {
+        Socket sock = null;
+        try {
+            sock = new Socket(getMyNodeId(), COORDINATOR_PORT);
+            OutputStream output = sock.getOutputStream();
+            output.write("mntr".getBytes());
+            sock.shutdownOutput();
+            
+            BufferedReader input =
+                new BufferedReader(new InputStreamReader(sock.getInputStream()));
+            String answer;
+            while ((answer = input.readLine()) != null) {
+                if (answer.startsWith("zk_server_state")){
+                    String state = StringUtils.trim(answer.substring("zk_server_state".length()));
+                    _log.info("Get current zookeeper mode {}", state);
+                    return state;
+                }
+            }
+            input.close();
+        } catch(IOException ex) {
+            _log.warn("Unexpected IO errors when checking local coordinator state", ex);
+        } finally {
+            try {
+                if (sock != null) sock.close();
+            } catch (Exception ex) {}
         }
         return null;
     }

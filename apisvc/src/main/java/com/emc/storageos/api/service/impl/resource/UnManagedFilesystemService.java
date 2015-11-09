@@ -599,22 +599,21 @@ public class UnManagedFilesystemService extends TaggedResource {
             _dbClient.persistObject(unManagedFileSystems);
             
             // Step 8.1 : Update NFS Acls in DB & Add new ACLs
-            i=0;
-            for(NFSShareACL nfsAcl: fsNfsShareAcls){
-                ++i;
-                _logger.info("{} --> Saving New NFS ACL to DB {}", i, nfsAcl);            	
-            }
             if (fsNfsShareAcls != null && !fsNfsShareAcls.isEmpty()) {
+                i=0;
+                for(NFSShareACL nfsAcl: fsNfsShareAcls){
+                    ++i;
+                    _logger.info("{} --> Saving New NFS ACL to DB {}", i, nfsAcl);            	
+                }
                 _dbClient.createObject(fsNfsShareAcls);
             }
-            
             // Step 9.1 : Update the same in DB & clean ingested UnManagedNFSShareACLs
             i = 0;
             for (UnManagedNFSShareACL nfsAcl : inActiveUnManagedShareNfs) {
                 ++i;
                 _logger.info("{} Updating UnManagedACL DB as InActive TRUE {}", nfsAcl);
             }
-            _dbClient.persistObject(inActiveUnManagedShareNfs);
+            _dbClient.updateObject(inActiveUnManagedShareNfs);
 
             // record the events after they have been created
             for (FileShare filesystem : filesystems) {
@@ -689,6 +688,11 @@ public class UnManagedFilesystemService extends TaggedResource {
         return new ArrayList<UnManagedCifsShareACL>();
     }
     
+	/**
+	 * Query DB for UnManaged FileSystem's NFS ACL
+	 * @param fs
+	 * @return
+	 */
     private List<UnManagedNFSShareACL> queryDBNfsShares(UnManagedFileSystem fs)
     {
         _logger.info("Querying All Cifs Share ACLs Using FsId {}", fs.getId());
@@ -859,48 +863,55 @@ public class UnManagedFilesystemService extends TaggedResource {
      * @param fileshare
      */
 
-    private void createNFSACL(UnManagedNFSShareACL origACL, List<NFSShareACL> shareACLList, FileShare fileshare) {
+	private void createNFSACL(UnManagedNFSShareACL origACL,
+			List<NFSShareACL> shareACLList, FileShare fileshare) {
 
-        NFSShareACL shareACL = new NFSShareACL();
-        
-        // user, permission, permission type
-        
-        shareACL.setFileSystemPath(origACL.getFileSystemPath());
-        shareACL.setDomain(origACL.getDomain());
-        shareACL.setUser(origACL.getUser());
-        shareACL.setType(origACL.getType());
-        shareACL.setPermissionType(origACL.getPermissionType());
-        
+		NFSShareACL shareACL = new NFSShareACL();
 
-        String user = origACL.getUser();
-        if (user != null) {
-            shareACL.setUser(user);
-        }
+		// user, permission, permission type
 
-        String permissionText = null;
-        switch (origACL.getPermissions().toLowerCase()) {
-            case "read":
-                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_READ;
-                
-                break;
-            case "write":
-                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_WRITE;
-                break;
-            case "execute":
-                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE;
-                break;
-        }
-        shareACL.setPermissions(permissionText);
-        
-        shareACL.setFileSystemId(fileshare.getId());
-        shareACL.setId(URIUtil.createId(NFSShareACL.class));
+		shareACL.setFileSystemPath(origACL.getFileSystemPath());
+		shareACL.setDomain(origACL.getDomain());
+		shareACL.setUser(origACL.getUser());
+		shareACL.setType(origACL.getType());
+		shareACL.setPermissionType(origACL.getPermissionType());
+		String user = origACL.getUser();
+		if (user != null) {
+			shareACL.setUser(user);
+		}
+		StringBuilder permissionText = new StringBuilder();
+		boolean isFirstPermissionSet=false;
+		for (String tempPermission : origACL.getPermissions().toLowerCase()
+				.split(",")) {
 
-        // Add new acl into ACL list
-        shareACLList.add(shareACL);
-        _logger.info("share ACLs details {}", shareACL.toString());
+			switch (tempPermission) {
+			case "read":
+				tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_READ;
 
-    }
+				break;
+			case "write":
+				tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_WRITE;
+				break;
+			case "execute":
+				tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE;
+				break;
+			}
+			
+			if(!isFirstPermissionSet){
+				permissionText.append(tempPermission);
+				isFirstPermissionSet=true;
+			}else{
+				permissionText.append(","+tempPermission);
+			}
+		}
+		shareACL.setPermissions(permissionText.toString());
+		shareACL.setFileSystemId(fileshare.getId());
+		shareACL.setId(URIUtil.createId(NFSShareACL.class));
+		// Add new acl into ACL list
+		shareACLList.add(shareACL);
+		_logger.info("share ACLs details {}", shareACL.toString());
 
+	}
     
 
     /**

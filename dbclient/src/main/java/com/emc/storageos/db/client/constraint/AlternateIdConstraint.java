@@ -617,12 +617,12 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getSnapshotNfsACLConstraint(String snapshotNfsACLIndex) {
             DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("snapshotShareACLIndex"), snapshotNfsACLIndex);
+            return new AlternateIdConstraintImpl(doType.getColumnField("snapshotNfsACLIndex"), snapshotNfsACLIndex);
         }
 
         public static AlternateIdConstraint getFileSystemNfsACLConstraint(String fileSystemNfsACLIndex) {
             DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemShareACLIndex"), fileSystemNfsACLIndex);
+            return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemNfsACLIndex"), fileSystemNfsACLIndex);
         }
     }
 

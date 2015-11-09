@@ -1434,7 +1434,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
          // save old acls
             if (!oldunManagedNfsShareACLList.isEmpty()) {
                 _log.info("Saving Number of NFS UnManagedFileExportRule(s) {}", oldunManagedNfsShareACLList.size());
-                _dbClient.persistObject(oldunManagedNfsShareACLList);
+                _dbClient.updateObject(oldunManagedNfsShareACLList);
                 oldunManagedNfsShareACLList.clear();
             }
             
@@ -1819,7 +1819,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
     
     /**
-     * get UnManaged Cifs Shares and their ACLs
+     * get UnManaged NFS Shares and their ACLs
      * @param unManagedFileSystem
      * @param unManagedNfsACLList
      * @param storagePort

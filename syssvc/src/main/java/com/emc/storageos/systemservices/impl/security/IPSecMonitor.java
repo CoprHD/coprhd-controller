@@ -2,6 +2,7 @@ package com.emc.storageos.systemservices.impl.security;
 
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -68,9 +69,9 @@ public class IPSecMonitor implements Runnable {
 
                 Map<String, String> props = null;
 
-                // if the node is in the same site as local node, through ssh to get its ipsec props,
+                // if the node is in the same vdc as local node, through ssh to get its ipsec props,
                 // else through https REST API to get ipsec props.
-                if (isSameSiteAsLocalNode(node)) {
+                if (isSameVdcAsLocalNode(node)) {
                     props = LocalRepository.getInstance().getIpsecProperties(node);
                 } else {
                     props = getIpsecPropsThroughHTTPS(node);
@@ -94,8 +95,22 @@ public class IPSecMonitor implements Runnable {
     }
 
 
-    private boolean isSameSiteAsLocalNode(String node) {
-        return true;
+    private boolean isSameVdcAsLocalNode(String node) {
+        PropertyInfoExt vdcProps = LocalRepository.getInstance().getVdcPropertyInfo();
+        String myVdcId = vdcProps.getProperty("vdc_myid");
+        String nodeKey = null;
+        for (String key : vdcProps.getAllProperties().keySet()) {
+            if (vdcProps.getProperty(key).equals(node)) {
+                nodeKey = key;
+                break;
+            }
+        }
+
+        if (nodeKey != null && nodeKey.contains(myVdcId)) {
+            return true;
+        }
+
+        return false;
     }
 
     private Map<String, String>  getIpsecPropsThroughHTTPS(String node) {

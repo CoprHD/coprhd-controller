@@ -102,7 +102,7 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr1", "10.247.101.111");
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
-        standbySite1.setState(SiteState.PRIMARY);
+        standbySite1.setState(SiteState.STANDBY_PAUSED);
         standbySite1.setVdcShortId("vdc1");
         standbySite1.setNodeCount(1);
 
@@ -289,12 +289,11 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testPauseStandby() {
         try {
-            // primary site
-            drService.pauseStandby(standbySite1.getUuid());
+            drService.pauseStandby(primarySite.getUuid());
         } catch (APIException e) {
             assertEquals(e.getServiceCode(), ServiceCode.API_BAD_REQUEST);
         }
-        
+
         try {
             drService.pauseStandby(NONEXISTENT_ID);
         } catch (APIException e) {
@@ -304,16 +303,42 @@ public class DisasterRecoveryServiceTest {
         doNothing().when(coordinator).persistServiceConfiguration(any(Configuration.class));
         doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
         doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
-        
+
         try {
             DbClientContext mockDBClientContext = mock(DbClientContext.class);
             doNothing().when(mockDBClientContext).removeDcFromStrategyOptions(any(String.class));
             doReturn(mockDBClientContext).when(dbClientMock).getLocalContext();
             doReturn(mockDBClientContext).when(dbClientMock).getGeoContext();
-            
+
             SiteRestRep response = drService.pauseStandby(standbySite2.getUuid());
-            
+
             assertEquals(response.getState(), SiteState.STANDBY_PAUSED.toString());
+        } catch (Exception e) {
+            fail();
+        }
+    }
+
+    @Test
+    public void testResumeStandby() {
+        try {
+            drService.pauseStandby(primarySite.getUuid());
+        } catch (APIException e) {
+            assertEquals(e.getServiceCode(), ServiceCode.API_BAD_REQUEST);
+        }
+
+        try {
+            drService.pauseStandby(NONEXISTENT_ID);
+        } catch (APIException e) {
+            assertEquals(e.getServiceCode(), ServiceCode.API_PARAMETER_INVALID);
+        }
+
+        doNothing().when(coordinator).persistServiceConfiguration(any(Configuration.class));
+        doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
+        doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
+
+        try {
+            SiteRestRep response = drService.pauseStandby(standbySite1.getUuid());
+            assertEquals(response.getState(), SiteState.STANDBY_SYNCING.toString());
         } catch (Exception e) {
             fail();
         }
@@ -515,12 +540,12 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testGetSiteError() {
         SiteErrorResponse siteError = drService.getSiteError("site-uuid-1");
-        
+
         assertEquals(0, siteError.getCreationTime());
         assertEquals(null, siteError.getErrorMessage());
-        
+
         standbySite2.setState(SiteState.STANDBY_ERROR);
-        
+
         SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(20));
         doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);
         

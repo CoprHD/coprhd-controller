@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.dbutils;
+package com.emc.storageos.db.generator;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -17,12 +17,12 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 
-public class DbSchemaCreatorProviderImpl implements SeedProvider {
-    private static final Logger _logger = LoggerFactory.getLogger(DbSchemaCreatorProviderImpl.class);
+public class DbSchemaGeneratorProviderImpl implements SeedProvider {
+    private static final Logger _logger = LoggerFactory.getLogger(DbSchemaGeneratorProviderImpl.class);
 
     CoordinatorClientInetAddressMap inetAddressMap;
 
-    public DbSchemaCreatorProviderImpl(Map<String, String> args) throws Exception {
+    public DbSchemaGeneratorProviderImpl(Map<String, String> args) throws Exception {
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
         inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
         if (inetAddressMap == null) {

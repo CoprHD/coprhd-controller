@@ -58,7 +58,15 @@ task dbScripts(type: Copy) {
     fileMode = 0755
 }
 
+task generateSchemaFiles(type: JavaExec, dependsOn: compileTestJava) {
+    main = 'com.emc.storageos.db.generator.DbSchemaGenerator'
+    jvmArgs '-Dlog4j.configuration=dbgenerator-log4j.properties'
+    maxHeapSize "512m"
+    classpath = sourceSets.test.runtimeClasspath
+}
+
 project.tasks['scripts'].dependsOn("dbScripts")
+assemble.dependsOn generateSchemaFiles
 
 // Note these tests are run with JavaExec. The springloaded tool and Javassist causes issues in gradle's test framework
 // The following manually run single tests directly using JUnit

@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.dbutils;
+package com.emc.storageos.db.generator;
 
 import java.io.IOException;
 
@@ -17,8 +17,8 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import com.emc.storageos.db.server.impl.CassandraConfigLoader;
 import com.emc.storageos.db.server.impl.SchemaUtil;
 
-public class DbSchemaCreator {
-    private final static Logger log = LoggerFactory.getLogger(DbSchemaCreator.class);
+public class DbSchemaGenerator {
+    private final static Logger log = LoggerFactory.getLogger(DbSchemaGenerator.class);
 
     static void usage() {
         log.info("DbSchemaCreator, prepopulate db schemas at build time to reduce system boot time ");
@@ -27,7 +27,7 @@ public class DbSchemaCreator {
     public static void main(String[] args) throws IOException {
         log.info("Starting Cassandra Daemon...");
         
-        System.setProperty("cassandra.config", "dbcreator-conf.yaml");
+        System.setProperty("cassandra.config", "dbgenerator-conf.yaml");
         System.setProperty("cassandra.config.loader", CassandraConfigLoader.class.getName());
         
         CassandraDaemon daemon = new CassandraDaemon();
@@ -36,7 +36,7 @@ public class DbSchemaCreator {
         
         log.info("Starting to create db schemas.");
         System.out.println("Initializing schema util ...");
-        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/dbcreator-conf.xml");
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/dbgenerator-conf.xml");
         
         SchemaUtil schemaUtil = (SchemaUtil) ctx.getBean("dbschemautil");
         schemaUtil.scanAndSetupDb(false);

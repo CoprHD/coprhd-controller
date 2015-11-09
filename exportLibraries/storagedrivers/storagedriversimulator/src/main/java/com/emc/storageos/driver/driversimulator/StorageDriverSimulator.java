@@ -1,4 +1,4 @@
-package com.storageos.storagedriver.testdriver;
+package com.emc.storageos.driver.driversimulator;
 
 import java.util.HashSet;
 import java.util.List;
@@ -29,12 +29,13 @@ import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 
-public class TestStorageDriver extends AbstractStorageDriver {
+public class StorageDriverSimulator extends AbstractStorageDriver {
 
-    private static final Logger _log = LoggerFactory.getLogger(TestStorageDriver.class);
-    private static final String DRIVER_NAME = "TestStorageDrover";
+    private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
+    private static final String DRIVER_NAME = "SimulatorDriver";
+    private static final String STORAGE_DEVICE_ID = "PureStorage-x123";
 
-    public TestStorageDriver(Registry driverRegistry, LockManager lockManager) {
+    public StorageDriverSimulator(Registry driverRegistry, LockManager lockManager) {
         super(driverRegistry, lockManager);
     }
 
@@ -73,13 +74,13 @@ public class TestStorageDriver extends AbstractStorageDriver {
                 storageSystem.getIpAddress());
 
         storageSystem.setSerialNumber("123456789");
-        storageSystem.setNativeId("PureStorage-x123");
+        storageSystem.setNativeId(STORAGE_DEVICE_ID);
         storageSystem.setFirmwareVersion("2.4-3.12");
         storageSystem.setIsSupportedVersion(true);
 
         String taskType = "discover-storage-system";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new TestDriverTask(taskId);
+        DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         _log.info("StorageDriver: discoverStorageSystem information for storage system {}, nativeId {} - end",
                 storageSystem.getIpAddress(), storageSystem.getNativeId());
@@ -94,9 +95,9 @@ public class TestStorageDriver extends AbstractStorageDriver {
         for (int i =0; i <= 2; i++ ) {
             StoragePool pool = new StoragePool();
             pool.setNativeId("pool-12345-" + i);
+            pool.setStorageSystemId(storageSystem.getNativeId());
+            _log.info("Discovered Pool {}, storageSystem {}", pool.getNativeId(), pool.getStorageSystemId());
 
-            _log.info("Discovered Pool {}", pool.getNativeId());
-            pool.setNativeId("pool-12345-" + i);
             pool.setDeviceLabel("er-pool-12345" + i);
             pool.setPoolName(pool.getDeviceLabel());
             Set<StoragePool.Protocols> protocols = new HashSet<>();
@@ -130,7 +131,7 @@ public class TestStorageDriver extends AbstractStorageDriver {
 
         String taskType = "discover-storage-pools";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new TestDriverTask(taskId);
+        DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         _log.info("StorageDriver: discoverStoragePools information for storage system {}, nativeId {} - end",
                 storageSystem.getIpAddress(), storageSystem.getNativeId());
@@ -141,11 +142,24 @@ public class TestStorageDriver extends AbstractStorageDriver {
     public DriverTask getStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
         _log.info("Discovery of storage ports for storage system {} .", storageSystem.getNativeId());
 
-        // TODO
+        // Create ports
+        for (int i =0; i <= 2; i++ ) {
+            StoragePort port = new StoragePort();
+            port.setNativeId("pool-12345-" + i);
+            port.setStorageSystemId(storageSystem.getNativeId());
+            _log.info("Discovered Port {}, storageSystem {}", port.getNativeId(), port.getStorageSystemId());
+
+            port.setDeviceLabel("er-port-12345" + i);
+            port.setPortName(port.getDeviceLabel());
+            port.setNetworkId("50:FE:FE:FE:FE:FE:FE:0" + i);
+            port.setTransportType(StoragePort.TransportType.FC);
+            port.setOperationalStatus(StoragePort.OperationalStatus.OK);
+            storagePorts.add(port);
+        }
 
         String taskType = "discover-storage-ports";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new TestDriverTask(taskId);
+        DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         _log.info("StorageDriver: discoverStoragePorts information for storage system {}, nativeId {} - end",
                 storageSystem.getIpAddress(), storageSystem.getNativeId());

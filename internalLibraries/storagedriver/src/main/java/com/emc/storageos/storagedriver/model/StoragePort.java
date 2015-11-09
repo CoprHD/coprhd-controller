@@ -7,13 +7,13 @@ import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 public class StoragePort extends StorageObject {
 
     // Defines the supported port types.
-    public static enum PortType {
+    public enum PortType {
         frontend,
         backend,
         Unknown
     };
 
-    public static enum TransportType {
+    public enum TransportType {
         FC,         // fibre channel networks
         IP,         // IP networks for iSCSI, NFS, CIFS
         Ethernet,   // Ethernet networks for FCoE
@@ -31,7 +31,7 @@ public class StoragePort extends StorageObject {
     private String portNetworkId;
 
     // storage device this storage port belongs to
-    private String storageDeviceId;
+    private String storageSystemId;
 
     // port type
     private TransportType transportType;
@@ -83,12 +83,12 @@ public class StoragePort extends StorageObject {
         this.portNetworkId = portNetworkId;
     }
 
-    public String getStorageDeviceId() {
-        return storageDeviceId;
+    public String getStorageSystemId() {
+        return storageSystemId;
     }
 
-    public void setStorageDeviceId(String storageDeviceId) {
-        this.storageDeviceId = storageDeviceId;
+    public void setStorageSystemId(String storageSystemId) {
+        this.storageSystemId = storageSystemId;
     }
 
     public String getTransportType() {

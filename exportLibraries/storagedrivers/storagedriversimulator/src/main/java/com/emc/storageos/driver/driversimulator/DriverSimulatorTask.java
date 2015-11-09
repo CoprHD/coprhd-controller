@@ -1,10 +1,10 @@
-package com.storageos.storagedriver.testdriver;
+package com.emc.storageos.driver.driversimulator;
 
 import com.emc.storageos.storagedriver.DriverTask;
 
-public class TestDriverTask extends DriverTask {
+public class DriverSimulatorTask extends DriverTask {
 
-    public TestDriverTask(String taskId) {
+    public DriverSimulatorTask(String taskId) {
         super(taskId);
     }
 

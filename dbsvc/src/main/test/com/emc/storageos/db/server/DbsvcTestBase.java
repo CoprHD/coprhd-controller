@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
+import com.emc.storageos.db.client.impl.HostSupplierImpl;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
@@ -194,12 +195,7 @@ public class DbsvcTestBase {
         util.setCoordinator(_coordinator);
         util.setVdcShortId("vdc1");
 
-        DbClientContext dbctx = new DbClientContext() {
-            @Override
-            public int getPort() {
-                return 9160;
-            }
-        };
+        DbClientContext dbctx = new MockDbClientContext();
         dbctx.setClusterName("Test");
         dbctx.setKeyspaceName("Test");
         util.setClientContext(dbctx);
@@ -289,7 +285,7 @@ public class DbsvcTestBase {
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
 
-        DbClientContext localCtx = new DbClientContext();
+        DbClientContext localCtx = new MockDbClientContext();
         localCtx.setClusterName("Test");
         localCtx.setKeyspaceName("Test");
         dbClient.setLocalContext(localCtx);
@@ -308,13 +304,18 @@ public class DbsvcTestBase {
         public void insertVdcVersion(final DbClient dbClient) {
             // Do nothing
         }
-        @Override
-        public void checkAndSetupBootStrapInfo(DbClient dbClient) {
-            // Do nothing
-        }
-        
     }
-    
+
+    static class MockDbClientContext extends DbClientContext {
+        @Override
+        public int getPort() {
+            return 9160;
+        }
+        @Override
+        public void scheduleConsistencyLevelWriteTask(final HostSupplierImpl hostSupplier) {
+            // do nothing
+        }
+    }
     protected static class TestMockDbServiceImpl extends DbServiceImpl {
     	@Override
     	public void setDbInitializedFlag() {

@@ -254,23 +254,31 @@ public class DbClientContext {
         keyspaceContext.start();
         keyspace = keyspaceContext.getClient();
 
-//        // Check and reset default write consistency level
-//        final DrUtil drUtil = new DrUtil(hostSupplier.getCoordinatorClient());
-//        if (drUtil.isPrimary()) {
-//            log.info("Schedule db consistency level monitor on DR primary site");
-//            exe.scheduleWithFixedDelay(new Runnable() {
-//                @Override
-//                public void run() {
-//                    try {
-//                        checkAndResetConsistencyLevel(drUtil, hostSupplier.getDbSvcName(), hostSupplier.getDbClientVersion());
-//                    } catch (Exception ex) {
-//                        log.warn("Encounter Unexpected exception during check consistency level. Retry in next run", ex);
-//                    }
-//                }
-//            }, 60, DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC, TimeUnit.SECONDS);
-//        }
-        
+        scheduleConsistencyLevelWriteTask(hostSupplier);
+
         initDone = true;
+    }
+
+    /**
+     * This task is used to check and reset default write consistency level
+     * It will only be executed on Primary.
+     */
+    public void scheduleConsistencyLevelWriteTask(final HostSupplierImpl hostSupplier) {
+     // Check and reset default write consistency level
+        final DrUtil drUtil = new DrUtil(hostSupplier.getCoordinatorClient());
+        if (drUtil.isPrimary()) {
+            log.info("Schedule db consistency level monitor on DR primary site");
+            exe.scheduleWithFixedDelay(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        checkAndResetConsistencyLevel(drUtil, hostSupplier.getDbSvcName(), hostSupplier.getDbClientVersion());
+                    } catch (Exception ex) {
+                        log.warn("Encounter Unexpected exception during check consistency level. Retry in next run", ex);
+                    }
+                }
+            }, 60, DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC, TimeUnit.SECONDS);
+        }
     }
 
     /**

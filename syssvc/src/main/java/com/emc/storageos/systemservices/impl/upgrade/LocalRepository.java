@@ -81,6 +81,7 @@ public class LocalRepository {
     private static final String _SYSTOOL_RESTART = "--restart";
     private static final String _SYSTOOL_RELOAD = "--reload";
     private static final String _SYSTOOL_IS_APPLIANCE = "--is-appliance";
+    private static final String _SYSTOOL_RECONFIG_COORDINATOR = "--reconfig-coordinator";
 
     // inject value from spring config.
     private String cmdZkutils;
@@ -389,6 +390,14 @@ public class LocalRepository {
         checkFailure(result, prefix);
     }
 
+    public void reconfigCoordinator(String type) throws LocalRepositoryException {
+        final String prefix = String.format("reconfigCoordinator(%s): ", type);
+        _log.debug(prefix);
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RECONFIG_COORDINATOR, type };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+    
     /**
      * Restart a service
      * 

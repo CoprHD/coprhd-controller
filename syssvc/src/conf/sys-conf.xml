@@ -12,13 +12,13 @@
     <context:annotation-config />
     <import resource="classpath:sys-metadata-var.xml" />
     <import resource="classpath:sys-diagnostics-var.xml" />
+    <import resource="classpath:sys-var.xml" />
     <import resource="classpath:local-security-conf.xml" />
     <import resource="classpath:security-common.xml" />
     <import resource="classpath:serviceutils-conf.xml" />
     <import resource="classpath:jmx-conf.xml" />
     <import resource="classpath:backup-client-conf.xml" />
     <import resource="classpath:geoclient-conf.xml" />
-    <import resource="classpath:sys-var.xml" />
     
     <context:component-scan base-package="com.emc.storageos.systemservices.impl" />  
     <task:scheduler id="taskScheduler"/>

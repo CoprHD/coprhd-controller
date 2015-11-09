@@ -109,6 +109,17 @@ _get_firewall_props() {
 
     IFS="${OLD_IFS}"
     echo "network_nic_name=${_GENCONFIG_network_nic_name}"
+
+    local dual_coordinator="false"
+    if [ -n "${_GENCONFIG_site_ids}" ] && [ "${_GENCONFIG_site_is_standby}" != "true" ] ; then
+        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+        local primary_cnt="${!var}"
+        if [ "${primary_cnt}" == "1" ]; then
+            dual_coordinator="true"
+        fi
+    fi
+    echo "dr_dual_coordinator=${dual_coordinator}"
+
     _get_props network_vip network_vip6 network_nodes_ipv4 network_nodes_ipv6
 }
 

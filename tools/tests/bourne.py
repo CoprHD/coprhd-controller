@@ -123,7 +123,7 @@ URI_DR                     = URI_SERVICES_BASE  + '/site'
 URI_DR_GET                 = URI_DR   + '/{0}'
 URI_DR_DELETE              = URI_DR   + '/{0}'
 URI_DR_PAUSE               = URI_DR   + '/{0}' + '/pause'
-URI_DR_Resume              = URI_DR   + '/{0}' + '/resume'
+URI_DR_RESUME              = URI_DR   + '/{0}' + '/resume'
 URI_DR_SWITCHOVER          = URI_DR    + '/{0}/switchover'
 
 URI_VDC                     = URI_SERVICES_BASE  + '/vdc'

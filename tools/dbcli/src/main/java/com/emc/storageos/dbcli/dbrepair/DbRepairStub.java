@@ -5,11 +5,9 @@
 
 package com.emc.storageos.dbcli.dbrepair;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.DataObject;
-import com.google.common.collect.Multimap;
-
 import java.util.Map;
+
+import com.emc.storageos.db.client.DbClient;
 
 public interface DbRepairStub {
 

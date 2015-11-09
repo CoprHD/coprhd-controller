@@ -66,7 +66,16 @@ public class IPSecMonitor implements Runnable {
                     continue;
                 }
 
-                Map<String, String> props = LocalRepository.getInstance().getIpsecProperties(node);
+                Map<String, String> props = null;
+
+                // if the node is in the same site as local node, through ssh to get its ipsec props,
+                // else through https REST API to get ipsec props.
+                if (isSameSiteAsLocalNode(node)) {
+                    props = LocalRepository.getInstance().getIpsecProperties(node);
+                } else {
+                    props = getIpsecPropsThroughHTTPS(node);
+                }
+
                 String configVersion = props.get(VDC_CONFIG_VERSION);
 
                 if (latest == null ||
@@ -82,6 +91,15 @@ public class IPSecMonitor implements Runnable {
         }
 
         return latest;
+    }
+
+
+    private boolean isSameSiteAsLocalNode(String node) {
+        return true;
+    }
+
+    private Map<String, String>  getIpsecPropsThroughHTTPS(String node) {
+        return null;
     }
 
     private boolean isSyncNeeded(Map<String, String> props) {

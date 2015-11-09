@@ -107,13 +107,17 @@ fw_custom_iptables() {
     DR_DB_PORT="7000"
     DR_GEODB_PORT="7100"
     DR_ZK_PORT1="2888"
-    DR_ZK_PORT2="2898"
+    DR_ZK_PORT2="2889"
+    DR_ZK_PORT3="2898"
+    DR_ZK_PORT4="2899"
     for sourceNode in ${DR_NODES_IPV4} ; do
         iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_DB_PORT} -j ACCEPT
         iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_GEODB_PORT} -j ACCEPT
         iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT1} -j ACCEPT
-        if [ "${dr_dual_coordinator}" = "true" ]; then
-            iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
+	iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
+        if [ "${dr_dual_coordinator}" == "true" ]; then
+	    iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT3} -j ACCEPT
+	    iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT4} -j ACCEPT
         fi
         iptables  -I input_ext -p udp -i ${NIC_NAME} -s ${sourceNode} -m multiport --dport ${INGRES_UDP_PORTS} -j ACCEPT
         iptables  -I input_ext -p esp -i ${NIC_NAME} -s ${sourceNode} -j ACCEPT
@@ -122,8 +126,10 @@ fw_custom_iptables() {
         ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_DB_PORT} -j ACCEPT
         ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_GEODB_PORT} -j ACCEPT
         ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT1} -j ACCEPT
-        if [ "${dr_dual_coordinator}" = "true" ]; then
-            ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
+	ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
+        if [ "${dr_dual_coordinator}" == "true" ]; then
+            ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT3} -j ACCEPT
+	    ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT4} -j ACCEPT
         fi
         ip6tables  -I input_ext -p udp -i ${NIC_NAME} -s ${sourceNode} -m multiport --dport ${INGRES_UDP_PORTS} -j ACCEPT
         ip6tables  -I input_ext -p esp -i ${NIC_NAME} -s ${sourceNode} -j ACCEPT

@@ -1454,23 +1454,26 @@ public class CoordinatorClientExt {
      */
     private boolean isActiveSiteStable() {
         DrUtil drUtil = new DrUtil(_coordinator);
-        Site primary = drUtil.getSite(drUtil.getPrimarySiteId());
+        Site primary = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
         
         // Check alive coordinatorsvc on primary site
         Collection<String> nodeAddrList = primary.getHostIPv4AddressMap().values();
         if (nodeAddrList.isEmpty()) {
             nodeAddrList = primary.getHostIPv6AddressMap().values();
         }
-        boolean isLeaderAlive = false;
-        for (String nodeAddr : nodeAddrList) {
-            if (isCoordinatorAlive(nodeAddr)){
-                isLeaderAlive = true;
-                break;
+        
+        if (nodeAddrList.size() > 1) {
+            boolean isLeaderAlive = false;
+            for (String nodeAddr : nodeAddrList) {
+                if (isCoordinatorAlive(nodeAddr)){
+                    isLeaderAlive = true;
+                    break;
+                }
             }
-        }
-        if (!isLeaderAlive) {
-            _log.info("No zookeeper leader alive");
-            return false;
+            if (!isLeaderAlive) {
+                _log.info("No zookeeper leader alive");
+                return false;
+            }
         }
         
         // check if cluster state is stable

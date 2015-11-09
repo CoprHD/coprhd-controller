@@ -334,7 +334,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         long totalFsCount = 0L;
         String resumeToken = null;
         String zoneName = accessZone.getName();
-        String baseDirPath = accessZone.getPath();
+        String baseDirPath = accessZone.getPath() + "/";
 
         // filesystems count & Capacity
         IsilonList<IsilonSmartQuota> quotas = null;
@@ -366,7 +366,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             baseDirPaths = new ArrayList<String>();
             for (IsilonAccessZone isiAccessZone: isilonAccessZoneList) {
                 if (isiAccessZone.isSystem() == false) {
-                    baseDirPaths.add(isiAccessZone.getPath());                   
+                    baseDirPaths.add(isiAccessZone.getPath() + "/");
                 }
             }
         }
@@ -376,8 +376,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         do {
             snapshots = isilonApi.listSnapshots(resumeToken);
             if (snapshots != null && !snapshots.getList().isEmpty()) {
-                if (!baseDirPath.equals(IFS_ROOT)) {
-                    _log.info("base directory path {}", baseDirPath);
+                if (!baseDirPath.equals(IFS_ROOT)) { //if it not system access zone then compare with fs path with base dir path
+                    _log.info("access zone base directory path {}", baseDirPath);
                     for (IsilonSnapshot isilonSnap: snapshots.getList()) {
                         if (isilonSnap.getPath().startsWith(baseDirPath)) {
                             provisioned = provisioned + Long.valueOf(isilonSnap.getSize());

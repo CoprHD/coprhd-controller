@@ -6255,7 +6255,6 @@ dr_setup()
 
     DR_SITE_A_IP=$BOURNE_IPADDR
     security login $SYSADMIN $SYSADMIN_PASSWORD
-    project_setup
     LOCAL_LDAP_GROUPUSER_USERNAME='ldapvipruser1@viprsanity.com'
 
 }
@@ -6327,6 +6326,19 @@ dr_basic_tests()
     dr get $standby_site
     dr get $primary_site
 
+    # pause standby
+    echo "---PAUSE SITE $standby_site---"
+    dr pause $standby_site
+
+    echo "---WAIT FOR $primary_site TO STABILIZE---"
+    vdc waitforstablestate 10 600
+
+    echo "---RESUME SITE $standby_site---"
+    dr resume $standby_site
+
+    echo "---WAIT FOR SYNC $standby_site---"
+    dr waitforstate $standby_site STANDBY_SYNCED 30 600
+    echo "Syncing dr done"
 
     # switchover to standby
     echo "---SWITCHOVER FROM TO $primary_site TO $standby_site---"
@@ -6542,7 +6554,6 @@ dr_multisite_tests()
     #disabling pipefail option to pipe exit codes
     set +o pipefail
 }
-
 
 vdc_setup()
 {
@@ -7187,7 +7198,7 @@ fail(){
 
 trap _failure ERR INT
 set -E
-if [ "$2" != "recoverpoint" ] && [ "$2" != "vdc" ] && [ "$2" != "dr" ]; then
+if [ "$3" != "recoverpoint" ] && [ "$3" != "vdc" ] && [ "$3" != "dr" ]; then
     common_setup	
 fi
 

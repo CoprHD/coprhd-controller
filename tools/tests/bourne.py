@@ -3285,7 +3285,7 @@ class Bourne:
 
     def dr_resume_standby(self,uuid):
         resp = self.api('POST', URI_DR_RESUME.format(uuid))
-        print "DR PAUSE STANDBY RESP = ",resp
+        print "DR RESUME STANDBY RESP = ",resp
         self.assert_is_dict(resp)
         return resp
 

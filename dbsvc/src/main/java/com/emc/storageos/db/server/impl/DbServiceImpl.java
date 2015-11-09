@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.lang.Math;
 
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -388,7 +387,7 @@ public class DbServiceImpl implements DbService {
         long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : getLastModified(localDbDir).getTime();
 
         _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
-        long diffTime = Math.abs(zkTimeStamp - localTimeStamp);
+        long diffTime = (zkTimeStamp > localTimeStamp) ? (zkTimeStamp - localTimeStamp) : 0;
         if (diffTime >= MAX_SERVICE_OUTAGE_TIME) {
             String errMsg = String.format("We detect database files on local disk are more than %s days older " +
                     "than last time it was seen in the cluster. It may bring stale data into the database, " +
@@ -487,7 +486,7 @@ public class DbServiceImpl implements DbService {
         return true;
     }
 
-    /*
+    /**
      * We need to turn off encryption if upgrade from 1.*,2.*,2.1 to higher version for dbsvc because
      * we enable db encryption since 2.2, otherwise first reboot node can't communicate with others .
      */
@@ -517,7 +516,16 @@ public class DbServiceImpl implements DbService {
         return true;
     }
 
+    /**
+     * Use a db initialized flag file to block the peripheral services from starting.
+     * This gurantees CPU cyles for the core services during boot up.
+     */
     protected void setDbInitializedFlag() {
+        // set the flag file only for dbsvc (not for geodbsvc) since it always uses more time to 
+        // complete comparing to the other
+        if (isGeoDbsvc())
+            return;
+
         File dbInitializedFlag = new File(DB_INITIALIZED_FLAG_FILE);
         try {
             if (!dbInitializedFlag.exists()) {

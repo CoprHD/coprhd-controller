@@ -212,13 +212,14 @@ public class FileUtils {
     public static Date getLastModified(File directory) {
         File[] files = listAllFiles(directory);
         if (files.length == 0) {
-            return new Date(directory.lastModified());
+            return null;
         }
         Arrays.sort(files, new Comparator<File>() {
             public int compare(File o1, File o2) {
                 return new Long(o2.lastModified()).compareTo(o1.lastModified()); //latest 1st
             }
         });
+        log.info("Last modified file:{}, time:{}", files[0], files[0].lastModified());
         return new Date(files[0].lastModified());
     }
 
@@ -229,12 +230,16 @@ public class FileUtils {
      * @param directory the directory which file resides in
      */
     private static File[] listAllFiles(File directory) {
+        if (directory == null || !directory.exists()) {
+            return new File[0];
+        }
         List<File> fileList = new ArrayList<File>();
         for (File file : directory.listFiles()) {
             if (file.isDirectory()) {
                 fileList.addAll(Arrays.asList(listAllFiles(file)));
+            } else {
+                fileList.add(file);
             }
-            fileList.add(file);
         }
         return fileList.toArray(new File[0]);
     }

@@ -1014,8 +1014,11 @@ xtremio_setup()
 {
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-    discoveredsystem show $XTREMIO_NATIVEGUID &> /dev/null && return $?
-    discoveredsystem create $XTREMIO xtremio $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO_SN
+    storageprovider show $XTREMIO  &> /dev/null && return $?
+    echo "Starting storageprovider create"
+    storageprovider create $XTREMIO $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD xtremio 
+    storagedevice discover_all
+    storagedevice list
 
     project_setup
 
@@ -4756,31 +4759,37 @@ ingestblock_setup() {
 
     xtremio_setup
 
+    hosts create $XTREMIO_INGEST_HOST_LABEL $TENANT Windows $XTREMIO_INGEST_HOST --port 8111 --username $XTREMIO_INGEST_HOST_USERNAME  --password $XTREMIO_INGEST_HOST_PASSWORD --osversion 1.0 
+
+    PWWN1=$XTREMIO_INGEST_HOST_PWWN1
+    WWNN1=$XTREMIO_INGEST_HOST_WWNN1
+    PWWN2=$XTREMIO_INGEST_HOST_PWWN2
+    WWNN2=$XTREMIO_INGEST_HOST_WWNN2
+
+    initiator create $XTREMIO_INGEST_HOST_LABEL FC ${PWWN1} --node ${WWNN1}
+    initiator create $XTREMIO_INGEST_HOST_LABEL FC ${PWWN2} --node ${WWNN2}
+
+    echo "Adding ${PWWN1} to zone $SRDF_VMAXA_VSAN..."
+    transportzone add $SRDF_VMAXA_VSAN ${PWWN1}
+    echo "Adding ${PWWN2} to zone $SRDF_VMAXA_VSAN..."
+    transportzone add $SRDF_VMAXA_VSAN ${PWWN2}
+ 
     storagedevice discover_namespace $XTREMIO_NATIVEGUID 'UNMANAGED_VOLUMES'
-    hosts create $XTREMIO_INGEST_HOST_LABEL $TENANT Windows $XTREMIO_INGEST_HOST --port 8111 --username user --password 'password' --osversion 1.0 
-
-    PWWN1=10:00:00:E0:E0:E0:E0:E0
-    WWNN1=20:00:00:E0:E0:E0:E0:E0
-    PWWN2=10:00:00:E0:E0:E0:E0:E1
-    WWNN2=20:00:00:E0:E0:E0:E0:E1
-
-    initiator create 'ingesthost' FC ${PWWN1} --node ${WWNN1}
-    initiator create 'ingesthost' FC ${PWWN2} --node ${WWNN2}
     
     echo "End: ingestblock setup"
 }
 
 ingestblock_tests() {
 
-    echo "begin: ingestvmaxblock_tests"
-    vol1=ingestvol1
+    echo "begin: ingestblock_tests"
+    vol1=$INGEST_VOL
 
-    unmanagedvolume ingest_export --host $XTREMIO_INGEST_HOST_LABEL $NH $XTREMIO_COS_FC $PROJECT --volspec $vol1
+    unmanagedvolume ingest_export --host $XTREMIO_INGEST_HOST_LABEL $NH $XTREMIO_COS_FC $PROJECT --volspec ${vol1}
 
 #   unmanagedvolume ingest_unexport $NH $XTREMIO_COS_FC $PROJECT --volspec "vol1,vol2"
 #   unmanagedvolume ingest_unexport $NH $vpool $PROJECT --volspec $vol1
    
-    echo "end: ingestvmaxblock_tests"
+    echo "end: ingestblock_tests"
 }
 
 vmaxblock_flex_varray_tests() {

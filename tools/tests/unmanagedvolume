@@ -18,16 +18,24 @@ from bourne import Bourne
 def ingest_exported_volumes(args):
     bourne.connect(args.ip)
     start = time.time()
-    o = bourne.ingest_exported_volumes(args.host, args.cluster, args.varray, args.vpool, args.project, args.volspec)
-    print o
+    tr_list = bourne.ingest_exported_volumes(args.host, args.cluster, args.varray, args.vpool, args.project, args.volspec)
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Ingestion of exported volume successful.'
+        else:
+            print 'Ingestion of exported volume failed.'
     total = time.time() - start
     print "Ingestion of Exported Volumes took", "{0:.2f}".format(total), "seconds to complete"
             
 def ingest_unexported_volumes(args):
     bourne.connect(args.ip)
     start = time.time()
-    o = bourne.ingest_unexported_volumes(args.varray, args.vpool, args.project, args.volspec)
-    print o
+    tr_list = bourne.ingest_unexported_volumes(args.varray, args.vpool, args.project, args.volspec)
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Ingestion of unexported volume successful.'
+        else:
+            print 'Ingestion of unexported volume failed.'
     total = time.time() - start
     print "Ingestion of UnExported Volumes took", "{0:.2f}".format(total), "seconds to complete"
 

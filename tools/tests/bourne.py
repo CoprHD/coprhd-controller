@@ -8159,6 +8159,9 @@ class Bourne:
             params['vnas_server'] = vnaslist
             return self.api('PUT', URI_VNAS_SERVER_UNASSIGN.format(projectURI), params)			
 		
+    def unmanaged_volume_task(self, id, task):
+        uri_unmanaged_volume_task = '/vdc/tasks/{0}'
+        return self.api('GET', uri_unmanaged_volume_task.format(task))
 
     def unmanaged_volume_query(self, name):
         if (self.__is_uri(name)):
@@ -8213,10 +8216,11 @@ class Bourne:
         if('details' in resp):
            print "Failed operation: "+ resp['details']
            return resp;
-        tr_list = resp['volume']
+        tr_list = resp['task']
         result = list()
         for tr in tr_list:
-           result.append(tr['id'])
+           s = self.api_sync_2(tr['resource']['id'], tr['id'], self.unmanaged_volume_task)
+           result.append(s)
         return result
     
     def ingest_unexported_volumes(self, varray, vpool, project, volspec):
@@ -8244,10 +8248,11 @@ class Bourne:
         if('details' in resp):
            print "Failed operation: "+ resp['details']
            return resp;
-        tr_list = resp['volume']
+        tr_list = resp['task']
         result = list()
         for tr in tr_list:
-           result.append(tr['id'])
+           s = self.api_sync_2(tr['resource']['id'], tr['id'], self.unmanaged_volume_task)
+           result.append(s)
         return result
 
     #

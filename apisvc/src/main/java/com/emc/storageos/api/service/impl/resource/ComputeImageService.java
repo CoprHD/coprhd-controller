@@ -390,7 +390,10 @@ public class ComputeImageService extends TaskResourceService {
     private class ComputeImageMapper implements Function<ComputeImage, ComputeImageRestRep> {
         @Override
         public ComputeImageRestRep apply(final ComputeImage ci) {
-            return ComputeMapper.map(ci);
+            List<ComputeImageServer> successfulServers = new ArrayList<ComputeImageServer>();
+            List<ComputeImageServer> failedServers = new ArrayList<ComputeImageServer>();
+            getImageImportStatus(ci, successfulServers, failedServers);
+            return ComputeMapper.map(ci, successfulServers, failedServers);
         }
     }
 

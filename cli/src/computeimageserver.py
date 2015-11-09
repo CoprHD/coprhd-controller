@@ -126,13 +126,15 @@ class ComputeImageServers(object):
     '''
     Updates the Compute image server, and (re)discovers it
     '''
-    def update_computeimageserver(self, name, label, imageserversecondip,
+    def update_computeimageserver(self, name, label,imageserverip, imageserversecondip,
                 username, password, tftpbootdir, osinstalltimeout):
 
         parms = {}
-
+        
         if(label):
-            parms['imageserver_ip'] = label
+            parms['name'] = label
+        if(imageserverip):
+            parms['imageserver_ip'] = imageserverip
         if(username):
             parms['imageserver_user'] = username
         if(password):
@@ -399,11 +401,10 @@ def update_computeimageserver_parser(subcommand_parsers, common_parser):
                                 metavar='<label>',
                                 dest='label',
                                 help='new label server that serves Compute Images')  
-    mandatory_args.add_argument('-imageserverip', '-iip',
+    update_parser.add_argument('-imageserverip', '-iip',
                                 metavar='<imageserverip>',
                                 dest='imageserverip',
-                                help='FQDN or IP address of the server that serves Compute Images',
-                                required=True)      
+                                help='FQDN or IP address of the server that serves Compute Images')      
     update_parser.add_argument('-imageserversecondip', '-issip',
                                   metavar='<imageserversecondipaddress>',
                                   dest='imageserversecondip',
@@ -431,7 +432,7 @@ def computeimageserver_update(args):
         if (args.user and len(args.user) > 0):
             passwd = common.get_password("computeimageserver")
 
-        obj.update_computeimageserver(args.name, args.label,
+        obj.update_computeimageserver(args.name, args.label, args.imageserverip,
                         args.imageserversecondip, args.user, passwd,
                         args.tftpbootdir, args.osinstalltimeout)
 

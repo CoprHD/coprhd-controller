@@ -35,6 +35,7 @@ import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationDeviceCo
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor.Type;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
@@ -106,7 +107,6 @@ import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowUtils;
 import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneTaskCompleter;
@@ -199,7 +199,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String DETACH_FULL_COPY_WF_NAME = "detachFullCopy";
     private static final String EXPORT_GROUP_REMOVE_VOLUMES = "exportGroupRemoveVolumes";
     private static final String VOLUME_FULLCOPY_GROUP_RELATION_WF = "volumeFullCopyGroupRelation";
-    private static final String RESYNC_SNAPSHOT_WF_NAME = "ResyncSnapshot";
 
     // Workflow step identifiers
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
@@ -227,8 +226,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FULL_COPY_STEP = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_STEP = "detachFullCopy";
     private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
-    private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP="volumeFullcopyRelationStep";
-    private static final String RESYNC_SNAPSHOT_STEP = "ResyncSnapshotStep";
+    private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP = "volumeFullcopyRelationStep";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
@@ -273,7 +271,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String DETACH_FC_METHOD_NAME = "detachFullCopy";
     private static final String ROLLBACK_FULL_COPY_METHOD = "rollbackFullCopyVolume";
     private static final String VOLUME_FULLCOPY_RELATION_METHOD = "establishVolumeFullCopyGroupRelation";
-    private static final String RESYNC_SNAPSHOT_METHOD_NAME = "resyncSnapshot";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -296,6 +293,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String REATTACH_MIRROR = "reattachMirror";
     private static final String ADD_BACK_TO_CG = "addToCG";
     private static final String DETACHED_DEVICE = "detachedDevice";
+
+    private static CoordinatorClient coordinator;
 
     private static final Logger _log = LoggerFactory.getLogger(VPlexDeviceController.class);
     private WorkflowService _workflowService;
@@ -407,38 +406,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             try {
                 _log.info("Completing", _opId);
                 super.setStatus(dbClient, status, coded);
-
-                // When importing volume to VPLEX, the operation is on the
-                // the volume being imported. However, when importing a
-                // snapshot, execution is on an internal volume created to
-                // represent the snapshot, but the operation is on the snapshot
-                // itself, so we want to be sure an update the status on the
-                // snapshot.
-                List<URI> ids = getIds();
-                for (URI id : ids) {
-                    if (URIUtil.isType(id, Volume.class)) {
-                        Volume volume = dbClient.queryObject(Volume.class, id);
-                        String nativeGuid = volume.getNativeGuid();
-                        if (NullColumnValueGetter.isNotNullValue(nativeGuid)) {
-                            List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(dbClient, nativeGuid);
-                            if (!snapshots.isEmpty()) {
-                                // There should only be one.
-                                switch (status) {
-                                    case error:
-                                        super.setErrorOnDataObject(dbClient, BlockSnapshot.class, snapshots.get(0), coded);
-                                        break;
-                                    case ready:
-                                        super.setReadyOnDataObject(dbClient, BlockSnapshot.class, snapshots.get(0));
-                                        break;
-                                    default:
-                                        _log.error("Unexpected status {} on completer", status.name());
-                                        break;
-                                }
-                            }
-                        }
-                    }
-                }
-
                 updateWorkflowStatus(status, coded);
             } catch (DatabaseException ex) {
                 _log.error("Unable to complete task: " + getOpId());
@@ -1994,10 +1961,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (Initiator init : inits) {
                 String port = init.getInitiatorPort();
                 String normalizedName = Initiator.normalizePort(port);
-                _log.info("   looking at initiator " + normalizedName + " host " + init.getHostName());
+                _log.info("   looking at initiator " + normalizedName + " host " + VPlexUtil.getInitiatorHostResourceName(init));
                 if (initiatorPorts.contains(normalizedName)) {
                     _log.info("      found a matching initiator for " + normalizedName
-                            + " host " + init.getHostName()
+                            + " host " + VPlexUtil.getInitiatorHostResourceName(init)
                             + " in storage view " + storageView.getName());
                     matchingInitiators.put(normalizedName, init);
                 }
@@ -2450,6 +2417,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // We also need to update the volume/lun id map in the export mask
             // to those assigned by the VPLEX.
             _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
+            _log.info("updatedBlockObjectMap: " + updatedBlockObjectMap.toString());
             exportMask.addVolumes(updatedBlockObjectMap);
             // Update user created volumes
             // TODO: Update user created volumes needs to move to the completer eventually
@@ -2581,7 +2549,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         if (!volumeURIList.isEmpty()) {
                             removeVolumes = true;
                         }
-                    } else if (existingVolumes && existingInitiators) {
+                    } else if (existingVolumes || existingInitiators) {
                         // It won't make sense to leave the storage view with only exiting volumes
                         // or only existing initiators, so only if there are both existing volumes
                         // and initiators in that case we will delete ViPR created volumes and
@@ -2603,7 +2571,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             }
                         }
 
-                        removeInitiators = true;
+                        if (!existingVolumes) {
+                            removeInitiators = true;
+                        }
 
                     } else {
                         _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
@@ -2713,10 +2683,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 boolean existingInitiators = exportMask.getExistingInitiators() != null &&
                         !exportMask.getExistingInitiators().isEmpty();
 
-                if (existingVolumes && existingInitiators) {
+                if (existingVolumes || existingInitiators) {
                     _log.info("ExportMask {} still has non-ViPR-created existing volumes or initiators, "
                             + "so ViPR will not remove it from the VPLEX device", exportMask.getMaskName());
-                    _log.warn("We should not have called this method if there are existing volumes and existing initiators.");
                 } else if (exportMask.getInactive()) {
                     _log.warn("ExportMask {} is already inactive, so there's "
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
@@ -3103,7 +3072,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         exportGroup.removeExportMask(exportMask.getId());
                         _dbClient.updateAndReindexObject(exportGroup);
                     }
-                } else if (remainingVolumesInMask.isEmpty() && existingInitiators && existingVolumes) {
+                } else if (remainingVolumesInMask.isEmpty() && (existingInitiators || existingVolumes)) {
                     // If all the volumes are getting removed and there are existing
                     // initiators and existing volumes then remove all the initiators
                     // as well. Remove initiators method will make sure
@@ -3115,27 +3084,29 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // Remove volumes from the storage view.
                     removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
 
-                    // create workflow and steps to remove zones and inititaors
-                    String completerStepId = workflow.createStepId();
-                    ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
-                            exportURI, exportMask.getId(), URIUtil.toURIList(exportMask.getInitiators()), completerStepId);
+                    if (!existingVolumes) {
+                        // create workflow and steps to remove zones and inititaors
+                        String completerStepId = workflow.createStepId();
+                        ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
+                                exportURI, exportMask.getId(), URIUtil.toURIList(exportMask.getInitiators()), completerStepId);
 
-                    List<URI> initiatorURIs = URIUtil.toURIList(exportMask.getInitiators());
+                        List<URI> initiatorURIs = URIUtil.toURIList(exportMask.getInitiators());
 
-                    // Create a step to remove initiators from the storage view
-                    Workflow.Method removeInitiatorMethod =
-                            storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
-                                    exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs));
-                    Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-                    storageViewStepId = workflow.createStep("storageView", "Removing" + initiatorURIs.toString(),
-                            null, vplexURI, vplex.getSystemType(), this.getClass(),
-                            removeInitiatorMethod, removeInitiatorRollbackMethod, null);
+                        // Create a step to remove initiators from the storage view
+                        Workflow.Method removeInitiatorMethod =
+                                storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
+                                        exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs));
+                        Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+                        storageViewStepId = workflow.createStep("storageView", "Removing" + initiatorURIs.toString(),
+                                null, vplexURI, vplex.getSystemType(), this.getClass(),
+                                removeInitiatorMethod, removeInitiatorRollbackMethod, null);
 
-                    // Create a step to fire the completer removing initiators.
-                    Workflow.Method fireCompleter = fireTaskCompleterMethod(maskCompleter);
-                    workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter", storageViewStepId, vplexURI,
-                            vplex.getSystemType(),
-                            this.getClass(), fireCompleter, null, completerStepId);
+                        // Create a step to fire the completer removing initiators.
+                        Workflow.Method fireCompleter = fireTaskCompleterMethod(maskCompleter);
+                        workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter", storageViewStepId, vplexURI,
+                                vplex.getSystemType(),
+                                this.getClass(), fireCompleter, null, completerStepId);
+                    }
 
                 } else {
                     _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
@@ -4024,11 +3995,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         boolean doFireCompleter = true;
         boolean otherExportGroupsPresent = !otherExportGroups.isEmpty();
+        boolean existingVolumes = exportMask.getExistingVolumes() != null
+                && !exportMask.getExistingVolumes().isEmpty();
         boolean existingInitiators = exportMask.getExistingInitiators() != null
                 && !exportMask.getExistingInitiators().isEmpty();
         boolean removeAllInits = (hostInitiatorURIs.size() >= exportMask.getInitiators().size());
 
-        if (removeAllInits && !existingInitiators && !otherExportGroupsPresent) {
+        if (removeAllInits && !existingInitiators && !otherExportGroupsPresent && !existingVolumes) {
             _log.info("all initiators are being removed and no "
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
             _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
@@ -4451,7 +4424,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 initiatorPortInfo.add(portInfo);
             }
 
-            if (!initiatorPortInfo.isEmpty()) {
+            if (!initiatorPortInfo.isEmpty() && !existingVolumes) {
                 String lockName = null;
                 boolean lockAcquired = false;
                 try {
@@ -5895,11 +5868,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     vplexVolume.setNativeGuid(virtvinfo.getPath());
                     vplexVolume.setDeviceLabel(virtvinfo.getName());
                     _dbClient.persistObject(vplexVolume);
+
                 }
             } else {
-                virtvinfo = new VPlexVirtualVolumeInfo();
-                virtvinfo.setName(vplexVolume.getDeviceLabel());
-                virtvinfo.setPath(vplexVolume.getNativeId());
+                virtvinfo = client.findVirtualVolumeAndUpdateInfo(vplexVolume.getDeviceLabel());
             }
 
             // If we desired a distributed virtual-volume (newVolume != null),
@@ -6342,9 +6314,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Make a call to the VPlex API client to expand the virtual
             // volume.
-            VPlexVirtualVolumeInfo vplexVolumeInfo = client
-                    .expandVirtualVolume(vplexVolumeName);
-            _log.info("Started VPlex volume expansion");
+
+            int expansionStatusRetryCount = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
+                    coordinator, VPlexApiConstants.EXPANSION_STATUS_RETRY_COUNT));
+            long expansionStatusSleepTime = Long.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
+                    coordinator, VPlexApiConstants.EXPANSION_STATUS_SLEEP_TIME_MS));
+            VPlexVirtualVolumeInfo vplexVolumeInfo = client.expandVirtualVolume(vplexVolumeName,
+                    expansionStatusRetryCount, expansionStatusSleepTime);
+            _log.info("Completed VPlex volume expansion");
 
             // Update the VPlex volume size in the database.
             vplexVolume.setCapacity(newSize);
@@ -7368,16 +7345,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get the native volume info for the mirror volume.
             Volume mirrorVolume = getDataObject(Volume.class, mirrorVolumeURI, _dbClient);
-            StorageSystem mirrorVolumeSystem = getDataObject(StorageSystem.class,
-                    mirrorVolume.getStorageController(), _dbClient);
-            List<String> itls = VPlexControllerUtils.getVolumeITLs(mirrorVolume);
-            VolumeInfo mirrorInfo = new VolumeInfo(mirrorVolumeSystem.getNativeGuid(), mirrorVolumeSystem.getSystemType(),
-                    mirrorVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                    mirrorVolume.getNativeId(), mirrorVolume.getThinlyProvisioned().booleanValue(), itls);
-            _log.info("Prepared mirror volume info");
-
-            // Get the cluster id for this storage volume.
-            String clusterId = client.getClaimedStorageVolumeClusterName(mirrorInfo);
+            String clusterId = VPlexControllerUtils.getVPlexClusterName(_dbClient, mirrorVolume.getVirtualArray(), vplexURI);
 
             // Detach the mirror.
             String detachedDeviceName = client.detachMirrorFromDistributedVolume(
@@ -10140,7 +10108,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             throw VPlexApiException.exceptions.addStepsForChangeVirtualPoolFailed(ex);
         }
     }
-    
+
     @Override
     public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId)
             throws InternalException {
@@ -10156,7 +10124,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             URI nativeSystemURI = nativeFullCopyVolume.getStorageController();
             StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
 
-            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD, 
+            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD,
                     nativeSystemURI, nativeSourceVolumeURI, nativeFullCopyVolume.getId());
             workflow.createStep(VOLUME_FULLCOPY_GROUP_RELATION_STEP,
                     "create group relation between Volume group and Full copy group", null,
@@ -10178,184 +10146,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     fullCopy.toString(), e);
             completer.error(_dbClient, sc);
         }
-            
-        
+
     }
 
     /**
-     * {@inheritDoc}
+     * Inject coordinatorClient
+     * 
+     * @param coordinatorClient
      */
-    @Override
-    public void resyncSnapshot(URI vplexURI, URI snapshotURI, String opId) throws InternalException {
-        // The snapshot target volume could be the source side backend volume for
-        // a VPLEX volume if a VPLEX volume was created on the snapshot target volume
-        // for the purpose of exporting the snapshot through the VPLEX rather directly
-        // through the backend storage system. If this is the case, and that snapshot
-        // is resynchronized, then we need do some additional steps because the data
-        // on the VPLEX backend volume will have changed, and the VPLEX volume needs
-        // to know about that.
-        BlockSnapshot snapshot = getDataObject(BlockSnapshot.class, snapshotURI, _dbClient);
-        try {
-            // Create a new the Workflow.
-            Workflow workflow = _workflowService.getNewWorkflow(this,
-                    RESYNC_SNAPSHOT_WF_NAME, false, opId);
-            _log.info("Created resync snapshot workflow with operation id {}", opId);
-
-            // Get all snapshots that will be resync'd.
-            List<BlockSnapshot> snapshotsToResync = new ArrayList<BlockSnapshot>();
-            URI cgURI = snapshot.getConsistencyGroup();
-            if (!NullColumnValueGetter.isNullURI(cgURI)) {
-                snapshotsToResync = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
-            } else {
-                snapshotsToResync.add(snapshot);
-            }
-
-            // Get a list of the VPLEX volumes, if any, that are built
-            // using the snapshot target volume.
-            List<Volume> vplexVolumes = new ArrayList<Volume>();
-            for (BlockSnapshot snapshotToResync : snapshotsToResync) {
-                String nativeGuid = snapshotToResync.getNativeGuid();
-                List<Volume> volumes = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, nativeGuid);
-                if (!volumes.isEmpty()) {
-                    // If we find a volume instance with the same native GUID as the
-                    // snapshot, then this volume represents the snapshot target volume
-                    // and a VPLEX volume must have been built on top of it. Note that
-                    // for a given snapshot, I should only ever find 0 or 1 volumes with
-                    // the nativeGuid of the snapshot. Get the VPLEX volume built on
-                    // this volume.
-                    Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, volumes.get(0));
-                    vplexVolumes.add(vplexVolume);
-                }
-            }
-
-            // Create the workflow steps.
-            if (vplexVolumes.isEmpty()) {
-                // If there are no VPLEX volumes built on the snapshots to be resynchronized,
-                // then we just need a single step to invoke the block device controller to
-                // resync the snapshots.
-                createWorkflowStepForResyncNativeSnapshot(workflow, snapshot, null, null);
-            } else {
-                // The workflow depends on if the VPLEX volumes are local
-                // or distributed.
-                String waitFor = null;
-                boolean isLocal = vplexVolumes.get(0).getAssociatedVolumes().size() == 1;
-                StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-                if (isLocal) {
-                    // Create a step to invalidate the read cache for each
-                    // VPLEX volume.
-                    for (Volume vplexVolume : vplexVolumes) {
-                        waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                                vplexVolume.getId(), null, null);
-                    }
-
-                    // Now create a workflow step to natively resync the snapshot.
-                    // Note that if the snapshot is associated with a CG, then block
-                    // controller will resync all snapshots in the snapshot set. We
-                    // execute this after the invalidate cache. We could execute these
-                    // in parallel for a little better efficiency, but what if the
-                    // invalidate cache fails, but the resync succeeds, the cache now
-                    // has invalid data and a cache read hit could return invalid data.
-                    createWorkflowStepForResyncNativeSnapshot(workflow, snapshot, waitFor, null);
-                } else {
-                    for (Volume vplexVolume : vplexVolumes) {
-                        // For distributed volumes, before we can do the resync, we need
-                        // to detach the HA mirror of the distributed volume. So,
-                        // determine the HA backend volume and create a workflow step
-                        // to detach it from the source.
-                        URI vplexVolumeURI = vplexVolume.getId();
-                        Volume haVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, false, _dbClient);
-                        URI haVolumeURI = haVolume.getId();
-                        String detachStepId = workflow.createStepId();
-                        Workflow.Method resyncSnapRollbackMethod = createRestoreResyncRollbackMethod(
-                                vplexSystem.getId(), vplexVolumeURI, haVolumeURI,
-                                vplexVolume.getConsistencyGroup(), detachStepId);
-                        waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem,
-                                vplexVolume, haVolumeURI, detachStepId, null,
-                                resyncSnapRollbackMethod);
-
-                        // We now create a step to invalidate the cache for the
-                        // VPLEX volume. Note that if this step fails we need to
-                        // rollback and reattach the HA mirror.
-                        createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                                vplexVolumeURI, waitFor, rollbackMethodNullMethod());
-
-                        // Now create a workflow step to reattach the mirror to initiate
-                        // a rebuild of the HA mirror for the distributed volume. Note that
-                        // these steps will not run until after the native snapshot resync,
-                        // which only gets executed once, not for every VPLEX volume.
-                        waitFor = createWorkflowStepForAttachMirror(workflow, vplexSystem, vplexVolume,
-                                haVolumeURI, detachStepId, RESYNC_SNAPSHOT_STEP,
-                                rollbackMethodNullMethod());
-
-                        // Create a step to wait for rebuild of the HA volume to
-                        // complete. This should not do any rollback if the step
-                        // fails because at this point the restore is really
-                        // complete.
-                        createWorkflowStepForWaitOnRebuild(workflow, vplexSystem, vplexVolumeURI, waitFor);
-                    }
-
-                    // Create a workflow step to native resync the backend snapshot
-                    // This step is executed after the cache has been invalidated for
-                    // each VPLEX volume. Note that if the snapshot is associated with
-                    // a CG, then block controller will resync all snapshots in the
-                    // snapshot set form their corresponding source volumes. We could
-                    // execute this step in parallel with the cache invalidate for a
-                    // little better efficiency, but what if the invalidate cache fails,
-                    // but the resync succeeds, the cache now has invalid data and a
-                    // cache read hit could return invalid data. If this step fails,
-                    // then again, we need to be sure and rollback and reattach the HA
-                    // mirror. There is nothing to rollback for the cache invalidate
-                    // step. It just means there will be no read cache hits on the volume
-                    // for a while until the cache is repopulated.
-                    createWorkflowStepForResyncNativeSnapshot(workflow, snapshot,
-                            INVALIDATE_CACHE_STEP, rollbackMethodNullMethod());
-                }
-            }
-
-            // Execute the workflow.
-            _log.info("Executing workflow plan");
-            TaskCompleter completer = new BlockSnapshotResyncCompleter(snapshot, opId);
-            String successMsg = String.format("Resynchronize VPLEX native snapshot %s from volume %s "
-                    + "completed successfully", snapshotURI, snapshot.getParent().getURI());
-            workflow.executePlan(completer, successMsg);
-            _log.info("Workflow plan executing");
-        } catch (Exception e) {
-            String failMsg = String.format("Resynchronize VPLEX native snapshot %s failed", snapshotURI);
-            _log.error(failMsg, e);
-            TaskCompleter completer = new BlockSnapshotResyncCompleter(snapshot, opId);
-            ServiceError serviceError = VPlexApiException.errors.restoreVolumeFailed(snapshotURI.toString(), e);
-            completer.error(_dbClient, serviceError);
-        }
+    public static void setCoordinator(CoordinatorClient coordinator) {
+        VPlexDeviceController.coordinator = coordinator;
     }
 
-    /**
-     * Create a step in the passed workflow to restore the backend
-     * full copy volumes with the passed URIs.
-     * 
-     * @param workflow A reference to a workflow.
-     * @param snapshot A reference to the snapshot.
-     * @param waitFor The step to wait for or null.
-     * @param rollbackMethod A reference to a rollback method or null.
-     * 
-     * @return RESYNC_SNAPSHOT_STEP
-     */
-    private String createWorkflowStepForResyncNativeSnapshot(Workflow workflow,
-            BlockSnapshot snapshot, String waitFor, Workflow.Method rollbackMethod) {
-        URI snapshotURI = snapshot.getId();
-        URI parentSystemURI = snapshot.getStorageController();
-        StorageSystem parentSystem = getDataObject(StorageSystem.class, parentSystemURI, _dbClient);
-        URI parentVolumeURI = snapshot.getParent().getURI();
-        Workflow.Method resyncSnapshotMethod = new Workflow.Method(
-                RESYNC_SNAPSHOT_METHOD_NAME, parentSystemURI,
-                parentVolumeURI, snapshotURI, Boolean.FALSE);
-        workflow.createStep(RESYNC_SNAPSHOT_STEP, String.format(
-                "Resynchronize VPLEX backend snapshot %s from source %s",
-                snapshotURI, parentVolumeURI), waitFor,
-                parentSystemURI, parentSystem.getSystemType(),
-                BlockDeviceController.class, resyncSnapshotMethod, rollbackMethod, null);
-        _log.info("Created workflow step to resync VPLEX backend snapshot {} from source {}",
-                snapshotURI, parentVolumeURI);
-
-        return RESYNC_SNAPSHOT_STEP;
-    }
 }

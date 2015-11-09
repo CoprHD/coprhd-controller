@@ -82,10 +82,10 @@ play {
     version = "1.3.1"
 
     // make sure play modules are resolved from the proper repo for the build type
-    if (ext.has('buildType') && ext.get('buildType') == "emc") {
-        mavenRepo = artifactoryUrl
-    } else {
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
         mavenRepo = coprHD_aux_repo
+    } else {
+        mavenRepo = artifactoryUrl
     }
     contributedModulesDescriptor = "${mavenRepo}/play/[module]/[revision]/dependencies.yml"
     contributedModulesArtifact = "${mavenRepo}/play/[module]/[revision]/[module]-[revision].zip"

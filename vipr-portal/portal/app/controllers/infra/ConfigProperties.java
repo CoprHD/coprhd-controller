@@ -200,7 +200,7 @@ public class ConfigProperties extends Controller {
         return properties;
     }
 
-    private static String getPort(final String port, final String enableTls) {
+    public static String getPort(final String port, final String enableTls) {
         if ("0".equals(port) || StringUtils.isBlank(port)) {
             // use default values
             return StringUtils.equals("yes", enableTls) ? "465" : "25";

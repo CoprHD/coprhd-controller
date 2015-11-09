@@ -84,7 +84,6 @@
 
     <bean id="vdcConfHelper" class="com.emc.storageos.geo.service.impl.util.VdcConfigHelper"/>
 
-    <bean id="vdcConfigUtil" class="com.emc.storageos.db.client.util.VdcConfigUtil"/>
     <bean id="vdcLockHelper" class="com.emc.storageos.geo.vdccontroller.impl.VdcOperationLockHelper">
         <property name="dbClient" ref="dbclient"/>
         <property name="service" ref="serviceinfo"/>

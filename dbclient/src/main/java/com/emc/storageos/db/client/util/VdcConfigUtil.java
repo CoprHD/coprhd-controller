@@ -4,10 +4,6 @@
  */
 package com.emc.storageos.db.client.util;
 
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -18,24 +14,23 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
 
 /**
- * Utility class to generate Vdc property for syssvc.
+ * Utility class to generate VDC/Site property for syssvc.
+ * 
+ * The VDC/Site configurations are stored in ZK as follows:
+ * /config/disasterRecoverySites/<vdc_short_id>/<site_uuid>     has all the VDC/site configurations
+ * /config/disasterRecoveryPrimary/<vdc_short_id>               specifies which site is the primary in each VDC
+ * /config/geoLocalVDC/global                                   specifies the local VDC in the geo federation
  */
 public class VdcConfigUtil {
     private static final Logger log = LoggerFactory.getLogger(VdcConfigUtil.class);
 
-    // It's no longer a version since it's not incremental, but it serves the same
-    // purpose
     public static final String VDC_CONFIG_VERSION = "vdc_config_version";
     public static final String VDC_MYID = "vdc_myid";
     public static final String VDC_IDS = "vdc_ids";
@@ -48,41 +43,36 @@ public class VdcConfigUtil {
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
     public static final String VDC_STANDBY_VIP_PTN = "vdc_%s_%s_network_vip";
     public static final String SITE_IS_STANDBY="site_is_standby";
+    public static final String SITE_MY_UUID="site_my_uuid";
     public static final String SITE_MYID="site_myid";
     public static final String SITE_IDS="site_ids";
 
-    private CoordinatorClient coordinator;
     private DrUtil drUtil;
 
-    @Autowired
-    public void setCoordinator(CoordinatorClient coordinator) {
-        this.coordinator = coordinator;
+    public VdcConfigUtil(CoordinatorClient coordinator) {
         drUtil = new DrUtil(coordinator);
     }
 
     /**
-     * generates a Properties instance containing all the VDC information this VDC has in
-     * its local db, to be used by syssvc to update the local system property.
+     * generates a property map containing all the VDC/site information this VDC has in
+     * ZK, to be used by syssvc to update the local system property.
      * 
-     * @return a Properties instance containing VDC configs
+     * @return a map containing VDC/site configs
      */
     public Map<String, String> genVdcProperties() {
         Map<String, String> vdcConfig = new HashMap<>();
 
-        Map<String, List<Site>> vdcSiteMap = getVdcSiteMap();
-        List<String> vdcShortIdList = new ArrayList<>(vdcSiteMap.keySet());
-        for (String vdcShortId : vdcShortIdList) {
-
-            // FIXME: need to determine if the vdc is local or not.
-            // THere's no way to know that without querying db, unless we persist such information in ZK too.
-            vdcConfig.put(VDC_MYID, vdcShortId);
-
-            genSiteProperties(vdcConfig, vdcShortId, vdcSiteMap.get(vdcShortId));
-        }
-
+        Map<String, List<Site>> vdcSiteMap = drUtil.getVdcSiteMap();
         if (vdcSiteMap.isEmpty()) {
             log.warn("No virtual data center defined in local db");
             return vdcConfig;
+        }
+
+        vdcConfig.put(VDC_MYID, drUtil.getLocalVdcShortId());
+
+        List<String> vdcShortIdList = new ArrayList<>(vdcSiteMap.keySet());
+        for (String vdcShortId : vdcShortIdList) {
+            genSiteProperties(vdcConfig, vdcShortId, vdcSiteMap.get(vdcShortId));
         }
         // sort the vdc short ids by their indices, note that vdc11 should be greater
         // than vdc2
@@ -101,22 +91,8 @@ public class VdcConfigUtil {
         return vdcConfig;
     }
 
-    private Map<String, List<Site>> getVdcSiteMap() {
-        Map<String, List<Site>> vdcSiteMap = new HashMap<>();
-        List<Site> sites = drUtil.listSites();
-        for (Site site : sites) {
-            String vdcId = site.getVdcShortId();
-            if (!vdcSiteMap.containsKey(vdcId)) {
-                vdcSiteMap.put(vdcId, new ArrayList<Site>());
-            }
-            vdcSiteMap.get(vdcId).add(site);
-        }
-        return vdcSiteMap;
-    }
-
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
-        DrUtil drUtil = new DrUtil(coordinator);
-        String primarySiteId = drUtil.getPrimarySiteId();
+        String primarySiteId = drUtil.getPrimarySiteId(vdcShortId);
         
         Collections.sort(sites, new Comparator<Site>() {
             @Override
@@ -148,6 +124,9 @@ public class VdcConfigUtil {
 
             List<String> siteHosts = getHostsFromIPAddrMap(siteIPv4Addrs, siteIPv6Addrs);
             String siteShortId = site.getStandbyShortId();
+            
+            // sort the host names as vipr1, vipr2 ...
+            Collections.sort(siteHosts);
             
             for (String hostName : siteHosts) {
                 siteNodeCnt++;
@@ -185,6 +164,7 @@ public class VdcConfigUtil {
 
             if (drUtil.isLocalSite(site)) {
                 vdcConfig.put(SITE_MYID, siteShortId);
+                vdcConfig.put(SITE_MY_UUID, site.getUuid());
             }
 
             if (!isPrimarySite) {
@@ -192,9 +172,13 @@ public class VdcConfigUtil {
             }
         }
         Collections.sort(shortIds);
-        vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
 
-        vdcConfig.put(SITE_IS_STANDBY, String.valueOf(!drUtil.isPrimary()));
+        if (drUtil.getLocalVdcShortId().equals(vdcShortId)) {
+            // right now we assume that SITE_IDS and SITE_IS_STANDBY only makes sense for local VDC
+            // moving forward this may or may not be the case.
+            vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
+            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(drUtil.isStandby()));
+        }
     }
 
     private List<String> getHostsFromIPAddrMap(Map<String, String> IPv4Addresses, Map<String, String> IPv6Addresses) {

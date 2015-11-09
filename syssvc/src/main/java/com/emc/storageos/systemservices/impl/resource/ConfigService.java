@@ -21,6 +21,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.security.password.InvalidLoginManager;
 import com.emc.storageos.model.auth.LoginFailedIPList;
 import org.apache.commons.lang.StringUtils;
@@ -54,6 +56,8 @@ import com.emc.vipr.model.sys.eventhandler.ConnectEmcEmail;
 import com.emc.vipr.model.sys.eventhandler.ConnectEmcFtps;
 
 import static com.emc.storageos.coordinator.client.model.Constants.HIDDEN_TEXT_MASK;
+import static com.emc.storageos.coordinator.client.model.Constants.IPSEC_KEY;
+import static com.emc.storageos.coordinator.client.model.Constants.VDC_CONFIG_VERSION;
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterResponse;
 
 @Path("/config/")
@@ -98,6 +102,9 @@ public class ConfigService {
 
     @Autowired
     protected InvalidLoginManager _invLoginManager;
+
+    @Autowired
+    private IPsecConfig ipsecConfig;
 
     public static final String CERTIFICATE_VERSION = "certificate_version";
     private static final Logger _log = LoggerFactory.getLogger(ConfigService.class);
@@ -322,19 +329,35 @@ public class ConfigService {
     }
 
     /**
-     * Internal api to get system configuration properties. The api could be by data node.
+     * Internal api to get system configuration properties.
      * 
      * @brief Get system properties
      * @prereq none
      * @param category - type properties to return: config, ovf, or obsolete
+     *                 ipsec only for internal use
      * @return Properties Information if success. Error response, if error./**
      */
     @POST
     @Path("internal/properties/")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public PropertyInfoRestRep getInternalProperties(String category) throws Exception {
-        return getProperties(category);
+        if (category.equalsIgnoreCase(PropCategory.IPSEC.toString())) {
+            _log.info("internal getting ipsec properties.");
+            Map<String, String> ipsecProps = new HashMap();
+            ipsecProps.put(IPSEC_KEY, ipsecConfig.getPreSharedKey());
+
+            SiteInfo siteInfo = _coordinator.getTargetInfo(SiteInfo.class);
+            String vdcConfigVersion = String.valueOf(siteInfo.getVdcConfigVersion());
+            ipsecProps.put(VDC_CONFIG_VERSION, vdcConfigVersion);
+            _log.info("ipsec key: " + ipsecConfig.getPreSharedKey()
+                    + ", vdc config version: " + vdcConfigVersion);
+
+            return new PropertyInfoRestRep(ipsecProps);
+        } else {
+            return getProperties(category);
+        }
     }
+
 
     /**
      * Show metadata of system configuration properties

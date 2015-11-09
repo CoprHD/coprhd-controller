@@ -8,6 +8,9 @@ package com.emc.storageos.db.client.impl;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -161,44 +164,69 @@ public class ColumnValue {
      * @param name composite column name
      * @param val column value
      * @param ttl time to live in seconds for this column
+     * @return the number of bytes added
      * @throws DatabaseException
      */
-    public static <T> void setColumn(ColumnListMutation<T> columns, T name, Object val, Integer ttl) {
+    public static <T> int setColumn(ColumnListMutation<T> columns, T name, Object val, Integer ttl) {
+        int totalSizeInByte = 4; // size of ttl
         if (val == null) {
             columns.putEmptyColumn(name, ttl);
         } else if (val.getClass() == byte[].class) {
-            columns.putColumn(name, (byte[]) val, ttl);
+            byte[] value = (byte[])val;
+            columns.putColumn(name, value, ttl);
+            totalSizeInByte += value.length;
         } else if (val.getClass() == String.class) {
-            columns.putColumn(name, (String) val, ttl);
+            String value = (String)val;
+            columns.putColumn(name, value, ttl);
+            totalSizeInByte += value.getBytes().length;
         } else if (val.getClass() == URI.class) {
-            columns.putColumn(name, val.toString(), ttl);
+            String value = val.toString();
+            columns.putColumn(name, value, ttl);
+            totalSizeInByte += value.getBytes().length;
         } else if (val.getClass() == Byte.class) {
             columns.putColumn(name, (Byte) val & 0xff, ttl);
+            totalSizeInByte +=1;
         } else if (val.getClass() == Boolean.class) {
             columns.putColumn(name, (Boolean) val, ttl);
+            totalSizeInByte +=1;
         } else if (val.getClass() == Short.class) {
             columns.putColumn(name, (Short) val, ttl);
+            totalSizeInByte +=2;
         } else if (val.getClass() == Integer.class) {
             columns.putColumn(name, (Integer) val, ttl);
+            totalSizeInByte +=4;
         } else if (val.getClass() == Long.class) {
             columns.putColumn(name, (Long) val, ttl);
+            totalSizeInByte +=8;
         } else if (val.getClass() == Float.class) {
             columns.putColumn(name, (Float) val, ttl);
+            totalSizeInByte +=4;
         } else if (val.getClass() == Double.class) {
             columns.putColumn(name, (Double) val, ttl);
+            totalSizeInByte +=8;
         } else if (val.getClass() == Date.class) {
             columns.putColumn(name, (Date) val, ttl);
+            totalSizeInByte +=8;
         } else if (val.getClass() == NamedURI.class) {
-            columns.putColumn(name, val.toString(), ttl);
+            String value = val.toString();
+            columns.putColumn(name, value, ttl);
+            totalSizeInByte +=value.getBytes(Charset.forName("UTF-8")).length;
         } else if (val.getClass() == ScopedLabel.class) {
+            String value = val.toString();
             columns.putColumn(name, val.toString(), ttl);
+            totalSizeInByte +=value.getBytes(Charset.forName("UTF-8")).length;
         } else if (val instanceof Calendar) {
             columns.putColumn(name, ((Calendar) val).getTimeInMillis(), ttl);
+            totalSizeInByte +=8;
         } else if (val.getClass().isEnum()) {
-            columns.putColumn(name, ((Enum<?>) val).name(), ttl);
+            String value = ((Enum<?>)val).name();
+            columns.putColumn(name, value, ttl);
+            totalSizeInByte +=value.getBytes(Charset.forName("UTF-8")).length;
         } else {
             throw DatabaseException.fatals.serializationFailedUnsupportedType(name);
         }
+
+        return totalSizeInByte;
     }
 
     /**
@@ -209,8 +237,8 @@ public class ColumnValue {
      * @param val column value
      * @throws DatabaseException
      */
-    public static void setColumn(ColumnListMutation<CompositeColumnName> columns,
+    public static int setColumn(ColumnListMutation<CompositeColumnName> columns,
             CompositeColumnName name, Object val) {
-        setColumn(columns, name, val, null);
+        return setColumn(columns, name, val, null);
     }
 }

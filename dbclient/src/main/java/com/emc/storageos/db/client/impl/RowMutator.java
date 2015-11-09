@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.Keyspace;
@@ -16,17 +17,23 @@ import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.util.TimeUUIDUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Encapsulates batch queries for record and index updates
  */
 public class RowMutator {
+    private static final Logger log = LoggerFactory.getLogger(RowMutator.class);
+
     private Map<String, Map<String, ColumnListMutation<CompositeColumnName>>> _cfRowMap;
     private Map<String, Map<String, ColumnListMutation<IndexColumnName>>> _cfIndexMap;
     private UUID _timeUUID;
     private long _timeStamp;
     private MutationBatch _recordMutator;
     private MutationBatch _indexMutator;
+    private long recordSizeInByte=0;
+    private long indexSizeInByte=0;
 
     public RowMutator(Keyspace keyspace) {
         _timeUUID = TimeUUIDUtils.getUniqueTimeUUIDinMicros();
@@ -47,6 +54,14 @@ public class RowMutator {
 
     public long getTimeStamp() {
         return _timeStamp;
+    }
+
+    public void addRecordSize(int bytes) {
+        recordSizeInByte += bytes;
+    }
+
+    public void addIndexSize(int bytes) {
+        indexSizeInByte += bytes;
     }
 
     /**
@@ -97,6 +112,16 @@ public class RowMutator {
      * Updates record first and index second. This is used for insertion
      */
     public void executeRecordFirst() {
+        if (indexSizeInByte >= DbConfigConstants.THRIFT_FRAME_TRANSPORT_SIZE) {
+            log.info("The index size {} exceed {} bytes", indexSizeInByte, DbConfigConstants.THRIFT_FRAME_TRANSPORT_SIZE);
+            throw DatabaseException.fatals.exceedThriftFrameTransportSize("index", indexSizeInByte);
+        }
+
+        if(recordSizeInByte >= DbConfigConstants.THRIFT_FRAME_TRANSPORT_SIZE ) {
+            log.info("The data size {} exceed {} bytes", recordSizeInByte, DbConfigConstants.THRIFT_FRAME_TRANSPORT_SIZE);
+            throw DatabaseException.fatals.exceedThriftFrameTransportSize("data", recordSizeInByte);
+        }
+
         try {
             if (!_recordMutator.isEmpty()) {
                 _recordMutator.execute();

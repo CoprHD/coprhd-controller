@@ -321,13 +321,13 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testResumeStandby() {
         try {
-            drService.pauseStandby(primarySite.getUuid());
+            drService.resumeStandby(primarySite.getUuid());
         } catch (APIException e) {
             assertEquals(e.getServiceCode(), ServiceCode.API_BAD_REQUEST);
         }
 
         try {
-            drService.pauseStandby(NONEXISTENT_ID);
+            drService.resumeStandby(NONEXISTENT_ID);
         } catch (APIException e) {
             assertEquals(e.getServiceCode(), ServiceCode.API_PARAMETER_INVALID);
         }
@@ -337,8 +337,8 @@ public class DisasterRecoveryServiceTest {
         doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
 
         try {
-            SiteRestRep response = drService.pauseStandby(standbySite1.getUuid());
-            assertEquals(response.getState(), SiteState.STANDBY_SYNCING.toString());
+            SiteRestRep response = drService.resumeStandby(standbySite1.getUuid());
+            assertEquals(response.getState(), SiteState.STANDBY_RESUMING.toString());
         } catch (Exception e) {
             fail();
         }

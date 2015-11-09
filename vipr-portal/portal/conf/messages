@@ -853,7 +853,7 @@ disasterRecovery.save.success=Added standby: '%s'
 disasterRecovery.pause.success=Pause request initiated for site: '%s'
 disasterRecovery.resume.success=Resume request initiated for site: '%s'
 disasterRecovery.test.success=Test Mode request initiated for site: '%s'
-disasterRecovery.save.error=Failed to save standby '%s'
+disasterRecovery.save.error=Failed to add standby '%s'
 disasterRecovery.pause.error=Failed to pause standby '%s'
 disasterRecovery.resume.error=Failed to resume standby'%s'
 disasterRecovery.test.error=Failed to initiated test mode for site: '%s'
@@ -2419,6 +2419,7 @@ adminDashboard.fileCapacity=File
 adminDashboard.blockCapacity=Block
 adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File/Object
+adminDashboard.disasterRecovery=Disaster Recovery
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object

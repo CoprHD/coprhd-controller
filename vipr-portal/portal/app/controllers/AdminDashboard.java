@@ -7,9 +7,11 @@ package controllers;
 import static util.BourneUtil.getSysClient;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import org.joda.time.DateTime;
+
 import jobs.PoweroffJob;
 import jobs.RebootNodeJob;
 import play.Logger;
@@ -19,9 +21,11 @@ import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.AdminDashboardUtils;
+import util.DisasterRecoveryUtils;
 import util.LicenseUtils;
 import util.MessagesUtils;
 
+import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.google.common.collect.Maps;
@@ -70,6 +74,12 @@ public class AdminDashboard extends Controller {
             renderArgs.put("startTime", startTime);
         }
         render(dbstatus);
+    }
+
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    public static void disasterRecovery() {
+        List <SiteRestRep> drsites = DisasterRecoveryUtils.getAllSites().getSites();
+        render(drsites);
     }
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })

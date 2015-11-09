@@ -272,6 +272,7 @@ public class VPlexApiDiscoveryManager {
             }
         } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
             // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
             return new ArrayList<VPlexPortInfo>();
         } else {
             throw VPlexApiException.exceptions.failedGettingPortInfo(String.valueOf(status));
@@ -1603,6 +1604,7 @@ public class VPlexApiDiscoveryManager {
             }
         } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
             // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
             return new ArrayList<VPlexInitiatorInfo>();
         } else {
             throw VPlexApiException.exceptions
@@ -1740,6 +1742,7 @@ public class VPlexApiDiscoveryManager {
             }
         } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
             // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
             return new ArrayList<VPlexTargetInfo>();
         } else {
             throw VPlexApiException.exceptions.failedGettingTargetPortInfo(String.valueOf(status));
@@ -2157,6 +2160,7 @@ public class VPlexApiDiscoveryManager {
             }
         } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
             // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
             return new ArrayList<VPlexStorageViewInfo>();
         } else {
             throw VPlexApiException.exceptions.failedGettingStorageViewInfo(String.valueOf(status));
@@ -2480,6 +2484,7 @@ public class VPlexApiDiscoveryManager {
             }
         } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
             // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
             return new ArrayList<VPlexConsistencyGroupInfo>();
         } else {
             throw VPlexApiException.exceptions.failedGettingConsistencyGroupInfo(String.valueOf(status));
@@ -2818,6 +2823,7 @@ public class VPlexApiDiscoveryManager {
             }
         } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
             // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
             return new ArrayList<VPlexVirtualVolumeInfo>();
         } else {
             throw VPlexApiException.exceptions.failedGettingVirtualVolumeInfo(String.valueOf(status));

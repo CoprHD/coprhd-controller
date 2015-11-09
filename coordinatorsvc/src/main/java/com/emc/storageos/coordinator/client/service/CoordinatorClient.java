@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
@@ -614,12 +613,4 @@ public interface CoordinatorClient {
      * @return An instance to help with owner lock management.
      */
     DistributedAroundHook getDistributedOwnerLockAroundHook();
-    
-    /**
-     * Gets the instance of {@link DistributedAtomicInteger} to atomic calculation. Internally, CoordinatorClient will generate the ZK node path according parameters
-     * @param siteId site UUID
-     * @param name the unique id of this {@link DistributedAtomicInteger}
-     * @return An instance of DistributedAtomicInteger .
-     */
-    DistributedAtomicInteger getDistributedAtomicInteger(String siteId, String name);
 }

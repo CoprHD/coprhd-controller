@@ -10,9 +10,9 @@
 # it is provided by or on behalf of EMC.
 
 _get_coordinator_var() {
-    local drmode="${_GENCONFIG_dr_coordinator_mode}"
-    if [ "${drmode}" == "switchrw" ]; then
-        _get_coordinator_var_switchrw
+    local drmode="${_GENCONFIG_dr_coordinator_type}"
+    if [ "${drmode}" == "participant" ]; then
+        _get_coordinator_var_participant
     else
         _get_coordinator_var_normal
     fi
@@ -25,6 +25,8 @@ _get_coordinator_var_normal() {
     local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
     local primary_cnt="${!var}"
     if [ -n "${_GENCONFIG_site_ids}" ] && [ "${primary_cnt}" == "1" ]; then
+        # DR dual coordinator hack for 1+0. See CoordinatorImpl.java for
+        # more description
         primary_cnt="2"
         echo "--foreach:iter_primary:$(seq --separator=',' 2)"
         local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_1_ipaddr"
@@ -83,10 +85,11 @@ _get_coordinator_var_normal() {
     else
         echo "peer_type=participant"
     fi
-    echo "zkdcfg_version="
 }
 
-_get_coordinator_var_switchrw() {
+# for DR standby site only, switch to participant mode for read/write
+# transactions on standby site when primary site is down
+_get_coordinator_var_participant() {
     # generate participants for nodes in primary site
     local cursite_begin_index="0"
     local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
@@ -126,7 +129,6 @@ _get_coordinator_var_switchrw() {
     echo "coordinator_node_index=$((${_GENCONFIG_node_index} + ${cursite_begin_index}))"
     echo "peer_type=participant"
     echo "--foreach:iter_standby:"
-    echo "zkdcfg_version=FFFF00000000"
 }
 
 _get_coordinator_jmx_props() {

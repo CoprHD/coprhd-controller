@@ -13,12 +13,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.curator.framework.recipes.atomic.AtomicValue;
-import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -34,8 +34,8 @@ import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Exec;
@@ -54,14 +54,12 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
  * Data revision change and simulatenous cluster poweroff are also managed here
  */
 public class VdcSiteManager extends AbstractManager {
-    private static final int SWITCH_OVER_NODECOUNTER_RETRY_TIMES = 10;
-
-    private static final int SWITCH_OVER_NODECOUNTER_RETRY_INTERVAL_MS = 1000*30;
-
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
     private static final String VDC_IDS_KEY = "vdc_ids";
     private static final int VDC_RPOP_BARRIER_TIMEOUT = 5;
+    private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
+    private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
@@ -211,27 +209,6 @@ public class VdcSiteManager extends AbstractManager {
                 gracefulPoweroffCluster();
             } catch (Exception e) {
                 log.error("Step2: Failed to poweroff. {}", e);
-            }
-
-            log.info("Step2.1 Process post switchover");
-            try {
-                Site site = drUtil.getLocalSite();
-                if (drUtil.isPrimary() && site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-                    DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient()
-                            .getDistributedAtomicInteger(currentSiteId, Constants.SWITCHOVER_STANDBY_NODECOUNT);
-                    
-                    log.info("{} node left to do failover in this new primary site",
-                            distributedAtomicInteger.get().postValue());
-                    
-                    if (distributedAtomicInteger.get().postValue() <= 0) {
-                        log.info("Set this primary site state as PRIMARY after switchover");
-                        
-                        site.setState(SiteState.PRIMARY);
-                        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Step2.1: Failed to process post switchover. {}", e);
             }
 
             // Step3: update vdc configuration if changed
@@ -434,7 +411,7 @@ public class VdcSiteManager extends AbstractManager {
      * update vdc properties from zk to disk and wait for all nodes are done via barrier
      */
     private void updateVdcPropertiesAndWaitForAll() throws Exception {
-        DistributedDoubleBarrier barrier = enterBarrier();
+        DistributedDoubleBarrier barrier = enterBarrier("VdcPropBarrier", VDC_RPOP_BARRIER_TIMEOUT);
 
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
         // set the vdc_config_version to an invalid value so that it always gets retried on failure.
@@ -453,27 +430,37 @@ public class VdcSiteManager extends AbstractManager {
         vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
         localRepository.setVdcPropertyInfo(vdcProperty);
     }
+    
+    private DistributedDoubleBarrier enterBarrier(String path, int timeout) throws Exception {
+        return enterBarrier(path, timeout, getChildrenCountOnBarrier(), false);
+    }
 
     /**
      * Waiting for all nodes entering the VdcPropBarrier.
      * @return
+     * @param path barrier path
+     * @param timeout timeout 
+     * @param memberQty total number of members that plan to wait on the barrier
+     * @return 
      * @throws Exception
      */
-    private DistributedDoubleBarrier enterBarrier() throws Exception {
-        log.info("Waiting for all nodes entering VdcPropBarrier");
+    private DistributedDoubleBarrier enterBarrier(String path, int timeout, int memberQty, boolean crossSite) throws Exception {
+        log.info("Waiting for all nodes entering path {}", path);
 
-        // key rotation is always done on primary site. when adding standby this is done on both site.
-        String barrierPath = String.format("%s/%s/VdcPropBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
+        String barrierPath = crossSite ? String.format("%s/%s", ZkPath.SITES, path):
+            String.format("%s/%s/%s", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId(), path);
+
+        log.info("Barrier path is {}", barrierPath);
 
         // the children # should be the node # in entire VDC. before linking together, it's # in a site.
-        DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, getChildrenCountOnBarrier());
+        DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, memberQty);
 
-        boolean allEntered = barrier.enter(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+        boolean allEntered = barrier.enter(timeout, TimeUnit.SECONDS);
         if (allEntered) {
-            log.info("All nodes entered VdcPropBarrier");
+            log.info("All nodes entered {}", barrierPath);
             return barrier;
         } else {
-            throw new Exception("Only Part of nodes entered within 5 seconds, Skip updating");
+            throw new Exception(String.format("Only Part of nodes entered within %s seconds, Skip updating", timeout));
         }
     }
 
@@ -522,18 +509,29 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.reconfigProperties("firewall");
         localRepository.reload("firewall");
 
+        reconfigAndRestartCoordinator(site);
+
+        finishUpdateVdcProperties();
+    }
+    
+    private void reconfigAndRestartCoordinator(Site site) throws Exception {
         // Reconfigure ZK
         // TODO: think again how to make use of the dynamic zookeeper configuration
         // The previous approach disconnects all the clients, no different than a service restart.
-        localRepository.reconfigProperties("coordinator");
         
-        //new primary site from switchover will not restart until it notify all other sites to reconfig
-        if (!site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-            log.info("not for switchover, restart coordinatorsvc");
+        if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+            log.info("Wait for barrier to reconfig/restart coordinator when switchover");
+            DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+            
+            localRepository.reconfigProperties("coordinator");
+            
+            leaveBarrier(barrier);
+            
+            localRepository.restart("coordinatorsvc");
+        } else {
+            localRepository.reconfigProperties("coordinator");
             localRepository.restart("coordinatorsvc");
         }
-
-        finishUpdateVdcProperties();
     }
 
     private List<String> getJoiningZKNodes() {
@@ -1003,35 +1001,15 @@ public class VdcSiteManager extends AbstractManager {
     private void proccessNewPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is planned failover standby site (new primary)");
         
-        //decrement the counter
-        DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
-                site.getUuid(), Constants.SWITCHOVER_STANDBY_NODECOUNT);
-        AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
+        blockUntilZookeeperIsWritableConnected();
         
-        log.info("{} node left to do failover in this new primary site", nodeCountLeft.postValue());
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
         
-        //all nodes in new primary side finish switch over, set it as Primary and notify all other sites
-        if (nodeCountLeft.postValue() <= 0) {
-            
-            //trigger other site property change to reconfig
-            List<Site> existingSites = drUtil.listSites();
-            for (Site eachsite : existingSites) {
-                if (!eachsite.getUuid().equals(site.getUuid())) {
-                    drUtil.updateVdcTargetVersion(eachsite.getUuid(), SiteInfo.RECONFIG_RESTART);
-                }
-            }
-            
-            //restart coordinator and set PRIMARY state
-            localRepository.restart("coordinatorsvc");
-            
-            log.info("All nodes have finished failover, set state to PRIMARY");
-            site.setState(SiteState.PRIMARY);
-            try {
-                coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-            } catch (Exception e) {
-                log.warn("Fail to set switchover site as PRIMARY state {}", e);
-            }
-        }
+        log.info("Set state to PRIMARY");
+        site.setState(SiteState.PRIMARY);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        
+        leaveBarrier(barrier);
         
         log.info("Reboot this node after planned failover");
         localRepository.reboot();
@@ -1040,46 +1018,51 @@ public class VdcSiteManager extends AbstractManager {
     private void proccessOldPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is planned failover primary site (old primrary)");
         
-        //decrement the counter
-        DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
-                site.getUuid(), Constants.SWITCHOVER_PRIMARY_NODECOUNT);
-        AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
+        blockUntilZookeeperIsWritableConnected();
         
-        log.info("{} node left to do failover in this old primary site", nodeCountLeft.postValue());
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
         
-        //all nodes in old primary side finish switch over, set it as SYNCED
-        if (nodeCountLeft.postValue() <= 0) {
-            log.info("All nodes have finished failover, set state to SYNCED");
-            site.setState(SiteState.STANDBY_SYNCED);
-            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-        }
+        log.info("Set state to SYNCED");
+        site.setState(SiteState.STANDBY_SYNCED);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        
+        leaveBarrier(barrier);
         
         log.info("Reboot this node after planned failover");
         localRepository.reboot();
     }
     
-    private AtomicValue<Integer> retryDecrement(DistributedAtomicInteger distributedAtomicInteger) throws Exception {
-        int retry = 0;
+    private void blockUntilZookeeperIsWritableConnected() {
         while (true) {
-            if (retry > SWITCH_OVER_NODECOUNTER_RETRY_TIMES) {
-                log.info("Retry {} times and failed to decrement value", retry);
-                throw new Exception("Failed to decrement value");
-            }
+            try {
+                States state = coordinator.getConnectionState();
+                
+                if (state.equals(States.CONNECTED))
+                    return;
+                
+                log.info("ZK connection state is {}, wait for connected", state);
+            } catch (Exception e) {
+                log.error("Can't get Zk state {}", e);
+            } 
             
             try {
-                AtomicValue<Integer> atomicValue = distributedAtomicInteger.decrement();
-                if (atomicValue.succeeded()) {
-                    log.info("Sccess to decrement value to {}", atomicValue.postValue());
-                    return atomicValue;
-                }
-                
-                Thread.sleep(SWITCH_OVER_NODECOUNTER_RETRY_INTERVAL_MS);
-            } catch (Exception e) {
-                log.error("Fail to derement value {}", e);
-                Thread.sleep(SWITCH_OVER_NODECOUNTER_RETRY_INTERVAL_MS);
-            } finally {
-                retry++;
+                Thread.sleep(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
+            } catch (InterruptedException e) {
+                //Ingore
+            };
+        }
+    }
+    
+    private int getSwitchoverNodeCount() {
+        int count = 0;
+        
+        for (Site site : drUtil.listSites()) {
+            if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+                count += site.getNodeCount();
             }
         }
+        
+        log.info("Node count is switchover is {}", count);
+        return count;
     }
 }

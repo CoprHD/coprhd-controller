@@ -93,18 +93,14 @@ _start_services() {
     fi
 
     /etc/storageos/ipchecktool --panic
-    _quickstart_services
-} 
-
-_quickstart_services() {
     echo -n "Starting @product_brand@ ${STORAGEOS_VARIANT} services "
     for svc in @systemd_storageos@ ; do
         _startsvc ${svc}
         echo -n "."
     done
     echo " Done"
-}
- 
+} 
+
 # Stop services
 _stop_services() {
     echo -n "Stopping @product_brand@ ${STORAGEOS_VARIANT} services "
@@ -127,11 +123,6 @@ start)
     _set_variant
     _start_services
     ;;
-quickstart)
-    STORAGEOS_VARIANT=""
-    _set_variant
-    _quickstart_services
-    ;;
 startcoverage)
     STORAGEOS_VARIANT="-coverage"
     _set_variant 
@@ -146,6 +137,14 @@ api)
 controller)
     echo -n "Starting @product_brand@ controller service"
     _startsvc controller
+    ;;
+drstandby)
+    STORAGEOS_VARIANT=""
+    _set_variant
+    echo -n "Starting @product_brand@ services on standby"
+    for svc in auth coordinator db geodb api geo sys portal; do
+        _startsvc ${svc}
+    done
     ;;
 stop)
     _stop_services

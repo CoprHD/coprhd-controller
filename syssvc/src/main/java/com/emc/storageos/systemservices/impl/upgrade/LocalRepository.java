@@ -390,6 +390,13 @@ public class LocalRepository {
         checkFailure(result, prefix);
     }
 
+    /**
+     * Reconfig local coordinatorsvc to observer(default mode), or pariticpant(when primary is down)
+     * For DR standby site only.  
+     * 
+     * @param type
+     * @throws LocalRepositoryException
+     */
     public void reconfigCoordinator(String type) throws LocalRepositoryException {
         final String prefix = String.format("reconfigCoordinator(%s): ", type);
         _log.debug(prefix);

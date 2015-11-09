@@ -40,22 +40,10 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
         _id = id;
     }
 
-    public void setServerId(int id) {
-        this.serverId = id;
-    }
-    
     public void setProperties(Properties properties) {
         _properties = properties;
     }
 
-    public Properties getProperties() {
-        return _properties;
-    }
-    
-    public int getNumberOfObservers() {
-        return observers.size();
-    }
-    
     public int getNumberOfParitipants() {
         return servers.size() - observers.size();
     }
@@ -141,11 +129,20 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
         }
     }
     
+    /**
+     * Create a new config based on current properties and new properties
+     * 
+     * @param newProp
+     * @param serverId
+     * @return
+     * @throws IOException
+     * @throws ConfigException
+     */
     public SpringQuorumPeerConfig createNewConfig(Properties newProp, int serverId) throws IOException, ConfigException {
         SpringQuorumPeerConfig newConfig = new SpringQuorumPeerConfig();
         newConfig.setMachineId(serverId);
         Properties prop = new Properties(); 
-        prop.putAll(getProperties());
+        prop.putAll(_properties);
         prop.putAll(newProp);
         newConfig.setProperties(prop);
         newConfig.init();

@@ -110,6 +110,8 @@ _get_firewall_props() {
     IFS="${OLD_IFS}"
     echo "network_nic_name=${_GENCONFIG_network_nic_name}"
 
+    # DR dual coordinator hack for 1+0. See CoordinatorImpl.java for more
+    # explanation 
     local dual_coordinator="false"
     if [ -n "${_GENCONFIG_site_ids}" ] && [ "${_GENCONFIG_site_is_standby}" != "true" ] ; then
         local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"

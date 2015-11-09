@@ -40,7 +40,7 @@ _usage() {
     echo "   or: $0 --reconfig-security" >&2
     echo "   or: $0 --restart service"  >&2
     echo "   or: $0 --reload ntp|ssh|connectemc" >&2
-    echo "   or: $0 --reconfig-coordinator isolated|normal" >&2
+    echo "   or: $0 --reconfig-coordinator observer|participant" >&2
     echo "   or: $0 --test"             >&2
     exit 2
 }
@@ -437,13 +437,13 @@ EOF
 # 
 # Reconfigure coordinatorsvc mode. for standby only
 #
-# switchrw - disconnect and exit observer mode. becomes writable
-# switchro - reconnect and enter observer mode. becomes read-only
+# participant - disconnect and exit observer mode. becomes writable
+# observer - reconnect and enter observer mode. becomes read-only
 #
 _reconfig_coordinator() {
     exec /etc/genconfig "coordinator" << EOF
 $(_get_props)
-dr_coordinator_mode=${1}
+dr_coordinator_type=${1}
 EOF
     _fatal     "Failed to exec /etc/genconfig ${1}"
 }
@@ -482,7 +482,7 @@ _reload() {
         reset-coordinator)
 	    /etc/storageos/storageos stop
             rm -fR /data/zk/version-2/
-            /etc/storageos/storageos quickstart
+            /etc/storageos/storageos drstandby
             ;;
         *)
             _fatal2 2 "Unsupported service type ${1}" ;;

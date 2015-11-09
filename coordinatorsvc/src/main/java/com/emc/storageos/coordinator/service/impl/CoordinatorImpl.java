@@ -130,16 +130,25 @@ public class CoordinatorImpl implements Coordinator {
                 _log.warn("Unable to register log4j JMX control", e);
             }
             try {
+                runFromConfig(_config);
+                
+                // Dual coordinator - a hack for 1+0 (dev environment only) in DR. End customer uses 2+1 or 3+2 only and never goes into this case.
+                //
+                // We run 2 zookeeper instances for 1+0 to address a limitation in ZOOKEEPER-1692 in 3.4.6. ZK doesn't
+                // allow observers for standalone zookeeper(single zk participants). So we run 2 zookeeper servers here to 
+                // simulate 2 zk participants and bypass this limitation, then we are able to add zk observers for DR sites.
+                // /etc/genconfig.d/coordinator generates 2 zk servers to coordinator-var.xml, and here we start
+                // 
+                // ZK 3.5 introduces new parameter standaloneEnabled to address this limitation. Need revisit this hack after upgraded to zk 3.5
                 int serverCnt = _config.getNumberOfParitipants();
                 if (serverCnt == 2 && _config.getPeerType().equals(LearnerType.PARTICIPANT)) {
-                    _log.info("Starting a shadow peer to run zk in cluster mode. Aim to bypass a ZK 3.4.6 limitation(standalone participant refuses observers)");
+                    _log.info("Starting the other peer to run zk in cluster mode. Aim to address a ZK 3.4.6 limitation(cannot add observers to standalone server)");
                     Properties prop = new Properties();
-                    prop.setProperty("dataDir", "/data/zk/shadow");
-                    prop.setProperty("clientPort", "2191");
+                    prop.setProperty("dataDir", _config.getDataDir() + "/peer2");
+                    prop.setProperty("clientPort", "3181"); // a deferent port
                     SpringQuorumPeerConfig newConfig = _config.createNewConfig(prop, 2);
                     runFromConfig(newConfig);
                 }
-                runFromConfig(_config);
             } catch (Exception ex) {
                 _log.error("Unexpected error when starting Zookeeper peer", ex);
                 throw new IllegalStateException("Fail to start zookeeper", ex);
@@ -228,7 +237,7 @@ public class CoordinatorImpl implements Coordinator {
     
     // Start Zookeeper peer in cluster mode 
     private void runFromConfig(SpringQuorumPeerConfig config) throws Exception {
-        _log.info(String.format("Starting peer from config for %d", config.getServerId()));
+        _log.info(String.format("Starting quorum peer from config for %d", config.getServerId()));
         ServerCnxnFactory cnxnFactory = ServerCnxnFactory.createFactory();
         cnxnFactory.configure(config.getClientPortAddress(),
                               config.getMaxClientCnxns());

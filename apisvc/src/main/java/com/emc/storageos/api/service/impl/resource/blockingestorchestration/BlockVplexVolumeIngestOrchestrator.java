@@ -28,7 +28,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -73,6 +72,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     // the ingest strategy factory, used for ingesting the backend volume
     private IngestStrategyFactory ingestStrategyFactory;
 
+    @Override
     public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
         this.ingestStrategyFactory = ingestStrategyFactory;
     }
@@ -449,8 +449,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 // add the snapshot to the created objects list as it would just replace
                 // the Volume instance and only the snapshot would get created. So,
                 // if the returned object is a snapshot add it to the backend snaps map.
-                if (blockObject instanceof BlockSnapshot) {
-                    context.getBackendSnapshotMap().put(blockObject.getNativeGuid(), (BlockSnapshot) blockObject);
+                if (context.getCreatedObjectMap().containsKey(blockObject.getNativeGuid())) {
+                    context.getBackendSnapshotMap().put(blockObject.getNativeGuid(), blockObject);
                 } else {
                     context.getCreatedObjectMap().put(blockObject.getNativeGuid(), blockObject);
                 }

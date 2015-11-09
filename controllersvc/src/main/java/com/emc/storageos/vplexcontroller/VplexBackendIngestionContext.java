@@ -20,7 +20,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringMap;
@@ -83,7 +82,7 @@ public class VplexBackendIngestionContext {
     private final Map<String, BlockObject> createdObjectMap = new HashMap<String, BlockObject>();
     private final Map<String, List<DataObject>> updatedObjectMap = new HashMap<String, List<DataObject>>();
     private final List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
-    private final Map<String, BlockSnapshot> backendSnapsMap = new HashMap<String, BlockSnapshot>();
+    private final Map<String, BlockObject> backendSnapsMap = new HashMap<String, BlockObject>();
 
     private final BackendDiscoveryPerformanceTracker _tracker;
 
@@ -901,7 +900,7 @@ public class VplexBackendIngestionContext {
      * 
      * @return The backend BlockSnapshot map.
      */
-    public Map<String, BlockSnapshot> getBackendSnapshotMap() {
+    public Map<String, BlockObject> getBackendSnapshotMap() {
         return backendSnapsMap;
     }
 

@@ -37,9 +37,9 @@ public class IngestStrategyFactory {
 
     private BlockIngestOrchestrator blockMirrorIngestOrchestrator;
 
-    private Map<String, IngestStrategy> ingestStrategyMap;
+    private final Map<String, IngestStrategy> ingestStrategyMap;
 
-    private Map<String, IngestExportStrategy> ingestExportStrategyMap;
+    private final Map<String, IngestExportStrategy> ingestExportStrategyMap;
 
     private DbClient _dbClient;
 
@@ -300,7 +300,7 @@ public class IngestStrategyFactory {
             replicationStrategy = ReplicationStrategy.REMOTE.name();
         }
         String volumeType = VolumeType.VOLUME.name();
-        if (VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
+        if ((VolumeIngestionUtil.isSnapshot(unManagedVolume)) && (!VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume))) {
             volumeType = VolumeType.SNAPSHOT.name();
         } else if (VolumeIngestionUtil.isMirror(unManagedVolume)) {
             volumeType = VolumeType.MIRROR.name();

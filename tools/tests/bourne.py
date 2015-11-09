@@ -120,8 +120,11 @@ URI_FILE_QUOTA_DIR              = URI_FILE_QUOTA_DIR_BASE + '/{0}'
 URI_FILE_QUOTA_DIR_DELETE       = URI_FILE_QUOTA_DIR + '/deactivate'
 
 URI_DR                     = URI_SERVICES_BASE  + '/site'
-URI_DR_GET                 = URI_DR    + '/{0}'
-URI_DR_DELETE              = URI_DR    + '/{0}'
+URI_DR_GET                 = URI_DR   + '/{0}'
+URI_DR_DELETE              = URI_DR   + '/{0}'
+URI_DR_PAUSE               = URI_DR   + '/{0}' + '/pause'
+URI_DR_Resume              = URI_DR   + '/{0}' + '/resume'
+URI_DR_SWITCHOVER          = URI_DR    + '/{0}/switchover'
 
 URI_VDC                     = URI_SERVICES_BASE  + '/vdc'
 URI_VDC_GET                 = URI_VDC    + '/{0}'
@@ -3258,15 +3261,31 @@ class Bourne:
         self.assert_is_dict(resp)
         return resp
 
-    def dr_get_standby(self,uri):
-        resp = self.api('GET', URI_DR_GET.format(uri))
+    def dr_get_standby(self,uuid):
+        resp = self.api('GET', URI_DR_GET.format(uuid))
         print "DR GET STANDBY RESP = ",resp
         self.assert_is_dict(resp)
         return resp
 
-    def dr_delete_standby(self,uri):
-        resp = self.api('DELETE', URI_DR_DELETE.format(uri))
+    def dr_delete_standby(self,uuid):
+        resp = self.api('DELETE', URI_DR_DELETE.format(uuid))
         print "DR DELETE STANDBY RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
+    def dr_switchover(self,uri):
+        resp = self.api('POST', URI_DR_SWITCHOVER.format(uri))
+        print "DR SWITCHOVER RESP = ",resp
+
+    def dr_pause_standby(self,uuid):
+        resp = self.api('POST', URI_DR_PAUSE.format(uuid))
+        print "DR PAUSE STANDBY RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
+    def dr_resume_standby(self,uuid):
+        resp = self.api('POST', URI_DR_RESUME.format(uuid))
+        print "DR PAUSE STANDBY RESP = ",resp
         self.assert_is_dict(resp)
         return resp
 

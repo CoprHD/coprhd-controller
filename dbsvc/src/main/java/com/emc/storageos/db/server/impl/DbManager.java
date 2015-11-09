@@ -332,6 +332,5 @@ public class DbManager implements DbManagerMBean {
                 StorageService.instance.removeNode(guid);
             }
         }
-   }
-
+    }
 }

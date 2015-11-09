@@ -7,7 +7,6 @@ PORTS_PROTECTED_IN_CLUSTER="tcp/2181 tcp/2888 tcp/2889 tcp/9160 tcp/7000 tcp/100
 PORTS_PROTECTED_ACROSS_SITE="tcp/2888 tcp/2889 tcp/9160 tcp/7000"
 IPSEC_CONF_FILE="/etc/ipsec.conf"
 IPSEC_SECRET_FILE="/etc/ipsec.secrets"
-DEFAULT_PRE_SHARED_KEY="defaultPreSharedKeyForIPSec"
 FIRT_BOOT_FLAG_FILE="/.volumes/bootfs/etc/first_boot_flag"
 
 # This method returns the configured ip address of this machine
@@ -191,9 +190,11 @@ EOF
         done
     fi
 
+    local default_ipsec_key=$(cat /opt/storageos/conf/psk.default)
+
     _genconfig_write 400 root:root "${IPSEC_CONF_FILE}" "${content}"
     _genconfig_write 400 root:root "${IPSEC_SECRET_FILE}" \
-        " : PSK ${_GENCONFIG_ipsec_pre_shared_key:-${DEFAULT_PRE_SHARED_KEY}}"
+        " : PSK ${_GENCONFIG_ipsec_key:-${default_ipsec_key}}"
 }
 
 _gen_ipsec_conf

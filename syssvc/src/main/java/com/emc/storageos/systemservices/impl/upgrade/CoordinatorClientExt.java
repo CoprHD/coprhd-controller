@@ -6,6 +6,7 @@
 package com.emc.storageos.systemservices.impl.upgrade;
 
 import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
+import static com.emc.storageos.coordinator.client.model.Constants.DBSVC_NAME;
 import static com.emc.storageos.coordinator.client.model.Constants.NEW_VERSIONS_LOCK;
 import static com.emc.storageos.coordinator.client.model.Constants.NODE_INFO;
 import static com.emc.storageos.coordinator.client.model.Constants.REMOTE_DOWNLOAD_LEADER;
@@ -13,9 +14,7 @@ import static com.emc.storageos.coordinator.client.model.Constants.REMOTE_DOWNLO
 import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
 import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO_LOCK;
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterInfo;
-import static com.emc.storageos.coordinator.client.model.Constants.DBSVC_NAME;
 
-import java.io.IOException;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -24,45 +23,40 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
-import com.emc.storageos.coordinator.common.impl.ZkConnection;
-import com.emc.storageos.coordinator.common.impl.ZkPath;
-import com.emc.storageos.db.common.DbConfigConstants;
-import com.emc.storageos.services.util.PlatformUtils;
-
-import org.apache.curator.utils.EnsurePath;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.client.ZooKeeperSaslClient;
-import org.apache.zookeeper.data.Stat;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.ConfigVersion;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.services.util.Strings;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.common.impl.ServiceImpl;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
-import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.CoordinatorClassInfo;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
-import com.emc.storageos.db.common.DbServiceStatusChecker;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
+import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.common.impl.ServiceImpl;
+import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.db.common.DbConfigConstants;
+import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.model.property.PropertyMetadata;
+import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
@@ -70,8 +64,6 @@ import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.SysSvcBeaconImpl;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.google.common.collect.ImmutableSet;
-
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 public class CoordinatorClientExt {
     private static final Logger _log = LoggerFactory.getLogger(CoordinatorClientExt.class);
@@ -390,7 +382,7 @@ public class CoordinatorClientExt {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException {
         return _coordinator.getTargetInfo(clazz);
     }
 
@@ -403,7 +395,8 @@ public class CoordinatorClientExt {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
+            throws CoordinatorException {
         return _coordinator.getTargetInfo(clazz,id,kind);
     }
 
@@ -1367,5 +1360,14 @@ public class CoordinatorClientExt {
             _log.info("Fail to get the cluster information " + e.getMessage());
         }
         return null;
+    }
+    
+    /**
+     * get current ZK state
+     * @return state
+     * @throws Exception
+     */
+    public States getConnectionState() throws Exception {
+        return ((CoordinatorClientImpl)getCoordinatorClient()).getZkConnection().curator().getZookeeperClient().getZooKeeper().getState();
     }
 }

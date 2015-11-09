@@ -31,6 +31,17 @@
         </property>
         <property name="onStandby" value="${site_is_standby}"/>
         <property name="standbyId" value="${site_myid}"/>
+        <property name="drUtil" ref="drUtil"/>
+    </bean>
+
+    <bean id="dbRebuildRunnable" class="com.emc.storageos.db.server.impl.DbRebuildRunnable">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="sourceDc" value="${vdc_myid}"/>
+        <property name="nodeCount" ref="nodeCount"/>
+        <property name="service" ref="serviceinfo"/>
     </bean>
     
+    <bean id="drUtil" class="com.emc.storageos.coordinator.client.service.DrUtil">
+	     <constructor-arg ref="coordinator"/>
+	</bean>
 </beans>

@@ -398,7 +398,9 @@ public enum OperationTypeEnum {
     /* Disaster Recovery Operations */
     ADD_STANDBY("ADD STANDBY", "", "operation to add a new standby to ensemble"),
     REMOVE_STANDBY("REMOVE STANDBY", "", "operation to remove an existing standby from ensemble"),
-    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to pause replication between primary and standby"),;
+    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to pause replication between primary and standby"),
+    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to resume replication between primary and standby"),
+    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to switchover from primary site to a standby site");
 
     private final String _evType;
     private final String _fail_evType;

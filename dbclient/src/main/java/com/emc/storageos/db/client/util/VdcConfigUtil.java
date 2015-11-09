@@ -4,10 +4,6 @@
  */
 package com.emc.storageos.db.client.util;
 
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -18,25 +14,23 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
 
 /**
- * Utility class to generate Vdc property for syssvc.
+ * Utility class to generate VDC/Site property for syssvc.
+ * 
+ * The VDC/Site configurations are stored in ZK as follows:
+ * /config/disasterRecoverySites/<vdc_short_id>/<site_uuid>     has all the VDC/site configurations
+ * /config/disasterRecoveryPrimary/<vdc_short_id>               specifies which site is the primary in each VDC
+ * /config/geoLocalVDC/global                                   specifies the local VDC in the geo federation
  */
 public class VdcConfigUtil {
     private static final Logger log = LoggerFactory.getLogger(VdcConfigUtil.class);
 
-    // It's no longer a version since it's not incremental, but it serves the same
-    // purpose
     public static final String VDC_CONFIG_VERSION = "vdc_config_version";
     public static final String VDC_MYID = "vdc_myid";
     public static final String VDC_IDS = "vdc_ids";
@@ -47,110 +41,38 @@ public class VdcConfigUtil {
     public static final String VDC_STANDBY_IPADDR6_PTN = "vdc_%s_%s_network_%d_ipaddr6";
     public static final String VDC_STANDBY_IPADDR_PTN = "vdc_%s_%s_network_%d_ipaddr";
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
-    public static final String VDC_VIP6_PTN = "vdc_%s_network_vip6";
+    public static final String VDC_STANDBY_VIP_PTN = "vdc_%s_%s_network_vip";
     public static final String SITE_IS_STANDBY="site_is_standby";
+    public static final String SITE_MY_UUID="site_my_uuid";
     public static final String SITE_MYID="site_myid";
     public static final String SITE_IDS="site_ids";
 
-    private DbClient dbclient;
-    private CoordinatorClient coordinator;
+    private DrUtil drUtil;
 
-    @Autowired
-    public void setDbclient(DbClient dbclient) {
-        this.dbclient = dbclient;
-    }
-
-    @Autowired
-    public void setCoordinator(CoordinatorClient coordinator) {
-        this.coordinator = coordinator;
+    public VdcConfigUtil(CoordinatorClient coordinator) {
+        drUtil = new DrUtil(coordinator);
     }
 
     /**
-     * generates a Properties instance containing all the VDC information this VDC has in
-     * its local db, to be used by syssvc to update the local system property.
+     * generates a property map containing all the VDC/site information this VDC has in
+     * ZK, to be used by syssvc to update the local system property.
      * 
-     * @return a Properties instance containing VDC configs
+     * @return a map containing VDC/site configs
      */
     public Map<String, String> genVdcProperties() {
         Map<String, String> vdcConfig = new HashMap<>();
 
-        List<String> vdcShortIdList = new ArrayList<>();
-        List<URI> vdcIds = dbclient.queryByType(VirtualDataCenter.class, true);
-        int cnt = 0;
-        for (URI vdcId : vdcIds) {
-            VirtualDataCenter vdc = dbclient.queryObject(VirtualDataCenter.class, vdcId);
-            if (shouldExcludeFromConfig(vdc)) {
-                log.info("Ignore vdc {} with status {}", vdc.getShortId(), vdc.getConnectionStatus());
-                continue;
-            }
-
-            String shortId = vdc.getShortId();
-            vdcShortIdList.add(shortId);
-            cnt++;
-
-            if (vdc.getLocal()) {
-                vdcConfig.put(VDC_MYID, shortId);
-            }
-
-            vdcConfig.put(String.format(VDC_NODE_COUNT_PTN, shortId),
-                    vdc.getHostCount().toString());
-
-            String address;
-            StringMap IPv4Addresses = vdc.getHostIPv4AddressesMap();
-            StringMap IPv6Addresses = vdc.getHostIPv6AddressesMap();
-            List<String> hostNameList = getHostsFromIPAddrMap(IPv4Addresses, IPv6Addresses);
-
-            // sort the host names (node1, node2, node3 ...), 5 nodes tops so it's
-            // simpler than sorting vdc short ids below
-            Collections.sort(hostNameList);
-
-            int i = 0;
-            for (String hostName : hostNameList) {
-                i++;
-                address = IPv4Addresses.get(hostName);
-                if (address == null) {
-                    address = "";
-                }
-
-                vdcConfig.put(String.format(VDC_IPADDR_PTN, shortId, i), address);
-
-                address = IPv6Addresses.get(hostName);
-                if (address == null) {
-                    address = "";
-                }
-
-                vdcConfig.put(String.format(VDC_IPADDR6_PTN, shortId, i), address);
-            }
-
-            String vip = vdc.getApiEndpoint();
-            try {
-                InetAddress vipInetAddr = InetAddress.getByName(vip);
-                if (vipInetAddr instanceof Inet6Address) {
-                    if (vip.startsWith("[")) {
-                        // strip enclosing '[ and ]'
-                        vip = vip.substring(1, vip.length() - 1);
-                    }
-                    vdcConfig.put(String.format(VDC_VIP6_PTN, shortId), vip);
-                    vdcConfig.put(String.format(VDC_VIP_PTN, shortId), "");
-                } else {
-                    vdcConfig.put(String.format(VDC_VIP_PTN, shortId), vip);
-                    vdcConfig.put(String.format(VDC_VIP6_PTN, shortId), "");
-                }
-            } catch (UnknownHostException ex) {
-                log.error("Cannot recognize vip " + vip, ex);
-            }
-
-            if (i != vdc.getHostCount()) {
-                throw new IllegalStateException(String.format("Mismatched node counts." +
-                        "%d from hostCount, %d from hostList", vdc.getHostCount(), i));
-            }
-
-            genSiteProperties(vdcConfig, vdc);
-        }
-
-        if (cnt == 0) {
+        Map<String, List<Site>> vdcSiteMap = drUtil.getVdcSiteMap();
+        if (vdcSiteMap.isEmpty()) {
             log.warn("No virtual data center defined in local db");
             return vdcConfig;
+        }
+
+        vdcConfig.put(VDC_MYID, drUtil.getLocalVdcShortId());
+
+        List<String> vdcShortIdList = new ArrayList<>(vdcSiteMap.keySet());
+        for (String vdcShortId : vdcShortIdList) {
+            genSiteProperties(vdcConfig, vdcShortId, vdcSiteMap.get(vdcShortId));
         }
         // sort the vdc short ids by their indices, note that vdc11 should be greater
         // than vdc2
@@ -169,16 +91,10 @@ public class VdcConfigUtil {
         return vdcConfig;
     }
 
-    private void genSiteProperties(Map<String, String> vdcConfig, VirtualDataCenter vdc) {
-        String shortId = vdc.getShortId();
-        DrUtil drUtil = new DrUtil(coordinator);
-        String primarySiteId = drUtil.getPrimarySiteId();
-        String currentSiteId = coordinator.getSiteId();
+    private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
+        String primarySiteId = drUtil.getPrimarySiteId(vdcShortId);
         
-        // Sort the sites by creation time - ascending order
-        List<Site> siteList = drUtil.listStandbySites();
-        
-        Collections.sort(siteList, new Comparator<Site>() {
+        Collections.sort(sites, new Comparator<Site>() {
             @Override
             public int compare(Site a, Site b) {
                 return (int)(a.getCreationTime() - b.getCreationTime());
@@ -186,53 +102,83 @@ public class VdcConfigUtil {
         });
         
         List<String> shortIds = new ArrayList<>();
-        for (Site site : siteList) {
-            if (site.getUuid().equals(primarySiteId)) {
-                continue; // ignore primary site 
+        for (Site site : sites) {
+            boolean isPrimarySite = site.getUuid().equals(primarySiteId);
+
+            if (shouldExcludeFromConfig(site)) {
+                log.info("Ignore site {} of vdc {}", site.getStandbyShortId(), site.getVdcShortId());
+                continue;
             }
 
             // exclude the paused sites from the standby site list on every site except the paused site
             // this will make it easier to resume the data replication.
-            if (!isLocalSite(site)) {
+            if (!drUtil.isLocalSite(site)) {
                 if (site.getState().equals(SiteState.STANDBY_PAUSED) || site.getState().equals(SiteState.STANDBY_REMOVING) ) {
                     continue;
                 }
             }
             
-            int standbyNodeCnt = 0;
-            Map<String, String> standbyIPv4Addrs = site.getHostIPv4AddressMap();
-            Map<String, String> standbyIPv6Addrs = site.getHostIPv6AddressMap();
+            int siteNodeCnt = 0;
+            Map<String, String> siteIPv4Addrs = site.getHostIPv4AddressMap();
+            Map<String, String> siteIPv6Addrs = site.getHostIPv6AddressMap();
 
-            List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
-            String standbyShortId = site.getStandbyShortId();
+            List<String> siteHosts = getHostsFromIPAddrMap(siteIPv4Addrs, siteIPv6Addrs);
+            String siteShortId = site.getStandbyShortId();
             
-            for (String hostName : standbyHosts) {
-                standbyNodeCnt++;
-                String address = standbyIPv4Addrs.get(hostName);
-                vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, shortId, standbyShortId, standbyNodeCnt),
-                        address == null ? "" : address);
+            // sort the host names as vipr1, vipr2 ...
+            Collections.sort(siteHosts);
+            
+            for (String hostName : siteHosts) {
+                siteNodeCnt++;
+                String address = siteIPv4Addrs.get(hostName);
+                if (isPrimarySite) {
+                    vdcConfig.put(String.format(VDC_IPADDR_PTN, vdcShortId, siteNodeCnt),
+                            address == null ? "" : address);
+                } else {
+                    vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, vdcShortId, siteShortId, siteNodeCnt),
+                            address == null ? "" : address);
+                }
 
-                address = standbyIPv6Addrs.get(hostName);
-                vdcConfig.put(String.format(VDC_STANDBY_IPADDR6_PTN, shortId, standbyShortId, standbyNodeCnt),
-                        address == null ? "" : address);
+                address = siteIPv6Addrs.get(hostName);
+                if (isPrimarySite) {
+                    vdcConfig.put(String.format(VDC_IPADDR6_PTN, vdcShortId, siteNodeCnt),
+                            address == null ? "" : address);
+                } else {
+                    vdcConfig.put(String.format(VDC_STANDBY_IPADDR6_PTN, vdcShortId, siteShortId, siteNodeCnt),
+                            address == null ? "" : address);
+                }
             }
-            vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, shortId, standbyShortId), String.valueOf(standbyNodeCnt));
-            if (isLocalSite(site)) {
-                vdcConfig.put(SITE_MYID, standbyShortId);
+
+            if (isPrimarySite) {
+                vdcConfig.put(String.format(VDC_NODE_COUNT_PTN, vdcShortId), String.valueOf(siteNodeCnt));
+            } else {
+                vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, vdcShortId, siteShortId),
+                        String.valueOf(siteNodeCnt));
             }
-            
-            shortIds.add(standbyShortId);
+
+            if (isPrimarySite) {
+                vdcConfig.put(String.format(VDC_VIP_PTN, vdcShortId), site.getVip());
+            } else {
+                vdcConfig.put(String.format(VDC_STANDBY_VIP_PTN, vdcShortId, siteShortId), site.getVip());
+            }
+
+            if (drUtil.isLocalSite(site)) {
+                vdcConfig.put(SITE_MYID, siteShortId);
+                vdcConfig.put(SITE_MY_UUID, site.getUuid());
+            }
+
+            if (!isPrimarySite) {
+                shortIds.add(siteShortId);
+            }
         }
         Collections.sort(shortIds);
-        vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
-        
-        
-        boolean isStandby = !currentSiteId.equals(primarySiteId);
-        vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
-    }
 
-    private boolean isLocalSite(Site site) {
-        return site.getUuid().equals(coordinator.getSiteId());
+        if (drUtil.getLocalVdcShortId().equals(vdcShortId)) {
+            // right now we assume that SITE_IDS and SITE_IS_STANDBY only makes sense for local VDC
+            // moving forward this may or may not be the case.
+            vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
+            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(drUtil.isStandby()));
+        }
     }
 
     private List<String> getHostsFromIPAddrMap(Map<String, String> IPv4Addresses, Map<String, String> IPv6Addresses) {
@@ -247,16 +193,13 @@ public class VdcConfigUtil {
     }
 
     /**
-     * Return true to indicate current vdc need be excluded in vdc config properties
+     * Return true to indicate current site need be excluded in vdc config properties
      * 
-     * @param vdc
+     * @param site
      * @return
      */
-    private boolean shouldExcludeFromConfig(VirtualDataCenter vdc) {
-        // No node ip available in the vdc object
-        if (vdc.getHostCount() == null || vdc.getHostCount().intValue() < 1) {
-            return true;
-        }
-        return false;
+    private boolean shouldExcludeFromConfig(Site site) {
+        // No node ip available in the site config
+        return site.getNodeCount() < 1;
     }
 }

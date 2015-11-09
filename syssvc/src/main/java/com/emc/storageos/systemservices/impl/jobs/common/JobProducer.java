@@ -4,13 +4,14 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.common;
 
+import java.io.Serializable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
-
-import java.io.Serializable;
 
 public class JobProducer {
     private static final Logger log = LoggerFactory.getLogger(JobProducer.class);

@@ -13,7 +13,7 @@ import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupSchedule
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 
 public class BackupUploadJobConsumer extends DistributedQueueConsumer<BackupUploadStatus> {
-    private static final Logger log = LoggerFactory.getLogger(DbConsistencyJobConsumer.class);
+    private static final Logger log = LoggerFactory.getLogger(BackupUploadJobConsumer.class);
     private BackupScheduler backupScheduler;
 
     /**

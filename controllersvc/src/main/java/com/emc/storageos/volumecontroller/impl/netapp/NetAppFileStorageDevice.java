@@ -446,7 +446,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
                     return result;
                 }
                 result = BiosCommandResult.createSuccessfulResult();
-                if ((args.getFileOperation() == true) && (isSubDir == false)) {
+                if ((args.getFileOperation() == true) && (isSubDir == false) && (checkIfHasSubdirShare(args) == false)) {
                     nApi.setQtreemode(exportPath, UNIX_QTREE_SETTING);
                 }
             }
@@ -486,6 +486,40 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         } else {
             return false;
         }
+    }
+
+    private boolean checkIfHasSubdirShare(FileDeviceInputOutput args) {
+
+        boolean return_val = false;
+        SMBShareMap smbShareMap = args.getFileObjShares();
+        if (smbShareMap != null) {
+            for (SMBFileShare shares : smbShareMap.values()) {
+                if (shares.isSubdir().equalsIgnoreCase("isSubDir")) {
+                    return_val = true;
+                    break;
+
+                }
+
+            }
+        }
+        return return_val;
+    }
+
+    private boolean checkIfHasSubdirExport(FileDeviceInputOutput args) {
+        boolean return_val = false;
+        FSExportMap exportMap = args.getFileObjExports();
+        if (exportMap != null) {
+            for (FileExport exports : exportMap.values()) {
+                if (exports.getSubDirectory() != null && !exports.getSubDirectory().isEmpty()) {
+                    return_val = true;
+                    break;
+
+                }
+
+            }
+        }
+        return return_val;
+
     }
 
     private Map<String, List<String>> sortHostsFromCurrentExports(
@@ -1083,7 +1117,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
             existingAcls.add(defaultAcl);
             nApi.deleteCIFSShareAcl(smbFileShare.getName(), existingAcls);
             smbFileShare.setNativeId(shareId);
-            if (null != args.getFileObj()) {
+            if (null != args.getFileObj() && (checkIfHasSubdirExport(args) == false)) {
                 nApi.setQtreemode(args.getFsPath(), NTFS_QTREE_SETTING);
             }
             smbFileShare.setNetBIOSName(nApi.getNetBiosName());

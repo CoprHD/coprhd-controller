@@ -40,7 +40,7 @@ public class IPSecMonitor implements Runnable {
 
     @Override
     public void run() {
-        log.info("start checking ipsec connections");
+        log.info("step 1: start checking ipsec connections");
         String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
 
         if (problemNodes == null || problemNodes.length == 0) {
@@ -48,19 +48,22 @@ public class IPSecMonitor implements Runnable {
             return;
         }
 
+        log.info("step 2: get latest ipsec properties of the no connection nodes");
         Map<String, String> latest = getLatestIPSecProperties(problemNodes);
 
+        log.info("step 3: compare the latest ipsec properties with local, to determine if sync needed");
         if (isSyncNeeded(latest)) {
             String latestKey = latest.get(Constants.IPSEC_KEY);
             log.info("syncing latest ipsec key to local: " + latestKey);
             LocalRepository.getInstance().syncIpsecKeyToLocal(latestKey);
-
         } else {
             log.info("local already has latest ipsec key, skip syncing");
         }
+        log.info("step 4: ipsec check finish");
     }
 
     /**
+     * iterate given nodes, to retrieve ipsec properties from them, and return the newest one.
      *
      * @param nodes
      * @return
@@ -70,7 +73,7 @@ public class IPSecMonitor implements Runnable {
 
         if (nodes != null && nodes.length != 0) {
             for (String node : nodes) {
-                if (StringUtils.isEmpty(node)) {
+                if (StringUtils.isEmpty(node) || node.trim().length() == 0) {
                     continue;
                 }
 
@@ -84,8 +87,11 @@ public class IPSecMonitor implements Runnable {
                     props = getIpsecPropsThroughHTTPS(node);
                 }
 
-                String configVersion = props.get(VDC_CONFIG_VERSION);
+                if (props == null) {
+                    continue;
+                }
 
+                String configVersion = props.get(VDC_CONFIG_VERSION);
                 if (latest == null ||
                         compareVdcConfigVersion(configVersion,
                                 latest.get(VDC_CONFIG_VERSION)) > 0) {
@@ -102,6 +108,12 @@ public class IPSecMonitor implements Runnable {
     }
 
 
+    /**
+     * check if specified node is in the same VDC as the local node
+     *
+     * @param node
+     * @return
+     */
     private boolean isSameVdcAsLocalNode(String node) {
         PropertyInfoExt vdcProps = LocalRepository.getInstance().getVdcPropertyInfo();
         String myVdcId = vdcProps.getProperty("vdc_myid");
@@ -124,6 +136,14 @@ public class IPSecMonitor implements Runnable {
         return null;
     }
 
+    /**
+     * compare local ipsec properties with the specified properties
+     *
+     * @param props
+     *
+     * @return  true  - local properties is older, need to sync
+     *          false - local properties is newer, NO need to sync
+     */
     private boolean isSyncNeeded(Map<String, String> props) {
         if (props == null) {
             return false;
@@ -147,6 +167,11 @@ public class IPSecMonitor implements Runnable {
         }
     }
 
+    /**
+     * get local ip address
+     *
+     * @return local ip string
+     */
     private String getLocalIPAddress() {
         try {
             InetAddress IP = InetAddress.getLocalHost();
@@ -159,6 +184,13 @@ public class IPSecMonitor implements Runnable {
         }
     }
 
+    /**
+     * compare vdc config version
+     * @param left
+     * @param right
+     *
+     * @return   (int)left - (int)right
+     */
     private int compareVdcConfigVersion(String left, String right) {
         if (left == null && right == null) {
             return 0;

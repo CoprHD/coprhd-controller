@@ -546,7 +546,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // source volume.
             Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
             if (!RPHelper.isAssociatedToRpVplexType(volume, _dbClient, PersonalityTypes.TARGET, PersonalityTypes.METADATA) &&
-                    !VPlexUtil.isVplexBackendVolume(volume, _dbClient)) {
+                    !(VPlexUtil.isVplexBackendVolume(volume, _dbClient) && 
+                            NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance()))) {
                 URI deviceURI = descr.getDeviceURI();
                 if (!deviceURIs.contains(deviceURI)) {
                     deviceURIs.add(deviceURI);

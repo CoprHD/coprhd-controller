@@ -66,6 +66,18 @@ public class IPsecManager {
         return status;
     }
 
+    public String rotateKey() {
+        String psk = ipsecKeyGenerator.generate();
+        try {
+            ipsecConfig.setPreSharedKey(psk);
+            String version = updateTargetSiteInfo();
+            _log.info("IPsec Key gets rotated successfully to the version {}", version);
+            return version;
+        } catch (Exception e) {
+            throw com.emc.storageos.security.exceptions.SecurityException.fatals.failToRotateIPsecKey(e);
+        }
+    }
+
     private List<IPsecNodeState> checkConfigurations(String vdcConfigVersion, List<IPsecNodeState> nodeStatus) {
         List<IPsecNodeState> problemNodeStatus = new ArrayList<>();
 
@@ -83,18 +95,6 @@ public class IPsecManager {
         String[] problemIPs = localRepository.checkIpsecConnection();
 
         return (problemIPs == null || problemIPs.length == 0) ? true : false;
-    }
-
-    public String rotateKey() {
-        String psk = ipsecKeyGenerator.generate();
-        try {
-            ipsecConfig.setPreSharedKey(psk);
-            String version = updateTargetSiteInfo();
-            _log.info("IPsec Key gets rotated successfully to the version {}", version);
-            return version;
-        } catch (Exception e) {
-            throw com.emc.storageos.security.exceptions.SecurityException.fatals.failToRotateIPsecKey(e);
-        }
     }
 
     private List<IPsecNodeState> getIPsecVersionsOnAllNodes() {

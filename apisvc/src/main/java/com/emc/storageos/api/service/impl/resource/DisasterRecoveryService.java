@@ -781,7 +781,10 @@ public class DisasterRecoveryService {
         }
     }
     
-    private void precheckForFailover(String standbyUuid) {
+    /*
+     * Internal method to check whether failover to standby is allowed
+     */
+    protected void precheckForFailover(String standbyUuid) {
         Site standby = drUtil.getLocalSite();
 
         // API should be only send to local site 

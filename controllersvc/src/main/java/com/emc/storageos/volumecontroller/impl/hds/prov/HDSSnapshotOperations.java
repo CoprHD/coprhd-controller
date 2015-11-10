@@ -112,7 +112,7 @@ public class HDSSnapshotOperations extends DefaultSnapshotOperations {
             String snapShotGrpId = getViPRSnapshotGroup(pairMgmtServer, storage.getSerialNumber()).getObjectID();
             // Create Thin Image pair
             hdsApiClient.createThinImagePair(snapShotGrpId, pairMgmtServer.getObjectID(), volume.getNativeId(),
-                    snapshotObj.getNativeId(), selectedThinImagePool.getPoolID());
+                    snapshotObj.getNativeId(), selectedThinImagePool.getPoolID(), storage.getModel());
 
             taskCompleter.ready(dbClient);
 
@@ -156,7 +156,7 @@ public class HDSSnapshotOperations extends DefaultSnapshotOperations {
             // Delete snapshot vollume
             String systemObjectID = HDSUtils.getSystemObjectID(storage);
             String logicalUnitObjId = HDSUtils.getLogicalUnitObjectId(snapshotObj.getNativeId(), storage);
-            hdsApiClient.deleteSnapshotVolume(systemObjectID, logicalUnitObjId);
+            hdsApiClient.deleteSnapshotVolume(systemObjectID, logicalUnitObjId, storage.getModel());
         }
 
     }
@@ -265,7 +265,7 @@ public class HDSSnapshotOperations extends DefaultSnapshotOperations {
                 String replicationInfoObjId = replicationInfo.getObjectID();
 
                 // Delete ThinImage pair between volume and snapshot
-                hdsApiClient.deleteThinImagePair(pairMgmtServer.getObjectID(), snapShotGrpId, replicationInfoObjId);
+                hdsApiClient.deleteThinImagePair(pairMgmtServer.getObjectID(), snapShotGrpId, replicationInfoObjId, storage.getModel());
             } else {
                 log.info("Pair has been deleted already on storage system");
             }
@@ -312,7 +312,8 @@ public class HDSSnapshotOperations extends DefaultSnapshotOperations {
             log.debug("from.getNativeId() :{}", from.getNativeId());
 
             ReplicationInfo repInfo = getReplicationInfo(snapShotGrp, to.getNativeId(), from.getNativeId());
-            hdsApiClient.restoreThinImagePair(pairMgmtServer.getObjectID(), snapShotGrp.getObjectID(), repInfo.getObjectID());
+            hdsApiClient.restoreThinImagePair(pairMgmtServer.getObjectID(), snapShotGrp.getObjectID(), repInfo.getObjectID(),
+                    storage.getModel());
             taskCompleter.ready(dbClient);
             log.info("Restore Snapshot volume completed");
         } catch (Exception e) {

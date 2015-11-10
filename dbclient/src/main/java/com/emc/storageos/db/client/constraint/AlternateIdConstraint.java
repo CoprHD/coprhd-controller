@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.PhysicalNAS;
@@ -606,6 +607,16 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getFileSystemShareACLConstraint(String fileSystemShareACLIndex) {
             DataObjectType doType = TypeMap.getDoType(CifsShareACL.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemShareACLIndex"), fileSystemShareACLIndex);
+        }
+
+        public static AlternateIdConstraint getSnapshotNfsACLConstraint(String snapshotNfsACLIndex) {
+            DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("snapshotNfsACLIndex"), snapshotNfsACLIndex);
+        }
+
+        public static AlternateIdConstraint getFileSystemNfsACLConstraint(String fileSystemNfsACLIndex) {
+            DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemNfsACLIndex"), fileSystemNfsACLIndex);
         }
 
         public static AlternateIdConstraint getBlockSnapshotBySettingsInstance(String settingsInstance) {

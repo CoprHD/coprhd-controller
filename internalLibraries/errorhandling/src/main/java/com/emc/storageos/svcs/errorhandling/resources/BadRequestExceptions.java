@@ -751,6 +751,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidPermissionType(String permission);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidUserType(String type);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidPermissionForACL(String permission);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -758,12 +761,18 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidPermission(String permission);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNFSPermission(String permission);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException bothUserAndGroupInACLFound(String user, String group);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException shareACLAlreadyExists(String opType, String acl);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException nfsACLAlreadyExists(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException multipleACLsWithUserOrGroupFound(String opType, String userOrGroup);
@@ -773,6 +782,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException shareACLNotFoundFound(String opType, String acl);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException nfsACLNotFound(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidProjectConflict(URI projectId);
@@ -2588,6 +2600,12 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpBlockApiImplRemoveProtectionException(final String message);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException dbConsistencyCheckAlreadyProgress();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException canNotCanceldbConsistencyCheck();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidSnapshotSessionSource(final String sourceId);

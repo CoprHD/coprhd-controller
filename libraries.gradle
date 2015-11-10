@@ -224,7 +224,7 @@ ext {
 
     ]
     sblim_cim_client2 = [
-        "net.sourceforge.sblim:sblim-cim-client:2.2.3",
+        "net.sourceforge.sblim:sblim-cim-client:2.2.3-vipr1",
 
     ]
     spring = [

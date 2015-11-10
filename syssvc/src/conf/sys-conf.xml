@@ -401,7 +401,7 @@
         <property name="queueName" value="backupuploadjob"/>
     </bean>
 
-    <bean id="backupUploadJobConsumer" class="com.emc.storageos.systemservices.impl.jobs.BackupUploadJobConsumer">
+    <bean id="backupUploadJobConsumer" class="com.emc.storageos.systemservices.impl.jobs.consumer.BackupUploadJobConsumer">
         <property name="backupScheduler" ref="backupScheduler"/>
     </bean>
 
@@ -410,7 +410,7 @@
         <property name="consumer" ref="dbConsistencyJobConsumer"/>
         <property name="queueName" value="dbconsistencyservice"/>
     </bean>
-    <bean id="dbConsistencyJobConsumer" class="com.emc.storageos.systemservices.impl.jobs.DbConsistencyJobConsumer">
+    <bean id="dbConsistencyJobConsumer" class="com.emc.storageos.systemservices.impl.jobs.consumer.DbConsistencyJobConsumer">
         <property name="coordinator" ref="coordinator"/>
         <property name="dbChecker" ref="dbChecker" />
     </bean>

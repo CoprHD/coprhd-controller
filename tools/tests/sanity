@@ -6313,9 +6313,11 @@ dr_basic_tests()
     dr waitforstate $standby_site STANDBY_SYNCED 30 600
     echo "Syncing dr done"
 
+    echo "---WAIT 30s FOR $standby_site TO BOOTSTRAP---"
+    sleep 30
+
     # login to standby with auth
     echo "---VERIFY PROJECT SYNCED $standby_site---"
-    sleep 10
     BOURNE_IPADDR=$DR_SITE_B_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     
@@ -6347,8 +6349,8 @@ dr_basic_tests()
     echo "---SWITCHOVER FROM TO $primary_site TO $standby_site---"
     dr switchover $standby_site
 
-    echo "---WAIT 5m AFTER SWITCHOVER FOR THE REBOOT---"
-    sleep 300
+    echo "---WAIT 7m AFTER SWITCHOVER FOR THE REBOOT---"
+    sleep 420
 
     # verify switchover status
     echo "---WAIT FOR SWITCHOVER FROM $primary_site TO $standby_site DONE---"

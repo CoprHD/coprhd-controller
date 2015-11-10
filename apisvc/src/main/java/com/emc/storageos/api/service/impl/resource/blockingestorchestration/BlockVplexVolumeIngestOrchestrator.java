@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -781,6 +782,20 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * @param context the VplexBackendIngestionContext
      */
     private void handleBackendPersistence(VplexBackendIngestionContext context) {
+
+        // Look to see if the backend ingestion resulted in the creation of a
+        // BlockSnapshot instance, which would occur if the backend volume is
+        // also a snapshot target volume. It is possible that the snapshot is
+        // still marked internal if the VPLEX volume built on the snapshot
+        // is ingested after the VPLEX volume whose backend volume is the
+        // snapshot source volume.
+        Collection<BlockObject> createdObjects = context.getCreatedObjectMap().values();
+        for (BlockObject createdObj : createdObjects) {
+            if ((createdObj instanceof BlockSnapshot)
+                    && (!NullColumnValueGetter.isNullValue(((BlockSnapshot) createdObj).getSourceNativeId()))) {
+                createdObj.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
+            }
+        }
         _dbClient.createObject(context.getIngestedObjects());
         _dbClient.createObject(context.getCreatedObjectMap().values());
         if (!context.getSnapshotTargetBackendVolumesMap().isEmpty()) {

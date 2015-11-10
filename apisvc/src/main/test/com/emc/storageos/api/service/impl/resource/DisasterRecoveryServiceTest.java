@@ -558,6 +558,11 @@ public class DisasterRecoveryServiceTest {
         verify(coordinator, times(2)).persistServiceConfiguration(any(Configuration.class));
     }
     
+    @Test
+    public void testPrecheckForFailover() {
+        
+    }
+    
     protected void compareSiteResponse(SiteRestRep response, Site site) {
         assertNotNull(response);
         assertEquals(response.getUuid(), site.getUuid());

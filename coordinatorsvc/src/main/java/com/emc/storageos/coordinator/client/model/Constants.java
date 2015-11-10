@@ -137,4 +137,5 @@ public interface Constants {
     public static final String STANDBY_PROPERTY_REGEX=".*standby\\d_network_\\d_ipaddr6?";
     
     public static final String SWITCHOVER_BARRIER = "switchoverBarrier";
+    public static final String FAILOVER_BARRIER = "failoverBarrier";
 }

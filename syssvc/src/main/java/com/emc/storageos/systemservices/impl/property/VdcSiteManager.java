@@ -60,6 +60,7 @@ public class VdcSiteManager extends AbstractManager {
     private static final int VDC_RPOP_BARRIER_TIMEOUT = 5;
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
+    private static final int FAILOVER_BARRIER_TIMEOUT = 300;
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
@@ -221,6 +222,7 @@ public class VdcSiteManager extends AbstractManager {
                 try {
                     updateVdcProperties(svcId);
                     updatePlannedFailoverSiteState();
+                    updateUnPlannedFailoverSiteState();
                 } catch (Exception e) {
                     log.info("Step3: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
@@ -450,7 +452,7 @@ public class VdcSiteManager extends AbstractManager {
         String barrierPath = crossSite ? String.format("%s/%s", ZkPath.SITES, path):
             String.format("%s/%s/%s", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId(), path);
 
-        log.info("Barrier path is {}", barrierPath);
+        log.info("Barrier path is {} with memberQty {}", barrierPath, memberQty);
 
         // the children # should be the node # in entire VDC. before linking together, it's # in a site.
         DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, memberQty);
@@ -518,20 +520,16 @@ public class VdcSiteManager extends AbstractManager {
         // Reconfigure ZK
         // TODO: think again how to make use of the dynamic zookeeper configuration
         // The previous approach disconnects all the clients, no different than a service restart.
-        
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-            log.info("Wait for barrier to reconfig/restart coordinator when switchover");
+            log.info("Wait for barrier to reconfig coordinator when switchover");
             DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-            
             localRepository.reconfigProperties("coordinator");
-            
             leaveBarrier(barrier);
-            
-            localRepository.restart("coordinatorsvc");
         } else {
             localRepository.reconfigProperties("coordinator");
-            localRepository.restart("coordinatorsvc");
         }
+        
+        localRepository.restart("coordinatorsvc");
     }
 
     private List<String> getJoiningZKNodes() {
@@ -1029,6 +1027,30 @@ public class VdcSiteManager extends AbstractManager {
         leaveBarrier(barrier);
         
         log.info("Reboot this node after planned failover");
+        localRepository.reboot();
+    }
+    
+    private void updateUnPlannedFailoverSiteState() throws Exception {
+        Site site = drUtil.getLocalSite();
+        log.info("site: {}", site.toString());
+        
+        if (!site.getState().equals(SiteState.STANDBY_FAILING_OVER)) {
+            log.info("Not unplanned failover, ingore");
+            return;
+        }
+            
+        blockUntilZookeeperIsWritableConnected();
+        
+        log.info("Wait for barrier to set site state as Primary for unplanned failover");
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.FAILOVER_BARRIER, FAILOVER_BARRIER_TIMEOUT);
+        
+        log.info("Set state to PRIMARY");
+        site.setState(SiteState.PRIMARY);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        
+        leaveBarrier(barrier);
+        
+        log.info("Reboot this node after unplanned failover");
         localRepository.reboot();
     }
     

@@ -17,6 +17,7 @@ public enum SiteState {
     STANDBY_PAUSED,  // Standby site. Replication is paused 
     STANDBY_TESTING, // Standby site. Run DR testing
     STANDBY_SWITCHING_OVER, // Standby site is doing planned failover
+    STANDBY_FAILING_OVER, // Standby site is doing unplanned failover
     STANDBY_REMOVING, // Standby site. Removing
     STANDBY_RESUMING, // Standby site. Resuming
     STANDBY_ERROR    // Unrecoverable error for this standby site

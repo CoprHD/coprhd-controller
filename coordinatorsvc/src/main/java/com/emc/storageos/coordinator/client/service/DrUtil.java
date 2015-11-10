@@ -235,7 +235,7 @@ public class DrUtil {
      */
     public String getCassandraDcId(Site site) {
         String dcId = null;
-        if (site.getVdcShortId().equals(site.getStandbyShortId())) {
+        if (StringUtils.isEmpty(site.getStandbyShortId()) || site.getVdcShortId().equals(site.getStandbyShortId())) {
             dcId = site.getVdcShortId();
         } else {
             dcId = site.getUuid();

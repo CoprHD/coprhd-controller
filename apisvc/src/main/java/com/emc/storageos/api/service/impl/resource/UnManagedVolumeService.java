@@ -67,7 +67,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.UnManagedBulkRep;
+import com.emc.storageos.model.block.UnManagedVolumesBulkRep;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.model.block.VolumeIngest;
@@ -165,19 +165,19 @@ public class UnManagedVolumeService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
-    public UnManagedBulkRep getBulkResources(BulkIdParam param) {
-        return (UnManagedBulkRep) super.getBulkResources(param);
+    public UnManagedVolumesBulkRep getBulkResources(BulkIdParam param) {
+        return (UnManagedVolumesBulkRep) super.getBulkResources(param);
     }
 
     @Override
-    public UnManagedBulkRep queryBulkResourceReps(List<URI> ids) {
+    public UnManagedVolumesBulkRep queryBulkResourceReps(List<URI> ids) {
         Iterator<UnManagedVolume> _dbIterator = _dbClient.queryIterativeObjects(
                 UnManagedVolume.class, ids);
-        return new UnManagedBulkRep(BulkList.wrapping(_dbIterator, MapUnmanagedVolume.getInstance()));
+        return new UnManagedVolumesBulkRep(BulkList.wrapping(_dbIterator, MapUnmanagedVolume.getInstance()));
     }
 
     @Override
-    public UnManagedBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
+    public UnManagedVolumesBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         verifySystemAdmin();
         return queryBulkResourceReps(ids);
     }

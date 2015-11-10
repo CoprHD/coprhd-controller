@@ -259,4 +259,18 @@ public class SoftwareVersion implements Comparable<SoftwareVersion> {
     private static boolean isValidInteger(String str) {
         return intPattern.matcher(str).matches();
     }
+
+    /**
+     * @param v the vipr version to be compared
+     * @return return true if v is a previous release
+     */
+    public boolean isPreviousRelease(SoftwareVersion v) {
+        for (int i = 0; i < versionTuple.length; i++) {
+           if (versionTuple[i] > v.versionTuple[i]) {
+               return true;
+           }
+        }
+
+        return false;
+    }
 }

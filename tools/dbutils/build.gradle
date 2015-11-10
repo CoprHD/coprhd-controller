@@ -24,5 +24,4 @@ task copyScripts(type: Copy) {
     into "${buildDir}/bin"
     fileMode = 0755
 }
-
 project.tasks['scripts'].dependsOn(copyScripts)

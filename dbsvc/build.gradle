@@ -60,9 +60,13 @@ task dbScripts(type: Copy) {
 
 task generateSchemaFiles(type: JavaExec, dependsOn: compileTestJava) {
     main = 'com.emc.storageos.db.generator.DbSchemaGenerator'
-    jvmArgs '-Dlog4j.configuration=dbgenerator-log4j.properties'
+    jvmArgs '-Dlog4j.configuration=db-schema-generator-log4j.properties'
     maxHeapSize "512m"
     classpath = sourceSets.test.runtimeClasspath
+
+    doLast {
+        file("out/schema").renameTo(file("${rootProject.buildDir}/schema"))
+    }
 }
 
 project.tasks['scripts'].dependsOn("dbScripts")

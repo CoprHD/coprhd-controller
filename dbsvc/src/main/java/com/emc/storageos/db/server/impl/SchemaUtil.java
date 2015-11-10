@@ -235,6 +235,10 @@ public class SchemaUtil {
      *            false to create keyspace by our own
      */
     public void scanAndSetupDb(boolean waitForSchema) {
+        scanAndSetupDb(waitForSchema, null);
+    }
+
+    public void scanAndSetupDb(boolean waitForSchema, CoordinatorClientInetAddressMap nodeMap) {
         int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
         int retryTimes = 0;
         while (true) {
@@ -243,7 +247,11 @@ public class SchemaUtil {
             retryTimes++;
             try {
                 int replicationFactor = getReplicationFactor();
-                clusterContext = connectCluster();
+                if (nodeMap != null) {
+                    clusterContext = connectCluster(nodeMap);
+                } else {
+                    clusterContext = connectCluster();
+                }
                 Cluster cluster = clusterContext.getClient();
                 KeyspaceDefinition kd = cluster.describeKeyspace(_keyspaceName);
                 if (kd == null) {
@@ -1096,15 +1104,13 @@ public class SchemaUtil {
      * @return
      */
     private AstyanaxContext<Cluster> connectCluster() {
+        CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
+        return connectCluster(nodeMap);
+    }
+
+    private AstyanaxContext<Cluster> connectCluster(CoordinatorClientInetAddressMap nodeMap) {
         String host = _service.getEndpoint().getHost();
         _log.info("host: " + host);
-        CoordinatorClientInetAddressMap nodeMap;
-        if (_coordinator == null) {
-            ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
-            nodeMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
-        } else {
-            nodeMap = _coordinator.getInetAddessLookupMap();
-        }
         _log.info("nodeMap: " + nodeMap);
         URI uri = nodeMap.expandURI(_service.getEndpoint());
         _log.info("uri: " + uri);
@@ -1128,6 +1134,7 @@ public class SchemaUtil {
                 .buildCluster(ThriftFamilyFactory.getInstance());
         clusterContext.start();
         return clusterContext;
+
     }
 
     /**

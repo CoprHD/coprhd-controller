@@ -82,7 +82,7 @@ public class VplexBackendIngestionContext {
     private final Map<String, BlockObject> createdObjectMap = new HashMap<String, BlockObject>();
     private final Map<String, List<DataObject>> updatedObjectMap = new HashMap<String, List<DataObject>>();
     private final List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
-    private final Map<String, BlockObject> backendSnapsMap = new HashMap<String, BlockObject>();
+    private final Map<String, BlockObject> snapshotTargetBackendVolumesMap = new HashMap<String, BlockObject>();
 
     private final BackendDiscoveryPerformanceTracker _tracker;
 
@@ -614,12 +614,12 @@ public class VplexBackendIngestionContext {
                                 set, associatedVolumeSource);
                         associatedVolumeSource.putVolumeInfo(
                                 SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_TARGET_VOLUME.toString(), set);
-                        _logger.info("setting VPLEX_BACKEND_CLUSTER_ID on mirrored volumes: " 
+                        _logger.info("setting VPLEX_BACKEND_CLUSTER_ID on mirrored volumes: "
                                 + mirrorMapEntry.getKey());
                         StringSet clusterIds = new StringSet();
                         clusterIds.add(mirrorMapEntry.getKey());
                         associatedVolumeSource.putVolumeInfo(
-                                SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.name(), 
+                                SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.name(),
                                 clusterIds);
 
                         // 4. update the target volume with the source volume information
@@ -628,9 +628,9 @@ public class VplexBackendIngestionContext {
                         associatedVolumeMirror.putVolumeInfo(
                                 SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_SOURCE_VOLUME.toString(), set);
                         associatedVolumeMirror.putVolumeInfo(
-                                SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.name(), 
+                                SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.name(),
                                 clusterIds);
-                        
+
                         // 5. need to go ahead and persist any changes to backend volume info
                         _dbClient.persistObject(associatedVolumeSource);
                         _dbClient.persistObject(associatedVolumeMirror);
@@ -905,13 +905,12 @@ public class VplexBackendIngestionContext {
     }
 
     /**
-     * Returns the Map of BlcokSnapshot instances created for VPLEX backend
-     * volumes that are also snapshot target volumes.
+     * Returns the map of backend volumes that are also snapshot target volumes.
      * 
-     * @return The backend BlockSnapshot map.
+     * @return The map of backend volumes that are also snapshot target volumes.
      */
-    public Map<String, BlockObject> getBackendSnapshotMap() {
-        return backendSnapsMap;
+    public Map<String, BlockObject> getSnapshotTargetBackendVolumesMap() {
+        return snapshotTargetBackendVolumesMap;
     }
 
     /**

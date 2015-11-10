@@ -69,14 +69,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     // maps storage system URIs to StorageSystem objects
     private final Map<String, StorageSystem> _systemMap = new HashMap<String, StorageSystem>();
 
-    // the ingest strategy factory, used for ingesting the backend volume
-    private IngestStrategyFactory ingestStrategyFactory;
-
-    @Override
-    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
-        this.ingestStrategyFactory = ingestStrategyFactory;
-    }
-
     // the tenants service, used to generate the Project for the backend volumes
     private TenantsService _tenantsService;
 
@@ -507,19 +499,18 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 }
 
                 // Note that a VPLEX backend volume could also be a snapshot target volume.
-                // When this is the case, the snapshot ingest strategy is what will be
+                // When this is the case, the local volume ingest strategy is what will be
                 // retrieved and executed. As a result, the object returned will be a
-                // BlockSnapshot instance not a Volume instance. However, the snapshot
-                // ingest strategy realizes that the volume may also be a VPLEX backend
-                // volume and creates the Volume instance to represent the VPLEX backend
-                // volume and adds this Volume instance to the created objects list.
-                // Because the BlockSnapshot and Volume instances will have the same
+                // Volume instance not a BlockSnapshot instance. However, the local volume
+                // ingest strategy realizes that the volume may also be a snapshot target
+                // volume and creates the BlockSnapshot instance to represent the snapshot
+                // target volume and adds this BlockSnapshot instance to the created objects
+                // list. Because the BlockSnapshot and Volume instances will have the same
                 // native GUID, as they represent the same physical volume, we can't
-                // add the snapshot to the created objects list as it would just replace
-                // the Volume instance and only the snapshot would get created. So,
-                // if the returned object is a snapshot add it to the backend snaps map.
+                // add the Volume to the created objects list as it would just replace
+                // the BlockSnapshot instance and only the Volume would get created.
                 if (context.getCreatedObjectMap().containsKey(blockObject.getNativeGuid())) {
-                    context.getBackendSnapshotMap().put(blockObject.getNativeGuid(), blockObject);
+                    context.getSnapshotTargetBackendVolumesMap().put(blockObject.getNativeGuid(), blockObject);
                 } else {
                     context.getCreatedObjectMap().put(blockObject.getNativeGuid(), blockObject);
                 }
@@ -792,8 +783,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     private void handleBackendPersistence(VplexBackendIngestionContext context) {
         _dbClient.createObject(context.getIngestedObjects());
         _dbClient.createObject(context.getCreatedObjectMap().values());
-        if (!context.getBackendSnapshotMap().isEmpty()) {
-            _dbClient.createObject(context.getBackendSnapshotMap().values());
+        if (!context.getSnapshotTargetBackendVolumesMap().isEmpty()) {
+            _dbClient.createObject(context.getSnapshotTargetBackendVolumesMap().values());
         }
         for (List<DataObject> dos : context.getUpdatedObjectMap().values()) {
             _dbClient.persistObject(dos);

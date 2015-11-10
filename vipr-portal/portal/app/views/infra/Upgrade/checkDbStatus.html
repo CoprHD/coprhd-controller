@@ -1,0 +1,79 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.settings', 'nav.upgrade'] /}
+#{set 'title'}&{'upgrade.title'}#{/set}
+ #{set 'moreScripts'}
+ #{get 'moreScripts'/}
+ #{/set}
+ 
+ <div class="container">
+ <div id="checkDbProgress"> 
+ #{Form.header titleKey:'upgrade.title' /} 
+ <br/>
+#{Form.subheader titleKey:"upgrade.checkDbProgress", descriptionKey:"upgrade.checkDbProgress.description"/}
+	<table class="database-check-progress-table">
+		<tr><td width="300">
+                    %{
+                        style = "success"
+                        if (isDbCheckStatus.equals("FAILED")) {
+                        	style="danger"
+                        }
+                      }%
+                      #{progressBar name:"Status", percentage:checkProgress, style:style/}</td>
+         <td style="padding-right: 10px">
+         <span id="checkDbStatus">
+			#{if isDbCheckStatus.equals("FAILED")}&{'upgrade.checkDb.failed'}#{/if}
+		</span>
+		</td>
+		</tr>
+	</table>
+<br/>
+<form class="form">
+        <button id="okButton" type="submit" class="btn btn-primary btn-sm btn-success" onclick="window.location = '@{infra.Upgrade.checkDbStatusOK()}';" style="margin-bottom: 0px">
+            #{icon 'ok-sign'/} &{'upgrade.checkDbConfirm'}
+        </button>
+        <button id="cancelDbButton" type="submit" class="btn btn-primary btn-sm btn-danger" onclick="window.location = '@{infra.Upgrade.cancelCheckDbStatus()}';" style="margin-bottom: 0px">
+        	#{icon 'danger'/} &{'upgrade.checkDbCancel'}
+        </button>
+</form>		
+<script>
+$('#okButton').attr('disabled',true);
+$('#cancelDbButton').attr('disabled',false);
+</script>
+</div>
+</div>
+<script>
+$(document).ready(function() {
+	checkDbStatusUpdates();
+});
+
+function checkDbStatusUpdates() {
+	window.setInterval(function() {
+		checkDbProgressUpdate()
+    }, 6000); // Check every 2 seconds
+}
+
+var checkDbProgress = #{jsAction @checkDbProgress()/}
+function checkDbProgressUpdate() {
+	$.ajax({
+        method: "get",
+        url: checkDbProgress(),
+        dataType: "json",
+		
+        success: function(result) {
+        	updateProgressBar("Status",result.progress);
+			if(result.status == "FAILED" || result.status == "SUCCESS") {
+    			$('#okButton').attr('disabled',false);
+    			$('#cancelDbButton').attr('disabled',true);
+    		}
+        	if(result.status == "FAILED") {
+				$("#checkDbStatus").text('&{'upgrade.checkDb.failed'}');
+        		updateProgressBarStyle("Status", "danger")
+        	}
+			$("#checkDbStatus").text(result.status);
+        },
+        error: function() {
+        }
+	});
+}
+
+</script>

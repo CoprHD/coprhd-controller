@@ -122,7 +122,7 @@ public class BackupSchedulerTest {
         // Verify the backups are uploaded
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
             Assert.assertTrue(String.format("Backup %s is not uploaded: %s", aliveBackupsAt20141231[i],
-                    StringUtils.join(uploader.fileMap.keySet(),','),
+                    StringUtils.join(uploader.fileMap.keySet(),',')),
                     uploader.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1-1.zip")
                     );
         }

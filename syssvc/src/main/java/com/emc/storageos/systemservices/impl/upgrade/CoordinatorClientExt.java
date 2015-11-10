@@ -1369,6 +1369,7 @@ public class CoordinatorClientExt {
      */
     public States getConnectionState() throws Exception {
         return ((CoordinatorClientImpl)getCoordinatorClient()).getZkConnection().curator().getZookeeperClient().getZooKeeper().getState();
+    }
 
     /**
      * Get the nodes list on which specific service are available

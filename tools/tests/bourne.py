@@ -3270,7 +3270,6 @@ class Bourne:
     def dr_delete_standby(self,uuid):
         resp = self.api('DELETE', URI_DR_DELETE.format(uuid))
         print "DR DELETE STANDBY RESP = ",resp
-        self.assert_is_dict(resp)
         return resp
 
     def dr_switchover(self,uri):

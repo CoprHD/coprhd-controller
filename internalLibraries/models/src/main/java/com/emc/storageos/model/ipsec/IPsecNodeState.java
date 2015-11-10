@@ -17,7 +17,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class IPsecNodeState {
 
     private String version;
-    private String runTimeState;
+    private String ip;
 
     @XmlElement(name = "node_version")
     public String getVersion() {
@@ -28,12 +28,11 @@ public class IPsecNodeState {
         this.version = version;
     }
 
-    @XmlElement(name = "runtime_state")
-    private String getRunTimeState() {
-        return this.runTimeState;
+    public String getIp() {
+        return ip;
     }
 
-    public void setRunTimeState(String runTimeState) {
-        this.runTimeState = runTimeState;
+    public void setIp(String ip) {
+        this.ip = ip;
     }
 }

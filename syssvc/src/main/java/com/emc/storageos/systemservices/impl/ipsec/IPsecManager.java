@@ -8,7 +8,7 @@
  * limited to the terms and conditions of the License Agreement under which
  * it is provided by or on behalf of EMC.
  */
-package com.emc.storageos.security.ipsec;
+package com.emc.storageos.systemservices.impl.ipsec;
 
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
@@ -16,12 +16,16 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.model.ipsec.IPsecNodeState;
 import com.emc.storageos.model.ipsec.IPsecStatus;
-import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.security.ipsec.IPsecConfig;
+import com.emc.storageos.security.ipsec.IPsecKeyGenerator;
+import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class IPsecManager {
 
@@ -40,20 +44,45 @@ public class IPsecManager {
 
         String vdcConfigVersion = loadVdcConfigVersionFromZK();
 
-        List<IPsecNodeState> nodeStatus = getAllIPsecStatusAndConfiguration();
+        boolean runtimeGood = checkRunTimeStatus();
 
-        boolean allGood = checkAllGood(vdcConfigVersion, nodeStatus);
+        List<IPsecNodeState> nodeStatus = getIPsecVersionsOnAllNodes();
+
+        List<IPsecNodeState> problemNodeStatus = checkConfigurations(vdcConfigVersion, nodeStatus);
+        boolean configGood = problemNodeStatus.isEmpty();
+
         IPsecStatus status = new IPsecStatus();
+
+        boolean allGood = runtimeGood & configGood;
+
         status.setIsGood(allGood);
         status.setVersion(vdcConfigVersion);
-
         if (allGood) {
             return status;
         }
 
         // Send back more details if something error.
-        status.setNodeStatus(nodeStatus);
+        status.setNodeStatus(problemNodeStatus);
         return status;
+    }
+
+    private List<IPsecNodeState> checkConfigurations(String vdcConfigVersion, List<IPsecNodeState> nodeStatus) {
+        List<IPsecNodeState> problemNodeStatus = new ArrayList<>();
+
+        for (IPsecNodeState node : nodeStatus) {
+            if (! node.getVersion().equals(vdcConfigVersion)) {
+                problemNodeStatus.add(node);
+            }
+        }
+
+        return problemNodeStatus;
+    }
+
+    private boolean checkRunTimeStatus() {
+        LocalRepository localRepository = new LocalRepository();
+        String[] problemIPs = localRepository.checkIpsecConnection();
+
+        return (problemIPs == null || problemIPs.length == 0) ? true : false;
     }
 
     public String rotateKey() {
@@ -68,28 +97,29 @@ public class IPsecManager {
         }
     }
 
-    private List<IPsecNodeState> getAllIPsecStatusAndConfiguration() {
-        List<IPsecNodeState> ipsecStatus = getLocalIPsecStatus();
-        List<IPsecNodeState> standbyStatus = getSandbyIPsecStatus();
+    private List<IPsecNodeState> getIPsecVersionsOnAllNodes() {
+        List<IPsecNodeState> nodeStatus = new ArrayList<>();
 
-        ipsecStatus.addAll(standbyStatus);
-        return ipsecStatus;
-    }
+        LocalRepository localRepository = new LocalRepository();
 
-    private List<IPsecNodeState> getLocalIPsecStatus() {
-        return null;
-    }
+        for (Site site : drUtil.listSites()) {
+            for (String ip : site.getHostIPv4AddressMap().values()) {
+                IPsecNodeState nodeState = new IPsecNodeState();
+                nodeState.setIp(ip);
+                try {
+                    Map<String, String> ipsecProps = localRepository.getIpsecProperties(ip);
+                    nodeState.setVersion(ipsecProps.get("version"));
+                } catch (Exception e) {
+                    nodeState.setVersion(null);
+                }
+            }
+        }
 
-    public List<IPsecNodeState> getSandbyIPsecStatus() {
-        return null;
-    }
-
-    private boolean checkAllGood(String vdcConfigVersion, List<IPsecNodeState> nodeStatus) {
-        return false;
+        return nodeStatus;
     }
 
     private String loadVdcConfigVersionFromZK() {
-        return null;
+        return Long.toString(coordinator.getTargetInfo(SiteInfo.class).getVdcConfigVersion());
     }
 
     private String updateTargetSiteInfo() {

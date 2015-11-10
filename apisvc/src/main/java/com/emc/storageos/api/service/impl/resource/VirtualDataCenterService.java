@@ -31,15 +31,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.security.helpers.SecurityUtil;
 import com.emc.storageos.security.ipsec.IPsecManager;
-import com.emc.storageos.security.ipsec.IPsecConfig;
-import com.emc.storageos.security.ipsec.IPsecKeyGenerator;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.BooleanUtils;
@@ -112,15 +107,6 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     @Autowired
     private Service service;
-
-    @Autowired
-    IPsecConfig ipsecConfig;
-
-    @Autowired
-    IPsecManager ipsecMgr;
-
-    @Autowired
-    IPsecKeyGenerator ipsecKeyGenerator;
 
     DrUtil drUtil;
 
@@ -650,34 +636,6 @@ public class VirtualDataCenterService extends TaskResourceService {
                 SecurityUtil.clearSensitiveData(rsaPrivateKey);
             }
         }
-    }
-
-    /**
-     * Rotate the VIPR IPsec Pre-shared key.
-     * @return the new version of the key which is used for checking status if needed
-     */
-    @Path("/ipseckey")
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
-    public String rotateIPsecKey() {
-        String version = ipsecMgr.rotateKey();
-        auditOp(OperationTypeEnum.IPSEC_KEY_ROTATE, true, null, version);
-        return version;
-    }
-
-    /**
-     * Check the status of IPsec.
-     * @return
-     */
-    @Path("/ipsec")
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
-    public IPsecStatus getIPsecStatus() {
-        return ipsecMgr.checkStatus();
     }
 
     /***

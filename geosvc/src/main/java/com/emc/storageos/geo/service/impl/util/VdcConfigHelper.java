@@ -719,7 +719,7 @@ public class VdcConfigHelper {
 
         SoftwareVersion myViprVersion = new SoftwareVersion(viprVersion);
 
-        if (myViprVersion.isPreviousRelease(remoteVer)) {
+        if (myViprVersion.compareTo(remoteVer) >= 0 ) {
             log.info("version compatible");
             return true;
         }

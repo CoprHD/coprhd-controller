@@ -6315,6 +6315,7 @@ dr_basic_tests()
 
     # login to standby with auth
     echo "---VERIFY PROJECT SYNCED $standby_site---"
+    sleep 10
     BOURNE_IPADDR=$DR_SITE_B_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     
@@ -6346,10 +6347,13 @@ dr_basic_tests()
     echo "---SWITCHOVER FROM TO $primary_site TO $standby_site---"
     dr switchover $standby_site
 
+    echo "---WAIT 5m AFTER SWITCHOVER FOR THE REBOOT---"
+    sleep 300
+
     # verify switchover status
     echo "---WAIT FOR SWITCHOVER FROM $primary_site TO $standby_site DONE---"
     dr waitforstate $standby_site PRIMARY 10 600 && echo "standby has been switched into primary"
-    # dr waitforstate $primary_site STANDBY_SYNCED 10 600 && echo "primary has been switched into standby"
+    dr waitforstate $primary_site STANDBY_SYNCED 10 600 && echo "primary has been switched into standby"
 
     # by now, primary site and standby site has been switched, need to switch variables accordingly
     local switch_tmp

@@ -100,6 +100,7 @@
                 <bean class="com.emc.storageos.systemservices.impl.resource.ControlService">
                     <property name="proxy" ref="coordinatorclientext" />
                 </bean>
+                <bean class="com.emc.storageos.systemservices.impl.resource.IPsecService" />
 
                 <bean class="com.emc.storageos.systemservices.impl.resource.HealthMonitorService" />
                 <bean class="com.emc.storageos.security.resource.LoggingPage" />
@@ -397,4 +398,9 @@
     <bean id="apiNotifier" class="com.emc.storageos.systemservices.impl.property.APINotifier">
         <property name="coordinator" ref="coordinator"/>
     </bean>
+
+    <bean id="ipsecMgr" class="com.emc.storageos.systemservices.impl.ipsec.IPsecManager">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
 </beans>

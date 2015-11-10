@@ -1418,7 +1418,7 @@ public class CoordinatorClientExt {
                     localRepository.reconfigCoordinator("participant");
                     localRepository.restart("coordinatorsvc");
                 } catch (Exception ex) {
-                    _log.warn("Unexpected errors during switching back to zk observer. Try again later", ex);
+                    _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
                 }
             } else {
                 if (isActiveSiteStable()) {
@@ -1443,11 +1443,11 @@ public class CoordinatorClientExt {
     };
     
     /**
-     * Call syssvc API to check if remote site is stable or not
+     * Check if DR active site is stable
      * 
      * @return true for stable, otherwise false
      */
-    private boolean isActiveSiteStable() {
+    public boolean isActiveSiteStable() {
         DrUtil drUtil = new DrUtil(_coordinator);
         Site primary = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
         
@@ -1483,7 +1483,7 @@ public class CoordinatorClientExt {
                 return true;
             }
         } catch (Exception ex) {
-            _log.warn("Encounter error when call Sys API on active site", ex);
+            _log.warn("Encounter error when call Sys API on active site{} ", ex.toString());
         }
         return false;
     }
@@ -1501,7 +1501,7 @@ public class CoordinatorClientExt {
             sock.close();
             return true;
         } catch(IOException ex) {
-            _log.warn("Unexpected IO errors when checking local coordinator state", ex);
+            _log.warn("Unexpected IO errors when checking local coordinator state. {}", ex.toString());
         } 
         return false;
     }

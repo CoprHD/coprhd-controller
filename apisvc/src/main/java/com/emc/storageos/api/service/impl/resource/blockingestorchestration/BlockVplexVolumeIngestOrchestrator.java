@@ -680,10 +680,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     private void setFlags(VplexBackendIngestionContext context) {
         // set internal object flag on any backend volumes
         for (BlockObject o : context.getCreatedObjectMap().values()) {
-            if (context.getBackendVolumeGuids().contains(o.getNativeGuid())) {
-                _logger.info("setting INTERNAL_OBJECT flag on " + o.getLabel());
-                o.addInternalFlags(Flag.INTERNAL_OBJECT);
-                _dbClient.updateAndReindexObject(o);
+            if (o instanceof Volume) {
+                if (context.getBackendVolumeGuids().contains(o.getNativeGuid())) {
+                    _logger.info("setting INTERNAL_OBJECT flag on " + o.getLabel());
+                    o.addInternalFlags(Flag.INTERNAL_OBJECT);
+                    _dbClient.updateAndReindexObject(o);
+                }
             }
         }
     }

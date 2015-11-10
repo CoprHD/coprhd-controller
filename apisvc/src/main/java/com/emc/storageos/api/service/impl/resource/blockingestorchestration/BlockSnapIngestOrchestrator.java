@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
@@ -73,7 +74,8 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                 unManagedVolume.setInactive(true);
                 unManagedVolumesToBeDeleted.add(unManagedVolume);
             }
-        } else {
+        } else if ((VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume))
+                && (NullColumnValueGetter.isNullValue(snapShot.getSourceNativeId()))) {
             _logger.info("Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
                     unManagedVolume.getNativeGuid());
             snapShot.addInternalFlags(INTERNAL_VOLUME_FLAGS);

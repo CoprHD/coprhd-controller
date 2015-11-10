@@ -783,7 +783,7 @@ tenant_setup()
         tenant add_group $LOCAL_LDAP_AUTHN_DOMAINS "$LOCAL_LDAP_VIPR_USER_GROUP"
         security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
         security login $SYSADMIN $SYSADMIN_PASSWORD
-        tenant add_attribute $LOCAL_LDAP_AUTHN_DOMAINS $LOCAL_LDAP_TENANT_ATTRIBUTE_KEY $LOCAL_LDAP_TENANT_ATTRIBUTE_ROOT_TENANT_VALUE 
+        tenant add_attribute $LOCAL_LDAP_AUTHN_DOMAINS $LOCAL_LDAP_TENANT_ATTRIBUTE_KEY $LOCAL_LDAP_TENANT_ATTRIBUTE_ROOT_TENANT_VALUE
         security add_tenant_role subject_id $LOCAL_LDAP_SUPERUSER_USERNAME TENANT_ADMIN
         security add_zone_role subject_id $LOCAL_LDAP_SUPERUSER_USERNAME SYSTEM_ADMIN
         security add_zone_role subject_id $LOCAL_LDAP_SUPERUSER_USERNAME SYSTEM_MONITOR
@@ -6248,13 +6248,13 @@ dr_setup()
         exit 1
     fi
 
+    vdc_common_setup
 
     #setting pipefail option to pipe exit codes
     set -o pipefail
 
     DR_SITE_A_IP=$BOURNE_IPADDR
     security login $SYSADMIN $SYSADMIN_PASSWORD
-    project_setup
     LOCAL_LDAP_GROUPUSER_USERNAME='ldapvipruser1@viprsanity.com'
 
 }
@@ -6313,6 +6313,9 @@ dr_basic_tests()
     dr waitforstate $standby_site STANDBY_SYNCED 30 600
     echo "Syncing dr done"
 
+    echo "---WAIT 30s FOR $standby_site TO BOOTSTRAP---"
+    sleep 30
+
     # login to standby with auth
     echo "---VERIFY PROJECT SYNCED $standby_site---"
     BOURNE_IPADDR=$DR_SITE_B_IP
@@ -6326,17 +6329,33 @@ dr_basic_tests()
     dr get $standby_site
     dr get $primary_site
 
+    # pause standby
+    echo "---PAUSE SITE $standby_site---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr pause $standby_site || { echo "pause dr standby site failed."; exit 1; }
+
+    echo "---WAIT 30s FOR $primary_site TO STABILIZE---"
+    sleep 30
+
+    echo "---RESUME SITE $standby_site---"
+    dr resume $standby_site || { echo "resume dr standby site failed."; exit 1; }
+
+    echo "---WAIT FOR SYNC $standby_site---"
+    dr waitforstate $standby_site STANDBY_SYNCED 30 600
+    echo "Syncing dr done"
 
     # switchover to standby
     echo "---SWITCHOVER FROM TO $primary_site TO $standby_site---"
-    BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr switchover $standby_site
+
+    echo "---WAIT 7m AFTER SWITCHOVER FOR THE REBOOT---"
+    sleep 420
 
     # verify switchover status
     echo "---WAIT FOR SWITCHOVER FROM $primary_site TO $standby_site DONE---"
     dr waitforstate $standby_site PRIMARY 10 600 && echo "standby has been switched into primary"
-    # dr waitforstate $primary_site STANDBY_SYNCED 10 600 && echo "primary has been switched into standby"
+    dr waitforstate $primary_site STANDBY_SYNCED 10 600 && echo "primary has been switched into standby"
 
     # by now, primary site and standby site has been switched, need to switch variables accordingly
     local switch_tmp
@@ -6541,7 +6560,6 @@ dr_multisite_tests()
     #disabling pipefail option to pipe exit codes
     set +o pipefail
 }
-
 
 vdc_setup()
 {
@@ -7186,7 +7204,7 @@ fail(){
 
 trap _failure ERR INT
 set -E
-if [ "$2" != "recoverpoint" ] && [ "$2" != "vdc" ]; then
+if [ "$3" != "recoverpoint" ] && [ "$3" != "vdc" ] && [ "$3" != "dr" ]; then
     common_setup	
 fi
 

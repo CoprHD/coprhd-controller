@@ -2420,7 +2420,7 @@ public class VolumeIngestionUtil {
     @SuppressWarnings("rawtypes")
     public static Class getBlockObjectClass(UnManagedVolume unManagedVolume) {
         Class blockObjectClass = Volume.class;
-        if (VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
+        if ((VolumeIngestionUtil.isSnapshot(unManagedVolume)) && (!VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume))) {
             blockObjectClass = BlockSnapshot.class;
         } else if (VolumeIngestionUtil.isMirror(unManagedVolume)) {
             blockObjectClass = BlockMirror.class;

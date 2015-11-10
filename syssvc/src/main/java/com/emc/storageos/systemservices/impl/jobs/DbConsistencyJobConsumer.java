@@ -2,7 +2,7 @@
  * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.systemservices.impl.jobs.consumer;
+package com.emc.storageos.systemservices.impl.jobs;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -16,7 +16,6 @@ import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsume
 import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.common.DbSchemaChecker;
 import com.emc.storageos.model.db.DbConsistencyStatusRestRep.Status;
-import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
 
 public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsistencyJob> {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyJobConsumer.class);

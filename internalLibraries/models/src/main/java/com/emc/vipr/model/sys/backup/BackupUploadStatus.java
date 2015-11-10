@@ -4,6 +4,7 @@
  */
 package com.emc.vipr.model.sys.backup;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,7 +18,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * BackupUploadStatus is a class used by REST API to represent the backupset upload status
  */
 @XmlRootElement(name = "backup_upload_status")
-public class BackupUploadStatus {
+public class BackupUploadStatus implements Serializable {
     private static final Logger log = LoggerFactory.getLogger(BackupUploadStatus.class);
     private static final String KEY_BACKUP_NAME = "backupName";
     private static final String KEY_STATUS = "status";

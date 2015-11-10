@@ -2,11 +2,12 @@
  * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.systemservices.impl.jobs;
+package com.emc.storageos.systemservices.impl.jobs.consumer;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;

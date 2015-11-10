@@ -2,7 +2,7 @@
  * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.systemservices.impl.jobs;
+package com.emc.storageos.systemservices.impl.jobs.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

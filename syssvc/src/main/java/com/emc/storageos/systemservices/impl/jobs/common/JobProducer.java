@@ -33,7 +33,7 @@ public class JobProducer {
             log.error("can not startup job queue for {}", queueName, e);
         }
     }
-    
+
     /**
      * Stop db consistency job queue
      */

@@ -130,6 +130,6 @@ function standbyStatusIcon(o, val) {
 
     var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
 
-    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span>' + ' ' + message+'</span>';
+    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
 }
 </script>

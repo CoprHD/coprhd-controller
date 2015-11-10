@@ -21,28 +21,28 @@
 							<td>${site.vip}</td>
 							<td>
 								#{if site.state == "PRIMARY"}
-									<span class="glyphicon glyphicon-ok"> Active</span>
+									<span class="label-success"><span class="glyphicon glyphicon-ok"></span></span><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_ADDING"}
-									<span class="glyphicon glyphicon-refresh rotate"> Adding Standby</span>
+									<span class="label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.adding'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_PAUSED"}
-									<span class="glyphicon glyphicon-ok"> Standby Paused</span>
+									<span class="label-success"><span class="glyphicon glyphicon-ok"></span></span><span> &{'renderFunctions.disasterRecovery.status.paused'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_SYNCED"}
-									<span class="glyphicon glyphicon-ok"> Standby Synced</span>
+									<span class="label-success"><span class="glyphicon glyphicon-ok"></span></span><span> &{'renderFunctions.disasterRecovery.status.synced'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_ERROR"}
-									<span class="glyphicon glyphicon-remove"> Error</span>
+									<span class="label-danger"><span class="glyphicon glyphicon-remove"></span></span><span> Error&{'renderFunctions.disasterRecovery.status.error'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_REMOVING"}
-									<span class="glyphicon glyphicon-refresh rotate"> Standby Removing</span>
+									<span class="label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.removing'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_TESTING"}
-									<span class="glyphicon glyphicon-refresh rotate"> Standby Testing</span>
+									<span class="label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.testing'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_SYNCING"}
-									<span class="glyphicon glyphicon-refresh rotate"> Standby Syncing</span>
+									<span class="label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.syncing'}</span>
 								#{/if}
 							</td>
 						</tr>
@@ -54,3 +54,4 @@
 	</div>
   </div>
 </div>
+

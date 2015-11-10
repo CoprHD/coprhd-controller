@@ -47,7 +47,6 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                 NativeGUIDGenerator.VOLUME);
 
         snapShot = VolumeIngestionUtil.checkSnapShotExistsInDB(snapNativeGuid, _dbClient);
-
         // Check if ingested volume has exportmasks pending for ingestion.
         if (isExportIngestionPending(snapShot, unManagedVolume.getId(), unManagedVolumeExported)) {
             return clazz.cast(snapShot);
@@ -68,8 +67,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         // Run this logic always when Volume is NO_PUBLIC_ACCESS
         if (markUnManagedVolumeInactive(unManagedVolume, snapShot, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap,
                 taskStatusMap, vplexIngestionMethod)) {
-            _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ",
-                    unManagedVolume.getNativeGuid());
+            _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ", unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as inactive after successful export
             if (!unManagedVolumeExported) {
                 unManagedVolume.setInactive(true);

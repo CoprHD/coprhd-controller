@@ -495,6 +495,17 @@ public class FileStorageUtils {
     public static List<ExportRule> getFileSnapshotExportRules(URI fileSnapshotId, Boolean allDir, String subDir) {
         return execute(new FindFileSnapshotExportRules(fileSnapshotId, allDir, subDir));
     }
+    
+    public static List<String> getInvalidFileACLs(FileSystemACLs[] fileACLs) {
+        List<String> names = new ArrayList<String>();
+        for (FileStorageUtils.FileSystemACLs acl : fileACLs) {
+            if (StringUtils.contains(acl.aclName, "\\")) {
+                names.add(acl.aclName);
+            }
+        }
+        
+        return names;
+    }
 
     public static FileSystemACLs[] clearEmptyFileACLs(FileSystemACLs[] fileACLs) {
         List<FileStorageUtils.FileSystemACLs> toRemove = new ArrayList<FileStorageUtils.FileSystemACLs>();

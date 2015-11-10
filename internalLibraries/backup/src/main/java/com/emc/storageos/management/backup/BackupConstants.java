@@ -14,6 +14,8 @@ public interface BackupConstants {
     // quota limit for backup directory
     public static final String QUOTA = "quota";
 
+    public static final String BACKUP_UPLOAD_STATUS = "uploadStatus";
+
     // These are internal state tracking entries under
     public static final String BACKUP_TAGS_RETAINED = "retained_tags";
     public static final String BACKUP_TAGS_UPLOADED = "uploaded_tags";

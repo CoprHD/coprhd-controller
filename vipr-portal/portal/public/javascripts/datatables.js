@@ -33,7 +33,6 @@ function watchDatatableField(datatable, itemsJson, fieldName, triggerValues, fie
     var update = function() {
         var ids = new Array();
         var data = datatable.fnGetData();
-        
         for (var i = 0; i < data.length; i++) {
             var row = data[i];
             var fieldValue = row[fieldName];
@@ -167,6 +166,16 @@ function watchOrderStatus(datatable, itemsJson, extraFields) {
     var fieldToWatch = 'status';
     var triggerValues = ['APPROVAL', 'APPROVED', 'EXECUTING', 'PENDING', 'SCHEDULED'];
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields, 5000);
+}
+
+function watchUploadState(datatable, itemsJson, extraFields) {
+    var fields = ['status'];
+    if (extraFields != null) {
+        fields = fields.concat(extraFields);
+    }
+    var fieldToWatch = 'status';
+    var triggerValues = ['NOT_STARTED', 'IN_PROGRESS', 'FAILED', 'DONE', 'CANCELLED'];
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
 }
 
 /**

@@ -23,6 +23,7 @@ import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.hds.HDSException;
 import com.emc.storageos.hds.model.Add;
 import com.emc.storageos.hds.model.ArrayGroup;
+import com.emc.storageos.hds.model.Condition;
 import com.emc.storageos.hds.model.Delete;
 import com.emc.storageos.hds.model.EchoCommand;
 import com.emc.storageos.hds.model.Error;
@@ -738,6 +739,50 @@ public class HDSApiVolumeManager {
 
         URI endpointURI = hdsApiClient.getBaseURI();
         log.info("Get all LogicalUnits query payload :{}", getLogicalUnitsInputXML);
+        ClientResponse response = hdsApiClient.post(endpointURI, getLogicalUnitsInputXML);
+        if (HttpStatus.SC_OK == response.getStatus()) {
+            responseStream = response.getEntityInputStream();
+            JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
+            verifyErrorPayload(result);
+            luList = (List<LogicalUnit>) result.getBean(HDSConstants.LOGICALUNIT_LIST_BEAN_NAME);
+        } else {
+            log.error("Get all LogicalUnits failed with invalid response code {}",
+                    response.getStatus());
+            throw HDSException.exceptions
+                    .invalidResponseFromHDS(String
+                            .format("Not able to query all LogicalUnits due to invalid response %1$s from server for system %2$s",
+                                    response.getStatus(), systemObjectId));
+        }
+        return luList;
+    }
+    
+    /**
+     * Returns all LogicalUnits of a given system.
+     * 
+     * @param systemObjectId
+     * @return
+     */
+    public List<LogicalUnit> getLogicalUnitsInBatch(String systemObjectId, String startElementNo, String batchSize, String type)
+            throws Exception {
+        InputStream responseStream = null;
+        List<LogicalUnit> luList = null;
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
+        StorageArray storageArray = new StorageArray(systemObjectId);
+        attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
+        Get getOp = new Get(HDSConstants.STORAGEARRAY);
+        attributeMap.put(HDSConstants.GET, getOp);
+        LogicalUnit lu = new LogicalUnit();
+        Condition condition = new Condition(type, startElementNo, batchSize);
+        attributeMap.put(HDSConstants.LOGICALUNIT, lu);
+        attributeMap.put(HDSConstants.CONDITION, condition);
+
+        String getLogicalUnitsInputXML = InputXMLGenerationClient.getInputXMLString(
+                HDSConstants.GET_LOGICALUNITS_IN_BATCH_OP, attributeMap,
+                HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
+                HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
+
+        URI endpointURI = hdsApiClient.getBaseURI();
+        log.info("Get all LogicalUnits in batch query payload :{}", getLogicalUnitsInputXML);
         ClientResponse response = hdsApiClient.post(endpointURI, getLogicalUnitsInputXML);
         if (HttpStatus.SC_OK == response.getStatus()) {
             responseStream = response.getEntityInputStream();

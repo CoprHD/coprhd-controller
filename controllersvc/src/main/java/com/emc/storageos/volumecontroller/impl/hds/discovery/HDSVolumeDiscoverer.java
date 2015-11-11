@@ -55,6 +55,8 @@ public class HDSVolumeDiscoverer {
     private static final Logger log = LoggerFactory.getLogger(HDSVolumeDiscoverer.class);
 
     private HDSApiFactory hdsApiFactory;
+    
+    private final int BATCH_SIZE = 300;
 
     /**
      * @param hdsApiFactory the hdsApiFactory to set

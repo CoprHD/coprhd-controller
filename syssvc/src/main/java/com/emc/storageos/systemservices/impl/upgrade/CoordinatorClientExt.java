@@ -1423,17 +1423,25 @@ public class CoordinatorClientExt {
             } else {
                 if (isActiveSiteStable()) {
                     _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
+                    DistributedDoubleBarrier barrier = null;
                     try {
-                        DistributedDoubleBarrier barrier = _coordinator.getDistributedDoubleBarrier(DR_SWITCH_TO_ZK_OBSERVER_BARRIER, getNodeCount());
+                        barrier = _coordinator.getDistributedDoubleBarrier(DR_SWITCH_TO_ZK_OBSERVER_BARRIER, getNodeCount());
                         boolean allEntered = barrier.enter(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                         if (allEntered) {
                             LocalRepository localRepository = LocalRepository.getInstance();
                             localRepository.reconfigCoordinator("observer");
                             localRepository.reload("reset-coordinator");
-                            barrier.leave();
                         }
                     } catch (Exception ex) {
                         _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
+                    } finally {
+                        try {
+                            if (barrier != null) {
+                                barrier.leave();
+                            }
+                        } catch (Exception e) {
+                            _log.warn("Exception when leaving the barrier", e);
+                        }
                     }
                 } else {
                     _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", state);
@@ -1456,7 +1464,8 @@ public class CoordinatorClientExt {
         if (nodeAddrList.isEmpty()) {
             nodeAddrList = primary.getHostIPv6AddressMap().values();
         }
-        
+
+        // TODO: fix for the 1+0 case
         if (nodeAddrList.size() > 1) {
             boolean isLeaderAlive = false;
             for (String nodeAddr : nodeAddrList) {

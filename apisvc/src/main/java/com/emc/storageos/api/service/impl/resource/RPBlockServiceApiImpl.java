@@ -3197,10 +3197,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             throw APIException.badRequests.noProtectionSystemAssociatedWithTheCG(consistencyGroup.getId().toString());
         }
 
+        // copy name to add the journal volume to
         String copyName = param.getName();
+        // rp cluster internal site name of the copy
         String internalSiteName = null;
+        // adding journal to a source copy
         boolean isSource = false;
+        // adding journal to a target copy
         boolean isTarget = false;
+        // adding journal to a metropoint standby copy
         boolean isMPStandby = copyName.contains("Standby");        
 
         // get the list of source and target volumes; for metropoint, source volumes include both sides of the source metro volume                       
@@ -3209,16 +3214,19 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             throw APIException.badRequests.noSourceVolumesInCG(consistencyGroup.getLabel());
         }
         
+        // only need one source volume to set up parameters for the operation
         Volume firstSrc = sourceVolumes.get(0);
-        StringSet internalSiteNames = new StringSet();
+        StringSet sourceInternalSiteNames = new StringSet();
         
+        // if it's a metropoint volume we need to determine the internal site name for
+        // both the active and the standby copies
         if (_rpHelper.isMetroPointVolume(firstSrc)) {
             StringSet associatedVolumes = firstSrc.getAssociatedVolumes();
             if (associatedVolumes != null && !associatedVolumes.isEmpty()) {
                 for (String associatedVolumeStr : associatedVolumes) {
                 	URI associatedVolumeURI = URI.create(associatedVolumeStr);
                 	Volume associatedVolume = _dbClient.queryObject(Volume.class, associatedVolumeURI);
-                	internalSiteNames.add(associatedVolume.getInternalSiteName());
+                	sourceInternalSiteNames.add(associatedVolume.getInternalSiteName());
                 	if (NullColumnValueGetter.isNotNullValue(associatedVolume.getRpCopyName())) {
                 		if (associatedVolume.getRpCopyName().equals(copyName)) {
                 			isSource = !isMPStandby;
@@ -3227,8 +3235,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 	}                    	
                 }               
             }
+          // determine the internal site name for a source copy  
         } else {        	
-        	internalSiteNames.add(firstSrc.getInternalSiteName());
+        	sourceInternalSiteNames.add(firstSrc.getInternalSiteName());
         	if (NullColumnValueGetter.isNotNullValue(firstSrc.getRpCopyName())) {
         		if (firstSrc.getRpCopyName().equals(copyName)) {
         			isSource = true;
@@ -3237,6 +3246,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         	}        		        	        	
         }
    
+        // determine the internal site name for a target copy
         for(String targetURIString : firstSrc.getRpTargets()) {
         	Volume tgtVolume = _dbClient.queryObject(Volume.class, URI.create(targetURIString));        	
         	if (NullColumnValueGetter.isNotNullValue(tgtVolume.getRpCopyName())) {
@@ -3252,15 +3262,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
         
         // if we're adding volumes to a target, we need to know if it's local or remote
+        String targetType = "local";
         int copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
         if (isTarget) {                                
-            if (internalSiteNames.contains(internalSiteName)) {
+            if (sourceInternalSiteNames.contains(internalSiteName)) {
                 copyType = RecoverPointCGCopyType.LOCAL.getCopyNumber();
+                targetType = "local";
             } else {
                 copyType = RecoverPointCGCopyType.REMOTE.getCopyNumber();
+                targetType = "remote";
             }
-        }
-
+        }                     
+        
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_COPY_TYPE, copyType);
 
         RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();
@@ -3274,29 +3287,35 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
         }
 
+        String copyTypeString = "source";
+        
         if (isSource) {
             rpProtectionRecommendation.setSourceJournalRecommendation(journalRecommendation);
         }
 
         if (isMPStandby) {
             rpProtectionRecommendation.setStandbyJournalRecommendation(journalRecommendation);
+            copyTypeString = "standby source";
         }
 
         if (isTarget) {
             List<RPRecommendation> journalRecommendations = Lists.newArrayList();
             journalRecommendations.add(journalRecommendation);
             rpProtectionRecommendation.setTargetJournalRecommendations(journalRecommendations);
+            copyTypeString = targetType + " target";
         }
 
         List<Recommendation> recommendations = Lists.newArrayList();
         recommendations.add(rpProtectionRecommendation);
 
         // need to set the journal copy name to something unique
-        param.setName(copyName + "_" + task);
+        param.setName(copyName + "_" + task);        
+        
+        _log.info("Request to add journal capacity to {} copy {}", copyTypeString, copyName);
+        _log.info("Copy {} is protected by RP Site {}", copyName, internalSiteName);
 
         TaskList taskList = new TaskList();
         return this.createVolumes(param, project, journalVarray, journalVpool, recommendations, taskList, task, capabilities);
-
     }
     
     /**

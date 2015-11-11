@@ -81,7 +81,8 @@ public class LocalRepository {
     private static final String _SYSTOOL_RESTART = "--restart";
     private static final String _SYSTOOL_RELOAD = "--reload";
     private static final String _SYSTOOL_IS_APPLIANCE = "--is-appliance";
-    private static final String _SYSTOOL_IPSEC = "--ipsec";
+
+    private static final String _IPSECTOOL_CMD="/etc/ipsectool";
 
     // inject value from spring config.
     private String cmdZkutils;
@@ -504,7 +505,7 @@ public class LocalRepository {
         final String prefix = "checkIpsecConnection(): ";
         _log.debug(prefix);
 
-        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_IPSEC, IPSEC_CHECK_CONNECTION };
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_CONNECTION };
         String[] ips = exec(prefix, cmd);
 
         _log.debug(prefix + "ips without ipsec connection: ", Strings.repr(ips));
@@ -521,7 +522,7 @@ public class LocalRepository {
         final String prefix = "getIpsecPropertiesFromRemoteNode(): ";
         _log.debug(prefix);
 
-        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_IPSEC, IPSEC_GET_PROPS, ip };
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_GET_PROPS, ip };
         String[] props = exec(prefix, cmd);
 
         _log.debug(prefix + "properties={}", Strings.repr(props));
@@ -538,7 +539,7 @@ public class LocalRepository {
         final String prefix = "syncIpsecKeyToLocal(): ";
         _log.debug(prefix);
 
-        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_IPSEC, IPSEC_SYNC_KEY, ipsecKey };
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_SYNC_KEY, ipsecKey };
         exec(prefix, cmd);
         _log.info(prefix + "Success!");
     }

@@ -134,8 +134,6 @@ public class CoordinatorTestBase {
         zkprop.setProperty("maxClientCnxns", "0");
         zkprop.setProperty("autopurge.purgeInterval", "30");
         zkprop.setProperty("autopurge.snapRetainCount", "16");
-        zkprop.setProperty(Constants.STATIC_CFGFile_Key, "zk-static.cfg");
-        zkprop.setProperty(Constants.DYNAMIC_CFGFile_Key, "zk-dynamic.cfg");
         config.setProperties(zkprop);
         config.init();
 

@@ -13,7 +13,6 @@ import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.service.impl.SpringQuorumPeerConfig;
 import org.apache.zookeeper.server.ServerConfig;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
-import org.apache.zookeeper.server.admin.AdminServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +54,7 @@ public class ZkSimulator {
             public void run() {
                 try {
                     server.runFromConfig(serverConfig);
-                } catch (IOException | AdminServer.AdminServerException e) {
+                } catch (IOException e) {
                     log.error("coordinator start failure", e);
                 }
             }

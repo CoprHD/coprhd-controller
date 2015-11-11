@@ -16,8 +16,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "node_state")
 public class IPsecNodeState {
 
-    private String version;
     private String ip;
+    private String version;
 
     @XmlElement(name = "node_version")
     public String getVersion() {
@@ -34,5 +34,13 @@ public class IPsecNodeState {
 
     public void setIp(String ip) {
         this.ip = ip;
+    }
+
+    @Override
+    public String toString() {
+        return "IPsecNodeState{" +
+                "ip='" + ip + '\'' +
+                ", version='" + version + '\'' +
+                '}';
     }
 }

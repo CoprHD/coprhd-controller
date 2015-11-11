@@ -679,6 +679,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         List<PhysicalNAS> newPhysicalNASList = new ArrayList<PhysicalNAS>();
         List<PhysicalNAS> existingPhysicalNASList = new ArrayList<PhysicalNAS>();
+        
+        List<VirtualNAS> discoveredVNASList = new ArrayList<VirtualNAS>();
 
         // Discover storage ports
         try {
@@ -753,6 +755,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     } else {
                         setMaxDbMetricsAz(storageSystem, virtualNAS.getMetrics());
                         existingvNASList.add(virtualNAS);
+                        
                     }
 
                     // authenticate providers
@@ -836,11 +839,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
                 _log.info("New Virtual NAS servers size {}", newvNASList.size());
                 _dbClient.createObject(newvNASList);
+                discoveredVNASList.addAll(newvNASList);
             }
 
             if (existingvNASList != null && !existingvNASList.isEmpty()) {
                 _log.info("Modified Virtaul NAS servers size {}", existingvNASList.size());
                 _dbClient.updateObject(existingvNASList);
+                discoveredVNASList.addAll(existingvNASList);
             }
             // Persist the NAS servers!!!
             if (existingPhysicalNASList != null && !existingPhysicalNASList.isEmpty()) {
@@ -852,6 +857,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _log.info("New Physical NAS servers size {}", newPhysicalNASList.size());
                 _dbClient.createObject(newPhysicalNASList);
             }
+            
+            DiscoveryUtils.checkVirtualNasNotVisible(discoveredVNASList, _dbClient, storageSystemId);
 
         } catch (Exception e) {
             _log.error("discoverAccessZones failed. Storage system: {}", storageSystemId, e);

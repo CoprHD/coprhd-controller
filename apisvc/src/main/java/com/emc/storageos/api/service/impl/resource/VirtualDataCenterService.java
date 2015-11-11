@@ -34,7 +34,6 @@ import javax.ws.rs.core.Response;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.security.helpers.SecurityUtil;
-import com.emc.storageos.security.ipsec.IPsecManager;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.BooleanUtils;

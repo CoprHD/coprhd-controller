@@ -275,6 +275,12 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_STANDBY_FAILED_TIMEOUT)
     public InternalServerErrorException switchoverStandbyFailedTimeout(String siteId, int timeoutValue);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_ACQUIRE_OPERATION_LOCK_FAILED)
+    public InternalServerErrorException failToAcquireDROperationLock();
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_CONCURRENT_OPERATION_NOT_ALLOWED)
+    public InternalServerErrorException concurrentDROperationNotAllowed(String sitedId, String state);
+
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedErrorVolumePlacement(Exception ex);
 

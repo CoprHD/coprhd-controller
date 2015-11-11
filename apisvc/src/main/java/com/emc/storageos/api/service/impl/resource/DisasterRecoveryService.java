@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
@@ -26,6 +27,7 @@ import javax.ws.rs.core.Response;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +87,8 @@ public class DisasterRecoveryService {
     private static final String SHORTID_FMT="standby%d";
     private static final int MAX_NUM_OF_STANDBY = 10;
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
+    private static final String DR_OPERATION_LOCK = "droperation";
+    private static final int LOCK_WAIT_TIME_SEC = 5;
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -155,6 +159,10 @@ public class DisasterRecoveryService {
         
         String siteId = standbyConfig.getUuid();
         precheckForStandbyAttach(standbyConfig);
+
+        InterProcessLock lock = getDROperationLock();
+        checkOngoingDROperation();
+
         try {
             Site standbySite = new Site();
             standbySite.setCreationTime((new Date()).getTime());
@@ -220,6 +228,12 @@ public class DisasterRecoveryService {
             InternalServerErrorException addStandbyFailedException = APIException.internalServerErrors.addStandbyFailed(e.getMessage());
             setSiteError(siteId, addStandbyFailedException);
             throw addStandbyFailedException;
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception ignore) {
+                log.error(String.format("Lock release failed when adding standby %s", siteId));
+            }
         }
     }
 
@@ -378,7 +392,10 @@ public class DisasterRecoveryService {
                 throw APIException.internalServerErrors.removeStandbyPrecheckFailed(siteIdStr, String.format("Site %s is not stable", site.getName()));
             }
         }
-        
+
+        InterProcessLock lock = getDROperationLock();
+        checkOngoingDROperation();
+
         try {
             log.info("Removing sites");
             for (Site site : toBeRemovedSites) {
@@ -395,6 +412,12 @@ public class DisasterRecoveryService {
             log.error("Failed to remove site {}", siteIdStr, e);
             auditDisasterRecoveryOps(OperationTypeEnum.REMOVE_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, siteIdStr);
             throw APIException.internalServerErrors.removeStandbyFailed(siteIdStr, e.getMessage());
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception ignore) {
+                log.error(String.format("Lock release failed when removing standby sites: %s", siteIdStr));
+            }
         }
     }
     
@@ -486,6 +509,9 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.operationOnlyAllowedOnSyncedSite(uuid, standby.getState().toString());
         }
 
+        InterProcessLock lock = getDROperationLock();
+        checkOngoingDROperation();
+
         try {
             standby.setState(SiteState.STANDBY_PAUSED);
             coordinator.persistServiceConfiguration(standby.toConfiguration());
@@ -508,6 +534,12 @@ public class DisasterRecoveryService {
             log.error("Error pausing site {}", uuid, e);
             auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, uuid);
             throw APIException.internalServerErrors.pauseStandbyFailed(uuid, e.getMessage());
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception ignore) {
+                log.error(String.format("Lock release failed when pausing standby site: %s", uuid));
+            }
         }
     }
 
@@ -527,6 +559,9 @@ public class DisasterRecoveryService {
             log.error("site {} is in state {}, should be STANDBY_PAUSED", uuid, standby.getState());
             throw APIException.badRequests.operationOnlyAllowedOnPausedSite(uuid, standby.getState().toString());
         }
+
+        InterProcessLock lock = getDROperationLock();
+        checkOngoingDROperation();
 
         try {
             standby.setState(SiteState.STANDBY_RESUMING);
@@ -549,6 +584,12 @@ public class DisasterRecoveryService {
                     APIException.internalServerErrors.resumeStandbyFailed(uuid, e.getMessage());
             setSiteError(uuid, resumeStandbyFailedException);
             throw resumeStandbyFailedException;
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception ignore) {
+                log.error(String.format("Lock release failed when resuming standby site: %s", uuid));
+            }
         }
     }
 
@@ -598,6 +639,10 @@ public class DisasterRecoveryService {
         precheckForSwitchover(uuid);
 
         String oldPrimaryUUID = drUtil.getPrimarySiteId();
+
+        InterProcessLock lock = getDROperationLock();
+        checkOngoingDROperation();
+
         try {
             Site newPrimarySite = drUtil.getSiteFromLocalVdc(uuid);
 
@@ -627,6 +672,12 @@ public class DisasterRecoveryService {
             log.error(String.format("Error happened when switchover from site %s to site %s", oldPrimaryUUID, uuid), e);
             auditDisasterRecoveryOps(OperationTypeEnum.SWITCHOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid);
             throw APIException.internalServerErrors.switchoverFailed(oldPrimaryUUID, uuid, e.getMessage());
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception ignore) {
+                log.error(String.format("Lock release failed when switchover from %s to %s", oldPrimaryUUID, uuid));
+            }
         }
     }
         
@@ -641,6 +692,26 @@ public class DisasterRecoveryService {
         } catch (CoordinatorException e) {
             log.error("Can't find site {} from ZK", uuid);
             throw APIException.badRequests.siteIdNotFound();
+        }
+    }
+
+    private InterProcessLock getDROperationLock() {
+        InterProcessLock lock = null;
+        lock = coordinator.getLock(DR_OPERATION_LOCK);
+        try {
+            lock.acquire(LOCK_WAIT_TIME_SEC, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw APIException.internalServerErrors.failToAcquireDROperationLock();
+        }
+        return lock;
+    }
+
+    private void checkOngoingDROperation() {
+        List<Site> sites = drUtil.listSites();
+        for (Site site : sites) {
+            if (site.getState().isDROperationOngoing()) {
+                throw APIException.internalServerErrors.concurrentDROperationNotAllowed(site.getUuid(), site.getState().toString());
+            }
         }
     }
 

@@ -175,6 +175,7 @@ public class RPUnManagedObjectDiscoverer {
                     }
                     
                     // at this point, we have an legitimate UnManagedVolume whose RP properties should be updated
+                    log.info("Processing Journal UnManagedVolume {}", unManagedVolume.forDisplay());
                     
                     // Add the unmanaged volume to the list (if it's not there already)
                     if (!unManagedProtectionSet.getUnManagedVolumeIds().contains(unManagedVolume.getId())) {
@@ -257,6 +258,7 @@ public class RPUnManagedObjectDiscoverer {
                     }
 
                     // at this point, we have an legitimate UnManagedVolume whose RP properties should be updated
+                    log.info("Processing Replication Set UnManagedVolume {}", unManagedVolume.forDisplay());
 
                     // Add the unmanaged volume to the list (if it's not there already)
                     if (!unManagedProtectionSet.getUnManagedVolumeIds().contains(unManagedVolume.getId())) {
@@ -323,10 +325,12 @@ public class RPUnManagedObjectDiscoverer {
                         continue;
                     }
                     
+                    log.info("Linking target volumes to source volume {}", unManagedVolume.forDisplay());
+                    
                     // Find the target volumes associated with this source volume.
                     for (GetVolumeResponse targetVolume : rset.getVolumes()) {
                         // Find this volume in UnManagedVolumes based on wwn
-                        UnManagedVolume targetUnManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
+                        UnManagedVolume targetUnManagedVolume = findUnManagedVolumeForWwn(targetVolume.getWwn(), dbClient);
                         
                         if (null == targetUnManagedVolume) {
                             log.info("Protection Set " + nativeGuid + " contains volume: " + targetVolume.getWwn() + " that is not in our database of unmanaged volumes (target search).  Skipping.");
@@ -337,6 +341,8 @@ public class RPUnManagedObjectDiscoverer {
                         if (targetUnManagedVolume.getId().equals(unManagedVolume.getId())) {
                             continue;
                         }
+                        
+                        log.info("\tfound target volume{}", targetUnManagedVolume.forDisplay());
                         
                         // Add the source unmanaged volume ID to the target volume
                         StringSet rpUnManagedSourceVolumeId = new StringSet();

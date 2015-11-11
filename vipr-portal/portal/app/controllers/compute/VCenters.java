@@ -117,7 +117,7 @@ public class VCenters extends ViprResourceController {
     }
 
     private static void renderTenantOptions() {
-        if (TenantUtils.canReadAllTenantsForVcenters() && VCenterUtils.canUpdateACLs()) {
+        if (TenantUtils.canReadAllTenantsForVcenters() && VCenterUtils.canUpdateVcenterACLs()) {
             List<StringOption> tenantOptions = dataObjectOptions(await(new TenantsCall().asPromise()));
             renderArgs.put("tenantOptions", tenantOptions);
 
@@ -220,17 +220,6 @@ public class VCenters extends ViprResourceController {
     }
 
     public static void save(VCenterForm vCenter) {
-        if (!vCenter.canEditVcenter()) {
-            VcenterRestRep dbVCenter = VCenterUtils.getVCenter(uri(vCenter.id));
-            if (dbVCenter != null) {
-                vCenter.name = dbVCenter.getName();
-            }
-            vCenter.save(false);
-            flash.success(MessagesUtils.get(SAVED, vCenter.name));
-            list();
-            return;
-        }
-
         vCenter.validate("vCenter");
         if (Validation.hasErrors()) {
             edit(vCenter);
@@ -441,32 +430,29 @@ public class VCenters extends ViprResourceController {
                 return VCenterUtils.createVCenter(vcenterCreateParam, validateConnection, getAclAssignmentChanges());
             }
 
+            vcenterCreateParam.setCascadeTenancy(Boolean.TRUE);
             return VCenterUtils.createVCenter(TenantUtils.getTenantFilter(Models.currentAdminTenantForVcenter()),
                     vcenterCreateParam, validateConnection);
         }
 
         protected Task<VcenterRestRep> updateVCenter(boolean validateConnection) {
-            if (canEditVcenter()) {
-                VcenterUpdateParam vcenterUpdateParam = new VcenterUpdateParam();
-                doWriteTo(vcenterUpdateParam);
+            VcenterUpdateParam vcenterUpdateParam = new VcenterUpdateParam();
+            doWriteTo(vcenterUpdateParam);
+
+            if (Security.isSystemAdmin()) {
                 ACLAssignmentChanges aclAssignmentChanges = getAclAssignmentChanges();
                 return VCenterUtils.updateVCenter(uri(id), vcenterUpdateParam, validateConnection,
                         aclAssignmentChanges);
             } else {
-                return VCenterUtils.updateAcl(uri(id), getAclAssignmentChanges());
+                VcenterRestRep vcenterRestRep = VCenterUtils.getVCenter(uri(id));
+                vcenterUpdateParam.setCascadeTenancy(vcenterRestRep.getCascadeTenancy());
+
+                return VCenterUtils.updateVCenter(uri(id), vcenterUpdateParam, validateConnection, null);
             }
         }
 
         public boolean isNew() {
             return StringUtils.isBlank(id);
-        }
-
-        public boolean canEditVcenter() {
-            if (Security.isSecurityAdmin() &&
-                    !(Security.isSystemAdmin() || Security.isTenantAdmin() || isNew())) {
-                return false;
-            }
-            return true;
         }
 
         public void setTenantsForCreation() {

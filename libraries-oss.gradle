@@ -9,7 +9,7 @@ ext {
 
     netapp = [
         "com.emc.vipr:com.iwave.ext.netapp:2.3.0.0.53124.3084f0c",
-        "com.emc.vipr:com.iwave.ext.netappc:2.3.0.0.53124.3084f0c"
+        "com.emc.vipr:com.iwave.ext.netappc:2.4.1.0.3506.1e01ed0"
     ]
 
 }

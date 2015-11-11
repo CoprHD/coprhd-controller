@@ -88,7 +88,7 @@ public class TaskUtil {
     public static void checkForErrors(List<TaskResourceRep> tasks) {
         List<ServiceErrorRestRep> errors = new ArrayList<ServiceErrorRestRep>();
         for (TaskResourceRep task : tasks) {
-            if (isError(task)) {
+            if (task != null && isError(task)) {
                 errors.add(taskToError(task));
             }
         }
@@ -101,12 +101,6 @@ public class TaskUtil {
     }
 
     private static ServiceErrorRestRep taskToError(TaskResourceRep task) {
-        if (task == null) {
-            ServiceErrorRestRep serviceError = new ServiceErrorRestRep();
-            serviceError.setCodeDescription("Task object is null. Unable to determine success of task");
-            serviceError.setDetailedMessage("");
-            return serviceError;
-        }
         ServiceErrorRestRep serviceError = task.getServiceError();
         if (task.getState() == null) {
             serviceError = new ServiceErrorRestRep();

@@ -1,0 +1,114 @@
+%{
+  titleKey = 'ComputeImageServers.' + (computeImageServers?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'ComputeImageServers.description';
+  image = '/public/img/assets/Host.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.computeImageServers'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:computeImageServers?.id ? true : false/}
+#{set computeImagesAvailable:computeImageServers?.computeImages ? true : false/}
+
+#{breadcrumb.container}
+#{breadcrumb.item @list()}&{'ComputeImageServers.list.title'}#{/breadcrumb.item}
+#{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+
+#{ifErrors}
+  #{set errors: true/}
+#{/ifErrors}
+#{else}
+  #{set errors: flash.error ? true : false/}
+#{/else}
+
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+  var editMode = #{get 'editMode'/};
+  var errors = #{get 'errors'/};
+
+    $(document).ready(function() {
+
+        var editMode = #{get 'editMode'/};
+        var computeImages = #{get 'computeImagesAvailable'/};
+        if (!editMode && !errors) {
+            setDefaults();
+        }
+        $('#computeImageServers_password').val('');        
+        $('#computeImageServers_confirmPassword').val('');  
+        if (editMode && computeImages) {
+                $('#computeImageServers_tftpBootDir').prop('disabled', true);
+        }
+    });
+
+    function setDefaults() {
+        var tftpDir = $('#computeImageServers_tftpBootDir');
+        var installTo = $('#computeImageServers_osInstallTimeOut');
+        if (!tftpDir.val()) {
+        	tftpDir.val('/opt/tftpboot/');
+        }
+        if (!installTo.val()) {
+        	installTo.val('3600');
+        }
+    }
+    
+  </script>
+#{/set}
+
+
+<div class="container">
+    #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+    
+    #{alerts/}
+    
+#{form @save(), id:'computeImageServerForm', class:'form form-horizontal', autocomplete:"off"}
+#{field 'referrer'}
+<input type="hidden" name="${field.name}" value="${referrer}">
+#{/field}
+   
+
+  <fieldset>
+    #{field 'computeImageServers.name'}
+      #{Form.inputTextControlGroup field:field, required:!editMode, cssClass:'initialFocus' /}
+    #{/field}
+    
+    #{field 'computeImageServers.imageServerIp'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
+    
+    #{field 'computeImageServers.osInstallNetworkAddress'}
+        #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
+
+    #{field 'computeImageServers.userName'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
+    
+    #{field 'computeImageServers.password'}
+      #{Form.inputPasswordControlGroup field:field, required:!editMode /}
+    #{/field}
+
+    #{field 'computeImageServers.confirmPassword'}
+      #{Form.inputPasswordControlGroup field:field, required:!editMode /}
+    #{/field}    
+
+    #{field 'computeImageServers.tftpBootDir'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
+
+    #{field 'computeImageServers.osInstallTimeOut'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
+
+    #{if computeImageServers?.id}
+        #{field 'computeImageServers.id'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    
+      #{/if} 
+    </fieldset>
+
+    #{Form.saveCancel cancelHref:referrer/}
+#{/form}
+</div>

@@ -446,4 +446,8 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
         throw new UnsupportedOperationException();
     }
     
+    @Override
+    public void removeRuntimeState(String key) throws CoordinatorException {
+        return;
+    }
 }

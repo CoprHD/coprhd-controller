@@ -798,14 +798,19 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 createdObj.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
             }
         }
+        _logger.info("created objects: {}", createdObjects);
+        _logger.info("ingested objects: {}", context.getIngestedObjects());
+        _logger.info("other objects: {}", context.getSnapshotTargetBackendVolumesMap().values());
         _dbClient.createObject(context.getIngestedObjects());
         _dbClient.createObject(context.getCreatedObjectMap().values());
         if (!context.getSnapshotTargetBackendVolumesMap().isEmpty()) {
             _dbClient.createObject(context.getSnapshotTargetBackendVolumesMap().values());
         }
         for (List<DataObject> dos : context.getUpdatedObjectMap().values()) {
+            _logger.info("updated objects: {}", dos);
             _dbClient.persistObject(dos);
         }
+        _logger.info("umanaged objects: {}", context.getProcessedUnManagedVolumeMap().values());
         _dbClient.persistObject(context.getProcessedUnManagedVolumeMap().values());
     }
 

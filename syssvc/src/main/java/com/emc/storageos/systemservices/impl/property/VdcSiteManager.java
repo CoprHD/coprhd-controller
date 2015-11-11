@@ -461,6 +461,7 @@ public class VdcSiteManager extends AbstractManager {
             log.info("All nodes entered {}", barrierPath);
             return barrier;
         } else {
+            leaveBarrier(barrier);
             throw new Exception(String.format("Only Part of nodes entered within %s seconds, Skip updating", timeout));
         }
     }

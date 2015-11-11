@@ -55,7 +55,7 @@ public class VPlexBackEndOrchestratorUtil {
         }
     }
 
-    public static StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
+    public static StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap,
             StoragePortsAssigner assigner) {
         StringSetMap zoningMap = new StringSetMap();
@@ -76,7 +76,7 @@ public class VPlexBackEndOrchestratorUtil {
 
                     // find a port for the initiator
                     StoragePort storagePort = assignPortToInitiator(assigner,
-                            portGroup.get(networkURI), net, initiator, portUsage, null);
+                            portGroup.get(networkURI).iterator().next(), net, initiator, portUsage, null);
                     if (storagePort != null) {
                         _log.info(String.format("%s %s   %s -> %s  %s", director, net.getLabel(),
                                 initiator.getInitiatorPort(), storagePort.getPortNetworkId(),

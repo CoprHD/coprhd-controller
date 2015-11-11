@@ -95,7 +95,6 @@ import com.emc.storageos.volumecontroller.RPRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 /**
@@ -1570,7 +1569,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         volume.setInternalSiteName(internalSiteName);
         volume.setRpCopyName(rpCopyName);
 
-        if (consistencyGroup != null) {
+        if (consistencyGroup != null && !Volume.PersonalityTypes.METADATA.equals(personality)) {
             volume.setConsistencyGroup(consistencyGroup.getId());
         }
 
@@ -2913,7 +2912,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             ProtectionSystem ps = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
-            BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+            BlockConsistencyGroup consistencyGroup = null;
+            if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+            }
 
             buf.append(String.format("%nPreparing RP %s Volume:%n", volume.getPersonality()));
             buf.append(String.format("\t Name : [%s] (%s)%n", volume.getLabel(), volume.getId()));
@@ -2945,7 +2947,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 buf.append(String.format("\t\t=====%n"));
             }
 
-            buf.append(String.format("\t Consistency Group : [%s] (%s)%n", consistencyGroup.getLabel(), consistencyGroup.getId()));
+            if (consistencyGroup != null) {
+                buf.append(String.format("\t Consistency Group : [%s] (%s)%n", consistencyGroup.getLabel(), consistencyGroup.getId()));
+            }
             buf.append(String.format("\t Virtual Array : [%s] (%s)%n", varray.getLabel(), varray.getId()));
             buf.append(String.format("\t Virtual Pool : [%s] (%s)%n", vpool.getLabel(), vpool.getId()));
             buf.append(String.format("\t Capacity : [%s] %n", volume.getCapacity()));

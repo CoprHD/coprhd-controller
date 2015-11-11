@@ -1324,6 +1324,27 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         try {
             rp.addJournalVolumesToCG(cgParams, volumeDescriptors.get(0).getCapabilitiesValues().getRPCopyType());
+
+            ProtectionSet protectionSet = null;
+
+            // Update the ProtectionSet with any newly added protection set objects
+            if (cgParams.getCgUri() != null) {
+                for (Volume vol : RPHelper.getCgVolumes(cgParams.getCgUri(), _dbClient)) {
+                    if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
+                        protectionSet = _dbClient.queryObject(ProtectionSet.class, vol.getProtectionSet().getURI());
+                        if (protectionSet != null) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (protectionSet != null) {
+                updateProtectionSet(protectionSet, cgParams);
+            } else {
+                _log.error("could not find protection set to update new journal volumes with");
+            }
+
             WorkflowStepCompleter.stepSucceded(taskId);
         } catch (Exception e) {
             stepFailed(taskId, "addJournalStep");

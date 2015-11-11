@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
-@Path("/ipsec/")
+@Path("/ipsec")
 public class IPsecService {
 
     @Autowired

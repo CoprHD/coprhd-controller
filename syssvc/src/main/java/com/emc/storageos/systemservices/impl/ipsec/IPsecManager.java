@@ -57,6 +57,7 @@ public class IPsecManager {
             problemNodeStatus = checkConfigurations(vdcConfigVersion, nodeStatus);
             configGood = problemNodeStatus.isEmpty();
         }
+        log.info("IPsec configuration check is done. The result is {}", configGood);
 
         IPsecStatus status = new IPsecStatus();
 
@@ -101,10 +102,9 @@ public class IPsecManager {
     private boolean checkRunTimeStatus() {
         LocalRepository localRepository = new LocalRepository();
         String[] problemIPs = localRepository.checkIpsecConnection();
-
-        log.info("Checked IPsec local runtime status. Disconnected IP list is {}", problemIPs);
-
-        return (problemIPs == null || problemIPs.length == 0) ? true : false;
+        boolean runtimeGood = problemIPs[0].isEmpty();
+        log.info("Checked IPsec local runtime status. Disconnected IP list is {}", runtimeGood);
+        return runtimeGood;
     }
 
     private List<IPsecNodeState> getIPsecVersionsOnAllNodes() {

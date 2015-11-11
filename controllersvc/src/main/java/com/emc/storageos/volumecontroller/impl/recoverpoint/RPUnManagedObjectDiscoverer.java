@@ -43,15 +43,15 @@ import com.google.common.collect.Sets.SetView;
 public class RPUnManagedObjectDiscoverer {
 
     private static final Logger log = LoggerFactory.getLogger(RPUnManagedObjectDiscoverer.class);
-    public static final String UNMANAGED_PROTECTION_SET = "UnManagedProtectionSet";
-    public static final String UNMANAGED_VOLUME = "UnManagedVolume";
+    private static final String UNMANAGED_PROTECTION_SET = "UnManagedProtectionSet";
+    private static final String UNMANAGED_VOLUME = "UnManagedVolume";
     private static final int BATCH_SIZE = 100;
 
-    List<UnManagedProtectionSet> unManagedCGsInsert = null;
-    List<UnManagedProtectionSet> unManagedCGsUpdate = null;
-    List<UnManagedVolume> unManagedVolumesToDelete = null;
-    Map<String, UnManagedVolume> unManagedVolumesToUpdateByWwn = null;
-    Set<URI> unManagedCGsReturnedFromProvider = null;
+    private List<UnManagedProtectionSet> unManagedCGsInsert = null;
+    private List<UnManagedProtectionSet> unManagedCGsUpdate = null;
+    private List<UnManagedVolume> unManagedVolumesToDelete = null;
+    private Map<String, UnManagedVolume> unManagedVolumesToUpdateByWwn = null;
+    private Set<URI> unManagedCGsReturnedFromProvider = null;
 
     private PartitionManager partitionManager;
 
@@ -62,7 +62,7 @@ public class RPUnManagedObjectDiscoverer {
      * 
      * @param accessProfile access profile
      * @param dbClient db client 
-     * @param partitionManager partition manager (remove? -- could be set by bean instead)
+     * @param partitionManager partition manager
      * @throws Exception
      */
     public void discoverUnManagedObjects(AccessProfile accessProfile, DbClient dbClient,
@@ -118,11 +118,13 @@ public class RPUnManagedObjectDiscoverer {
                 newCG = true;
             } else {
                 log.info("Found existing unmanaged protection set for CG: " + cg.getCgName() + ", using " + unManagedProtectionSet.getId().toString());
-                unManagedCGsReturnedFromProvider.add(unManagedProtectionSet.getId());
             }
+
+            unManagedCGsReturnedFromProvider.add(unManagedProtectionSet.getId());
 
             // Update the fields for the CG
             unManagedProtectionSet.setCgName(cg.getCgName());
+            unManagedProtectionSet.setLabel(cg.getCgName());
 
             // TODO: Fill in these values with reality
             unManagedProtectionSet.getCGCharacteristics().put(UnManagedProtectionSet.SupportedCGCharacteristics.IS_ENABLED.name(), Boolean.TRUE.toString());

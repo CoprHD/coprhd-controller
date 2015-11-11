@@ -102,12 +102,6 @@ public class CustomQueryUtility {
                 AlternateIdConstraint.Factory.getUnManagedProtectionSetByUnManagedVolumeConstraint(unManagedVolumeId));
     }
 
-    public static List<UnManagedProtectionSet> getUnManagedProtectionSetsByProtectionSystemUri(DbClient dbClient, String protectionSystemId) {
-        return queryActiveResourcesByConstraint(dbClient,
-                UnManagedProtectionSet.class,
-                AlternateIdConstraint.Factory.getUnManagedProtectionSetsByProtectionSystemUriConstraint(protectionSystemId));
-    }
-    
     public static List<StorageHADomain> getActiveStorageHADomainByNativeGuid(DbClient dbClient, String nativeGuid) {
         return queryActiveResourcesByConstraint(dbClient,
                 StorageHADomain.class,

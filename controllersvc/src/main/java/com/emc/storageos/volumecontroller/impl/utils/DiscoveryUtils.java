@@ -597,11 +597,15 @@ public class DiscoveryUtils {
      */
     public static Set<URI> getAllUnManagedProtectionSetsForSystem(
             DbClient dbClient, String protectionSystemUri) {
-        List<UnManagedProtectionSet> umpses = 
-                CustomQueryUtility.getUnManagedProtectionSetsByProtectionSystemUri(dbClient, protectionSystemUri);
+        
+        final URIQueryResultList result = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedProtectionSetsByProtectionSystemUriConstraint(protectionSystemUri), result);
+
         Set<URI> cgSet = new HashSet<URI>();
-        for (UnManagedProtectionSet umps : umpses) {
-            cgSet.add(umps.getId());
+        Iterator<URI> results = result.iterator(); 
+        while (results.hasNext()) {
+            cgSet.add(results.next());
         }
         return cgSet;
     }

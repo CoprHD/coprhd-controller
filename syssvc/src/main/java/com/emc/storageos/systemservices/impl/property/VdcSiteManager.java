@@ -412,12 +412,14 @@ public class VdcSiteManager extends AbstractManager {
     private void updateVdcPropertiesAndWaitForAll() throws Exception {
         DistributedDoubleBarrier barrier = enterBarrier("VdcPropBarrier", VDC_RPOP_BARRIER_TIMEOUT);
 
-        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-        // set the vdc_config_version to an invalid value so that it always gets retried on failure.
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
-        localRepository.setVdcPropertyInfo(vdcProperty);
-
-        leaveBarrier(barrier);
+        try {
+            PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+            // set the vdc_config_version to an invalid value so that it always gets retried on failure.
+            vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
+            localRepository.setVdcPropertyInfo(vdcProperty);
+        } finally {
+            leaveBarrier(barrier);
+        }
     }
 
     /**
@@ -521,10 +523,11 @@ public class VdcSiteManager extends AbstractManager {
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
             log.info("Wait for barrier to reconfig/restart coordinator when switchover");
             DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-            
-            localRepository.reconfigProperties("coordinator");
-            
-            leaveBarrier(barrier);
+            try {
+                localRepository.reconfigProperties("coordinator");
+            } finally {
+                leaveBarrier(barrier);
+            }
             
             localRepository.restart("coordinatorsvc");
         } else {
@@ -1003,12 +1006,13 @@ public class VdcSiteManager extends AbstractManager {
         blockUntilZookeeperIsWritableConnected();
         
         DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-        
-        log.info("Set state to PRIMARY");
-        site.setState(SiteState.PRIMARY);
-        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-        
-        leaveBarrier(barrier);
+        try {
+            log.info("Set state to PRIMARY");
+            site.setState(SiteState.PRIMARY);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        } finally {
+            leaveBarrier(barrier);
+        }
         
         log.info("Reboot this node after planned failover");
         localRepository.reboot();
@@ -1020,12 +1024,14 @@ public class VdcSiteManager extends AbstractManager {
         blockUntilZookeeperIsWritableConnected();
         
         DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-        
-        log.info("Set state to SYNCED");
-        site.setState(SiteState.STANDBY_SYNCED);
-        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-        
-        leaveBarrier(barrier);
+
+        try {
+            log.info("Set state to SYNCED");
+            site.setState(SiteState.STANDBY_SYNCED);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        } finally {
+            leaveBarrier(barrier);
+        }
         
         log.info("Reboot this node after planned failover");
         localRepository.reboot();

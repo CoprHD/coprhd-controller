@@ -7,9 +7,11 @@ package com.emc.storageos.volumecontroller.impl.recoverpoint;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -25,8 +27,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedPro
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
@@ -37,19 +37,20 @@ import com.emc.storageos.recoverpoint.responses.GetCopyResponse;
 import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
 import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
-import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
 public class RPUnManagedObjectDiscoverer {
 
     private static final Logger log = LoggerFactory.getLogger(RPUnManagedObjectDiscoverer.class);
-    public static final String UNMANAGED_CG = "UnManagedCG";
+    public static final String UNMANAGED_PROTECTION_SET = "UnManagedProtectionSet";
+    public static final String UNMANAGED_VOLUME = "UnManagedVolume";
     private static final int BATCH_SIZE = 100;
 
     List<UnManagedProtectionSet> unManagedCGsInsert = null;
     List<UnManagedProtectionSet> unManagedCGsUpdate = null;
     List<UnManagedVolume> unManagedVolumesToDelete = null;
+    Map<String, UnManagedVolume> unManagedVolumesToUpdateByWwn = null;
     Set<URI> unManagedCGsReturnedFromProvider = null;
 
     private PartitionManager partitionManager;
@@ -76,6 +77,7 @@ public class RPUnManagedObjectDiscoverer {
         unManagedCGsInsert = new ArrayList<UnManagedProtectionSet>();
         unManagedCGsUpdate = new ArrayList<UnManagedProtectionSet>();
         unManagedVolumesToDelete = new ArrayList<UnManagedVolume>();
+        unManagedVolumesToUpdateByWwn = new HashMap<String, UnManagedVolume>();
         unManagedCGsReturnedFromProvider = new HashSet<URI>();
         
         // Get all of the consistency groups (and their volumes) from RP
@@ -134,7 +136,7 @@ public class RPUnManagedObjectDiscoverer {
             for (GetCopyResponse copy : cg.getCopies()) {
                 for (GetVolumeResponse volume : copy.getJournals()) {
                     // Find this volume in UnManagedVolumes based on wwn
-                    UnManagedVolume unManagedVolume = DiscoveryUtils.checkUnManagedVolumeExistsInDBByWwn(dbClient, volume.getWwn());
+                    UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
                     
                     // Check if this volume is already managed, which would indicate it has already been partially ingested
                     Volume managedVolume = DiscoveryUtils.checkManagedVolumeExistsInDBByWwn(dbClient, volume.getWwn());
@@ -144,9 +146,33 @@ public class RPUnManagedObjectDiscoverer {
                     
                     if (null == unManagedVolume && null == managedVolume) {
                         log.info("Protection Set " + nativeGuid + " contains volume: " + volume.getWwn() 
-                                + " that is not in our database of managed or unmanaged volumes.  Skipping volume.");
+                                + " that is not in our database of managed or unmanaged volumes."
+                                + " Has its storage array been discovered for unmanaged volumes? "
+                                + " Skipping further discovery of this volume for RecoverPoint ingestion.");
                         continue;
                     }
+                    
+                    if (null != managedVolume) {
+                        log.info("Protection Set {} contains volume {} that is already managed", 
+                                nativeGuid, volume.getWwn());
+                        // make sure it's in the UnManagedProtectionSet's ManagedVolume ids
+                        if (!unManagedProtectionSet.getManagedVolumeIds().contains(managedVolume.getId())) {
+                            unManagedProtectionSet.getManagedVolumeIds().add(managedVolume.getId().toString());
+                        }
+                        
+                        if (null != unManagedVolume) {
+                            log.info("Protection Set {} also has an orphaned UnManagedVolume {} that will be removed",
+                                    nativeGuid, unManagedVolume.getLabel());
+                            // remove the unManagedVolume from the UnManagedProtectionSet's UnManagedVolume ids
+                            unManagedProtectionSet.getUnManagedVolumeIds().remove(unManagedVolume.getId());
+                            unManagedVolumesToDelete.add(unManagedVolume);
+                        }
+                        
+                        // because this volume is already managed, we can just continue to the next
+                        continue;
+                    }
+                    
+                    // at this point, we have an legitimate UnManagedVolume whose RP properties should be updated
                     
                     // Add the unmanaged volume to the list (if it's not there already)
                     if (!unManagedProtectionSet.getUnManagedVolumeIds().contains(unManagedVolume.getId())) {
@@ -180,7 +206,7 @@ public class RPUnManagedObjectDiscoverer {
                     // Filter out RP and SRDF source vpools since this is a journal volume
                     filterProtectedVpools(dbClient, unManagedVolume, false);
                     
-                    dbClient.updateObject(unManagedVolume);
+                    unManagedVolumesToUpdateByWwn.put(unManagedVolume.getWwn(), unManagedVolume);
                 }
             }
             
@@ -192,16 +218,44 @@ public class RPUnManagedObjectDiscoverer {
             for (GetRSetResponse rset : cg.getRsets()) {
                 for (GetVolumeResponse volume : rset.getVolumes()) {
                     // Find this volume in UnManagedVolumes based on wwn
-                    UnManagedVolume unManagedVolume = DiscoveryUtils.checkUnManagedVolumeExistsInDBByWwn(dbClient, volume.getWwn());
+                    UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
+
+                    // Check if this volume is already managed, which would indicate it has already been partially ingested
+                    Volume managedVolume = DiscoveryUtils.checkManagedVolumeExistsInDBByWwn(dbClient, volume.getWwn());
 
                     // Add the WWN to the unmanaged protection set, regardless of whether this volume is unmanaged or not.
                     unManagedProtectionSet.getVolumeWwns().add(volume.getWwn());
-                    
-                    if (null == unManagedVolume) {
-                        log.info("Protection Set " + nativeGuid + " contains volume: " + volume.getWwn() + " that is not in our database of unmanaged volumes.  Skipping.");
-                        continue;                        
+
+                    if (null == unManagedVolume && null == managedVolume) {
+                        log.info("Protection Set " + nativeGuid + " contains volume: " + volume.getWwn() 
+                                + " that is not in our database of managed or unmanaged volumes."
+                                + " Has its storage array been discovered for unmanaged volumes? "
+                                + " Skipping further discovery of this volume for RecoverPoint ingestion.");
+                        continue;
                     }
-                    
+
+                    if (null != managedVolume) {
+                        log.info("Protection Set {} contains volume {} that is already managed", 
+                                nativeGuid, volume.getWwn());
+                        // make sure it's in the UnManagedProtectionSet's ManagedVolume ids
+                        if (!unManagedProtectionSet.getManagedVolumeIds().contains(managedVolume.getId())) {
+                            unManagedProtectionSet.getManagedVolumeIds().add(managedVolume.getId().toString());
+                        }
+                        
+                        if (null != unManagedVolume) {
+                            log.info("Protection Set {} also has an orphaned UnManagedVolume {} that will be removed",
+                                    nativeGuid, unManagedVolume.getLabel());
+                            // remove the unManagedVolume from the UnManagedProtectionSet's UnManagedVolume ids
+                            unManagedProtectionSet.getUnManagedVolumeIds().remove(unManagedVolume.getId());
+                            unManagedVolumesToDelete.add(unManagedVolume);
+                        }
+                        
+                        // because this volume is already managed, we can just continue to the next
+                        continue;
+                    }
+
+                    // at this point, we have an legitimate UnManagedVolume whose RP properties should be updated
+
                     // Add the unmanaged volume to the list (if it's not there already)
                     if (!unManagedProtectionSet.getUnManagedVolumeIds().contains(unManagedVolume.getId())) {
                         unManagedProtectionSet.getUnManagedVolumeIds().add(unManagedVolume.getId().toString());
@@ -238,7 +292,7 @@ public class RPUnManagedObjectDiscoverer {
                     StringSet rpProtectionSystemId = new StringSet();
                     rpProtectionSystemId.add(protectionSystem.getId().toString());
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PROTECTIONSYSTEM.toString(),
-                            rpProtectionSystemId);                    
+                            rpProtectionSystemId);
 
                     if (volume.isProduction()) {
                         // Filter in RP source vpools, filter out everything else
@@ -248,14 +302,14 @@ public class RPUnManagedObjectDiscoverer {
                         filterProtectedVpools(dbClient, unManagedVolume, false);
                     }
                     
-                    dbClient.updateObject(unManagedVolume);
-                }                    
+                    unManagedVolumesToUpdateByWwn.put(unManagedVolume.getWwn(), unManagedVolume);
+                }
 
                 // Now that we've processed all of the sources and targets, we can mark all of the target devices in the source devices.
                 for (GetVolumeResponse volume : rset.getVolumes()) {
                     // Find this volume in UnManagedVolumes based on wwn
                     StringSet rpTargetVolumeIds = new StringSet();
-                    UnManagedVolume unManagedVolume = DiscoveryUtils.checkUnManagedVolumeExistsInDBByWwn(dbClient, volume.getWwn());
+                    UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
                     
                     if (null == unManagedVolume) {
                         log.info("Protection Set " + nativeGuid + " contains volume: " + volume.getWwn() + " that is not in our database of unmanaged volumes.  Skipping.");
@@ -270,11 +324,11 @@ public class RPUnManagedObjectDiscoverer {
                     // Find the target volumes associated with this source volume.
                     for (GetVolumeResponse targetVolume : rset.getVolumes()) {
                         // Find this volume in UnManagedVolumes based on wwn
-                        UnManagedVolume targetUnManagedVolume = DiscoveryUtils.checkUnManagedVolumeExistsInDBByWwn(dbClient, targetVolume.getWwn());
+                        UnManagedVolume targetUnManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
                         
                         if (null == targetUnManagedVolume) {
                             log.info("Protection Set " + nativeGuid + " contains volume: " + targetVolume.getWwn() + " that is not in our database of unmanaged volumes (target search).  Skipping.");
-                            continue;                        
+                            continue;
                         }
                         
                         // Don't bother if we just re-found the source device (TODO: Is this an issue for RP MP where there are two sources?)
@@ -286,10 +340,10 @@ public class RPUnManagedObjectDiscoverer {
                         StringSet rpUnManagedSourceVolumeId = new StringSet();
                         rpUnManagedSourceVolumeId.add(unManagedVolume.getId().toString());
                         targetUnManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_UNMANAGED_SOURCE_VOLUME.toString(),
-                                rpUnManagedSourceVolumeId);                        
+                                rpUnManagedSourceVolumeId);
 
                         // Update the target unmanaged volume with the source managed volume ID
-                        dbClient.updateObject(targetUnManagedVolume);
+                        unManagedVolumesToUpdateByWwn.put(targetUnManagedVolume.getWwn(), targetUnManagedVolume);
 
                         // Store the unmanaged target ID in the source volume
                         rpTargetVolumeIds.add(targetUnManagedVolume.getId().toString());
@@ -299,9 +353,8 @@ public class RPUnManagedObjectDiscoverer {
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString(),
                             rpTargetVolumeIds);
                     
-                    dbClient.updateObject(unManagedVolume);
+                    unManagedVolumesToUpdateByWwn.put(unManagedVolume.getWwn(), unManagedVolume);
                 }
-
             }
 
             if (newCG) {
@@ -312,7 +365,7 @@ public class RPUnManagedObjectDiscoverer {
             
             handlePersistence(dbClient, false);
         }
-        
+
         cleanUp(protectionSystem, dbClient);
     }
 
@@ -357,6 +410,26 @@ public class RPUnManagedObjectDiscoverer {
     }
 
     /**
+     * Find an UnManagedVolume for the given WWN by first checking in the
+     * UnManagedVolumesToUpdate collection (in case we've already fetched it
+     * and updated it elsewhere), and then check the database.
+     * 
+     * @param wwn the WWN to find an UnManagedVolume for
+     * @param dbClient a reference to the database client
+     * 
+     * @return an UnManagedVolume object for the given WWN
+     */
+    private UnManagedVolume findUnManagedVolumeForWwn(String wwn, DbClient dbClient) {
+        UnManagedVolume volume = unManagedVolumesToUpdateByWwn.get(wwn);
+
+        if (null == volume) {
+            volume = DiscoveryUtils.checkUnManagedVolumeExistsInDBByWwn(dbClient, wwn);
+        }
+
+        return volume;
+    }
+    
+    /**
      * Handle updating the database with UnManagedProtectionSets,
      * and also clearing out any orphaned ingested UnManagedVolumes.
      * Unless the flush argument is true, only when the set to be persisted 
@@ -370,15 +443,23 @@ public class RPUnManagedObjectDiscoverer {
         if (null != unManagedCGsInsert) {
             if (flush || (unManagedCGsInsert.size() > BATCH_SIZE)) {
                 partitionManager.insertInBatches(unManagedCGsInsert,
-                        BATCH_SIZE, dbClient, UNMANAGED_CG);
+                        BATCH_SIZE, dbClient, UNMANAGED_PROTECTION_SET);
                 unManagedCGsInsert.clear();
             }
         }
         if (null != unManagedCGsUpdate) {
             if (flush || (unManagedCGsUpdate.size() > BATCH_SIZE)) {
                 partitionManager.updateAndReIndexInBatches(unManagedCGsUpdate,
-                        BATCH_SIZE, dbClient, UNMANAGED_CG);
+                        BATCH_SIZE, dbClient, UNMANAGED_PROTECTION_SET);
                 unManagedCGsUpdate.clear();
+            }
+        }
+        if (null != unManagedVolumesToUpdateByWwn) {
+            if (flush || (unManagedVolumesToUpdateByWwn.size() > BATCH_SIZE)) {
+                partitionManager.updateAndReIndexInBatches(
+                        new ArrayList<UnManagedVolume>(unManagedVolumesToUpdateByWwn.values()),
+                        BATCH_SIZE, dbClient, UNMANAGED_VOLUME);
+                unManagedVolumesToUpdateByWwn.clear();
             }
         }
         if (null != unManagedVolumesToDelete) {
@@ -404,12 +485,12 @@ public class RPUnManagedObjectDiscoverer {
 
         // remove any UnManagedProtectionSets in the database
         // but no longer found on the RP device
-        Set<URI> umpsesFoundInDb = 
+        Set<URI> umpsesFoundInDbForProtectionSystem = 
                 DiscoveryUtils.getAllUnManagedProtectionSetsForSystem(
                         dbClient, protectionSystem.getId().toString());
         
         SetView<URI> onlyFoundInDb = 
-                Sets.difference(umpsesFoundInDb, unManagedCGsReturnedFromProvider);
+                Sets.difference(umpsesFoundInDbForProtectionSystem, unManagedCGsReturnedFromProvider);
 
         if (onlyFoundInDb != null && !onlyFoundInDb.isEmpty()) {
             Iterator<UnManagedProtectionSet> umpsesToDelete = 
@@ -421,5 +502,11 @@ public class RPUnManagedObjectDiscoverer {
                 dbClient.markForDeletion(umps);
             }
         }
+        
+        unManagedCGsInsert = null;
+        unManagedCGsUpdate = null;
+        unManagedVolumesToDelete = null;
+        unManagedVolumesToUpdateByWwn = null;
+        unManagedCGsReturnedFromProvider = null;
     }
 }

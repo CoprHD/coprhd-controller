@@ -28,6 +28,8 @@ import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
+import com.sun.jersey.api.client.ClientResponse;
+
 import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
@@ -40,6 +42,8 @@ public class DisasterRecovery extends ViprResourceController {
     protected static final String SAVED_SUCCESS = "disasterRecovery.save.success";
     protected static final String PAUSED_SUCCESS = "disasterRecovery.pause.success";
     protected static final String PAUSED_ERROR = "disasterRecovery.pause.error";
+    protected static final String SWITCHOVER_SUCCESS = "disasterRecovery.switchover.success";
+    protected static final String SWITCHOVER_ERROR = "disasterRecovery.switchover.error";
     protected static final String RESUMED_SUCCESS = "disasterRecovery.resume.success";
     protected static final String SAVED_ERROR = "disasterRecovery.save.error";
     protected static final String DELETED_SUCCESS = "disasterRecovery.delete.success";
@@ -70,6 +74,7 @@ public class DisasterRecovery extends ViprResourceController {
         list();
     }
 
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void resume(String id) {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
@@ -83,8 +88,30 @@ public class DisasterRecovery extends ViprResourceController {
 
     }
 
-    public static void failover(String id) {
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    public static void switchover(String id) {
+        String standby_name = null;
+        String standby_vip = null;
+        String active_name = null;
+        // Get active site details
+        SiteRestRep activesite = DisasterRecoveryUtils.getActiveSite();
+        if (activesite == null) {
+            flash.error(SWITCHOVER_ERROR, "Can't switchover");
+            list();
+        }
+        else {
+            active_name = activesite.getName();
+        }
 
+        SiteRestRep result = DisasterRecoveryUtils.getSite(id);
+        if (result != null) {
+            ClientResponse failoversite = DisasterRecoveryUtils.doSwitchover(id);
+            // flash.success(MessagesUtils.get(SWITCHOVER_SUCCESS, result.getName()));
+            standby_name = result.getName();
+            standby_vip = result.getVip();
+        }
+
+        render(active_name, standby_name, standby_vip);
     }
 
     private static DisasterRecoveryDataTable createDisasterRecoveryDataTable() {

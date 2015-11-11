@@ -64,4 +64,19 @@ public class DisasterRecoveryUtils {
         }
         return false;
     }
+
+    public static ClientResponse doSwitchover(String id) {
+        return getViprClient().site().doSwitchover(id);
+    }
+
+    public static SiteRestRep getActiveSite() {
+        List<SiteRestRep> sites = getViprClient().site().listAllSites().getSites();
+        for (SiteRestRep activeSite : sites) {
+            if (activeSite.getState().toUpperCase().equals("PRIMARY")) {
+                return activeSite;
+            }
+        }
+        return null;
+    }
+
 }

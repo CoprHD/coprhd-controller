@@ -832,6 +832,7 @@ datetime.units.d=Days
 datetime.units.s=Seconds
 datetime.dayOfMonth.L=Last
 
+#DisasterRecovery
 disasterRecovery.title=Disaster Recovery
 disasterRecovery.name=Site Name
 disasterRecovery.VirtualIP=Site Virtual IP
@@ -855,12 +856,14 @@ disasterRecovery.resume.success=Resume request initiated for site: '%s'
 disasterRecovery.test.success=Test Mode request initiated for site: '%s'
 disasterRecovery.save.error=Failed to add standby '%s'
 disasterRecovery.pause.error=Failed to pause standby '%s'
+disasterRecovery.switchover.success=Switchover initiated. Standby site: %s will become Active site
+disasterRecovery.switchover.error=Switchover failed
 disasterRecovery.resume.error=Failed to resume standby'%s'
 disasterRecovery.test.error=Failed to initiated test mode for site: '%s'
 disasterRecovery.delete.success=Standby removal initiated...
 disasterRecovery.delete.error='%s' of '%s' selected Standby deleted: '%s'.  Please check server log for more details.
 disasterRecovery.unknown=Unknown Standby with ID '%s'
-
+disasterRecovery.confirm.switchover=Are you sure you want to reboot?
 disasterRecovery.standby.testLink=Test Mode
 disasterRecovery.standby.pauseLink=Pause Synchronization
 disasterRecovery.standby.resumeLink=Resume Synchronization
@@ -872,6 +875,17 @@ disasterRecovery.create.title=Add Standby
 disasterRecovery.list.title=Disaster Recoveries
 disasterRecovery.edit.title=Edit Standby
 disasterRecovery.add.title=Enter the information needed to discover standby cluster.
+disasterRecovery.switchover=Switchover Site
+disasterRecovery.switchover.active=Active Site
+disasterRecovery.switchover.standby=Standby Site
+disasterRecovery.switchover.progress=Switchover in Progress
+disasterRecovery.switchover.description=Switching over to %s as the Active site...
+disasterRecovery.switchover.setting=Setting site
+disasterRecovery.switchover.active.to=as Active site and
+disasterRecovery.switchover.standby.to= as Standby site
+disasterRecovery.switchover.login.instruction=Please login to new Active site:
+disasterRecovery.switchover.standby.vip= with site VIP:
+disasterRecovery.confirm.switchover=Are you sure you want to switchover?
 
 # About
 system.about.introspection.title=Discovery

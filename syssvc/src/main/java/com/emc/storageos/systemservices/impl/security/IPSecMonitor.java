@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.*;
 
@@ -47,15 +48,26 @@ public class IPSecMonitor implements Runnable {
             log.info("all connections are good, skip ipsec sync step");
             return;
         }
+        log.info("problem nodes are: " + Arrays.toString(problemNodes));
 
         log.info("step 2: get latest ipsec properties of the no connection nodes");
         Map<String, String> latest = getLatestIPSecProperties(problemNodes);
+        if (latest == null) {
+            log.info("no latest ipsec properties found, skip following check steps");
+            return;
+        }
+        log.info("latest ipsec properties: " + latest.toString());
+
 
         log.info("step 3: compare the latest ipsec properties with local, to determine if sync needed");
         if (isSyncNeeded(latest)) {
             String latestKey = latest.get(Constants.IPSEC_KEY);
+            LocalRepository localRepository = LocalRepository.getInstance();
             log.info("syncing latest ipsec key to local: " + latestKey);
-            LocalRepository.getInstance().syncIpsecKeyToLocal(latestKey);
+            localRepository.syncIpsecKeyToLocal(latestKey);
+            log.info("reloading ipsec");
+            localRepository.reconfigProperties("ipsec");
+            localRepository.reload("ipsec");
         } else {
             log.info("local already has latest ipsec key, skip syncing");
         }

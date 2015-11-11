@@ -324,10 +324,14 @@ public class UnManagedFilesystemService extends TaggedResource {
                 Long lusedCapacity = Long.valueOf(usedCapacity);
                 // pool uri cannot be null
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
-                StoragePort port = _dbClient.queryObject(StoragePort.class,
-                        URI.create(storagePortUri));
+                
+                StoragePort port = null;
+                if (storagePortUri != null ) {
+                    port = _dbClient.queryObject(StoragePort.class, URI.create(storagePortUri));
+                }
+                
                 StorageHADomain dataMover = null;
-                if (port.getStorageHADomain() != null) {
+                if (port != null && port.getStorageHADomain() != null) {
                     dataMover = _dbClient.queryObject(StorageHADomain.class, port.getStorageHADomain());
                 }
                 if (dataMover != null) {
@@ -341,7 +345,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     _logger.info("ingest umfs {} is mounted to vNAS Uri {} invalid for project", path, nasUri);
                     continue;
                 }
-
+                
                 // Check to see if UMFS's storagepool's Tagged neighborhood has the "passed in" neighborhood.
                 // if not don't ingest
                 if (null != pool) {
@@ -383,6 +387,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.setMountPath(mountPath);
                 filesystem.setVirtualPool(param.getVpool());
                 filesystem.setVirtualArray(param.getVarray());
+                if(nasUri != null) {
+                	filesystem.setVirtualNAS(URI.create(nasUri));
+                }
 
                 URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
                 StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
@@ -416,7 +423,11 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                 _logger.info("Un Managed File System {} has exports? : {}", unManagedFileSystem.getId(),
                         unManagedFileSystem.getHasExports());
-                StoragePort sPort = compareAndSelectPortURIForUMFS(system, port, neighborhood);
+                
+                StoragePort sPort = null;
+                if (port != null && neighborhood != null) {
+                    sPort = compareAndSelectPortURIForUMFS(system, port, neighborhood);
+                }
                 if (unManagedFileSystem.getHasExports()) {
                     _logger.info("Storage Port Found {}", sPort);
                     if (null != sPort) {

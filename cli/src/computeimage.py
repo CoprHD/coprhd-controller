@@ -324,13 +324,13 @@ def computeimage_list(args):
             elif(args.long):
                 from common import TableGenerator
                 TableGenerator(output,
-                               ['name', 'image_name',
+                               ['module/name', 'image_name',
                                 'image_type',
                                 'compute_image_status',
                                 'image_url']).printTable()
             else:
                 from common import TableGenerator
-                TableGenerator(output, ['name', 'image_name',
+                TableGenerator(output, ['module/name','image_name',
                                         'image_type',
                                         'compute_image_status',
                                         'last_import_status_message'

@@ -22,6 +22,8 @@ public class ProcessOutputStream extends OutputStream {
     OutputStream stdinStream;
     ProcessRunner processor;
     StringBuilder errText = new StringBuilder();
+    
+    public static final int ERROR_TEXT_MAX_LENGTH = 1024;
 
     public ProcessOutputStream(ProcessRunner processor) {
         this.processor = processor;

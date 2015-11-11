@@ -68,6 +68,8 @@
 
     <bean id="recoveryManager" class="com.emc.storageos.systemservices.impl.recovery.RecoveryManager"/>
 
+    <bean id="dbDowntimeTracker" class="com.emc.storageos.systemservices.impl.healthmonitor.DbDowntimeTracker"/>
+
     <bean id="auditLogManager"
         class="com.emc.storageos.security.audit.AuditLogManager">
       <property name="dbClient" ref="dbclient"/>
@@ -75,6 +77,7 @@
 
     <bean id="backupService" class="com.emc.storageos.systemservices.impl.resource.BackupService" >
         <property name="backupOps" ref="backupOps" />
+        <property name="backupScheduler" ref="backupScheduler" />
     </bean>
 
     <bean id="syssvcApp" class="com.emc.storageos.systemservices.impl.resource.SysSvcApp">
@@ -117,6 +120,10 @@
                 </bean>
                 <ref bean="backupService" />
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
+                <bean class="com.emc.storageos.systemservices.impl.resource.DbConsistencyService">
+                    <property name="coordinator" ref="coordinator" />
+                    <property name="jobProducer" ref="dbConsistencyJobProducer" />
+                </bean>
             </set>
         </property>
     </bean>
@@ -296,6 +303,7 @@
         <property name="dbLogAnalyser" ref="dbLogAnalyser" />
         <property name="zkLogAnalyser" ref="zkLogAnalyser" />
         <property name="controllerSvcLogAnalyser" ref="controllerSvcLogAnalyser" />
+        <property name="dbDowntimeTracker" ref="dbDowntimeTracker" />
     </bean>
 
     <bean id="logSvcPropertiesLoader" class="com.emc.storageos.systemservices.impl.logsvc.LogSvcPropertiesLoader" />
@@ -394,5 +402,21 @@
 
     <bean id="apiNotifier" class="com.emc.storageos.systemservices.impl.property.APINotifier">
         <property name="coordinator" ref="coordinator"/>
+    </bean>
+    <bean id="dbConsistencyJobProducer" class="com.emc.storageos.systemservices.impl.jobs.producer.DbConsistencyJobProducer" init-method="startQueue" destroy-method="stopQueue">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="consumer" ref="dbConsistencyJobConsumer"/>
+    </bean>
+    <bean id="dbConsistencyJobConsumer" class="com.emc.storageos.systemservices.impl.jobs.consumer.DbConsistencyJobConsumer">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbChecker" ref="dbChecker" />
+    </bean>
+    <bean id="dbCheckerHelper" class="com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    <bean id="dbChecker" class="com.emc.storageos.db.client.impl.DbConsistencyChecker">
+        <property name="coordinator" ref="coordinator" />
+        <property name="toConsole" value="false" />
+        <property name="helper" ref="dbCheckerHelper"/>
     </bean>
 </beans>

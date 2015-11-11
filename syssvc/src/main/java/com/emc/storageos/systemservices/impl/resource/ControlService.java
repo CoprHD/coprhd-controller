@@ -16,6 +16,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
+import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
 
@@ -383,7 +384,7 @@ public class ControlService {
     }
 
     /**
-     * Internal calls to power off current cluster. Use trusted secret key
+     * Internal call to power off current cluster for DR. Use trusted HMAC key to authenticate.
      */
     @POST
     @Path("internal/cluster/poweroff")
@@ -393,6 +394,18 @@ public class ControlService {
         return powerOffCluster(forceSet);
     }
 
+    /**
+     * Internal call to get cluster info for DR. Remote site could use this call the check cluster state
+     */
+    @GET
+    @Path("internal/cluster/info")
+    @Produces({ MediaType.APPLICATION_JSON })
+    public ClusterInfo internalGetClusterInfo() {
+        ClusterInfo clusterInfo = _coordinator.getClusterInfo();
+        _log.info("Get cluster info {}", clusterInfo);
+        return clusterInfo;
+    }
+    
     /**
      * Trigger minority node recovery
      */

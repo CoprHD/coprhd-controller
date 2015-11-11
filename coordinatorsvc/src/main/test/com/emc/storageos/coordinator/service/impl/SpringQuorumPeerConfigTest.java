@@ -29,12 +29,9 @@ public class SpringQuorumPeerConfigTest {
         properties.setProperty("clientPort", "2181");
         properties.setProperty("initLimit", "5");
         properties.setProperty("syncLimit", "2");
-        properties.setProperty("server.1", "192.168.1.1:2888:3888;2181");
-        properties.setProperty("server.2", "hostname:2888:3888;2181");
-        properties.setProperty("server.3", "[fe80:0:0:0:81fe:4fd:95b1:8bbf]:2888:3888;2181");
-
-        properties.setProperty(Constants.STATIC_CFGFile_Key, "zk-static.cfg");
-        properties.setProperty(Constants.DYNAMIC_CFGFile_Key, "zk-dynamic.cfg");
+        properties.setProperty("server.1", "192.168.1.1,2888,3888");
+        properties.setProperty("server.2", "hostname,2888,3888");
+        properties.setProperty("server.3", "[fe80:0:0:0:81fe:4fd:95b1:8bbf],2888,3888");
 
         springQuorumPeerConfig = new SpringQuorumPeerConfig();
     }
@@ -64,35 +61,19 @@ public class SpringQuorumPeerConfigTest {
 
     @Test
     public void testServerPropertiesHasbeenRemoved() throws Exception {
-        SpringQuorumPeerConfig target = new SpringQuorumPeerConfig();
+        SpringQuorumPeerConfig target = new SpringQuorumPeerConfig() {
+            @Override
+            protected void preprocessQuorumServers(Properties zkProp) throws ConfigException {
+                super.preprocessQuorumServers(zkProp);
+
+                // check whether server properties are removed
+                for (Object key : properties.keySet()) {
+                    assertFalse(key.toString().trim().startsWith("server."));
+                }
+            }
+        };
 
         target.setProperties(properties);
         target.init();
-
-        String staticCfgFile = properties.getProperty(Constants.STATIC_CFGFile_Key);
-        String dynamicCfgFile = properties.getProperty(Constants.DYNAMIC_CFGFile_Key);
-        File dataDir = target.getDataDir();
-
-
-        File cfgFile = new File(dataDir, staticCfgFile);
-        assertTrue(cfgFile.exists());
-
-        //make sure we can load static properties
-        FileInputStream in = new FileInputStream(cfgFile);
-        Properties staticProperty = new Properties();
-        staticProperty.load(in);
-
-        //check dynamic config file
-        cfgFile = new File(dataDir, dynamicCfgFile);
-        assertTrue(cfgFile.exists());
-
-        in = new FileInputStream(cfgFile);
-        Properties dynamicProperty = new Properties();
-        dynamicProperty.load(in);
-
-        // check whether server properties are removed
-        for (String key : dynamicProperty.stringPropertyNames()) {
-            assertTrue(key.trim().startsWith("server."));
-        }
     }
 }

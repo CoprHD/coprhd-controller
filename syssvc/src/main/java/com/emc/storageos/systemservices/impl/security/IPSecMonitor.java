@@ -41,37 +41,41 @@ public class IPSecMonitor implements Runnable {
 
     @Override
     public void run() {
-        log.info("step 1: start checking ipsec connections");
-        String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
+        try {
+            log.info("step 1: start checking ipsec connections");
+            String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
 
-        if (problemNodes == null || problemNodes.length == 0) {
-            log.info("all connections are good, skip ipsec sync step");
-            return;
+            if (problemNodes == null || problemNodes.length == 0) {
+                log.info("all connections are good, skip ipsec sync step");
+                return;
+            }
+            log.info("problem nodes are: " + Arrays.toString(problemNodes));
+
+            log.info("step 2: get latest ipsec properties of the no connection nodes");
+            Map<String, String> latest = getLatestIPSecProperties(problemNodes);
+            if (latest == null) {
+                log.info("no latest ipsec properties found, skip following check steps");
+                return;
+            }
+            log.info("latest ipsec properties: " + latest.toString());
+
+
+            log.info("step 3: compare the latest ipsec properties with local, to determine if sync needed");
+            if (isSyncNeeded(latest)) {
+                String latestKey = latest.get(Constants.IPSEC_KEY);
+                LocalRepository localRepository = LocalRepository.getInstance();
+                log.info("syncing latest ipsec key to local: " + latestKey);
+                localRepository.syncIpsecKeyToLocal(latestKey);
+                log.info("reloading ipsec");
+                localRepository.reconfigProperties("ipsec");
+                localRepository.reload("ipsec");
+            } else {
+                log.info("local already has latest ipsec key, skip syncing");
+            }
+            log.info("step 4: ipsec check finish");
+        } catch (Exception ex) {
+            log.warn("error when run ipsec monitor: " + ex.getMessage());
         }
-        log.info("problem nodes are: " + Arrays.toString(problemNodes));
-
-        log.info("step 2: get latest ipsec properties of the no connection nodes");
-        Map<String, String> latest = getLatestIPSecProperties(problemNodes);
-        if (latest == null) {
-            log.info("no latest ipsec properties found, skip following check steps");
-            return;
-        }
-        log.info("latest ipsec properties: " + latest.toString());
-
-
-        log.info("step 3: compare the latest ipsec properties with local, to determine if sync needed");
-        if (isSyncNeeded(latest)) {
-            String latestKey = latest.get(Constants.IPSEC_KEY);
-            LocalRepository localRepository = LocalRepository.getInstance();
-            log.info("syncing latest ipsec key to local: " + latestKey);
-            localRepository.syncIpsecKeyToLocal(latestKey);
-            log.info("reloading ipsec");
-            localRepository.reconfigProperties("ipsec");
-            localRepository.reload("ipsec");
-        } else {
-            log.info("local already has latest ipsec key, skip syncing");
-        }
-        log.info("step 4: ipsec check finish");
     }
 
     /**

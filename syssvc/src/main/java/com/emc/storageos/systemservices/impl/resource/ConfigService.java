@@ -103,11 +103,6 @@ public class ConfigService {
     @Autowired
     protected InvalidLoginManager _invLoginManager;
 
-    private IPsecConfig ipsecConfig;
-    public void setIpsecConfig(IPsecConfig ipsecConfig) {
-        this.ipsecConfig = ipsecConfig;
-    }
-
     public static final String CERTIFICATE_VERSION = "certificate_version";
     private static final Logger _log = LoggerFactory.getLogger(ConfigService.class);
     private static final String EVENT_SERVICE_TYPE = "config";
@@ -336,28 +331,13 @@ public class ConfigService {
      * @brief Get system properties
      * @prereq none
      * @param category - type properties to return: config, ovf, or obsolete
-     *                 ipsec only for internal use
      * @return Properties Information if success. Error response, if error./**
      */
     @POST
     @Path("internal/properties/")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public PropertyInfoRestRep getInternalProperties(String category) throws Exception {
-        if (category.equalsIgnoreCase(PropCategory.IPSEC.toString())) {
-            _log.info("internal getting ipsec properties.");
-            Map<String, String> ipsecProps = new HashMap();
-            ipsecProps.put(IPSEC_KEY, ipsecConfig.getPreSharedKey());
-
-            SiteInfo siteInfo = _coordinator.getTargetInfo(SiteInfo.class);
-            String vdcConfigVersion = String.valueOf(siteInfo.getVdcConfigVersion());
-            ipsecProps.put(VDC_CONFIG_VERSION, vdcConfigVersion);
-            _log.info("ipsec key: " + ipsecConfig.getPreSharedKey()
-                    + ", vdc config version: " + vdcConfigVersion);
-
-            return new PropertyInfoRestRep(ipsecProps);
-        } else {
-            return getProperties(category);
-        }
+        return getProperties(category);
     }
 
 

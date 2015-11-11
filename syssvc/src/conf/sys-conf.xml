@@ -137,7 +137,6 @@
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>
         <property name="propertyHandlers" ref="propertyHandlers"/>
-        <property name="ipsecConfig" ref="ipsecConfig" />
     </bean>
                         
     <bean id="propertiesConfigurationValidator" class="com.emc.storageos.systemservices.impl.validate.PropertiesConfigurationValidator">

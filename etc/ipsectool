@@ -114,7 +114,7 @@ _check_connection() {
     local local_ip=$(_get_local_ip)
     local ips=$(_get_all_nodes)
     for ip in ${ips} ; do
-        if [[ ${ip} != "${local_ip}" ]] ; then
+        if [[ ${ip} != "${local_ip}" && ${ip} != "127.0.0.1" ]] ; then
             local establish=$(/usr/sbin/ipsec status | grep ESTABLISHED | grep "${ip}")
             if [[ ${establish} != *"${ip}"* ]] ; then
                 echo "${ip}"

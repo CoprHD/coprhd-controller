@@ -407,6 +407,12 @@ public class SchemaUtil {
         if (!isGeoDbsvc()) {
             return false;
         }
+
+        _log.info("vdcList={}", _vdcList);
+        if (!onStandby && _vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
+            // the current vdc is removed
+            strategyOptions.clear();
+        }
         
         String dcName = _vdcShortId;
         Site currentSite = null;
@@ -419,12 +425,6 @@ public class SchemaUtil {
         
         if (currentSite != null) {
             dcName = drUtil.getCassandraDcId(currentSite);  
-        }
-
-        _log.info("vdcList={}", _vdcList);
-        if (!onStandby && _vdcList.size() == 1 && !_vdcList.contains(dcName)) {
-            // the current vdc is removed
-            strategyOptions.clear();
         }
 
         if (strategyOptions.containsKey(dcName)) {

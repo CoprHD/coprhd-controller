@@ -30,7 +30,6 @@
             </list>
         </property>
         <property name="onStandby" value="${site_is_standby}"/>
-        <property name="standbyId" value="${site_myid}"/>
         <property name="drUtil" ref="drUtil"/>
     </bean>
 

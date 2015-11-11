@@ -27,7 +27,6 @@
             </list>
         </property>
         <property name="onStandby" value="false"/>
-        <property name="standbyId" value=""/>
         <property name="drUtil" ref="drUtil"/>
     </bean>
 

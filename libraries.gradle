@@ -85,7 +85,6 @@ ext {
     zookeeper = [
         slf4j,
         log4j,
-        "jline:jline:2.13",
         "org.jboss.netty:netty:3.2.8.Final",
         "org.apache.zookeeper:zookeeper:3.4.6"
     ]

@@ -513,7 +513,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         } else if (Volume.PersonalityTypes.METADATA.toString().equalsIgnoreCase(type)) {
             volume.setPersonality(PersonalityTypes.METADATA.toString());
             volume.setAccessState(Volume.VolumeAccessState.NOT_READY.toString());
-            volume.addInternalFlags(Flag.RECOVERPOINT, Flag.INTERNAL_OBJECT); 
         }
         
         // Set the various RP related fields
@@ -526,6 +525,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         String rpInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);
         
+        volume.addInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS); // Add internal flags
         volume.setRpCopyName(rpCopyName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setRSetName(rpRSetName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setInternalSiteName(rpInternalSiteName); // This comes from UNMANAGED_CG discovery of Protection System
@@ -599,7 +599,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             unManagedTargetVolume.putVolumeInfo(SupportedVolumeInformation.RP_UNMANAGED_SOURCE_VOLUME.toString(),
                     rpUnManagedSourceVolumeId);
             
-            _dbClient.updateAndReindexObject(unManagedTargetVolume);
+            _dbClient.updateObject(unManagedTargetVolume);
         }
     }
 
@@ -641,7 +641,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 sourceVolume.setRpTargets(new StringSet());
             }
             sourceVolume.getRpTargets().add(volume.getId().toString());
-            _dbClient.updateAndReindexObject(sourceVolume);
+            _dbClient.updateObject(sourceVolume);
         } else {
             _logger.info("There is no ingested RP source volume associated with this target yet: " + volume.getLabel());
 
@@ -672,7 +672,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             unManagedSourceVolume.putVolumeInfo(SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString(),
                     rpUnManagedTargetVolumeIdStrs);
             
-            _dbClient.updateAndReindexObject(unManagedSourceVolume);
+            _dbClient.updateObject(unManagedSourceVolume);
         }
     }
 
@@ -696,7 +696,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
 
         // Update the unmanaged protection set object
-        _dbClient.persistObject(umpset);
+        _dbClient.updateObject(umpset);
     }
     
     /**
@@ -716,18 +716,24 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.noVolumesFoundInProtectionSet(pset.getLabel());
         }
         
-        // Set references to protection set/CGs properly in each volume
-        List<Volume> volumes = _dbClient.queryObject(Volume.class, URIUtil.toURIList(pset.getVolumes()));
-
+        Iterator<Volume> volumesItr = _dbClient.queryIterativeObjects(Volume.class, URIUtil.toURIList(pset.getVolumes()));
+        List<Volume> volumes = new ArrayList<Volume>();
+        while (volumesItr.hasNext()) {
+            volumes.add(volumesItr.next());
+        }
+        
         for (Volume volume : volumes) {
+            // Set references to protection set/CGs properly in each volume
             volume.setConsistencyGroup(cg.getId());
             volume.setProtectionSet(new NamedURI(pset.getId(), pset.getLabel()));
-
+            volume.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+            
             // For sources and targets, peg an RP journal volume to be associated with each.
             // This is a bit arbitrary for ingested RP volues as they may have 5 journal volumes for one source volume.
             // We just pick one since we only store one journal volume ID in a Volume object.
             if (volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString()) ||
                     volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.TARGET.toString())) {
+                
                 // Find a journal for that rp copy
                 for (Volume journalVolume : volumes) {
                     if (journalVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString()) &&
@@ -739,7 +745,13 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 }
             }
             
-            _dbClient.persistObject(volume);
+            // Set the proper flags on the journal volumes.
+            if (volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString())) {
+                volume.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE);
+            }
+            
+            
+            _dbClient.updateObject(volume);
         }
     }
 

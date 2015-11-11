@@ -67,8 +67,8 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.UnManagedVolumesBulkRep;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
+import com.emc.storageos.model.block.UnManagedVolumesBulkRep;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.model.block.VolumeIngest;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -309,7 +309,9 @@ public class UnManagedVolumeService extends TaskResourceService {
                     // check in the created objects for corresponding block object without any internal flags set
                     BlockObject createdObject = createdObjectMap.get(unManagedVolumeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                             VolumeIngestionUtil.VOLUME));
-                    if (!createdObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
+                    if (!createdObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) || 
+                        // If this is an ingested RP volume in an uningested protection set, the ingest is successful.
+                        (createdObject instanceof Volume && ((Volume)createdObject).checkForRp() && ((Volume)createdObject).getProtectionSet() == null)) {
                         ingestedSuccessfully = true;
                         taskMessage = INGESTION_SUCCESSFUL_MSG;
                     } else {

@@ -29,7 +29,7 @@ import java.util.Map;
 
 public class IPsecManager {
 
-    private static final Logger _log = LoggerFactory.getLogger(IPsecManager.class);
+    private static final Logger log = LoggerFactory.getLogger(IPsecManager.class);
 
     @Autowired
     IPsecConfig ipsecConfig;
@@ -42,18 +42,25 @@ public class IPsecManager {
 
     public IPsecStatus checkStatus() {
 
+        log.info("Checking ipsec status ...");
+
         String vdcConfigVersion = loadVdcConfigVersionFromZK();
 
         boolean runtimeGood = checkRunTimeStatus();
 
-        List<IPsecNodeState> nodeStatus = getIPsecVersionsOnAllNodes();
-
-        List<IPsecNodeState> problemNodeStatus = checkConfigurations(vdcConfigVersion, nodeStatus);
-        boolean configGood = problemNodeStatus.isEmpty();
+        boolean configGood = false;
+        List<IPsecNodeState> problemNodeStatus = null;
+        if (vdcConfigVersion.equals("0")) {
+            configGood = true;
+        } else {
+            List<IPsecNodeState> nodeStatus = getIPsecVersionsOnAllNodes();
+            problemNodeStatus = checkConfigurations(vdcConfigVersion, nodeStatus);
+            configGood = problemNodeStatus.isEmpty();
+        }
 
         IPsecStatus status = new IPsecStatus();
 
-        boolean allGood = runtimeGood & configGood;
+        boolean allGood = runtimeGood && configGood;
 
         status.setIsGood(allGood);
         status.setVersion(vdcConfigVersion);
@@ -63,6 +70,7 @@ public class IPsecManager {
 
         // Send back more details if something error.
         status.setNodeStatus(problemNodeStatus);
+        log.info("Checking ipsec status is done. Overall is {}", allGood);
         return status;
     }
 
@@ -71,7 +79,7 @@ public class IPsecManager {
         try {
             ipsecConfig.setPreSharedKey(psk);
             String version = updateTargetSiteInfo();
-            _log.info("IPsec Key gets rotated successfully to the version {}", version);
+            log.info("IPsec Key gets rotated successfully to the version {}", version);
             return version;
         } catch (Exception e) {
             throw com.emc.storageos.security.exceptions.SecurityException.fatals.failToRotateIPsecKey(e);
@@ -94,6 +102,8 @@ public class IPsecManager {
         LocalRepository localRepository = new LocalRepository();
         String[] problemIPs = localRepository.checkIpsecConnection();
 
+        log.info("Checked IPsec local runtime status. Disconnected IP list is {}", problemIPs);
+
         return (problemIPs == null || problemIPs.length == 0) ? true : false;
     }
 
@@ -115,11 +125,14 @@ public class IPsecManager {
             }
         }
 
+        log.info("Get IPsec Configuration from all nodes. {}", nodeStatus);
         return nodeStatus;
     }
 
     private String loadVdcConfigVersionFromZK() {
-        return Long.toString(coordinator.getTargetInfo(SiteInfo.class).getVdcConfigVersion());
+        String vdcConfigVersion = Long.toString(coordinator.getTargetInfo(SiteInfo.class).getVdcConfigVersion());
+        log.info("Loaded Vdc config version is {}", vdcConfigVersion);
+        return vdcConfigVersion;
     }
 
     private String updateTargetSiteInfo() {
@@ -137,7 +150,7 @@ public class IPsecManager {
                 siteInfo = new SiteInfo(vdcConfigVersion, SiteInfo.RECONFIG_IPSEC, SiteInfo.ActionScope.VDC);
             }
             coordinator.setTargetInfo(siteId, siteInfo);
-            _log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
+            log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
         }
 
         return Long.toString(vdcConfigVersion);

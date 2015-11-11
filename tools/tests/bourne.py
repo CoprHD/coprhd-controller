@@ -132,7 +132,8 @@ URI_VDC_DISCONNECT_POST     = URI_VDC    + '/{0}/disconnect'
 URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
-URI_VDC_IPSECKEY            = URI_VDC    + '/ipseckey'
+
+URI_IPSEC               = '/ipsec'
 
 URI_VDCINFO                 =  '/object/vdcs' 
 URI_VDCINFO_GET             = URI_VDCINFO    + '/vdc' + '/{0}'
@@ -3295,7 +3296,11 @@ class Bourne:
     #
 
     def ipsc_rotate_key(self):
-        resp = self.api('POST', URI_VDC_IPSECKEY)
+        resp = self.api('POST', URI_IPSEC)
+        return resp
+
+    def ipsc_check(self):
+        resp = self.api('GET', URI_IPSEC)
         return resp
 
     #

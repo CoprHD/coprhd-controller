@@ -78,12 +78,6 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                     unManagedVolume.getNativeGuid());
             snapShot.addInternalFlags(INTERNAL_VOLUME_FLAGS);
         }
-        // } else if ((VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume))
-        // && (NullColumnValueGetter.isNullValue(snapShot.getSourceNativeId()))) {
-        // _logger.info("Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
-        // unManagedVolume.getNativeGuid());
-        // snapShot.addInternalFlags(INTERNAL_VOLUME_FLAGS);
-        // }
 
         return clazz.cast(snapShot);
     }

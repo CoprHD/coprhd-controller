@@ -134,7 +134,6 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                 taskStatusMap, vplexIngestionMethod)) {
             _logger.info("All the related replicas and parent has been ingested ",
                     unManagedVolume.getNativeGuid());
-
             // mark inactive if this is not to be exported. Else, mark as
             // inactive after successful export
             if (!unManagedVolumeExported) {

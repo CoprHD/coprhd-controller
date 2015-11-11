@@ -299,6 +299,9 @@ public class IngestStrategyFactory {
         } else {
             replicationStrategy = ReplicationStrategy.REMOTE.name();
         }
+        // Since a VPLEX backend volume may also be a snapshot target volume, we want to
+        // make sure we use the local volume ingest strategy when the volume is a VPLEX backend
+        // volume.
         String volumeType = VolumeType.VOLUME.name();
         if ((VolumeIngestionUtil.isSnapshot(unManagedVolume)) && (!VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume))) {
             volumeType = VolumeType.SNAPSHOT.name();

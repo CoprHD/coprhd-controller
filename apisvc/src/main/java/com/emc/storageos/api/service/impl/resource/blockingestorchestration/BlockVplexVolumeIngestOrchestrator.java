@@ -814,11 +814,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * @param context the VplexBackendIngestionContext
      */
     private void handleBackendPersistence(VplexBackendIngestionContext context) {
-
         _dbClient.createObject(context.getIngestedObjects());
         _dbClient.createObject(context.getCreatedObjectMap().values());
         _dbClient.createObject(context.getCreatedSnapshotMap().values());
-
         for (List<DataObject> dos : context.getUpdatedObjectMap().values()) {
             _dbClient.persistObject(dos);
         }

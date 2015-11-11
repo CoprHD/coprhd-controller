@@ -88,12 +88,9 @@ public class CoordinatorClientExt {
             new ImmutableSet.Builder<String>().add("sys").add("control").build();
     private static final Set<String> EXTRA_NODE_ROLES =
             new ImmutableSet.Builder<String>().add("sys").add("object").build();
-    private static final int COORDINATOR_PORT = 2181;
     
     private static final String URI_INTERNAL_GET_CLUSTER_INFO = "/control/internal/cluster/info";
     private static final int COODINATOR_MONITORING_INTERVAL = 60; // in seconds
-    private static final String ZOOKEEPER_MODE_OBSERVER = "observer";
-    private static final String ZOOKEEPER_MODE_READONLY = "read-only";
     private static final String DR_SWITCH_TO_ZK_OBSERVER_BARRIER = "/config/disasterRecoverySwitchToZkObserver";
     private static final int DR_SWITCH_BARRIER_TIMEOUT = 180; // barrier timeout in seconds
     private static final int ZK_LEADER_ELECTION_PORT = 2888;
@@ -1405,13 +1402,15 @@ public class CoordinatorClientExt {
      * Monitor local coordinatorsvc on standby site
      */
     private Runnable coordinatorSvcMonitor = new Runnable(){
+        private DrUtil drUtil = new DrUtil(_coordinator);
+        
         public void run() {
-            String state = getLocalCoordinatorMode();
-            if (ZOOKEEPER_MODE_OBSERVER.equals(state)) {
+            String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
+            if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
                 return; // expected situation. Standby zookeeper should be observer mode normally
             }
             _log.info("Local zookeeper mode {}", state);
-            if (ZOOKEEPER_MODE_READONLY.equals(state)) {
+            if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
                 _log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
                 try {
                     LocalRepository localRepository = LocalRepository.getInstance();
@@ -1504,41 +1503,6 @@ public class CoordinatorClientExt {
             _log.warn("Unexpected IO errors when checking local coordinator state. {}", ex.toString());
         } 
         return false;
-    }
-    
-    /**
-     * Use Zookeeper 4 letter command to check status of local coordinatorsvc. The return value could 
-     * be one of the following - follower, leader, observer, read-only
-     * 
-     * @return zookeeper mode
-     */
-    private String getLocalCoordinatorMode() {
-        Socket sock = null;
-        try {
-            sock = new Socket(getMyNodeId(), COORDINATOR_PORT);
-            OutputStream output = sock.getOutputStream();
-            output.write("mntr".getBytes());
-            sock.shutdownOutput();
-            
-            BufferedReader input =
-                new BufferedReader(new InputStreamReader(sock.getInputStream()));
-            String answer;
-            while ((answer = input.readLine()) != null) {
-                if (answer.startsWith("zk_server_state")){
-                    String state = StringUtils.trim(answer.substring("zk_server_state".length()));
-                    _log.info("Get current zookeeper mode {}", state);
-                    return state;
-                }
-            }
-            input.close();
-        } catch(IOException ex) {
-            _log.warn("Unexpected IO errors when checking local coordinator state {}", ex.toString());
-        } finally {
-            try {
-                if (sock != null) sock.close();
-            } catch (Exception ex) {}
-        }
-        return null;
     }
     
     /**

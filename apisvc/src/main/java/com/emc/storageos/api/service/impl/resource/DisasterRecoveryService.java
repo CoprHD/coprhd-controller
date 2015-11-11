@@ -40,6 +40,7 @@ import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -93,6 +94,7 @@ public class DisasterRecoveryService {
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
     private DrUtil drUtil;
+    private Service serviceInfo;
     
     @Autowired
     private AuditLogManager auditMgr;
@@ -639,6 +641,7 @@ public class DisasterRecoveryService {
 
         precheckForFailover(uuid);
         
+        Site currentSite = drUtil.getSiteFromLocalVdc(uuid);
         try {
             
             //remove old primary from ZK
@@ -646,18 +649,17 @@ public class DisasterRecoveryService {
             oldPrimarySite.setState(SiteState.PRIMARY_FAILING_OVER);
             coordinator.persistServiceConfiguration(oldPrimarySite.toConfiguration());
             
-            Site currentSite = drUtil.getSiteFromLocalVdc(uuid);
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
             
             //reconfig
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);
             
-            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
+            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_SUCCESS, null, uuid, currentSite.getVip(), currentSite.getName());
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Error happened when failover at site %s", uuid, e);
-            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid);
+            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid, currentSite.getVip(), currentSite.getName());
             throw APIException.internalServerErrors.failoverFailed(uuid, e.getMessage());
         }
     }
@@ -794,17 +796,26 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Failover can't be executed in primary site");
         }
 
-        //TODO failover: check primary is reachable
-        
+        // should be SYNCED
         if (standby.getState() != SiteState.STANDBY_SYNCED) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Standby site is not fully synced");
         }
 
+        // Current site is stable
         ClusterInfo.ClusterState state = coordinator.getControlNodesState(standbyUuid, standby.getNodeCount());
         if (state != ClusterInfo.ClusterState.STABLE) {
             log.info("Site {} is not stable {}", standbyUuid, state);
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid,
                     String.format("Site %s is not stable", standby.getName()));
+        }
+        
+        // this is standby site and NOT in ZK read-only or observer mode,
+        // it means primary is down and local ZK has been reconfig to participant
+        String coordinatorMode = drUtil.getLocalCoordinatorMode(serviceInfo.getNodeId());
+        log.info("Local coordinator mode is {}", coordinatorMode);
+        if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
+            log.info("Primary is available now, can't do failover");
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Primary is available now, can't do failover");
         }
     }
     
@@ -913,5 +924,9 @@ public class DisasterRecoveryService {
 
     public void setIpsecConfig(IPsecConfig ipsecConfig) {
         this.ipsecConfig = ipsecConfig;
+    }
+
+    public void setServiceInfo(Service serviceInfo) {
+        this.serviceInfo = serviceInfo;
     }
 }

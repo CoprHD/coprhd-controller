@@ -609,6 +609,7 @@
                     <property name="apiSignatureGenerator" ref="keyGenerator"/>
                     <property name="sysUtils" ref="sysUtils" />
                     <property name="ipsecConfig" ref="ipsecConfig" />
+                    <property name="serviceInfo" ref="serviceinfo"/>
                 </bean>
             </set>
         </property>

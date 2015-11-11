@@ -509,11 +509,28 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 // list. Because the BlockSnapshot and Volume instances will have the same
                 // native GUID, as they represent the same physical volume, we can't
                 // add the Volume to the created objects list as it would just replace
-                // the BlockSnapshot instance and only the Volume would get created.
-                if (context.getCreatedObjectMap().containsKey(blockObject.getNativeGuid())) {
-                    context.getSnapshotTargetBackendVolumesMap().put(blockObject.getNativeGuid(), blockObject);
+                // the BlockSnapshot instance and only the Volume would get created. So,
+                // we first move the snapshot to the created snapshots list before adding
+                // the volume to the created objects list.
+                Map<String, BlockObject> createdObjectMap = context.getCreatedObjectMap();
+                String blockObjectNativeGuid = blockObject.getNativeGuid();
+                if (createdObjectMap.containsKey(blockObjectNativeGuid)) {
+                    BlockObject createdBlockObject = createdObjectMap.get(blockObjectNativeGuid);
+                    if (createdBlockObject instanceof BlockSnapshot) {
+                        _logger.info("Backend ingestion created block snapshot {}", blockObjectNativeGuid);
+                        context.getCreatedSnapshotMap().put(blockObjectNativeGuid, (BlockSnapshot) createdBlockObject);
+                        createdObjectMap.put(blockObjectNativeGuid, blockObject);
+                    } else {
+                        // This should not happen. If there is an instance in the created
+                        // objects list with the same guid as the ingested block object
+                        // it must be that the backend volume is also a snapshot target
+                        // volume and the strategy created the BlockSnapshot instance and
+                        // added it to the created objects list.
+                        _logger.warn("Unexpected object in created objects list during backend ingestion {}:{}",
+                                blockObjectNativeGuid, createdBlockObject.getLabel());
+                    }
                 } else {
-                    context.getCreatedObjectMap().put(blockObject.getNativeGuid(), blockObject);
+                    createdObjectMap.put(blockObjectNativeGuid, blockObject);
                 }
 
                 context.getProcessedUnManagedVolumeMap().put(associatedVolume.getNativeGuid(), associatedVolume);
@@ -680,12 +697,25 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     private void setFlags(VplexBackendIngestionContext context) {
         // set internal object flag on any backend volumes
         for (BlockObject o : context.getCreatedObjectMap().values()) {
-            if (o instanceof Volume) {
-                if (context.getBackendVolumeGuids().contains(o.getNativeGuid())) {
-                    _logger.info("setting INTERNAL_OBJECT flag on " + o.getLabel());
-                    o.addInternalFlags(Flag.INTERNAL_OBJECT);
-                    _dbClient.updateAndReindexObject(o);
-                }
+            if (context.getBackendVolumeGuids().contains(o.getNativeGuid())) {
+                _logger.info("setting INTERNAL_OBJECT flag on " + o.getLabel());
+                o.addInternalFlags(Flag.INTERNAL_OBJECT);
+                _dbClient.updateAndReindexObject(o);
+            }
+        }
+
+        // Look to see if the backend ingestion resulted in the creation of a
+        // BlockSnapshot instance, which would occur if the backend volume is
+        // also a snapshot target volume. It is possible that the snapshot is
+        // still marked internal if the VPLEX volume built on the snapshot
+        // is ingested after the VPLEX volume whose backend volume is the
+        // snapshot source volume. If the snapshot source is set, then snapshot
+        // and source are fully ingested and we need to make sure the snapshot
+        // is public.
+        for (BlockSnapshot snapshot : context.getCreatedSnapshotMap().values()) {
+            if (!NullColumnValueGetter.isNullValue(snapshot.getSourceNativeId())) {
+                snapshot.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
+                _dbClient.updateObject(snapshot);
             }
         }
     }
@@ -785,32 +815,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      */
     private void handleBackendPersistence(VplexBackendIngestionContext context) {
 
-        // Look to see if the backend ingestion resulted in the creation of a
-        // BlockSnapshot instance, which would occur if the backend volume is
-        // also a snapshot target volume. It is possible that the snapshot is
-        // still marked internal if the VPLEX volume built on the snapshot
-        // is ingested after the VPLEX volume whose backend volume is the
-        // snapshot source volume.
-        Collection<BlockObject> createdObjects = context.getCreatedObjectMap().values();
-        for (BlockObject createdObj : createdObjects) {
-            if ((createdObj instanceof BlockSnapshot)
-                    && (!NullColumnValueGetter.isNullValue(((BlockSnapshot) createdObj).getSourceNativeId()))) {
-                createdObj.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
-            }
-        }
-        _logger.info("created objects: {}", createdObjects);
-        _logger.info("ingested objects: {}", context.getIngestedObjects());
-        _logger.info("other objects: {}", context.getSnapshotTargetBackendVolumesMap().values());
         _dbClient.createObject(context.getIngestedObjects());
         _dbClient.createObject(context.getCreatedObjectMap().values());
-        if (!context.getSnapshotTargetBackendVolumesMap().isEmpty()) {
-            _dbClient.createObject(context.getSnapshotTargetBackendVolumesMap().values());
-        }
+        _dbClient.createObject(context.getCreatedSnapshotMap().values());
+
         for (List<DataObject> dos : context.getUpdatedObjectMap().values()) {
-            _logger.info("updated objects: {}", dos);
             _dbClient.persistObject(dos);
         }
-        _logger.info("umanaged objects: {}", context.getProcessedUnManagedVolumeMap().values());
         _dbClient.persistObject(context.getProcessedUnManagedVolumeMap().values());
     }
 

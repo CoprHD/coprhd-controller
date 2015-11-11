@@ -114,10 +114,9 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         // execute the local snapshot ingest strategy to create this BlockSnapshot
         // instance and we add it to the created object list. Note that since the
         // BlockSnapshot is added to the created objects list and the Volume and
-        // BlockSnapshot instance will have the same native GUID, we can't add the
-        // Volume also into the created objects list when invoked out of the VPLEX
-        // ingest strategy because it will replace the BlockSnapshot and only the
-        // Volume would get created.
+        // BlockSnapshot instance will have the same native GUID, we must be careful
+        // about adding the Volume to the created object list in the VPLEX ingestion
+        // strategy.
         BlockObject snapshot = null;
         if (VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
             String strategyKey = ReplicationStrategy.LOCAL.name() + "_" + VolumeType.SNAPSHOT.name();

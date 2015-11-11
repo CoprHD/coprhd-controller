@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringMap;
@@ -82,7 +83,10 @@ public class VplexBackendIngestionContext {
     private final Map<String, BlockObject> createdObjectMap = new HashMap<String, BlockObject>();
     private final Map<String, List<DataObject>> updatedObjectMap = new HashMap<String, List<DataObject>>();
     private final List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
-    private final Map<String, BlockObject> snapshotTargetBackendVolumesMap = new HashMap<String, BlockObject>();
+
+    // A map of BlockSnapshot instances that are created during VPLEX backend ingestion. Snapshots
+    // can be created when the VPLEX backend volume is also a snapshot target volume.
+    private final Map<String, BlockSnapshot> createdSnapshotsMap = new HashMap<String, BlockSnapshot>();
 
     private final BackendDiscoveryPerformanceTracker _tracker;
 
@@ -905,12 +909,12 @@ public class VplexBackendIngestionContext {
     }
 
     /**
-     * Returns the map of backend volumes that are also snapshot target volumes.
+     * Returns the map of BlockSnapshot instances created during VPLEX backend ingestion.
      * 
-     * @return The map of backend volumes that are also snapshot target volumes.
+     * @return The map of BlockSnapshot instances created during VPLEX backend ingestion.
      */
-    public Map<String, BlockObject> getSnapshotTargetBackendVolumesMap() {
-        return snapshotTargetBackendVolumesMap;
+    public Map<String, BlockSnapshot> getCreatedSnapshotMap() {
+        return createdSnapshotsMap;
     }
 
     /**

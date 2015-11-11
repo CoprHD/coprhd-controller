@@ -88,6 +88,8 @@ public class VdcSiteManager extends AbstractManager {
     
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
     
+    private static final String LOCK_FAILOVER_REMOVE_OLD_PRIMARY="drFailoverRemoveOldPrimaryLock";
+    
     private SiteInfo targetSiteInfo;
 
     private Service service;
@@ -374,6 +376,8 @@ public class VdcSiteManager extends AbstractManager {
 
         log.info("Step3: Setting vdc properties not rebooting for single VDC change, action={}", action);
         checkAndRemoveStandby();
+        
+        checkAndRemovePrimaryForFailover();
 
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
@@ -1086,5 +1090,47 @@ public class VdcSiteManager extends AbstractManager {
         
         log.info("Node count is switchover is {}", count);
         return count;
+    }
+    
+    private void checkAndRemovePrimaryForFailover() throws Exception {
+        Site primarySite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
+        
+        if (!primarySite.getState().equals(SiteState.PRIMARY_FAILING_OVER)) {
+            log.info("Not failover case, no action needed.");
+            return;
+        }
+        
+        InterProcessLock lock = null;
+        
+        try {
+            
+            lock = coordinator.getCoordinatorClient().getLock(LOCK_FAILOVER_REMOVE_OLD_PRIMARY);
+            log.info("Accquiring lock {}", LOCK_FAILOVER_REMOVE_OLD_PRIMARY);
+            
+            lock.acquire();
+            log.info("Accquired lock {}", LOCK_FAILOVER_REMOVE_OLD_PRIMARY); 
+    
+            // double check site state
+            primarySite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
+            if (!primarySite.getState().equals(SiteState.PRIMARY_FAILING_OVER)) {
+                log.info("Old primary site has been remove by other node, no action needed.");
+                return;
+            }
+                
+            removeDbNodes(primarySite);
+            removeDbReplication(primarySite);
+            
+            //set new primary uuid
+            coordinator.getCoordinatorClient().setPrimarySite(drUtil.getLocalSite().getUuid());
+            
+        } catch (Exception e) {
+            populateStandbySiteErrorIfNecessary(drUtil.getLocalSite(), APIException.internalServerErrors.failoverReconfigFailed(e.getMessage()));
+            log.error("Failed to remove old primary in failover, {}", e);
+            throw e;
+        } finally {
+            if (lock != null) {
+                lock.release();
+            }
+        }
     }
 }

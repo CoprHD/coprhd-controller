@@ -286,4 +286,7 @@ public interface InternalServerErrorExceptions {
     
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_PRECHECK_FAILED)
     public InternalServerErrorException failoverPrecheckFailed(final String siteId, String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_RECONFIG_FAIL)
+    public InternalServerErrorException failoverReconfigFailed(String errMsg);
 }

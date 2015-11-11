@@ -407,19 +407,32 @@ public class SchemaUtil {
         if (!isGeoDbsvc()) {
             return false;
         }
+        
+        String dcName = _vdcShortId;
+        Site currentSite = null;
+        
+        try {
+            currentSite = drUtil.getLocalSite();
+        } catch (Exception e) {
+            //ignore
+        }
+        
+        if (currentSite != null) {
+            dcName = drUtil.getCassandraDcId(currentSite);  
+        }
 
         _log.info("vdcList={}", _vdcList);
-        if (!onStandby && _vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
+        if (!onStandby && _vdcList.size() == 1 && !_vdcList.contains(dcName)) {
             // the current vdc is removed
             strategyOptions.clear();
         }
 
-        if (strategyOptions.containsKey(_vdcShortId)) {
+        if (strategyOptions.containsKey(dcName)) {
             return false;
         }
 
-        _log.info("Add {} to strategy options", _vdcShortId);
-        strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
+        _log.info("Add {} to strategy options", dcName);
+        strategyOptions.put(dcName, Integer.toString(getReplicationFactor()));
         return true;
     }
 

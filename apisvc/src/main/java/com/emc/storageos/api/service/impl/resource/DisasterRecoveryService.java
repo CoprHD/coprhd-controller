@@ -633,6 +633,7 @@ public class DisasterRecoveryService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{uuid}/failover")
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public Response doFailover(@PathParam("uuid") String uuid) {
         log.info("Begin to failover for standby UUID {}", uuid);
 
@@ -642,18 +643,12 @@ public class DisasterRecoveryService {
             
             //remove old primary from ZK
             Site oldPrimarySite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
-            coordinator.removeServiceConfiguration(oldPrimarySite.toConfiguration());
-            
-            //remove old primary from DC
-            String dcId = drUtil.getCassandraDcId(oldPrimarySite);
-            ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcId);
-            ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcId);
+            oldPrimarySite.setState(SiteState.PRIMARY_FAILING_OVER);
+            coordinator.persistServiceConfiguration(oldPrimarySite.toConfiguration());
             
             Site currentSite = drUtil.getSiteFromLocalVdc(uuid);
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
-            
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-            coordinator.setPrimarySite(uuid);
             
             //reconfig
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);

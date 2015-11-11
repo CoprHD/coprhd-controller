@@ -10,7 +10,8 @@ package com.emc.storageos.coordinator.client.model;
  * */
 public enum SiteState {
     PRIMARY, // Primary site. Eligible for all provisioning operations
-    PRIMARY_SWITCHING_OVER, //Primary site is doing planned failover
+    PRIMARY_SWITCHING_OVER, // Primary site is doing planned failover
+    PRIMARY_FAILING_OVER, // Primary site is doing unplanned failover
     STANDBY_ADDING, // Standby site. Adding site
     STANDBY_SYNCING, // Standby site. Syncing from an active one
     STANDBY_SYNCED,  // Standby site. Synced with active one 

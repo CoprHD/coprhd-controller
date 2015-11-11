@@ -513,6 +513,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         } else if (Volume.PersonalityTypes.METADATA.toString().equalsIgnoreCase(type)) {
             volume.setPersonality(PersonalityTypes.METADATA.toString());
             volume.setAccessState(Volume.VolumeAccessState.NOT_READY.toString());
+            volume.addInternalFlags(Flag.RECOVERPOINT, Flag.INTERNAL_OBJECT); 
         }
         
         // Set the various RP related fields
@@ -530,7 +531,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         volume.setInternalSiteName(rpInternalSiteName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setProtectionController(URI.create(rpProtectionSystem)); // This comes from UNMANAGED_CG discovery of Protection System
         if (null != _dbClient.queryObject(Volume.class, volume.getId())) {
-            _dbClient.updateAndReindexObject(volume);
+            _dbClient.updateObject(volume);
         } else {
             _dbClient.createObject(volume);
         }

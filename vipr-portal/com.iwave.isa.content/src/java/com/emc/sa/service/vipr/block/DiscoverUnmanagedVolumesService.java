@@ -57,7 +57,6 @@ public class DiscoverUnmanagedVolumesService extends ViPRService {
 
             int postCount = countUnmanagedVolumes(storageSystem.getId().toString());
             logInfo("discover.unmanaged.volume.service.discovered", postCount, storageSystem.getName());
-
         }
 
         List<ProtectionSystemRestRep> protectionSystemRestReps =
@@ -65,11 +64,11 @@ public class DiscoverUnmanagedVolumesService extends ViPRService {
 
         for (ProtectionSystemRestRep protectionSystem : protectionSystemRestReps) {
 
-            logInfo("discover.unmanaged.cgs.service.discovering", protectionSystem.getName());
+            logInfo("discover.unmanaged.volume.service.discoveringcgs", protectionSystem.getName());
 
             execute(new DiscoverUnmanagedCGs(protectionSystem.getId().toString(), DiscoverUnmanagedCGs.UnmanagedNamespace.UNMANAGED_CGS));
 
-            logInfo("discover.unmanaged.cgs.service.discovered", protectionSystem.getName());
+            logInfo("discover.unmanaged.volume.service.discoveredcgs", protectionSystem.getName());
         }
         
     }

@@ -4,12 +4,63 @@
  */
 package com.emc.vipr.client;
 
+import java.net.URI;
+
 import com.emc.storageos.model.tenant.TenantResponse;
 import com.emc.storageos.model.user.UserInfo;
-import com.emc.vipr.client.core.*;
+import com.emc.vipr.client.core.Audit;
+import com.emc.vipr.client.core.AuthnProviders;
+import com.emc.vipr.client.core.AutoTieringPolicies;
+import com.emc.vipr.client.core.BlockConsistencyGroups;
+import com.emc.vipr.client.core.BlockExports;
+import com.emc.vipr.client.core.BlockFullCopies;
+import com.emc.vipr.client.core.BlockMigrations;
+import com.emc.vipr.client.core.BlockSnapshots;
+import com.emc.vipr.client.core.BlockVirtualPools;
+import com.emc.vipr.client.core.BlockVolumes;
+import com.emc.vipr.client.core.Clusters;
+import com.emc.vipr.client.core.ComputeElements;
+import com.emc.vipr.client.core.ComputeImages;
+import com.emc.vipr.client.core.ComputeSystems;
+import com.emc.vipr.client.core.ComputeVirtualPools;
+import com.emc.vipr.client.core.CustomConfigs;
+import com.emc.vipr.client.core.FileSnapshots;
+import com.emc.vipr.client.core.FileSystems;
+import com.emc.vipr.client.core.FileVirtualPools;
+import com.emc.vipr.client.core.Hosts;
+import com.emc.vipr.client.core.Initiators;
+import com.emc.vipr.client.core.IpInterfaces;
+import com.emc.vipr.client.core.Keystore;
+import com.emc.vipr.client.core.Metering;
+import com.emc.vipr.client.core.Monitoring;
+import com.emc.vipr.client.core.NetworkSystems;
+import com.emc.vipr.client.core.Networks;
+import com.emc.vipr.client.core.ObjectBuckets;
+import com.emc.vipr.client.core.ObjectVirtualPools;
+import com.emc.vipr.client.core.Projects;
+import com.emc.vipr.client.core.ProtectionSystems;
+import com.emc.vipr.client.core.QuotaDirectories;
+import com.emc.vipr.client.core.StoragePools;
+import com.emc.vipr.client.core.StoragePorts;
+import com.emc.vipr.client.core.StorageProviders;
+import com.emc.vipr.client.core.StorageSystems;
+import com.emc.vipr.client.core.StorageTiers;
+import com.emc.vipr.client.core.TasksResources;
+import com.emc.vipr.client.core.Tenants;
+import com.emc.vipr.client.core.Truststore;
+import com.emc.vipr.client.core.UnManagedCGs;
+import com.emc.vipr.client.core.UnManagedExportMasks;
+import com.emc.vipr.client.core.UnManagedFileSystems;
+import com.emc.vipr.client.core.UnManagedVolumes;
+import com.emc.vipr.client.core.UserGroup;
+import com.emc.vipr.client.core.VcenterDataCenters;
+import com.emc.vipr.client.core.Vcenters;
+import com.emc.vipr.client.core.VirtualArrays;
+import com.emc.vipr.client.core.VirtualDataCenter;
+import com.emc.vipr.client.core.VirtualDataCenters;
+import com.emc.vipr.client.core.VirtualNasServers;
+import com.emc.vipr.client.core.Workflows;
 import com.emc.vipr.client.impl.RestClient;
-
-import java.net.URI;
 
 public class ViPRCoreClient {
     protected RestClient client;
@@ -258,6 +309,10 @@ public class ViPRCoreClient {
 
     public UnManagedVolumes unmanagedVolumes() {
         return new UnManagedVolumes(this, client);
+    }
+
+    public UnManagedCGs unmanagedCGs() {
+        return new UnManagedCGs(this, client);
     }
 
     public UnManagedExportMasks unmanagedExports() {

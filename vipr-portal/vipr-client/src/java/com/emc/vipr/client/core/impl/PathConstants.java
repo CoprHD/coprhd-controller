@@ -127,6 +127,10 @@ public class PathConstants {
     public static final String UNMANAGED_VOLUME_BY_STORAGE_SYSTEM_AND_VIRTUAL_POOL_URL = STORAGE_SYSTEM_URL
             + "/{storageSystemId}/unmanaged/{virtualPool}/volumes";
 
+    public static final String UNMANAGED_CGS_URL = "/vdc/unmanaged/cgs";
+    public static final String UNMANAGED_CG_BY_PROTECTION_SYSTEM_URL = PROTECTION_SYSTEM_URL
+            + "/{protectionSystemId}/unmanaged/cgs";
+    
     public static final String UNMANAGED_EXPORTS_URL = "/vdc/unmanaged/export-masks";
     public static final String UNMANAGED_EXPORTS_BY_HOST_URL = HOST_URL
             + "/{hostId}/unmanaged-export-masks";

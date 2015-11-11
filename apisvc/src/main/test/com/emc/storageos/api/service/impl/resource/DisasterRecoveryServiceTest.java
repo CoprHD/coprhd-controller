@@ -47,6 +47,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -571,9 +572,14 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testPrecheckForFailover() {
+        ServiceImpl serviceInfo = mock(ServiceImpl.class);
+        
+        doReturn("vipr1").when(serviceInfo).getNodeId();
         doReturn(standbySite2).when(drUtil).getLocalSite();
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite2.getUuid(), 1);
+        doReturn("leader").when(drUtil).getLocalCoordinatorMode("vipr1");
         
+        drService.setServiceInfo(serviceInfo);
         drService.precheckForFailover("site-uuid-2");
     }
     
@@ -610,6 +616,18 @@ public class DisasterRecoveryServiceTest {
         // should be stable
         try {
             doReturn(ClusterInfo.ClusterState.DEGRADED).when(coordinator).getControlNodesState(standbySite2.getUuid(), 1);
+            drService.precheckForFailover("site-uuid-2");
+            fail();
+        } catch (InternalServerErrorException e) {
+            //ignore
+        }
+        
+        // ZK should not be observer or read-only
+        try {
+            ServiceImpl serviceInfo = mock(ServiceImpl.class);
+            doReturn("observer").when(drUtil).getLocalCoordinatorMode("vipr1");
+            drService.setServiceInfo(serviceInfo);
+            
             drService.precheckForFailover("site-uuid-2");
             fail();
         } catch (InternalServerErrorException e) {

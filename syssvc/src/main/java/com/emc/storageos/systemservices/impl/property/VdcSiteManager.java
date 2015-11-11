@@ -1120,9 +1120,6 @@ public class VdcSiteManager extends AbstractManager {
             removeDbNodes(primarySite);
             removeDbReplication(primarySite);
             
-            //set new primary uuid
-            coordinator.getCoordinatorClient().setPrimarySite(drUtil.getLocalSite().getUuid());
-            
         } catch (Exception e) {
             populateStandbySiteErrorIfNecessary(drUtil.getLocalSite(), APIException.internalServerErrors.failoverReconfigFailed(e.getMessage()));
             log.error("Failed to remove old primary in failover, {}", e);

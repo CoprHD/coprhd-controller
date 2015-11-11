@@ -644,13 +644,16 @@ public class DisasterRecoveryService {
         Site currentSite = drUtil.getSiteFromLocalVdc(uuid);
         try {
             
-            //remove old primary from ZK
+            //set state
             Site oldPrimarySite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
             oldPrimarySite.setState(SiteState.PRIMARY_FAILING_OVER);
             coordinator.persistServiceConfiguration(oldPrimarySite.toConfiguration());
             
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
+            
+            //set new primary uuid
+            coordinator.setPrimarySite(uuid);
             
             //reconfig
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);

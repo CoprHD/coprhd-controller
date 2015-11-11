@@ -15,11 +15,11 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.util.VPlexUtil;
 
 /**
  * Migration handler to upgrade the vplex backend volumes field replicationGroupInstance 
@@ -54,10 +54,14 @@ public class VplexVolumesInCGMigration extends BaseCustomMigrationCallback {
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, storageUri);
                 if (system.getSystemType().equals(DiscoveredDataObject.Type.vplex.name()) &&
                         cg.checkForType(Types.LOCAL)) {
-                    Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
-                    Volume backendHaVol = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient, false);
-                    updateBackendVolume(cg, backendVol, dbClient);
-                    updateBackendVolume(cg, backendHaVol, dbClient);
+                    StringSet associatedVolumeIds = volume.getAssociatedVolumes();
+                   
+                    // Get the backend volume either source or ha.
+                    for (String associatedVolumeId : associatedVolumeIds) {
+                        Volume backendVol = dbClient.queryObject(Volume.class,
+                                URI.create(associatedVolumeId));
+                        updateBackendVolume(cg, backendVol, dbClient);
+                    }
                 }
             }
         }

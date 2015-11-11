@@ -1155,7 +1155,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 s_logger.info("Vpool change is a data migration");
 
                 // Verify only the CG volumes are passed.
-                boolean isSupported = VPlexUtil.verifyVolumesInCG(volumes, cg, _dbClient);
+                boolean isSupported = allVolumesInSameBackendCG(volumes);
                 if (!isSupported) {
                     throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
                 }
@@ -3407,5 +3407,31 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
         StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexVolume.getStorageController());
         controller.resyncSnapshot(vplexSystem.getId(), snapshot.getId(), taskId);
+    }
+    
+    /**
+     * Check if the volumes are in the same backend CG
+     * @param volumes The Vplex volumes 
+     * @return true or false
+     */
+    private boolean allVolumesInSameBackendCG(List<Volume> volumes) {
+        boolean result = true;
+        String replicationGroup = null;
+        int count = 0;
+        for (Volume volume : volumes) {
+            Volume srcVol =  VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+            String rpName = srcVol.getReplicationGroupInstance();
+            if (count == 0) {
+                replicationGroup = rpName;
+            }
+            if ((replicationGroup != null && rpName != null && !replicationGroup.equals(rpName)) ||
+                    (replicationGroup == null && rpName != null) ||
+                    (replicationGroup != null && rpName == null)) {
+                result = false;
+                break;
+            }
+            count++;
+        }
+        return result;
     }
 }

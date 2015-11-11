@@ -6345,6 +6345,14 @@ dr_basic_tests()
     dr waitforstate $standby_site STANDBY_SYNCED 30 600
     echo "Syncing dr done"
 
+    # wait both primary and standby to be stable, ready to do switchover
+    # need to set config file stuff
+    echo "waiting for primary to be stable"
+    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
+    dr waitforstable 10 600
+    echo "waiting for standby to be stable"
+    syssvc $CONFIG_FILE "$DR_SITE_B_IP" set_prop system_permit_root_ssh yes
+    dr waitforstable 10 600
     # switchover to standby
     echo "---SWITCHOVER FROM TO $primary_site TO $standby_site---"
     dr switchover $standby_site

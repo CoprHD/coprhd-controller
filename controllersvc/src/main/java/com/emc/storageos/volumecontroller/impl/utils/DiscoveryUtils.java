@@ -549,7 +549,27 @@ public class DiscoveryUtils {
         }
         return null;
     }
-    
+
+    /**
+     * Check if a managed Volume exists in database, searching by WWN.
+     * 
+     * @param dbClient database client reference
+     * @param wwn the WWN to look for in the Volume table
+     * @return a Volume object, if it's in the database
+     */
+    public static Volume checkManagedVolumeExistsInDBByWwn(DbClient dbClient, String wwn) {
+        URIQueryResultList volumeList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+        if (volumeList.iterator().hasNext()) {
+            URI volumeURI = volumeList.iterator().next();
+            Volume volumeInfo = dbClient.queryObject(Volume.class, volumeURI);
+            if (!volumeInfo.getInactive()) {
+                return volumeInfo;
+            }
+        }
+        return null;
+    }
+
     /**
      * check unmanaged Protection Set exists in DB
      * 
@@ -566,6 +586,24 @@ public class DiscoveryUtils {
             return cgsItr.next();
         }
         return null;
+    }
+
+    /**
+     * Get a Set of all UnManagedProtectionSet URIs for a given ProtectionSystem.
+     * 
+     * @param dbClient a reference to the database client
+     * @param protectionSystemUri the URI of the ProtectionSystem to check
+     * @return a Set of all UnManagedProtectionSets for a given ProtectionSystem
+     */
+    public static Set<URI> getAllUnManagedProtectionSetsForSystem(
+            DbClient dbClient, String protectionSystemUri) {
+        List<UnManagedProtectionSet> umpses = 
+                CustomQueryUtility.getUnManagedProtectionSetsByProtectionSystemUri(dbClient, protectionSystemUri);
+        Set<URI> cgSet = new HashSet<URI>();
+        for (UnManagedProtectionSet umps : umpses) {
+            cgSet.add(umps.getId());
+        }
+        return cgSet;
     }
 
     /**

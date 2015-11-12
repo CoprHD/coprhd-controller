@@ -66,6 +66,11 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(api(ctx).storageSystems().getAll(BLOCK.and(REGISTERED).and(INCOMPATIBLE.not())));
     }
 
+    @Asset("unmanagedBlockStorageSystem")
+    public List<AssetOption> getUnmanagedBlockProtectionSystem(AssetOptionsContext ctx) {
+        return createBaseResourceOptions(api(ctx).protectionSystems().getAll(REGISTERED.and(INCOMPATIBLE.not())));
+    }
+
     @Asset("fileStorageSystem")
     public List<AssetOption> getFileStorageSystem(AssetOptionsContext ctx) {
         return createBaseResourceOptions(api(ctx).storageSystems().getAll(FILE.and(REGISTERED).and(INCOMPATIBLE.not())));

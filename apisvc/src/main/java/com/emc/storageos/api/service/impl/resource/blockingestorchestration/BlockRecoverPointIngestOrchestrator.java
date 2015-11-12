@@ -227,6 +227,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             _dbClient.removeObject(umpset);
         }
         
+        // Refresh the values set during final ingestion on the returned volume
+        volume = _dbClient.queryObject(Volume.class, volume.getId());
+        
         return clazz.cast(volume);
     }
 
@@ -727,6 +730,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             volume.setConsistencyGroup(cg.getId());
             volume.setProtectionSet(new NamedURI(pset.getId(), pset.getLabel()));
             volume.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+            _logger.info("Updating volume " + volume.getLabel() + " flags/settings");
             
             // For sources and targets, peg an RP journal volume to be associated with each.
             // This is a bit arbitrary for ingested RP volues as they may have 5 journal volumes for one source volume.

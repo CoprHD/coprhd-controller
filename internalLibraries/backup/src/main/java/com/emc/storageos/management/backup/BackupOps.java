@@ -638,6 +638,7 @@ public class BackupOps {
      * @return a list of backup sets info
      */
     public List<BackupSetInfo> listBackup() {
+        log.info("Listing backup sets");
         return listBackup(true);
     }
 
@@ -651,7 +652,7 @@ public class BackupOps {
         List<String> errorList = new ArrayList<>();
         try {
             List<BackupProcessor.BackupTask<List<BackupSetInfo>>> backupTasks =
-                    (new BackupProcessor(getHosts(), Arrays.asList(ports.get(0)), null))
+                    (new BackupProcessor(getHosts(), Arrays.asList(ports.get(2)), null))
                             .process(new ListBackupCallable(), false);
             Throwable result = null;
             for (BackupProcessor.BackupTask task : backupTasks) {
@@ -685,14 +686,6 @@ public class BackupOps {
             }
         } catch (Exception e) {
             log.error("Exception when listing backups", e);
-            List<String> newErrList = (List<String>) ((ArrayList<String>) errorList).clone();
-            for (String node : newErrList) {
-                List<BackupSetInfo> nodeBackupFileList = retryListBackupWithOtherPorts(getHosts().get(node));
-                if (nodeBackupFileList != null) {
-                    clusterBackupFiles.addAll(nodeBackupFileList, node);
-                    errorList.remove(node);
-                }
-            }
             if (!errorList.isEmpty()) {
                 Throwable cause = (e.getCause() == null ? e : e.getCause());
                 if (ignore) {
@@ -743,22 +736,6 @@ public class BackupOps {
         } finally {
             close(conn);
         }
-    }
-
-    private List<BackupSetInfo> retryListBackupWithOtherPorts(String host) {
-        for (int i = 1; i < ports.size(); i++) {
-            try {
-                List<BackupSetInfo> nodeBackupFileList =
-                        listBackupFromNode(host, ports.get(i));
-                log.info("Retry list backup on node({}:{}) success",
-                        host, ports.get(i));
-                return nodeBackupFileList;
-            } catch (Exception e) {
-                log.error(String.format("Retry list backup on node(%s:%d) failed.",
-                        host, ports.get(i)), e);
-            }
-        }
-        return null;
     }
 
     private List<BackupSetInfo> filterToCreateBackupsetList(BackupFileSet clusterBackupFiles) {

@@ -980,8 +980,8 @@ public class ProjectService extends TaggedResource {
                         FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
                         if (fileShare != null && !fileShare.getInactive()) {
                             if (fileShare.getVirtualNAS() != null &&
-                                    0 == fileShare.getVirtualNAS().compareTo(vnas.getId())) {
-                                _log.info("FS validation of assigned {} virtual NAS URi Servers to project : {} ",fileShare.getVirtualNAS(), fileShare.getPath());
+                                    fileShare.getVirtualNAS().toString().equals(vnas.getId().toString())) {
+                                _log.info("FS validation of vNAS Path {} and project : {} ",vnas.getBaseDirPath(), fileShare.getPath());
                                 if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
                                     projectMatched = false;
                                     break;
@@ -989,11 +989,10 @@ public class ProjectService extends TaggedResource {
                             } else {
                                 if (storageSystem.getSystemType().equals("Isilon")) {
                                     if (!fileShare.getPath().equals(vnas.getBaseDirPath() + "/")) {
-                                        _log.info("ignored FS validation of assigned {} virtual NAS Servers to project : {} ",vnas.getBaseDirPath(), fileShare.getPath());
                                         continue;
                                     }
                                 }
-                                _log.info("FS validation of assigned {} virtual NAS Servers to project : {} ",vnas.getBaseDirPath(), fileShare.getPath());
+                                _log.info("FS validation of vNAS Path {} and project : {} ",vnas.getBaseDirPath(), fileShare.getPath());
                                 if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
                                     projectMatched = false;
                                     break;

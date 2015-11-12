@@ -702,7 +702,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     @Override
     public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        // If this operation is unsupported by default it's not necessarily an error
+        // If this operation is unsupported by default it's Ok.
         return;
     }
 }

@@ -656,7 +656,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         // Task 1: If this is the last volume, remove the consistency group
         waitFor = addDeleteCGStep(workflow, waitFor, rpVolumes);
-
+       
         // Tasks 2: Remove the volumes from the export group
         return addExportRemoveVolumesSteps(workflow, waitFor, rpVolumes);
     }

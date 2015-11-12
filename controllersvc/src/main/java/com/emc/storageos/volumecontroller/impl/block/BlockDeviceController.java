@@ -1510,31 +1510,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }, null);
         // Check to see if there are any volumes flagged to not be fully deleted.
         // Any flagged volumes will be removed from the list of volumes to delete.
-        // However there might be extra actions to be performed on the volumes to be kept.
         List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(volumes);                                
         if (doNotDeleteDescriptors != null 
-                && doNotDeleteDescriptors.isEmpty()) {
-            // First if there are volumes we do not want fully deleted, remove
-            // those references here.
-            volumes.removeAll(doNotDeleteDescriptors);
-            
-            // Segregate by device.
-            Map<URI, List<VolumeDescriptor>> doNotDeletedeviceMap = VolumeDescriptor.getDeviceMap(doNotDeleteDescriptors);
-            
-            // Add a step to perform an untag operation for all volumes in each device.
-            for (URI deviceURI : doNotDeletedeviceMap.keySet()) {
-                doNotDeleteDescriptors = doNotDeletedeviceMap.get(deviceURI);
-                List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(doNotDeleteDescriptors);
-
-                workflow.createStep(UNTAG_VOLUME_STEP_GROUP,
-                        String.format("Untagging volumes:%n%s", getVolumesMsg(_dbClient, volumeURIs)),
-                        waitFor, deviceURI, getDeviceType(deviceURI),
-                        this.getClass(),
-                        untagVolumesMethod(deviceURI, volumeURIs),
-                        rollbackMethodNullMethod(), null);
-            }        
-            
-            waitFor = UNTAG_VOLUME_STEP_GROUP;
+                && !doNotDeleteDescriptors.isEmpty()) {
+            // If there are volumes we do not want fully deleted, remove
+            // those volumes here.
+            volumes.removeAll(doNotDeleteDescriptors);          
         }
         
         // If there are no volumes, just return
@@ -1646,6 +1627,60 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
     
+    
+    /**
+     * Add Steps to perform untag operations on underlying array for the volumes passed in.
+     * 
+     * @param workflow -- The Workflow being built
+     * @param waitFor -- Previous steps to waitFor
+     * @param volumesDescriptors -- List<VolumeDescriptors> -- volumes of all types to be processed
+     * @return last step added to waitFor
+     * @throws ControllerException
+     */
+    public String addStepsForUntagVolumes(Workflow workflow, String waitFor,
+            List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
+        // The the list of Volumes that the BlockDeviceController needs to process.
+        List<VolumeDescriptor> untagVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
+                new VolumeDescriptor.Type[] {
+                        VolumeDescriptor.Type.BLOCK_DATA,
+                        VolumeDescriptor.Type.RP_JOURNAL,
+                        VolumeDescriptor.Type.RP_TARGET,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_TARGET
+                }, null);
+        
+        // Check to see if there are any volumes flagged to not be fully deleted.
+        // These volumes could potentially need to have some untag operation performed 
+        // on the underlying array even though they won't be deleted.
+        List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(volumes);                                
+        if (doNotDeleteDescriptors != null 
+                && !doNotDeleteDescriptors.isEmpty()) {
+            untagVolumeDescriptors.removeAll(doNotDeleteDescriptors);          
+        }
+        
+        // If there are no volumes, just return
+        if (untagVolumeDescriptors.isEmpty()) {
+            return waitFor;
+        }
+        
+        Map<URI, List<VolumeDescriptor>> untagVolumeDeviceMap = VolumeDescriptor.getDeviceMap(untagVolumeDescriptors);
+        
+        // Add a step to perform an untag operation for all volumes in each device.
+        for (URI deviceURI : untagVolumeDeviceMap.keySet()) {
+            untagVolumeDescriptors = untagVolumeDeviceMap.get(deviceURI);
+            List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(untagVolumeDescriptors);
+
+            workflow.createStep(UNTAG_VOLUME_STEP_GROUP,
+                    String.format("Untagging volumes:%n%s", getVolumesMsg(_dbClient, volumeURIs)),
+                    waitFor, deviceURI, getDeviceType(deviceURI),
+                    this.getClass(),
+                    untagVolumesMethod(deviceURI, volumeURIs),
+                    rollbackMethodNullMethod(), null);
+        }        
+        
+        return UNTAG_VOLUME_STEP_GROUP;
+    }
+    
     /**
      * Return a Workflow.Method for untagVolumes.
      *
@@ -1657,6 +1692,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method("untagVolumes", systemURI, volumeURIs);
     }
     
+    /**
+     * Performs an untag operation on all volumes.
+     * 
+     * @param systemURI Underlying system to perform the untag operation on
+     * @param volumeURIs Volumes to untag
+     * @param opId The opId
+     * @throws ControllerException
+     */
     public void untagVolumes(URI systemURI, List<URI> volumeURIs, String opId)
             throws ControllerException {
         try {
@@ -1672,24 +1715,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     "untagVolume end - Array:%s", arrayName));
             while (volumeURIsIter.hasNext()) {
                 URI volumeURI = volumeURIsIter.next();
-                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                String poolId = NullColumnValueGetter.isNullURI(volume.getPool()) ? "null" : volume.getPool().toString();
-                entryLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
-                exitLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
-                // Just reuse the delete completer here even though we're only performing an untag operation
-                // on the volume.
-                VolumeDeleteCompleter volumeCompleter = new VolumeDeleteCompleter(volumeURI, opId);
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);                
+                entryLogMsgBuilder.append(String.format("%nUntag operation: Volume:%s", volumeURI.toString()));
+                exitLogMsgBuilder.append(String.format("%nUntag operation: Volume:%s", volumeURI.toString()));                
                 if (!volume.getInactive()) {                    
                     volumes.add(volume);
+                    // Generic completer is fine here
+                    VolumeWorkflowCompleter volumeCompleter = new VolumeWorkflowCompleter(volumeURI, opId);
+                    volumeCompleters.add(volumeCompleter);
                 } else {
-                    // Add the proper status, since we won't be deleting this volume
-                    String opName = ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME.getName();
-                    ServiceError serviceError = DeviceControllerException.errors.jobFailedOp(opName);
-                    serviceError.setMessage("Volume does not exist or is already deleted");
-                    _log.info("Volume does not exist or is already deleted");
-                    volumeCompleter.error(_dbClient, serviceError);
-                }
-                volumeCompleters.add(volumeCompleter);
+                    // Nothing to do for an inactive volume
+                    continue;
+                }                
             }
             _log.info(entryLogMsgBuilder.toString());
             if (!volumes.isEmpty()) {
@@ -1698,10 +1735,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         volumeCompleters, opId);
                 getDevice(storageSystem.getSystemType()).doUntagVolumes(storageSystem, opId,
                         volumes, completer);
-            } else {
-                doSuccessTask(Volume.class, volumeURIs, opId);
-                WorkflowStepCompleter.stepSucceded(opId);
             }
+            doSuccessTask(Volume.class, volumeURIs, opId);
+            WorkflowStepCompleter.stepSucceded(opId);            
             _log.info(exitLogMsgBuilder.toString());
         } catch (InternalException e) {
             doFailTask(Volume.class, volumeURIs, opId, e);

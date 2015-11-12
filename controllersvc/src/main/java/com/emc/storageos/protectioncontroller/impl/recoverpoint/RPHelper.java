@@ -69,9 +69,6 @@ import com.google.common.base.Joiner;
  */
 public class RPHelper {
 
-    /**
-     *
-     */
     private static final String VOL_DELIMITER = "-";
     private static final double RP_DEFAULT_JOURNAL_POLICY = 0.25;
     public static final String REMOTE = "remote";
@@ -87,12 +84,12 @@ public class RPHelper {
     private static final String HTTPS = "https";
     private static final String WSDL = "wsdl";
     private static final String RP_ENDPOINT = "/fapi/version4_1";
-    
+
     private static final String LOG_MSG_OPERATION_TYPE_DELETE = "delete";
-    private static final String LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION = "remove protection from";    
+    private static final String LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION = "remove protection from";
     private static final String LOG_MSG_VOLUME_TYPE_RP = "RP_SOURCE";
     private static final String LOG_MSG_VOLUME_TYPE_RPVPLEX = "RP_VPLEX_VIRT_SOURCE";
-    
+
     public static final String REMOVE_PROTECTION = "REMOVE_PROTECTION";
 
     public void setDbClient(DbClient dbClient) {
@@ -373,7 +370,7 @@ public class RPHelper {
      * Gets volume descriptors for volumes in an RP protection to be deleted
      * handles vplex andnon-vplex as well as mixed storage configurations
      * (e.g. vplex source and non-vplex targets)
-     * 
+     *
      * @param systemURI System that the delete request belongs to
      * @param volumeURIs All volumes to be deleted
      * @param deletionType The type of deletion
@@ -386,11 +383,11 @@ public class RPHelper {
         try {
             Set<URI> allVolumeIds = getVolumesToDelete(volumeURIs);
 
-            for (URI volumeURI : allVolumeIds) {                
-                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);                
+            for (URI volumeURI : allVolumeIds) {
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
                 VolumeDescriptor descriptor = null;
                 boolean isSourceVolume = false;
-                
+
                 // if RP source, add a descriptor for the RP source
                 if (volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                     isSourceVolume = true;
@@ -398,31 +395,31 @@ public class RPHelper {
                     String operationType = LOG_MSG_OPERATION_TYPE_DELETE;
                     if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
                         volumeType = LOG_MSG_VOLUME_TYPE_RPVPLEX;
-                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE, 
+                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE,
                                 volume.getStorageController(), volume.getId(), null, null);
-                    } else {                        
-                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_SOURCE, 
+                    } else {
+                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_SOURCE,
                                 volume.getStorageController(), volume.getId(), null, null);
                     }
-                    
+
                     if (REMOVE_PROTECTION.equals(deletionType)) {
                         operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
-                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE); 
-                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId()); 
+                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
-                                                        
-                    _log.info(String.format("Adding %s descriptor to %s%s volume [%s] (%s)", 
-                            volumeType, operationType, 
-                            (volumeType.equals(LOG_MSG_VOLUME_TYPE_RP) ? "" : "virtual "), 
+
+                    _log.info(String.format("Adding %s descriptor to %s%s volume [%s] (%s)",
+                            volumeType, operationType,
+                            (volumeType.equals(LOG_MSG_VOLUME_TYPE_RP) ? "" : "virtual "),
                             volume.getLabel(), volume.getId()));
-                    volumeDescriptors.add(descriptor);                                        
+                    volumeDescriptors.add(descriptor);
                 }
-                
+
                 // If this is a virtual volume, add a descriptor for the virtual volume
                 if (RPHelper.isVPlexVolume(volume)) {
-                    // VPLEX virtual volume                                      
+                    // VPLEX virtual volume
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(),
                             volume.getId(), null, null);
                     String operationType = LOG_MSG_OPERATION_TYPE_DELETE;
@@ -434,17 +431,17 @@ public class RPHelper {
                         volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
                         descriptor.setParameters(volumeParams);
                     }
-                    
-                    _log.info(String.format("Adding VPLEX_VIRT_VOLUME descriptor to %s virtual volume [%s] (%s)", 
-                            operationType, volume.getLabel(), volume.getId()));                    
-                    volumeDescriptors.add(descriptor);                    
-                    
+
+                    _log.info(String.format("Adding VPLEX_VIRT_VOLUME descriptor to %s virtual volume [%s] (%s)",
+                            operationType, volume.getLabel(), volume.getId()));
+                    volumeDescriptors.add(descriptor);
+
                     // Next, add all the BLOCK volume descriptors for the VPLEX back-end volumes
                     for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                         operationType = LOG_MSG_OPERATION_TYPE_DELETE;
                         Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeId));
                         // a previous failed delete may have already removed associated volumes
-                        if (associatedVolume != null && !associatedVolume.getInactive()) {                            
+                        if (associatedVolume != null && !associatedVolume.getInactive()) {
                             descriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, associatedVolume.getStorageController(),
                                     associatedVolume.getId(), null, null);
                             // Add a flag to not delete these backing volumes if this is a Source volume and
@@ -452,7 +449,7 @@ public class RPHelper {
                             if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
                                 operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                                 Map<String, Object> volumeParams = new HashMap<String, Object>();
-                                volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);                    
+                                volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
                                 descriptor.setParameters(volumeParams);
                             }
                             _log.info(String.format("Adding BLOCK_DATA descriptor to %s virtual volume backing volume [%s] (%s)",
@@ -460,7 +457,7 @@ public class RPHelper {
                             volumeDescriptors.add(descriptor);
                         }
                     }
-                } else {                    
+                } else {
                     String operationType = LOG_MSG_OPERATION_TYPE_DELETE;
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, volume.getStorageController(), volume.getId(),
                             null, null);
@@ -469,11 +466,11 @@ public class RPHelper {
                     if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
                         operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
-                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE); 
+                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
                         volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
-                    _log.info(String.format("Adding BLOCK_DATA descriptor to %s volume [%s] (%s)", 
+                    _log.info(String.format("Adding BLOCK_DATA descriptor to %s volume [%s] (%s)",
                             operationType, volume.getLabel(), volume.getId()));
                     volumeDescriptors.add(descriptor);
                 }
@@ -1237,7 +1234,7 @@ public class RPHelper {
         // Filter only source volumes
         if (cgVolumes != null) {
             for (Volume cgVolume : cgVolumes) {
-                if (NullColumnValueGetter.isNotNullValue(cgVolume.getPersonality()) 
+                if (NullColumnValueGetter.isNotNullValue(cgVolume.getPersonality())
                         && PersonalityTypes.SOURCE.toString().equals(cgVolume.getPersonality())) {
                     cgSourceVolumes.add(cgVolume);
                 }
@@ -1646,11 +1643,6 @@ public class RPHelper {
                     }
                 }
 
-                // Set the old vpool back on the volume
-                _log.info(String.format("Resetting Vpool on volume from (%s) back to it's original vpool (%s)",
-                        volume.getVirtualPool(), oldVpool.getId()));
-                volume.setVirtualPool(oldVpool.getId());
-
                 // Null out any RP specific fields on the volume
                 volume.setRpJournalVolume(NullColumnValueGetter.getNullURI());
                 volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
@@ -1697,7 +1689,7 @@ public class RPHelper {
                             protectionSet.setInactive(true);
                         }
 
-                        dbClient.persistObject(protectionSet);
+                        dbClient.updateObject(protectionSet);
                     }
                 }
 
@@ -1705,33 +1697,57 @@ public class RPHelper {
             } else {
                 _log.info(String.format("Rollback changes for existing protected RP volume [%s]...", volume.getLabel()));
 
-                _log.info("Rollback the secondary journal");
-                // Rollback the secondary journal volume if it was created
-                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
                 if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
+                    _log.info("Rollback the secondary journal");
+                    // Rollback the secondary journal volume if it was created
                     rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
-                }
-                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
 
-                // Clean up the Protection Set
-                if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
-                    ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                    if (protectionSet != null) {
-                        // Remove volume ID from the Protection Set
-                        protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
-                        dbClient.persistObject(protectionSet);
+                    // Clean up the Protection Set
+                    if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
+                        ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                        if (protectionSet != null) {
+                            // Remove volume ID from the Protection Set
+                            protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
+                            dbClient.updateObject(protectionSet);
+                        }
                     }
-                }
 
-                // remove consistency group from volume
-                if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                    List<Volume> allSourceVolumesInCG = getCgSourceVolumes(volume.getConsistencyGroup(), dbClient);
+                    if (!allSourceVolumesInCG.isEmpty()) {
+                        for (Volume vol : allSourceVolumesInCG) {
+                            // Remove the secondary journal reference
+                            vol.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
+                        }
+                    }
                 }
             }
 
+            // If this is a VPLEX volume, update the virtual pool references to the old vpool on
+            // the backing volumes if they were set to the new vpool.
+            if (RPHelper.isVPlexVolume(volume)) {
+                for (String associatedVolId : volume.getAssociatedVolumes()) {
+                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                    if (associatedVolume != null
+                            && !associatedVolume.getInactive()
+                            && !NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
+                            && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
+                        associatedVolume.setVirtualPool(oldVpool.getId());
+                        dbClient.updateObject(associatedVolume);
+                        _log.info(String.format("Backing volume [%s] has had it's virtual pool rolled back to [%s].",
+                                associatedVolume.getLabel(),
+                                oldVpool.getLabel()));
+                    }
+                }
+            }
+
+            // Set the old vpool back on the volume
+            _log.info(String.format("Resetting vpool on volume [%s](%s) from (%s) back to it's original vpool (%s)",
+                    volume.getLabel(), volume.getId(), volume.getVirtualPool(), oldVpool.getId()));
+            volume.setVirtualPool(oldVpool.getId());
+
+            dbClient.updateObject(volume);
             _log.info(String.format("Rollback of RP protection changes for volume [%s] (%s) has completed.", volume.getLabel(),
                     volume.getId()));
-            dbClient.persistObject(volume);
         }
     }
 
@@ -1748,21 +1764,49 @@ public class RPHelper {
         Volume volume = dbClient.queryObject(Volume.class, volumeURI);
         if (volume != null && !volume.getInactive()) {
             _log.info(String.format("Rollback volume [%s]...", volume.getLabel()));
-            volume.setInactive(true);
-            volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
-            volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-            dbClient.persistObject(volume);
+            if (volume.getProvisionedCapacity() == null
+                    || volume.getProvisionedCapacity() == 0) {
+                // Only set the volume to inactive if it has never
+                // been provisioned. Otherwise let regular rollback
+                // steps take care of cleaning it up.
+                dbClient.markForDeletion(volume);
+            } else {
+                // Normal rollback should clean up the volume, change the label
+                // to allow re-orders.
+                String rollbackLabel = "-ROLLBACK-" + Math.random();
+                volume.setLabel(volume.getLabel() + rollbackLabel);
+
+                // Set the project NamedURI to use the rollback label
+                // NamedURI projNamedURI = volume.getProject();
+                // projNamedURI.setName(rollbackLabel);
+                // volume.setProject(projNamedURI);
+
+                // Set the tenant NamedURI to use the rollback label
+                // NamedURI tenantNamedURI = volume.getTenant();
+                // tenantNamedURI.setName(rollbackLabel);
+                // volume.setTenant(tenantNamedURI);
+
+                dbClient.updateObject(volume);
+            }
 
             // Rollback any VPLEX backing volumes too
-            if (volume.getAssociatedVolumes() != null
-                    && !volume.getAssociatedVolumes().isEmpty()) {
+            if (RPHelper.isVPlexVolume(volume)) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {
                         _log.info(String.format("Rollback volume [%s]...", associatedVolume.getLabel()));
-                        associatedVolume.setInactive(true);
-                        associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
-                        dbClient.persistObject(associatedVolume);
+                        if (associatedVolume.getProvisionedCapacity() == null
+                                || associatedVolume.getProvisionedCapacity() == 0) {
+                            // Only set the volume to inactive if it has never
+                            // been provisioned. Otherwise let regular rollback
+                            // steps take care of cleaning it up.
+                            dbClient.markForDeletion(associatedVolume);
+                        } else {
+                            // Normal rollback should clean up the volume, change the label
+                            // to allow re-orders.
+                            associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
+                            dbClient.updateObject(associatedVolume);
+                        }
                     }
                 }
             }

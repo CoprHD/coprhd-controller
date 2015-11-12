@@ -66,6 +66,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -82,6 +83,7 @@ public interface ContainmentConstraint extends Constraint {
         private static final String PROJECT = "project";
         private static final String STORAGE_DEVICE = "storageDevice";
         private static final String COMPUTE_IMAGESERVER_ID = "computeImageServerId";
+        private static final String PROTECTION_DEVICE = "protectionDevice";
 
         public static ContainmentConstraint getTenantOrgProjectConstraint(URI tenantOrg) {
             DataObjectType doType = TypeMap.getDoType(Project.class);
@@ -196,6 +198,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(device, UnManagedVolume.class, field);
         }
 
+        public static ContainmentConstraint getStorageDeviceUnManagedCGConstraint(URI ps) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedProtectionSet.class);
+            ColumnField field = doType.getColumnField(PROTECTION_DEVICE);
+            return new ContainmentConstraintImpl(ps, UnManagedProtectionSet.class, field);
+        }
+        
         public static ContainmentConstraint getStorageDeviceRemoteGroupsConstraint(URI device) {
             DataObjectType doType = TypeMap.getDoType(RemoteDirectorGroup.class);
             ColumnField field = doType.getColumnField("sourceStorageSystem");
@@ -707,5 +715,6 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField(COMPUTE_IMAGESERVER_ID);
             return new ContainmentConstraintImpl(imageServerURI, ComputeImageJob.class, field);
         }
+
     }
 }

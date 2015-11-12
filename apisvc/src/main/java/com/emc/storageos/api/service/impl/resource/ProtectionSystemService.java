@@ -56,6 +56,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.UnManagedCGList;
 import com.emc.storageos.model.pools.VirtualArrayAssignments;
 import com.emc.storageos.model.protection.ProtectionSystemBulkRep;
 import com.emc.storageos.model.protection.ProtectionSystemConnectivityRestRep;
@@ -586,6 +587,36 @@ public class ProtectionSystemService extends TaskResourceService {
     @Override
     public ProtectionSystemBulkRep getBulkResources(BulkIdParam param) {
         return (ProtectionSystemBulkRep) super.getBulkResources(param);
+    }
+
+    /**
+     * 
+     * List all unmanaged cgs that are available for a storage system.Unmanaged cgs refers to cgs which are available within
+     * underlying storage systems , but
+     * still not managed in ViPR.
+     * As these cgs are not managed in ViPR, there will not be any ViPR specific
+     * details associated such as, virtual array, virtual pool, or project.
+     * 
+     * @param id the URN of a ViPR storage system
+     * @prereq none
+     * @brief List of all unmanaged cgs available for a storage system
+     * @return UnManagedCGList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @Path("/{id}/unmanaged/cgs")
+    public UnManagedCGList getUnManagedCGs(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, ProtectionSystem.class, "id");
+        UnManagedCGList unManagedCGList = new UnManagedCGList();
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceUnManagedCGConstraint(id), result);
+        while (result.iterator().hasNext()) {
+            URI unManagedCGUri = result.iterator().next();
+            unManagedCGList.getUnManagedCGs()
+                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_CGS, unManagedCGUri));
+        }
+        return unManagedCGList;
     }
 
     /**

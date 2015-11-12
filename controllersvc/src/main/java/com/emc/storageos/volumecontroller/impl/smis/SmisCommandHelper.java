@@ -2291,8 +2291,8 @@ public class SmisCommandHelper implements SmisConstants {
             volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));
 
             _log.info(String.format("Volume [%s](%s) will be %s for RP", 
-                    volume.getLabel(), volume.getId()),
-                    (flag ? "tagged" : "untagged"));
+                    volume.getLabel(), volume.getId(),
+                    (flag ? "tagged" : "untagged")));
             setRecoverPointTag(storageSystem, volumePathList, flag);
         } else {
             _log.info(String.format("Volume [%s](%s) is not valid for RP tagging operation", volume.getLabel(), volume.getId()));

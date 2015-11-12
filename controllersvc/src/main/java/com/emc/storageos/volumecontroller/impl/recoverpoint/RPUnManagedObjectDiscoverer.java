@@ -147,10 +147,8 @@ public class RPUnManagedObjectDiscoverer {
                     unManagedProtectionSet.getVolumeWwns().add(volume.getWwn());
                     
                     if (null == unManagedVolume && null == managedVolume) {
-                        log.info("Protection Set " + nativeGuid + " contains Journal volume: " + volume.getWwn() 
-                                + " that is not in our database of managed or unmanaged volumes."
-                                + " Has its storage array been discovered for unmanaged volumes? "
-                                + " Skipping further discovery of this volume for RecoverPoint ingestion.");
+                        log.info("Protection Set {} contains unknown Journal volume: {}. Skipping.", 
+                                nativeGuid, volume.getWwn());
                         continue;
                     }
                     
@@ -230,10 +228,8 @@ public class RPUnManagedObjectDiscoverer {
                     unManagedProtectionSet.getVolumeWwns().add(volume.getWwn());
 
                     if (null == unManagedVolume && null == managedVolume) {
-                        log.info("Protection Set " + nativeGuid + " contains Replication Set volume: " + volume.getWwn() 
-                                + " that is not in our database of managed or unmanaged volumes."
-                                + " Has its storage array been discovered for unmanaged volumes? "
-                                + " Skipping further discovery of this volume for RecoverPoint ingestion.");
+                        log.info("Protection Set {} contains unknown Replication Set volume: {}. Skipping.", 
+                                nativeGuid, volume.getWwn());
                         continue;
                     }
 
@@ -316,8 +312,9 @@ public class RPUnManagedObjectDiscoverer {
                     UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
                     
                     if (null == unManagedVolume) {
-                        log.info("Protection Set " + nativeGuid + " contains volume: " + volume.getWwn() + " that is not in our database of unmanaged volumes.  Skipping.");
-                        continue;                        
+                        log.info("Protection Set {} contains unknown volume: {}. Skipping.", 
+                                nativeGuid, volume.getWwn());
+                        continue;
                     }
                     
                     // Only process source volumes here.
@@ -333,7 +330,8 @@ public class RPUnManagedObjectDiscoverer {
                         UnManagedVolume targetUnManagedVolume = findUnManagedVolumeForWwn(targetVolume.getWwn(), dbClient);
                         
                         if (null == targetUnManagedVolume) {
-                            log.info("Protection Set " + nativeGuid + " contains volume: " + targetVolume.getWwn() + " that is not in our database of unmanaged volumes (target search).  Skipping.");
+                            log.info("Protection Set {} contains unknown target volume: {}. Skipping.", 
+                                    nativeGuid, targetVolume.getWwn());
                             continue;
                         }
                         
@@ -342,7 +340,7 @@ public class RPUnManagedObjectDiscoverer {
                             continue;
                         }
                         
-                        log.info("\tfound target volume{}", targetUnManagedVolume.forDisplay());
+                        log.info("\tfound target volume {}", targetUnManagedVolume.forDisplay());
                         
                         // Add the source unmanaged volume ID to the target volume
                         StringSet rpUnManagedSourceVolumeId = new StringSet();

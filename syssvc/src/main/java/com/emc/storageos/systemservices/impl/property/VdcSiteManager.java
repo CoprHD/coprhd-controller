@@ -514,8 +514,9 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.reconfigProperties("firewall");
         localRepository.reload("firewall");
 
+        // for re-generating /etc/ssh/ssh_known_hosts to include nodes of standby sites
+        // no need to reload ssh service.
         localRepository.reconfigProperties("ssh");
-        localRepository.reload("ssh");
 
         reconfigAndRestartCoordinator(site);
 

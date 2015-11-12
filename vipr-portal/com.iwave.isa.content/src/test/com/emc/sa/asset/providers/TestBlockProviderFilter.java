@@ -6,7 +6,9 @@
 package com.emc.sa.asset.providers;
 
 import static com.emc.sa.asset.providers.BlockProvider.getVolumeDetails;
-import static com.emc.sa.asset.providers.BlockProvider.listVolumes;
+import static com.emc.sa.asset.providers.BlockProvider.hasXIO3XVolumes;
+import static com.emc.sa.asset.providers.BlockProvider.isInConsistencyGroup;
+import static com.emc.sa.asset.providers.BlockProvider.listVolumesNonBulk;
 import static com.emc.sa.asset.providers.BlockProviderUtils.getVolumePersonality;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
@@ -31,28 +33,39 @@ import com.google.common.collect.Lists;
 public final class TestBlockProviderFilter {
 
     static void filter(ViPRCoreClient client, URI project) {
-        List<VolumeRestRep> volumes = listVolumes(client, project);
+        List<VolumeRestRep> volumes = listVolumesNonBulk(client, project);
         List<VolumeDetail> volumeDetails = getVolumeDetails(client, volumes);
         Map<URI, VolumeRestRep> volumeNames = ResourceUtils.mapById(volumes);
 
         List<AssetOption> options = Lists.newArrayList();
         for (VolumeDetail detail : volumeDetails) {
 
-            if ((isLocalSnapshotSupported(detail.vpool) && (isRPSourceVolume(detail.volume) || isRPTargetVolume(detail.volume)))
-                    || !BlockProvider.isInConsistencyGroup(detail.volume)) {
+            boolean localSnapSupported = isLocalSnapshotSupported(detail.vpool);
+            boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
+            boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
+            boolean isInConsistencyGroup = isInConsistencyGroup(detail.volume);
+            boolean isXio3XVolume = hasXIO3XVolumes(detail.volume);
+
+            if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume || isXio3XVolume))) {
                 options.add(BlockProvider.createVolumeOption(client, null, detail.volume, volumeNames));
-                System.out.print("* " + detail.volume.getName());
+                System.out.println("\t* " + detail.volume.getName());
             } else {
-                System.out.print(detail.volume.getName());
+                System.out.println("\t" + detail.volume.getName());
             }
-            System.out.println(String.format(" [ %s ]", getVolumePersonality(detail.volume)));
+
+            String extra = String.format(
+                    "[localSnapSupported: %s, isRPTargetVolume: %s, isRPSourceVolume: %s, isInConsistencyGroup: %s, isXio3XVolume: %s]",
+                    localSnapSupported,
+                    isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup, isXio3XVolume);
+
+            System.out.println(String.format("\t\tpersonality:[ %s ], filter:[ %s ]", getVolumePersonality(detail.volume), extra));
         }
     }
 
     public static void main(String[] args) throws URISyntaxException {
         Logger.getRootLogger().setLevel(Level.OFF);
         ViPRCoreClient client =
-                new ViPRCoreClient("localhost", true).withLogin("root", "password");
+                new ViPRCoreClient("host", true).withLogin("root", "password");
         try {
 
             for (ProjectRestRep project : client.projects().getByUserTenant()) {

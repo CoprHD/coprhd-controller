@@ -1,0 +1,31 @@
+#{extends 'main.html'/}
+#{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
+#{set 'title'}&{'disasterRecovery.switchover'}#{/set}
+
+
+#{Form.header titleKey:'disasterRecovery.switchover' /}
+#{alerts/}
+
+<div>
+   	<b style="font-size:13px">&{'disasterRecovery.switchover.active'}:</b>
+   	<span id="bourne-version">${active_name}</span><br/>
+</div>
+<br/>
+
+<div>
+   	<b style="font-size:13px">&{'disasterRecovery.switchover.standby'}:</b>
+   	<span id="bourne-version">${standby_name}</span><br/>
+</div>
+<br/>
+<br/>
+<br/>
+
+#{Form.subheader titleKey:"disasterRecovery.switchover.progress" /} 
+<br/>
+<div id="switchdesc">
+	<span> &{'disasterRecovery.switchover.setting'} <b style="font-size:13px">${standby_name}</b> &{'disasterRecovery.switchover.active.to'}
+	 <b style="font-size:13px">${active_name}</b> &{'disasterRecovery.switchover.standby.to'}</span>
+	<br/>
+	<br/>
+	<span> &{'disasterRecovery.switchover.login.instruction'} <a href="https://${standby_vip}" >${standby_name}</a></span>
+</div>

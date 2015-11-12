@@ -58,10 +58,10 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
 public class VdcSiteManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
-    private static final String VDC_IDS_KEY = "vdc_ids";
     private static final int VDC_RPOP_BARRIER_TIMEOUT = 5;
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
+    private static final int FAILOVER_BARRIER_TIMEOUT = 300;
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
@@ -88,6 +88,8 @@ public class VdcSiteManager extends AbstractManager {
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
     
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
+    
+    private static final String LOCK_FAILOVER_REMOVE_OLD_PRIMARY="drFailoverRemoveOldPrimaryLock";
     
     private SiteInfo targetSiteInfo;
 
@@ -222,7 +224,8 @@ public class VdcSiteManager extends AbstractManager {
 
                 try {
                     updateVdcProperties(svcId);
-                    updatePlannedFailoverSiteState();
+                    updateSwitchoverSiteState();
+                    updateFailoverSiteState();
                 } catch (Exception e) {
                     log.info("Step3: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
@@ -292,7 +295,7 @@ public class VdcSiteManager extends AbstractManager {
                     String.valueOf(targetSiteInfo.getVdcConfigVersion()));
             localRepository.setVdcPropertyInfo(localVdcPropInfo);
 
-            String vdc_ids = targetVdcPropInfo.getProperty(VDC_IDS_KEY);
+            String vdc_ids = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
             String[] vdcIds = vdc_ids.split(",");
             if (vdcIds.length > 1) {
                 log.info("More than one Vdc, rebooting");
@@ -374,6 +377,8 @@ public class VdcSiteManager extends AbstractManager {
 
         log.info("Step3: Setting vdc properties not rebooting for single VDC change, action={}", action);
         checkAndRemoveStandby();
+        
+        checkAndRemovePrimaryForFailover();
 
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
@@ -442,6 +447,7 @@ public class VdcSiteManager extends AbstractManager {
         DistributedDoubleBarrier barrier;
         int timeout = 0;
 
+<<<<<<< HEAD
         /**
          * create or get a barrier
          * @param siteInfo
@@ -453,6 +459,9 @@ public class VdcSiteManager extends AbstractManager {
             this.barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, nChildrenOnBarrier);
             log.info("Created VdcPropBarrier on {} with the children number {}", barrierPath, nChildrenOnBarrier);
         }
+=======
+        log.info("Barrier path is {} with memberQty {}", barrierPath, memberQty);
+>>>>>>> feature-dr
 
         public VdcPropertyBarrier(String path, int timeout, int memberQty, boolean crossSite) {
             this.timeout = timeout;
@@ -551,8 +560,8 @@ public class VdcSiteManager extends AbstractManager {
         // Reconfigure ZK
         // TODO: think again how to make use of the dynamic zookeeper configuration
         // The previous approach disconnects all the clients, no different than a service restart.
-        
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+<<<<<<< HEAD
             log.info("Wait for barrier to reconfig/restart coordinator when switchover");
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
             barrier.enter();
@@ -562,10 +571,17 @@ public class VdcSiteManager extends AbstractManager {
             barrier.leave();
             
             localRepository.restart("coordinatorsvc");
+=======
+            log.info("Wait for barrier to reconfig coordinator when switchover");
+            DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+            localRepository.reconfigProperties("coordinator");
+            leaveBarrier(barrier);
+>>>>>>> feature-dr
         } else {
             localRepository.reconfigProperties("coordinator");
-            localRepository.restart("coordinatorsvc");
         }
+        
+        localRepository.restart("coordinatorsvc");
     }
 
     private List<String> getJoiningZKNodes() {
@@ -789,9 +805,9 @@ public class VdcSiteManager extends AbstractManager {
         
         InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_REMOVE_STANDBY);
         while (hasRemovingStandby()) {
-            log.info("Accquiring lock {}", LOCK_REMOVE_STANDBY); 
+            log.info("Acquiring lock {}", LOCK_REMOVE_STANDBY); 
             lock.acquire();
-            log.info("Accquired lock {}", LOCK_REMOVE_STANDBY); 
+            log.info("Acquired lock {}", LOCK_REMOVE_STANDBY); 
             List<Site> toBeRemovedSites = listRemovingStandby();
             try {
                     
@@ -1013,13 +1029,13 @@ public class VdcSiteManager extends AbstractManager {
     }
     
     /**
-     * This API will handle the switchover (planned failover) for both new/old primary site
+     * This API will handle the switchover for both new/old primary site
      * @throws Exception
      */
-    private void updatePlannedFailoverSiteState() throws Exception {
+    private void updateSwitchoverSiteState() throws Exception {
         Site site = drUtil.getLocalSite();
         
-        log.info("site: {}", site.toString());
+        log.info("Current site: {}", site.toString());
         
         // old primary
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER)) {
@@ -1033,38 +1049,71 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private void proccessNewPrimarySiteSwitchover(Site site) throws Exception {
-        log.info("This is planned failover standby site (new primary)");
+        log.info("This is switchover standby site (new primary)");
         
         blockUntilZookeeperIsWritableConnected();
         
+<<<<<<< HEAD
         VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
         barrier.enter();
 
         log.info("Set state to PRIMARY");
+=======
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+        
+>>>>>>> feature-dr
         site.setState(SiteState.PRIMARY);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
         
         barrier.leave();
         
-        log.info("Reboot this node after planned failover");
+        log.info("Reboot this node after switchover");
         localRepository.reboot();
     }
 
     private void proccessOldPrimarySiteSwitchover(Site site) throws Exception {
-        log.info("This is planned failover primary site (old primrary)");
+        log.info("This is switchover primary site (old primrary)");
         
         blockUntilZookeeperIsWritableConnected();
         
+<<<<<<< HEAD
         VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
         barrier.enter();
 
         log.info("Set state to SYNCED");
+=======
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+        
+>>>>>>> feature-dr
         site.setState(SiteState.STANDBY_SYNCED);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
         
         barrier.leave();
         
-        log.info("Reboot this node after planned failover");
+        log.info("Reboot this node after switchover");
+        localRepository.reboot();
+    }
+    
+    private void updateFailoverSiteState() throws Exception {
+        Site site = drUtil.getLocalSite();
+        log.info("Current site: {}", site.toString());
+        
+        if (!site.getState().equals(SiteState.STANDBY_FAILING_OVER)) {
+            log.info("Not failover, ingore");
+            return;
+        }
+            
+        blockUntilZookeeperIsWritableConnected();
+        
+        log.info("Wait for barrier to set site state as Primary for failover");
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.FAILOVER_BARRIER, FAILOVER_BARRIER_TIMEOUT);
+        
+        site.setState(SiteState.PRIMARY);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        
+        leaveBarrier(barrier);
+        
+        log.info("Reboot this node after failover");
         localRepository.reboot();
     }
     
@@ -1100,5 +1149,54 @@ public class VdcSiteManager extends AbstractManager {
         
         log.info("Node count is switchover is {}", count);
         return count;
+    }
+    
+    private void checkAndRemovePrimaryForFailover() throws Exception {
+        Site primarySite = getActiveSiteInFailover();
+        
+        if (primarySite == null) {
+            log.info("Not failover case, no action needed.");
+            return;
+        }
+        
+        InterProcessLock lock = null;
+        
+        try {
+            
+            lock = coordinator.getCoordinatorClient().getLock(LOCK_FAILOVER_REMOVE_OLD_PRIMARY);
+            log.info("Acquiring lock {}", LOCK_FAILOVER_REMOVE_OLD_PRIMARY);
+            
+            lock.acquire();
+            log.info("Acquired lock {}", LOCK_FAILOVER_REMOVE_OLD_PRIMARY); 
+    
+            // double check site state
+            primarySite = getActiveSiteInFailover();
+            if (primarySite == null) {
+                log.info("Old primary site has been remove by other node, no action needed.");
+                return;
+            }
+                
+            removeDbNodes(primarySite);
+            removeDbReplication(primarySite);
+            
+        } catch (Exception e) {
+            populateStandbySiteErrorIfNecessary(drUtil.getLocalSite(), APIException.internalServerErrors.failoverReconfigFailed(e.getMessage()));
+            log.error("Failed to remove old primary in failover, {}", e);
+            throw e;
+        } finally {
+            if (lock != null) {
+                lock.release();
+            }
+        }
+    }
+    
+    private Site getActiveSiteInFailover() {
+        for (Site site : drUtil.listSites()) {
+            if (site.getState().equals(SiteState.PRIMARY_FAILING_OVER)) {
+                return site;
+            }
+        }
+        
+        return null;
     }
 }

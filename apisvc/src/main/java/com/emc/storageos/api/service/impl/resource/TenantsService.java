@@ -301,8 +301,17 @@ public class TenantsService extends TaggedResource {
             tenant.setDescription(param.getDescription());
         }
         
-        if (param.getNamespace() != null) {
+        if (param.getNamespace() != null && !param.getNamespace().isEmpty()) {
+            checkForDuplicateNamespace(param.getNamespace());
+
+            if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
+                if (!tenant.getNamespace().equalsIgnoreCase(param.getNamespace())) {
+                    //Though we are not deleting need to check no dependencies on this tenant
+                    ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
+                }
+            }
             tenant.setNamespace(param.getNamespace());
+            //Namespace Will be retrieved from ECS in coming releases.
         }
 
         if (!isUserMappingEmpty(param)) {
@@ -400,6 +409,7 @@ public class TenantsService extends TaggedResource {
         subtenant.setLabel(param.getLabel());
         subtenant.setDescription(param.getDescription());
         if (param.getNamespace() != null) {
+            checkForDuplicateNamespace(param.getNamespace());
             subtenant.setNamespace(param.getNamespace());
         }
 
@@ -501,11 +511,6 @@ public class TenantsService extends TaggedResource {
         if (TenantOrg.isRootTenant(tenant)) {
             // root can not be deleted
             throw APIException.badRequests.resourceCannotBeDeleted("Root tenant");
-        }
-
-        if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
-            // tenant with namespace attached can not be deleted
-            throw APIException.badRequests.resourceCannotBeDeleted("Tenant attached with namespace");
         }
 
         ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
@@ -977,10 +982,9 @@ public class TenantsService extends TaggedResource {
         // This validates the tenant
         TenantOrg tenant = getTenantById(tid, true);
         VcenterService service = _vcenterService;
-        service.validateVcenter(createParam, null, validateConnection);
 
-        // create and persist the vcenter
-        Vcenter vcenter = service.createNewVcenter(tenant, createParam);
+        // validates the create param and validation is successful then creates and persist the vcenter
+        Vcenter vcenter = service.createNewTenantVcenter(tenant, createParam, validateConnection);
         vcenter.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
         _dbClient.createObject(vcenter);
         recordTenantResourceOperation(OperationTypeEnum.CREATE_VCENTER, tid, vcenter);

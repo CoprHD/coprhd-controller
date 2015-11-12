@@ -110,7 +110,9 @@ public class BackupSchedulerTest {
             cfg.retainedBackups.add(aliveBackupsAt20141231[i]);
         }
 
-        FakeUploadExecutor upExec = new FakeUploadExecutor(cfg, cli);
+        UploadExecutor upExec = new UploadExecutor(cfg, cli);
+        FakeUploader uploader = new FakeUploader(cfg, cli);
+        upExec.setUploader(uploader);
 
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
@@ -120,8 +122,8 @@ public class BackupSchedulerTest {
         // Verify the backups are uploaded
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
             Assert.assertTrue(String.format("Backup %s is not uploaded: %s", aliveBackupsAt20141231[i],
-                    StringUtils.join(upExec.fileMap.keySet(), ',')),
-                    upExec.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1-1.zip")
+                    StringUtils.join(uploader.fileMap.keySet(),',')),
+                    uploader.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1-1.zip")
                     );
         }
     }
@@ -165,7 +167,9 @@ public class BackupSchedulerTest {
         cli.localBackups.add(aliveBackupsAt20141231[0]);
         cli.localBackups.add(aliveBackupsAt20141231[1]);
 
-        FakeUploadExecutor upExec = new FakeUploadExecutor(cfg, cli);
+        UploadExecutor upExec = new UploadExecutor(cfg, cli);
+        FakeUploader uploader = new FakeUploader(cfg, cli);
+        upExec.setUploader(uploader);
 
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
@@ -178,10 +182,10 @@ public class BackupSchedulerTest {
     }
 }
 
-class FakeUploadExecutor extends UploadExecutor {
+class FakeUploader extends Uploader {
     public Map<String, Long> fileMap = new HashMap<>();
 
-    public FakeUploadExecutor(SchedulerConfig cfg, BackupScheduler cli) {
+    public FakeUploader(SchedulerConfig cfg, BackupScheduler cli) {
         super(cfg, cli);
     }
 

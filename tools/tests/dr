@@ -9,6 +9,7 @@ import sys
 import os
 from bourne import Bourne
 import time
+import sysmgr as SysMgr
 
 #----------------------------------------------------------------------
 # dr cli functions
@@ -75,6 +76,9 @@ def dr_switch_over(args):
     bourne.connect(args.ip)
     bourne.dr_switchover(args.uuid)
 
+def wait_for_stable(args):
+    SysMgr.wait_for_stable_state(args)
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -130,6 +134,11 @@ drpausestandby.add_argument('uuid', help = 'uuid of standby site')
 drresumestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 drresumestandby.add_argument('uuid', help = 'uuid of standby site')
 
+# dr wait for stable state
+waitforstable = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+waitforstable.add_argument('sleep', help = 'sleep of waiting time', type=float)
+waitforstable.add_argument('length', help = 'the whole waiting time', type=float)
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -165,5 +174,8 @@ elif (cmd == "waitforstate"):
 elif (cmd == "switchover"):
     args = drswitchover.parse_args()
     dr_switch_over(args)
+elif (cmd == "waitforstable"):
+    args = waitforstable.parse_args()
+    wait_for_stable(args)
 else:
     parser.print_help()

@@ -16,6 +16,7 @@ public class BlockMirrorRestRep extends VolumeRestRep {
     private NamedRelatedResourceRep source;
     private String syncState;
     private String syncType;
+    private String replicaState;
 
     /**
      * Volume representing the source in a mirror relationship.
@@ -60,5 +61,14 @@ public class BlockMirrorRestRep extends VolumeRestRep {
 
     public void setSyncType(String syncType) {
         this.syncType = syncType;
+    }
+
+    @XmlElement(name = "replica_state")
+    public String getReplicaState() {
+        return replicaState;
+    }
+
+    public void setReplicaState(String replicaState) {
+        this.replicaState = replicaState;
     }
 }

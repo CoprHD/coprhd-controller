@@ -10,14 +10,17 @@ import static controllers.Common.backToReferrer;
 import static controllers.Common.flashException;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import models.ComputeImageServerListTypes;
 import models.ComputeSystemTypes;
 import models.RegistrationStatus;
 import models.SearchScopes;
 import models.VlanListTypes;
+import models.datatable.ComputeImageServersDataTable.ComputeImageServerInfo;
 import models.datatable.ComputeSystemElementDataTable;
 import models.datatable.ComputeSystemElementDataTable.ComputeElementInfo;
 import models.datatable.ComputeSystemsDataTable;
@@ -31,6 +34,7 @@ import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
+import util.ComputeImageServerUtils;
 import util.ComputeSystemUtils;
 import util.DefaultComputeSystemPortMap;
 import util.EnumOption;
@@ -40,18 +44,18 @@ import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddressCheck;
 
 import com.emc.storageos.model.compute.ComputeElementRestRep;
+import com.emc.storageos.model.compute.ComputeImageServerRestRep;
 import com.emc.storageos.model.compute.ComputeSystemCreate;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.ComputeSystemUpdate;
 import com.emc.vipr.client.Task;
 import com.google.common.collect.Lists;
 
+import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
-
-import controllers.Common;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -62,6 +66,7 @@ public class ComputeSystems extends ViprResourceController {
     protected static final String MODEL_NAME = "ComputeSystems";
     protected static final String DELETED_SUCCESS = "ComputeSystems.deleted.success";
     protected static final String DELETED_ERROR = "ComputeSystems.deleted.error";
+    protected static final String AVAILABLE = "AVAILABLE";
 
     //
     // Add reference data so that they can be reference in html template
@@ -126,6 +131,21 @@ public class ComputeSystems extends ViprResourceController {
         ComputeSystemForm computeSystems = new ComputeSystemForm();
         // put all "initial create only" defaults here rather than field
         // initializers
+        List<ComputeImageServerRestRep> computeImageServersList = ComputeImageServerUtils.getComputeImageServers();
+        if (computeImageServersList != null) {
+            List<StringOption> computeImageServerOptions = new ArrayList<StringOption>();
+            List<String> computeImageServersArrayList = new ArrayList<String>();
+            computeImageServerOptions.add(ComputeImageServerListTypes.option(ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE));
+            for (ComputeImageServerRestRep cisrr : computeImageServersList) {
+                if (cisrr.getComputeImageServerStatus().equalsIgnoreCase(AVAILABLE)) {
+                    computeImageServersArrayList.add(cisrr.getName());
+                }
+            }
+            for (String imageServerId : computeImageServersArrayList) {
+                computeImageServerOptions.add(ComputeImageServerListTypes.option(imageServerId));
+            }
+            renderArgs.put("availableComputeImageServersList", computeImageServerOptions);
+        }
         computeSystems.portNumber = getDefaultPort(DefaultComputeSystemPortMap.port443);
         computeSystems.useSSL = true;
         render("@edit", computeSystems);
@@ -147,9 +167,24 @@ public class ComputeSystems extends ViprResourceController {
                     }
                     renderArgs.put("computeSystemVlanList", vlanOptions);
                 }
-                ComputeSystemForm computeSystems = new ComputeSystemForm(
-                        computeSystem);
 
+                List<StringOption> computeImageServerOptions = new ArrayList<StringOption>();
+                computeImageServerOptions.add(ComputeImageServerListTypes
+                        .option(ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE));
+                List<ComputeImageServerRestRep> computeImageServersList = ComputeImageServerUtils.getComputeImageServers();
+                if (computeImageServersList != null) {
+                    List<String> computeImageServersArrayList = new ArrayList<String>();
+                    for (ComputeImageServerRestRep cisrr : computeImageServersList) {
+                        if (cisrr.getComputeImageServerStatus().equalsIgnoreCase(AVAILABLE)) {
+                            computeImageServersArrayList.add(cisrr.getName());
+                        }
+                    }
+                    for (String imageServerId : computeImageServersArrayList) {
+                        computeImageServerOptions.add(ComputeImageServerListTypes.option(imageServerId));
+                    }
+                    renderArgs.put("availableComputeImageServersList", computeImageServerOptions);
+                }
+                ComputeSystemForm computeSystems = new ComputeSystemForm(computeSystem);
                 render("@edit", computeSystems);
             } else {
                 flash.error(MessagesUtils.get(UNKNOWN, id));
@@ -163,7 +198,6 @@ public class ComputeSystems extends ViprResourceController {
 
     @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(ComputeSystemForm computeSystems) {
-
         computeSystems.validate("computeSystems");
 
         if (Validation.hasErrors()) {
@@ -286,6 +320,16 @@ public class ComputeSystems extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
 
+    public static void computeImageServersJson() {
+        List<ComputeImageServerInfo> results = Lists.newArrayList();
+        List<ComputeImageServerRestRep> computeImageServers = ComputeImageServerUtils.getComputeImageServers();
+        for (ComputeImageServerRestRep computeImageServerRR : computeImageServers) {
+            ComputeImageServerInfo computeImageServer = new ComputeImageServerInfo(computeImageServerRR);
+            results.add(computeImageServer);
+        }
+        renderJSON(DataTablesSupport.createJSON(results, params));
+    }
+
     public static class ComputeSystemForm {
 
         public String id;
@@ -319,6 +363,10 @@ public class ComputeSystems extends ViprResourceController {
 
         public String vlanList;
 
+        public List<String> computeImageServerOptions = Lists.newArrayList();;
+
+        public String computeImageServer;
+
         public ComputeSystemForm() {
         }
 
@@ -336,8 +384,13 @@ public class ComputeSystems extends ViprResourceController {
             this.userName = computeSystem.getUsername();
             this.password = ""; // the platform will never return the real password //NOSONAR
                                 // ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
-            this.unregistered = RegistrationStatus.isUnregistered(computeSystem
-                    .getRegistrationStatus());
+            this.unregistered = RegistrationStatus.isUnregistered(computeSystem.getRegistrationStatus());
+            if (computeSystem.getComputeImageServer().equalsIgnoreCase("null")) {
+                this.computeImageServer = ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE;
+            } else {
+                ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(computeSystem.getComputeImageServer());
+                this.computeImageServer = cisrr.getName();
+            }
 
         }
 
@@ -405,6 +458,21 @@ public class ComputeSystems extends ViprResourceController {
             if (!this.osInstallNetwork.isEmpty()) {
                 createParam.setOsInstallNetwork(this.osInstallNetwork);
             }
+            if (this.computeImageServer != null) {
+                if (this.computeImageServer.equalsIgnoreCase(ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE)) {
+                    URI computeImageServerUrl = null;
+                    try {
+                        computeImageServerUrl = new URI("");
+                    } catch (URISyntaxException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                    createParam.setComputeImageServer(computeImageServerUrl);
+                } else {
+                    ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServerByName(this.computeImageServer);
+                    createParam.setComputeImageServer(cisrr.getId());
+                }
+            }
             return ComputeSystemUtils.create(createParam);
         }
 
@@ -429,6 +497,21 @@ public class ComputeSystems extends ViprResourceController {
                 }
                 else {
                     updateParam.setOsInstallNetwork(this.vlanList);
+                }
+            }
+            if (this.computeImageServer != null) {
+                if (this.computeImageServer.equalsIgnoreCase(ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE)) {
+                    URI computeImageServerUrl = null;
+                    try {
+                        computeImageServerUrl = new URI("");
+                    } catch (URISyntaxException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                    updateParam.setComputeImageServer(computeImageServerUrl);
+                } else {
+                    ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServerByName(this.computeImageServer);
+                    updateParam.setComputeImageServer(cisrr.getId());
                 }
             }
             updateParam.setUserName(this.userName);

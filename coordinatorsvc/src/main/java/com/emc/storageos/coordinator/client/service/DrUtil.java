@@ -5,6 +5,11 @@
 
 package com.emc.storageos.coordinator.client.service;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +34,10 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  */
 public class DrUtil {
     private static final Logger log = LoggerFactory.getLogger(DrUtil.class);
+    
+    private static final int COORDINATOR_PORT = 2181;
+    public static final String ZOOKEEPER_MODE_OBSERVER = "observer";
+    public static final String ZOOKEEPER_MODE_READONLY = "read-only";
     
     private CoordinatorClient coordinator;
 
@@ -247,7 +256,7 @@ public class DrUtil {
      */
     public String getCassandraDcId(Site site) {
         String dcId = null;
-        if (site.getVdcShortId().equals(site.getStandbyShortId())) {
+        if (StringUtils.isEmpty(site.getStandbyShortId()) || site.getVdcShortId().equals(site.getStandbyShortId())) {
             dcId = site.getVdcShortId();
         } else {
             dcId = site.getUuid();
@@ -264,5 +273,41 @@ public class DrUtil {
         Configuration localVdc = coordinator.queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
                 Constants.CONFIG_GEO_LOCAL_VDC_ID);
         return localVdc.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
+    }
+    
+    /**
+     * Use Zookeeper 4 letter command to check status of local coordinatorsvc. The return value could 
+     * be one of the following - follower, leader, observer, read-only
+     * 
+     * @return zookeeper mode
+     */
+    public String getLocalCoordinatorMode(String nodeId) {
+        Socket sock = null;
+        try {
+            log.info("get local coordinator mode from {}:{}", nodeId, COORDINATOR_PORT);
+            sock = new Socket(nodeId, COORDINATOR_PORT);
+            OutputStream output = sock.getOutputStream();
+            output.write("mntr".getBytes());
+            sock.shutdownOutput();
+            
+            BufferedReader input =
+                new BufferedReader(new InputStreamReader(sock.getInputStream()));
+            String answer;
+            while ((answer = input.readLine()) != null) {
+                if (answer.startsWith("zk_server_state")){
+                    String state = StringUtils.trim(answer.substring("zk_server_state".length()));
+                    log.info("Get current zookeeper mode {}", state);
+                    return state;
+                }
+            }
+            input.close();
+        } catch(IOException ex) {
+            log.warn("Unexpected IO errors when checking local coordinator state {}", ex.toString());
+        } finally {
+            try {
+                if (sock != null) sock.close();
+            } catch (Exception ex) {}
+        }
+        return null;
     }
 }

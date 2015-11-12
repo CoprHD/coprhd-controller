@@ -39,7 +39,9 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -583,7 +585,7 @@ public class DisasterRecoveryService {
     }
     
     /**
-     * This API will do planned failover to target new primary site according passed in site UUID. After failover, old primary site will
+     * This API will do switchover to target new primary site according passed in site UUID. After failover, old primary site will
      * work as normal standby site and target site will be promoted to primary. All site will update properties to trigger reconfig.
      * 
      * @param uuid target new primary site UUID
@@ -593,7 +595,7 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{uuid}/switchover")
     public Response doSwitchover(@PathParam("uuid") String uuid) {
-        log.info("Begin to failover for standby UUID {}", uuid);
+        log.info("Begin to switchover for standby UUID {}", uuid);
 
         precheckForSwitchover(uuid);
 
@@ -629,7 +631,49 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.switchoverFailed(oldPrimaryUUID, uuid, e.getMessage());
         }
     }
+    
+    /**
+     * This API will do failover from standby site. This operation is only allowed when primary site is down.
+     * After failover, this standby site will be promoted to primary site.
+     * 
+     * @param uuid target new primary site UUID
+     * @return return accepted response if operation is successful
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{uuid}/failover")
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    public Response doFailover(@PathParam("uuid") String uuid) {
+        log.info("Begin to failover for standby UUID {}", uuid);
+
+        precheckForFailover(uuid);
         
+        Site currentSite = drUtil.getSiteFromLocalVdc(uuid);
+        try {
+            
+            //set state
+            Site oldPrimarySite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
+            oldPrimarySite.setState(SiteState.PRIMARY_FAILING_OVER);
+            coordinator.persistServiceConfiguration(oldPrimarySite.toConfiguration());
+            
+            currentSite.setState(SiteState.STANDBY_FAILING_OVER);
+            coordinator.persistServiceConfiguration(currentSite.toConfiguration());
+            
+            //set new primary uuid
+            coordinator.setPrimarySite(uuid);
+            
+            //reconfig
+            drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);
+            
+            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_SUCCESS, null, uuid, currentSite.getVip(), currentSite.getName());
+            return Response.status(Response.Status.ACCEPTED).build();
+        } catch (Exception e) {
+            log.error("Error happened when failover at site %s", uuid, e);
+            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid, currentSite.getVip(), currentSite.getName());
+            throw APIException.internalServerErrors.failoverFailed(uuid, e.getMessage());
+        }
+    }
+
     private Site validateSiteConfig(String uuid) {
         if (!isClusterStable()) {
             log.error("Cluster is unstable");
@@ -723,7 +767,7 @@ public class DisasterRecoveryService {
         }
 
         if (standbyUuid.equals(drUtil.getPrimarySiteId())) {
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Can't failover to a primary site");
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Can't switchover to a primary site");
         }
 
         if(!drUtil.isSiteUp(standbyUuid)) {
@@ -741,6 +785,49 @@ public class DisasterRecoveryService {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getUuid(), String.format("Site %s is not stable", site.getName()));
             }
+        }
+    }
+    
+    /*
+     * Internal method to check whether failover to standby is allowed
+     */
+    protected void precheckForFailover(String standbyUuid) {
+        Site standby = drUtil.getLocalSite();
+
+        // API should be only send to local site 
+        if (!standby.getUuid().equals(standbyUuid)) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid,
+                    String.format("Failover can only be executed in local site. Local site uuid %s is not matched with uuid %s",
+                            standby.getUuid(), standbyUuid));
+        }
+        
+        // show be only standby
+        if (drUtil.isPrimary()) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Failover can't be executed in primary site");
+        }
+
+        // should be SYNCED
+        if (standby.getState() != SiteState.STANDBY_SYNCED) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Standby site is not fully synced");
+        }
+
+        // Current site is stable
+        ClusterInfo.ClusterState state = coordinator.getControlNodesState(standbyUuid, standby.getNodeCount());
+        if (state != ClusterInfo.ClusterState.STABLE) {
+            log.info("Site {} is not stable {}", standbyUuid, state);
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid,
+                    String.format("Site %s is not stable", standby.getName()));
+        }
+        
+        // this is standby site and NOT in ZK read-only or observer mode,
+        // it means primary is down and local ZK has been reconfig to participant
+        CoordinatorClientInetAddressMap addrLookupMap = coordinator.getInetAddessLookupMap();
+        String myNodeId = addrLookupMap.getNodeId();
+        String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);
+        log.info("Local coordinator mode is {}", coordinatorMode);
+        if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
+            log.info("Primary is available now, can't do failover");
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Primary is available now, can't do failover");
         }
     }
     

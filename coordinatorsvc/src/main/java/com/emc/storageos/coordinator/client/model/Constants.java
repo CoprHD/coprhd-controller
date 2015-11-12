@@ -94,6 +94,9 @@ public interface Constants {
 
     // see the defintion of ClusterInfo.MigrationStatus
     public static final String MIGRATION_STATUS = "migrationstatus";
+    
+    // Upgrade failure information
+    public static final String  UPGRADE_FAILURE_INFO ="upgradefailureinfo";
 
     // category name under which external node information are stored
     public static final String NODE_DUALINETADDR_CONFIG = "nodeAddresses";
@@ -133,9 +136,6 @@ public interface Constants {
     
     public static final String SITE_STATE = "state";
     public static final String SITE_ID= "siteid";
-
-    public static final String STATIC_CFGFile_Key = "staticConfigFile";
-    public static final String DYNAMIC_CFGFile_Key = "dynamicConfigFile";
     
     public static final String KEY_CERTIFICATE_PAIR_CONFIG_KIND = "keyCertificatePairConfig";
     public static final String ZK_OBSERVER_CONFIG_SUFFIX= ":2888:2889:observer;2181";
@@ -145,4 +145,7 @@ public interface Constants {
     public static final String STANDBY_PROPERTY_REGEX=".*standby\\d_network_\\d_ipaddr6?";
     
     public static final String SWITCHOVER_BARRIER = "switchoverBarrier";
+    public static final String FAILOVER_BARRIER = "failoverBarrier";
+    public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
+    public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";
 }

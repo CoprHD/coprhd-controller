@@ -600,23 +600,14 @@ public class UnManagedFilesystemService extends TaggedResource {
             
             // Step 8.1 : Update NFS Acls in DB & Add new ACLs
             if (fsNfsShareAcls != null && !fsNfsShareAcls.isEmpty()) {
-                i=0;
-                for(NFSShareACL nfsAcl: fsNfsShareAcls){
-                    ++i;
-                    _logger.info("{} --> Saving New NFS ACL to DB {}", i, nfsAcl);            	
-                }
+                 _logger.info("Saving {} NFS ACLs to DB", fsNfsShareAcls.size());            	
                 _dbClient.createObject(fsNfsShareAcls);
             }
-            // Step 9.1 : Update the same in DB & clean ingested UnManagedNFSShareACLs
+			// Step 9.1 : Update the same in DB & clean ingested
+			// UnManagedNFSShareACLs
 			if (inActiveUnManagedShareNfs != null
 					&& !inActiveUnManagedShareNfs.isEmpty()) {
-				i = 0;
-				for (UnManagedNFSShareACL nfsAcl : inActiveUnManagedShareNfs) {
-					++i;
-					_logger.info(
-							"{} Updating UnManagedACL DB as InActive TRUE {}",
-							nfsAcl);
-				}
+				_logger.info("Saving {} UnManagedNFS ACLs to DB",inActiveUnManagedShareNfs.size());
 				_dbClient.updateObject(inActiveUnManagedShareNfs);
 			}
 
@@ -700,7 +691,7 @@ public class UnManagedFilesystemService extends TaggedResource {
 	 */
     private List<UnManagedNFSShareACL> queryDBNfsShares(UnManagedFileSystem fs)
     {
-        _logger.info("Querying All Cifs Share ACLs Using FsId {}", fs.getId());
+        _logger.info("Querying All Nfs Share ACLs Using FsId {}", fs.getId());
         try {
             ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getUnManagedNfsShareAclsConstraint(fs.getId());
             List<UnManagedNFSShareACL> nfsShareACLList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
@@ -875,7 +866,6 @@ public class UnManagedFilesystemService extends TaggedResource {
 
 		shareACL.setFileSystemPath(origACL.getFileSystemPath());
 		shareACL.setDomain(origACL.getDomain());
-		shareACL.setUser(origACL.getUser());
 		shareACL.setType(origACL.getType());
 		shareACL.setPermissionType(origACL.getPermissionType());
 		String user = origACL.getUser();

@@ -19,6 +19,8 @@ public class StorageVirtualMachine {
     private NaServer server = null;
     private static final String DATA_SVM = "data";
     private static final String FIBRE_CHANNEL_CONNECTIONS = "fcp";
+    private static final String IP_CIFS_CONNECTIONS = "cifs";
+    private static final String IP_NFS_CONNECTIONS = "nfs";
 
     public StorageVirtualMachine(NaServer server, String name) {
         this.name = name;
@@ -83,7 +85,10 @@ public class StorageVirtualMachine {
                             if (dataProtocols != null) {
                                 for (NaElement dataProtocol : (List<NaElement>) dataProtocols.getChildren()) {
                                     if (dataProtocol != null) {
-                                        if (dataProtocol.getContent().equalsIgnoreCase(FIBRE_CHANNEL_CONNECTIONS)) {
+                                        String protocolValue = dataProtocol.getContent();
+                                        // select only those port which support CIFS or NFS
+                                        if (!(protocolValue.equalsIgnoreCase(IP_CIFS_CONNECTIONS) || protocolValue
+                                                .equalsIgnoreCase(IP_NFS_CONNECTIONS))) {
                                             invalid = true;
                                             break;
                                         }

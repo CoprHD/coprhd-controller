@@ -509,6 +509,9 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.reconfigProperties("firewall");
         localRepository.reload("firewall");
 
+        localRepository.reconfigProperties("ssh");
+        localRepository.reload("ssh");
+
         reconfigAndRestartCoordinator(site);
 
         finishUpdateVdcProperties();

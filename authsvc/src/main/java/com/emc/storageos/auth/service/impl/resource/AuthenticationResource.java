@@ -29,6 +29,7 @@ import com.emc.storageos.security.password.Password;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
 import com.emc.storageos.security.password.ValidatorFactory;
+import com.emc.storageos.services.util.SecurityUtils;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
@@ -242,40 +243,70 @@ public class AuthenticationResource {
         _log.debug("Original service = " + serviceDecoded);
         String newService = "";
         URI uriObject = new URI(serviceDecoded);
+
         String scheme = uriObject.getScheme();
         if (StringUtils.isBlank(scheme)) {
             scheme = "https";
         }
-        int port = uriObject.getPort();
+
         // newservice will be constructed by replacing the host component in the original service by
         // serverName obtained from the HttpServletRequest.
         newService = scheme + "://" + request.getServerName();
+
+        int port = uriObject.getPort();
         if (port > 0) {
             newService += ":" + port;
         }
+
         String path = uriObject.getPath();
         if (StringUtils.isNotBlank(path)) {
             newService += (path.startsWith("/") ? "" : "/") + path;
         }
+
         String query = uriObject.getQuery();
         if (query != null && !query.isEmpty()) {
             newService += "?" + query;
         }
-        _log.debug("Updated service = " + newService);
+
         if (newService.contains("?")) {
-            return URI.create(String.format("%s&%s", newService, RequestProcessingUtils.REDIRECT_FROM_AUTHSVC));
+            newService = String.format("%s&%s", newService, RequestProcessingUtils.REDIRECT_FROM_AUTHSVC);
+        } else {
+            newService = String.format("%s?%s", newService, RequestProcessingUtils.REDIRECT_FROM_AUTHSVC);
         }
-        return URI.create(String.format("%s?%s", newService, RequestProcessingUtils.REDIRECT_FROM_AUTHSVC));
+
+        //Append the fragments if any. Fragments are used to the identify
+        //particular service catalog. This is done to support the functionality
+        //of redirecting directly to a particular service catalog upon the
+        //the successful authentication.
+        if (StringUtils.isNotBlank(uriObject.getFragment())) {
+            newService += "#" + uriObject.getFragment();
+        }
+
+        newService = SecurityUtils.stripXSS(newService);
+
+        _log.debug("Updated service = " + newService);
+        return URI.create(newService);
     }
 
     /**
-     * Get login token to use in subsequent api calls
-     * 
-     * @brief Authenticates a user and obtains an authentication token
+     * Authenticates the user and obtains authentication token
+     * to use in subsequent api calls. If valid X-SDS-AUTH-TOKEN
+     * is provided, that will be used instead of creating the new
+     * authentication token.
+     * Setting the queryParam "using-cookies" to "true" sets the
+     * following cookies in the response.
+     *
+     * <li>X-SDS-AUTH-TOKEN</li>
+     * <li>HttpOnly</li>
+     * <li>Version</li>
+     * <li>Max-Age</li>
+     * <li>Secure</li>
+     *
+     * @brief User login
      * @param httpRequest request object (contains basic authentication header with credentials)
      * @param servletResponse Response object
      * @param service Optional query parameter, to specify a URL to redirect to on successful
-     *            authentication
+     *                authentication
      * @prereq none
      * @return Response
      * @throws IOException
@@ -345,8 +376,8 @@ public class AuthenticationResource {
 
     /**
      * Try to login the user. If not generate the form login page
-     * 
-     * @brief Displays form login page
+     *
+     * @brief INTERNAL USE
      * @param httpRequest request object (contains basic authentication header with credentials)
      * @param servletResponse Response object
      * @param service Optional query parameter, to specify a URL to redirect to on successful
@@ -384,7 +415,7 @@ public class AuthenticationResource {
             service = httpRequest.getScheme() + "://" + DUMMY_HOST_NAME + port + "/login";
         }
 
-        String formLP = getFormLoginPage(service, source, loginError);
+        String formLP = getFormLoginPage(service, source, httpRequest.getServerName(), loginError);
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
                     .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
@@ -397,7 +428,9 @@ public class AuthenticationResource {
     /**
      * display fromChangePassword page. it contains currently enabled password rules prompt information
      * to guide user input the new password.
-     * 
+     *
+     * @brief INTERNAL USE
+     *
      * @param httpRequest
      * @param servletResponse
      * @param service
@@ -422,7 +455,7 @@ public class AuthenticationResource {
             // Dummy Host Name will be replaced by the actual host name during redirection
             service = httpRequest.getScheme() + "://" + DUMMY_HOST_NAME + port + "/login";
         }
-        String formLP = getFormChangePasswordPage(service, source, loginError);
+        String formLP = getFormChangePasswordPage(service, source, httpRequest.getServerName(), loginError);
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
                     .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
@@ -433,11 +466,14 @@ public class AuthenticationResource {
     }
 
     /**
-     * Requests a proxy token corresponding to the user in the Context
+     * Requests a proxy authentication token corresponding to the user in the Context
      * A user must already be authenticated and have an auth-token in order to
      * be able to get a proxy token for itself.
-     * 
-     * @brief Obtain a proxy token for the logged on user
+     * This proxy token never expires and can be used with the
+     * proxy user's authentication token to make proxy user work on behalf
+     * of the user in the context.
+     *
+     * @brief Requests user's proxy authentication token.
      * @return Response
      * @throws IOException
      */
@@ -618,7 +654,7 @@ public class AuthenticationResource {
 
         if (_invLoginManager.isTheClientIPBlocked(clientIP) == true) {
             _log.error("The client IP is blocked for too many invalid login attempts: " + clientIP);
-            int minutes = _invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins();
+            int minutes = _invLoginManager.getTimeLeftToUnblock(clientIP);
             message = String.format("%s.<br>Will be cleared within %d minutes", FORM_INVALID_LOGIN_LIMIT_ERROR, minutes);
         } else if (userName == null || userOldPassw == null
                 || userPassw == null || confirmPassw == null) {
@@ -642,13 +678,14 @@ public class AuthenticationResource {
 
         String formLP = null;
         if (!isChangeSuccess) {
-            formLP = getFormChangePasswordPage(service, source, MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, message));
+            formLP = getFormChangePasswordPage(service, source, request.getServerName(),
+                    MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, message));
             if (message.contains(_invLoginManager.OLD_PASSWORD_INVALID_ERROR)) {
                 _invLoginManager.markErrorLogin(clientIP);
             }
         } else {  // change password successfully, do some cleanup
             try {
-                formLP = getFormLoginPage(service, source, MessageFormat.format(FORM_SUCCESS_ENT, message));
+                formLP = getFormLoginPage(service, source, request.getServerName(), MessageFormat.format(FORM_SUCCESS_ENT, message));
                 _invLoginManager.removeInvalidRecord(clientIP);
                 if (logout) {
                     _log.info("logout active sessions for: " + userName);
@@ -673,6 +710,15 @@ public class AuthenticationResource {
      * This method is for internal use by formlogin page.
      * 
      * @brief INTERNAL USE
+     *
+     * @param request the login request from the client.
+     * @param servletResponse the response to be sent out to client.
+     * @param service to be used to redirect on successful authentication.
+     * @param source to be used to identify if the request is coming from portal
+     *               or some other client.
+     * @param fragment to used to identify the service catalog to redirect on
+     *                 successful authentication.
+     *
      * @return On successful authentication the client will be redirected to the provided service.
      * @throws IOException
      */
@@ -684,6 +730,7 @@ public class AuthenticationResource {
             @Context HttpServletResponse servletResponse,
             @QueryParam("service") String service,
             @QueryParam("src") String source,
+            @QueryParam("fragment") String fragment,
             MultivaluedMap<String, String> formData) throws IOException {
 
         boolean isPasswordExpired = false;
@@ -691,13 +738,19 @@ public class AuthenticationResource {
         if (service == null || service.isEmpty()) {
             loginError = FORM_LOGIN_POST_NO_SERVICE_ERROR;
         }
+
+        String updatedService = service;
+        if (StringUtils.isNotBlank(service) && StringUtils.isNotBlank(fragment)) {
+            updatedService = updatedService + "#" + fragment;
+        }
+
         // Check invalid login count from the client IP
         boolean updateInvalidLoginCount = true;
         String clientIP = _invLoginManager.getClientIP(request);
         _log.debug("Client IP: {}", clientIP);
         if (_invLoginManager.isTheClientIPBlocked(clientIP) == true) {
             _log.error("The client IP is blocked for too many invalid login attempts: " + clientIP);
-            int minutes = _invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins();
+            int minutes = _invLoginManager.getTimeLeftToUnblock(clientIP);
             loginError = String.format("%s.<br>Will be cleared within %d minutes", FORM_INVALID_LOGIN_LIMIT_ERROR, minutes);
             updateInvalidLoginCount = false;
         }
@@ -715,7 +768,7 @@ public class AuthenticationResource {
                     StorageOSUserDAO userDAOFromForm = _tokenManager.validateToken(tokenFromForm);
                     if (userDAOFromForm != null) {
                         _log.debug("Form login was posted with valid token");
-                        return buildLoginResponse(service, source, true, rememberMe,
+                        return buildLoginResponse(updatedService, source, true, rememberMe,
                                 new LoginStatus(userDAOFromForm.getUserName(), tokenFromForm, false), request);
                     }
                     _log.error("Auth token passed to this formlogin could not be validated and returned null user");
@@ -748,14 +801,14 @@ public class AuthenticationResource {
                                     OperationTypeEnum.AUTHENTICATION, false, null, credentials.getUserName());
                             return Response.status(Status.INTERNAL_SERVER_ERROR).build();
                         }
-                        _log.debug("Redirecting to the original service: {}", service);
+                        _log.debug("Redirecting to the original service: {}", updatedService);
                         _invLoginManager.removeInvalidRecord(clientIP);
 
                         auditOp(URI.create(user.getTenantId()), URI.create(user.getUserName()),
                                 OperationTypeEnum.AUTHENTICATION, true, null, credentials.getUserName());
 
                         // If remember me check box is on, set the expiration time.
-                        return buildLoginResponse(service, source, true,
+                        return buildLoginResponse(updatedService, source, true,
                                 rememberMe, new LoginStatus(user.getUserName(), token, null != credentials),
                                 request);
                     }
@@ -783,9 +836,11 @@ public class AuthenticationResource {
 
         String formLP = null;
         if (isPasswordExpired) {
-            formLP = getFormChangePasswordPage(service, source, MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
+            formLP = getFormChangePasswordPage(updatedService, source, request.getServerName(),
+                    MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
         } else {
-            formLP = getFormLoginPage(service, source, MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
+            formLP = getFormLoginPage(updatedService, source, request.getServerName(),
+                    MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
         }
 
         auditOp(null, null,
@@ -881,7 +936,7 @@ public class AuthenticationResource {
      * @param service The requested service
      * @return
      */
-    private String getFormLoginPage(final String service, final String source, final String error) {
+    private String getFormLoginPage(final String service, final String source, final String serverName, final String error) {
 
         if (StringUtils.isBlank(_cachedLoginPagePart1) || StringUtils.isBlank(_cachedLoginPagePart2)) {
             _log.error("The form login page is not processed correctly, missing part1 and/or part2");
@@ -889,8 +944,9 @@ public class AuthenticationResource {
         }
         String encodedTargetService = "";
         try {
-            encodedTargetService = URLEncoder.encode(service, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
+            URI serviceURL = getServiceURL(service, serverName);
+            encodedTargetService = URLEncoder.encode(serviceURL.toString(), "UTF-8");
+        } catch (UnsupportedEncodingException | URISyntaxException e) {
             throw APIException.badRequests.unableToEncodeString(service, e);
         }
         StringBuffer sbFinal = new StringBuffer();
@@ -912,7 +968,7 @@ public class AuthenticationResource {
     /**
      * Update the static changePassword page with service query parameter
      */
-    private String getFormChangePasswordPage(final String service, final String source, final String error) {
+    private String getFormChangePasswordPage(final String service, final String source, final String serverName, final String error) {
 
         if (StringUtils.isBlank(_cachedChangePasswordPagePart1) || StringUtils.isBlank(_cachedChangePasswordPagePart2)) {
             _log.error("The form changePassword page is not processed correctly, missing part1 and/or part2");
@@ -920,8 +976,9 @@ public class AuthenticationResource {
         }
         String encodedTargetService = "";
         try {
-            encodedTargetService = URLEncoder.encode(service, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
+            URI serviceURL = getServiceURL(service, serverName);
+            encodedTargetService = URLEncoder.encode(serviceURL.toString(), "UTF-8");
+        } catch (UnsupportedEncodingException | URISyntaxException e) {
             throw APIException.badRequests.unableToEncodeString(service, e);
         }
         StringBuffer sbFinal = new StringBuffer();
@@ -1127,7 +1184,51 @@ public class AuthenticationResource {
             _log.error("The client IP is blocked for too many invalid login attempts: " + clientIP);
             throw APIException.unauthorized.
                     exceedingErrorLoginLimit(_invLoginManager.getMaxAuthnLoginAttemtsCount(),
-                            _invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins());
+                            _invLoginManager.getTimeLeftToUnblock(clientIP));
         }
+    }
+
+    /**
+     * Returns the Service URL to be redirected upon the successful login of
+     * the user. The service URL is built using the service queryParam and
+     * the host header of the http request.
+     *
+     * @param service the requested service url.
+     * @param serverName the server name from the host header of the http request.
+     *
+     * @return returns the service url built from the server name.
+     * @throws URISyntaxException
+     */
+    private URI getServiceURL(String service, String serverName)
+            throws UnsupportedEncodingException, URISyntaxException {
+        String serviceDecoded = URLDecoder.decode(service, UTF8_ENCODING);
+        _log.debug("Original service = " + serviceDecoded);
+        serviceDecoded = SecurityUtils.stripXSS(serviceDecoded);
+
+        String newService = "";
+        URI uriObject = new URI(serviceDecoded);
+        String scheme = uriObject.getScheme();
+        if (StringUtils.isBlank(scheme) ) {
+            scheme = "https";
+        }
+        int port = uriObject.getPort();
+        // newservice will be constructed by replacing the host component in the original service by
+        // serverName obtained from the HttpServletRequest.
+        newService = scheme + "://" + serverName;
+        if (port > 0) {
+            newService += ":" + port;
+        }
+
+        String path = uriObject.getPath();
+        if (StringUtils.isNotBlank(path)) {
+            newService += (path.startsWith("/")?"":"/") + path;
+        }
+        String query = uriObject.getQuery();
+        if (query != null && !query.isEmpty() ) {
+            newService += "?" + query;
+        }
+        _log.debug("Updated service = " + newService);
+
+        return URI.create(newService);
     }
 }

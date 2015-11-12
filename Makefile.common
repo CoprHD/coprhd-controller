@@ -119,6 +119,7 @@ endif
                    BASE64 := /usr/bin/base64
                        CP := /bin/cp
                     CHMOD := /bin/chmod
+                  SETFACL := /usr/bin/setfacl
                     CHOWN := /bin/chown
                       REV := /usr/bin/rev
                       SEQ := /usr/bin/seq

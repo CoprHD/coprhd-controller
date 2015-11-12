@@ -43,13 +43,15 @@ public class CreateFullCopyService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        Tasks<? extends DataObjectRestRep> copies;
+        Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-            copies = BlockStorageUtils.createFullCopy(volumeId, name, count);
+            tasks = BlockStorageUtils.createFullCopy(volumeId, name, count);
+            addAffectedResources(tasks);
         } else {
-            copies = ConsistencyUtils.createFullCopy(volumeId, name, count);
+            tasks = ConsistencyUtils.createFullCopy(volumeId, name, count);
+            addAffectedResources(tasks);
         }
-        for (Task<? extends DataObjectRestRep> copy : copies.getTasks()) {
+        for (Task<? extends DataObjectRestRep> copy : tasks.getTasks()) {
             logInfo("create.full.copy.service", copy.getResource().getName(), copy.getResource().getId());
         }
     }

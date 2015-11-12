@@ -18,3 +18,10 @@ dependencies {
             project(":geosvc"),
             project(":com.emc.sa.model")
 }
+
+task copyScripts(type: Copy) {
+    from "script"
+    into "${buildDir}/bin"
+    fileMode = 0755
+}
+project.tasks['scripts'].dependsOn(copyScripts)

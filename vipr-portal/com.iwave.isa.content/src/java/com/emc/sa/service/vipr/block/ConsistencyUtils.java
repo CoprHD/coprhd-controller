@@ -6,7 +6,6 @@ package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResources;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
-import static com.emc.sa.service.vipr.block.BlockStorageUtils.removeBlockResources;
 
 import java.net.URI;
 import java.util.Collections;
@@ -51,7 +50,7 @@ final class ConsistencyUtils {
 
     static Tasks<BlockConsistencyGroupRestRep> removeFullCopy(URI consistencyGroupId, URI fullCopyId) {
         Tasks<BlockConsistencyGroupRestRep> tasks = execute(new DetachConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
-        removeBlockResources(Collections.singletonList(fullCopyId), VolumeDeleteTypeEnum.FULL);
+        BlockStorageUtils.removeBlockResources(Collections.singletonList(fullCopyId), VolumeDeleteTypeEnum.FULL);
         return tasks;
     }
 
@@ -75,15 +74,15 @@ final class ConsistencyUtils {
         return execute(new DeactivateConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
     }
 
-    static Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI consistencyGroupId, String snapshotName) {
-        return execute(new CreateConsistencyGroupSnapshot(consistencyGroupId, snapshotName));
-    }
-
-    static Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroupId, URI snapshotId) {
-        return execute(new RestoreConsistencyGroupSnapshot(consistencyGroupId, snapshotId));
+    static Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI consistencyGroupId, String snapshotName, Boolean readOnly) {
+        return execute(new CreateConsistencyGroupSnapshot(consistencyGroupId, snapshotName, readOnly));
     }
 
     static Tasks<BlockConsistencyGroupRestRep> removeSnapshot(URI consistencyGroupId, URI snapshotId) {
         return execute(new DeactivateConsistencyGroupSnapshot(consistencyGroupId, snapshotId));
+    }
+
+    static Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroupId, URI snapshotId) {
+        return execute(new RestoreConsistencyGroupSnapshot(consistencyGroupId, snapshotId));
     }
 }

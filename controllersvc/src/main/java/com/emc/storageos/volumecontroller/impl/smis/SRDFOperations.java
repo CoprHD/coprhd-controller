@@ -112,7 +112,7 @@ public class SRDFOperations implements SmisConstants {
 
     public enum Mode {
         SYNCHRONOUS(2), ASYNCHRONOUS(3), ADAPTIVECOPY(32768);
-        ;
+
         int mode;
 
         Mode(final int mode) {
@@ -392,7 +392,7 @@ public class SRDFOperations implements SmisConstants {
             performDetach(system, target, isGrouprollback, new TaskCompleter() {
                 @Override
                 protected void complete(DbClient dbClient,
-                                        Operation.Status status, ServiceCoded coded)
+                        Operation.Status status, ServiceCoded coded)
                         throws DeviceControllerException {
                     // ignore
                 }
@@ -547,7 +547,7 @@ public class SRDFOperations implements SmisConstants {
             final int MAX_ATTEMPTS = 12;
             final int DELAY_TIME_IN_MS = 5000;
             do {
-                log.info("Attempt {}/{}...", attempts+1, MAX_ATTEMPTS);
+                log.info("Attempt {}/{}...", attempts + 1, MAX_ATTEMPTS);
                 // Get all remote mirror relationships from provider
                 List<CIMObjectPath> repPaths = helper.getReplicationRelationships(system,
                         REMOTE_LOCALITY_VALUE, MIRROR_VALUE,
@@ -742,8 +742,8 @@ public class SRDFOperations implements SmisConstants {
             }
 
             CIMArgument[] inArgs = helper.getCreateListReplicaInputArguments(system,
-                    sourcePaths.toArray(new CIMObjectPath[]{}),
-                    targetPaths.toArray(new CIMObjectPath[]{}),
+                    sourcePaths.toArray(new CIMObjectPath[] {}),
+                    targetPaths.toArray(new CIMObjectPath[] {}),
                     modeValue, repCollectionPath, replicationSettingDataInstance);
             CIMArgument[] outArgs = new CIMArgument[5];
 
@@ -839,14 +839,10 @@ public class SRDFOperations implements SmisConstants {
 
             // for 4.6.x CG, only failback and swap are at group level. Failover has to be called at ModifyListSync.
             StorageSystem activeSystem = findProviderWithGroup(target);
-            Collection<CIMObjectPath> syncPaths = utils.getSynchronizations(
-                    activeSystem, sourceVolume, target, false);
-            CIMInstance firstSync = getInstance(syncPaths.iterator().next(), activeSystem);
-
             AbstractSRDFOperationContextFactory ctxFactory = getContextFactory(activeSystem);
             SRDFOperationContext ctx = null;
 
-            if (!system.getUsingSmis80() && !isFailedOver(firstSync)) {
+            if (!system.getUsingSmis80() && !isFailedOver(activeSystem, sourceVolume, target)) {
                 log.info("Failing over link");
                 ctx = ctxFactory.build(SRDFOperation.FAIL_OVER, target);
                 ctx.perform();
@@ -855,7 +851,14 @@ public class SRDFOperations implements SmisConstants {
             }
 
             if (completer instanceof SRDFLinkFailOverCompleter) {
-                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(Volume.LinkStatus.IN_SYNC);
+                // Re-check the fail over status.
+                LinkStatus status = null;
+                if (isFailedOver(activeSystem, sourceVolume, target)) {
+                    status = LinkStatus.FAILED_OVER;
+                } else {
+                    status = sourceVolume.hasConsistencyGroup() ? LinkStatus.CONSISTENT : LinkStatus.IN_SYNC;
+                }
+                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(status);
             }
         } catch (Exception e) {
             log.error("Failed to failover srdf link {}", target.getSrdfParent().getURI(), e);
@@ -1208,13 +1211,13 @@ public class SRDFOperations implements SmisConstants {
         try {
             StorageSystem activeSystem = findProviderWithGroup(targetVolume);
 
-            SRDFOperationContext ctx = null;
             SRDFOperationContext failBackCtx = getContextFactory(activeSystem).build(SRDFOperation.FAIL_BACK, targetVolume);
             failBackCtx.perform();
 
             // this hack is needed, as currently triggering fail over twice invokes failback
             if (completer instanceof SRDFLinkFailOverCompleter) {
-                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(Volume.LinkStatus.IN_SYNC);
+                LinkStatus status = sourceVolume.hasConsistencyGroup() ? LinkStatus.CONSISTENT : LinkStatus.IN_SYNC;
+                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(status);
             }
             completer.ready(dbClient);
         } catch (Exception e) {
@@ -1430,6 +1433,7 @@ public class SRDFOperations implements SmisConstants {
     public void startSRDFLink(final StorageSystem targetSystem, final Volume targetVolume,
             final TaskCompleter completer) {
         try {
+            boolean isLinkEstablished = false;
             NamedURI sourceVolumeNamedUri = targetVolume.getSrdfParent();
             if (NullColumnValueGetter.isNullNamedURI(sourceVolumeNamedUri)) {
                 throw DeviceControllerException.exceptions.resumeVolumeOperationFailed(
@@ -1461,6 +1465,7 @@ public class SRDFOperations implements SmisConstants {
                     log.info("No valid synchronization found, hence re-establishing link");
                     createSRDFVolumePair(systemWithCg, sourceVolUri, targetVolume.getId(), completer);
                 } else {
+                    isLinkEstablished = true;
                     log.info("Link already established..");
                 }
             } else {
@@ -1493,10 +1498,13 @@ public class SRDFOperations implements SmisConstants {
                     }
                     createSRDFMirror(systemWithCg, srcVolumes, targetVolumes, storSyncAvailable, completer);
                 } else {
+                    isLinkEstablished = true;
                     log.info("Link already established..");
                 }
             }
-            completer.ready(dbClient);
+            if (isLinkEstablished) {
+                completer.ready(dbClient);
+            }
         } catch (Exception e) {
             log.error("Failed to start SRDF link {}", targetVolume.getSrdfParent().getURI(), e);
             ServiceError error = SmisException.errors.jobFailed(e.getMessage());
@@ -1547,12 +1555,15 @@ public class SRDFOperations implements SmisConstants {
         }
     }
 
+    private boolean isFailedOver(StorageSystem system, Volume source, Volume target) throws WBEMException {
+        Collection<CIMObjectPath> syncPaths = utils.getSynchronizations(system, source, target, false);
+        CIMInstance firstSync = getInstance(syncPaths.iterator().next(), system);
+        return isFailedOver(firstSync);
+    }
+
     private boolean isFailedOver(final CIMInstance syncInstance) {
         String copyState = syncInstance.getPropertyValue(CP_COPY_STATE).toString();
-        if (String.valueOf(FAILOVER_SYNC_PAIR).equalsIgnoreCase(copyState)) {
-            return true;
-        }
-        return false;
+        return String.valueOf(FAILOVER_SYNC_PAIR).equalsIgnoreCase(copyState);
     }
 
     private Set<CIMObjectPath> getDeviceGroup(final StorageSystem system,

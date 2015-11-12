@@ -5,6 +5,8 @@
 
 package com.emc.storageos.api.service;
 
+import com.emc.storageos.api.ldap.exceptions.DirectoryOrFileNotFoundException;
+import com.emc.storageos.api.ldap.exceptions.FileOperationFailedException;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskResourceRep;
@@ -12,6 +14,7 @@ import com.emc.storageos.model.auth.*;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
 import com.emc.storageos.model.host.vcenter.*;
+import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.model.tasks.TasksList;
 import com.emc.storageos.model.tenant.*;
 import com.emc.storageos.model.usergroup.UserAttributeParam;
@@ -20,6 +23,8 @@ import com.emc.storageos.model.usergroup.UserGroupRestRep;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.services.util.EnvConfig;
 import com.sun.jersey.api.client.ClientResponse;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldif.LDIFException;
 import org.apache.commons.httpclient.HttpStatus;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -27,10 +32,11 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.Assert;
-
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
 import java.net.URI;
+import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.ArrayList;
@@ -62,6 +68,7 @@ public class ApiTestVcenter extends ApiTestBase {
     private static final String USER_WHOAMI_API = "/user/whoami";
     private static final String VDC_TASKS_API = "/vdc/tasks";
     private static final String VDC_TASK_DELETE_API = "/vdc/tasks/%s/delete";
+    private static final String CONFIG_PROPERTIES_API = "/config/properties";
 
     private static final String DEFAULT_VCENTER_IP = EnvConfig.get("sanity", "vcenter.ip");
     private static final String DEFAULT_VCENTER_USER = EnvConfig.get("sanity", "vcenter.user");
@@ -78,7 +85,10 @@ public class ApiTestVcenter extends ApiTestBase {
     private static final String NO_TENANT_FILTER = "No-Filter";
     private static final String NO_TENANTS_ASSIGNED = "Not-Assigned";
 
+    private static final String DISCOVER_VCENTER_QUERY_PARAM = "discover_vcenter";
+
     private static final int VCENTER_PORT = 443;
+    private static final int SECONDS_MULTIPLIER = 1000;
 
     private static String authnProviderDomain = null;
     private ApiTestAuthnProviderUtils apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();;
@@ -89,7 +99,10 @@ public class ApiTestVcenter extends ApiTestBase {
     private static ApiTestVcenter apiTestVcenter = new ApiTestVcenter();
 
     @BeforeClass
-    public static void setupTestSuite() throws NoSuchAlgorithmException {
+    public static void setupTestSuite() throws LDIFException,
+        LDAPException, IOException, FileOperationFailedException,
+        GeneralSecurityException, DirectoryOrFileNotFoundException, InterruptedException {
+        apiTestVcenter.apiTestAuthnProviderUtils.startLdapServer(ApiTestVcenter.class.getSimpleName());
         apiTestVcenter.setupHttpsResources();
 
         apiTestVcenter.apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();
@@ -107,6 +120,7 @@ public class ApiTestVcenter extends ApiTestBase {
 
         CleanupResource.cleanUpTestResources(apiTestVcenter._cleanupEnvironmentResourceList);
         apiTestVcenter.tearDownHttpsResources();
+        apiTestVcenter.apiTestAuthnProviderUtils.stopLdapServer();
     }
 
     @Before
@@ -219,6 +233,10 @@ public class ApiTestVcenter extends ApiTestBase {
         return String.format(USER_GROUP_API_WITH_ID, userGroupId.toString());
     }
 
+    private String getDiscoverVcenterQueryParam () {
+        return DISCOVER_VCENTER_QUERY_PARAM;
+    }
+
     private String getAuthnProviderDomain() {
         return authnProviderDomain;
     }
@@ -292,7 +310,7 @@ public class ApiTestVcenter extends ApiTestBase {
     }
 
     private String getProviderTenantAdminGroup() {
-        return apiTestAuthnProviderUtils.getLDAPGroup(4);
+        return apiTestAuthnProviderUtils.getLDAPGroup(9);
     }
 
     private String getSecurityAdminGroup() {
@@ -331,8 +349,16 @@ public class ApiTestVcenter extends ApiTestBase {
         return VDC_ROLE_ASSIGNMENT_API;
     }
 
+    private String getConfigPropertiesApi() {
+        return CONFIG_PROPERTIES_API;
+    }
+
     private String getLDAPUserPassword() {
         return apiTestAuthnProviderUtils.getLDAPUserPassword();
+    }
+
+    private int getSecondsMultiplier() {
+        return SECONDS_MULTIPLIER;
     }
 
     private BalancedWebResource loginUser(String userName) throws NoSuchAlgorithmException {
@@ -674,7 +700,37 @@ public class ApiTestVcenter extends ApiTestBase {
         cleanUpProviderTenantAndVdcRoles();
     }
 
-    private URI createDefaultVcenter (BalancedWebResource user, int expectedStatus) {
+    private URI createDefaultVcenter (BalancedWebResource user, int expectedStatus, boolean discoverVcenter, boolean cascadeTenancy) {
+        URI vCenterId = createDefaultVcenterNoCleanUpRegister(user, expectedStatus, discoverVcenter, cascadeTenancy);
+
+        // Add the created tenant to cleanup list, so that at the end of this test
+        // the resource will be destroyed.
+        if (!NullColumnValueGetter.isNullURI(vCenterId)) {
+            final String deleteObjectURL = getVcenterDeactivateApi(vCenterId);
+            CleanupResource tenantToCleanup = new CleanupResource("post", deleteObjectURL, rSys, null, HttpStatus.SC_ACCEPTED);
+
+            registerResourceForCleanup(tenantToCleanup);
+        }
+
+        return vCenterId;
+    }
+
+    private URI createDefaultVcenterWithDefaultCascadeTenancy (BalancedWebResource user, int expectedStatus, boolean discoverVcenter) {
+        URI vCenterId = createDefaultVcenterNoCleanUpRegister(user, expectedStatus, discoverVcenter);
+
+        // Add the created tenant to cleanup list, so that at the end of this test
+        // the resource will be destroyed.
+        if (!NullColumnValueGetter.isNullURI(vCenterId)) {
+            final String deleteObjectURL = getVcenterDeactivateApi(vCenterId);
+            CleanupResource tenantToCleanup = new CleanupResource("post", deleteObjectURL, rSys, null, HttpStatus.SC_ACCEPTED);
+
+            registerResourceForCleanup(tenantToCleanup);
+        }
+
+        return vCenterId;
+    }
+
+    private URI createDefaultVcenterNoCleanUpRegister (BalancedWebResource user, int expectedStatus, boolean discoverVcenter, boolean cascadeTenancy) {
         VcenterCreateParam param = new VcenterCreateParam();
 
         param.setName(getDefaultVcenterName());
@@ -683,8 +739,11 @@ public class ApiTestVcenter extends ApiTestBase {
         param.setPassword(getDefaultVcenterPassword());
         param.setUseSsl(true);
         param.setPortNumber(VCENTER_PORT);
+        param.setCascadeTenancy(cascadeTenancy);
 
-        ClientResponse clientResponse = user.path(getVcenterApi()).post(ClientResponse.class, param);
+        ClientResponse clientResponse = user.path(getVcenterApi())
+                .queryParam(getDiscoverVcenterQueryParam(), new Boolean(discoverVcenter).toString())
+                .post(ClientResponse.class, param);
         Assert.assertEquals(expectedStatus, clientResponse.getStatus());
 
         if (expectedStatus != HttpStatus.SC_OK &&
@@ -694,13 +753,6 @@ public class ApiTestVcenter extends ApiTestBase {
 
         TaskResourceRep taskResourceRep = clientResponse.getEntity(TaskResourceRep.class);
         Assert.assertNotNull(taskResourceRep.getResource().getId());
-
-        // Add the created tenant to cleanup list, so that at the end of this test
-        // the resource will be destroyed.
-        final String deleteObjectURL = getVcenterDeactivateApi(taskResourceRep.getResource().getId());
-        CleanupResource tenantToCleanup = new CleanupResource("post", deleteObjectURL, rSys, null, HttpStatus.SC_ACCEPTED);
-
-        registerResourceForCleanup(tenantToCleanup);
 
         while (taskResourceRep.getState().equalsIgnoreCase(TASK_STATUS_PENDING)) {
             clientResponse = user.path(getVdcTaskApi() + "/" + taskResourceRep.getId().toString()).get(ClientResponse.class);
@@ -713,7 +765,7 @@ public class ApiTestVcenter extends ApiTestBase {
         return taskResourceRep.getResource().getId();
     }
 
-    private URI createDefaultVcenterNoCleanUpRegister (BalancedWebResource user, int expectedStatus) {
+    private URI createDefaultVcenterNoCleanUpRegister (BalancedWebResource user, int expectedStatus, boolean discoverVcenter) {
         VcenterCreateParam param = new VcenterCreateParam();
 
         param.setName(getDefaultVcenterName());
@@ -723,7 +775,9 @@ public class ApiTestVcenter extends ApiTestBase {
         param.setUseSsl(true);
         param.setPortNumber(VCENTER_PORT);
 
-        ClientResponse clientResponse = user.path(getVcenterApi()).post(ClientResponse.class, param);
+        ClientResponse clientResponse = user.path(getVcenterApi())
+                .queryParam(getDiscoverVcenterQueryParam(), new Boolean(discoverVcenter).toString())
+                .post(ClientResponse.class, param);
         Assert.assertEquals(expectedStatus, clientResponse.getStatus());
 
         if (expectedStatus != HttpStatus.SC_OK &&
@@ -756,6 +810,43 @@ public class ApiTestVcenter extends ApiTestBase {
         param.setPortNumber(VCENTER_PORT);
 
         ClientResponse clientResponse = user.path(getVcenterApiWithId(vCenterId)).put(ClientResponse.class, param);
+        Assert.assertEquals(expectedStatus, clientResponse.getStatus());
+
+        if (expectedStatus != HttpStatus.SC_OK &&
+                expectedStatus != HttpStatus.SC_ACCEPTED) {
+            return NullColumnValueGetter.getNullURI();
+        }
+
+        TaskResourceRep taskResourceRep = clientResponse.getEntity(TaskResourceRep.class);
+        Assert.assertNotNull(taskResourceRep.getResource().getId());
+
+        while (taskResourceRep.getState().equalsIgnoreCase(TASK_STATUS_PENDING)) {
+            clientResponse = user.path(getVdcTaskApi() + "/" + taskResourceRep.getId().toString()).get(ClientResponse.class);
+            Assert.assertEquals(HttpStatus.SC_OK, clientResponse.getStatus());
+
+            taskResourceRep = clientResponse.getEntity(TaskResourceRep.class);
+            Assert.assertNotNull(taskResourceRep.getResource().getId());
+        }
+
+        return taskResourceRep.getResource().getId();
+    }
+
+    private URI changeVcenterCascadeTenancy (BalancedWebResource user, URI vCenterId,
+                                             int expectedStatus, boolean cascadeTenancy,
+                                             boolean discoverVcenter) {
+        VcenterUpdateParam param = new VcenterUpdateParam();
+
+        param.setName(getDefaultVcenterName());
+        param.setIpAddress(getDefaultVcenterIp());
+        param.setUserName(getDefaultVcenterUser());
+        param.setPassword(getDefaultVcenterPassword());
+        param.setUseSsl(true);
+        param.setPortNumber(VCENTER_PORT);
+        param.setCascadeTenancy(cascadeTenancy);
+
+        ClientResponse clientResponse = user.path(getVcenterApiWithId(vCenterId))
+                .queryParam(getDiscoverVcenterQueryParam(), new Boolean(discoverVcenter).toString())
+                .put(ClientResponse.class, param);
         Assert.assertEquals(expectedStatus, clientResponse.getStatus());
 
         if (expectedStatus != HttpStatus.SC_OK &&
@@ -874,6 +965,51 @@ public class ApiTestVcenter extends ApiTestBase {
             Assert.assertFalse(CollectionUtils.isEmpty(aclEntries));
 
             Assert.assertTrue(getTenantsFromAcls(aclEntries).contains(tenantId));
+
+            while (taskResourceRep.getState().equalsIgnoreCase(TASK_STATUS_PENDING)) {
+                clientResponse = user.path(getVdcTaskApi() + "/" + taskResourceRep.getId().toString()).get(ClientResponse.class);
+                Assert.assertEquals(HttpStatus.SC_OK, clientResponse.getStatus());
+
+                taskResourceRep = clientResponse.getEntity(TaskResourceRep.class);
+                Assert.assertNotNull(taskResourceRep.getResource().getId());
+            }
+        }
+    }
+
+    private void addVcenterAcls (BalancedWebResource user, URI vCenterId, List<URI> tenantIds, int expectedStatus) {
+        ACLAssignmentChanges param = new ACLAssignmentChanges();
+
+        if (CollectionUtils.isEmpty(tenantIds)) {
+            Assert.assertTrue(false);
+        }
+
+        Iterator<URI> tenantsIterator = tenantIds.iterator();
+        while(tenantsIterator.hasNext()) {
+            URI tenantId = tenantsIterator.next();
+            ACLEntry aclEntry = new ACLEntry();
+            aclEntry.getAces().add(ACL.USE.name());
+            aclEntry.setTenant(tenantId.toString());
+            param.getAdd().add(aclEntry);
+        }
+
+        ClientResponse clientResponse = user.path(getVcenterAclApi(vCenterId)).put(ClientResponse.class, param);
+        Assert.assertEquals(expectedStatus, clientResponse.getStatus());
+
+        if (expectedStatus == HttpStatus.SC_OK &&
+                expectedStatus != HttpStatus.SC_ACCEPTED) {
+            TaskResourceRep taskResourceRep = clientResponse.getEntity(TaskResourceRep.class);
+            Assert.assertEquals(vCenterId, taskResourceRep.getResource().getId());
+
+            clientResponse = user.path(getVcenterAclApi(vCenterId)).get(ClientResponse.class);
+            Assert.assertEquals(HttpStatus.SC_OK, clientResponse.getStatus());
+
+            ACLAssignments aclAssignments = clientResponse.getEntity(ACLAssignments.class);
+            Assert.assertNotNull(aclAssignments);
+
+            List<ACLEntry> aclEntries = aclAssignments.getAssignments();
+            Assert.assertFalse(CollectionUtils.isEmpty(aclEntries));
+
+            Assert.assertTrue(getTenantsFromAcls(aclEntries).containsAll(tenantIds));
 
             while (taskResourceRep.getState().equalsIgnoreCase(TASK_STATUS_PENDING)) {
                 clientResponse = user.path(getVdcTaskApi() + "/" + taskResourceRep.getId().toString()).get(ClientResponse.class);
@@ -1057,6 +1193,21 @@ public class ApiTestVcenter extends ApiTestBase {
         apiTestVcenter.registerEnvironmentResourceForCleanup(authnProviderToCleanup);
     }
 
+    private long getCSDiscoveryRefreshRate() throws NoSuchAlgorithmException {
+        BalancedWebResource subTenantAdmin = loginUser(getSecurityAdminWithDomain());
+        String configPropertiesApi = getConfigPropertiesApi();
+        PropertyInfoRestRep propertyInfoRestRep = subTenantAdmin.path(configPropertiesApi)
+                .queryParam("category", "config")
+                .get(PropertyInfoRestRep.class);
+
+        Assert.assertNotNull(propertyInfoRestRep);
+
+        String prop = propertyInfoRestRep.getProperty("controller_cs_discovery_refresh_interval");
+        Assert.assertNotNull(prop);
+
+        return Long.parseLong(prop);
+    }
+
     /**
      * System admin creates and discovers the vCenter.
      * Also validating who call can edit it. Only System Admin can edit now
@@ -1064,10 +1215,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void createAndEditVcenterBySystemAdmin() throws NoSuchAlgorithmException {
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED, false, false);
 
         List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
@@ -1084,57 +1235,82 @@ public class ApiTestVcenter extends ApiTestBase {
     }
 
     /**
-     * Tenant (provider) admin creates and discovers the vCenter.
-     * Also validating who call can edit it. Only System Admin and
-     * tenant admin of of the tenant who created the vCenter can edit.
-     *
-     * @throws NoSuchAlgorithmException
-     */
-    //@Test
-    public void createAndEditVcenterBySubTenantAdmin() throws NoSuchAlgorithmException {
-        BalancedWebResource subTenantAdmin = loginUser(getSubTenantAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(subTenantAdmin, HttpStatus.SC_ACCEPTED);
-
-        List<URI> vCenterAcls = getVcenterAcls(subTenantAdmin, vCenterId, HttpStatus.SC_OK);
-        Assert.assertFalse(CollectionUtils.isEmpty(vCenterAcls));
-        Assert.assertEquals(1, vCenterAcls.size());
-
-        vCenterId = editDefaultVcenter(subTenantAdmin, vCenterId, HttpStatus.SC_OK);
-
-        BalancedWebResource providerTenantAdmin = loginUser(getProviderTenantAdminWithDomain());
-        BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        BalancedWebResource securityAdmin = loginUser(getSecurityAdminWithDomain());
-
-        editDefaultVcenter(providerTenantAdmin, vCenterId, HttpStatus.SC_FORBIDDEN);
-        editDefaultVcenter(systemAdmin, vCenterId, HttpStatus.SC_OK);
-        editDefaultVcenter(securityAdmin, vCenterId, HttpStatus.SC_FORBIDDEN);
-    }
-
-    /**
      * Tenant (sub) admin creates and discovers the vCenter.
      * Also validating who call can edit it. Only System Admin and
      * tenant admin of of the tenant who created the vCenter can edit.
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
-    public void createAndEditVcenterByProviderTenantAdmin() throws NoSuchAlgorithmException {
+    @Test
+    public void createAndEditVcenterBySubTenantAdmin() throws NoSuchAlgorithmException, InterruptedException {
+        BalancedWebResource subTenantAdmin = loginUser(getSubTenantAdminWithDomain());
+        BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
+
+        URI vCenterId = createVcenterByTenantApi(subTenantAdmin, getSubTenantId(), HttpStatus.SC_ACCEPTED);
+
+        List<URI> vCenterAcls = getVcenterAcls(subTenantAdmin, vCenterId, HttpStatus.SC_OK);
+        Assert.assertFalse(CollectionUtils.isEmpty(vCenterAcls));
+        Assert.assertEquals(1, vCenterAcls.size());
+
+        long refreshInterval = getCSDiscoveryRefreshRate();
+        if (refreshInterval > 0) {
+            editDefaultVcenter(systemAdmin, vCenterId, HttpStatus.SC_BAD_REQUEST);
+            editDefaultVcenter(subTenantAdmin, vCenterId, HttpStatus.SC_BAD_REQUEST);
+
+            Thread.sleep(refreshInterval * getSecondsMultiplier());
+            vCenterId = editDefaultVcenter(subTenantAdmin, vCenterId, HttpStatus.SC_OK);
+        }
+
         BalancedWebResource providerTenantAdmin = loginUser(getProviderTenantAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(providerTenantAdmin, HttpStatus.SC_ACCEPTED);
+        BalancedWebResource securityAdmin = loginUser(getSecurityAdminWithDomain());
+
+        editDefaultVcenter(providerTenantAdmin, vCenterId, HttpStatus.SC_FORBIDDEN);
+        editDefaultVcenter(securityAdmin, vCenterId, HttpStatus.SC_FORBIDDEN);
+
+        if (refreshInterval > 0) {
+            Thread.sleep(refreshInterval * getSecondsMultiplier());
+            editDefaultVcenter(systemAdmin, vCenterId, HttpStatus.SC_OK);
+        }
+    }
+
+    /**
+     * Tenant (provider) admin creates and discovers the vCenter.
+     * Also validating who call can edit it. Only System Admin and
+     * tenant admin of of the tenant who created the vCenter can edit.
+     *
+     * @throws NoSuchAlgorithmException
+     */
+    @Test
+    public void createAndEditVcenterByProviderTenantAdmin() throws NoSuchAlgorithmException, InterruptedException {
+        BalancedWebResource providerTenantAdmin = loginUser(getProviderTenantAdminWithDomain());
+        BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
+
+        URI vCenterId = createVcenterByTenantApi(providerTenantAdmin, rootTenantId, HttpStatus.SC_ACCEPTED);
 
         List<URI> vCenterAcls = getVcenterAcls(providerTenantAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertFalse(CollectionUtils.isEmpty(vCenterAcls));
         Assert.assertEquals(1, vCenterAcls.size());
 
-        vCenterId = editDefaultVcenter(providerTenantAdmin, vCenterId, HttpStatus.SC_OK);
+        long refreshInterval = getCSDiscoveryRefreshRate();
+        if (refreshInterval > 0) {
+            //Should be bad request as we are editing within the refresh rate.
+            editDefaultVcenter(providerTenantAdmin, vCenterId, HttpStatus.SC_BAD_REQUEST);
+            editDefaultVcenter(systemAdmin, vCenterId, HttpStatus.SC_BAD_REQUEST);
+
+            Thread.sleep(refreshInterval * getSecondsMultiplier());
+            vCenterId = editDefaultVcenter(providerTenantAdmin, vCenterId, HttpStatus.SC_OK);
+        }
 
         BalancedWebResource subTenantAdmin = loginUser(getSubTenantAdminWithDomain());
         BalancedWebResource securityAdmin = loginUser(getSecurityAdminWithDomain());
-        BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
 
         editDefaultVcenter(subTenantAdmin, vCenterId, HttpStatus.SC_FORBIDDEN);
-        editDefaultVcenter(systemAdmin, vCenterId, HttpStatus.SC_OK);
         editDefaultVcenter(securityAdmin, vCenterId, HttpStatus.SC_FORBIDDEN);
+
+        if (refreshInterval > 0) {
+            Thread.sleep(refreshInterval * getSecondsMultiplier());
+            editDefaultVcenter(systemAdmin, vCenterId, HttpStatus.SC_OK);
+        }
     }
 
     /**
@@ -1142,10 +1318,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void createVcenterBySecurityAdmin() throws NoSuchAlgorithmException {
         BalancedWebResource securityAdmin = loginUser(getSecurityAdminWithDomain());
-        createDefaultVcenter(securityAdmin, HttpStatus.SC_FORBIDDEN);
+        createDefaultVcenter(securityAdmin, HttpStatus.SC_FORBIDDEN, false, false);
     }
 
     /**
@@ -1153,10 +1329,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void createVcenterByProviderTenantUser() throws NoSuchAlgorithmException {
         BalancedWebResource providerTenantUser = loginUser(getProviderTenantUserWithDomain());
-        createDefaultVcenter(providerTenantUser, HttpStatus.SC_FORBIDDEN);
+        createDefaultVcenter(providerTenantUser, HttpStatus.SC_FORBIDDEN, false, false);
     }
 
     /**
@@ -1164,10 +1340,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void createVcenterBySubTenantUser() throws NoSuchAlgorithmException {
         BalancedWebResource subTenantUser = loginUser(getSubTenantUserWithDomain());
-        createDefaultVcenter(subTenantUser, HttpStatus.SC_FORBIDDEN);
+        createDefaultVcenter(subTenantUser, HttpStatus.SC_FORBIDDEN, false, false);
     }
 
     /**
@@ -1177,10 +1353,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void createAndSetAclVcenterBySystemAdmin() throws NoSuchAlgorithmException {
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED, false, false);
 
         List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
@@ -1194,10 +1370,10 @@ public class ApiTestVcenter extends ApiTestBase {
 
         BalancedWebResource securityAdmin = loginUser(getSecurityAdminWithDomain());
 
-        addVcenterAcl(securityAdmin, vCenterId, subTenantId, HttpStatus.SC_OK);
+        addVcenterAcl(securityAdmin, vCenterId, subTenantId, HttpStatus.SC_BAD_REQUEST);
 
         vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
-        Assert.assertEquals(2, vCenterAcls.size());
+        Assert.assertEquals(1, vCenterAcls.size());
 
         BalancedWebResource providerTenantAdmin = loginUser(getProviderTenantAdminWithDomain());
         addVcenterAcl(providerTenantAdmin, vCenterId, subTenantId, HttpStatus.SC_FORBIDDEN);
@@ -1212,31 +1388,43 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
-    public void createAndSetAclVcenterByTenantAdmin() throws NoSuchAlgorithmException {
+    @Test
+    public void createAndSetAclVcenterByTenantAdmin() throws NoSuchAlgorithmException, InterruptedException {
         BalancedWebResource subTenantAdmin = loginUser(getSubTenantAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(subTenantAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createVcenterByTenantApi(subTenantAdmin, getSubTenantId(), HttpStatus.SC_ACCEPTED);
 
         List<URI> vCenterAcls = getVcenterAcls(subTenantAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertEquals(1, vCenterAcls.size());
 
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        addVcenterAcl(systemAdmin, vCenterId, rootTenantId, HttpStatus.SC_OK);
+        addVcenterAcl(systemAdmin, vCenterId, rootTenantId, HttpStatus.SC_BAD_REQUEST);
 
-        vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
-        Assert.assertEquals(2, vCenterAcls.size());
+        long refreshInterval = getCSDiscoveryRefreshRate();
+        if (refreshInterval > 0) {
+            changeVcenterCascadeTenancy(subTenantAdmin, vCenterId, HttpStatus.SC_FORBIDDEN, false, false);
+            changeVcenterCascadeTenancy(systemAdmin, vCenterId, HttpStatus.SC_BAD_REQUEST, false, false);
 
-        URI subTenantId = getSubTenantId();
+            Thread.sleep(refreshInterval * getSecondsMultiplier());
+            changeVcenterCascadeTenancy(systemAdmin, vCenterId, HttpStatus.SC_OK, false, false);
 
-        BalancedWebResource securityAdmin = loginUser(getSecurityAdminWithDomain());
+            Thread.sleep(refreshInterval * getSecondsMultiplier());
+            addVcenterAcl(systemAdmin, vCenterId, rootTenantId, HttpStatus.SC_OK);
 
-        addVcenterAcl(securityAdmin, vCenterId, subTenantId, HttpStatus.SC_OK);
+            vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
+            Assert.assertEquals(2, vCenterAcls.size());
 
-        vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
-        Assert.assertEquals(2, vCenterAcls.size());
+            Thread.sleep(refreshInterval * getSecondsMultiplier());
 
-        BalancedWebResource providerTenantAdmin = loginUser(getProviderTenantAdminWithDomain());
-        addVcenterAcl(providerTenantAdmin, vCenterId, subTenantId, HttpStatus.SC_FORBIDDEN);
+            URI subTenantId = getSubTenantId();
+            BalancedWebResource securityAdmin = loginUser(getSecurityAdminWithDomain());
+            addVcenterAcl(securityAdmin, vCenterId, subTenantId, HttpStatus.SC_OK);
+
+            vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
+            Assert.assertEquals(2, vCenterAcls.size());
+
+            BalancedWebResource providerTenantAdmin = loginUser(getProviderTenantAdminWithDomain());
+            addVcenterAcl(providerTenantAdmin, vCenterId, subTenantId, HttpStatus.SC_FORBIDDEN);
+        }
     }
 
     /**
@@ -1245,15 +1433,20 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void deactivateTenantVcenterBySystemAdmin() throws NoSuchAlgorithmException {
         BalancedWebResource subTenantAdmin = loginUser(getSubTenantAdminWithDomain());
-        URI vCenterId = createDefaultVcenterNoCleanUpRegister(subTenantAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenterNoCleanUpRegister(subTenantAdmin, HttpStatus.SC_ACCEPTED, false, false);
 
         List<URI> vCenterAcls = getVcenterAcls(subTenantAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertEquals(1, vCenterAcls.size());
 
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
+        addVcenterAcl(systemAdmin, vCenterId, rootTenantId, HttpStatus.SC_BAD_REQUEST);
+
+        changeVcenterCascadeTenancy(subTenantAdmin, vCenterId, HttpStatus.SC_FORBIDDEN, false, false);
+        changeVcenterCascadeTenancy(systemAdmin, vCenterId, HttpStatus.SC_OK, false, false);
+
         addVcenterAcl(systemAdmin, vCenterId, rootTenantId, HttpStatus.SC_OK);
 
         vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
@@ -1283,10 +1476,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void deactivateSystemVcenterBySystemAdmin() throws NoSuchAlgorithmException {
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        URI vCenterId = createDefaultVcenterNoCleanUpRegister(systemAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenterNoCleanUpRegister(systemAdmin, HttpStatus.SC_ACCEPTED, false, false);
 
         List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
@@ -1314,10 +1507,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void deactivateSystemCreatedVcenterByTenantAdmin() throws NoSuchAlgorithmException {
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        URI vCenterId = createDefaultVcenterNoCleanUpRegister(systemAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenterNoCleanUpRegister(systemAdmin, HttpStatus.SC_ACCEPTED, false, false);
 
         List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
@@ -1339,10 +1532,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void deactivateTenantVcenterByTenantAdmin() throws NoSuchAlgorithmException {
         BalancedWebResource subTenantAdmin = loginUser(getSubTenantAdminWithDomain());
-        URI vCenterId = createDefaultVcenterNoCleanUpRegister(subTenantAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenterNoCleanUpRegister(subTenantAdmin, HttpStatus.SC_ACCEPTED, false, false);
 
         List<URI> vCenterAcls = getVcenterAcls(subTenantAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertEquals(1, vCenterAcls.size());
@@ -1357,21 +1550,27 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void deactivateSystemVcenterByTenantAdmin() throws NoSuchAlgorithmException {
-        BalancedWebResource subTenantAdmin = loginUser(getSubTenantAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(subTenantAdmin, HttpStatus.SC_ACCEPTED);
-
-        List<URI> vCenterAcls = getVcenterAcls(subTenantAdmin, vCenterId, HttpStatus.SC_OK);
-        Assert.assertEquals(1, vCenterAcls.size());
-
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        addVcenterAcl(systemAdmin, vCenterId, rootTenantId, HttpStatus.SC_OK);
+        URI vCenterId = createDefaultVcenterNoCleanUpRegister(systemAdmin, HttpStatus.SC_ACCEPTED, false);
+
+        List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
+        Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
+
+        List<URI> tenants = new ArrayList<URI>();
+        tenants.add(rootTenantId);
+        tenants.add(getSubTenantId());
+
+        addVcenterAcls(systemAdmin, vCenterId, tenants, HttpStatus.SC_OK);
 
         vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertEquals(2, vCenterAcls.size());
 
+        BalancedWebResource subTenantAdmin = loginUser(getSubTenantAdminWithDomain());
         deactivateVcenter(subTenantAdmin, vCenterId, HttpStatus.SC_FORBIDDEN);
+
+        deactivateVcenter(systemAdmin, vCenterId, HttpStatus.SC_ACCEPTED);
     }
 
     /**
@@ -1380,7 +1579,7 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void tenantCreateByVcenterTenantApi() throws NoSuchAlgorithmException {
         BalancedWebResource subTenantAdmin = loginUser(getSubTenantAdminWithDomain());
         URI vCenterId = createVcenterByTenantApi(subTenantAdmin, getSubTenantId(), HttpStatus.SC_ACCEPTED);
@@ -1405,10 +1604,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void testSystemVcentersDataCenters() throws NoSuchAlgorithmException {
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED, true, false);
 
         List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
@@ -1434,10 +1633,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void testTenantVcentersDataCenters() throws NoSuchAlgorithmException {
         BalancedWebResource providerTenantAdmin = loginUser(getProviderTenantAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(providerTenantAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createVcenterByTenantApi(providerTenantAdmin, rootTenantId, HttpStatus.SC_ACCEPTED);
 
         List<URI> vCenterAcls = getVcenterAcls(providerTenantAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertFalse(CollectionUtils.isEmpty(vCenterAcls));
@@ -1474,10 +1673,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void testSystemVcenterClusters() throws NoSuchAlgorithmException {
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED, false, false);
 
         List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
@@ -1502,10 +1701,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void testTenantVcenterClusters() throws NoSuchAlgorithmException {
         BalancedWebResource providerTenantAdmin = loginUser(getProviderTenantAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(providerTenantAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createVcenterByTenantApi(providerTenantAdmin, rootTenantId, HttpStatus.SC_ACCEPTED);
 
         List<URI> vCenterAcls = getVcenterAcls(providerTenantAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertFalse(CollectionUtils.isEmpty(vCenterAcls));
@@ -1539,10 +1738,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void testSystemVcenterHosts() throws NoSuchAlgorithmException {
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED, false, false);
 
         List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
@@ -1567,10 +1766,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void testTenantVcenterHosts() throws NoSuchAlgorithmException {
         BalancedWebResource providerTenantAdmin = loginUser(getProviderTenantAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(providerTenantAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createVcenterByTenantApi(providerTenantAdmin, rootTenantId, HttpStatus.SC_ACCEPTED);
 
         List<URI> vCenterAcls = getVcenterAcls(providerTenantAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertFalse(CollectionUtils.isEmpty(vCenterAcls));
@@ -1603,10 +1802,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void updateDataCenterTenantWhenVcenterHaveNoTenants() throws NoSuchAlgorithmException {
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED, true, false);
 
         List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
@@ -1638,10 +1837,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
+    @Test
     public void updateDataCenterTenant() throws NoSuchAlgorithmException {
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED, false, false);
 
         List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
@@ -1706,10 +1905,10 @@ public class ApiTestVcenter extends ApiTestBase {
      *
      * @throws NoSuchAlgorithmException
      */
-    //@Test
-    public void updateTenantDataCentersTenant() throws NoSuchAlgorithmException {
+    @Test
+    public void updateTenantDataCentersTenant() throws NoSuchAlgorithmException, InterruptedException {
         BalancedWebResource providerTenantAdmin = loginUser(getProviderTenantAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(providerTenantAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createVcenterByTenantApi(providerTenantAdmin, rootTenantId, HttpStatus.SC_ACCEPTED);
 
         List<URI> vCenterAcls = getVcenterAcls(providerTenantAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertFalse(CollectionUtils.isEmpty(vCenterAcls));
@@ -1737,29 +1936,110 @@ public class ApiTestVcenter extends ApiTestBase {
         List<URI> dataCenters = getDataCenterIdsFromVcenterDataCenterList(getVcenterDataCenters(providerTenantAdmin, vCenterId, URI.create(NO_TENANT_FILTER), HttpStatus.SC_OK));
         Assert.assertFalse(CollectionUtils.isEmpty(dataCenters));
 
-        addVcenterAcl(securityAdmin, vCenterId, getSubTenantId(), HttpStatus.SC_OK);
+        addVcenterAcl(securityAdmin, vCenterId, getSubTenantId(), HttpStatus.SC_BAD_REQUEST);
 
-        Iterator<URI> dataCenterIds = dataCenters.iterator();
-        while(dataCenterIds.hasNext()) {
-            URI dataCenterURI = dataCenterIds.next();
-            updateDataCenter(providerTenantAdmin, dataCenterURI, getSubTenantId(), HttpStatus.SC_FORBIDDEN);
-            updateDataCenter(securityAdmin, dataCenterURI, getSubTenantId(), HttpStatus.SC_OK);
+        changeVcenterCascadeTenancy(providerTenantAdmin, vCenterId, HttpStatus.SC_FORBIDDEN, false, false);
+
+        BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
+
+        long refreshInterval = getCSDiscoveryRefreshRate();
+        if (refreshInterval > 0) {
+            changeVcenterCascadeTenancy(systemAdmin, vCenterId, HttpStatus.SC_BAD_REQUEST, false, false);
+            Thread.sleep(refreshInterval * getSecondsMultiplier());
+
+            changeVcenterCascadeTenancy(systemAdmin, vCenterId, HttpStatus.SC_OK, false, false);
+
+            Thread.sleep(refreshInterval * getSecondsMultiplier());
+            addVcenterAcl(securityAdmin, vCenterId, getSubTenantId(), HttpStatus.SC_OK);
+
+            Iterator<URI> dataCenterIds = dataCenters.iterator();
+            while (dataCenterIds.hasNext()) {
+                URI dataCenterURI = dataCenterIds.next();
+                updateDataCenter(providerTenantAdmin, dataCenterURI, getSubTenantId(), HttpStatus.SC_FORBIDDEN);
+                updateDataCenter(securityAdmin, dataCenterURI, getSubTenantId(), HttpStatus.SC_OK);
+            }
+
+            hosts = getHostIdsFromHostList(getHostsByTenantApi(subTenantUser, getSubTenantId(), HttpStatus.SC_OK));
+            Assert.assertFalse(CollectionUtils.isEmpty(hosts));
+
+            hosts = getHostIdsFromHostList(getVcenterHosts(subTenantUser, vCenterId, HttpStatus.SC_OK));
+            Assert.assertFalse(CollectionUtils.isEmpty(hosts));
+
+            List<URI> clusters = getClusterIdsFromClusterList(getClustersByTenantApi(subTenantUser, getSubTenantId(), HttpStatus.SC_OK));
+            Assert.assertFalse(CollectionUtils.isEmpty(clusters));
+
+            clusters = getClusterIdsFromClusterList(getVcenterClusters(subTenantUser, vCenterId, HttpStatus.SC_OK));
+            Assert.assertFalse(CollectionUtils.isEmpty(clusters));
+
+            hosts = getHostIdsFromHostList(getVcenterHosts(securityAdmin, vCenterId, HttpStatus.SC_OK));
+            Assert.assertTrue(CollectionUtils.isEmpty(hosts));
         }
+    }
 
-        hosts = getHostIdsFromHostList(getHostsByTenantApi(subTenantUser, getSubTenantId(), HttpStatus.SC_OK));
-        Assert.assertFalse(CollectionUtils.isEmpty(hosts));
+    /**
+     * System admin creates and discovers the vCenter with default
+     * cascade tenancy (false). Since, the cascade tenancy is false,
+     * System admin will be able to modify the vCenter acls without
+     * modifying the cascade tenancy.
+     *
+     * @throws NoSuchAlgorithmException
+     */
+    @Test
+    public void testDefaultVcenterCascadeTenancyForSystemAdmin() throws NoSuchAlgorithmException, InterruptedException {
+        BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
+        URI vCenterId = createDefaultVcenterWithDefaultCascadeTenancy(systemAdmin, HttpStatus.SC_ACCEPTED, false);
 
-        hosts = getHostIdsFromHostList(getVcenterHosts(subTenantUser, vCenterId, HttpStatus.SC_OK));
+        List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
+        Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
+
+        addVcenterAcl(systemAdmin, vCenterId, getSubTenantId(), HttpStatus.SC_OK);
+
+        vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
+        Assert.assertFalse(CollectionUtils.isEmpty(vCenterAcls));
+
+        BalancedWebResource subTenantUser = loginUser(getSubTenantUserWithDomain());
+        List<URI> dataCenters = getDataCenterIdsFromVcenterDataCenterList(getVcenterDataCenters(subTenantUser, vCenterId,
+                getSubTenantId(), HttpStatus.SC_OK));
+        Assert.assertTrue(CollectionUtils.isEmpty(dataCenters));
+
+        List<URI> hosts = getHostIdsFromHostList(getHostsByTenantApi(subTenantUser, getSubTenantId(), HttpStatus.SC_OK));
+        Assert.assertTrue(CollectionUtils.isEmpty(hosts));
+
+        List<URI> clusters = getClusterIdsFromClusterList(getClustersByTenantApi(subTenantUser, getSubTenantId(), HttpStatus.SC_OK));
+        Assert.assertTrue(CollectionUtils.isEmpty(clusters));
+    }
+
+    /**
+     * System admin creates and discovers the vCenter with cascade
+     * cascade tenancy (false). Since, the cascade tenancy is false,
+     * System admin will be able to modify the vCenter acls without
+     * modifying the cascade tenancy.
+     *
+     * @throws NoSuchAlgorithmException
+     */
+    @Test
+    public void testVcenterCascadeTenancyForSystemAdmin() throws NoSuchAlgorithmException, InterruptedException {
+        BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
+        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED, false, true);
+
+        List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
+        Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));
+
+        addVcenterAcl(systemAdmin, vCenterId, getSubTenantId(), HttpStatus.SC_OK);
+
+        vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
+        Assert.assertFalse(CollectionUtils.isEmpty(vCenterAcls));
+
+        BalancedWebResource subTenantUser = loginUser(getSubTenantUserWithDomain());
+        List<URI> dataCenters = getDataCenterIdsFromVcenterDataCenterList(getVcenterDataCenters(subTenantUser, vCenterId,
+                getSubTenantId(), HttpStatus.SC_OK));
+        Assert.assertFalse(CollectionUtils.isEmpty(dataCenters));
+
+        List<URI> hosts = getHostIdsFromHostList(getHostsByTenantApi(subTenantUser, getSubTenantId(), HttpStatus.SC_OK));
         Assert.assertFalse(CollectionUtils.isEmpty(hosts));
 
         List<URI> clusters = getClusterIdsFromClusterList(getClustersByTenantApi(subTenantUser, getSubTenantId(), HttpStatus.SC_OK));
         Assert.assertFalse(CollectionUtils.isEmpty(clusters));
-
-        clusters = getClusterIdsFromClusterList(getVcenterClusters(subTenantUser, vCenterId, HttpStatus.SC_OK));
-        Assert.assertFalse(CollectionUtils.isEmpty(clusters));
-
-        hosts = getHostIdsFromHostList(getVcenterHosts(securityAdmin, vCenterId, HttpStatus.SC_OK));
-        Assert.assertTrue(CollectionUtils.isEmpty(hosts));
     }
 
     /*
@@ -1772,7 +2052,7 @@ public class ApiTestVcenter extends ApiTestBase {
     public void removeTenantCreatedVcentersAcl() throws NoSuchAlgorithmException {
         // Create a System Admin user and create a vCenter by that System Admin user.
         BalancedWebResource providerTenantAdmin = loginUser(getProviderTenantAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(providerTenantAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenter(providerTenantAdmin, HttpStatus.SC_ACCEPTED, false, false);
 
         List<URI> vCenterAcls = getVcenterAcls(providerTenantAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertFalse(CollectionUtils.isEmpty(vCenterAcls));
@@ -1816,7 +2096,7 @@ public class ApiTestVcenter extends ApiTestBase {
     public void removeSystemCreatedVcentersAcl() throws NoSuchAlgorithmException {
         // Create a System Admin user and create a vCenter by that System Admin user.
         BalancedWebResource systemAdmin = loginUser(getSystemAdminWithDomain());
-        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED);
+        URI vCenterId = createDefaultVcenter(systemAdmin, HttpStatus.SC_ACCEPTED, false, false);
 
         List<URI> vCenterAcls = getVcenterAcls(systemAdmin, vCenterId, HttpStatus.SC_OK);
         Assert.assertTrue(CollectionUtils.isEmpty(vCenterAcls));

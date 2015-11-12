@@ -43,13 +43,19 @@ class VnasServer(object):
     #Vnasserver Query
     def vnasserver_query(self, name):
         
-        if(name.startswith('urn:storageos:VirtualNAS')):
+       
+        
+        if (common.is_uri(name)):
             return name
-        resources = self.list_vnasservers()
-        for resource in resources:
-            if (resource is not None and resource['name'] == name):
-                return resource['id']
-            
+
+        uris = self.list_vnasservers()
+
+        for uri in uris:
+            vnasserver = self.vnasserver_show(uri, False)
+            if(vnasserver):
+                if(vnasserver['name'] == name):
+                    return vnasserver['id']
+
         raise SOSError(SOSError.NOT_FOUND_ERR,
                        "vnasserver " + name + ": not found")
         
@@ -67,10 +73,33 @@ class VnasServer(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET", uri, None)
         o = common.json_decode(s)
+        returnlst = []
+        for item in o['vnas_server']:
+            
+            returnlst.append(item['id'])
+
+        return returnlst
+    
+    
+    def list_vnasserver_names(self):
+        '''
+        Makes REST API call and retrieves vnasserver 
+        Parameters:
+            
+        Returns:
+            List of vnasservers UUIDs in JSON response payload
+        '''
+        uri = VnasServer.URI_VNSSERVER
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "GET", uri, None)
+        o = common.json_decode(s)
 
         if("vnas_server" in o):
             return common.get_list(o, 'vnas_server' )
         return []     
+
+        
     
     def vnasserver_show(self, label, xml=False):
 
@@ -89,6 +118,19 @@ class VnasServer(object):
             return s
         return o   
     
+    def getvnasserverList(self, vnasservers):
+        vnasserver_obj = VnasServer(self.__ipAddr, self.__port)
+        return vnasserver_obj.convertNamesToUris(vnasservers)
+    
+    def convertNamesToUris(self, vnasserverNameList):
+        vnasserverList = []
+        if (vnasserverNameList):
+            for vnasserver in vnasserverNameList:
+                vnasserver_uri = self.vnasserver_query(vnasserver)
+                vnasserverList.append(vnasserver_uri)
+
+        return vnasserverList
+    
     
     #assign project routine 
     def assign(self, name, project):
@@ -101,12 +143,11 @@ class VnasServer(object):
             
         
         '''
+        vnasserverList = self.getvnasserverList(name)
         
-        #Check if vnasserver is available 
-        vnasserver_id = self.vnasserver_query(name)
-         
-        request = dict()
-        request['vnas_server'] = [vnasserver_id]
+        
+        request =  {'vnas_server' : vnasserverList }
+                   
 
         if(project):
             proj_object = Project(self.__ipAddr, self.__port)
@@ -134,17 +175,11 @@ class VnasServer(object):
             
         
         '''
+        vnasserverList = self.getvnasserverList(name)
         
-        #Check if vnasserver is available 
-        vnasserver_id = self.vnasserver_query(name)
         
-        if(vnasserver_id is None):
-            raise SOSError(
-                SOSError.ENTRY_ALREADY_EXISTS_ERR,
-                "vnasserver with name " + name + " does not exist")
-         
-        request = dict()
-        request['vnas_server'] = [vnasserver_id]
+        request =  {'vnas_server' : vnasserverList }
+
         if(project):
             proj_object = Project(self.__ipAddr, self.__port)
             pro_uri = proj_object.project_query(project)
@@ -191,12 +226,31 @@ def list_parser(subcommand_parsers, common_parser):
 def vnasserver_list(args):
     obj = VnasServer(args.ip, args.port)
     from common import TableGenerator
+    from project import Project
     try:
-        vnasServerList = obj.list_vnasservers()
+        vnasServerList = obj.list_vnasserver_names()
         resultList = []
-	
         for iter in vnasServerList:
             rslt = obj.vnasserver_show(iter['name'])
+            
+            #rslt['parent_nas']['name'] should be printed under PARENT_NAS_SERVER.
+            #Updating it as a new element in the map
+            if('parent_nas' in rslt) and ('name' in rslt['parent_nas']):
+                rslt['parent_nas_server'] = rslt['parent_nas']['name']
+                
+            pr_object = None
+            if ('project' in rslt) and ('id' in rslt['project']):
+                pr_object = Project(args.ip, args.port).project_show_by_uri(rslt['project']['id']) 
+            
+            st_object = None
+            if ('storage_device' in rslt) and ('id' in rslt['storage_device']):
+                st_object = StorageSystem(args.ip, args.port).show_by_uri(rslt['storage_device']['id']) 
+                
+            if pr_object and ('name' in pr_object):
+                rslt['project_name'] = pr_object['name']
+                
+            if st_object and ('name' in st_object):
+                rslt['storage_system'] = st_object['name']
             if(rslt is not None):
                 resultList.append(rslt)
          
@@ -206,16 +260,16 @@ def vnasserver_list(args):
             if(args.verbose is False and args.long is False):
                 TableGenerator(vnasServerList,
                                ["name"]).printTable()
-                
+            
             # show a long table
             if(args.verbose is False and args.long is True):
                 TableGenerator(
                     resultList,
-                    ["name","assigned_varrays","nas_state"]).printTable()
+                    ["nas_name","parent_nas_server","nas_state","storage_domains","project_name","protocols", "storage_system"]).printTable()
                     
             # show all items in json format
             if(args.verbose):
-                return common.format_json_object(vnasServerList)
+                return common.format_json_object(resultList)
 
         else:
             return
@@ -269,10 +323,11 @@ def assign_parser(subcommand_parsers, common_parser):
         help='Assign vnasserver to project')
     mandatory_args = assign_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
-                                help='Name of vnasserver',
+                                help='List of vnasservers',
                                 metavar='<vnas_server>',
                                 dest='name',
-                                required=True)
+                                required=True ,
+                                nargs='+')
 
     mandatory_args.add_argument('-project', '-pr',
                                metavar='<project>',
@@ -301,10 +356,11 @@ def unassign_parser(subcommand_parsers, common_parser):
         help='Un-Assign vnasserver to project')
     mandatory_args = unassign_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
-                                help='Name of vnasserver',
+                                help='List of vnasservers',
                                 metavar='<vnas_server>',
                                 dest='name',
-                                required=True)
+                                required=True ,
+                                nargs='+')
 
     mandatory_args.add_argument('-project', '-pr',
                                metavar='<project>',

@@ -99,7 +99,7 @@ public class Volume extends BlockObject implements ProjectResource {
         WRITEONCE("4"),
         NOT_READY("5"); // Not part of SMIS "Access" field, gathered from StatusDescriptions
 
-        private String state;
+        private final String state;
 
         VolumeAccessState(String state) {
             this.state = state;
@@ -121,15 +121,16 @@ public class Volume extends BlockObject implements ProjectResource {
         }
     }
 
-    public static enum LinkStatus {
+    public enum LinkStatus {
         FAILED_OVER("6014"),
         IN_SYNC("6002 6015"),
         SUSPENDED("6013"),
+        CONSISTENT("6111"),
         SPLIT(""),
         SWAPPED(""),
         DETACHED(""),
         OTHER("");
-        private String status;
+        private final String status;
 
         LinkStatus(String status) {
             this.status = status;
@@ -216,6 +217,7 @@ public class Volume extends BlockObject implements ProjectResource {
         setChanged("associatedSourceVolume");
     }
 
+    @Override
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
@@ -238,6 +240,7 @@ public class Volume extends BlockObject implements ProjectResource {
         setChanged("protectionSet");
     }
 
+    @Override
     @XmlTransient
     @NamedRelationIndex(cf = "NamedRelation")
     @Name("tenant")
@@ -334,7 +337,7 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Getter for the ids of the backend volumes that provide the actual storage for a virtual
      * volume.
-     * 
+     *
      * @return The set of ids of the backend volumes that provide the actual storage for a virtual
      *         volume.
      */
@@ -347,7 +350,7 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Setter for the ids of the backend volumes that provide the actual storage for a virtual
      * volume.
-     * 
+     *
      * @param volumes
      *            The ids of the backend volumes that provide the actual storage for a virtual
      *            volume.
@@ -359,7 +362,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Getter for the device ids of the meta volume members volumes.
-     * 
+     *
      * @return The set of device ids of the meta volume member volumes.
      */
     @Name("metaVolumeMembers")
@@ -369,7 +372,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Setter for the ids of the meta volume members volumes.
-     * 
+     *
      * @param volumes
      */
     public void setMetaVolumeMembers(StringSet volumes) {
@@ -379,7 +382,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Getter for the ids of the BlockMirror volumes that act as a mirror for this volume.
-     * 
+     *
      * @return The set of ids for the BlockMirror objects
      */
     @Name("mirrors")
@@ -389,7 +392,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Setter for the ids of the BlockMirror volumes that act as a mirror for this volume.
-     * 
+     *
      * @param mirrors
      *            The set of ids for the BlockMirror objects
      */
@@ -554,7 +557,7 @@ public class Volume extends BlockObject implements ProjectResource {
      * Uses a field in the volume to determine if the volume is an SRDF volume. Best to use a field
      * that is set during placement/scheduling of the volume, during ViPR (cassandra) volume
      * creation.
-     * 
+     *
      * @return true if the volume is used by SRDF
      */
     public static boolean checkForSRDF(DbClient dbClient, URI blockURI) {
@@ -571,7 +574,7 @@ public class Volume extends BlockObject implements ProjectResource {
      * Uses a field in the volume to determine if the volume is an SRDF volume. Best to use a field
      * that is set during placement/scheduling of the volume, during ViPR (cassandra) volume
      * creation.
-     * 
+     *
      * @return true if the volume is used by SRDF
      */
     public boolean checkForSRDF() {
@@ -581,20 +584,20 @@ public class Volume extends BlockObject implements ProjectResource {
         // If the SRDF parent is set, this is an SRDF device
         return getSrdfParent() != null;
     }
-    
+
     /**
      * Checks whether the volume is a SRDF source volume or not
-     * 
+     *
      * @return true if the volume is a SRDF source volume
      */
     public boolean isSRDFSource() {
-    	return (getSrdfTargets() != null && !getSrdfTargets().isEmpty());
+        return (getSrdfTargets() != null && !getSrdfTargets().isEmpty());
     }
 
     /**
      * Get all of the volumes in this SRDF set; the source and all of its targets. For a
      * multi-volume SRDF, it only returns the targets (and source) associated with this one volume.
-     * 
+     *
      * @param dbClient db object to read from database
      * @param volumeURI volume object
      * @return list of volume URIs
@@ -622,7 +625,7 @@ public class Volume extends BlockObject implements ProjectResource {
      * Uses a field in the volume to determine if the volume is an RP volume. Best to use a field
      * that is set during placement/scheduling of the volume, during ViPR (cassandra) volume
      * creation.
-     * 
+     *
      * @return true if the volume is used by RP
      */
     public boolean checkForRp() {
@@ -634,12 +637,12 @@ public class Volume extends BlockObject implements ProjectResource {
      * If the block object URI is volume, then that is returned. If the block object URI is an RP snapshot
      * then the parent volume object of the snapshot is returned. If the block object URI is a regular snapshot,
      * then the snapshot object is returned.
-     * 
+     *
      * This utility function is called from various places in the controller code when it is necessary to determine
      * if the operation needs to be performed on the actual block object or its parent. In the case of RP snapshots,
      * operations such as export/unexport of RP type snapshots needs to be performed on the parent of the snapshot rather
      * than the snapshot object itself.
-     * 
+     *
      * @param dbClient
      *            [in] - DbClient object to read from database
      * @param blockURI
@@ -695,7 +698,7 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Getter for the secondary RecoverPoint journal volume. This
      * will only ever be used in the case of MetroPoint.
-     * 
+     *
      * @return The secondary RP journal volume URI.
      */
     @Name("secondaryRpJournalVolume")
@@ -706,7 +709,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Setter for the secondary RecoverPoint journal volume.
-     * 
+     *
      * @param secondaryRpJournalVolumes
      *            The secondary journal volume.
      */
@@ -747,9 +750,9 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Returns true if the passed volume is in an export group, false otherwise.
-     * 
+     *
      * @param dbClient A reference to a DbClient.
-     * 
+     *
      * @return true if the passed volume is in an export group, false otherwise.
      */
     public boolean isVolumeExported(DbClient dbClient) {
@@ -761,9 +764,9 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Return whether or not a volume in ViPR was created outside
      * of ViPR and ingested.
-     * 
+     *
      * @param volume A reference to a volume.
-     * 
+     *
      * @return true if the volume was ingested, else false.
      */
     public boolean isIngestedVolume(DbClient dbClient) {
@@ -785,7 +788,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Utility function that tells if the passed in volume is a back-end volume of a VPLEX virtual volume.
-     * 
+     *
      * @param dbClient
      * @param volume
      * @return
@@ -805,7 +808,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
     /**
      * Given a volume, this is an utility method that returns the VPLEX virtual volume that this volume is associated with.
-     * 
+     *
      * @param dbClient
      * @param volume
      * @return
@@ -838,7 +841,7 @@ public class Volume extends BlockObject implements ProjectResource {
      * Utility function that tells if the passed in volume is a back-end volume of a protected VPLEX virtual volume.
      * For now the only supported protection type for VPLEX virtual volumes is RecoverPoint, if additional protection
      * types are added in the future we can add checks for them as they are introduced.
-     * 
+     *
      * @param dbClient
      * @param volume
      * @return
@@ -863,7 +866,7 @@ public class Volume extends BlockObject implements ProjectResource {
                 states.put(state.name(), state);
             }
         }
-        private int value;
+        private final int value;
 
         ReplicationState(int value) {
             this.value = value;

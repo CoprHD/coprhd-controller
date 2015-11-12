@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +92,7 @@ public class HDSMirrorOperations implements MirrorOperations {
                     createShadowImagePair(replicationGroupObjectID, pairName,
                             HDSUtils.getSystemArrayType(storageSystem), HDSUtils.getSystemSerialNumber(storageSystem),
                             source.getNativeId(), mirrorObj.getNativeId());
-            mirrorObj.setSyncState(BlockMirror.SynchronizationState.SYNCHRONIZED.name());
+            mirrorObj.setSyncState(SynchronizationState.SYNCHRONIZED.name());
             dbClient.persistObject(mirrorObj);
             log.info("Replication Info object :{}", replicationInfo.toXMLString());
             taskCompleter.ready(dbClient);
@@ -123,7 +124,7 @@ public class HDSMirrorOperations implements MirrorOperations {
                     storage.getId(), sourceVolume.getNativeId(),
                     mirrorObj.getNativeId(), ReplicationStatus.SPLIT, taskCompleter);
             hdsCommandHelper.waitForAsyncHDSJob(syncjob);
-            mirrorObj.setSyncState(BlockMirror.SynchronizationState.FRACTURED.name());
+            mirrorObj.setSyncState(SynchronizationState.FRACTURED.name());
             dbClient.persistObject(mirrorObj);
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
@@ -151,7 +152,7 @@ public class HDSMirrorOperations implements MirrorOperations {
                     storage.getId(), sourceVolume.getNativeId(),
                     mirrorObj.getNativeId(), ReplicationStatus.PAIR, taskCompleter);
             hdsCommandHelper.waitForAsyncHDSJob(syncjob);
-            mirrorObj.setSyncState(BlockMirror.SynchronizationState.SYNCHRONIZED.name());
+            mirrorObj.setSyncState(SynchronizationState.SYNCHRONIZED.name());
             dbClient.persistObject(mirrorObj);
             taskCompleter.ready(dbClient);
         } catch (Exception e) {

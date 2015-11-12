@@ -142,7 +142,7 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_CANT_FIND_REQUESTED_VOLUME)
     public VPlexApiException cantFindAllRequestedVolume();
-    
+
     @DeclareServiceCode(ServiceCode.VPLEX_CANT_FIND_REQUESTED_VOLUME)
     public VPlexApiException cantFindRequestedVolumeNull();
 
@@ -523,6 +523,10 @@ public interface VPlexApiExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedExpandVolumeStatusAfterRetries(final String volumeName,
+            final String retries, final String wait);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException claimVolumeFailureStatus(final String volumeWWN,
             final String status, final String cause);
 
@@ -615,6 +619,9 @@ public interface VPlexApiExceptions {
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException couldNotFindComponentForDistDevice(final String deviceName,
             final String clusterId);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException cantFindExtentForLocalDevice(final String deviceName);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException twoDevicesRequiredForDistVolume();
@@ -726,16 +733,40 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException backendIngestionContextLoadFailure(String reason);
-    
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedGettingStorageVolumeInfo(String clusterName, String status);
-    
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedProcessingStorageVolumeResponse(String msg, final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException couldNotFindStorageVolumeMatchingWWNOrITL(String volumeName, String storageSystemNativeId);
-    
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedToValidateExportMask(String exporURI, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedDeviceCollapse(final String deviceName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedDeviceCollapseStatus(final String deviceName, String msg, String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedSettingDeviceVisibility(final String deviceName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedSettingDeviceVisibilityStatus(final String deviceName, String msg, String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException establishVolumeFullCopyGroupRelationFailed(String fullCopyId, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedToExecuteDrillDownCommand(String deviceName, String response);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException cantRenameDevice(String originalDeviceName, String newName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException cantRenameDeviceBackToOriginalName(String originalDeviceName, String newName, final Throwable cause);
 }

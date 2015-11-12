@@ -42,6 +42,6 @@
   #{field 'user.email'}
     #{Form.inputTextControlGroup field:field /}
   #{/field}
-  #{Form.saveCancel cancelHref: user.referer /}
+  #{Form.saveCancel cancelHref: @cancel() /}
 #{/form}
 </div>

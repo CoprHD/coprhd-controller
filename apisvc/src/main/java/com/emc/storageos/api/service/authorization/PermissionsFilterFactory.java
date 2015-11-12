@@ -230,7 +230,9 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                         return getProjectIdFromComputeResources(uriStr);
                     } else if (_resourceClazz.isAssignableFrom(InitiatorService.class)) {
                         return getProjectIdFromComputeResources(uriStr);
-                    }
+                    } else if (_resourceClazz.isAssignableFrom(BucketService.class)) {
+                        return getProjectIdFromResourceId(uriStr, Bucket.class);
+                    } 
                 } else {
                     _log.warn("project id not available for this resource type");
                 }

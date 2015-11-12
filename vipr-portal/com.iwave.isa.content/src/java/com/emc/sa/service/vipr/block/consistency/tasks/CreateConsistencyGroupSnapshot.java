@@ -14,12 +14,14 @@ import com.emc.vipr.client.Tasks;
 public class CreateConsistencyGroupSnapshot extends
         WaitForTasks<BlockConsistencyGroupRestRep> {
 
-    private URI consistencyGroupId;
-    private String name;
+    private final URI consistencyGroupId;
+    private final String name;
+    private final Boolean readOnly;
 
-    public CreateConsistencyGroupSnapshot(URI consistencyGroupId, String name) {
+    public CreateConsistencyGroupSnapshot(URI consistencyGroupId, String name, Boolean readOnly) {
         this.consistencyGroupId = consistencyGroupId;
         this.name = name;
+        this.readOnly = readOnly;
     }
 
     @Override
@@ -27,6 +29,10 @@ public class CreateConsistencyGroupSnapshot extends
 
         BlockConsistencyGroupSnapshotCreate param = new BlockConsistencyGroupSnapshotCreate();
         param.setName(name);
+
+        if (readOnly != null) {
+            param.setReadOnly(readOnly);
+        }
 
         return getClient().blockConsistencyGroups().createSnapshot(
                 consistencyGroupId, param);

@@ -98,6 +98,9 @@ public class FileStorageUtils {
             } else {
                 shareAcl.setUser(fileSystemACL.aclName);
             }
+            if (!StringUtils.isEmpty(fileSystemACL.aclDomain)) {
+                shareAcl.setDomain(fileSystemACL.aclDomain);
+            }
             shareAcl.setPermission(fileSystemACL.aclPermission);
             aclList.add(shareAcl);
         }
@@ -115,26 +118,28 @@ public class FileStorageUtils {
     }
 
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
-        // Remove snapshots for the volume
-        for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
-            deleteFileSnapshot(snapshot.getId());
-        }
+        if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
+            // Remove snapshots for the volume
+            for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
+                deleteFileSnapshot(snapshot.getId());
+            }
 
-        // Deactivate CIFS Shares
-        for (SmbShareResponse share : getCifsShares(fileSystemId)) {
-            deactivateCifsShare(fileSystemId, share.getShareName());
+            // Deactivate CIFS Shares
+            for (SmbShareResponse share : getCifsShares(fileSystemId)) {
+                deactivateCifsShare(fileSystemId, share.getShareName());
+            }
+    
+            // Delete all export rules for filesystem and all sub-directories
+            if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
+                deactivateFileSystemExport(fileSystemId, true, null);
+            }
+    
+            // Deactivate NFS Exports
+            for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
+                deactivateExport(fileSystemId, export);
+            }
         }
-
-        // Delete all export rules for filesystem and all sub-directories
-        if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
-            deactivateFileSystemExport(fileSystemId, true, null);
-        }
-
-        // Deactivate NFS Exports
-        for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
-            deactivateExport(fileSystemId, export);
-        }
-
+        
         // Remove the FileSystem
         deactivateFileSystem(fileSystemId, fileDeletionType);
     }
@@ -490,6 +495,17 @@ public class FileStorageUtils {
     public static List<ExportRule> getFileSnapshotExportRules(URI fileSnapshotId, Boolean allDir, String subDir) {
         return execute(new FindFileSnapshotExportRules(fileSnapshotId, allDir, subDir));
     }
+    
+    public static List<String> getInvalidFileACLs(FileSystemACLs[] fileACLs) {
+        List<String> names = new ArrayList<String>();
+        for (FileStorageUtils.FileSystemACLs acl : fileACLs) {
+            if (StringUtils.contains(acl.aclName, "\\")) {
+                names.add(acl.aclName);
+            }
+        }
+        
+        return names;
+    }
 
     public static FileSystemACLs[] clearEmptyFileACLs(FileSystemACLs[] fileACLs) {
         List<FileStorageUtils.FileSystemACLs> toRemove = new ArrayList<FileStorageUtils.FileSystemACLs>();
@@ -512,6 +528,9 @@ public class FileStorageUtils {
 
         @Param
         public String aclName;
+        
+        @Param
+        public String aclDomain;
 
         @Param
         public String aclPermission;

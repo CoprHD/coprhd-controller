@@ -23,6 +23,12 @@ public interface ScaleIOExceptions {
 
     @DeclareServiceCode(ServiceCode.SCALEIO_SCAN_FAILED)
     public ScaleIOException scanFailed(Throwable t);
+    
+    @DeclareServiceCode(ServiceCode.SCALEIO_SCAN_FAILED)
+    public ScaleIOException discoveryFailed(Throwable t);
+    
+    @DeclareServiceCode(ServiceCode.SCALEIO_SCAN_FAILED)
+    public ScaleIOException scaleioCliNotSupported();
 
     @DeclareServiceCode(ServiceCode.SCALEIO_CLI_NEEDS_TO_SPECIFY_MDM_CREDS)
     public ScaleIOException missingMDMCredentials();

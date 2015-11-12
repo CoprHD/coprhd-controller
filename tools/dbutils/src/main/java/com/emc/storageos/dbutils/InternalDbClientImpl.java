@@ -11,18 +11,27 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
+import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbIndex;
 import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
+import com.emc.storageos.db.common.DependencyTracker.Dependency;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
@@ -35,6 +44,7 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.RowQuery;
+import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
 
@@ -110,7 +120,7 @@ public class InternalDbClientImpl extends InternalDbClient {
             try {
                 OperationResult<Rows<String, CompositeColumnName>> result = getKeyspace(
                         doType.getDataObjectClass()).prepareQuery(doType.getCF())
-                        .getAllRows().setRowLimit(100)
+                        .getAllRows().setRowLimit(DEFAULT_PAGE_SIZE)
                         .withColumnRange(new RangeBuilder().setLimit(1).build())
                         .execute();
                 for (Row<String, CompositeColumnName> row : result.getResult()) {
@@ -152,7 +162,7 @@ public class InternalDbClientImpl extends InternalDbClient {
      * @return True, when no corrupted data found
      * @throws ConnectionException
      */
-    public boolean checkIndexingCFs() throws ConnectionException {
+    public boolean checkIndexingCFs(boolean generateCleanupFile) throws ConnectionException {
         logAndPrintToScreen("\nStart to check INDEX data that the related object records are missing.\n");
 
         Collection<IndexAndCf> idxCfs = getAllIndices().values();
@@ -178,7 +188,7 @@ public class InternalDbClientImpl extends InternalDbClient {
                 indexRowCount++;
                 RowQuery<String, IndexColumnName> rowQuery = query.getRow(row.getKey())
                         .autoPaginate(true)
-                        .withColumnRange(new RangeBuilder().setLimit(100).build());
+                        .withColumnRange(new RangeBuilder().setLimit(DEFAULT_PAGE_SIZE).build());
                 ColumnList<IndexColumnName> columns;
                 while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
                     for (Column<IndexColumnName> column : columns) {
@@ -226,8 +236,17 @@ public class InternalDbClientImpl extends InternalDbClient {
                                     indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                     idxEntry.getIndexKey(), idxEntry.getColumnName(),
                                     objCf.getName(), row.getKey()), true);
+                            if (generateCleanupFile) {
+                                CleanupFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
+                                        String.format(
+                                                "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;",
+                                                indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
+                                                idxEntry.getColumnName().getTwo(), 
+                                                handleNullValue(idxEntry.getColumnName().getThree()),
+                                                handleNullValue(idxEntry.getColumnName().getFour()),
+                                                idxEntry.getColumnName().getTimeUUID()));
+                            }
                         }
-
                     }
                 }
             }
@@ -245,6 +264,110 @@ public class InternalDbClientImpl extends InternalDbClient {
                         + "%s corrupted data found.", indexRowCount, idxCfs.size(), objRowCount, objCfCount, corruptRowCount));
 
         return corruptRowCount == 0;
+    }
+
+    /**
+     * Scan all the data object records, to find out the object record is existing
+     * but the related index is missing.
+     * 
+     * @return True, when no corrupted data found
+     * @throws ConnectionException
+     */
+    public boolean checkCFIndices() throws ConnectionException {
+        logAndPrintToScreen("\nStart to check Data Object records that the related index is missing.\n");
+        int corruptRowCount = 0;
+        int objRowCount = 0;
+        int cfCount = 0;
+
+        for (DataObjectType doType : TypeMap.getAllDoTypes()) {
+            cfCount++;
+            Class objClass = doType.getDataObjectClass();
+            log.info("Check Data Object CF {}", objClass);
+
+            List<ColumnField> indexedFields = new ArrayList<>();
+            for (ColumnField field : doType.getColumnFields()) {
+                if (field.getIndex() == null) {
+                    continue;
+                }
+                indexedFields.add(field);
+            }
+
+            if (indexedFields.isEmpty()) {
+                continue;
+            }
+
+            Keyspace keyspace = getKeyspace(objClass);
+
+            ColumnFamilyQuery<String, CompositeColumnName> query = keyspace.prepareQuery(doType.getCF());
+
+            OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows()
+                    .withColumnRange(CompositeColumnNameSerializer.get().buildRange().greaterThanEquals(DataObject.INACTIVE_FIELD_NAME)
+                            .lessThanEquals(DataObject.INACTIVE_FIELD_NAME).reverse().limit(1))
+                    .setRowLimit(DEFAULT_PAGE_SIZE).execute();
+
+            for (Row<String, CompositeColumnName> objRow : result.getResult()) {
+                Set<URI> ids = new HashSet<>();
+                for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                    // If inactive is true, skip this record
+                    if (column.getBooleanValue() != true) {
+                        ids.add(URI.create(objRow.getKey()));
+                    }
+                }
+
+                for (ColumnField indexedField : indexedFields) {
+                    Rows<String, CompositeColumnName> rows = queryRowsWithAColumn(keyspace, ids, doType.getCF(), indexedField);
+                    for (Row<String, CompositeColumnName> row : rows) {
+                        objRowCount++;
+                        for (Column<CompositeColumnName> column : row.getColumns()) {
+                            String indexKey = DetectHelper.getIndexKey(indexedField, column);
+                            if (indexKey == null) {
+                                continue;
+                            }
+                            boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
+                                    DetectHelper.getIndexColumns(indexedField, column, row.getKey()));
+                            if (!isColumnInIndex) {
+                                corruptRowCount++;
+                                logAndPrintToScreen(String.format(
+                                        "Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
+                                        indexedField.getDataObjectType().getSimpleName(), row.getKey(), indexedField.getName(),
+                                        indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
+                                        true);
+                                CleanupFileWriter.writeTo(CleanupFileWriter.WRITER_REBUILD_INDEX, 
+                                        String.format("id:%s, cfName:%s", row.getKey(),
+                                                indexedField.getDataObjectType().getSimpleName()));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        logAndPrintToScreen(String.format(
+                "\nFinish to check DataObject data, totally check %s rows of %s object cfs, "
+                        + "%s corrupted data found.",
+                objRowCount, cfCount, corruptRowCount));
+
+        return corruptRowCount == 0;
+    }
+
+    private boolean isColumnInIndex(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, String[] indexColumns)
+            throws ConnectionException {
+        CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange();
+        for (int i = 0; i < indexColumns.length; i++) {
+            if (i == (indexColumns.length - 1)) {
+                builder.greaterThanEquals(indexColumns[i]).lessThanEquals(indexColumns[i]).limit(1);
+                break;
+            }
+            builder.withPrefix(indexColumns[i]);
+        }
+
+        ColumnList<IndexColumnName> result = ks.prepareQuery(indexCf).getKey(indexKey)
+                .withColumnRange(builder)
+                .execute().getResult();
+        for (Column<IndexColumnName> indexColumn : result) {
+            return true;
+        }
+        return false;
     }
 
     public Map<String, IndexAndCf> getAllIndices() {
@@ -322,5 +445,27 @@ public class InternalDbClientImpl extends InternalDbClient {
         }
 
         return latestField;
+    }
+    
+    public List<URI> getReferUris(URI targetUri, Class<? extends DataObject> type, Dependency dependency) {
+        List<URI> references = new ArrayList<>();
+        if (targetUri == null) {
+            return references;
+        }
+        ContainmentConstraint constraint = 
+                new ContainmentConstraintImpl(targetUri, dependency.getType(), dependency.getColumnField());
+        URIQueryResultList result = new URIQueryResultList();
+        this.queryByConstraint(constraint, result);
+        Iterator<URI> resultIt = result.iterator();
+        if(resultIt.hasNext()) {
+            references.add(resultIt.next());
+        }
+        
+        
+        return references;
+    }
+
+    private String handleNullValue(String columnValue) {
+        return columnValue == null ? "" : columnValue;
     }
 }

@@ -73,9 +73,13 @@ def print_steps(steps):
         print '    ' + step['description']
         print '    ' + step['system_id'] + ' ' + step['system_type']
         try:
-	    print '    ' + step['message']
+            print '    ' + 'WaitFor: ' + step['wait_for']
         except:
-	    print '    ' + "<No Message>"
+            print '    ' + 'WaitFor: <None>'
+        try:
+            print '    ' + step['message']
+        except:
+            print '    ' + "<No Message>"
         print '    ' + 'start: ' + format_date(start) + ' end: ' + format_date(end)
         children = step['child_workflows']
         for child in children:

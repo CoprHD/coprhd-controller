@@ -5,6 +5,7 @@
 
 package com.emc.storageos.volumecontroller.impl.plugins;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
@@ -76,6 +77,13 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
         log.info("Starting scan of ScaleIO StorageProvider. IP={}", accessProfile.getIpAddress());
         StorageProvider.ConnectionStatus cxnStatus = StorageProvider.ConnectionStatus.CONNECTED;
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class, accessProfile.getSystemId());
+        if (provider.getInterfaceType().equalsIgnoreCase(DiscoveredDataObject.Type.scaleio.name())) {
+            provider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.name());
+            ScaleIOException ex = ScaleIOException.exceptions.scaleioCliNotSupported();
+            provider.setLastScanStatusMessage(ex.getLocalizedMessage());
+            _dbClient.persistObject(provider);
+            throw ScaleIOException.exceptions.scaleioCliNotSupported();
+        }
         _locker.acquireLock(accessProfile.getIpAddress(), LOCK_WAIT_SECONDS);
         try {
             ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(_dbClient).getClientHandle(provider);
@@ -133,6 +141,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
         _locker.acquireLock(accessProfile.getIpAddress(), LOCK_WAIT_SECONDS);
         log.info("Starting discovery of ScaleIO StorageProvider. IP={} StorageSystem {}",
                 accessProfile.getIpAddress(), storageSystem.getNativeGuid());
+        String statusMsg = "";
         try {
             ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(_dbClient).getClientHandle(storageSystem);
             if (scaleIOHandle != null) {
@@ -258,13 +267,20 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                     allPools.addAll(notVisiblePools);
                 }
                 StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports, null, _dbClient, _coordinator, allPools);
+                statusMsg = String.format("Discovery completed successfully for Storage System: %s",
+                        storageSystem.getNativeGuid());
             }
         } catch (Exception e) {
             storageSystem.setReachableStatus(false);
             log.error(String.format("Exception was encountered when attempting to discover ScaleIO Instance %s",
                     accessProfile.getIpAddress()), e);
+            statusMsg = String.format("Discovery failed because %s", e.getLocalizedMessage());
+            throw ScaleIOException.exceptions.discoveryFailed(e);
         } finally {
             _locker.releaseLock(accessProfile.getIpAddress());
+            if (storageSystem != null) {
+                storageSystem.setLastDiscoveryStatusMessage(statusMsg);                
+            }
         }
         _dbClient.updateAndReindexObject(storageSystem);
         log.info("Completed of ScaleIO StorageProvider. IP={} StorageSystem {}",

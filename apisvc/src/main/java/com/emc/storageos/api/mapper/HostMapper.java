@@ -172,6 +172,7 @@ public class HostMapper {
         to.setUseSsl(from.getUseSSL());
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.findVcenterTenant()));
         to.setOsVersion(from.getOsVersion());
+        to.setCascadeTenancy(from.getCascadeTenancy());
         return to;
     }
 }

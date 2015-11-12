@@ -77,18 +77,6 @@ function showModalDialog() {
     $(deleteVcenterDialog).modal();
 }
 
-function addNoneOption(select, selected) {
-    var option ="<option value=''"
-
-    if (selected) {
-        option += "selected";
-    }
-
-    option += ">None</option>";
-
-    select.append(option);
-}
-
 function showDatacenterTenantUpdateDialog(id, name, dataCenterTenantId, vcenterId) {
     $(".modal-body #vcenterDataCenterId").val( id );
     $(".modal-body #vcenterDataCenterId").closest($("fieldset")).hide();
@@ -96,8 +84,6 @@ function showDatacenterTenantUpdateDialog(id, name, dataCenterTenantId, vcenterI
     $(".modal-body #tenant").empty();
 
     var vcenterTenantOptionsHandler = function(data, textStatus, jqXHR) {
-        addNoneOption($(".modal-body #tenant"), false);
-
         for (var i = 0; i < data.length; i++) {
             option ='<option value="'+data[i].id+'"';
 

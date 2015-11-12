@@ -1619,7 +1619,7 @@ public class StorageSystemService extends TaskResourceService {
                 unManagedVolumeList.getNamedUnManagedVolumes().add(
                         toNamedRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, umv.getId(), name));
             } else {
-                _log.info("Ignoring unmanaged volume: {}", umv.getNativeGuid());
+                _log.debug("Ignoring unmanaged volume: {}", umv.getNativeGuid());
             }
         }
         return unManagedVolumeList;

@@ -96,7 +96,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         // Log volume descriptor information
         logVolumeDescriptorPrecreateInfo(volumeDescriptors, task);
-        
+
         final BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
 
@@ -203,7 +203,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         List<VirtualPoolChangeOperationEnum> allowedOperations = new ArrayList<VirtualPoolChangeOperationEnum>();
 
         if (VirtualPool.vPoolSpecifiesHighAvailability(newVirtualPool) &&
-                VirtualPoolChangeAnalyzer.isVPlexImport(volumeVirtualPool, newVirtualPool, notSuppReasonBuff) &&
+                VirtualPoolChangeAnalyzer.isVPlexImport(volume, volumeVirtualPool, newVirtualPool, notSuppReasonBuff) &&
                 VirtualPoolChangeAnalyzer.doesVplexVpoolContainVolumeStoragePool(volume, newVirtualPool, notSuppReasonBuff)) {
             allowedOperations.add(VirtualPoolChangeOperationEnum.NON_VPLEX_TO_VPLEX);
         }
@@ -301,6 +301,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
     /**
      * {@inheritDoc}
+     * 
      * @throws ControllerException
      */
     @Override
@@ -322,7 +323,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         } catch (ControllerException e) {
             String errorMsg = String.format(
                     "Failed to establish group relation between volume group and snapshot group."
-                    + "Source volume: %s, Snapshot: %s",
+                            + "Source volume: %s, Snapshot: %s",
                     sourceVolume.getId(), snapshot.getId());
             _log.error(errorMsg, e);
             _dbClient.error(BlockSnapshot.class, snapshot.getId(), taskId, e);

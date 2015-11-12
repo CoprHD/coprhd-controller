@@ -32,7 +32,6 @@ import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
-import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageJob.JobStatus;
 import com.emc.storageos.db.client.model.ComputeImageServer;
@@ -127,15 +126,17 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * Check if the given {@link ComputeImageServer} instance has valid details
+     * 
      * @param imageServer {@link ComputeImageServer} instance
      * @return true if valid else false
      */
-    private boolean isImageServerValid(ComputeImageServer imageServer){
-    	boolean valid = false;
+    private boolean isImageServerValid(ComputeImageServer imageServer) {
+        boolean valid = false;
         // make sure all required fields are set
         if (!StringUtils.isBlank(imageServer.getImageServerIp()) && !StringUtils.isBlank(imageServer.getImageServerUser())
                 && !StringUtils.isBlank(imageServer.getTftpBootDir()) && !StringUtils.isBlank(imageServer.getImageServerSecondIp())
-                && !StringUtils.isBlank(imageServer.getImageServerHttpPort()) && !StringUtils.isBlank(imageServer.getImageServerPassword())) {
+                && !StringUtils.isBlank(imageServer.getImageServerHttpPort())
+                && !StringUtils.isBlank(imageServer.getImageServerPassword())) {
             log.info("ImageServer appears valid");
             valid = true;
         }
@@ -299,6 +300,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * Import image to all availabe imageServer
+     * 
      * @param task {@link AsyncTask} instance
      */
     @Override
@@ -321,16 +323,19 @@ public class ImageServerControllerImpl implements ImageServerController {
                         || !imageServer.getComputeImages().contains(
                                 ciId.toString())) {
                     log.info("verify Image Server");
-                    boolean imageServerVerified = verifyImageServer(imageServer);
-                    if (!imageServerVerified) {
-                        throw ImageServerControllerException.exceptions
-                                .imageServerNotSetup("Can't perform image import: "
-                                        + imageServerErrorMsg);
-                    }
+                    String verifyServerStepId = workflow.createStep(IMAGESERVER_VERIFICATION_STEP, String.format(
+                            "Verifying ImageServer %s", imageServerId), null,
+                            imageServerId, imageServerId.toString(), this
+                                    .getClass(),
+                            new Workflow.Method(
+                                    "verifyComputeImageServer", imageServerId),
+                            null, null);
+
                     workflow.createStep(IMPORT_IMAGE_TO_SERVER_STEP, String
                             .format("Importing image for %s", imageServerId),
-                            null, imageServerId, imageServerId.toString(), this
-                                    .getClass(), new Workflow.Method(
+                            verifyServerStepId, imageServerId, imageServerId.toString(), this
+                                    .getClass(),
+                            new Workflow.Method(
                                     "importImageMethod", ciId, imageServer, null),
                             null, null);
                     wfHasSteps = true;
@@ -453,6 +458,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * check OS version
+     * 
      * @param os {@link ComputeIamge} instance
      * @return
      */
@@ -463,6 +469,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * check OS build and architecture type
+     * 
      * @param os {@link ComputeIamge} instance
      * @return
      */
@@ -483,7 +490,8 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * Method to import an image
-     * @param ciId {@link URI} computeImage URI 
+     * 
+     * @param ciId {@link URI} computeImage URI
      * @param imageServer {@link ComputeImageServer} imageServer instance
      * @param opName operation Name
      * @param stepId {@link String} step Id
@@ -493,10 +501,11 @@ public class ImageServerControllerImpl implements ImageServerController {
         log.info("importImageMethod importing image {} on to imageServer {}",
                 ciId, imageServer.getId());
         ImageServerDialog d = null;
+        ComputeImage ci = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
 
-            ComputeImage ci = dbClient.queryObject(ComputeImage.class, ciId);
+            ci = dbClient.queryObject(ComputeImage.class, ciId);
             SSHSession session = new SSHSession();
             session.connect(imageServer.getImageServerIp(), imageServer.getSshPort(),
                     imageServer.getImageServerUser(), imageServer.getImageServerPassword());
@@ -506,6 +515,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
             log.error("Exception importing image: " + e.getMessage(), e);
+            updateFailedImages(imageServer.getId(), ci);
             WorkflowStepCompleter.stepFailed(stepId, e);
         } catch (Exception e) {
             log.error(
@@ -516,6 +526,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                 operationName = ResourceOperationTypeEnum.IMPORT_IMAGE
                         .getName();
             }
+            updateFailedImages(imageServer.getId(), ci);
             WorkflowStepCompleter.stepFailed(stepId,
                     ImageServerControllerException.exceptions
                             .unexpectedException(operationName, e));
@@ -532,6 +543,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * Utility method to import an image to the given computeimage server
+     * 
      * @param imageServer {@link ComputeImageServer} instance.
      * @param ci {@link ComputeImage} instance
      * @param imageserverDialog {@link ImageServerDialog} instance
@@ -539,7 +551,7 @@ public class ImageServerControllerImpl implements ImageServerController {
     private void importImage(ComputeImageServer imageServer, ComputeImage ci,
             ImageServerDialog imageserverDialog) {
         log.info("Importing image {} on to {} imageServer", ci.getLabel(),
-                imageServer.getImageServerIp());
+                imageServer.getLabel());
         sanitizeUrl(ci.getImageUrl());
 
         String ts = String.valueOf(System.currentTimeMillis());
@@ -549,7 +561,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         String tempDir = TMP + "/os" + ts + "/";
 
         imageserverDialog.init();
-        log.info("connected to image server {}", imageServer.getImageServerIp());
+        log.info("connected to image server {}", imageServer.getLabel());
 
         log.info("cd to {}", TMP);
         imageserverDialog.cd(TMP);
@@ -562,7 +574,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
         if (res) {
             log.info("downloaded image successfully on to {}  imageServer",
-                    imageServer.getImageServerIp());
+                    imageServer.getLabel());
         } else {
             throw ImageServerControllerException.exceptions
                     .fileDownloadFailed(ci.getImageUrl());
@@ -571,8 +583,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         log.info("create temp dir {}", tempDir);
         imageserverDialog.mkdir(tempDir);
 
-        log.info("mount image onto temp dir of {}",
-                imageServer.getImageServerIp());
+        log.info("mount image onto temp dir of {}", imageServer.getLabel());
         imageserverDialog.mount(imageName, tempDir);
 
         log.info("Analyze metadata");
@@ -626,15 +637,21 @@ public class ImageServerControllerImpl implements ImageServerController {
         ci.setImageName(osMetadata.fullName());
         ci.setImageType(osMetadata.getImageType());
 
-        dbClient.persistObject(ci);
-
+        dbClient.updateObject(ci);
+        String ciURIString = ci.getId().toString();
         // update the imageServer with the successfully updated image.
         if (imageServer.getComputeImages() == null) {
             imageServer.setComputeImages(new StringSet());
         }
-        imageServer.getComputeImages().add(ci.getId().toString());
-
-        dbClient.persistObject(imageServer);
+        imageServer.getComputeImages().add(ciURIString);
+        //check if this image was previously failed, if so remove from fail list
+        if (imageServer.getFailedComputeImages() != null &&
+                imageServer.getFailedComputeImages().contains(ciURIString)) {
+            imageServer.getFailedComputeImages().remove(ciURIString);
+        }
+        log.info("Successfully imported image {} on to {} imageServer", ci.getLabel(),
+                imageServer.getLabel());
+        dbClient.updateObject(imageServer);
         // clean up
         cleanupTemp(imageserverDialog, tempDir, imagePath);
     }
@@ -644,7 +661,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         log.info("deleteImage " + task._id);
 
         URI ciId = task._id;
-        
+
         TaskCompleter completer = null;
         try {
             completer = new ComputeImageCompleter(ciId, task._opId,
@@ -669,9 +686,20 @@ public class ImageServerControllerImpl implements ImageServerController {
 
                     workflow.createStep(DELETE_IMAGE_STEP, String.format(
                             "removing image %s", ciId), null, ciId, ciId
-                            .toString(), this.getClass(), new Workflow.Method(
-                            "deleteImageMethod", ciId, imageServer.getId()),
+                                    .toString(),
+                            this.getClass(), new Workflow.Method(
+                                    "deleteImageMethod", ciId, imageServer.getId()),
                             null, null);
+                }
+                //The image being deleted/cleaned up must also be removed from the
+                //imageServer's failedImages list, because the image can be AVAILABLE
+                //but could have failed to import on some of the imageServers.
+                //So this cleanup needs to be performed.
+                if(imageServer.getFailedComputeImages() != null
+                        && imageServer.getFailedComputeImages().contains(
+                                ciId.toString())) {
+                    imageServer.getFailedComputeImages().remove(ciId.toString());
+                    dbClient.updateObject(imageServer);
                 }
             }
 
@@ -702,9 +730,9 @@ public class ImageServerControllerImpl implements ImageServerController {
             log.info("calling image server to delete image");
             d.rm(imageServer.getTftpBootDir() + ci.getPathToDirectory());
             log.info("delete done");
-            if (imageServer.getComputeImages()!=null && imageServer.getComputeImages().contains(ciId.toString())){
-            	imageServer.getComputeImages().remove(ciId.toString());
-            	dbClient.persistObject(imageServer);
+            if (imageServer.getComputeImages() != null && imageServer.getComputeImages().contains(ciId.toString())) {
+                imageServer.getComputeImages().remove(ciId.toString());
+                dbClient.updateObject(imageServer);
             }
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
@@ -736,7 +764,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         ComputeSystem cs = dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
 
         ComputeImageJob job = dbClient.queryObject(ComputeImageJob.class, computeImageJob);
-        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class,job.getComputeImageServerId());
+        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, job.getComputeImageServerId());
         ComputeImage img = dbClient.queryObject(ComputeImage.class, job.getComputeImageId());
 
         TaskCompleter completer = null;
@@ -745,7 +773,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             boolean imageServerVerified = verifyImageServer(imageServer);
             if (!imageServerVerified) {
                 throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't install operating system: "
-                            + imageServerErrorMsg);
+                        + imageServerErrorMsg);
             }
 
             Workflow workflow = workflowService.getNewWorkflow(this, OS_INSTALL_WF, true, task._opId);
@@ -903,9 +931,8 @@ public class ImageServerControllerImpl implements ImageServerController {
             if (job.getJobStartTime() == null) {
                 log.info("starting the job");
                 job.setJobStartTime(System.currentTimeMillis());
-                dbClient.persistObject(job);
-            }
-            else {
+                dbClient.updateObject(job);
+            } else {
                 log.info("resuming the job");
             }
 
@@ -957,18 +984,18 @@ public class ImageServerControllerImpl implements ImageServerController {
             if (status == OsInstallStatus.SUCCESS) {
                 log.info("session {} - marking job as SUCCESS", job.getPxeBootIdentifier());
                 job.setJobStatus(JobStatus.SUCCESS.name());
-                dbClient.persistObject(job);
+                dbClient.updateObject(job);
                 WorkflowStepCompleter.stepSucceded(stepId);
             } else if (status == OsInstallStatus.FAILURE) {
                 log.info("session {} - marking job as FAILED", job.getPxeBootIdentifier());
                 job.setJobStatus(JobStatus.FAILED.name());
-                dbClient.persistObject(job);
+                dbClient.updateObject(job);
                 WorkflowStepCompleter.stepFailed(stepId,
                         ImageServerControllerException.exceptions.osInstallationFailed("failure in the post-install"));
             } else { // timed out
                 log.info("session {} - marking job as TIMEDOUT", job.getPxeBootIdentifier());
                 job.setJobStatus(JobStatus.TIMEDOUT.name());
-                dbClient.persistObject(job);
+                dbClient.updateObject(job);
                 WorkflowStepCompleter.stepFailed(stepId,
                         ImageServerControllerException.exceptions.osInstallationTimedOut(imageServer.getOsInstallTimeoutMs() / 1000));
             }
@@ -1016,7 +1043,8 @@ public class ImageServerControllerImpl implements ImageServerController {
             workflow.createStep(IMAGESERVER_VERIFICATION_STEP, String.format(
                     "Verfiying ImageServer %s", computeImageServerID), null,
                     computeImageServerID, computeImageServerID.toString(), this
-                            .getClass(), new Workflow.Method(
+                            .getClass(),
+                    new Workflow.Method(
                             "verifyComputeImageServer", computeImageServerID),
                     null, null);
             List<ComputeImage> computeImageList = getAllComputeImages();
@@ -1024,8 +1052,9 @@ public class ImageServerControllerImpl implements ImageServerController {
                 ComputeImageServer imageServer = dbClient.queryObject(
                         ComputeImageServer.class, computeImageServerID);
                 for (ComputeImage computeImage : computeImageList) {
-                    if (computeImage.getComputeImageStatus().equals(
-                            ComputeImageStatus.AVAILABLE.name())) {
+                    if (null == imageServer.getComputeImages()
+                            || !imageServer.getComputeImages().contains(
+                                    computeImage.getId().toString())) {
                         StringBuilder msg = new StringBuilder(
                                 "Importing image ");
                         msg.append(computeImage.getLabel()).append(
@@ -1037,7 +1066,8 @@ public class ImageServerControllerImpl implements ImageServerController {
                                 computeImageServerID, computeImageServerID
                                         .toString(), this.getClass(),
                                 new Workflow.Method("importImageMethod",
-                                        computeImage.getId(), imageServer, opName), null, null);
+                                        computeImage.getId(), imageServer,
+                                        opName), null, null);
                     }
                 }
             }
@@ -1045,16 +1075,17 @@ public class ImageServerControllerImpl implements ImageServerController {
         } catch (Exception ex) {
             log.error(
                     "Unexpected exception waiting for finish: "
-                            + ex.getMessage(), ex);
+                            + ex.getMessage(),
+                    ex);
         }
     }
 
     /**
      * Method to fetch all compute images present in the db.
+     * 
      * @return {@link List<ComputeImage>}
      */
-    private List<ComputeImage> getAllComputeImages()
-    {
+    private List<ComputeImage> getAllComputeImages() {
         List<ComputeImage> imageList = null;
         List<URI> imageURIList = dbClient.queryByType(ComputeImage.class, true);
         if (imageURIList == null || !imageURIList.iterator().hasNext()) {
@@ -1072,6 +1103,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * This method verifies if the given image Server is a valid imageServer.
+     * 
      * @param imageServerId {@link URI} of ComputeImageServer
      * @param stepId workflow stepid being executed.
      */
@@ -1079,22 +1111,61 @@ public class ImageServerControllerImpl implements ImageServerController {
         log.info("entering method verifyComputeImageServer");
         WorkflowStepCompleter.stepExecuting(stepId);
 
-        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
+        ComputeImageServer imageServer = dbClient.queryObject(
+                ComputeImageServer.class, imageServerId);
 
-        if(verifyImageServer(imageServer))
-        {
+        if (verifyImageServer(imageServer)) {
+            imageServer
+                    .setComputeImageServerStatus(ComputeImageServer.ComputeImageServerStatus.AVAILABLE
+                            .name());
+            dbClient.updateObject(imageServer);
             WorkflowStepCompleter.stepSucceded(stepId);
-        }else
-        {
+        } else {
             log.error("Unable to verify imageserver");
+            imageServer
+                    .setComputeImageServerStatus(ComputeImageServer.ComputeImageServerStatus.NOT_AVAILABLE
+                            .name());
+            dbClient.updateObject(imageServer);
             WorkflowStepCompleter
                     .stepFailed(
                             stepId,
                             ImageServerControllerException.exceptions
                                     .unexpectedException(
-                                            OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES.name(),
+                                            OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES
+                                                    .name(),
                                             new Exception(
                                                     "Unable to verify imageserver")));
+        }
+    }
+
+    /**
+     * Updates the imageServer with the image that failed import, this method updates
+     * it as failed only after making sure that the image was not previously successful.
+     * @param imageServerURI {@link URI} imageServerURI instance to which import was made.
+     * @param image {@link ComputeImage} instance that failed the import.
+     */
+    private void updateFailedImages(URI imageServerURI, ComputeImage image) {
+        if (null != imageServerURI && null != image) {
+            String imageURIStr = image.getId().toString();
+            log.info("updateFailedImages : update failed image import details.");
+            // first fetch updated imageServer details from DB and
+            // verify if image was previously loaded successfully on to
+            // the imageServer, if so then skip updating it as failed else
+            // update it as failed.
+            ComputeImageServer imageServer = dbClient.queryObject(
+                    ComputeImageServer.class, imageServerURI);
+            if (imageServer.getComputeImages() == null
+                    || !imageServer.getComputeImages().contains(imageURIStr)) {
+                // update the imageServer with the failed image.
+                if (imageServer.getFailedComputeImages() == null) {
+                    imageServer.setFailedComputeImages(new StringSet());
+                }
+                log.info(
+                        "Image - {} failed to import on imageServer - {}",
+                        image.getLabel(), imageServer.getLabel());
+                imageServer.getFailedComputeImages().add(imageURIStr);
+                dbClient.updateObject(imageServer);
+            }
         }
     }
 }

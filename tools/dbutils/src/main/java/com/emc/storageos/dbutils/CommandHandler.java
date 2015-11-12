@@ -32,6 +32,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
 
 public abstract class CommandHandler {
     public String cfName = null;
@@ -56,9 +57,31 @@ public abstract class CommandHandler {
             }
         }
 
-        new DbManagerOps(isGeodb ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME).startNodeRepair(canResume, crossVdc);
+        try (DbManagerOps dbManagerOps = new DbManagerOps(isGeodb ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME)) {
+            dbManagerOps.startNodeRepair(canResume, crossVdc);
+        }
 
         return 0;
+    }
+    
+    public static class DependencyHandler extends CommandHandler {
+        String id = null;
+
+        public DependencyHandler(String args[]) {
+            if (args.length < 2) {
+                throw new IllegalArgumentException("Invalid command:need at least 2 arguments");
+            }
+            cfName = args[1];
+            if (args.length > 2) {
+                id = args[2];
+            }
+        }
+
+        @Override
+        public void process(DBClient _client) throws Exception {
+            _client.printDependencies(cfName, id == null ? null : URI.create(id));
+        }
+
     }
 
     public static class CountHandler extends CommandHandler {
@@ -278,8 +301,6 @@ public abstract class CommandHandler {
             String type = args[1];
             String file = args[2];
             if (type.equalsIgnoreCase(TYPE_EVENTS)) {
-                _client.queryForCustomDayEvents(queryTimeWindow, file);
-            } else if (type.equalsIgnoreCase(TYPE_STATS)) {
                 _client.queryForCustomDayEvents(queryTimeWindow, file);
             } else if (type.equalsIgnoreCase(TYPE_STATS)) {
                 _client.queryForCustomDayStats(queryTimeWindow, file);
@@ -637,12 +658,95 @@ public abstract class CommandHandler {
     }
 
     public static class CheckDBHandler extends CommandHandler {
-        public CheckDBHandler() {
+        private boolean generateCleanupFile;
+        public CheckDBHandler(String[] args) {
+            if (args.length == 2 && Main.GENERATE_CLEANUP_CQL.equals(args[1])) {
+                generateCleanupFile = true;
+            } else {
+                throw new IllegalArgumentException("Invalid command option. ");
+            }
         }
 
         @Override
         public void process(DBClient _client) {
-            _client.checkDB();
+            if (generateCleanupFile && CleanupFileWriter.existingCleanupFiles()) {
+                System.err.println(String.format(
+                        "When specify %s please make sure you removed the last generated cql files [%s , %s, %s] in current folder.",
+                        Main.GENERATE_CLEANUP_CQL, CleanupFileWriter.CLEANUP_FILE_STORAGEOS,
+                        CleanupFileWriter.CLEANUP_FILE_GEOSTORAGEOS, CleanupFileWriter.CLEANUP_FILE_REBUILD_INDEX));
+                return;
+            }
+            _client.checkDB(generateCleanupFile);
+            try {
+                CleanupFileWriter.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static class RebuildIndexHandler extends CommandHandler {
+        private String rebuildIndexFileName;
+        static final String KEY_ID = "id";
+        static final String KEY_CFNAME = "cfName";
+        static final String KEY_COMMENT_CHAR = "#";
+
+        public RebuildIndexHandler(String[] args) {
+            if (args.length == 2) {
+                rebuildIndexFileName = args[1];
+            } else {
+                throw new IllegalArgumentException("Invalid command option. ");
+            }
+        }
+
+        @Override
+        public void process(DBClient _client) {
+            if (rebuildIndexFileName == null) {
+                System.out.println("rebuild Index file is null");
+                return;
+            }
+            File rebuildFile = new File(rebuildIndexFileName);
+            if(!rebuildFile.exists() || !rebuildFile.isFile()) {
+                System.err.println("Rebuild file is not exist or is not a file");
+                return;
+            }
+            int successCounter = 0;
+            int failCounter = 0;
+            try (BufferedReader br = new BufferedReader(new FileReader(rebuildIndexFileName))) {
+                String line = null;
+                while ((line = br.readLine()) != null) {
+                    if (line.length() == 0 || line.startsWith(KEY_COMMENT_CHAR))
+                        continue;
+                    Map<String, String> rebuildMap = readToMap(line);
+                    String id = rebuildMap.get(KEY_ID);
+                    String cfName = rebuildMap.get(KEY_CFNAME);
+                    if (_client.rebuildIndex(id, cfName)) {
+                        successCounter++;
+                    } else {
+                        failCounter++;
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Error occured when reading the cleanup file.");
+                e.printStackTrace();
+            }
+            if (successCounter > 0) {
+                System.out.println(String.format("successfully rebuild %s indexes.", successCounter));
+            }
+            if (failCounter > 0) {
+                System.out.println(String.format("failed rebuild %s indexes.", failCounter));
+            }
+        }
+
+        private Map<String, String> readToMap(String input) {
+            Map<String, String> cleanUpMap = new HashMap<> ();
+            for(String property : input.split(",")) {
+                int index = property.indexOf(":");
+                if(index > 0) {
+                    cleanUpMap.put(property.substring(0, index).trim(), property.substring(index+1).trim());
+                }
+            }
+            return cleanUpMap;
         }
     }
 }

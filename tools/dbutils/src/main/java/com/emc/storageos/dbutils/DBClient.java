@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.dbutils;
 
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -18,6 +19,7 @@ import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.common.DbSchemaChecker;
 import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.db.common.DependencyTracker;
+import com.emc.storageos.db.common.DependencyTracker.Dependency;
 import com.emc.storageos.db.common.schema.DbSchemas;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.geo.service.impl.util.VdcConfigHelper;
@@ -73,7 +75,7 @@ public class DBClient {
     private int listLimit = 100;
     private boolean turnOnLimit = false;
     private boolean activeOnly = true;
-
+    
     private static final String PRINT_COUNT_RESULT = "Column Family %s's row count is: %s";
     private static final String REGEN_RECOVER_FILE_MSG = "Please regenerate the recovery " +
             "file from the node where the last add VDC operation was initiated.";
@@ -82,6 +84,9 @@ public class DBClient {
 
     InternalDbClientImpl _dbClient = null;
     private DependencyChecker _dependencyChecker = null;
+    
+    private Set<Class> scannedType = new HashSet<>();
+    private boolean foundReference = false;
 
     HashMap<String, Class> _cfMap = new HashMap<String, Class>();
     ClassPathXmlApplicationContext ctx = null;
@@ -355,13 +360,8 @@ public class DBClient {
      */
     @SuppressWarnings("unchecked")
     public void query(String id, String cfName) throws Exception {
-        Class clazz = _cfMap.get(cfName); // fill in type from cfName
-        if (clazz == null) {
-            System.err.println("Unknown Column Family: " + cfName);
-            return;
-        }
-        if (!DataObject.class.isAssignableFrom(clazz)) {
-            System.err.println("TimeSeries data not supported with this command.");
+        Class clazz = getClassFromCFName(cfName);
+        if(clazz == null) {
             return;
         }
         queryAndPrintRecord(URI.create(id), clazz);
@@ -375,13 +375,8 @@ public class DBClient {
      */
     @SuppressWarnings("unchecked")
     public void listRecords(String cfName, Map<String, String> criterias) throws Exception {
-        final Class clazz = _cfMap.get(cfName); // fill in type from cfName
-        if (clazz == null) {
-            System.err.println("Unknown Column Family: " + cfName);
-            return;
-        }
-        if (!DataObject.class.isAssignableFrom(clazz)) {
-            System.err.println("TimeSeries data not supported with this command.");
+        final Class clazz = getClassFromCFName(cfName); // fill in type from cfName
+        if(clazz == null) {
             return;
         }
         List<URI> uris = null;
@@ -585,15 +580,18 @@ public class DBClient {
      */
     private <T extends DataObject> boolean queryAndDeleteObject(URI id, Class<T> clazz, boolean force)
             throws Exception {
-        if (_dependencyChecker == null) {
+        DependencyTracker dependencyTracker = null;
+        if (_dependencyChecker == null ) {
             DataObjectScanner dataObjectscanner = (DataObjectScanner) ctx.getBean("dataObjectScanner");
-            DependencyTracker dependencyTracker = dataObjectscanner.getDependencyTracker();
+            dependencyTracker = dataObjectscanner.getDependencyTracker();
             _dependencyChecker = new DependencyChecker(_dbClient, dependencyTracker);
         }
 
-        if (_dependencyChecker.checkDependencies(id, clazz, false) != null) {
+        String reference = _dependencyChecker.checkDependencies(id, clazz, false);
+        if (reference != null) {
             if (!force) {
                 System.err.println(String.format("Failed to delete the object %s: there are active dependencies", id));
+                printReferenceWhenDeletingFailed(id, clazz, dependencyTracker);
                 return false;
             }
             log.info("Force to delete object {} that has active dependencies", id);
@@ -616,8 +614,21 @@ public class DBClient {
         }
 
         System.err.println(String.format("The object %s can't be deleted", id));
-
+        printReferenceWhenDeletingFailed(id, clazz, dependencyTracker);
         return false;
+    }
+    
+    private <T extends DataObject> void printReferenceWhenDeletingFailed(URI id, Class<T> clazz,
+            DependencyTracker tracker) {
+        System.err.println(String.format(
+                "\nThe references of %s(id: %s) are as following:",
+                clazz.getSimpleName(), id));
+        if (tracker == null) {
+            DataObjectScanner dataObjectscanner = (DataObjectScanner) ctx
+                    .getBean("dataObjectScanner");
+            tracker = dataObjectscanner.getDependencyTracker();
+        }
+        printDependencies(clazz, id, true, "", id.toString(), tracker);
     }
 
     private <T extends DataObject> T queryObject(URI id, Class<T> clazz) throws Exception {
@@ -1104,19 +1115,120 @@ public class DBClient {
         }
     }
 
-    public void checkDB() {
+    public void checkDB(boolean generateCleanupFile) {
         try {
             _dbClient.checkDataObjects();
-            _dbClient.checkIndexingCFs();
+            _dbClient.checkIndexingCFs(generateCleanupFile);
+            _dbClient.checkCFIndices();
 
             String msg = "\nAll the checks have been done.";
-            System.out.println(msg);
-            log.info(msg);
+            String fileMsg = String.format(
+                    "\nClean up cql files [%s] are created in current folder. please read into them for detail cleanup operations.",
+                    CleanupFileWriter.getGeneratedFileNames());
+            System.out.println(msg + fileMsg);
+            log.info(msg + fileMsg);
         } catch (ConnectionException e) {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "
                     + "Please see the log for more information.");
         }
 
+    }
+    
+    public void printDependencies(String cfName, URI uri) {
+        final Class type = _cfMap.get(cfName);
+        if (type == null) {
+            System.err.println("Unknown Column Family: " + cfName);
+            return;
+        }
+
+        DataObjectScanner dataObjectscanner = (DataObjectScanner) ctx
+                .getBean("dataObjectScanner");
+        DependencyTracker dependencyTracker = dataObjectscanner.getDependencyTracker();
+
+        String output = uri == null ? type.getSimpleName() : uri.toString();
+        printDependencies(type, uri, true, "", output, dependencyTracker);
+        if (uri != null) {
+            if (foundReference) {
+                System.out.println("\nFound references of this id: " + uri);
+            } else {
+                System.out.println("\nNo reference was found of this id: " + uri);
+            }
+        }
+    };
+
+    private void printDependencies(final Class type, URI uri, boolean last,
+            String prefix, String output, DependencyTracker tracker) {
+        String selfPrefix = String.format("%s|-%s", prefix, output);
+
+        System.out.println(selfPrefix);
+
+        if (scannedType.contains(type)) {
+            return;
+        }
+
+        List<Dependency> dependencies = tracker.getDependencies(type);
+        scannedType.add(type);
+        for (int i = 0; i < dependencies.size(); i++) {
+            Dependency dependency = dependencies.get(i);
+
+            Class childType = dependency.getType();
+            String childPrefix = String.format("%s%s   ", prefix, last ? " " : "|");
+
+            boolean lastChild = false;
+            if (i == (dependencies.size() - 1)) {
+                lastChild = true;
+            }
+
+            String childOutput = String.format("%s(Index:%s, CF:%s)",
+                    childType.getSimpleName(), dependency.getColumnField().getIndex()
+                            .getClass().getSimpleName(), dependency.getColumnField()
+                            .getIndexCF().getName());
+
+            if (uri != null) {
+                List<URI> references = _dbClient.getReferUris(uri, type, dependency);
+                if (!references.isEmpty()) {
+                    foundReference = true;
+                    for (URI childUri : references) {
+                        childOutput = childUri.toString();
+                        printDependencies(childType, childUri, lastChild, childPrefix,
+                                childOutput, tracker);
+                    }
+                }
+            } else {
+                printDependencies(childType, null, lastChild, childPrefix, childOutput,
+                        tracker);
+            }
+        }
+    }
+
+    public boolean rebuildIndex(String id, String cfName) {
+        boolean runResult = false;
+        try {
+            DataObject queryObject = queryObject(URI.create(id), getClassFromCFName(cfName) );
+            if(queryObject != null) {
+                BeanUtils.copyProperties(queryObject, queryObject);
+                _dbClient.updateObject(queryObject);
+                System.out.println(String.format("Successfully rebuild index for %s in cf %s", id, cfName));
+                runResult = true;
+            }
+        } catch (Exception e) {
+            System.err.println(String.format("Error when rebuilding index for %s in cf %s", id, cfName));
+            e.printStackTrace();
+        }
+        return runResult;
+    }
+
+    private Class<? extends DataObject>  getClassFromCFName(String cfName) {
+        Class<? extends DataObject> clazz = _cfMap.get(cfName); // fill in type from cfName
+        if (clazz == null) {
+            System.err.println("Unknown Column Family: " + cfName);
+            return null;
+        }
+        if (!DataObject.class.isAssignableFrom(clazz)) {
+            System.err.println("TimeSeries data not supported with this command.");
+            return null;
+        }
+        return clazz;
     }
 }

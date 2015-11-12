@@ -260,11 +260,16 @@ public class Vcenters extends AbstractCoreBulkResources<VcenterRestRep> implemen
      * @param validateConnection flag to indicate whether to validate the vCenter connection or not.
      * @return the vCenter discovery async task.
      */
-    public Task<VcenterRestRep> create(VcenterCreateParam input, Boolean validateConnection) {
+    public Task<VcenterRestRep> create(VcenterCreateParam input, Boolean validateConnection, Boolean discoverVcenter) {
         UriBuilder uriBuilder = client.uriBuilder(baseUrl);
         if (validateConnection) {
             uriBuilder.queryParam(VALIDATE_CONNECTION_PARAM, Boolean.TRUE);
         }
+
+        if (!discoverVcenter) {
+            uriBuilder.queryParam(DISCOVER_VCENTER, Boolean.FALSE);
+        }
+
         return postTaskURI(input, uriBuilder.build());
     }
 

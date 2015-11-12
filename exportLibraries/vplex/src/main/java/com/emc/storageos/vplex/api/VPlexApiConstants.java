@@ -116,7 +116,9 @@ public class VPlexApiConstants {
     public static final URI URI_INVALIDATE_VOLUME_CACHE = URI.create("/vplex/virtual-volume+cache-invalidate");
     public static final URI URI_INVALIDATE_VOLUME_CACHE_STATUS = URI.create("/vplex/virtual-volume+cache-invalidate-status");
     public static final URI URI_DEVICE_DETACH_MIRROR = URI.create("/vplex/device+detach-mirror");
+    public static final URI URI_DEVICE_COLLAPSE = URI.create("/vplex/device+collapse");
     public static final URI URI_REFRESH_CONTEXT = URI.create("/vplex/ls");
+    public static final URI URI_DRILL_DOWN = URI.create("/vplex/drill-down");
 
     // Keys found in JSON responses to HTTP requests
     public static final String RESPONSE_JSON_KEY = "response";
@@ -133,6 +135,7 @@ public class VPlexApiConstants {
     public static final String REBUILD_STATUS_ERROR = "error";
     public static final String ATTRIBUTE_CG_RP_ENABLED = "recoverpoint-enabled";
     public static final String ATTRIBUTE_CG_AUTO_RESUME = "auto-resume-at-loser";
+    public static final String ATTRIBUTE_DEVICE_VISIBILITY = "visibility";
     public static final String EXCEPTION_MSG_JSON_KEY = "exception";
 
     // Constant defines the JSON key for arguments passed as POST data in
@@ -171,19 +174,22 @@ public class VPlexApiConstants {
     // Constants related to claimed storage volumes.
     public static final String VOLUME_NAME_PREFIX = "V";
     public static final int MAX_VOL_NAME_LENGTH = 27;
+    public static final int MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR = 47;
     public static final String DOT_OPERATOR = ".";
     public static final String UNDERSCORE_OPERATOR = "_";
     public static final String PLUS_OPERATOR = "+";
     public static final String HYPHEN_OPERATOR = "-";
-    
+
     // Virtual Volume Locality
     public static final String LOCAL_VIRTUAL_VOLUME = "local";
     public static final String DISTRIBUTED_VIRTUAL_VOLUME = "distributed";
-    
-    // Virtual Volume VPD-ID 
+
+    public static final String LOCAL_DEVICE = "local";
+
+    // Virtual Volume VPD-ID
     public static final String VOLUME_WWN_PREFIX = "VPD83T3:";
-    
-    // The prefix and suffix VPlex applies to an extent when created 
+
+    // The prefix and suffix VPlex applies to an extent when created
     // for a storage volume. Note that the suffix implies that only
     // one extent is created for the storage volumes.
     public static final String EXTENT_PREFIX = "extent_";
@@ -250,8 +256,8 @@ public class VPlexApiConstants {
     public static final int STORAGE_VIEW_CREATE_MAX_RETRIES = 1;
 
     // Controls how long we wait for a volume expansion to complete.
-    public static final int EXPANSION_STATUS_RETRY_COUNT = 12;
-    public static final long EXPANSION_STATUS_SLEEP_TIME_MS = 5000;
+    public static final String EXPANSION_STATUS_RETRY_COUNT = "controller_vplex_volume_expansion_status_check_retry_count";
+    public static final String EXPANSION_STATUS_SLEEP_TIME_MS = "controller_vplex_volume_expansion_status_check_retry_max_wait";
 
     // When waiting on a rebuild operation to complete these parameters
     // control how long we wait.

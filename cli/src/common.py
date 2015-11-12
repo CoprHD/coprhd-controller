@@ -921,6 +921,7 @@ def block_until_complete(componentType, resource_uri, task_id, ipAddr, port):
 
             if(out):
                 if(out["state"] == "ready"):
+                    
                     # cancel the timer and return
                     t.cancel()
                     break
@@ -972,6 +973,7 @@ parameter task_uri_constant : The URI constant for the task
 def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
                                        task_id, ipAddr, port):
 
+            
             task_uri_constant = singletonURIHelperInstance.getUri(
                 componentType, "task")
             (s, h) = service_json_request(

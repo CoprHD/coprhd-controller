@@ -140,6 +140,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             Integer requestedHLU = volumeMap.get(boURI);
                             StringMap existingVolumesInMask = exportMask.getExistingVolumes();
                             if (existingVolumesInMask != null &&
+                                    !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
@@ -623,6 +624,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * @param token - Identifier for the operation
      * @throws Exception
      */
+    @Override
     public boolean determineExportGroupCreateSteps(Workflow workflow, String previousStep,
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token) throws Exception {
@@ -762,6 +764,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             Integer requestedHLU = volumeMap.get(boURI);
                             StringMap existingVolumesInMask = mask.getExistingVolumes();
                             if (existingVolumesInMask != null &&
+                                    !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
@@ -905,6 +908,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      *         the passed in previousStep id is returned.
      * 
      */
+    @Override
     public String
             checkForSnapshotsToCopyToTarget(Workflow workflow, StorageSystem storageSystem,
                     String previousStep,

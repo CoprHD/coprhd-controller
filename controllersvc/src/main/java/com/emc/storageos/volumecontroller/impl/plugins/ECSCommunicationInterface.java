@@ -35,7 +35,9 @@ import com.emc.storageos.ecs.api.ECSStoragePort;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.ecs.ECSCollectionException;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 /**
@@ -176,11 +178,11 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             _logger.info("No of newly discovered pools {}", allPools.get(NEW).size());
             _logger.info("No of existing discovered pools {}", allPools.get(EXISTING).size());
 
-            if (allPools.get(NEW).size() > 0) {
+            if (!allPools.get(NEW).isEmpty()) {
                 _dbClient.createObject(allPools.get(NEW));
             }
 
-            if (allPools.get(EXISTING).size() > 0) {
+            if (!allPools.get(EXISTING).isEmpty()) {
                 _dbClient.persistObject(allPools.get(EXISTING));
             }
 
@@ -235,23 +237,29 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             _logger.info("No of newly discovered ports {}", storagePorts.get(NEW).size());
             _logger.info("No of existing discovered ports {}", storagePorts.get(EXISTING).size());
-            if (storagePorts.get(NEW).size() > 0) {
+            if (!storagePorts.get(NEW).isEmpty()) {
                 _dbClient.createObject(storagePorts.get(NEW));
             }
 
-            if (storagePorts.get(EXISTING).size() > 0) {
+            if (!storagePorts.get(EXISTING).isEmpty()) {
                 _dbClient.persistObject(storagePorts.get(EXISTING));
             }
 
+            //Discovery success
+            detailedStatusMessage = String.format("Discovery completed successfully for ECS: %s",
+                    storageSystemId.toString());
         } catch (Exception e) {
+            if (storageSystem != null) {
+                cleanupDiscovery(storageSystem);
+            }
             detailedStatusMessage = String.format("Discovery failed for Storage System ECS %s: because %s",
-                    accessProfile.getIpAddress(), e.getMessage());
+                    storageSystemId.toString(), e.getLocalizedMessage());
             _logger.error(detailedStatusMessage, e);
+            throw new ECSCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                    null, detailedStatusMessage, null, null);
         } finally {
             if (storageSystem != null) {
                 try {
-                    detailedStatusMessage = String.format("Discovery completed successfully for ECS: %s",
-                            accessProfile.getIpAddress());
                     // set detailed message
                     storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
                     _dbClient.persistObject(storageSystem);
@@ -280,6 +288,21 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
         return ecsApiFactory
                 .getRESTClient(deviceURI, ecsSystem.getUsername(), ecsSystem.getPassword());
+    }
+
+    /**
+     * If discovery fails, then mark the system as unreachable.
+     *
+     * @param system  the system that failed discovery.
+     */
+    private void cleanupDiscovery(StorageSystem system) {
+        try {
+            system.setReachableStatus(false);
+            _dbClient.persistObject(system);
+        } catch (DatabaseException e) {
+            _logger.error("discoverStorage failed.  Failed to update discovery status to ERROR.", e);
+        }
+
     }
 
 }

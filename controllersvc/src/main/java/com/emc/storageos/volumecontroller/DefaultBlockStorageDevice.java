@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -150,6 +151,14 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
+    public void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList,
+                                         Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -168,6 +177,13 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     @Override
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doDeleteSelectedSnapshot(StorageSystem storage, URI snapshot,
+                                         TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
@@ -369,6 +385,22 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     @Override
     public void doRemoveFromConsistencyGroup(StorageSystem storage,
             URI consistencyGroupId, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doAddToReplicationGroup(StorageSystem storage,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doRemoveFromReplicationGroup(StorageSystem storage,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
@@ -650,5 +682,20 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
             List<URI> mirrors, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doCreateListReplica(StorageSystem storage, List<URI> replicaList, Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doDetachListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return Collections.EMPTY_MAP;
     }
 }

@@ -48,6 +48,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -353,7 +354,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             for (URI hostId : clusterHostIds) {
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                 for (ExportGroup exportGroup : getExportGroups(hostId, hostInitiators)) {
-                    if (exportGroup.forCluster() && exportGroup.hasCluster(clusterId)) {
+                    if (exportGroup.forCluster() && !exportGroup.hasCluster(clusterId)) {
                         _log.info("Export " + exportGroup.getId() + " contains reference to host " + hostId
                                 + ". Will remove this host from the export");
                         exportGroups.add(exportGroup.getId());
@@ -768,8 +769,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public void updateExportGroup(URI exportGroup, Map<URI, Integer> newVolumesMap,
             List<URI> newClusters, List<URI> newHosts, List<URI> newInitiators, String stepId) {
+        Map<URI, Integer> addedBlockObjects = new HashMap<URI, Integer>();
+        Map<URI, Integer> removedBlockObjects = new HashMap<URI, Integer>();
+        ExportGroup exportGroupObject = _dbClient.queryObject(ExportGroup.class, exportGroup);
+        ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
-        blockController.exportGroupUpdate(exportGroup, newVolumesMap, newClusters,
+        blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, newClusters,
                 newHosts, newInitiators, stepId);
     }
 
@@ -1061,9 +1066,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
 
                 for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
-                    ExportGroupState egh = getExportGroupState(exportGroups, export);
-                    egh.removeHost(host.getId());
-                    egh.removeInitiators(hostInitiatorIds);
+                    // do not unexport volumes from exclusive exports if the host has a boot volume id
+                    boolean isBootVolumeExport = export.forHost() && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
+                            && export.hasBlockObject(host.getBootVolumeId());
+                    if (!isBootVolumeExport) {
+                        ExportGroupState egh = getExportGroupState(exportGroups, export);
+                        egh.removeHost(host.getId());
+                        egh.removeInitiators(hostInitiatorIds);
+                    }
                 }
 
             }

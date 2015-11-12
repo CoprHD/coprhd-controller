@@ -167,11 +167,13 @@ class URIHelper(object):
 
     INITIATOR_URIS_MAP = dict()
     URI_INITIATOR_TASKS = "/compute/initiators/{0}/tasks"
+    URI_INITIATOR_TASK = URI_INITIATOR_TASKS + "/{1}"
     URI_INITIATOR_TASK_BY_ID = '/vdc/tasks/{0}'
 
     IPINTERFACE_URIS_MAP = dict()
     URI_IPINTERFACE_TASKS = "/compute/ip-interfaces/{0}/tasks"
     URI_IPINTERFACE_TASK_BY_ID = '/vdc/tasks/{0}'
+    
 
     def __init__(self):
         '''
@@ -335,7 +337,8 @@ class URIHelper(object):
         self.VCENTER_URIS_MAP["task"] = self.URI_VCENTER_TASK_BY_ID
 
         self.INITIATOR_URIS_MAP["tasks_list"] = self.URI_INITIATOR_TASKS
-        self.INITIATOR_URIS_MAP["task"] = self.URI_INITIATOR_TASK_BY_ID
+        self.INITIATOR_URIS_MAP["task"] = self.URI_INITIATOR_TASK
+        self.INITIATOR_URIS_MAP["task_by_id"] = self.URI_INITIATOR_TASK_BY_ID
 
         self.IPINTERFACE_URIS_MAP["tasks_list"] = self.URI_IPINTERFACE_TASKS
         self.IPINTERFACE_URIS_MAP["task"] = self.URI_IPINTERFACE_TASK_BY_ID

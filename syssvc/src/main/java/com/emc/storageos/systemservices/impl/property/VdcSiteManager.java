@@ -1089,9 +1089,9 @@ public class VdcSiteManager extends AbstractManager {
     }
     
     private void checkAndRemovePrimaryForFailover() throws Exception {
-        Site primarySite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
+        Site primarySite = getActiveSiteInFailover();
         
-        if (!primarySite.getState().equals(SiteState.PRIMARY_FAILING_OVER)) {
+        if (primarySite == null) {
             log.info("Not failover case, no action needed.");
             return;
         }
@@ -1107,8 +1107,8 @@ public class VdcSiteManager extends AbstractManager {
             log.info("Acquired lock {}", LOCK_FAILOVER_REMOVE_OLD_PRIMARY); 
     
             // double check site state
-            primarySite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
-            if (!primarySite.getState().equals(SiteState.PRIMARY_FAILING_OVER)) {
+            primarySite = getActiveSiteInFailover();
+            if (primarySite == null) {
                 log.info("Old primary site has been remove by other node, no action needed.");
                 return;
             }
@@ -1125,5 +1125,15 @@ public class VdcSiteManager extends AbstractManager {
                 lock.release();
             }
         }
+    }
+    
+    private Site getActiveSiteInFailover() {
+        for (Site site : drUtil.listSites()) {
+            if (site.getState().equals(SiteState.PRIMARY_FAILING_OVER)) {
+                return site;
+            }
+        }
+        
+        return null;
     }
 }

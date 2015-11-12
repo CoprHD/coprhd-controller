@@ -15,6 +15,7 @@ import java.util.Map;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
+import javax.wbem.client.WBEMClient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
-import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 
 /**
  * Process AllocatedFromStoragePool instances.
@@ -40,8 +40,19 @@ public class AllocatedFromStoragePoolProcessor extends StorageProcessor {
         processResultbyChunk(resultObj, keyMap);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected int processInstances(Iterator<CIMInstance> instances) {
+        return processInstances(instances, null);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected int processInstances(Iterator<CIMInstance> instances, WBEMClient client) {
         int count = 0;
         while (instances.hasNext()) {
             try {

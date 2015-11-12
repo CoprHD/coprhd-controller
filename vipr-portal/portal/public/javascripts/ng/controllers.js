@@ -417,6 +417,52 @@ angular.module("portalApp").controller({
     	    $scope.$apply();
        }
     },
+    NfsAclCtrl: function($scope, $http, $window, translate) {
+    	
+    	$scope.add = {type:'user', name:'', domain:'', permission:'read', permissionType:'allow'};
+    	
+    	$scope.typeOpt = [{id:'user', name:translate('resources.filesystem.acl.user')},
+    	                 {id:'group', name:translate('resources.filesystem.acl.group')}];
+    	
+    	$scope.permissionTypeOpt =[{id:'allow', name:translate('resources.filesystem.nfsacl.allow')},
+    	      	                 {id:'deny', name:translate('resources.filesystem.nfsacl.deny')}];
+
+    	$scope.permOpt = [{id:'read', name:translate('resources.filesystem.nfsacl.read')}, 
+    	                  {id:'write', name:translate('resources.filesystem.nfsacl.write')}, 
+    	                  {id:'execute', name:translate('resources.filesystem.nfsacl.execute')}];
+    	
+    	var setData = function(data) {
+    		$scope.acl = data;
+    	}
+    	
+    	var resetModal = function() {
+    		$scope.acl = {};
+    	}
+    	
+    	$scope.populateModal = function() {
+    		    resetModal();
+    			$scope.acl.accesscontrols = [];
+        		$scope.acl.accesscontrols.push(angular.copy($scope.add));
+        		$scope.$apply();
+
+    	}
+
+    	$scope.deleteACE = function(idx) { $scope.acl.accesscontrols.splice(idx, 1); }
+    	$scope.addACE = function() { $scope.acl.accesscontrols.push(angular.copy($scope.add)); }
+    	
+    	$scope.$watch('acl', function(newVal) {
+    		var accessList = [];
+    		angular.forEach($scope.acl.accesscontrols, function(obj) {
+    			if (obj.name != '') {
+    				var val = obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission+"~~~"+obj.permissionType;
+    				val =val.split(",").join("/")
+    				accessList.push(val);
+    			}
+    		});
+    		
+    		$scope.formAccessControlList = accessList.toString();
+    	}, true);
+    },
     FileQuotaCtrl: function($scope, $http, $filter, translate) {
         $scope.securityOptions = [{id:"unix", name:translate('resources.filesystem.quota.security.unix')}, 
                                   {id:"ntfs", name:translate('resources.filesystem.quota.security.ntfs')},

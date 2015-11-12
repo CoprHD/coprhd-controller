@@ -19,6 +19,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.FSExportMap;
@@ -30,20 +32,25 @@ import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
+import com.emc.storageos.isilon.restapi.IsilonNFSACL;
+import com.emc.storageos.isilon.restapi.IsilonNFSACL.Acl;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare.Permission;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
+import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
@@ -67,6 +74,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     private HashMap<String, String> configinfo;
 
     private DbClient _dbClient;
+    
+    private CustomConfigHandler customConfigHandler;
 
     /**
      * Set Isilon API factory
@@ -98,6 +107,14 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
     }
+    
+    /**
+     * Set the controller config info
+     * @return
+     */
+	public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+		this.customConfigHandler = customConfigHandler;
+	}
 
     /**
      * Get isilon device represented by the StorageDevice
@@ -106,7 +123,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
      * @return IsilonApi object
      * @throws IsilonException
      */
-            IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
+    IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
         IsilonApi isilonAPI;
         URI deviceURI;
         try {
@@ -314,7 +331,18 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             isi.modifyShare(shareId, isilonSMBShare);
         } else {
             // new share
-            shareId = isi.createShare(isilonSMBShare);
+        	VirtualNAS vNAS = args.getvNAS();
+        	String zoneName = null;
+        	if(vNAS != null) {
+        		zoneName = vNAS.getNasName();
+        	}
+        	 
+        	if(zoneName != null) {
+        		_log.debug("Share will be created in zone: {}", zoneName);
+        		shareId = isi.createShare(isilonSMBShare, zoneName);
+        	} else {
+        		shareId = isi.createShare(isilonSMBShare);
+        	}
         }
         smbFileShare.setNativeId(shareId);
 
@@ -394,6 +422,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             String mountPath = fileExport.getMountPath();
             String comments = fileExport.getComments();
             String subDirectory = fileExport.getSubDirectory();
+            String accessZoneName = null;
 
             // Validate parameters for permissions and root user mapping.
             if (permissions.equals(FileShareExport.Permissions.root.name()) &&
@@ -414,6 +443,11 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             if (args.getFileObjExports() == null) {
                 args.initFileObjExports();
             }
+            
+            VirtualNAS vNAS = args.getvNAS();
+            if(vNAS != null) {
+            	accessZoneName = vNAS.getNasName();
+            }
 
             // Create/update export in Isilon.
             String exportKey = fileExport.getFileExportKey();
@@ -430,7 +464,13 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             }
             if (fExport == null || currentIsilonExport == null) {
                 // There is no Isilon export. Create Isilon export and set it the map.
-                String id = isi.createExport(newIsilonExport);
+            	String id = null;
+                if(accessZoneName != null) {
+                	_log.debug("Export will be created in zone: {}", accessZoneName);
+                	id = isi.createExport(newIsilonExport, accessZoneName);
+                } else {
+                	id = isi.createExport(newIsilonExport);
+                }
 
                 // set file export data and add it to the export map
                 fExport = new FileExport(newIsilonExport.getClients(), storagePortName, mountPath, securityType,
@@ -624,6 +664,13 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             String projName = null;
             String tenantOrg = null;
+            VirtualNAS vNAS = args.getvNAS();
+            String vNASPath = null;
+            
+            if(vNAS != null) {
+            	vNASPath = vNAS.getBaseDirPath();
+            	_log.info("vNAS base directory path: {}", vNASPath);
+            }
 
             if (args.getProject() != null) {
                 projName = args.getProjectNameWithNoSpecialCharacters();
@@ -631,17 +678,35 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             if (args.getTenantOrg() != null) {
                 tenantOrg = args.getTenantNameWithNoSpecialCharacters();
             }
+            
+            String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.USE_PHYSICAL_NAS_FOR_PROVISIONING, "isilon", null);
+            _log.info("Use System access zone to provision filesystem? {}", usePhysicalNASForProvisioning);
 
             String mountPath = null;
             // Update the mount path as required
-            if (projName != null && tenantOrg != null) {
-                mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
-                        args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
-                        args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
-            } else {
-                mountPath = String.format("%1$s/%2$s/%3$s/%4$s", IFS_ROOT, VIPR_DIR,
-                        args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
-            }
+            if(vNASPath != null && !vNASPath.trim().isEmpty()) {
+	        	if (projName != null && tenantOrg != null) {
+		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s", vNASPath,
+		                    args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
+		                    args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
+		        } else {
+		            mountPath = String.format("%1$s/%2$s/%3$s", vNASPath,
+		                    args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
+		        }
+	        } else if(Boolean.valueOf(usePhysicalNASForProvisioning)) {
+		        if (projName != null && tenantOrg != null) {
+		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
+		                    args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
+		                    args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
+		        } else {
+		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s", IFS_ROOT, VIPR_DIR,
+		                    args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
+		        }
+	        } else {
+	        	_log.error("No suitable access zone found for provisioning. Provisioning on System access zone is disabled");
+	        	throw DeviceControllerException.exceptions.createFileSystemOnPhysicalNASDisabled();
+	        }
 
             _log.info("Mount path to mount the Isilon File System {}", mountPath);
             args.setFsMountPath(mountPath);
@@ -907,7 +972,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
@@ -1178,7 +1243,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
         // Requested Export Rules
         List<ExportRule> exportAdd = args.getExportRulesToAdd();
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
@@ -1773,6 +1838,131 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         isi.modifyShare(args.getShareName(), isilonSMBShare);
 
         _log.info("End processAclsForShare");
+    }
+
+    /**
+     * getIsilonAclFromNfsACE function will convert the nfsACE object 
+     * to Isilon ACL object.
+     *  
+     * @param nfsACE - vipr ACE object.
+     * @return
+     */
+    private Acl getIsilonAclFromNfsACE(NfsACE nfsACE ) {
+    	
+    	IsilonNFSACL isilonAcl = new IsilonNFSACL();
+    	Acl acl = isilonAcl.new Acl();
+    	
+    	ArrayList<String> inheritFlags = new ArrayList<String>();
+
+        inheritFlags.add("object_inherit");
+        inheritFlags.add("inherit_only");
+        acl.setInherit_flags(inheritFlags);
+        acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
+        acl.setOp("add");
+        acl.setAccesstype(nfsACE.getPermissionType());
+        String user = nfsACE.getUser();
+        if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
+            user = nfsACE.getDomain() + "\\" + nfsACE.getUser();
+        }
+
+        IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
+        acl.setTrustee(trustee);
+    	
+    	return acl;
+    }
+    @Override
+    public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
+
+        IsilonNFSACL isilonAcl = new IsilonNFSACL();
+        ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
+        List<NfsACE> aceToAdd = args.getNfsAclsToAdd();
+        for (NfsACE nfsACE : aceToAdd) {
+            Acl acl = getIsilonAclFromNfsACE(nfsACE );
+            acl.setOp("add");
+            aclCompleteList.add(acl);
+        }
+
+        List<NfsACE> aceToModify = args.getNfsAclsToModify();
+        for (NfsACE nfsACE : aceToModify) {
+        	Acl acl = getIsilonAclFromNfsACE(nfsACE );
+            acl.setOp("replace");
+            aclCompleteList.add(acl);
+        }
+
+        List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
+        for (NfsACE nfsACE : aceToDelete) {
+        	Acl acl = getIsilonAclFromNfsACE(nfsACE );
+            acl.setOp("delete");
+            aclCompleteList.add(acl);
+        }
+
+        isilonAcl.setAction("update");
+        isilonAcl.setAuthoritative("acl");
+        isilonAcl.setAcl(aclCompleteList);
+        String path = args.getFileSystemPath();
+        if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
+            path = path + "/" + args.getSubDirectory();
+
+        }
+
+        // Process new ACLs
+        IsilonApi isi = getIsilonDevice(storage);
+        _log.info("Calling Isilon API: modify NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
+        isi.modifyNFSACL(path, isilonAcl);
+        _log.info("End updateNfsACLs");
+        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
+        return result;
+    }
+    
+    private ArrayList<String> getIsilonAccessList(Set<String> permissions) {
+
+        ArrayList<String> accessRights = new ArrayList<String>();
+        for (String per : permissions) {
+
+            if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_READ)) {
+                accessRights.add(IsilonNFSACL.AccessRights.dir_gen_read.toString());
+            }
+            
+            if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_WRITE)) {
+                accessRights.add(IsilonNFSACL.AccessRights.std_write_dac.toString());
+            }
+            
+            if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE)) {
+                accessRights.add(IsilonNFSACL.AccessRights.dir_gen_execute.toString());
+            }
+        }
+        return accessRights;
+    }
+
+    @Override
+    public BiosCommandResult deleteNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
+    	
+    	IsilonNFSACL isilonAcl = new IsilonNFSACL();
+        ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
+ 
+        List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
+        for (NfsACE nfsACE : aceToDelete) {
+        	Acl acl = getIsilonAclFromNfsACE(nfsACE );
+            acl.setOp("delete");
+            aclCompleteList.add(acl);
+        }
+
+        isilonAcl.setAction("update");
+        isilonAcl.setAuthoritative("acl");
+        isilonAcl.setAcl(aclCompleteList);
+        String path = args.getFileSystemPath();
+        if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
+            path = path + "/" + args.getSubDirectory();
+
+        }
+
+        // Process new ACLs
+        IsilonApi isi = getIsilonDevice(storage);
+        _log.info("Calling Isilon API: to delete NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
+        isi.modifyNFSACL(path, isilonAcl);
+        _log.info("End deleteNfsACLs");
+        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
+        return result;
     }
 
 }

@@ -13,6 +13,7 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logWarn;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -719,5 +720,45 @@ public class VMwareSupport {
         }
 
         return e;
+    }
+
+    /**
+     * Unmount the datastore from the host or hosts in the cluster
+     * 
+     * @param host host to unmount the datastore from. if null, use cluster's hosts
+     * @param cluster cluster to unmount the datastore from
+     * @param datastore the datastore to unmount
+     */
+    public void unmountVmfsDatastore(HostSystem host, ClusterComputeResource cluster,
+            final Datastore datastore) {
+        enterMaintenanceMode(datastore);
+        setStorageIOControl(datastore, false);
+        List<HostSystem> hosts = host != null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
+
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                unmountVmfsDatastore(host, datastore);
+            }
+        });
+    }
+
+    /**
+     * Detach the volume from the host or hosts in the cluster
+     * 
+     * @param host host to detach the volume. if null, use cluster's hosts
+     * @param cluster cluster to detach the volume
+     * @param volume the volume to detach
+     */
+    public void detachLuns(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume) {
+        final HostScsiDisk disk = findScsiDisk(host, cluster, volume);
+        List<HostSystem> hosts = host != null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
+
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                detachLuns(host, Collections.singletonList(disk));
+            }
+        });
     }
 }

@@ -32,8 +32,10 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.ProtectionSet;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
@@ -66,6 +68,7 @@ import com.emc.storageos.model.block.tier.StorageTierRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
+import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 
 public class BlockMapper {
 
@@ -111,6 +114,22 @@ public class BlockMapper {
         to.setThinlyProvisioned(from.getThinlyProvisioned());
         to.setAccessState(from.getAccessState());
         to.setLinkStatus(from.getLinkStatus());
+        // Set xio3xvolume in virtualvolume only if it's backend volume belongs to xtremio & version is 3.x
+        if (null != dbClient && null != from.getAssociatedVolumes() && !from.getAssociatedVolumes().isEmpty()) {
+            for (String backendVolumeuri : from.getAssociatedVolumes()) {
+                Volume backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
+                if (null != backendVol) {
+                    StorageSystem system = dbClient.queryObject(StorageSystem.class, backendVol.getStorageController());
+
+                    if (null != system && StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
+                            && !XtremIOProvUtils.is4xXtremIOModel(system.getModel())) {
+                        to.setHasXIO3XVolumes(Boolean.TRUE);
+                        break;
+                    }
+                }
+            }
+        }
+
         if (from.getPool() != null) {
             to.setPool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getPool()));
         }
@@ -276,7 +295,17 @@ public class BlockMapper {
         to.setNewVolumeNativeId(from.getNewVolumeNativeId());
         to.setSourceNativeId(from.getSourceNativeId());
         to.setSyncActive(from.getIsSyncActive());
+        to.setReplicaState(getReplicaState(from));
+        to.setReadOnly(from.getIsReadOnly());
         return to;
+    }
+
+    public static String getReplicaState(BlockSnapshot snapshot) {
+        if (snapshot.getIsSyncActive()) {
+            return SynchronizationState.SYNCHRONIZED.name();
+        } else {
+            return SynchronizationState.PREPARED.name();
+        }
     }
 
     public static BlockMirrorRestRep map(DbClient dbClient, BlockMirror from) {
@@ -291,6 +320,7 @@ public class BlockMapper {
         }
         to.setSyncState(from.getSyncState());
         to.setSyncType(from.getSyncType());
+        to.setReplicaState(SynchronizationState.fromState(from.getSyncState()).name());
         to.setVirtualPool(toRelatedResource(ResourceTypeEnum.BLOCK_VPOOL, from.getVirtualPool()));
         if (from.getPool() != null) {
             to.setPool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getPool()));

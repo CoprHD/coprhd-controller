@@ -7,11 +7,16 @@ package controllers;
 import static util.BourneUtil.getSysClient;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import org.joda.time.DateTime;
+
 import jobs.PoweroffJob;
 import jobs.RebootNodeJob;
+
+import org.joda.time.DateTime;
+
 import play.Logger;
 import play.data.validation.Required;
 import play.i18n.Messages;
@@ -19,9 +24,11 @@ import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.AdminDashboardUtils;
+import util.DisasterRecoveryUtils;
 import util.LicenseUtils;
 import util.MessagesUtils;
 
+import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.google.common.collect.Maps;
@@ -72,6 +79,12 @@ public class AdminDashboard extends Controller {
         render(dbstatus);
     }
 
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    public static void disasterRecovery() {
+        List <SiteRestRep> drsites = DisasterRecoveryUtils.getAllSites().getSites();
+        render(drsites);
+    }
+
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void physicalAssets() {
         Map<String, Promise<?>> promises = Maps.newHashMap();
@@ -81,6 +94,7 @@ public class AdminDashboard extends Controller {
         promises.put("fabricManagerCount", AdminDashboardUtils.fabricManagerCount());
         promises.put("computeSystemCount", AdminDashboardUtils.computeSystemCount());
         promises.put("computeImageCount", AdminDashboardUtils.computeImageCount());
+        promises.put("computeImageServerCount", AdminDashboardUtils.computeImageServerCount());
         promises.put("networksCount", AdminDashboardUtils.networksCount());
         promises.put("hostCount", AdminDashboardUtils.hostCount());
         promises.put("vcenterCount", AdminDashboardUtils.vCenterCount());

@@ -56,7 +56,6 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
 public class VdcSiteManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
-    private static final String VDC_IDS_KEY = "vdc_ids";
     private static final int VDC_RPOP_BARRIER_TIMEOUT = 5;
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
@@ -294,7 +293,7 @@ public class VdcSiteManager extends AbstractManager {
                     String.valueOf(targetSiteInfo.getVdcConfigVersion()));
             localRepository.setVdcPropertyInfo(localVdcPropInfo);
 
-            String vdc_ids = targetVdcPropInfo.getProperty(VDC_IDS_KEY);
+            String vdc_ids = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
             String[] vdcIds = vdc_ids.split(",");
             if (vdcIds.length > 1) {
                 log.info("More than one Vdc, rebooting");

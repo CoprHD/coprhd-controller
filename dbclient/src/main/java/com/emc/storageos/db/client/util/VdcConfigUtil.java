@@ -64,8 +64,8 @@ public class VdcConfigUtil {
 
         Map<String, List<Site>> vdcSiteMap = drUtil.getVdcSiteMap();
         if (vdcSiteMap.isEmpty()) {
-            log.warn("No virtual data center defined in local db");
-            return vdcConfig;
+            log.warn("No virtual data center defined in ZK");
+            throw new IllegalStateException("No virtual data center defined in ZK");
         }
 
         vdcConfig.put(VDC_MYID, drUtil.getLocalVdcShortId());

@@ -423,6 +423,10 @@ public class ExportMask extends DataObject {
         _existingInitiators = existingInitiators;
     }
 
+    public boolean hasAnyExistingInitiators() {
+        return (_existingInitiators != null && !_existingInitiators.isEmpty());
+    }
+
     public void addToUserCreatedInitiators(Initiator initiator) {
         if (checkForNull(initiator)) {
             return;

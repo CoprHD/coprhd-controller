@@ -11,6 +11,9 @@
   <script language="javascript">
     function breakOut() {
       if (self != top) window.open("login.html","_top","");
+      if (window.location.hash) {
+        document.forms[0].action = document.forms[0].action + "&fragment=" + window.location.hash.replace("#", "");
+      }
     }
   </script>
 </head>
@@ -35,7 +38,7 @@
         </div>
         <label><input type="checkbox" name="remember" value="true"> Remember me</label>
         <input class="btn btn-lg btn-primary btn-block" type="submit" value="Login">
-        <div style="padding-top: 10px;">&copy; 2014 EMC Corporation. All Rights Reserved.</div>
+        <div style="padding-top: 10px;">&copy; 2015 EMC Corporation. All Rights Reserved.</div>
       </div>
     </form>
 

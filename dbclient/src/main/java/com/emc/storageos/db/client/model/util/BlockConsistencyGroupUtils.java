@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -191,6 +192,37 @@ public class BlockConsistencyGroupUtils {
                     // TODO: If we support other systems for consistency groups, we may need
                     // to add another type check here.
                     if (!DiscoveredDataObject.Type.vplex.name().equals(cgSystem.getSystemType())) {
+                        localSystemUris.add(cgSystemUri);
+                    }
+                }
+            }
+        }
+
+        return localSystemUris;
+    }
+
+    /**
+     * Gets the storage system(s) containing the native CGs corresponding to the
+     * passed VPLEX CG.
+     * 
+     * @param cg A reference to a VPLEX CG
+     * @param dbClient A reference to a database client
+     * 
+     * @return A list of the the storage system(s) containing the native CGs
+     *         corresponding to the passed VPLEX CG.
+     */
+    public static List<URI> getLocalSystemsInCG(BlockConsistencyGroup cg, DbClient dbClient) {
+        List<URI> localSystemUris = new ArrayList<URI>();
+        StringSetMap systemCgMap = cg.getSystemConsistencyGroups();
+        if (systemCgMap != null) {
+            Iterator<String> cgSystemIdsIter = cg.getSystemConsistencyGroups().keySet().iterator();
+            while (cgSystemIdsIter.hasNext()) {
+                URI cgSystemUri = URI.create(cgSystemIdsIter.next());
+                if (URIUtil.isType(cgSystemUri, StorageSystem.class)) {
+                    StorageSystem cgSystem = dbClient.queryObject(StorageSystem.class, cgSystemUri);
+                    // TODO: If we add support for new block systems, add the same in the
+                    // isBlockStorageSystem
+                    if (Type.isBlockStorageSystem(Type.valueOf(cgSystem.getSystemType()))) {
                         localSystemUris.add(cgSystemUri);
                     }
                 }

@@ -1653,7 +1653,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private void setVolumeConsistencyGroup(List<VolumeDescriptor> volumeDescriptors, URI cgURI) {
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());
-            volume.setConsistencyGroup(cgURI);
+            if (!Volume.PersonalityTypes.METADATA.equals(volume.getPersonality())) {
+                volume.setConsistencyGroup(cgURI);
+            }
             _dbClient.updateObject(volume);
         }
     }

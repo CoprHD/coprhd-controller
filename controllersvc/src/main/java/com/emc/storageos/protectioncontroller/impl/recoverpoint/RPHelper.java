@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
@@ -1780,44 +1781,6 @@ public class RPHelper {
     }
 
     /**
-     * returns the list of journal volumes for one site
-     *
-     * If this is a CDP volume, journal volumes from both the production and target copies are returned
-     *
-     * @param varray
-     * @param consistencyGroup
-     * @return
-     */
-    private List<Volume> getJournalVolumesForSite(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
-        List<Volume> journalVols = new ArrayList<Volume>();
-
-        // get the protection set from any other volume in the CG
-        ProtectionSet protectionSet = null;
-        for (Volume volInCg : getCgVolumes(consistencyGroup.getId(), _dbClient)) {
-            if (!NullColumnValueGetter.isNullNamedURI(volInCg.getProtectionSet())) {
-                protectionSet = _dbClient.queryObject(ProtectionSet.class, volInCg.getProtectionSet());
-                break;
-            }
-        }
-
-        // if a protection set is found, get all the journal volumes from it
-        if (protectionSet != null) {
-            for (String volumeUri : protectionSet.getVolumes()) {
-
-                Volume volInProtSet = _dbClient.queryObject(Volume.class, URI.create(volumeUri));
-
-                if (volInProtSet != null && !volInProtSet.getInactive() && Volume.PersonalityTypes.METADATA.equals(volInProtSet.getPersonality())
-                        && !NullColumnValueGetter.isNullURI(volInProtSet.getVirtualArray())
-                        && volInProtSet.getVirtualArray().equals(varray.getId())) {
-                    journalVols.add(volInProtSet);
-                }
-            }
-        }
-
-        return journalVols;
-    }
-
-    /**
      * returns a unique journal volume name by evaluating all journal volumes for the copy and increasing the count journal volume name is
      * in the form varrayName-cgname-journal-[count]
      *
@@ -1829,22 +1792,14 @@ public class RPHelper {
         String journalPrefix = new StringBuilder(varray.getLabel()).append(VOL_DELIMITER).append(consistencyGroup.getLabel())
                 .append(VOL_DELIMITER)
                 .append(JOURNAL).toString();
-        List<Volume> existingJournals = getJournalVolumesForSite(varray, consistencyGroup);
 
-        // filter out old style journal volumes
-        // new style journal volumes are named with the virtual array as the first component
-        List<Volume> newStyleJournals = new ArrayList<Volume>();
-        for (Volume journalVol : existingJournals) {
-            String volName = journalVol.getLabel();
-            if (volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
-                newStyleJournals.add(journalVol);
-            }
-        }
+        List<Volume> matches = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                PrefixConstraint.Factory.getLabelPrefixConstraint(Volume.class, journalPrefix));
 
         // calculate the largest index
         int largest = 0;
-        for (Volume journalVol : newStyleJournals) {
-            String[] parts = StringUtils.split(journalVol.getLabel(), VOL_DELIMITER);
+        for (Volume journalVolName : matches) {
+            String[] parts = StringUtils.split(journalVolName.getLabel(), VOL_DELIMITER);
             try {
                 int idx = Integer.parseInt(parts[parts.length - 1]);
                 if (idx > largest) {

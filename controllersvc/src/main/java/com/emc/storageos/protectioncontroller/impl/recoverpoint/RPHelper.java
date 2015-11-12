@@ -46,7 +46,6 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -70,6 +69,9 @@ import com.google.common.base.Joiner;
  */
 public class RPHelper {
 
+    /**
+     *
+     */
     private static final String VOL_DELIMITER = "-";
     private static final double RP_DEFAULT_JOURNAL_POLICY = 0.25;
     public static final String REMOTE = "remote";
@@ -1644,6 +1646,11 @@ public class RPHelper {
                     }
                 }
 
+                // Set the old vpool back on the volume
+                _log.info(String.format("Resetting Vpool on volume from (%s) back to it's original vpool (%s)",
+                        volume.getVirtualPool(), oldVpool.getId()));
+                volume.setVirtualPool(oldVpool.getId());
+
                 // Null out any RP specific fields on the volume
                 volume.setRpJournalVolume(NullColumnValueGetter.getNullURI());
                 volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
@@ -1690,64 +1697,41 @@ public class RPHelper {
                             protectionSet.setInactive(true);
                         }
 
-                        dbClient.updateObject(protectionSet);
+                        dbClient.persistObject(protectionSet);
                     }
                 }
 
-                volume.setProtectionSet(NullColumnValueGetter.getNullNamedURI());                               
+                volume.setProtectionSet(NullColumnValueGetter.getNullNamedURI());
             } else {
                 _log.info(String.format("Rollback changes for existing protected RP volume [%s]...", volume.getLabel()));
-                                
-                if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
-                    _log.info("Rollback the secondary journal");
-                    // Rollback the secondary journal volume if it was created
-                    rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
-                                
-                    // Clean up the Protection Set
-                    if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
-                        ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                        if (protectionSet != null) {
-                            // Remove volume ID from the Protection Set
-                            protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
-                            dbClient.updateObject(protectionSet);
-                        }
-                    }
-                    
-                    List<Volume> allSourceVolumesInCG = getCgSourceVolumes(volume.getConsistencyGroup(), dbClient);
-                    if (!allSourceVolumesInCG.isEmpty()) {
-                        for (Volume vol : allSourceVolumesInCG) {
-                            // Remove the secondary journal reference
-                            vol.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
-                        }
-                    }                                        
-                }
-            }
-            
-            // If this is a VPLEX volume, update the virtual pool references to the old vpool on 
-            // the backing volumes if they were set to the new vpool.
-            if (RPHelper.isVPlexVolume(volume)) {
-                for (String associatedVolId : volume.getAssociatedVolumes()) {
-                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                    if (associatedVolume != null 
-                            && !associatedVolume.getInactive()
-                            && !NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
-                            && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {                       
-                        associatedVolume.setVirtualPool(oldVpool.getId());
-                        dbClient.updateObject(associatedVolume);
-                        _log.info(String.format("Backing volume [%s] has had it's virtual pool rolled back to [%s].", associatedVolume.getLabel(),
-                                        oldVpool.getLabel()));
-                    }
-                }
-            }
-            
-             // Set the old vpool back on the volume
-            _log.info(String.format("Resetting vpool on volume [%s](%s) from (%s) back to it's original vpool (%s)",
-                    volume.getLabel(), volume.getId(), volume.getVirtualPool(), oldVpool.getId()));
-            volume.setVirtualPool(oldVpool.getId());
 
-            dbClient.updateObject(volume);
+                _log.info("Rollback the secondary journal");
+                // Rollback the secondary journal volume if it was created
+                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
+                if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
+                    rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
+                }
+                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
+
+                // Clean up the Protection Set
+                if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
+                    ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                    if (protectionSet != null) {
+                        // Remove volume ID from the Protection Set
+                        protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
+                        dbClient.persistObject(protectionSet);
+                    }
+                }
+
+                // remove consistency group from volume
+                if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                }
+            }
+
             _log.info(String.format("Rollback of RP protection changes for volume [%s] (%s) has completed.", volume.getLabel(),
-                    volume.getId()));            
+                    volume.getId()));
+            dbClient.persistObject(volume);
         }
     }
 
@@ -1763,38 +1747,22 @@ public class RPHelper {
     public static Volume rollbackVolume(URI volumeURI, DbClient dbClient) {
         Volume volume = dbClient.queryObject(Volume.class, volumeURI);
         if (volume != null && !volume.getInactive()) {
-            _log.info(String.format("Rollback volume [%s]...", volume.getLabel()));            
-            if (volume.getProvisionedCapacity() == null
-                    || volume.getProvisionedCapacity() == 0) {
-                // Only set the volume to inactive if it has never
-                // been provisioned. Otherwise let regular rollback
-                // steps take care of cleaning it up.
-                dbClient.markForDeletion(volume);                
-            } else {
-                // Normal rollback should clean up the volume, change the label
-                // to allow re-orders.                
-                volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());            
-                dbClient.updateObject(volume);
-            }
+            _log.info(String.format("Rollback volume [%s]...", volume.getLabel()));
+            volume.setInactive(true);
+            volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
+            volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+            dbClient.persistObject(volume);
 
             // Rollback any VPLEX backing volumes too
-            if (RPHelper.isVPlexVolume(volume)) {
+            if (volume.getAssociatedVolumes() != null
+                    && !volume.getAssociatedVolumes().isEmpty()) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {
-                        _log.info(String.format("Rollback volume [%s]...", associatedVolume.getLabel()));                        
-                        if (associatedVolume.getProvisionedCapacity() == null
-                                || associatedVolume.getProvisionedCapacity() == 0) {
-                            // Only set the volume to inactive if it has never
-                            // been provisioned. Otherwise let regular rollback
-                            // steps take care of cleaning it up.
-                            dbClient.markForDeletion(associatedVolume);
-                        } else {
-                            // Normal rollback should clean up the volume, change the label
-                            // to allow re-orders.
-                            associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
-                            dbClient.updateObject(associatedVolume);
-                        }
+                        _log.info(String.format("Rollback volume [%s]...", associatedVolume.getLabel()));
+                        associatedVolume.setInactive(true);
+                        associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
+                        dbClient.persistObject(associatedVolume);
                     }
                 }
             }

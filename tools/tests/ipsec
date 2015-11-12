@@ -20,8 +20,9 @@ def ipsec_check(vip):
     """ a test on ipsec key checking status """
     bourne.connect(vip)
     ipsec_status = bourne.ipsc_check()
-    print "ipsec check done"
     bourne.pretty_print_json(ipsec_status)
+    if ipsec_status['is_good'] == False:
+        raise Exception("ipsec check failed")
 
 #----------------------------------------------------------------------
 # command-line parsing

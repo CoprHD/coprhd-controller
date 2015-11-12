@@ -978,26 +978,10 @@ public class ProjectService extends TaggedResource {
                     Iterator<URI> fsItr = fsList.iterator();
                     while (fsItr.hasNext()) {
                         FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
-                        if (fileShare != null && !fileShare.getInactive()) {
-                            if (fileShare.getVirtualNAS() != null &&
-                                    fileShare.getVirtualNAS().toString().equals(vnas.getId().toString())) {
-                                _log.info("FS validation of vNAS Path {} and project : {} ",vnas.getBaseDirPath(), fileShare.getPath());
-                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
-                                    projectMatched = false;
-                                    break;
-                                }
-                            } else {
-                                if (storageSystem.getSystemType().equals("Isilon")) {
-                                    if (!fileShare.getPath().equals(vnas.getBaseDirPath() + "/")) {
-                                        continue;
-                                    }
-                                }
-                                _log.info("FS validation of vNAS Path {} and project : {} ",vnas.getBaseDirPath(), fileShare.getPath());
-                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
-                                    projectMatched = false;
-                                    break;
-                                }
-                            }
+                        if (fileShare != null && !fileShare.getInactive() &&
+                                !fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
+                            projectMatched = false;
+                            break;
                         }
                     }
                     if (!projectMatched) {

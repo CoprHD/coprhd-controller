@@ -514,6 +514,9 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.reconfigProperties("firewall");
         localRepository.reload("firewall");
 
+        localRepository.reconfigProperties("ssh");
+        localRepository.reload("ssh");
+
         reconfigAndRestartCoordinator(site);
 
         finishUpdateVdcProperties();
@@ -1019,7 +1022,7 @@ public class VdcSiteManager extends AbstractManager {
         log.info("This is switchover primary site (old primrary)");
         
         blockUntilZookeeperIsWritableConnected();
-        
+
         DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
         
         site.setState(SiteState.STANDBY_SYNCED);

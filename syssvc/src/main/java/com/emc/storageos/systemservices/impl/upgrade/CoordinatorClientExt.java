@@ -97,6 +97,7 @@ public class CoordinatorClientExt {
     private static final String DR_SWITCH_TO_ZK_OBSERVER_BARRIER = "/config/disasterRecoverySwitchToZkObserver";
     private static final int DR_SWITCH_BARRIER_TIMEOUT = 180; // barrier timeout in seconds
     private static final int ZK_LEADER_ELECTION_PORT = 2888;
+    private static final int DUAL_ZK_LEADER_ELECTION_PORT = 2898;
     
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
@@ -1437,6 +1438,7 @@ public class CoordinatorClientExt {
                     } finally {
                         try {
                             if (barrier != null) {
+                                _log.info("Leaving the barrier.");
                                 barrier.leave();
                             }
                         } catch (Exception e) {
@@ -1465,16 +1467,23 @@ public class CoordinatorClientExt {
             nodeAddrList = primary.getHostIPv6AddressMap().values();
         }
 
-        // TODO: fix for the 1+0 case
         if (nodeAddrList.size() > 1) {
             boolean isLeaderAlive = false;
             for (String nodeAddr : nodeAddrList) {
-                if (isZookeeperLeader(nodeAddr)){
+                if (isZookeeperLeader(nodeAddr, ZK_LEADER_ELECTION_PORT)){
                     isLeaderAlive = true;
                     break;
                 }
             }
             if (!isLeaderAlive) {
+                _log.info("No zookeeper leader alive on active site.");
+                return false;
+            }
+        } else { // standalone
+            String nodeAddr = nodeAddrList.iterator().next();
+            // check both election ports on the primary site.
+            if (!isZookeeperLeader(nodeAddr, ZK_LEADER_ELECTION_PORT) &&
+                    !isZookeeperLeader(nodeAddr, DUAL_ZK_LEADER_ELECTION_PORT)) {
                 _log.info("No zookeeper leader alive on active site.");
                 return false;
             }
@@ -1502,16 +1511,17 @@ public class CoordinatorClientExt {
      *  We depends on this behaviour to check if leader election is started
      * 
      * @param nodeIP
+     * @param port
      * @return
      */
-    private boolean isZookeeperLeader(String nodeIP) {
+    private boolean isZookeeperLeader(String nodeIP, int port) {
         try {
-            Socket sock = new Socket(nodeIP, ZK_LEADER_ELECTION_PORT);
+            Socket sock = new Socket(nodeIP, port);
             sock.close();
             return true;
         } catch(IOException ex) {
             _log.warn("Unexpected IO errors when checking local coordinator state. {}", ex.toString());
-        } 
+        }
         return false;
     }
     

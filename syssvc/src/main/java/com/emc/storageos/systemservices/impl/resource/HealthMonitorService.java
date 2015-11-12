@@ -221,12 +221,6 @@ public class HealthMonitorService extends BaseLogSvcResource {
             if (!nodesData.containsKey(nodeId)) {
                 String nodeName = _coordinatorClientExt.getPropertyInfo().getProperty("node_"+nodeId.replace("vipr","")+"_name");
                 nodehealthList.add(new NodeHealth(nodeId,nodeName,ip.toString(), Status.NODE_OR_SYSSVC_UNAVAILABLE.toString()));
-            } else {
-                for (NodeHealth health : nodehealthList) {
-                    if (health.getNodeId().equals(nodeId)) {
-                        health.setIp(ip.toString());
-                    }
-                }
             }
         }
         return healthRestRep;
@@ -339,8 +333,10 @@ public class HealthMonitorService extends BaseLogSvcResource {
      * @return IP address
      */
     private String getNodeIP(String nodeId) {
-        URI endpoint = _coordinatorClientExt.getNodeEndpoint(nodeId);
-        return endpoint != null ? endpoint.getHost() : null;
+        Map<String, DualInetAddress> ipLookupTable = _coordinatorClientExt.getCoordinatorClient().getInetAddessLookupMap()
+                .getControllerNodeIPLookupMap();
+        DualInetAddress ip = ipLookupTable.get(nodeId);
+        return ip.toString();
     }
 
     /**
@@ -375,7 +371,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
             _log.info("List of available services: {}", availableServices);
             String nodeStatus = Status.GOOD.toString();
             List<ServiceHealth> serviceHealthList = NodeHealthExtractor.getServiceHealth
-                    (NodeStatsExtractor.getServiceStats(availableServices), _coordinatorClientExt.getCoordinatorClient(), nodeId, nodeIP);
+                    (NodeStatsExtractor.getServiceStats(availableServices), _coordinatorClientExt.getCoordinatorClient(), nodeId);
             for (ServiceHealth serviceHealth : serviceHealthList) {
                 if (Status.UNAVAILABLE.toString().equals(serviceHealth.getStatus())
                         || Status.DEGRADED.toString().equals(serviceHealth.getStatus())) {

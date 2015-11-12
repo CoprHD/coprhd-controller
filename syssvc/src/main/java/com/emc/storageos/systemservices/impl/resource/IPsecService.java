@@ -19,6 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
+/**
+ * Web resource class for IPsec
+ */
 @Path("/ipsec")
 public class IPsecService {
 

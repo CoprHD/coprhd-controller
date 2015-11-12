@@ -27,6 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This class is to handle all ipsec related requests from web app.
+ */
 public class IPsecManager {
 
     private static final Logger log = LoggerFactory.getLogger(IPsecManager.class);
@@ -40,6 +43,10 @@ public class IPsecManager {
     CoordinatorClientImpl coordinator;
     DrUtil drUtil;
 
+    /**
+     * Checking ipsec status against the entire system.
+     * @return
+     */
     public IPsecStatus checkStatus() {
 
         log.info("Checking ipsec status ...");
@@ -75,6 +82,10 @@ public class IPsecManager {
         return status;
     }
 
+    /**
+     * Rotate IPsec preshared key for the entired system.
+     * @return
+     */
     public String rotateKey() {
         String psk = ipsecKeyGenerator.generate();
         try {
@@ -156,10 +167,18 @@ public class IPsecManager {
         return Long.toString(vdcConfigVersion);
     }
 
+    /**
+     * get the coordinator client
+     * @return
+     */
     public CoordinatorClientImpl getCoordinator() {
         return coordinator;
     }
 
+    /**
+     * set the coordinator client.
+     * @param coordinator
+     */
     public void setCoordinator(CoordinatorClientImpl coordinator) {
         this.coordinator = coordinator;
         drUtil = new DrUtil(this.coordinator);

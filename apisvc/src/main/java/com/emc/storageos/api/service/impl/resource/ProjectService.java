@@ -44,7 +44,6 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
@@ -971,7 +970,6 @@ public class ProjectService extends TaggedResource {
                 // Get list of file systems and associated project of VNAS server and validate with Project
                 URIQueryResultList fsList = new URIQueryResultList();
                 boolean projectMatched = true;
-                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vnas.getStorageDeviceURI());
                 for (String storagePort : vnas.getStoragePorts()) {
                     _dbClient.queryByConstraint(
                             ContainmentConstraint.Factory.getStoragePortFileshareConstraint(URI.create(storagePort)), fsList);

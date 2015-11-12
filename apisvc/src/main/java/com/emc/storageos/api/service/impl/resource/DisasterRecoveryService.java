@@ -39,6 +39,7 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
@@ -94,7 +95,6 @@ public class DisasterRecoveryService {
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
     private DrUtil drUtil;
-    private Service serviceInfo;
     
     @Autowired
     private AuditLogManager auditMgr;
@@ -585,7 +585,7 @@ public class DisasterRecoveryService {
     }
     
     /**
-     * This API will do planned failover to target new primary site according passed in site UUID. After failover, old primary site will
+     * This API will do switchover to target new primary site according passed in site UUID. After failover, old primary site will
      * work as normal standby site and target site will be promoted to primary. All site will update properties to trigger reconfig.
      * 
      * @param uuid target new primary site UUID
@@ -632,6 +632,13 @@ public class DisasterRecoveryService {
         }
     }
     
+    /**
+     * This API will do failover from standby site. This operation is only allowed when primary site is down.
+     * After failover, this standby site will be promoted to primary site.
+     * 
+     * @param uuid target new primary site UUID
+     * @return return accepted response if operation is successful
+     */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{uuid}/failover")
@@ -814,7 +821,9 @@ public class DisasterRecoveryService {
         
         // this is standby site and NOT in ZK read-only or observer mode,
         // it means primary is down and local ZK has been reconfig to participant
-        String coordinatorMode = drUtil.getLocalCoordinatorMode(serviceInfo.getNodeId());
+        CoordinatorClientInetAddressMap addrLookupMap = coordinator.getInetAddessLookupMap();
+        String myNodeId = addrLookupMap.getNodeId();
+        String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);
         log.info("Local coordinator mode is {}", coordinatorMode);
         if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
             log.info("Primary is available now, can't do failover");
@@ -927,9 +936,5 @@ public class DisasterRecoveryService {
 
     public void setIpsecConfig(IPsecConfig ipsecConfig) {
         this.ipsecConfig = ipsecConfig;
-    }
-
-    public void setServiceInfo(Service serviceInfo) {
-        this.serviceInfo = serviceInfo;
     }
 }

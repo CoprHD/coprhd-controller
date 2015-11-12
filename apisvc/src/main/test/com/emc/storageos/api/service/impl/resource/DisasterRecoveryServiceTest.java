@@ -45,6 +45,7 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
@@ -572,14 +573,14 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testPrecheckForFailover() {
-        ServiceImpl serviceInfo = mock(ServiceImpl.class);
+        CoordinatorClientInetAddressMap addrLookupMap = new CoordinatorClientInetAddressMap();
+        addrLookupMap.setNodeId("vipr1");
         
-        doReturn("vipr1").when(serviceInfo).getNodeId();
         doReturn(standbySite2).when(drUtil).getLocalSite();
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite2.getUuid(), 1);
         doReturn("leader").when(drUtil).getLocalCoordinatorMode("vipr1");
+        doReturn(addrLookupMap).when(coordinator).getInetAddessLookupMap();
         
-        drService.setServiceInfo(serviceInfo);
         drService.precheckForFailover("site-uuid-2");
     }
     
@@ -592,22 +593,24 @@ public class DisasterRecoveryServiceTest {
             drService.precheckForFailover("site-uuid-1");
             fail();
         } catch (InternalServerErrorException e) {
-            //ignore
+          //ignore
         }
         
         // should be synced
         try {
-            standbySite2.setState(SiteState.STANDBY_ERROR);
+            doReturn(standbySite1).when(drUtil).getLocalSite();
+            standbySite1.setState(SiteState.STANDBY_ERROR);
             drService.precheckForFailover("site-uuid-1");
             fail();
         } catch (InternalServerErrorException e) {
-            //ignore
+          //ignore
         }
         
         // show be only standby
         try {
+            standbySite1.setState(SiteState.STANDBY_SYNCED);
             doReturn(true).when(drUtil).isPrimary();
-            drService.precheckForFailover("site-uuid-2");
+            drService.precheckForFailover("site-uuid-1");
             fail();
         } catch (InternalServerErrorException e) {
             //ignore
@@ -615,8 +618,9 @@ public class DisasterRecoveryServiceTest {
         
         // should be stable
         try {
-            doReturn(ClusterInfo.ClusterState.DEGRADED).when(coordinator).getControlNodesState(standbySite2.getUuid(), 1);
-            drService.precheckForFailover("site-uuid-2");
+            doReturn(false).when(drUtil).isPrimary();
+            doReturn(ClusterInfo.ClusterState.DEGRADED).when(coordinator).getControlNodesState(standbySite1.getUuid(), 1);
+            drService.precheckForFailover("site-uuid-1");
             fail();
         } catch (InternalServerErrorException e) {
             //ignore
@@ -624,11 +628,14 @@ public class DisasterRecoveryServiceTest {
         
         // ZK should not be observer or read-only
         try {
-            ServiceImpl serviceInfo = mock(ServiceImpl.class);
-            doReturn("observer").when(drUtil).getLocalCoordinatorMode("vipr1");
-            drService.setServiceInfo(serviceInfo);
+            CoordinatorClientInetAddressMap addrLookupMap = new CoordinatorClientInetAddressMap();
+            addrLookupMap.setNodeId("vipr1");
             
-            drService.precheckForFailover("site-uuid-2");
+            doReturn(addrLookupMap).when(coordinator).getInetAddessLookupMap();
+            doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite1.getUuid(), 1);
+            doReturn("observer").when(drUtil).getLocalCoordinatorMode("vipr1");
+            
+            drService.precheckForFailover("site-uuid-1");
             fail();
         } catch (InternalServerErrorException e) {
             //ignore

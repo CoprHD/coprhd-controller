@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -21,6 +22,7 @@ import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -161,7 +163,7 @@ public class RPUnManagedObjectDiscoverer {
                             rpProtectionSystemId);                    
 
                     // Filter out RP and SRDF source vpools since this is a journal volume
-                    filterProtectedVpools(dbClient, unManagedVolume, false);
+                    filterProtectedVpools(dbClient, unManagedVolume, personality.iterator().next());
                     
                     dbClient.updateObject(unManagedVolume);
                 }
@@ -223,13 +225,9 @@ public class RPUnManagedObjectDiscoverer {
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PROTECTIONSYSTEM.toString(),
                             rpProtectionSystemId);                    
 
-                    if (volume.isProduction()) {
-                        // Filter in RP source vpools, filter out everything else
-                        filterProtectedVpools(dbClient, unManagedVolume, true);
-                    } else {
-                        // Filter out RP and SRDF source vpools since this is a target volume
-                        filterProtectedVpools(dbClient, unManagedVolume, false);
-                    }
+                    // Filter in RP source vpools, filter out everything else (if source)
+                    // Filter out certain vpools if target
+                    filterProtectedVpools(dbClient, unManagedVolume, personality.iterator().next());
                     
                     dbClient.updateObject(unManagedVolume);
                 }                    
@@ -304,9 +302,9 @@ public class RPUnManagedObjectDiscoverer {
      * @param unManagedVolume unmanaged volume
      * @param rpSource is this volume an RP source?
      */
-    private void filterProtectedVpools(DbClient dbClient, UnManagedVolume unManagedVolume, boolean rpSource) {
+    private void filterProtectedVpools(DbClient dbClient, UnManagedVolume unManagedVolume, String personality) {
         
-        if (unManagedVolume.getSupportedVpoolUris() != null) {
+        if (unManagedVolume.getSupportedVpoolUris() != null && !unManagedVolume.getSupportedVpoolUris().isEmpty()) {
             Iterator<VirtualPool> vpoolItr = dbClient.queryIterativeObjects(VirtualPool.class, URIUtil.toURIList(unManagedVolume.getSupportedVpoolUris()));
             while (vpoolItr.hasNext()) {
                 boolean remove = false;
@@ -317,13 +315,34 @@ public class RPUnManagedObjectDiscoverer {
                     remove = true;
                 }
                 
-                // If this is an RP source vpool, but this isn't an RP Source, filter it out.
-                if (vpool.getProtectionVarraySettings() != null && !rpSource) {
-                    remove = true;
+                // If this is not an RP source, the vpool should be filtered out if:
+                // The vpool is an RP vpool (has settings) and target vpools are non-null
+                if (vpool.getProtectionVarraySettings() != null && (personality.equalsIgnoreCase(Volume.PersonalityTypes.TARGET.name()) || 
+                                                                    personality.equalsIgnoreCase(Volume.PersonalityTypes.METADATA.name()))) {
+                    boolean foundEmptyTargetVpool = false;
+                    Map<URI, VpoolProtectionVarraySettings> settings = VirtualPool.getProtectionSettings(vpool, dbClient);
+                    for (Map.Entry<URI, VpoolProtectionVarraySettings> setting : settings.entrySet()) {
+                        if (setting.getValue().getVirtualPool() == null) {
+                            foundEmptyTargetVpool = true;
+                            break;
+                        }
+                    }
+                    
+                    // If this is a journal volume, also check the journal vpools.  If they're not set, we cannot filter out this vpool. 
+                    if (personality.equalsIgnoreCase(Volume.PersonalityTypes.METADATA.name()) &&
+                        (vpool.getJournalVpool() == null || vpool.getStandbyJournalVpool() == null)) {
+                       foundEmptyTargetVpool = true;
+                    }   
+                    
+                    // If every relevant target (and journal for journal volumes) vpool is filled-in, then
+                    // you would never assign your target volume to this source vpool, so filter it out.
+                    if (!foundEmptyTargetVpool) {
+                        remove = true;
+                    }
                 }
                 
-                // Now check the opposite condition.
-                if (vpool.getProtectionVarraySettings() == null && rpSource) {
+                // If this an RP source, the vpool must be an RP vpool
+                if (vpool.getProtectionVarraySettings() == null && personality.equalsIgnoreCase((Volume.PersonalityTypes.SOURCE.name()))) {                        
                     remove = true;
                 }
                 

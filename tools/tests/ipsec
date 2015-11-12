@@ -51,7 +51,7 @@ bourne = Bourne()
 
 if (cmd == "keyrotate"):
     ipsec_key_rotate(bourne_ip)
-if (cmd == "check"):
+elif (cmd == "check"):
     ipsec_check(bourne_ip)
 else:
     parser.print_help()

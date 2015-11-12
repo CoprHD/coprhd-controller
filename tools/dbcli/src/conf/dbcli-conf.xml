@@ -30,4 +30,5 @@
 
     <bean id="EE-694" class="com.emc.storageos.dbcli.dbrepair.DbRepairEE694"/>
     <bean id="EE-862" class="com.emc.storageos.dbcli.dbrepair.DbRepairEE862"/>
+    <bean id="EE-862B" class="com.emc.storageos.dbcli.dbrepair.DbRepairEE862B"/>
 </beans>

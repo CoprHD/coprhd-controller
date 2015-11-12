@@ -156,7 +156,7 @@ public class Main {
         System.out.println(String.format("\t%s", Command.HELP.name().toLowerCase()));
         System.out.println(String.format("\t%s", Command.SHOW_CF.name().toLowerCase()));
         System.out.println(String.format("\t%s <Column Family Name>", Command.SHOW_SCHEMA.name().toLowerCase()));
-        System.out.println(String.format("\t%s <DB Repair Class Name>", Command.DB_REPAIR.name().toLowerCase()));
+        System.out.println(String.format("\t%s <DB Repair Class Name> [-dryrun] [-list_parameters]", Command.DB_REPAIR.name().toLowerCase()));
         System.out.printf("\t -bypassMigrationCheck\n");
         System.out.printf("\t\tNote: it's used with other commands together only when migration fail, dbcli still work even migration fail if you pass this option\n");
 
@@ -317,8 +317,8 @@ public class Main {
                         commit = false;
                     } else if (argument.equals("-list_parameters")) {
                         // Dump what the parameters are for the repair stub
-                        System.out.printf("Parameters for %s DB repair:\n%s\n", repairStub.getClass().getSimpleName(),
-                                Joiner.on(',').join(repairStub.getParameters().keySet()));
+                        System.out.printf("Parameters for %s DB repair:%n%s%n", repairStub.getClass().getSimpleName(),
+                                Joiner.on(',').join(repairStub.getParameters().entrySet()));
                         runRepair = false;
                         break;
                     } else {
@@ -340,7 +340,7 @@ public class Main {
                         // Schema version checks out - run the repair stub
                         System.out.printf("Going to run DbRepairStub %s.%n", repairStub.getClass().getSimpleName());
                         if (!parameters.isEmpty()) {
-                            System.out.printf("Execution parameters:%n%s", Joiner.on('\n').join(parameters.entrySet()));
+                            System.out.printf("Execution parameters:%n%s%n", Joiner.on('\n').join(parameters.entrySet()));
                         }
                         System.out.println(repairStub.getDescription());
                         boolean success = repairStub.run(dbCli.getDbClient(), parameters, commit);

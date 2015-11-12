@@ -46,11 +46,13 @@ public class ExternalDeviceCommunicationInterface extends
     private static final String EXISTING = "existing";
     private Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
     private Map<String, AbstractStorageDriver> _drivers;
-    private DbClient _dbClient;
 
     // Initialized drivers map
-    private Map<String, DiscoveryDriver> discoveryDrivers;
+    private Map<String, DiscoveryDriver> discoveryDrivers = new HashMap<>();
 
+    public void setDrivers(Map<String, AbstractStorageDriver> drivers) {
+        _drivers = drivers;
+    }
 
     private DiscoveryDriver getDriver(String driverType) {
         // look up driver
@@ -148,16 +150,22 @@ public class ExternalDeviceCommunicationInterface extends
 
     private void discoverStorageSystem(DiscoveryDriver driver, AccessProfile accessProfile)
             throws BaseCollectionException {
+
         StorageSystem driverStorageSystem = new StorageSystem();
         driverStorageSystem.setIpAddress(accessProfile.getIpAddress());
         driverStorageSystem.setPortNumber(accessProfile.getPortNumber());
         driverStorageSystem.setUsername(accessProfile.getUserName());
         driverStorageSystem.setPassword(accessProfile.getPassword());
         List<StorageSystem> driverStorageSystems = Collections.singletonList(driverStorageSystem);
+
         com.emc.storageos.db.client.model.StorageSystem storageSystem =
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
+        // TODO: temporary to identify storage system by name when managed by provider.
+        driverStorageSystem.setSystemName(storageSystem.getLabel());
+
         try {
-            _log.info("discoverStorageSystem information for storage system {} - start", accessProfile.getSystemId());
+            _log.info("discoverStorageSystem information for storage system {}, name {} - start",
+                    accessProfile.getSystemId(), driverStorageSystem.getSystemName());
             DriverTask task = driver.discoverStorageSystem(driverStorageSystems);
 
             // check task status and monitor until completion.
@@ -242,7 +250,7 @@ public class ExternalDeviceCommunicationInterface extends
                     List<com.emc.storageos.db.client.model.StoragePool> pools =
                             queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.StoragePool.class, "nativeGuid", poolNativeGuid);
                     if (pools.isEmpty()) {
-                        _log.info("Pool {} is new", storagePool.getNativeId());
+                        _log.info("Pool {} is new, native GUID {}", storagePool.getNativeId(), poolNativeGuid);
                         pool = new com.emc.storageos.db.client.model.StoragePool();
                         pool.setId(URIUtil.createId(com.emc.storageos.db.client.model.StoragePool.class));
                         pool.setStorageDevice(accessProfile.getSystemId());
@@ -261,7 +269,7 @@ public class ExternalDeviceCommunicationInterface extends
                         pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                         newPools.add(pool);
                     } else if (pools.size() == 1) {
-                        _log.info("Pool {} was previously discovered", storagePool.getNativeId());
+                        _log.info("Pool {} was previously discovered, native GUID {}", storagePool.getNativeId(), poolNativeGuid);
                         pool = pools.get(0);
                         existingPools.add(pool);
                     } else {
@@ -279,6 +287,9 @@ public class ExternalDeviceCommunicationInterface extends
                     pool.addSupportedRaidLevels(storagePool.getSupportedRaidLevels());
 
                 }
+                _log.info("No of newly discovered pools {}", newPools.size());
+                _log.info("No of existing discovered pools {}", existingPools.size());
+
                 _dbClient.createObject(newPools);
                 _dbClient.updateObject(existingPools);
                 allPools.addAll(newPools);
@@ -323,7 +334,7 @@ public class ExternalDeviceCommunicationInterface extends
             _log.info("discoverPorts for storage system {} - start", storageSystemId);
 
             List<StoragePort> driverStoragePorts = new ArrayList<>();
-            DriverTask task = driver.getStoragePorts(driverStorageSystem, driverStoragePorts);
+            DriverTask task = driver.discoverStoragePorts(driverStorageSystem, driverStoragePorts);
             // Support only sync discovery at this moment.
             // TODO support async
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
@@ -354,22 +365,25 @@ public class ExternalDeviceCommunicationInterface extends
                         storagePort.setNativeGuid(portNativeGuid);
                         storagePort.setNativeId(driverPort.getNativeId());
                         storagePort.setStorageDevice(storageSystemId);
-                        storagePort.setPortNetworkId(driverPort.getPortNetworkId());
                         storagePort.setPortName(driverPort.getPortName());
                         storagePort.setLabel(driverPort.getPortName());
                         storagePort.setPortSpeed(driverPort.getPortSpeed());
                         storagePort.setPortGroup(driverPort.getPortGroup());
-                        storagePort.setPortNetworkId(driverPort.getPortNetworkId());
+                        if (storagePort.getPortGroup() == null) {
+                            storagePort.setPortGroup(storagePort.getPortName());
+                        }
                         storagePort.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
                         _log.info("Creating new storage port using NativeGuid : {}", portNativeGuid);
                         newStoragePorts.add(storagePort);
                     } else {
                         existingStoragePorts.add(storagePort);
                     }
+                    storagePort.setPortNetworkId(driverPort.getPortNetworkId());
                     storagePort.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                     storagePort.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
                     storagePort.setOperationalStatus(driverPort.getOperationalStatus());
                     storagePort.setPortEndPointID(driverPort.getEndPointID());
+                    _log.info("discoverPort: portNetworkId: {} ", storagePort.getPortNetworkId());
                     if (driverPort.getNetworkId() != null) {
                         // Get or create Network object for this port
                         Network portNetwork = getNetworkForStoragePort(driverPort);
@@ -379,9 +393,11 @@ public class ExternalDeviceCommunicationInterface extends
                     storagePort.setAvgBandwidth(driverPort.getAvgBandwidth());
                     storagePort.setPortSpeed(driverPort.getPortSpeed());
                     // Set usage metric for the port
-                    StringMap usageMetrics = storagePort.getMetrics();
-                    MetricsKeys.putDouble(MetricsKeys.portMetric, driverPort.getUtilizationMetric(), usageMetrics);
-                    storagePort.setMetrics(usageMetrics);
+                    if (driverPort.getUtilizationMetric() != null) {
+                        StringMap usageMetrics = storagePort.getMetrics();
+                        MetricsKeys.putDouble(MetricsKeys.portMetric, driverPort.getUtilizationMetric(), usageMetrics);
+                        storagePort.setMetrics(usageMetrics);
+                    }
                 }
                 storagePorts.put(NEW, newStoragePorts);
                 storagePorts.put(EXISTING, existingStoragePorts);
@@ -409,7 +425,8 @@ public class ExternalDeviceCommunicationInterface extends
 
     private StorageSystem initStorageSystem(com.emc.storageos.db.client.model.StorageSystem storageSystem) {
         StorageSystem driverStorageSystem = new StorageSystem();
-        storageSystem.setNativeId(storageSystem.getNativeId());
+        driverStorageSystem.setNativeId(storageSystem.getNativeId());
+        driverStorageSystem.setIpAddress(storageSystem.getIpAddress());
 
         return driverStorageSystem;
     }

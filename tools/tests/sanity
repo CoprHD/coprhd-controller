@@ -120,7 +120,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|ecs|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
+    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|ecs|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|driversystem)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -3047,6 +3047,16 @@ isilon_setup()
     cos allow $COS_ISIFILE file $TENANT
 }
 
+driversystem_setup()
+{
+    echo "driversystem setup"
+    discoveredsystem create driverManagedSystem driversimulator 10.246.55.66 8080 root password
+}
+
+driversystem_tests()
+{
+   echo "driversystem tests"
+}
 #
 # add ECS storage device and storage pool
 #

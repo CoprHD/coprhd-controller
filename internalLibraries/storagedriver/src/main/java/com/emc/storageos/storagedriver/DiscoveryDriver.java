@@ -51,7 +51,7 @@ public interface DiscoveryDriver extends StorageDriver{
      * @param storagePorts  Type: Output.
      * @return
      */
-    public DriverTask getStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts);
+    public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts);
 
     /**
      * Discover storage volumes

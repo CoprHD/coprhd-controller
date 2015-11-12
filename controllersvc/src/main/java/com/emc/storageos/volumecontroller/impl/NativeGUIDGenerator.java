@@ -127,6 +127,7 @@ public class NativeGUIDGenerator {
         _deviceTypeMap.put(StorageSystem.Type.vnxe.name(), "VNXE");
         _deviceTypeMap.put(StorageSystem.Type.xtremio.name(), "XTREMIO");
         _deviceTypeMap.put(StorageSystem.Type.ecs.name(), "ECS");
+        _deviceTypeMap.put(Type.driversystem.name(), "DRIVERSYSTEM");
     }
 
     /**

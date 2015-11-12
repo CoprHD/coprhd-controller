@@ -33,7 +33,8 @@ public class DiscoveredDataObject extends DataObject {
         vnxe,
         scaleio,
         xtremio,
-        ecs;
+        ecs,
+        driversystem;
 
         static public boolean isFileStorageSystem(Type type) {
             return (type == isilon || type == vnxfile || type == netapp || type == netappc || type == vnxe || type == datadomain);
@@ -60,7 +61,7 @@ public class DiscoveredDataObject extends DataObject {
         }
 
         static public boolean isBlockStorageSystem(Type type) {
-            return (type == vnxblock || type == vmax || type == vnxe || type == hds || type == ibmxiv || type == xtremio);
+            return (type == vnxblock || type == vmax || type == vnxe || type == hds || type == ibmxiv || type == xtremio || type == driversystem);
         }
 
         static public boolean isHDSStorageSystem(Type type) {

@@ -16,11 +16,6 @@ public abstract class AbstractStorageDriver implements DiscoveryDriver, BlockSto
     public AbstractStorageDriver() {
     }
 
-    public AbstractStorageDriver(Registry driverRegistry, LockManager lockManager) {
-        this.driverRegistry = driverRegistry;
-        this.lockManager = lockManager;
-    }
-
     public void setDriverRegistry(Registry driverRegistry) {
         this.driverRegistry = driverRegistry;
     }

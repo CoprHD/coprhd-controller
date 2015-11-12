@@ -26,12 +26,24 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     private Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
-    private Map<String, AbstractStorageDriver> _drivers;
-    private DbClient _dbClient;
-    private ControllerLockingService _locker;
+    private Map<String, AbstractStorageDriver> drivers;
+    private DbClient dbClient;
+    private ControllerLockingService locker;
     // Initialized drivers map
     private Map<String, BlockStorageDriver> blockDrivers;
 
+
+    public void setDbClient(DbClient dbClient) {
+        this.dbClient = dbClient;
+    }
+
+    public void setLocker(ControllerLockingService locker) {
+        this.locker = locker;
+    }
+
+    public void setDrivers(Map<String, AbstractStorageDriver> drivers) {
+        this.drivers = drivers;
+    }
 
     private BlockStorageDriver getDriver(String driverType) {
         // look up driver
@@ -40,7 +52,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             return discoveryDriver;
         } else {
             // init driver
-            AbstractStorageDriver driver = _drivers.get(driverType);
+            AbstractStorageDriver driver = drivers.get(driverType);
             if (driver == null) {
                 _log.info("No driver entry defined for device type: {} . ", driverType);
                 return null;
@@ -54,7 +66,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     private void init(AbstractStorageDriver driver) {
         Registry driverRegistry = RegistryImpl.getInstance();
         driver.setDriverRegistry(driverRegistry);
-        LockManager lockManager = LockManagerImpl.getInstance(_locker);
+        LockManager lockManager = LockManagerImpl.getInstance(locker);
         driver.setLockManager(lockManager);
     }
 
@@ -93,6 +105,13 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     public void doDeleteVolumes(StorageSystem storageSystem, String opId,
                                 List<Volume> volumes, TaskCompleter taskCompleter) throws DeviceControllerException {
 
+    }
+
+    @Override
+    public void doConnect(StorageSystem storage) {
+
+        _log.info("doConnect to external device {} - start", storage.getId());
+        _log.info("doConnect to external device {} - end", storage.getId());
     }
 
 }

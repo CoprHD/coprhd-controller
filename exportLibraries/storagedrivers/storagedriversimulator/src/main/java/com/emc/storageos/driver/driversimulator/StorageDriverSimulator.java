@@ -35,9 +35,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
     private static final String DRIVER_NAME = "SimulatorDriver";
     private static final String STORAGE_DEVICE_ID = "PureStorage-x123";
 
-    public StorageDriverSimulator(Registry driverRegistry, LockManager lockManager) {
-        super(driverRegistry, lockManager);
-    }
+//    public StorageDriverSimulator(Registry driverRegistry, LockManager lockManager) {
+//        super(driverRegistry, lockManager);
+//    }
 
     //StorageDriver implementation
 
@@ -73,7 +73,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
         _log.info("StorageDriver: discoverStorageSystem information for storage system {} - start",
                 storageSystem.getIpAddress());
 
-        storageSystem.setSerialNumber("123456789");
+        storageSystem.setSerialNumber(UUID.randomUUID().toString());
         storageSystem.setNativeId(STORAGE_DEVICE_ID);
         storageSystem.setFirmwareVersion("2.4-3.12");
         storageSystem.setIsSupportedVersion(true);
@@ -139,20 +139,21 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
     }
 
     @Override
-    public DriverTask getStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
+    public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
         _log.info("Discovery of storage ports for storage system {} .", storageSystem.getNativeId());
 
         // Create ports
         for (int i =0; i <= 2; i++ ) {
             StoragePort port = new StoragePort();
-            port.setNativeId("pool-12345-" + i);
+            port.setNativeId("port-12345-" + i);
             port.setStorageSystemId(storageSystem.getNativeId());
             _log.info("Discovered Port {}, storageSystem {}", port.getNativeId(), port.getStorageSystemId());
 
             port.setDeviceLabel("er-port-12345" + i);
             port.setPortName(port.getDeviceLabel());
-            port.setNetworkId("50:FE:FE:FE:FE:FE:FE:0" + i);
+            port.setNetworkId("er-network11");
             port.setTransportType(StoragePort.TransportType.FC);
+            port.setPortNetworkId("50:FE:FE:FE:FE:FE:FE:0" + i);
             port.setOperationalStatus(StoragePort.OperationalStatus.OK);
             storagePorts.add(port);
         }

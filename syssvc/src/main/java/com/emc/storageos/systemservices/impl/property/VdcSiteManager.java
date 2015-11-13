@@ -76,6 +76,7 @@ public class VdcSiteManager extends AbstractManager {
     // Timeout in minutes for add/resume/data sync
     // If data synchronization takes long than this value, set site to error
     public static final int ADD_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
+    public static final int PAUSE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
@@ -86,6 +87,7 @@ public class VdcSiteManager extends AbstractManager {
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
     
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
+    private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
     
     private static final String LOCK_FAILOVER_REMOVE_OLD_PRIMARY="drFailoverRemoveOldPrimaryLock";
     
@@ -375,13 +377,13 @@ public class VdcSiteManager extends AbstractManager {
 
         log.info("Step3: Setting vdc properties not rebooting for single VDC change, action={}", action);
         checkAndRemoveStandby();
-        
         checkAndRemovePrimaryForFailover();
 
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
                 rebuildLocalDbIfNecessary();
                 reconfigRestartSvcs();
+                checkAndPauseStandby();
                 cleanupSiteErrorIfNecessary();
                 break;
             case SiteInfo.RECONFIG_IPSEC: // for ipsec key rotation
@@ -802,6 +804,51 @@ public class VdcSiteManager extends AbstractManager {
             }
         }
     }
+
+    /**
+     * Update the strategy options and remove the paused site from gossip ring on the primary site.
+     * This should be done after the firewall has been updated to block the paused site so that it's not affected.
+     */
+    private void checkAndPauseStandby() {
+        if (drUtil.isStandby()) {
+            return;
+        }
+
+        for (Site standby : drUtil.listStandbySites()) {
+            if (standby.getState().equals(SiteState.STANDBY_PAUSING)) {
+                InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_REMOVE_STANDBY);
+                try {
+                    log.info("Acquiring lock {}", LOCK_PAUSE_STANDBY);
+                    lock.acquire();
+                    log.info("Acquired lock {}", LOCK_PAUSE_STANDBY);
+                    // exclude the paused site from strategy options of dbsvc and geodbsvc
+                    String dcId = drUtil.getCassandraDcId(standby);
+                    ((DbClientImpl) dbClient).getLocalContext().removeDcFromStrategyOptions(dcId);
+                    ((DbClientImpl) dbClient).getGeoContext().removeDcFromStrategyOptions(dcId);
+
+                    // remove the site from cassandra gossip ring of dbsvc and geodbsvc
+                    try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
+                         DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
+                        dbOps.removeDataCenter(dcId);
+                        geodbOps.removeDataCenter(dcId);
+                    }
+
+                    // update the status to STANDBY_PAUSED
+                    standby.setState(SiteState.STANDBY_PAUSED);
+                    coordinator.getCoordinatorClient().persistServiceConfiguration(standby.toConfiguration());
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                } finally {
+                    try {
+                        log.info("Releasing lock {}", LOCK_PAUSE_STANDBY);
+                        lock.release();
+                    } catch (Exception e) {
+                        log.error("Failed to release lock {}", LOCK_PAUSE_STANDBY);
+                    }
+                }
+            }
+        }
+    }
     
     private void removeDbNodes(Site site) throws Exception {
         poweroffRemoteSite(site);
@@ -949,6 +996,13 @@ public class VdcSiteManager extends AbstractManager {
                     log.info("Step5: Site {} set to error due to add standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(
                             ADD_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                }
+                break;
+            case STANDBY_PAUSING:
+                if (currentTime - lastSiteUpdateTime > PAUSE_STANDBY_TIMEOUT_MILLIS) {
+                    log.info("Step5: Site {} set to error due to pause standby timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.pauseStandbyFailedTimeout(
+                            PAUSE_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
                 }
                 break;
             case STANDBY_RESUMING:

@@ -14,7 +14,8 @@ public enum SiteState {
     PRIMARY_FAILING_OVER, // Primary site is doing failover
     STANDBY_ADDING, // Standby site. Adding site
     STANDBY_SYNCING, // Standby site. Syncing from an active one
-    STANDBY_SYNCED,  // Standby site. Synced with active one 
+    STANDBY_SYNCED,  // Standby site. Synced with active one
+    STANDBY_PAUSING,  // Standby site. Replication is being paused
     STANDBY_PAUSED,  // Standby site. Replication is paused 
     STANDBY_TESTING, // Standby site. Run DR testing
     STANDBY_SWITCHING_OVER, // Standby site is doing switchover

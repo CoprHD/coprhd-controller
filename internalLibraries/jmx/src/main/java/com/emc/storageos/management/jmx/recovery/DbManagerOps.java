@@ -219,11 +219,15 @@ public class DbManagerOps implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         log.info("DbManagerOps.close() is called");
-        if (this.conn != null) {
-            this.conn.close();
-            this.conn = null;
+        try {
+            if (this.conn != null) {
+                this.conn.close();
+                this.conn = null;
+            }
+        } catch (IOException e) {
+            log.error("failed to close DbManagerOps", e);
         }
     }
 }

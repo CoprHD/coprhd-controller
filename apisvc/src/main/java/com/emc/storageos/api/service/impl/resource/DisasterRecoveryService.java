@@ -489,22 +489,8 @@ public class DisasterRecoveryService {
         }
 
         try {
-            standby.setState(SiteState.STANDBY_PAUSED);
+            standby.setState(SiteState.STANDBY_PAUSING);
             coordinator.persistServiceConfiguration(standby.toConfiguration());
-
-            // exclude the paused site from strategy options of dbsvc and geodbsvc
-            String dcId = drUtil.getCassandraDcId(standby);
-            ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcId);
-            ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcId);
-
-            // remove the site from cassandra gossip ring of dbsvc and geodbsvc
-            try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME)) {
-                dbOps.removeDataCenter(dcId);
-            }
-
-            try (DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
-                geodbOps.removeDataCenter(dcId);
-            }
 
             for (Site site : drUtil.listStandbySites()) {
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);

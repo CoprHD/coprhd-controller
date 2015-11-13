@@ -81,21 +81,21 @@ public class StorageVirtualMachine {
                         List<SVMNetInfo> netInfo = new ArrayList<SVMNetInfo>();
                         for (NaElement vsnet : (List<NaElement>) intfResult.getChildren()) {
                             NaElement dataProtocols = vsnet.getChildByName("data-protocols");
-                            boolean invalid = false;
+                            boolean valid = false;
                             if (dataProtocols != null) {
                                 for (NaElement dataProtocol : (List<NaElement>) dataProtocols.getChildren()) {
                                     if (dataProtocol != null) {
                                         String protocolValue = dataProtocol.getContent();
                                         // select only those port which support CIFS or NFS
-                                        if (!(protocolValue.equalsIgnoreCase(IP_CIFS_CONNECTIONS) || protocolValue
-                                                .equalsIgnoreCase(IP_NFS_CONNECTIONS))) {
-                                            invalid = true;
+                                        if (protocolValue.equalsIgnoreCase(IP_CIFS_CONNECTIONS) || protocolValue
+                                                .equalsIgnoreCase(IP_NFS_CONNECTIONS)) {
+                                            valid = true;
                                             break;
                                         }
                                     }
                                 }
                             }
-                            if (!invalid) {
+                            if (valid) {
                                 if (svmInfo.getName().equalsIgnoreCase(vsnet.getChildContent("vserver"))) {
                                     SVMNetInfo svmNetInfo = new SVMNetInfo();
                                     svmNetInfo.setIpAddress(vsnet.getChildContent("address"));

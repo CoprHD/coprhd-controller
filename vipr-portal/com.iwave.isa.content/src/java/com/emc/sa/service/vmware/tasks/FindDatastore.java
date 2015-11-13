@@ -27,7 +27,8 @@ public class FindDatastore extends RetryableTask<Datastore> {
         debug("Executing: %s", getDetail());
         Datastore datastore = vcenter.findDatastore(datacenterName, datastoreName);
         if (datastore == null) {
-            throw new VMWareException("Unable to find datastore");
+            throw new VMWareException(
+                    String.format("Unable to find datastore %s in datacenter %s", datastoreName, datacenterName));
         }
         return datastore;
     }

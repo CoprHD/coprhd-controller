@@ -480,30 +480,85 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @Path("/{uuid}/pause")
-    public SiteRestRep pauseStandby(@PathParam("uuid") String uuid) {
-        log.info("Begin to pause data sync between standby site from local vdc by uuid: {}", uuid);
-        Site standby = validateSiteConfig(uuid);
-        if (!standby.getState().equals(SiteState.STANDBY_SYNCED)) {
-            log.error("site {} is in state {}, should be STANDBY_SYNCED", uuid, standby.getState());
-            throw APIException.badRequests.operationOnlyAllowedOnSyncedSite(uuid, standby.getState().toString());
+    public Response pauseStandby(@PathParam("uuid") String uuid) {
+        SiteIdListParam param = new SiteIdListParam();
+        param.getIds().add(uuid);
+        return pause(param);
+    }
+
+    /**
+     * Pause data replication to multiple standby sites.
+     *
+     * @param idList site uuid list to be removed
+     * @return
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    @Path("/pause")
+    public Response pause(SiteIdListParam idList) {
+        List<String> siteIdList = idList.getIds();
+        String siteIdStr = StringUtils.join(siteIdList, ",");
+        log.info("Begin to pause standby site from local vdc by uuid: {}", siteIdStr);
+        List<Site> toBePausedSites = new ArrayList<>();
+        for (String siteId : siteIdList) {
+            Site site;
+            try {
+                site = drUtil.getSiteFromLocalVdc(siteId);
+            } catch (Exception ex) {
+                log.error("Can't load site {} from ZK", siteId);
+                throw APIException.badRequests.siteIdNotFound();
+            }
+            SiteState state = site.getState();
+            if (state.equals(SiteState.PRIMARY)) {
+                log.error("Unable to pause this site {}. It is primary", siteId);
+                throw APIException.badRequests.operationNotAllowedOnPrimarySite();
+            }
+            if (!state.equals(SiteState.STANDBY_SYNCED)) {
+                log.error("Unable to pause this site {}. It is in state {}", siteId, state);
+                throw APIException.badRequests.operationOnlyAllowedOnSyncedSite(siteId, state.toString());
+            }
+            toBePausedSites.add(site);
         }
 
-        try {
-            standby.setState(SiteState.STANDBY_PAUSING);
-            coordinator.persistServiceConfiguration(standby.toConfiguration());
+        if (drUtil.isStandby()) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteIdStr, "Operation is allowed on primary only");
+        }
+        if (!isClusterStable()) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteIdStr, "Cluster is not stable");
+        }
 
-            for (Site site : drUtil.listStandbySites()) {
-                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+        for (Site site : drUtil.listStandbySites()) {
+            if (siteIdList.contains(site.getUuid())) {
+                continue;
             }
+            int nodeCount = site.getNodeCount();
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                log.info("Site {} is not stable {}", site.getUuid(), state);
+                throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteIdStr,
+                        String.format("Site %s is not stable", site.getName()));
+            }
+        }
 
-            // update the local(primary) site last
-            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
-            auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
-            return siteMapper.map(standby);
+        // any error is not retry-able beyond this point.
+        try {
+            log.info("Pausing sites");
+            for (Site site : toBePausedSites) {
+                site.setState(SiteState.STANDBY_PAUSING);
+                coordinator.persistServiceConfiguration(site.toConfiguration());
+            }
+            log.info("Notify all sites for reconfig");
+            for (Site standbySite : drUtil.listSites()) {
+                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
+            }
+            auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, siteIdStr);
+            return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
-            log.error("Error pausing site {}", uuid, e);
-            auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, uuid);
-            throw APIException.internalServerErrors.pauseStandbyFailed(uuid, e.getMessage());
+            log.error("Failed to pause site {}", siteIdStr, e);
+            auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, siteIdStr);
+            throw APIException.internalServerErrors.pauseStandbyFailed(siteIdStr, e.getMessage());
         }
     }
 

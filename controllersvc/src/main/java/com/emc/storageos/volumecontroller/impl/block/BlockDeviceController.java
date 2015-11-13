@@ -1663,15 +1663,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         
         // Add a step to perform an untag operation for all volumes in each device.
         for (URI deviceURI : untagVolumeDeviceMap.keySet()) {
-            untagVolumeDescriptors = untagVolumeDeviceMap.get(deviceURI);
-            List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(untagVolumeDescriptors);
-
-            workflow.createStep(UNTAG_VOLUME_STEP_GROUP,
-                    String.format("Untagging volumes:%n%s", getVolumesMsg(_dbClient, volumeURIs)),
-                    waitFor, deviceURI, getDeviceType(deviceURI),
-                    this.getClass(),
-                    untagVolumesMethod(deviceURI, volumeURIs),
-                    rollbackMethodNullMethod(), null);
+            if (deviceURI != null) {
+                untagVolumeDescriptors = untagVolumeDeviceMap.get(deviceURI);
+                List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(untagVolumeDescriptors);
+    
+                workflow.createStep(UNTAG_VOLUME_STEP_GROUP,
+                        String.format("Untagging volumes:%n%s", getVolumesMsg(_dbClient, volumeURIs)),
+                        waitFor, deviceURI, getDeviceType(deviceURI),
+                        this.getClass(),
+                        untagVolumesMethod(deviceURI, volumeURIs),
+                        rollbackMethodNullMethod(), null);
+            }
         }        
         
         return UNTAG_VOLUME_STEP_GROUP;
@@ -1712,19 +1714,21 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             while (volumeURIsIter.hasNext()) {
                 URI volumeURI = volumeURIsIter.next();
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);                
-                entryLogMsgBuilder.append(String.format("%nUntag operation: Volume: [%s](%s)", 
-                        volume.getLabel(), volumeURI.toString()));
-                exitLogMsgBuilder.append(String.format("%nUntag operation: Volume: [%s](%s)", 
-                        volume.getLabel(), volumeURI.toString()));                
-                if (!volume.getInactive()) {                    
-                    volumes.add(volume);                    
-                } else {
-                    // Nothing to do for an inactive volume
-                    continue;
+                if (volume != null) {
+                    entryLogMsgBuilder.append(String.format("%nUntag operation: Volume: [%s](%s)", 
+                            volume.getLabel(), volumeURI.toString()));
+                    exitLogMsgBuilder.append(String.format("%nUntag operation: Volume: [%s](%s)", 
+                            volume.getLabel(), volumeURI.toString()));                
+                    if (!volume.getInactive()) {                    
+                        volumes.add(volume);                    
+                    } else {
+                        // Nothing to do for an inactive volume
+                        continue;
+                    }
+                    // Generic completer is fine here
+                    VolumeWorkflowCompleter volumeCompleter = new VolumeWorkflowCompleter(volumeURI, opId);
+                    volumeCompleters.add(volumeCompleter);
                 }
-                // Generic completer is fine here
-                VolumeWorkflowCompleter volumeCompleter = new VolumeWorkflowCompleter(volumeURI, opId);
-                volumeCompleters.add(volumeCompleter);
             }
             _log.info(entryLogMsgBuilder.toString());
             if (!volumes.isEmpty()) {

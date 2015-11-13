@@ -2285,7 +2285,7 @@ public class SmisCommandHelper implements SmisConstants {
     public void doApplyRecoverPointTag(final StorageSystem storageSystem,
             Volume volume, boolean flag) throws Exception {
         // Set/Unset the RP tag (if applicable)
-        if (volume.checkForRp() && storageSystem.getSystemType() != null
+        if (volume != null && storageSystem != null && volume.checkForRp() && storageSystem.getSystemType() != null
                 && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
             List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
             volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));

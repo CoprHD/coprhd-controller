@@ -979,14 +979,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Get the RP Exports from the CGRequestParams object
             Collection<RPExport> rpExports = generateStorageSystemExportMaps(params, volumeDescriptors);
 
-            Map<String, Set<URI>> rpSiteInitiatorsMap = getRPSiteInitiators(rpSystem, rpExports);
-            
-            for(Map.Entry<String, Set<URI>> entry : rpSiteInitiatorsMap.entrySet()) {
-            	_log.info("Site : " + entry.getKey());
-            	for (URI initiatorUri : entry.getValue()) {
-            		_log.info("Initiator : " + initiatorUri.toString());
-            	}
-            }
+            Map<String, Set<URI>> rpSiteInitiatorsMap = getRPSiteInitiators(rpSystem, rpExports);            
 
             // Acquire all the RP lock keys needed for export before we start assembling the export groups.
             acquireRPLockKeysForExport(taskId, rpExports, rpSiteInitiatorsMap);

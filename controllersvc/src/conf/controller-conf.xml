@@ -582,6 +582,7 @@
           
     <bean id="isilonDevice" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonFileStorageDevice">
         <property name="isilonApiFactory" ref="isilonapifactory"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
     	<property name="configinfo">
     		<util:map map-class="java.util.HashMap" key-type="java.lang.String" value-type="java.lang.String">
         		<entry key="thresholdsIncludeOverhead" value="true" />
@@ -638,7 +639,7 @@
 		<property name="coordinator" ref="coordinator"/>
       	<property name="workflowService" ref="workflowService" />
       	<property name="rpStatsHelper" ref="rpStatsHelper" />
-        <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
+        <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />        
     </bean>
 
     <bean id="rpcontroller" class="com.emc.storageos.protectioncontroller.impl.RPControllerImpl">
@@ -662,6 +663,7 @@
         <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
         <property name="vplexApiLockManager" ref="vplexlockmgr" />
 	    <property name="blockStorageScheduler" ref="blockscheduler"/>
+	    <property name="coordinator" ref="coordinator"/>
 	    <property name="consistencyGroupManagers">
             <map>
                 <entry key="vplex" value-ref="vplexConsistencyGroupManager"/>
@@ -1209,6 +1211,7 @@
         <property name="connectionFactory" ref="CIMConnectionFactory" />
         <property name="hdsApiFactory" ref="hdsApiFactory"/>
         <property name="dataDomainFactory" ref="datadomainfactory"/>
+        <property name="xtremIOFactory" ref="xtremioRestClientFactory"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
     </bean>
 

@@ -396,9 +396,45 @@ public class ExportMaskPlacementDescriptor {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("placementHint = ").append(placementHint.name()).append('\n').append("masks = ")
-                .append(CommonTransformerFunctions.collectionString(masks.entrySet())).append('\n').append("volumesToPlace = ")
-                .append(volumesToPlace.entrySet()).append('\n').append("maskToExportGroup = ").append(maskExportGroupMap.entrySet());
+        builder.append("placementHint     : ").append(placementHint.name()).append('\n').
+                append("vplexArray        : ").append(vplex.forDisplay()).append('\n').
+                append("backendArray      : ").append(backendArray.forDisplay()).append('\n').
+                append("masks             : ").append(CommonTransformerFunctions.collectionString(masks.keySet())).append('\n').
+                append("volumesToPlace    : ").append(CommonTransformerFunctions.collectionString(volumesToPlace.keySet())).append('\n').
+                append("maskToExportGroup : [").append(displayMaskToExportGroup()).append("]\n").
+                append("maskToVolumes     :\n").append(displayMaskToVolumes());
+        return builder.toString();
+    }
+
+    private String displayMaskToVolumes() {
+        StringBuilder builder = new StringBuilder();
+        for (URI exportMaskURI : maskToVolumes.keySet()) {
+            Map<URI, Volume> volumeMap = maskToVolumes.get(exportMaskURI);
+            builder.append("\t\t").append(exportMaskURI).append(" [");
+            int count = 0;
+            for (Volume volume : volumeMap.values()) {
+                if (count > 0) {
+                    builder.append(", ");
+                }
+                builder.append(volume.getLabel());
+                count++;
+            }
+            builder.append("]\n");
+        }
+        return builder.toString();
+    }
+
+    private String displayMaskToExportGroup() {
+        StringBuilder builder = new StringBuilder();
+        int count = 0;
+        for (URI exportMaskURI : maskExportGroupMap.keySet()) {
+            ExportGroup exportGroup = maskExportGroupMap.get(exportMaskURI);
+            if (count > 0) {
+                builder.append(", ");
+            }
+            builder.append(String.format("%s=%s", exportMaskURI, exportGroup.getId()));
+            count++;
+        }
         return builder.toString();
     }
 }

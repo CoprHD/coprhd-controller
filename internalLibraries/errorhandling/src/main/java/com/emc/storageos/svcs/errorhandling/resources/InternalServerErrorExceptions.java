@@ -286,4 +286,13 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedErrorExportGroupPlacement(Exception ex);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED)
+    public InternalServerErrorException failoverFailed(String standbyId, String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_PRECHECK_FAILED)
+    public InternalServerErrorException failoverPrecheckFailed(final String siteId, String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_RECONFIG_FAIL)
+    public InternalServerErrorException failoverReconfigFailed(String errMsg);
 }

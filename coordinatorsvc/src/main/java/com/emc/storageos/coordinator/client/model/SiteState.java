@@ -33,6 +33,16 @@ public enum SiteState {
     },
 
     /**
+     * Primary site is doing failover
+     */
+    PRIMARY_FAILING_OVER {
+        @Override
+        public boolean isDROperationOngoing() {
+            return true;
+        }
+    },
+
+    /**
      *  Standby site. Adding site
      */
     STANDBY_ADDING
@@ -92,6 +102,16 @@ public enum SiteState {
      */
     STANDBY_SWITCHING_OVER
     {
+        @Override
+        public boolean isDROperationOngoing() {
+            return true;
+        }
+    },
+
+    /**
+     * Standby site is doing failover
+     */
+    STANDBY_FAILING_OVER {
         @Override
         public boolean isDROperationOngoing() {
             return true;

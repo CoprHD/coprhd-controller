@@ -40,6 +40,7 @@ _usage() {
     echo "   or: $0 --reconfig-security" >&2
     echo "   or: $0 --restart service"  >&2
     echo "   or: $0 --reload ntp|ssh|connectemc" >&2
+    echo "   or: $0 --reconfig-coordinator observer|participant" >&2
     echo "   or: $0 --test"             >&2
     exit 2
 }
@@ -433,6 +434,20 @@ EOF
     _fatal     "Failed to exec /etc/genconfig ${1}"
 }
 
+# 
+# Reconfigure coordinatorsvc mode. for standby only
+#
+# participant - disconnect and exit observer mode. becomes writable
+# observer - reconnect and enter observer mode. becomes read-only
+#
+_reconfig_coordinator() {
+    exec /etc/genconfig "coordinator" << EOF
+$(_get_props)
+dr_coordinator_type=${1}
+EOF
+    _fatal     "Failed to exec /etc/genconfig ${1}"
+}
+
 _reconfig_security() {
     if ! _is_appliance ; then
         _fatal2 66 "Not a real appliance. Reconfig manually."
@@ -464,6 +479,11 @@ _reload() {
             exec /usr/bin/systemctl restart SuSEfirewall2 ;;
         ipsec)
             exec /usr/bin/systemctl restart ipsec ;;
+        reset-coordinator)
+	    /etc/storageos/storageos stop
+            rm -fR /data/zk/version-2/
+            /etc/storageos/storageos drstandby
+            ;;
         *)
             _fatal2 2 "Unsupported service type ${1}" ;;
     esac
@@ -805,6 +825,7 @@ case ${#} in
             --restart)                _x _restart              "${2}" ;;
             --reconfig-props)          _x _reconfig_props       "${2}" ;;
             --reload)                 _x _reload               "${2}" ;;
+            --reconfig-coordinator)   _x _reconfig_coordinator "${2}" ;;
             *)                        _usage
         esac;;
     4)  case ${1} in 

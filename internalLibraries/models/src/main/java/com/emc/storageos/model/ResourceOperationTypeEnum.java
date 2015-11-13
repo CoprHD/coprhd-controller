@@ -47,6 +47,10 @@ public enum ResourceOperationTypeEnum {
     COMMIT_VOLUME_MIGRATION("COMMIT VOLUME MIGRATION", "commit volume migration"),
     ROLLBACK_COMMIT_VOLUME_MIGRATION("ROLLBAK COMMIT VOLUME MIGRATION", "rollback commit volume migration"),
     DELETE_MIGRATION_SOURCE_VOLUMES("DELETE MIGRATION SOURCE VOLUMES", "delete migration source volumes"),
+    PAUSE_MIGRATION("PAUSE MIGRATION", "puase migration"),
+    RESUME_MIGRATION("RESUME MIGRATION", "resume migration"),
+    CANCEL_MIGRATION("CANCEL MIGRATION", "cancel migration"),
+    DELETE_MIGRATION("DELETE MIGRATION", "delete migration"),
     CREATE_VOLUME_WORKFLOW_STEP("CREATE VOLUME WF STEP", "create volume workflow step"),
     DELETE_VOLUME_WORKFLOW_STEP("DELETE VOLUME WF STEP", "delete volume workflow step"),
     ADD_INITIATOR_WORKFLOW_STEP("ADD INITIATOR WF STEP", "add initiator workflow step"),
@@ -93,6 +97,10 @@ public enum ResourceOperationTypeEnum {
     UPDATE_FILE_SNAPSHOT_SHARE_ACL("UPDATE CIFS SHARE SNAPSHOT ACL", "update snapshot share ACLs"),
     DELETE_FILE_SYSTEM_SHARE_ACL("DELETE FILESYSTEM SHARE ACL", "delete filesystem share ACLs"),
     DELETE_FILE_SNAPSHOT_SHARE_ACL("DELETE SNAPSHOT SHARE ACL", "delete snapshot share ACLs"),
+    UPDATE_FILE_SYSTEM_NFS_ACL("UPDATE FILESYSTEM NFS ACL", "update filesystem NFS ACLs"),
+    UPDATE_FILE_SNAPSHOT_NFS_ACL("UPDATE SNAPSHOT NFS ACL", "update snapshot NFS ACLs"),
+    DELETE_FILE_SYSTEM_NFS_ACL("DELETE FILESYSTEM NFS ACL", "delete filesystem NFS ACLs"),
+    DELETE_FILE_SNAPSHOT_NFS_ACL("DELETE SNAPSHOT NFS ACL", "delete snapshot NFS ACLs"),
     CREATE_FILE_SYSTEM_QUOTA_DIR("CREATE FILESYSTEM QUOTA DIR", "create filesystem quota directory"),
     DELETE_FILE_SYSTEM_QUOTA_DIR("DELETE FILESYSTEM QUOTA DIR", "delete filesystem quota directory"),
     UPDATE_FILE_SYSTEM_QUOTA_DIR("UPDATE FILESYSTEM QUOTA DIR", "update filesystem quota directory"),
@@ -287,8 +295,9 @@ public enum ResourceOperationTypeEnum {
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
     ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "add journal volume to consistency group"),
     SYS_EVENT("SYSTEM EVENT", "System Event"),
-    CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER","Create and verify a compute image server"),
-    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER","Update and verify a compute image server");
+    CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER", "Create and verify a compute image server"),
+    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "Update and verify a compute image server"),
+    CREATE_VPLEX_VOLUME_FROM_SNAPSHOT("CREATE VPLEX VOLUME FROM SNAPSHOT", "Create a VPLEX volume on top of a block snapshot target volume");
 
     private final String name;
     private final String description;

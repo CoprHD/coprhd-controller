@@ -4,24 +4,35 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.anyVararg;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import java.lang.reflect.Constructor;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
-import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -34,8 +45,10 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -581,6 +594,77 @@ public class DisasterRecoveryServiceTest {
         
         verify(coordinator, times(1)).setPrimarySite(standbySite2.getUuid());
         verify(coordinator, times(2)).persistServiceConfiguration(any(Configuration.class));
+    }
+    
+    @Test
+    public void testPrecheckForFailover() {
+        CoordinatorClientInetAddressMap addrLookupMap = new CoordinatorClientInetAddressMap();
+        addrLookupMap.setNodeId("vipr1");
+        
+        doReturn(standbySite2).when(drUtil).getLocalSite();
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite2.getUuid(), 1);
+        doReturn("leader").when(drUtil).getLocalCoordinatorMode("vipr1");
+        doReturn(addrLookupMap).when(coordinator).getInetAddessLookupMap();
+        
+        drService.precheckForFailover("site-uuid-2");
+    }
+    
+    @Test
+    public void testPrecheckForFailover_Error() {
+        
+        // API should be only send to local site 
+        try {
+            doReturn(standbySite2).when(drUtil).getLocalSite();
+            drService.precheckForFailover("site-uuid-1");
+            fail();
+        } catch (InternalServerErrorException e) {
+          //ignore
+        }
+        
+        // should be synced
+        try {
+            doReturn(standbySite1).when(drUtil).getLocalSite();
+            standbySite1.setState(SiteState.STANDBY_ERROR);
+            drService.precheckForFailover("site-uuid-1");
+            fail();
+        } catch (InternalServerErrorException e) {
+          //ignore
+        }
+        
+        // show be only standby
+        try {
+            standbySite1.setState(SiteState.STANDBY_SYNCED);
+            doReturn(true).when(drUtil).isPrimary();
+            drService.precheckForFailover("site-uuid-1");
+            fail();
+        } catch (InternalServerErrorException e) {
+            //ignore
+        }
+        
+        // should be stable
+        try {
+            doReturn(false).when(drUtil).isPrimary();
+            doReturn(ClusterInfo.ClusterState.DEGRADED).when(coordinator).getControlNodesState(standbySite1.getUuid(), 1);
+            drService.precheckForFailover("site-uuid-1");
+            fail();
+        } catch (InternalServerErrorException e) {
+            //ignore
+        }
+        
+        // ZK should not be observer or read-only
+        try {
+            CoordinatorClientInetAddressMap addrLookupMap = new CoordinatorClientInetAddressMap();
+            addrLookupMap.setNodeId("vipr1");
+            
+            doReturn(addrLookupMap).when(coordinator).getInetAddessLookupMap();
+            doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite1.getUuid(), 1);
+            doReturn("observer").when(drUtil).getLocalCoordinatorMode("vipr1");
+            
+            drService.precheckForFailover("site-uuid-1");
+            fail();
+        } catch (InternalServerErrorException e) {
+            //ignore
+        }
     }
     
     protected void compareSiteResponse(SiteRestRep response, Site site) {

@@ -320,12 +320,16 @@ public class RPHelper {
                 // We are removing the CG, determine all the journal volumes in it and
             	// add them to the list of volumes to be removed
                 if (cg != null) {
-                    Set<URI> allJournals = getJournalVolumesInCg(cg);
-                    if (allJournals != null && !allJournals.isEmpty()) {                    	
+                    List<Volume> allJournals = getCgVolumes(cg.getId(), Volume.PersonalityTypes.METADATA.toString());                    
+                    if (allJournals != null && !allJournals.isEmpty()) {
+                    	Set<URI> allJournalURIs = new HashSet<URI> ();
+                    	for (Volume journalVolume : allJournals) {
+                    		allJournalURIs.add(journalVolume.getId());
+                    	}
                     	_log.info(String
                     			.format("Determined that this is a request to delete consistency group %s.  Adding journal volumes to the list of volumes to delete: %s",
-                    					cgURI, allJournals.toString()));
-                    	volumeIDs.addAll(allJournals);
+                    					cgURI, allJournalURIs.toString()));
+                    	volumeIDs.addAll(allJournalURIs);
                     }
                 } else {
                 	_log.info(String.format(
@@ -1772,26 +1776,6 @@ public class RPHelper {
         }
 
         return volume;
-    }
-
-    /**
-     * returns the list of all journal volumes in the CG
-     *
-     * @param consistencyGroup
-     * @return
-     */
-    private Set<URI> getJournalVolumesInCg(BlockConsistencyGroup consistencyGroup) {
-        Set<URI> journalVols = new HashSet<URI>();
-        List<Volume> volsInCg = getCgVolumes(consistencyGroup.getId(), _dbClient);
-        if (volsInCg != null) {
-            for (Volume volInCg : volsInCg) {
-                if (NullColumnValueGetter.isNotNullValue(volInCg.getPersonality()) &&
-                		Volume.PersonalityTypes.METADATA.toString().equals(volInCg.getPersonality())) {
-                    journalVols.add(volInCg.getId());
-                }
-            }
-        }
-        return journalVols;
     }
     
     /**

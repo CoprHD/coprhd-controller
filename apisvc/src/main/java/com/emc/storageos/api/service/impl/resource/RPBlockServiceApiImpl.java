@@ -3268,11 +3268,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // determine the internal site name for a target copy
         for(String targetURIString : firstSrc.getRpTargets()) {
         	Volume tgtVolume = _dbClient.queryObject(Volume.class, URI.create(targetURIString));        	
-        	if (NullColumnValueGetter.isNotNullValue(tgtVolume.getRpCopyName())) {
-        		if (tgtVolume.getRpCopyName().equals(copyName)) {
+        	if (NullColumnValueGetter.isNotNullValue(tgtVolume.getRpCopyName()) && 
+        			tgtVolume.getRpCopyName().equals(copyName)) {
             		isTarget = true;            		
             		internalSiteName = tgtVolume.getInternalSiteName();            	
-            	}
         	}        	
         }
                 
@@ -3281,15 +3280,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
         
         // if we're adding volumes to a target, we need to know if it's local or remote
-        String targetType = "local";
+        String targetType = RPHelper.LOCAL;
         int copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
         if (isTarget) {                                
             if (sourceInternalSiteNames.contains(internalSiteName)) {
                 copyType = RecoverPointCGCopyType.LOCAL.getCopyNumber();
-                targetType = "local";
+                targetType = RPHelper.LOCAL;
             } else {
                 copyType = RecoverPointCGCopyType.REMOTE.getCopyNumber();
-                targetType = "remote";
+                targetType = RPHelper.REMOTE;
             }
         }                     
         
@@ -3306,7 +3305,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
         }
 
-        String copyTypeString = "source";
+        String copyTypeString = RPHelper.SOURCE;
         
         if (isSource) {
             rpProtectionRecommendation.setSourceJournalRecommendation(journalRecommendation);
@@ -3314,14 +3313,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         if (isMPStandby) {
             rpProtectionRecommendation.setStandbyJournalRecommendation(journalRecommendation);
-            copyTypeString = "standby source";
+            copyTypeString = "standby " + RPHelper.SOURCE;
         }
 
         if (isTarget) {
             List<RPRecommendation> journalRecommendations = Lists.newArrayList();
             journalRecommendations.add(journalRecommendation);
             rpProtectionRecommendation.setTargetJournalRecommendations(journalRecommendations);
-            copyTypeString = targetType + " target";
+            copyTypeString = targetType + " " + RPHelper.TARGET;
         }
 
         List<Recommendation> recommendations = Lists.newArrayList();

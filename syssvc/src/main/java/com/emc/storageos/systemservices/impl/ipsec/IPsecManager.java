@@ -125,12 +125,15 @@ public class IPsecManager {
 
         for (Site site : drUtil.listSites()) {
             for (String ip : site.getHostIPv4AddressMap().values()) {
+                log.info("Collecting ipsec config version from {}", ip);
                 IPsecNodeState nodeState = new IPsecNodeState();
                 nodeState.setIp(ip);
                 try {
                     Map<String, String> ipsecProps = localRepository.getIpsecProperties(ip);
                     nodeState.setVersion(ipsecProps.get("version"));
+                    log.info("Collected ipsec config version from {}, which is {}", ip, ipsecProps.get("version"));
                 } catch (Exception e) {
+                    log.info("Failed to collect ipsec config version from {}. Just set to null", ip);
                     nodeState.setVersion(null);
                 }
             }

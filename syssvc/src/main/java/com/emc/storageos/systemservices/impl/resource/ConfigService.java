@@ -21,8 +21,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
-import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.security.password.InvalidLoginManager;
 import com.emc.storageos.model.auth.LoginFailedIPList;
 import org.apache.commons.lang.StringUtils;
@@ -56,8 +54,6 @@ import com.emc.vipr.model.sys.eventhandler.ConnectEmcEmail;
 import com.emc.vipr.model.sys.eventhandler.ConnectEmcFtps;
 
 import static com.emc.storageos.coordinator.client.model.Constants.HIDDEN_TEXT_MASK;
-import static com.emc.storageos.coordinator.client.model.Constants.IPSEC_KEY;
-import static com.emc.storageos.coordinator.client.model.Constants.VDC_CONFIG_VERSION;
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterResponse;
 
 @Path("/config/")
@@ -326,7 +322,7 @@ public class ConfigService {
     }
 
     /**
-     * Internal api to get system configuration properties.
+     * Internal api to get system configuration properties. The api could be by data node.
      * 
      * @brief Get system properties
      * @prereq none
@@ -339,7 +335,6 @@ public class ConfigService {
     public PropertyInfoRestRep getInternalProperties(String category) throws Exception {
         return getProperties(category);
     }
-
 
     /**
      * Show metadata of system configuration properties

@@ -31,7 +31,7 @@ public class IPSecMonitor implements Runnable {
                 this,
                 IPSEC_CHECK_INITIAL_DELAY,
                 IPSEC_CHECK_INTERVAL,
-                TimeUnit.SECONDS);
+                TimeUnit.MINUTES);
         log.info("scheduled IPSecMonitor.");
     }
 
@@ -175,7 +175,7 @@ public class IPSecMonitor implements Runnable {
             int result = compareVdcConfigVersion(
                     localIpsecProp.get(VDC_CONFIG_VERSION),
                     props.get(VDC_CONFIG_VERSION));
-            if (result < 0) {
+            if (result > 0) {
                 return false;
             } else {
                 return true;

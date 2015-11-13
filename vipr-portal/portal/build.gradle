@@ -141,9 +141,28 @@ playPrepare.dependsOn(unpackWebjars)
 
 clean.dependsOn('cleanUnpackWebjars')
 
-task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare]) {
+
+task myCopy(type: Copy) {
+    from file('public/stylesheets/')
+    into file("${play.compileDir}/public/stylesheets/")
+
+    include ('main.less')
+
+    rename ('main.less', 'tempMain.less')
+
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+        // Use a closure to remove lines
+        filter { String line ->
+            line.contains('bootstrap-emc-theme.less') ? '@import "bootstrap-coprhd-theme.less";' : line
+        }
+    }
+    
+}
+
+
+task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare, myCopy]) {
     compress = true
-    sourceFile file("public/stylesheets/main.less")
+    sourceFile file("${play.compileDir}/public/stylesheets/tempMain.less")
     destinationFile file("${play.compileDir}/public/stylesheets/main.css")
 }
 playCompile.dependsOn(compileCss)

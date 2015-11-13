@@ -465,28 +465,35 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 Volume vol = getDataObject(Volume.class, volURI, dbClient);
                 isFullCopy = ControllerUtils.isVolumeFullCopy(vol, dbClient);
             }
-            
+            // Users could use updateConsistencyGroup operation to add backend CGs for ingested CGs.
+            // if that's the case, we will only add the backend CGs, but not add those virtual volumes to
+            // the VPlex CG.
+            boolean isIngestedCG = isAddingBackendCGForIngestedCG(cg, addVolumesList);
 
             // Check if the CG has been created in VPlex yet
             boolean isNewCg = !cg.created();
             // If necessary, create a step to update the local CGs.
-            if ((removeVolumesList != null && !removeVolumesList.isEmpty()) || isFullCopy ) {
+            if (cg.getTypes().contains(Types.LOCAL.toString()) || isIngestedCG || isNewCg) {
                 // We need to determine the backend systems that own the local CGs and the
-                // volumes to be removed from each. 
-                Map<URI, List<URI>> localRemoveVolumesMap = getLocalVolumesForUpdate(removeVolumesList, false);
-                Map<URI, List<URI>> localAddVolumesMap = getLocalVolumesForUpdate(addVolumesList, isFullCopy);
+                // volumes to be added/removed from each. There should really only be either
+                // one of two backend systems depending upon whether or not the volumes are
+                // local or distributed. In addition, when volumes are being both added and
+                // removed, the maps should contains the same key set so it doesn't matter
+                // which is used.
+                Map<URI, List<URI>> localAddVolumesMap = getLocalVolumesForUpdate(addVolumesList);
+                Map<URI, List<URI>> localRemoveVolumesMap = getLocalVolumesForRemove(removeVolumesList);
                 Set<URI> localSystems = localAddVolumesMap.keySet();
                 if (localSystems.isEmpty()) {
                     localSystems = localRemoveVolumesMap.keySet();
                 }
-                
+
                 // Now we need to iterate over the backend systems and create a step to
                 // update the corresponding consistency groups on the backend arrays.
                 Iterator<URI> localSystemIter = localSystems.iterator();
                 while (localSystemIter.hasNext()) {
                     URI localSystemURI = localSystemIter.next();
                     StorageSystem localSystem = getDataObject(StorageSystem.class, localSystemURI, dbClient);
-                    List<URI> localAddVolumesList = localAddVolumesMap.get(localSystemURI); 
+                    List<URI> localAddVolumesList = localAddVolumesMap.get(localSystemURI);
                     List<URI> localRemoveVolumesList = localRemoveVolumesMap.get(localSystemURI);
                     Workflow.Method updateLocalMethod = new Workflow.Method(
                             UPDATE_CONSISTENCY_GROUP_METHOD_NAME, localSystemURI, cgURI,
@@ -501,24 +508,20 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                             BlockDeviceController.class, updateLocalMethod,
                             rollbackLocalMethod, null);
                 }
-                if (!localSystems.isEmpty()) {
-                    waitFor = UPDATE_LOCAL_CG_STEP;
-                    log.info("Created steps to remove volumes from native consistency groups.");
-                }
+                waitFor = UPDATE_LOCAL_CG_STEP;
+                log.info("Created steps to remove volumes from native consistency groups.");
             }
 
             // First remove any volumes to be removed.
             int removeVolumeCount = 0;
             if ((removeVolumesList != null) && !removeVolumesList.isEmpty()) {
                 removeVolumeCount = removeVolumesList.size();
-                // upset backend volume's consistencygroup
-                resetBackendVolumesCG(removeVolumesList);
                 addStepForRemoveVolumesFromCG(workflow, waitFor, vplexSystem,
                         removeVolumesList, cgURI);
             }
 
             // Now create a step to add volumes to the CG.
-            if ((addVolumesList != null) && !addVolumesList.isEmpty() && !isNewCg && !isFullCopy) {
+            if ((addVolumesList != null) && !addVolumesList.isEmpty() && !isIngestedCG && !isNewCg && !isFullCopy) {
                 // See if the CG contains no volumes. If so, we need to
                 // make sure the visibility and storage cluster info for
                 // the VPLEX CG is correct for these volumes we are adding.
@@ -634,18 +637,16 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
     }
 
     /**
-     * Create a map of the backend volumes that need to remove from backend CG or 
-     * create a map of the backend volumes for adding full copies to backend CGs
-     * for the passed VPLEX volumes key'd by the backend systems. Called during 
-     * a consistency group update so that the corresponding backend consistency groups
-     *  can be updated.
+     * Create a map of the backend volumes for the passed VPLEX volumes key'd by
+     * the backend systems. Called during a consistency group update so that
+     * the corresponding backend consistency groups can be updated.
      * 
      * @param vplexVolumes A list of VPLEX volumes.
      * 
      * @return A map of the backend volumes for the passed VPLEX volumes key'd
      *         by the backend systems.
      */
-    private Map<URI, List<URI>> getLocalVolumesForUpdate(List<URI> vplexVolumes, boolean isFullcopy) {
+    private Map<URI, List<URI>> getLocalVolumesForUpdate(List<URI> vplexVolumes) {
         Map<URI, List<URI>> localVolumesMap = new HashMap<URI, List<URI>>();
         if ((vplexVolumes != null) && (!vplexVolumes.isEmpty())) {
             for (URI vplexVolumeURI : vplexVolumes) {
@@ -654,14 +655,12 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 for (String assocVolumeId : associatedVolumes) {
                     URI assocVolumeURI = URI.create(assocVolumeId);
                     Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
-                    if (isFullcopy || NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) { 
-                        URI assocSystemURI = assocVolume.getStorageController();
-                        if (!localVolumesMap.containsKey(assocSystemURI)) {
-                            List<URI> systemVolumes = new ArrayList<URI>();
-                            localVolumesMap.put(assocSystemURI, systemVolumes);
-                        }
-                        localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
+                    URI assocSystemURI = assocVolume.getStorageController();
+                    if (!localVolumesMap.containsKey(assocSystemURI)) {
+                        List<URI> systemVolumes = new ArrayList<URI>();
+                        localVolumesMap.put(assocSystemURI, systemVolumes);
                     }
+                    localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
                 }
             }
         }
@@ -717,24 +716,38 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
         return result;
     }
     
+    
     /**
-     * Reset VPlex backend volumes consistency group attribute if the backend volumes are not in array CG. 
-     * This is called when remove the vplex volumes from CG.
-     * @param vplexVolumeList The vplex volume list
+     * Create a map of the backend volumes that need to remove from backend CG.
+     * Called during a consistency group update so that the corresponding backend 
+     * consistency groups can be updated.
+     * 
+     * @param vplexVolumes A list of VPLEX volumes.
+     * 
+     * @return A map of the backend volumes for the passed VPLEX volumes key'd
+     *         by the backend systems.
      */
-    private void resetBackendVolumesCG(List<URI> vplexVolumeList) {
-        for (URI vplexVolumeURI : vplexVolumeList) {
-            Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
-            StringSet associatedVolumes = vplexVolume.getAssociatedVolumes();
-            for (String assocVolumeId : associatedVolumes) {
-                URI assocVolumeURI = URI.create(assocVolumeId);
-                Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
-                if (NullColumnValueGetter.isNullValue(assocVolume.getReplicationGroupInstance())) { 
-                    // The backend volume is not in a backend CG, reset the consistency group attribute
-                    assocVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                    dbClient.updateObject(assocVolume);    
+    private Map<URI, List<URI>> getLocalVolumesForRemove(List<URI> vplexVolumes) {
+        Map<URI, List<URI>> localVolumesMap = new HashMap<URI, List<URI>>();
+        if ((vplexVolumes != null) && (!vplexVolumes.isEmpty())) {
+            for (URI vplexVolumeURI : vplexVolumes) {
+                Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
+                StringSet associatedVolumes = vplexVolume.getAssociatedVolumes();
+                for (String assocVolumeId : associatedVolumes) {
+                    URI assocVolumeURI = URI.create(assocVolumeId);
+                    Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
+                    if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) { 
+                        // The backend volume is in a backend CG
+                        URI assocSystemURI = assocVolume.getStorageController();
+                        if (!localVolumesMap.containsKey(assocSystemURI)) {
+                            List<URI> systemVolumes = new ArrayList<URI>();
+                            localVolumesMap.put(assocSystemURI, systemVolumes);
+                        }
+                        localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
+                    }
                 }
             }
         }
+        return localVolumesMap;
     }
 }

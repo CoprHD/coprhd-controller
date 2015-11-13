@@ -1141,7 +1141,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // group(s) for the backend volumes.
         BlockConsistencyGroup cg = null;
         if ((!checkCommonVpoolUpdates(volumes, vpool, taskId)) &&
-                ((cg = isVPlexVolumeInCgWithLocalType(volumes)) != null)) {
+                allVolumesInSameBackendCG(volumes)) {
             s_logger.info("Change vpool request for volume in VPLEX CG with backing local CGs");
             // If any of the volumes is in such a CG and if this is a data
             // migration of the volumes, then the volumes passed must be all
@@ -1154,11 +1154,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if ((vpoolChange != null) && (vpoolChange == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION)) {
                 s_logger.info("Vpool change is a data migration");
 
-                // Verify only the CG volumes are passed.
-                boolean isSupported = allVolumesInSameBackendCG(volumes);
-                if (!isSupported) {
-                    throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
-                }
 
                 // All volumes will be migrated in the same workflow.
                 // If there are many volumes in the CG, the workflow
@@ -1209,37 +1204,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
     }
 
-    /**
-     * Determines in any of the passed volumes is A VPLEX volume in a VPLEX
-     * consistency group with corresponding consistency group(s) for the backend
-     * storage.
-     * 
-     * @param volumes The list of volumes to check
-     * 
-     * @return A reference to the CG if any of the passed volumes is A VPLEX
-     *         volume in a VPLEX consistency group with corresponding
-     *         consistency group(s) for the backend storage, null otherwise.
-     */
-    private BlockConsistencyGroup isVPlexVolumeInCgWithLocalType(List<Volume> volumes) {
-        BlockConsistencyGroup cg = null;
-        for (Volume volume : volumes) {
-            URI systemURI = volume.getStorageController();
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
-            String systemType = storageSystem.getSystemType();
-            if (DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
-                URI cgURI = volume.getConsistencyGroup();
-                if (!NullColumnValueGetter.isNullURI(cgURI)) {
-                    BlockConsistencyGroup volCG = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-                    if (volCG.checkForType(Types.LOCAL)) {
-                        cg = volCG;
-                        break;
-                    }
-                }
-            }
-        }
-
-        return cg;
-    }
 
     /**
      * Verifies if the valid storage pools for the target vpool specify a single
@@ -3423,6 +3387,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             String rpName = srcVol.getReplicationGroupInstance();
             if (count == 0) {
                 replicationGroup = rpName;
+            }
+            if (replicationGroup == null || replicationGroup.isEmpty()) {
+                result =false;
+                break;
             }
             if ((replicationGroup != null && rpName != null && !replicationGroup.equals(rpName)) ||
                     (replicationGroup == null && rpName != null) ||

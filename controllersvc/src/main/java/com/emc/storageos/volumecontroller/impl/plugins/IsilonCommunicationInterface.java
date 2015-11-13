@@ -338,22 +338,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         // filesystems count & Capacity
         IsilonList<IsilonSmartQuota> quotas = null;
-        Long provisioned = 0L;
+
         do {
             quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
 
             if (quotas != null && !quotas.getList().isEmpty()) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
                     if (quota.getThresholds() != null && quota.getThresholds().getHard() != null) {
-                        provisioned = provisioned + quota.getThresholds().getHard();
+                        totalProvCap = totalProvCap + quota.getThresholds().getHard();
                         totalFsCount++;
                     }
-                }
-              //sum snap cap and add to fs capacity
-                if (provisioned >= GB_IN_BYTES) {
-                    provisioned = (provisioned/GB_IN_BYTES);
-                    totalProvCap = totalProvCap + provisioned;
-                    provisioned = 0L;
                 }
                 resumeToken = quotas.getToken();
             }
@@ -380,7 +374,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     _log.info("access zone base directory path {}", baseDirPath);
                     for (IsilonSnapshot isilonSnap: snapshots.getList()) {
                         if (isilonSnap.getPath().startsWith(baseDirPath)) {
-                            provisioned = provisioned + Long.valueOf(isilonSnap.getSize());
+                            totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
                             totalFsCount ++;
                         }
                     }
@@ -399,7 +393,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         }
                         //if it not matched with any user define AZ's then it is belongs system AZ
                         if (snapSystem) {
-                            provisioned = provisioned + Long.valueOf(isilonSnap.getSize());
+                            totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
                             totalFsCount ++;
                             _log.info("System access zone base directory path: {}", accessZone.getPath());
 
@@ -407,13 +401,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     }
                 }
                 resumeToken = snapshots.getToken();
-                //sum snap cap and add to fs capacity
-                if (provisioned >= GB_IN_BYTES) {
-                    provisioned = (provisioned/GB_IN_BYTES);
-                    totalProvCap = totalProvCap + provisioned;
-                    provisioned	 = 0L;
-                }
-            }
+               }
         } while (resumeToken != null);
 
         _log.info("Total fs Count {} for access zone : {}", String.valueOf(totalFsCount), accessZone.getName());
@@ -2574,7 +2562,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         // set the max capacity in GB
         long MaxCapacity = Math.round(getClusterStorageCapacity(system));
-        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity*GB_IN_BYTES));
         return;
     }
 

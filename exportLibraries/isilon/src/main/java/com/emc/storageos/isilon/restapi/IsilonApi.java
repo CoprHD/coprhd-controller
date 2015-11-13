@@ -1207,7 +1207,7 @@ public class IsilonApi {
                     isilonEvent.id = event.id;
                     isilonEvent.message = event.message;
                     isilonEvent.severity = event.severity;
-                    isilonEvent.acknowledged_time = event.resolve_time;
+                    isilonEvent.start = event.time;
                     isilonEvent.specifiers = event.getSpecifier();
                     isilonEvent.value = event.value;
                     isilonEventList.add(isilonEvent);

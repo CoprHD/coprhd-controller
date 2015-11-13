@@ -46,6 +46,19 @@ public class IsilonOneFS8Event {
         // get it as a Map
         protected Map<String, Object> specifier;
 
+        @Override
+        public String toString() {
+            StringBuilder str = new StringBuilder();
+            str.append("Event (Instance id: " + id);
+            str.append(", Event type: " + event);
+            str.append(", dev id: " + devid);
+            str.append(", resolve time: " + resolve_time);
+            str.append(", severity: " + severity);
+            str.append(", message: " + message);
+            str.append(")");
+            return str.toString();
+        }
+
         /**
          * Get specifier info from event as JSON string
          * 
@@ -53,6 +66,19 @@ public class IsilonOneFS8Event {
          */
         public Map<String, Object> getSpecifier() {
             return specifier;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || !(o instanceof IsilonEvent)) {
+                return false;
+            }
+            Events event = (Events) o;
+            if (this.id.equals(event.id)) {
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 

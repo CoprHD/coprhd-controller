@@ -22,7 +22,6 @@ _get_metadata_props() {
 }
 
 _gen_template_node_name() {
-    case ${_GENCONFIG_node_id} in 'standalone') sed -i -e "s/\${node_name}/${_GENCONFIG_node_name}/g" $1 ; _genconfig_done ; esac
     _gen_template "${@}"
 }
 

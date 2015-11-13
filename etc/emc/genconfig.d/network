@@ -119,8 +119,10 @@ _gen_hosts() {
 }
 
 _gen_hostname() {
-    echo "${_GENCONFIG_node_name}"
-    hostname "${_GENCONFIG_node_name}"
+    if [[ -n "${_GENCONFIG_network_vip}" || -n "${_GENCONFIG_network_vip6}" ]] ; then
+        echo "${_GENCONFIG_node_name}"
+        hostname "${_GENCONFIG_node_name}"
+    fi
 }
 
 _genconfig_exec _gen_ifcfg               /etc/sysconfig/network/ifcfg-${NIC_NAME}

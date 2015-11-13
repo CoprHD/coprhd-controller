@@ -271,8 +271,6 @@ public class SchemaUtil {
      *            false to create keyspace by our own
      */
     public void scanAndSetupDb(boolean waitForSchema) throws Exception{
-        int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
-        int retryTimes = 0;
         if (onStandby) {
             Site currentSite = drUtil.getLocalSite();
 
@@ -291,6 +289,8 @@ public class SchemaUtil {
                 }
             }
         }
+        int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
+        int retryTimes = 0;
         while (true) {
             _log.info("try scan and setup db ...");
             retryTimes++;
@@ -298,7 +298,7 @@ public class SchemaUtil {
                 KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
                 if (kd == null) {
                     _log.info("keyspace not exist yet");
-                    if (waitForSchema) {
+                    if (waitForSchema || onStandby) {
                         _log.info("wait for schema from other site");
                     } else {
                         // fresh install

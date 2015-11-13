@@ -979,7 +979,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Get the RP Exports from the CGRequestParams object
             Collection<RPExport> rpExports = generateStorageSystemExportMaps(params, volumeDescriptors);
 
-            Map<String, Set<Initiator>> rpSiteInitiatorsMap = getRPSiteInitiators(rpSystem, rpExports);
+            Map<String, Set<URI>> rpSiteInitiatorsMap = getRPSiteInitiators(rpSystem, rpExports);
+            
+            for(Map.Entry<String, Set<URI>> entry : rpSiteInitiatorsMap.entrySet()) {
+            	_log.info("Site : " + entry.getKey());
+            	for (URI initiatorUri : entry.getValue()) {
+            		_log.info("Initiator : " + initiatorUri.toString());
+            	}
+            }
 
             // Acquire all the RP lock keys needed for export before we start assembling the export groups.
             acquireRPLockKeysForExport(taskId, rpExports, rpSiteInitiatorsMap);
@@ -1037,9 +1044,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // back-end ports, so
                 // we will ignore those initiators that are connected to a network that has only storage system back end port connectivity.
                 Map<URI, Set<Initiator>> rpNetworkToInitiatorsMap = new HashMap<URI, Set<Initiator>>();
-                Set<Initiator> rpSiteInitiators = rpSiteInitiatorsMap.get(internalSiteName);
-                if (rpSiteInitiators != null) {
-                    for (Initiator rpSiteInitiator : rpSiteInitiators) {
+                Set<URI> rpSiteInitiatorUris = rpSiteInitiatorsMap.get(internalSiteName);
+                if (rpSiteInitiatorUris != null) {
+                    for (URI rpSiteInitiatorUri : rpSiteInitiatorUris) {
+                    	Initiator rpSiteInitiator = _dbClient.queryObject(Initiator.class, rpSiteInitiatorUri);
                         URI rpInitiatorNetworkURI = getInitiatorNetwork(exportGroup, rpSiteInitiator);
                         if (rpInitiatorNetworkURI != null) {
                             if (rpNetworkToInitiatorsMap.get(rpInitiatorNetworkURI) == null) {
@@ -1230,19 +1238,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      */
     private void acquireRPLockKeysForExport(String taskId, Collection<RPExport> rpExports,
-            Map<String, Set<Initiator>> rpSiteInitiatorsMap) {
+            Map<String, Set<URI>> rpSiteInitiatorsMap) {
         _log.info("Start : Acquiring RP lock keys for export");
         List<String> lockKeys = new ArrayList<String>();
 
         for (RPExport rpExport : rpExports) {
-            Set<Initiator> rpSiteInitiators = rpSiteInitiatorsMap.get(rpExport.getRpSite());
-            List<URI> rpSiteInitiatorURIs = new ArrayList<URI>();
-            for (Initiator rpSiteInitiator : rpSiteInitiators) {
-                rpSiteInitiatorURIs.add(rpSiteInitiator.getId());
-            }
-
+            Set<URI> rpSiteInitiatorUris = rpSiteInitiatorsMap.get(rpExport.getRpSite());     
             lockKeys.addAll(ControllerLockingUtil.getStorageLockKeysByHostName(_dbClient,
-                    rpSiteInitiatorURIs, rpExport.getStorageSystem()));
+                    rpSiteInitiatorUris, rpExport.getStorageSystem()));
         }
 
         boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
@@ -1264,8 +1267,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param rpExports RP Export objects
      * @return Map of RP site to its initiators
      */
-    private Map<String, Set<Initiator>> getRPSiteInitiators(ProtectionSystem rpSystem, Collection<RPExport> rpExports) {
-        Map<String, Set<Initiator>> rpSiteInitiators = new HashMap<String, Set<Initiator>>();
+    private Map<String, Set<URI>> getRPSiteInitiators(ProtectionSystem rpSystem, Collection<RPExport> rpExports) {
+        Map<String, Set<URI>> rpSiteInitiators = new HashMap<String, Set<URI>>();
         // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
 
         for (RPExport rpExport : rpExports) {
@@ -1304,9 +1307,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     // Either get the existing initiator or create a new if needed
                     initiator = getOrCreateNewInitiator(initiator);
                     if (!rpSiteInitiators.containsKey(rpSiteName)) {
-                        rpSiteInitiators.put(rpSiteName, new HashSet<Initiator>());
+                        rpSiteInitiators.put(rpSiteName, new HashSet<URI>());
                     }
-                    rpSiteInitiators.get(rpSiteName).add(initiator);
+                                        
+                    rpSiteInitiators.get(rpSiteName).add(initiator.getId());
                 }
             }
         }

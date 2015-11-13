@@ -44,7 +44,8 @@ dependencies {
             project(":scaleio"),
             project(":xtremio"),
             project(":ecs"),
-            project(":storagedriver")
+            project(":storagedriver"),
+            project(":storagedriversimulator")
             
     testCompile library(easymock)
 }

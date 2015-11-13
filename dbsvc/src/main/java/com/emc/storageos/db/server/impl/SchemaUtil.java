@@ -7,6 +7,7 @@ package com.emc.storageos.db.server.impl;
 
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,14 +15,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import javax.crypto.SecretKey;
 
-import org.apache.cassandra.service.StorageService;
-import org.apache.cassandra.thrift.Cassandra;
-import org.apache.commons.lang.StringUtils;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.CassandraOperationType;
+import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.KeyspaceTracerFactory;
 import com.netflix.astyanax.connectionpool.ConnectionContext;
 import com.netflix.astyanax.connectionpool.ConnectionPool;
@@ -33,17 +31,23 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -52,8 +56,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.client.impl.TimeSeriesType;
@@ -71,6 +75,8 @@ import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.password.PasswordUtils;
 
 /**
@@ -103,7 +109,8 @@ public class SchemaUtil {
     private PasswordUtils _passwordUtils;
     private DbClientContext clientContext;
     private boolean onStandby = false;
-    private String _standbyId;
+    private InternalApiSignatureKeyGenerator apiSignatureGenerator;
+    private DrUtil drUtil;
 
     @Autowired
     private DbRebuildRunnable dbRebuildRunnable;
@@ -128,6 +135,7 @@ public class SchemaUtil {
      */
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
+        drUtil = new DrUtil(coordinator);
     }
 
     /**
@@ -173,10 +181,6 @@ public class SchemaUtil {
      */
     public void setVdcShortId(String vdcId) {
         _vdcShortId = vdcId;
-    }
-
-    public void setStandbyId(String standbyId) {
-        _standbyId = standbyId;
     }
     
     /**
@@ -346,9 +350,8 @@ public class SchemaUtil {
         }
 
         // iterate through all the sites and exclude the paused ones
-        for(Configuration config : _coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
-            String dcId = String.format("%s-%s", _vdcShortId, site.getStandbyShortId());
+        for(Site site : drUtil.listSites()) {
+            String dcId = drUtil.getCassandraDcId(site);
             if (site.getState().equals(SiteState.STANDBY_PAUSED) && strategyOptions.containsKey(dcId)) {
                 _log.info("Remove dc {} from strategy options", dcId);
                 strategyOptions.remove(dcId);
@@ -370,17 +373,17 @@ public class SchemaUtil {
             return false;
         }
 
-        String dcId = String.format("%s-%s", _vdcShortId, _standbyId);
+        String dcId = drUtil.getCassandraDcId(drUtil.getLocalSite());
 
         if (strategyOptions.containsKey(dcId)) {
             return false;
         }
 
-        Configuration config = _coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId());
-        Site localSite = new Site(config);
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
+        Site localSite = drUtil.getLocalSite();
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
+                localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
             // don't add back the paused site
-            _log.warn("local standby site has been paused and removed from strategy options. Do nothing");
+            _log.info("local standby site has been paused and removed from strategy options. Do nothing");
             return false;
         }
 
@@ -407,13 +410,26 @@ public class SchemaUtil {
             // the current vdc is removed
             strategyOptions.clear();
         }
+        
+        String dcName = _vdcShortId;
+        Site currentSite = null;
+        
+        try {
+            currentSite = drUtil.getLocalSite();
+        } catch (Exception e) {
+            //ignore
+        }
+        
+        if (currentSite != null) {
+            dcName = drUtil.getCassandraDcId(currentSite);  
+        }
 
-        if (strategyOptions.containsKey(_vdcShortId)) {
+        if (strategyOptions.containsKey(dcName)) {
             return false;
         }
 
-        _log.info("Add {} to strategy options", _vdcShortId);
-        strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
+        _log.info("Add {} to strategy options", dcName);
+        strategyOptions.put(dcName, Integer.toString(getReplicationFactor()));
         return true;
     }
 
@@ -846,19 +862,35 @@ public class SchemaUtil {
 
         vdc.setLocal(true);
         dbClient.createObject(vdc);
-        
+
+        // create VDC parent ZNode for site config in ZK
+        ConfigurationImpl vdcConfig = new ConfigurationImpl();
+        vdcConfig.setKind(Site.CONFIG_KIND);
+        vdcConfig.setId(vdc.getShortId());
+        _coordinator.persistServiceConfiguration(vdcConfig);
+
         // insert DR primary site info to ZK
         Site site = new Site();
         site.setUuid(_coordinator.getSiteId());
         site.setName("Primary");
         site.setVdcShortId(vdc.getShortId());
+        site.setStandbyShortId("");
         site.setHostIPv4AddressMap(ipv4Addresses);
         site.setHostIPv6AddressMap(ipv6Addresses);
         site.setState(SiteState.PRIMARY);
         site.setCreationTime(System.currentTimeMillis());
         site.setVip(_vdcEndpoint);
+
+        SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
+        site.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
+
         site.setNodeCount(vdc.getHostCount());
+
         _coordinator.persistServiceConfiguration(site.toConfiguration());
+
+        // update Site version in ZK
+        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
+        _coordinator.setTargetInfo(siteInfo);
     }
 
     /**
@@ -898,7 +930,7 @@ public class SchemaUtil {
      // No need to add bootstrap records on standby site
         if (isOnStandby()) {
             _log.info("Check bootstrap info on standby");
-            Site currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
+            Site currentSite = drUtil.getLocalSite();
 
             if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
                 currentSite.setState(SiteState.STANDBY_SYNCING);
@@ -1177,4 +1209,12 @@ public class SchemaUtil {
         }
         return true;
    }
+    
+    public void setApiSignatureGenerator(InternalApiSignatureKeyGenerator apiSignatureGenerator) {
+        this.apiSignatureGenerator = apiSignatureGenerator;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
 }

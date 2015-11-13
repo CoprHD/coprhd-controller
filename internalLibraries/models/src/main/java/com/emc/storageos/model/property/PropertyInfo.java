@@ -23,7 +23,8 @@ public class PropertyInfo {
         MUTATED,
         SECRETS,
         OBSOLETE,
-        REDEPLOY
+        REDEPLOY,
+        IPSEC
     }
 
     /**

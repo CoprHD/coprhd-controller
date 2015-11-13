@@ -73,9 +73,6 @@ public class Common extends Controller {
 
     public static final String CACHE_EXPR = "2min";
 
-    public static final String[] paramsToClean =
-    { "name", "authenticityToken", "button.save", "referrerUrl", "nodeId", "taskId" };
-
     @Before(priority = 0)
     @Unrestricted
     public static void checkSetup() {
@@ -113,7 +110,7 @@ public class Common extends Controller {
 
     @Before(priority = 0)
     public static void xssCheck() {
-        for (String param : paramsToClean) {
+        for (String param : params.all().keySet()) {
             String[] data = params.getAll(param);
 
             if ((data != null) && (data.length > 0)) {

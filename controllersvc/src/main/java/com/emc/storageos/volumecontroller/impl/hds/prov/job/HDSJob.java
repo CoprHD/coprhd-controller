@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.httpclient.NoHttpResponseException;
 import org.milyn.payload.JavaResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +73,7 @@ public class HDSJob extends Job implements Serializable
         return (URI) _map.get(STORAGE_SYSTEM_URI_NAME);
     }
 
+    @Override
     public TaskCompleter getTaskCompleter() {
         return (TaskCompleter) _map.get(TASK_COMPLETER_NAME);
     }
@@ -118,6 +120,7 @@ public class HDSJob extends Job implements Serializable
         _errorDescription = errorDescription;
     }
 
+    @Override
     public JobPollResult poll(JobContext jobContext, long trackingPeriodInMillis) {
         String messageId = getHDSJobMessageId();
         try {
@@ -126,31 +129,46 @@ public class HDSJob extends Job implements Serializable
             logger.info("HDSJob: Looking up job: id {}, provider: {} ", messageId, storageSystem.getActiveProviderURI());
             HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
-
+            _pollResult.setJobName(getJobName());
+            _pollResult.setJobId(messageId);
             if (hdsApiClient == null) {
                 String errorMessage = "No HDS client found for provider ip: " + storageSystem.getActiveProviderURI();
                 processTransientError(messageId, trackingPeriodInMillis, errorMessage, null);
             } else {
                 JavaResult javaResult = hdsApiClient.checkAsyncTaskStatus(messageId);
-                EchoCommand command = javaResult.getBean(EchoCommand.class);
-                _pollResult.setJobName(getJobName());
-                _pollResult.setJobId(messageId);
-                if (HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
-                    _status = JobStatus.SUCCESS;
-                    _pollResult.setJobPercentComplete(100);
-                    _javaResult = javaResult;
-                    logger.info("HDSJob: {} succeeded", messageId);
-                } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
-                    Error error = javaResult.getBean(Error.class);
+                if (null == javaResult) {
                     _pollResult.setJobPercentComplete(100);
                     _errorDescription = String
-                            .format("Async task failed for messageID %s due to %s with error code: %d",
-                                    messageId, error.getDescription(),
-                                    error.getCode());
+                            .format("Async task failed for messageID %s due to no response from server",
+                                    messageId);
                     _status = JobStatus.FAILED;
                     logger.error("HDSJob: {} failed; Details: {}", getJobName(), _errorDescription);
+                } else {
+                    EchoCommand command = javaResult.getBean(EchoCommand.class);
+                    if (HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                        _status = JobStatus.SUCCESS;
+                        _pollResult.setJobPercentComplete(100);
+                        _javaResult = javaResult;
+                        logger.info("HDSJob: {} succeeded", messageId);
+                    } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
+                        Error error = javaResult.getBean(Error.class);
+                        _pollResult.setJobPercentComplete(100);
+                        _errorDescription = String
+                                .format("Async task failed for messageID %s due to %s with error code: %d",
+                                        messageId, error.getDescription(),
+                                        error.getCode());
+                        _status = JobStatus.FAILED;
+                        logger.error("HDSJob: {} failed; Details: {}", getJobName(), _errorDescription);
+                    }
                 }
             }
+        } catch (NoHttpResponseException ex) {
+            _status = JobStatus.FAILED;
+            _pollResult.setJobPercentComplete(100);
+            _errorDescription = ex.getMessage();
+            logger.error(String.format("HDS job not found. Marking as failed as we cannot determine status. " +
+                    "User may retry the operation to be sure: Name: %s, ID: %s, Desc: %s",
+                    getJobName(), messageId, _errorDescription), ex);
         } catch (Exception e) {
             processTransientError(messageId, trackingPeriodInMillis, e.getMessage(), e);
         } finally {

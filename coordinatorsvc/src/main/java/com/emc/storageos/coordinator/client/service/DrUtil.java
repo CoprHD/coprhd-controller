@@ -5,9 +5,15 @@
 
 package com.emc.storageos.coordinator.client.service;
 
-import java.net.URI;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -15,7 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -28,6 +34,10 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  */
 public class DrUtil {
     private static final Logger log = LoggerFactory.getLogger(DrUtil.class);
+    
+    private static final int COORDINATOR_PORT = 2181;
+    public static final String ZOOKEEPER_MODE_OBSERVER = "observer";
+    public static final String ZOOKEEPER_MODE_READONLY = "read-only";
     
     private CoordinatorClient coordinator;
 
@@ -67,18 +77,38 @@ public class DrUtil {
      * @return
      */
     public String getPrimarySiteId() {
-        Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
+        return getPrimarySiteId(getLocalVdcShortId());
+    }
+
+    /**
+     * Get primary site in a specific vdc
+     *
+     * @param vdcShortId short id of the vdc
+     * @return uuid of the primary site
+     */
+    public String getPrimarySiteId(String vdcShortId) {
+        Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, vdcShortId);
         return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
     }
-    
+
     /**
-     * Load site information from coordinator 
+     * Get local site configuration
+     *
+     * @return local site configuration
+     */
+    public Site getLocalSite() {
+        return getSiteFromLocalVdc(coordinator.getSiteId());
+    }
+
+    /**
+     * Load site information from local vdc
      * 
      * @param siteId
      * @return
      */
-    public Site getSite(String siteId) {
-        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, siteId);
+    public Site getSiteFromLocalVdc(String siteId) {
+        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, getLocalVdcShortId());
+        Configuration config = coordinator.queryConfiguration(siteKind, siteId);
         if (config != null) {
             return new Site(config);
         }
@@ -92,13 +122,33 @@ public class DrUtil {
      * @return list of standby sites
      */
     public List<Site> listStandbySites() {
-        List<Site> result = new ArrayList<Site>();
+        String primaryId = this.getPrimarySiteId();
+        List<Site> result = new ArrayList<>();
         for(Site site : listSites()) {
-            if (site.getState() != SiteState.PRIMARY) {
+            if (!site.getUuid().equals(primaryId)) {
                 result.add(site);
             }
         }
         return result;
+    }
+
+    /**
+     * Get a map of all sites of all vdcs.
+     * The keys are VDC short ids, the values are lists of sites within each vdc
+     *
+     * @return map of vdc -> list of sites
+     */
+    public Map<String, List<Site>> getVdcSiteMap() {
+        Map<String, List<Site>> vdcSiteMap = new HashMap<>();
+        for(Configuration vdcConfig : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
+            String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcConfig.getId());
+            List<Site> sites = new ArrayList<>();
+            for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
+                sites.add(new Site(siteConfig));
+            }
+            vdcSiteMap.put(vdcConfig.getId(), sites);
+        }
+        return vdcSiteMap;
     }
 
     /**
@@ -107,14 +157,10 @@ public class DrUtil {
      * @return list of all sites
      */
     public List<Site> listSites() {
-        Site primarySite = getSite(getPrimarySiteId());
-        String vdcId = primarySite.getVdcShortId();
         List<Site> result = new ArrayList<>();
-        for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
-            if (site.getVdcShortId().equals(vdcId)) {
-                result.add(site);
-            }
+        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, getLocalVdcShortId());
+        for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
+            result.add(new Site(siteConfig));
         }
         return result;
     }
@@ -159,10 +205,9 @@ public class DrUtil {
         try {
             String syssvcName = ((CoordinatorClientImpl)coordinator).getSysSvcName();
             String syssvcVersion = ((CoordinatorClientImpl)coordinator).getSysSvcVersion();
-            List<Service> svcs = coordinator.locateAllServices(siteId, syssvcName, syssvcVersion,
-                    (String) null, null);
+            List<Service> svcs = coordinator.locateAllServices(siteId, syssvcName, syssvcVersion, null, null);
 
-            List<String> nodeList = new ArrayList<String>();
+            List<String> nodeList = new ArrayList<>();
             for(Service svc : svcs) {
                 nodeList.add(svc.getNodeId());
             }
@@ -176,6 +221,23 @@ public class DrUtil {
             return true;
         }
     }
+    
+    /**
+     * Update SiteInfo's action and version for specified site id 
+     * @param siteId site UUID
+     * @param action action to take
+     */
+    public void updateVdcTargetVersion(String siteId, String action) throws Exception {
+        SiteInfo siteInfo;
+        SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
+        if (currentSiteInfo != null) {
+            siteInfo = new SiteInfo(System.currentTimeMillis(), action, currentSiteInfo.getTargetDataRevision());
+        } else {
+            siteInfo = new SiteInfo(System.currentTimeMillis(), action);
+        }
+        coordinator.setTargetInfo(siteId, siteInfo);
+        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
+    }
 
     /**
      * Check if a specific site is the local site
@@ -184,5 +246,68 @@ public class DrUtil {
      */
     public boolean isLocalSite(Site site) {
         return site.getUuid().equals(coordinator.getSiteId());
+    }
+    
+    /**
+     * Generate Cassandra data center name for given site.
+     * 
+     * @param site
+     * @return
+     */
+    public String getCassandraDcId(Site site) {
+        String dcId = null;
+        if (StringUtils.isEmpty(site.getStandbyShortId()) || site.getVdcShortId().equals(site.getStandbyShortId())) {
+            dcId = site.getVdcShortId();
+        } else {
+            dcId = site.getUuid();
+        }
+
+        log.info("Cassandra DC Name is {}", dcId);
+        return dcId;
+    }
+
+    /**
+     * Get the short id of local VDC
+     */
+    public String getLocalVdcShortId() {
+        Configuration localVdc = coordinator.queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
+                Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        return localVdc.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
+    }
+    
+    /**
+     * Use Zookeeper 4 letter command to check status of local coordinatorsvc. The return value could 
+     * be one of the following - follower, leader, observer, read-only
+     * 
+     * @return zookeeper mode
+     */
+    public String getLocalCoordinatorMode(String nodeId) {
+        Socket sock = null;
+        try {
+            log.info("get local coordinator mode from {}:{}", nodeId, COORDINATOR_PORT);
+            sock = new Socket(nodeId, COORDINATOR_PORT);
+            OutputStream output = sock.getOutputStream();
+            output.write("mntr".getBytes());
+            sock.shutdownOutput();
+            
+            BufferedReader input =
+                new BufferedReader(new InputStreamReader(sock.getInputStream()));
+            String answer;
+            while ((answer = input.readLine()) != null) {
+                if (answer.startsWith("zk_server_state")){
+                    String state = StringUtils.trim(answer.substring("zk_server_state".length()));
+                    log.info("Get current zookeeper mode {}", state);
+                    return state;
+                }
+            }
+            input.close();
+        } catch(IOException ex) {
+            log.warn("Unexpected IO errors when checking local coordinator state {}", ex.toString());
+        } finally {
+            try {
+                if (sock != null) sock.close();
+            } catch (Exception ex) {}
+        }
+        return null;
     }
 }

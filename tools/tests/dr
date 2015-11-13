@@ -9,6 +9,7 @@ import sys
 import os
 from bourne import Bourne
 import time
+import sysmgr as SysMgr
 
 #----------------------------------------------------------------------
 # dr cli functions
@@ -71,6 +72,12 @@ def wait_for_state(args):
             print "giving up wait_for_state. counter %s args.length %s" % (timeCounter, args.length)
             raise Exception("Timeout occurred while waiting for standby state to %sbe %s" % (modifier,args.state))
 
+def dr_switch_over(args):
+    bourne.connect(args.ip)
+    bourne.dr_switchover(args.uuid)
+
+def wait_for_stable(args):
+    SysMgr.wait_for_stable_state(args)
 
 #----------------------------------------------------------------------
 # command-line parsing
@@ -115,6 +122,10 @@ waitforsync.add_argument('sleep', help = 'sleep of waiting time', type=float)
 waitforsync.add_argument('length', help = 'the whole waiting time', type=float)
 waitforsync.add_argument('-n', action='store_true',  help = 'wait for state to NOT equal')
 
+# switchover dr
+drswitchover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drswitchover.add_argument('uuid', help = 'uuid of standby site to be switched to')
+
 # pause dr standby
 drpausestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 drpausestandby.add_argument('uuid', help = 'uuid of standby site')
@@ -122,6 +133,11 @@ drpausestandby.add_argument('uuid', help = 'uuid of standby site')
 # resume dr standby
 drresumestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 drresumestandby.add_argument('uuid', help = 'uuid of standby site')
+
+# dr wait for stable state
+waitforstable = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+waitforstable.add_argument('sleep', help = 'sleep of waiting time', type=float)
+waitforstable.add_argument('length', help = 'the whole waiting time', type=float)
 
 #----------------------------------------------------------------------
 # Main script
@@ -155,5 +171,11 @@ elif (cmd == "resume"):
 elif (cmd == "waitforstate"):
     args = waitforsync.parse_args()
     wait_for_state(args)
+elif (cmd == "switchover"):
+    args = drswitchover.parse_args()
+    dr_switch_over(args)
+elif (cmd == "waitforstable"):
+    args = waitforstable.parse_args()
+    wait_for_stable(args)
 else:
     parser.print_help()

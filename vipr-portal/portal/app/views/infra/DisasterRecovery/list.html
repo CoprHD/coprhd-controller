@@ -1,5 +1,5 @@
 #{extends 'main.html' /} 
-#{set navSelected: ['nav.config', 'nav.disasterRecovery'] /} 
+#{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
 
 #{DataTable.header titleKey:'disasterRecovery.title'/}
 
@@ -15,7 +15,7 @@
 			<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
 			<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
 			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
-			<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}">{{'disasterRecovery.FailoverButton' | t}}</a>
+			<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.FailoverButton' | t}}</a>
 		#{/deadbolt.restrict}
     </div>
 </script>
@@ -24,7 +24,7 @@
 var standbypauseUrl = #{jsAction @pause(':uuid') /}
 var standbyresumeUrl = #{jsAction @resume(':uuid') /}
 var standbytestUrl = #{jsAction @test(':uuid') /}
-var standbyfailoverUrl = #{jsAction @failover(':uuid') /}
+var standbyfailoverUrl = #{jsAction @switchover(':uuid') /}
 
 angular.module('tags').directive({
 	actions: function() {
@@ -89,7 +89,6 @@ $(document).ready(function() {
 </script>
 
 <script type="text/javascript">
-
 function standbyStatusIcon(o, val) {
     if (!o) {
         return "";
@@ -131,6 +130,6 @@ function standbyStatusIcon(o, val) {
 
     var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
 
-    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span>' + ' ' + message+'</span>';
+    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';
 }
 </script>

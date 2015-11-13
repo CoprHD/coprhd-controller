@@ -37,6 +37,14 @@ public interface Constants {
     public static final String DATA_REVISION_TMP = FileUtils.generateTmpFileName("datarevisionconfig.properties.new");
     public static final String KEY_DATA_REVISION = "target_data_revision";
     public static final String KEY_DATA_REVISION_COMMITTED = "target_data_revision_committed";
+
+    //ipsec command constants
+    public static final String VDC_CONFIG_VERSION = "vdc_config_version";
+    public static final String IPSEC_KEY = "ipsec_key";
+    public static final String IPSEC_CHECK_CONNECTION = "check-connection";
+    public static final String IPSEC_GET_PROPS = "get-props";
+    public static final String IPSEC_SYNC_KEY = "sync-key";
+
             
     // upload image
     public static final long MAX_UPLOAD_SIZE = 800000000L;
@@ -86,6 +94,9 @@ public interface Constants {
 
     // see the defintion of ClusterInfo.MigrationStatus
     public static final String MIGRATION_STATUS = "migrationstatus";
+    
+    // Upgrade failure information
+    public static final String  UPGRADE_FAILURE_INFO ="upgradefailureinfo";
 
     // category name under which external node information are stored
     public static final String NODE_DUALINETADDR_CONFIG = "nodeAddresses";
@@ -118,12 +129,13 @@ public interface Constants {
     public static final String CONFIG_DR_PRIMARY_KIND = "disasterRecoveryPrimary";
     public static final String CONFIG_DR_PRIMARY_ID = "global";
     public static final String CONFIG_DR_PRIMARY_SITEID = "siteId";
+
+    String CONFIG_GEO_LOCAL_VDC_KIND = "geoLocalVDC";
+    String CONFIG_GEO_LOCAL_VDC_ID = "global";
+    String CONFIG_GEO_LOCAL_VDC_SHORT_ID = "vdcShortId";
     
     public static final String SITE_STATE = "state";
     public static final String SITE_ID= "siteid";
-
-    public static final String STATIC_CFGFile_Key = "staticConfigFile";
-    public static final String DYNAMIC_CFGFile_Key = "dynamicConfigFile";
     
     public static final String KEY_CERTIFICATE_PAIR_CONFIG_KIND = "keyCertificatePairConfig";
     public static final String ZK_OBSERVER_CONFIG_SUFFIX= ":2888:2889:observer;2181";
@@ -131,4 +143,9 @@ public interface Constants {
     public static final String VDC_NODECOUNT_KEY_TEMPLATE= "vdc_%s_node_count";
     public static final String ZK_SERVER_CONFIG_PREFIX= "server.";
     public static final String STANDBY_PROPERTY_REGEX=".*standby\\d_network_\\d_ipaddr6?";
+    
+    public static final String SWITCHOVER_BARRIER = "switchoverBarrier";
+    public static final String FAILOVER_BARRIER = "failoverBarrier";
+    public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
+    public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";
 }

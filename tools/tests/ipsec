@@ -16,6 +16,14 @@ def ipsec_key_rotate(vip):
     version = bourne.ipsc_rotate_key()
     print "Key rotation is submitted successfully at version %s" % version
 
+def ipsec_check(vip):
+    """ a test on ipsec key checking status """
+    bourne.connect(vip)
+    ipsec_status = bourne.ipsc_check()
+    bourne.pretty_print_json(ipsec_status)
+    if ipsec_status['is_good'] == False:
+        raise Exception("ipsec check failed")
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -44,5 +52,7 @@ bourne = Bourne()
 
 if (cmd == "keyrotate"):
     ipsec_key_rotate(bourne_ip)
+elif (cmd == "check"):
+    ipsec_check(bourne_ip)
 else:
     parser.print_help()

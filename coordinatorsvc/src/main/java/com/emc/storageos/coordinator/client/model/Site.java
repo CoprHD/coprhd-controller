@@ -4,9 +4,9 @@
  */
 package com.emc.storageos.coordinator.client.model;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
@@ -14,16 +14,13 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 
 /**
  * Representation for a ViPR site, both primary and standby
  */
 public class Site {
     private static final Logger log = LoggerFactory.getLogger(Site.class);
-    
-    private static final String KEY_VDC = "vdc";
+
     private static final String KEY_NAME = "name";
     private static final String KEY_DESCRIPTION = "description";
     private static final String KEY_VIP = "vip";
@@ -34,19 +31,20 @@ public class Site {
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
     private static final String KEY_NODECOUNT = "nodeCount";
+    private static TreeMap<String, String> treeMapSorter = new TreeMap<String, String>();
     
     public static final String CONFIG_KIND = "disasterRecoverySites";
 
     private String uuid;
     private String vdcShortId;
-    private String name = "";
-    private String vip = "";
-    private String secretKey = "";
-    private String description = "";
+    private String name;
+    private String vip;
+    private String secretKey;
+    private String description;
     private Map<String, String> hostIPv4AddressMap = new HashMap<>();
     private Map<String, String> hostIPv6AddressMap = new HashMap<>();
-    private String standbyShortId = "";
-    private long creationTime = 0;
+    private String standbyShortId;
+    private long creationTime;
     private SiteState state = SiteState.PRIMARY;
     private int nodeCount;
     
@@ -167,7 +165,7 @@ public class Site {
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
-        if (obj instanceof Site)
+        if (!(obj instanceof Site))
             return false;
         Site other = (Site) obj;
         if (uuid == null) {
@@ -180,7 +178,7 @@ public class Site {
 
     public Configuration toConfiguration() {
         ConfigurationImpl config = new ConfigurationImpl();
-        config.setKind(CONFIG_KIND);
+        config.setKind(String.format("%s/%s", CONFIG_KIND, vdcShortId));
         config.setId(uuid);
         if (name != null) {
             config.setConfig(KEY_NAME, name);
@@ -190,9 +188,6 @@ public class Site {
         }
         if (vip != null) {
             config.setConfig(KEY_VIP, vip);
-        }
-        if (vdcShortId != null) {
-            config.setConfig(KEY_VDC, vdcShortId.toString());
         }
         if (secretKey != null) {
             config.setConfig(KEY_SECRETKEY, this.secretKey);
@@ -207,27 +202,31 @@ public class Site {
         
         config.setConfig(KEY_NODECOUNT, String.valueOf(nodeCount));
         
-        config.setConfig(KEY_NODESADDR, StringUtil.join(this.hostIPv4AddressMap.values(), ","));
-        config.setConfig(KEY_NODESADDR6, StringUtil.join(this.hostIPv6AddressMap.values(), ","));
+        treeMapSorter.clear();
+        treeMapSorter.putAll(this.hostIPv4AddressMap);
+        config.setConfig(KEY_NODESADDR, StringUtil.join(treeMapSorter.values(), ","));
+        
+        treeMapSorter.clear();
+        treeMapSorter.putAll(this.hostIPv6AddressMap);
+        config.setConfig(KEY_NODESADDR6, StringUtil.join(treeMapSorter.values(), ","));
+        
         return config;
     }
 
     private void fromConfiguration(Configuration config) {
-        if (!config.getKind().equals(CONFIG_KIND)) {
+        String kindStr = config.getKind();
+        if (!kindStr.split("/")[0].equals(CONFIG_KIND)) {
             throw new IllegalArgumentException("Unexpected configuration kind for Site");
         }
         try {
+            this.vdcShortId = kindStr.split("/")[1];
             this.uuid = config.getId();
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
-            String s = config.getConfig(KEY_VDC);
-            if (s != null) {
-                this.vdcShortId = s;
-            }
             this.vip = config.getConfig(KEY_VIP);
             this.secretKey = config.getConfig(KEY_SECRETKEY);
             this.standbyShortId = config.getConfig(KEY_STANDBY_SHORTID);
-            s = config.getConfig(KEY_CREATIONTIME);
+            String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
                 this.creationTime = Long.valueOf(s);
             }
@@ -271,6 +270,8 @@ public class Site {
         builder.append(name);
         builder.append(", vip=");
         builder.append(vip);
+        builder.append(", state=");
+        builder.append(state);
         builder.append(", description=");
         builder.append(description);
         builder.append(", hostIPv4AddressMap=");

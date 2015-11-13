@@ -78,7 +78,6 @@ import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
-import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.LicenseInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.WorkPool;
@@ -102,9 +101,13 @@ import com.emc.vipr.model.sys.ClusterInfo;
  * Default coordinator client implementation
  */
 public class CoordinatorClientImpl implements CoordinatorClient {
+    private static final Logger log = LoggerFactory.getLogger(CoordinatorClientImpl.class);
+    
     private static final String CONN_POOL_NAME = "ConnectionStateWorkerPool";
     private static final String NODE_POOL_NAME = "NodeChangeWorkerPool";
-    private static final Logger log = LoggerFactory.getLogger(CoordinatorClientImpl.class);
+    private static final int ATOMIC_INTEGER_RETRY_INTERVAL_MS = 1000;
+    private static final int ATOMIC_INTEGER_RETRY_TIME = 5;
+    private static final String ATOMIC_INTEGER_ZK_PATH_FORMAT = "%s/%s/%s";
 
     private final ConcurrentMap<String, Object> _proxyCache = new ConcurrentHashMap<String, Object>();
 
@@ -235,9 +238,21 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public void setPrimarySite(String siteId) throws Exception {
+        Configuration localVdcConfig = queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
+                Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        if (localVdcConfig == null) {
+            log.info("initializing local VDC pointer to vdc1");
+            ConfigurationImpl localVdcConfigImpl = new ConfigurationImpl();
+            localVdcConfigImpl.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
+            localVdcConfigImpl.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
+            localVdcConfigImpl.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, "vdc1");
+            persistServiceConfiguration(localVdcConfigImpl);
+            localVdcConfig = localVdcConfigImpl;
+        }
+        String localVdcShortId = localVdcConfig.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
         ConfigurationImpl config = new ConfigurationImpl();
         config.setKind(Constants.CONFIG_DR_PRIMARY_KIND);
-        config.setId(Constants.CONFIG_DR_PRIMARY_ID);
+        config.setId(localVdcShortId);
         config.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, siteId);
         persistServiceConfiguration(config);
     }
@@ -1226,6 +1241,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         } catch (Exception e) {
             log.info("Failed to persist runtime state e=",e);
             throw CoordinatorException.fatals.unableToPersistTheState(e);
+        }
+    }
+
+    @Override
+    public void removeRuntimeState(String key) throws CoordinatorException {
+        String servicePath = String.format("%1$s/%2$s", ZkPath.STATE, key);
+        try {
+            _zkConnection.curator().delete().forPath(servicePath);
+        } catch (Exception e) {
+            throw CoordinatorException.fatals.unableToRemoveTheState(key, e);
         }
     }
 

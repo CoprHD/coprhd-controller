@@ -20,47 +20,6 @@ _get_local_ip() {
     echo "${ipaddr}"
 }
 
-# get ips in primary site
-_get_ips_in_primary() {
-    local cursite_begin_index="0"
-    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
-    local primary_cnt="${!var}"
-    local ips=""
-    for i in $(seq ${primary_cnt}) ; do
-        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr"
-        local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr6"
-        local ipaddr="${!var}"
-        [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
-        ips="${ips} ${ipaddr}"
-    done
-
-    echo "${ips}"
-}
-
-# get ips in specified standby site
-# input - standby site id
-_get_ips_in_standby() {
-    local standby=$1
-    local ips=""
-
-    if [ -n "${_GENCONFIG_site_ids}" ] ; then
-        var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_node_count"
-        local standby_cnt="${!var}"
-        for standby_index in $(seq 1 ${standby_cnt}); do
-            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_${standby_index}_ipaddr"
-            var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_${standby_index}_ipaddr6"
-            local ipaddr="${!var}"
-            [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
-            ips="${ips} ${ipaddr}"
-        done
-    else
-        # no standby defined
-        echo ""
-    fi
-    echo "$ips"
-}
-
-
 #
 # common section for all connnections in ipsec.conf
 #

@@ -4,6 +4,7 @@
  */
 package com.emc.vipr.client;
 
+import com.emc.vipr.client.core.Backup;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.system.*;
 
@@ -103,5 +104,13 @@ public class ViPRSystemClient {
 
     public Upgrade upgrade() {
         return new Upgrade(client);
+    }
+    
+    public Backup backup(){
+    	return new Backup(client);
+    }
+
+    public IPsec ipsec(){
+        return new IPsec(client);
     }
 }

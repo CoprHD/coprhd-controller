@@ -14,8 +14,12 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @XmlRootElement(name = "backupsets")
 public class BackupSets {
+    private static final Logger log = LoggerFactory.getLogger(BackupSets.class);
 
     private List<BackupSet> backupSets;
 
@@ -44,14 +48,16 @@ public class BackupSets {
         private String name;
         private long size = 0;
         private long createTime = 0;
+        private BackupUploadStatus uploadStatus;
 
         public BackupSet() {
         }
 
-        public BackupSet(String name, long size, long createTime) {
+        public BackupSet(String name, long size, long createTime, BackupUploadStatus uploadStatus) {
             this.name = name;
             this.size = size;
             this.createTime = createTime;
+            this.uploadStatus = uploadStatus;
         }
 
         @XmlElement(name = "name")
@@ -79,6 +85,15 @@ public class BackupSets {
 
         public void setCreateTime(long time) {
             this.createTime = time;
+        }
+
+        @XmlElement(name = "upload_status")
+        public BackupUploadStatus getUploadStatus() {
+            return this.uploadStatus;
+        }
+
+        public void setUploadStatus(BackupUploadStatus uploadStatus) {
+            this.uploadStatus = uploadStatus;
         }
     }
 }

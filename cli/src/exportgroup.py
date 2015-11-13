@@ -315,8 +315,9 @@ class ExportGroup(object):
          '''
 
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
+                                maxpaths, minpaths, pathsperinitiator,
                                 projectname, volumenames, snapshots=None,
-                                cg=None):
+                                cg=None ):
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
@@ -356,6 +357,12 @@ class ExportGroup(object):
 
         volChanges = {}
         volChanges['add'] = volume_snapshots
+        if (maxpaths):
+            volChanges['max_paths'] = maxpaths
+        if (minpaths):
+            volChanges['min_paths'] = minpaths
+        if(pathsperinitiator is not None):
+            volChanges['paths_per_initiator'] = pathsperinitiator
         parms['volume_changes'] = volChanges
         o = self.send_json_request(exportgroup_uri, parms)
         return self.check_for_sync(o, sync)
@@ -887,6 +894,26 @@ def add_volume_parser(subcommand_parsers, common_parser):
                                    dest='consistencygroup',
                                    help='name of consistencygroup',
                                    default=None)
+    add_volume_parser.add_argument(
+        '-maxpaths', '-mxp',
+        help='The maximum number of paths that can be ' +
+        'used between a host and a storage volume',
+        metavar='<MaxPaths>',
+        dest='maxpaths',
+        type=int)
+    add_volume_parser.add_argument(
+        '-minpaths', '-mnp',
+        help='The minimum  number of paths that can be used ' +
+        'between a host and a storage volume',
+        metavar='<MinPaths>',
+        dest='minpaths',
+        type=int)
+    add_volume_parser.add_argument('-pathsperinitiator', '-ppi',
+                               help='The number of paths per initiator',
+                               metavar='<PathsPerInitiator>',
+                               dest='pathsperinitiator',
+                               type=int)
+    
 
     add_volume_parser.add_argument('-synchronous', '-sync',
                                    dest='sync',
@@ -901,6 +928,8 @@ def exportgroup_add_volumes(args):
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_volumes(
             args.sync, args.name, args.tenant,
+            args.maxpaths,
+            args.minpaths, args.pathsperinitiator,
             args.project, args.volume, args.snapshot, args.consistencygroup)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_vol", "exportgroup",

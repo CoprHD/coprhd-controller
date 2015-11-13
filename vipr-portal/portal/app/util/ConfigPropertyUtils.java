@@ -71,8 +71,8 @@ public class ConfigPropertyUtils {
         }
     }
 
-    public static String rotateIpsecKey(ViPRCoreClient client) {
-        return client.vdcs().rotateIpsecKey();
+    public static String rotateIpsecKey(ViPRSystemClient client) {
+        return client.ipsec().rotateIpsecKey();
     }
 
     public static void loadCoordinatorProperties() {

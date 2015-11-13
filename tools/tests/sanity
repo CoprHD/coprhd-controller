@@ -3050,7 +3050,7 @@ isilon_setup()
 driversystem_setup()
 {
     echo "driversystem setup"
-    discoveredsystem create driverManagedSystem driversimulator 10.246.55.66 8080 root password
+    discoveredsystem create driverManagedSystem driversystem  10.246.55.66 8080 root password
 }
 
 driversystem_tests()

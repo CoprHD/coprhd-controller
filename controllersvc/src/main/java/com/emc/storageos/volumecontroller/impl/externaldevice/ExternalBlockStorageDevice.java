@@ -1,5 +1,6 @@
 package com.emc.storageos.volumecontroller.impl.externaldevice;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +31,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     private DbClient dbClient;
     private ControllerLockingService locker;
     // Initialized drivers map
-    private Map<String, BlockStorageDriver> blockDrivers;
+    private Map<String, BlockStorageDriver> blockDrivers  = new HashMap<>();
 
 
     public void setDbClient(DbClient dbClient) {
@@ -83,7 +84,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                                 TaskCompleter taskCompleter) throws DeviceControllerException {
 
         BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-
+        if (driver == null) {
+            throw DeviceControllerException.exceptions.connectStorageFailedNoDevice(
+                    storageSystem.getSystemType());
+        }
     }
 
     /**
@@ -108,10 +112,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doConnect(StorageSystem storage) {
-
-        _log.info("doConnect to external device {} - start", storage.getId());
-        _log.info("doConnect to external device {} - end", storage.getId());
+    public void doConnect(StorageSystem storageSystem) {
+        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+        if (driver == null) {
+            throw DeviceControllerException.exceptions.connectStorageFailedNoDevice(
+                    storageSystem.getSystemType());
+        }
+        _log.info("doConnect to external device {} - start", storageSystem.getId());
+        _log.info("doConnect to external device {} - end", storageSystem.getId());
     }
 
 }

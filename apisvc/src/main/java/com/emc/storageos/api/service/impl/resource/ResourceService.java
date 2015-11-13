@@ -16,6 +16,7 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
+import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,7 +72,6 @@ public abstract class ResourceService {
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
     protected static final String DATAOBJECT_NAME_FIELD = "label";
-    private static final String EXTERNAL_DEVICE = "externaldevice";
 
     @SuppressWarnings("unused")
     private final static Logger _log = LoggerFactory.getLogger(ResourceService.class);
@@ -221,7 +221,7 @@ public abstract class ResourceService {
                    clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
         } catch (RetryableCoordinatorException rex) {
             controller = _coordinator.locateService(
-                    clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, EXTERNAL_DEVICE, clazz.getSimpleName());
+                    clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, Constants.EXTERNALDEVICE, clazz.getSimpleName());
         }
         return controller;
     }

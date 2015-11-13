@@ -99,8 +99,10 @@ public class ExternalDeviceCommunicationInterface extends
         String deviceType = accessProfile.getSystemType();
         DiscoveryDriver driver = getDriver(deviceType);
         if (driver == null) {
-            _log.info("No driver entry defined for device type: {} . ", deviceType);
-            return;
+            String errorMsg = String.format("No driver entry defined for device type: %s . ", deviceType);
+            _log.info(errorMsg);
+            throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                    null, errorMsg, null, null);
         }
 
         try {
@@ -450,6 +452,7 @@ public class ExternalDeviceCommunicationInterface extends
             network.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.name());
             network.setInactive(false);
             _dbClient.createObject(network);
+            _log.info("Created a new network {}." , network.getLabel());
         } else {
             network = results.get(0);
         }

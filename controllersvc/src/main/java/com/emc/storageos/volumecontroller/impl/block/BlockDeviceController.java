@@ -25,6 +25,7 @@ import java.util.Map;
 
 import javax.xml.bind.DataBindingException;
 
+import com.emc.storageos.plugins.common.Constants;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -3168,8 +3169,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // by the controller.
         BlockStorageDevice storageDevice = getDevice(storageObj.getSystemType());
         if (storageDevice == null) {
-            throw DeviceControllerException.exceptions.connectStorageFailedNoDevice(
-                    storageObj.getSystemType());
+            // Could be external device.
+            storageDevice = getDevice(Constants.EXTERNALDEVICE);
+            if (storageDevice == null) {
+                throw DeviceControllerException.exceptions.connectStorageFailedNoDevice(
+                        storageObj.getSystemType());
+            }
         }
         storageDevice.doConnect(storageObj);
         _log.info("Adding to storage device to work pool: {}", storageObj.getId());

@@ -25,6 +25,16 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NasCifsServer;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,15 +49,6 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.NasCifsServer;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -979,20 +980,20 @@ public class ProjectService extends TaggedResource {
                     while (fsItr.hasNext()) {
                         FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
                         if (fileShare != null && !fileShare.getInactive()) {
-                            if (fileShare.getVirtualNAS() != null && 0 == fileShare.getVirtualNAS().compareTo(vnas.getId())) {                                _log.info("validation of assigned {} virtual NAS URi Servers to project : {} ",fileShare.getVirtualNAS(), fileShare.getPath());
+                            //if fs contain vNAS uri, then compare uri of vNAS assgined to project
+                            if (fileShare.getVirtualNAS() != null && 0 == fileShare.getVirtualNAS().compareTo(vnas.getId())) {                                
+                                _log.debug("Validation of assigned vNAS URI: {} and file system path : {} ",fileShare.getVirtualNAS(), fileShare.getPath());
                                 if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
                                     projectMatched = false;
-
-                                    break;
+				                    break;
                                 }
-                            } else {
-                                if (storageSystem.getSystemType().equals("Isilon")) {
-                                    if (!fileShare.getPath().startsWith(vnas.getBaseDirPath() + "/")) {
-                                        _log.info("ignored validation of assigned {} virtual NAS Servers to project : {} ",vnas.getBaseDirPath(), fileShare.getPath());
+                            } else { //for isilon, if fs don't have vNAS uri, compare fspath with base path of AZ
+                                if (storageSystem.getSystemType().equals(StorageSystem.Type.isilon.name())) {
+                                    if (fileShare.getPath().startsWith(vnas.getBaseDirPath() + "/") == false) {
                                         continue;
                                     }
                                 }
-                                _log.info("ignored validation of assigned {} virtual NAS Servers to project : {} ",vnas.getBaseDirPath(), fileShare.getPath());
+                                _log.debug("Validation of assigned vNAS base path {} and file path : {} ",vnas.getBaseDirPath(), fileShare.getPath());
                                 if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
                                     projectMatched = false;
                                     break;

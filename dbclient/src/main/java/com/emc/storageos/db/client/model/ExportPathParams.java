@@ -17,6 +17,7 @@ public class ExportPathParams extends DataObject {
     Integer maxPaths;
     Integer minPaths;
     Integer pathsPerInitiator;
+    Integer maxInitiatorsPerPort;
     // storage ports to be used for port allocation if supplied
     StringSet storagePorts;
     // Default exportGroupType is Host. Expressed in ExportGroup.ExportGroupType
@@ -35,6 +36,7 @@ public class ExportPathParams extends DataObject {
     // MaxPaths will be set to 4.
     // Minpaths will be set to 0 which is ignored.
     // PathsPerInitiator is set to 0 which means determine by array type.
+    // MaxInitiatorsPerPort will be set to 1 which means ports are not shared by Initiators.
     static public final ExportPathParams defaultParams = new ExportPathParams(4, 0, 0);
 
     static public ExportPathParams getDefaultParams() {
@@ -54,11 +56,12 @@ public class ExportPathParams extends DataObject {
         this.minPaths = minPaths;
         this.pathsPerInitiator = pathsPerInitiator;
         this.exportGroupType = type.toString();
+        this.maxInitiatorsPerPort = 1;
     }
     
     public String toString() {
-        return String.format("type %s maxPaths %d minPaths %d pathsPerInitiator %d",
-                returnExportGroupType().name(), getMaxPaths(), getMinPaths(), getPathsPerInitiator());
+        return String.format("type %s maxPaths %d minPaths %d pathsPerInitiator %d maxInitiatorsPerPort %d",
+                returnExportGroupType().name(), getMaxPaths(), getMinPaths(), getPathsPerInitiator(), getMaxInitiatorsPerPort());
     }
     
     @Name("maxPaths")
@@ -139,7 +142,16 @@ public class ExportPathParams extends DataObject {
     }
 
     public void setAllowFewerPorts(Boolean allowFewerPorts) {
-                this.allowFewerPorts = allowFewerPorts;
+        this.allowFewerPorts = allowFewerPorts;
+    }
+
+    @Name("maxInitiatorsPerPort")
+    public Integer getMaxInitiatorsPerPort() {
+        return maxInitiatorsPerPort;
+    }
+
+    public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
+        this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
 
 }

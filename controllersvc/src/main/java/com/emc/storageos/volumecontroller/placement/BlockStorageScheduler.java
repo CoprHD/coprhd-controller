@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -210,13 +211,29 @@ public class BlockStorageScheduler {
 
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
         Map<Initiator, List<StoragePort>> assignments = new HashMap<Initiator, List<StoragePort>>();
-
-        for (NetworkLite network : allocatedPorts.keySet()) {
-            // Assign the Storage Ports.
-            assigner.assign(assignments, initiatorsByNetwork.get(network),
-                    allocatedPorts.get(network), pathParams,
-                    existingAssignments, network);
+        
+        // Call StoragePortsAssigner once per host to do the assignments
+        Map <URI, Map<URI, List<Initiator>>> hostsToNetToInitiators = 
+                getHostInitiatorsMapFromNetworkLite(initiatorsByNetwork);
+        Map<URI, List<StoragePort>> allocatedPortsMap = getAllocatedPortsMap(allocatedPorts);
+//        Map<URI, List<Initiator>> hostsToNewInitiators = DefaultStoragePortsAssigner.makeHostInitiatorsMap(newInitiators);
+//        Map<URI, List<Initiator>> hostToExistingInitiators = 
+//                DefaultStoragePortsAssigner.makeHostInitiatorsMap(existingAssignments.keySet());
+        
+        // For each host, assign the ports to the appropriate initiators.
+        for (URI hostURI : hostsToNetToInitiators.keySet()) {
+            assigner.assignPortsToHost(assignments, hostsToNetToInitiators.get(hostURI), 
+                    allocatedPortsMap, pathParams, existingAssignments, hostURI);
+            
         }
+        
+
+//        for (NetworkLite network : allocatedPorts.keySet()) {
+//            // Assign the Storage Ports.
+//            assigner.assign(assignments, initiatorsByNetwork.get(network),
+//                    allocatedPorts.get(network), pathParams,
+//                    existingAssignments, network);
+//        }
 
         // Validate that minPaths was met across all assignments (existing and new).
         validateMinPaths(system, pathParams, existingAssignments, assignments, newInitiators);
@@ -598,6 +615,37 @@ public class BlockStorageScheduler {
                     hostMap.put(entry.getKey(), new ArrayList<Initiator>());
                 }
                 hostMap.get(entry.getKey()).add(initiator);
+            }
+        }
+        return hostInitiatorsMap;
+    }
+    
+    /**
+     * Given a list of networks-to-initiators, further break down the map by host so
+     * that the end result is a map of hosts-to-networks-to-initiators.
+     * 
+     * @param net2InitiatorsMap networks-to-initiators map
+     * @return a map of hosts-to-network-to-initiators
+     */
+    private Map<URI, Map<URI, List<Initiator>>> getHostInitiatorsMapFromNetworkLite(
+            Map<NetworkLite, List<Initiator>> net2InitiatorsMap) {
+        Map<URI, Map<URI, List<Initiator>>> hostInitiatorsMap = new HashMap<URI, Map<URI, List<Initiator>>>();
+        for (Map.Entry<NetworkLite, List<Initiator>> entry : net2InitiatorsMap.entrySet()) {
+            List<Initiator> initiators = entry.getValue();
+            for (Initiator initiator : initiators) {
+                URI host = initiator.getHost();
+                if (NullColumnValueGetter.isNullURI(host)) {
+                    host = StoragePortsAssigner.unknown_host_uri;
+                }
+                Map<URI, List<Initiator>> hostMap = hostInitiatorsMap.get(host);
+                if (hostMap == null) {
+                    hostMap = new HashMap<URI, List<Initiator>>();
+                    hostInitiatorsMap.put(host, hostMap);
+                }
+                if (hostMap.get(entry.getKey()) == null) {
+                    hostMap.put(entry.getKey().getId(), new ArrayList<Initiator>());
+                }
+                hostMap.get(entry.getKey().getId()).add(initiator);
             }
         }
         return hostInitiatorsMap;
@@ -2184,5 +2232,30 @@ public class BlockStorageScheduler {
             WorkflowService.getInstance().storeWorkflowData(token, "zonemap", zonesMap);
         }
         return preZonedPortsByNetwork;
+    }
+    
+    private String getHostName(URI hostURI) {
+        if (hostURI == StoragePortsAssigner.unknown_host_uri) {
+            return StoragePortsAssigner.unknown_host_uri.toString();
+        }
+        Host host = _dbClient.queryObject(Host.class, hostURI);
+        if (host == null) {
+            return StoragePortsAssigner.unknown_host_uri.toString();
+        }
+        return host.getHostName();
+    }
+    
+    /**
+     * Converts Map<NetworkLite, List<StoragePort> to Map<URI, List<StoragePort>
+     * @param allocatedPorts map from NetworkLite to allocated ports
+     * @return map from network URI to allocated ports
+     */
+    private Map<URI, List<StoragePort>> getAllocatedPortsMap(Map<NetworkLite, List<StoragePort>> allocatedPorts) {
+        Map<URI, List<StoragePort>> returnedPortMap = new HashMap<URI, List<StoragePort>>();
+        for (Map.Entry<NetworkLite, List<StoragePort>> entry : allocatedPorts.entrySet()) {
+            URI netURI = entry.getKey().getId();
+            returnedPortMap.put(netURI, entry.getValue());
+        }
+        return returnedPortMap;
     }
 }

@@ -67,6 +67,20 @@ public interface StoragePortsAssigner {
             List<Initiator> initiators, List<StoragePort> storagePorts,
             ExportPathParams pathParams,
             Map<Initiator, List<StoragePort>> existingAssignments, NetworkLite initiatorNetwork);
+    
+    /**
+     * Assign storage ports for one host across all networks.
+     * @param assignments OUTPUT map of Initiator to the List<StoragePort> storage ports
+     *            to be zoned with that initiator.
+     * @param netToInitiators - a map of network URI to Initiators in that network
+     * @param netToAllocatedPorts - a map of network URI to a List of Allocated Storage Ports
+     * @param ExportPathParams - holder for the path parameters
+     * @param Map<Initiator, List<StoragePort>> existingAssignments
+     * @param URI hostURI -- host URI we are assigning for
+     */
+    public abstract void assignPortsToHost(Map<Initiator, List<StoragePort>> assignments, 
+            Map<URI, List<Initiator>> netToNewInitiators, Map<URI, List<StoragePort>> netToAllocatedPorts,
+            ExportPathParams pathParams, Map<Initiator, List<StoragePort>> existingAssignments, URI hostURI); 
 
     /**
      * Sub-class specific implementation for checking if the port can be assigned to the initiator.

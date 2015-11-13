@@ -20,7 +20,6 @@ public class PathConstants {
 
     public static final String VDC_URL = "/vdc";
     public static final String VDC_CAPACITIES_URL = "/vdc/capacities";
-    public static final String VDC_IPSEC_KEY_URL = "/vdc/ipseckey";
     public static final String VDC_SECRET_KEY_URL = "/vdc/secret-key";
     public static final String AUDIT_LOGS_URL = "/audit/logs";
     public static final String MONITORING_EVENTS_URL = "/monitoring/events";

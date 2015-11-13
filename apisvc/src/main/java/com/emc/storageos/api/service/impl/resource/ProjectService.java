@@ -982,7 +982,8 @@ public class ProjectService extends TaggedResource {
                         if (fileShare != null && !fileShare.getInactive()) {
                             //if fs contain vNAS uri, then compare uri of vNAS assgined to project
                             if (fileShare.getVirtualNAS() != null && 0 == fileShare.getVirtualNAS().compareTo(vnas.getId())) {                                
-                                _log.debug("Validation of assigned vNAS URI: {} and file system path : {} ",fileShare.getVirtualNAS(), fileShare.getPath());
+                                _log.debug("Validation of assigned vNAS URI: {} and file system path : {} ",
+                                                                                fileShare.getVirtualNAS(), fileShare.getPath());
                                 if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
                                     projectMatched = false;
 				                    break;
@@ -993,7 +994,8 @@ public class ProjectService extends TaggedResource {
                                         continue;
                                     }
                                 }
-                                _log.debug("Validation of assigned vNAS base path {} and file path : {} ",vnas.getBaseDirPath(), fileShare.getPath());
+                                _log.debug("Validation of assigned vNAS base path {} and file path : {} ",
+                                                                    vnas.getBaseDirPath(), fileShare.getPath());
                                 if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
                                     projectMatched = false;
                                     break;

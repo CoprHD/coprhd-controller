@@ -163,7 +163,6 @@ public class DisasterRecoveryService {
         precheckForStandbyAttach(standbyConfig);
 
         InterProcessLock lock = getDROperationLock();
-        checkOngoingDROperation();
 
         try {
             Site standbySite = new Site();
@@ -406,7 +405,6 @@ public class DisasterRecoveryService {
         }
 
         InterProcessLock lock = getDROperationLock();
-        checkOngoingDROperation();
 
         try {
             log.info("Removing sites");
@@ -522,7 +520,6 @@ public class DisasterRecoveryService {
         }
 
         InterProcessLock lock = getDROperationLock();
-        checkOngoingDROperation();
 
         try {
             standby.setState(SiteState.STANDBY_PAUSED);
@@ -573,7 +570,6 @@ public class DisasterRecoveryService {
         }
 
         InterProcessLock lock = getDROperationLock();
-        checkOngoingDROperation();
 
         try {
             standby.setState(SiteState.STANDBY_RESUMING);
@@ -653,7 +649,6 @@ public class DisasterRecoveryService {
         String oldPrimaryUUID = drUtil.getPrimarySiteId();
 
         InterProcessLock lock = getDROperationLock();
-        checkOngoingDROperation();
 
         Site newPrimarySite = null;
         Site oldPrimarySite = null;
@@ -751,24 +746,47 @@ public class DisasterRecoveryService {
         }
     }
 
+    /**
+     * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation, throw Exception otherwise
+     */
     private InterProcessLock getDROperationLock() {
-        InterProcessLock lock = null;
-        lock = coordinator.getLock(DR_OPERATION_LOCK);
+        // Try to acquire lock, succeed or throw Exception
+        InterProcessLock lock = coordinator.getLock(DR_OPERATION_LOCK);
+        boolean acquired;
         try {
-            lock.acquire(LOCK_WAIT_TIME_SEC, TimeUnit.SECONDS);
+            acquired = lock.acquire(LOCK_WAIT_TIME_SEC, TimeUnit.SECONDS);
         } catch (Exception e) {
+            try {
+                lock.release();
+            } catch (Exception ex) {
+                log.error("Fail to release DR operation lock", ex);
+            }
             throw APIException.internalServerErrors.failToAcquireDROperationLock();
         }
-        return lock;
-    }
+        if (!acquired) {
+            throw APIException.internalServerErrors.failToAcquireDROperationLock();
+        }
 
-    private void checkOngoingDROperation() {
+        // Has successfully acquired lock
+        // Check if there's ongoing DR operation, if there is, release lock and throw exception
+        Site ongoingSite = null;
         List<Site> sites = drUtil.listSites();
         for (Site site : sites) {
             if (site.getState().isDROperationOngoing()) {
-                throw APIException.internalServerErrors.concurrentDROperationNotAllowed(site.getName(), site.getState().toString());
+                ongoingSite = site;
+                break;
             }
         }
+        if (ongoingSite != null) {
+            try {
+                lock.release();
+            } catch (Exception e) {
+                log.error("Fail to release DR operation lock", e);
+            }
+            throw APIException.internalServerErrors.concurrentDROperationNotAllowed(ongoingSite.getName(), ongoingSite.getState().toString());
+        }
+
+        return lock;
     }
 
     private void updateVdcTargetVersionAndDataRevision(String action) throws Exception {

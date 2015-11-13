@@ -311,7 +311,7 @@ public class StoragePortAssociationHelper {
             VirtualNAS vNas = dbClient.queryObject(VirtualNAS.class, vNasIter.next());
             if (vNas != null && !vNas.getInactive()) {
                 virtualNASList.add(vNas);
-                _log.info("found virtual NAS: {} for storageport: {}", tmpVnas.getNasName(), sp.getLabel());
+                _log.info("found virtual NAS: {} for storageport: {}", vNas.getNasName(), sp.getLabel());
             }
         }
         return virtualNASList;

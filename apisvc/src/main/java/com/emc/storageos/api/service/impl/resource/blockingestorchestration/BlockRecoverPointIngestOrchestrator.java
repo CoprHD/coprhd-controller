@@ -1097,7 +1097,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // Check the health of the consistency group first.  This applies to any volume associated with an RP CG.
         String rpHealthy = umpset.getCGCharacteristics()
                 .get(SupportedCGCharacteristics.IS_HEALTHY.toString());
-        if (Boolean.valueOf(rpHealthy)) {
+        if (!Boolean.valueOf(rpHealthy.toUpperCase())) {
             _logger.error("The RecoverPoint consistency group " + umpset.getCgName() + " associated with unmanaged volume: " + unManagedVolume.getNativeGuid() + " "
                     + "is in an unhealthy state (disabled, paused, or in error).  Please resolve issue and rerun unmanaged CG discovery of registered protection system");
             throw IngestionException.exceptions.unManagedProtectionSetNotHealthy(umpset.getCgName(), unManagedVolume.getNativeGuid());
@@ -1114,13 +1114,13 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         if (personality.equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString())) {
             String rpSync = umpset.getCGCharacteristics()
                     .get(SupportedCGCharacteristics.IS_SYNC.toString());
-            if (Boolean.valueOf(rpSync) && vpool.getRpCopyMode().equalsIgnoreCase(VirtualPool.RPCopyMode.ASYNCHRONOUS.toString())) {
+            if (Boolean.valueOf(rpSync.toUpperCase()) && vpool.getRpCopyMode().equalsIgnoreCase(VirtualPool.RPCopyMode.ASYNCHRONOUS.toString())) {
                 _logger.error("The RecoverPoint consistency group " + umpset.getCgName() + " associated with unmanaged volume: " + unManagedVolume.getNativeGuid() + " "
                         + "is running in synchronous mode, but the virtual pool requires asynchronous mode.  Modify virtual pool settings or create a new virtual pool and re-attempt operation");
                 throw IngestionException.exceptions.unManagedProtectionSetNotAsync(umpset.getCgName(), unManagedVolume.getNativeGuid());
             }
 
-            if (!Boolean.valueOf(rpSync) && vpool.getRpCopyMode().equalsIgnoreCase(VirtualPool.RPCopyMode.SYNCHRONOUS.toString())) {
+            if (!Boolean.valueOf(rpSync.toUpperCase()) && vpool.getRpCopyMode().equalsIgnoreCase(VirtualPool.RPCopyMode.SYNCHRONOUS.toString())) {
                 _logger.error("The RecoverPoint consistency group " + umpset.getCgName() + " associated with unmanaged volume: " + unManagedVolume.getNativeGuid() + " "
                         + "is running in asynchronous mode, but the virtual pool requires synchronous mode.  Modify virtual pool settings or create a new virtual pool and re-attempt operation");
                 throw IngestionException.exceptions.unManagedProtectionSetNotSync(umpset.getCgName(), unManagedVolume.getNativeGuid());

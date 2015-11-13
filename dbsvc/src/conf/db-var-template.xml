@@ -33,7 +33,6 @@
         <property name="dbCommonInfo" ref="dbcommoninfo"/>
         <property name="passwordUtils" ref="passwordUtils"/>
         <property name="onStandby" value="${site_is_standby}"/>
-        <property name="standbyId" value="${site_myid}"/>
         <property name="apiSignatureGenerator" ref="keyGenerator"/>
         <property name="drUtil" ref="drUtil"/>
     </bean>

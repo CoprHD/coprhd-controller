@@ -94,6 +94,7 @@ public class CoordinatorClientExt {
     private static final String DR_SWITCH_TO_ZK_OBSERVER_BARRIER = "/config/disasterRecoverySwitchToZkObserver";
     private static final int DR_SWITCH_BARRIER_TIMEOUT = 180; // barrier timeout in seconds
     private static final int ZK_LEADER_ELECTION_PORT = 2888;
+    private static final int DUAL_ZK_LEADER_ELECTION_PORT = 2898;
     
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
@@ -1422,17 +1423,26 @@ public class CoordinatorClientExt {
             } else {
                 if (isActiveSiteStable()) {
                     _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
+                    DistributedDoubleBarrier barrier = null;
                     try {
-                        DistributedDoubleBarrier barrier = _coordinator.getDistributedDoubleBarrier(DR_SWITCH_TO_ZK_OBSERVER_BARRIER, getNodeCount());
+                        barrier = _coordinator.getDistributedDoubleBarrier(DR_SWITCH_TO_ZK_OBSERVER_BARRIER, getNodeCount());
                         boolean allEntered = barrier.enter(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                         if (allEntered) {
                             LocalRepository localRepository = LocalRepository.getInstance();
                             localRepository.reconfigCoordinator("observer");
                             localRepository.reload("reset-coordinator");
-                            barrier.leave();
                         }
                     } catch (Exception ex) {
                         _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
+                    } finally {
+                        try {
+                            if (barrier != null) {
+                                _log.info("Leaving the barrier.");
+                                barrier.leave();
+                            }
+                        } catch (Exception e) {
+                            _log.warn("Exception when leaving the barrier", e);
+                        }
                     }
                 } else {
                     _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", state);
@@ -1455,16 +1465,24 @@ public class CoordinatorClientExt {
         if (nodeAddrList.isEmpty()) {
             nodeAddrList = primary.getHostIPv6AddressMap().values();
         }
-        
+
         if (nodeAddrList.size() > 1) {
             boolean isLeaderAlive = false;
             for (String nodeAddr : nodeAddrList) {
-                if (isZookeeperLeader(nodeAddr)){
+                if (isZookeeperLeader(nodeAddr, ZK_LEADER_ELECTION_PORT)){
                     isLeaderAlive = true;
                     break;
                 }
             }
             if (!isLeaderAlive) {
+                _log.info("No zookeeper leader alive on active site.");
+                return false;
+            }
+        } else { // standalone
+            String nodeAddr = nodeAddrList.iterator().next();
+            // check both election ports on the primary site.
+            if (!isZookeeperLeader(nodeAddr, ZK_LEADER_ELECTION_PORT) &&
+                    !isZookeeperLeader(nodeAddr, DUAL_ZK_LEADER_ELECTION_PORT)) {
                 _log.info("No zookeeper leader alive on active site.");
                 return false;
             }
@@ -1492,16 +1510,17 @@ public class CoordinatorClientExt {
      *  We depends on this behaviour to check if leader election is started
      * 
      * @param nodeIP
+     * @param port
      * @return
      */
-    private boolean isZookeeperLeader(String nodeIP) {
+    private boolean isZookeeperLeader(String nodeIP, int port) {
         try {
-            Socket sock = new Socket(nodeIP, ZK_LEADER_ELECTION_PORT);
+            Socket sock = new Socket(nodeIP, port);
             sock.close();
             return true;
         } catch(IOException ex) {
             _log.warn("Unexpected IO errors when checking local coordinator state. {}", ex.toString());
-        } 
+        }
         return false;
     }
     

@@ -547,6 +547,10 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.reconfigProperties("firewall");
         localRepository.reload("firewall");
 
+        // for re-generating /etc/ssh/ssh_known_hosts to include nodes of standby sites
+        // no need to reload ssh service.
+        localRepository.reconfigProperties("ssh");
+
         reconfigAndRestartCoordinator(site);
 
         finishUpdateVdcProperties();
@@ -1055,7 +1059,7 @@ public class VdcSiteManager extends AbstractManager {
         log.info("This is switchover primary site (old primrary)");
         
         blockUntilZookeeperIsWritableConnected();
-        
+
         VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
         barrier.enter();
 

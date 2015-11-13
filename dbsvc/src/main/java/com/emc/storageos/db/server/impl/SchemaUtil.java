@@ -109,7 +109,6 @@ public class SchemaUtil {
     private PasswordUtils _passwordUtils;
     private DbClientContext clientContext;
     private boolean onStandby = false;
-    private String _standbyId;
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private DrUtil drUtil;
 
@@ -182,10 +181,6 @@ public class SchemaUtil {
      */
     public void setVdcShortId(String vdcId) {
         _vdcShortId = vdcId;
-    }
-
-    public void setStandbyId(String standbyId) {
-        _standbyId = standbyId;
     }
     
     /**
@@ -385,9 +380,10 @@ public class SchemaUtil {
         }
 
         Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
+                localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
             // don't add back the paused site
-            _log.warn("local standby site has been paused and removed from strategy options. Do nothing");
+            _log.info("local standby site has been paused and removed from strategy options. Do nothing");
             return false;
         }
 

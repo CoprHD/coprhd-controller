@@ -70,7 +70,7 @@ public class IsilonOneFS8Event {
 
         @Override
         public boolean equals(Object o) {
-            if (o == null || !(o instanceof IsilonEvent)) {
+            if (o == null || !(o instanceof Events)) {
                 return false;
             }
             Events event = (Events) o;

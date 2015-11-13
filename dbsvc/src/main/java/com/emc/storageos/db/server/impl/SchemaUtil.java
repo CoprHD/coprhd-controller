@@ -281,9 +281,26 @@ public class SchemaUtil {
                 if (kd == null) {
                     _log.info("keyspace not exist yet");
 
-                    if (waitForSchema || onStandby) {
+                    if (onStandby) {
+                        Site currentSite = drUtil.getLocalSite();
+
+                        if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+                            currentSite.setState(SiteState.STANDBY_SYNCING);
+                            _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
+                        }
+
+                        if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+                            Thread dbRebuildThread = new Thread(dbRebuildRunnable);
+                            dbRebuildThread.start();
+                            try {
+                                dbRebuildThread.join();
+                            } catch (InterruptedException e) {
+                                _log.warn("db rebuild interrupted");
+                            }
+                        }
+                    } else if (waitForSchema) {
                         _log.info("wait for schema from other site");
-                    }  else {
+                    } else {
                         // fresh install
                         _log.info("setting current version to {} in zk for fresh install", _service.getVersion());
                         setCurrentVersion(_service.getVersion());
@@ -927,25 +944,9 @@ public class SchemaUtil {
      * check and setup root tenant or my vdc info, if it doesn't exist
      */
     public void checkAndSetupBootStrapInfo(DbClient dbClient) {
-     // No need to add bootstrap records on standby site
+        // No need to add bootstrap records on standby site
         if (isOnStandby()) {
-            _log.info("Check bootstrap info on standby");
-            Site currentSite = drUtil.getLocalSite();
-
-            if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
-                currentSite.setState(SiteState.STANDBY_SYNCING);
-                _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-            }
-
-            if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
-                Thread dbRebuildThread = new Thread(dbRebuildRunnable);
-                dbRebuildThread.start();
-                try {
-                    dbRebuildThread.join();
-                } catch (InterruptedException e) {
-                    _log.warn("db rebuild interrupted");
-                }
-            }
+            _log.info("No need to check bootstrap info on standby");
             return;
         }
         // Only the first VDC need check root tenant

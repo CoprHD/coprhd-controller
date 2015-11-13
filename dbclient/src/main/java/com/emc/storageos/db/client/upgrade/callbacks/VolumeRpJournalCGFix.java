@@ -5,6 +5,8 @@
 
 package com.emc.storageos.db.client.upgrade.callbacks;
 
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -19,8 +21,8 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 
 /**
  * Migration handler to remove the BlockConsistencyGroup reference from all RP Journal volumes and make sure the protection set reference is
@@ -59,7 +61,8 @@ public class VolumeRpJournalCGFix extends BaseCustomMigrationCallback {
                 log.info(String.format("Found RP consistency group %s", nameAndId(cg)));
 
                 // get volumes for this cg
-                List<Volume> volsForCg = RPHelper.getCgVolumes(cg.getId(), this.getDbClient());
+                List<Volume> volsForCg = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(), Volume.class,
+                        getVolumesByConsistencyGroup(cg.getId()));
                 if (volsForCg.isEmpty()) {
                     // this cg has no volumes; nothing to update
                     log.info(String.format("skipping RP CG %s because it contains no volumes", nameAndId(cg)));

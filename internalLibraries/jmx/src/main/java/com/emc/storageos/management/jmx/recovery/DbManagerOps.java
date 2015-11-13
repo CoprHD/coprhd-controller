@@ -6,7 +6,6 @@ package com.emc.storageos.management.jmx.recovery;
 
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.storageos.services.util.PlatformUtils;
-import com.emc.storageos.services.util.Strings;
 import com.sun.tools.attach.AgentInitializationException;
 import com.sun.tools.attach.AgentLoadException;
 import com.sun.tools.attach.AttachNotSupportedException;
@@ -43,16 +42,14 @@ public class DbManagerOps implements AutoCloseable {
      * Create an DbManagerOps object that connects to specified service on localhost.
      * 
      * @param svcName The name of the service, which should have pid file as /var/run/svcName.pid
-     * @throws IOException
-     * @throws MalformedObjectNameException
-     * @throws AttachNotSupportedException
-     * @throws AgentLoadException
-     * @throws AgentInitializationException
      */
-    public DbManagerOps(String svcName) throws IOException, MalformedObjectNameException, AttachNotSupportedException, AgentLoadException,
-            AgentInitializationException {
-        this.conn = initJMXConnector(svcName);
-        initMbean(this.conn.getMBeanServerConnection());
+    public DbManagerOps(String svcName) {
+        try {
+            this.conn = initJMXConnector(svcName);
+            initMbean(this.conn.getMBeanServerConnection());
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     /**

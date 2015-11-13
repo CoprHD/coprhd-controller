@@ -10,7 +10,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -42,7 +41,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -500,18 +498,12 @@ public class DisasterRecoveryService {
             ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcId);
 
             // remove the site from cassandra gossip ring of dbsvc and geodbsvc
-            DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
-            try {
+            try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME)) {
                 dbOps.removeDataCenter(dcId);
-            } finally {
-                dbOps.close();
             }
 
-            DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME);
-            try {
+            try (DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
                 geodbOps.removeDataCenter(dcId);
-            } finally {
-                geodbOps.close();
             }
 
             for (Site site : drUtil.listStandbySites()) {

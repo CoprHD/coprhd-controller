@@ -80,7 +80,7 @@ public class IPsecManager {
 
         // Send back more details if something error.
         status.setNodeStatus(problemNodeStatus);
-        log.info("Checking ipsec status is done. Overall is {}", allGood);
+        log.info("ipsec status is {}", allGood);
         return status;
     }
 
@@ -104,7 +104,9 @@ public class IPsecManager {
         List<IPsecNodeState> problemNodeStatus = new ArrayList<>();
 
         for (IPsecNodeState node : nodeStatus) {
-            if ( (node.getVersion() == null) || ! vdcConfigVersion.equals(node.getVersion())) {
+            log.info("vdcVersion = {}, node version = {}", vdcConfigVersion, node.getVersion());
+            if ( (node.getVersion() == null) || ! vdcConfigVersion.equals(node.getVersion()) ) {
+                log.info("Found problem on the node {} where the config version is {}", node.getIp(), node.getVersion());
                 problemNodeStatus.add(node);
             }
         }
@@ -141,7 +143,6 @@ public class IPsecManager {
             }
         }
 
-        log.info("Get IPsec Configuration from all nodes. {}", nodeStatus);
         return nodeStatus;
     }
 

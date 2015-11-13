@@ -271,24 +271,6 @@ public class SchemaUtil {
      *            false to create keyspace by our own
      */
     public void scanAndSetupDb(boolean waitForSchema) throws Exception{
-        if (onStandby) {
-            Site currentSite = drUtil.getLocalSite();
-
-            if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
-                currentSite.setState(SiteState.STANDBY_SYNCING);
-                _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-            }
-
-            if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
-                Thread dbRebuildThread = new Thread(dbRebuildRunnable);
-                dbRebuildThread.start();
-                try {
-                    dbRebuildThread.join();
-                } catch (InterruptedException e) {
-                    _log.warn("db rebuild interrupted");
-                }
-            }
-        }
         int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
         int retryTimes = 0;
         while (true) {
@@ -321,6 +303,24 @@ public class SchemaUtil {
                     }
 
                     checkStrategyOptions();
+                    if (onStandby) {
+                        Site currentSite = drUtil.getLocalSite();
+
+                        if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+                            currentSite.setState(SiteState.STANDBY_SYNCING);
+                            _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
+                        }
+
+                        if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+                            Thread dbRebuildThread = new Thread(dbRebuildRunnable);
+                            dbRebuildThread.start();
+                            try {
+                                dbRebuildThread.join();
+                            } catch (InterruptedException e) {
+                                _log.warn("db rebuild interrupted");
+                            }
+                        }
+                    }
                 }
 
                 // create CF's

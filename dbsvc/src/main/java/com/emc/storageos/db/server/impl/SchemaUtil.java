@@ -273,6 +273,24 @@ public class SchemaUtil {
     public void scanAndSetupDb(boolean waitForSchema) throws Exception{
         int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
         int retryTimes = 0;
+        if (onStandby) {
+            Site currentSite = drUtil.getLocalSite();
+
+            if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+                currentSite.setState(SiteState.STANDBY_SYNCING);
+                _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
+            }
+
+            if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+                Thread dbRebuildThread = new Thread(dbRebuildRunnable);
+                dbRebuildThread.start();
+                try {
+                    dbRebuildThread.join();
+                } catch (InterruptedException e) {
+                    _log.warn("db rebuild interrupted");
+                }
+            }
+        }
         while (true) {
             _log.info("try scan and setup db ...");
             retryTimes++;
@@ -280,25 +298,7 @@ public class SchemaUtil {
                 KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
                 if (kd == null) {
                     _log.info("keyspace not exist yet");
-
-                    if (onStandby) {
-                        Site currentSite = drUtil.getLocalSite();
-
-                        if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
-                            currentSite.setState(SiteState.STANDBY_SYNCING);
-                            _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-                        }
-
-                        if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
-                            Thread dbRebuildThread = new Thread(dbRebuildRunnable);
-                            dbRebuildThread.start();
-                            try {
-                                dbRebuildThread.join();
-                            } catch (InterruptedException e) {
-                                _log.warn("db rebuild interrupted");
-                            }
-                        }
-                    } else if (waitForSchema) {
+                    if (waitForSchema) {
                         _log.info("wait for schema from other site");
                     } else {
                         // fresh install

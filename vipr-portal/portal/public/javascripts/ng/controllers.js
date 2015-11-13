@@ -342,7 +342,7 @@ angular.module("portalApp").controller({
     	$scope.$watch('acl', function(newVal) {
     		var accessList = [];
     		angular.forEach($scope.acl.accesscontrols, function(obj) {
-    			if (obj.name != '') {
+    			if (obj.name != '' && !obj.name.contains("/")) {
     				accessList.push(obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission);
     			}
     		});

@@ -289,4 +289,3 @@ _get_all_nodes_in_my_vdc() {
     fi
     echo "${all_nodes}"
 }
-

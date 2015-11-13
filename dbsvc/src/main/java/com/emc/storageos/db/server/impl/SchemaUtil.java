@@ -42,6 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -108,7 +109,6 @@ public class SchemaUtil {
     private PasswordUtils _passwordUtils;
     private DbClientContext clientContext;
     private boolean onStandby = false;
-    private String _standbyId;
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private DrUtil drUtil;
 
@@ -181,10 +181,6 @@ public class SchemaUtil {
      */
     public void setVdcShortId(String vdcId) {
         _vdcShortId = vdcId;
-    }
-
-    public void setStandbyId(String standbyId) {
-        _standbyId = standbyId;
     }
     
     /**
@@ -384,9 +380,10 @@ public class SchemaUtil {
         }
 
         Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
+                localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
             // don't add back the paused site
-            _log.warn("local standby site has been paused and removed from strategy options. Do nothing");
+            _log.info("local standby site has been paused and removed from strategy options. Do nothing");
             return false;
         }
 
@@ -413,13 +410,26 @@ public class SchemaUtil {
             // the current vdc is removed
             strategyOptions.clear();
         }
+        
+        String dcName = _vdcShortId;
+        Site currentSite = null;
+        
+        try {
+            currentSite = drUtil.getLocalSite();
+        } catch (Exception e) {
+            //ignore
+        }
+        
+        if (currentSite != null) {
+            dcName = drUtil.getCassandraDcId(currentSite);  
+        }
 
-        if (strategyOptions.containsKey(_vdcShortId)) {
+        if (strategyOptions.containsKey(dcName)) {
             return false;
         }
 
-        _log.info("Add {} to strategy options", _vdcShortId);
-        strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
+        _log.info("Add {} to strategy options", dcName);
+        strategyOptions.put(dcName, Integer.toString(getReplicationFactor()));
         return true;
     }
 
@@ -877,6 +887,10 @@ public class SchemaUtil {
         site.setNodeCount(vdc.getHostCount());
 
         _coordinator.persistServiceConfiguration(site.toConfiguration());
+
+        // update Site version in ZK
+        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
+        _coordinator.setTargetInfo(siteInfo);
     }
 
     /**

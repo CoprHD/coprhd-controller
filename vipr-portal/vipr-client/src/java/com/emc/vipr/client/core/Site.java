@@ -81,6 +81,10 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     public ClientResponse doSwitchover(String uuid) {
         return client.post(ClientResponse.class, PathConstants.SITE_URL+"/"+uuid+"/switchover");
     }
+    
+    public ClientResponse doFailover(String uuid) {
+        return client.post(ClientResponse.class, PathConstants.SITE_URL+"/"+uuid+"/failover");
+    }
 
     @Override
     public List<SiteRestRep> getAll(ResourceFilter<SiteRestRep> filter) {

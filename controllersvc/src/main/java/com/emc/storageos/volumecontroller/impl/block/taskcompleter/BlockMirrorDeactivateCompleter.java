@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -23,13 +24,19 @@ public class BlockMirrorDeactivateCompleter extends BlockMirrorTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(BlockMirrorDeactivateCompleter.class);
     public static final String MIRROR_DEACTIVATED_MSG = "Mirror %s deactivated for volume %s";
     public static final String MIRROR_DEACTIVATE_FAILED_MSG = "Failed to deactivate mirror %s for volume %s";
+    private List<URI> _promotees = null;
 
     public BlockMirrorDeactivateCompleter(URI mirror, String opId) {
         super(BlockMirror.class, mirror, opId);
     }
 
-    public BlockMirrorDeactivateCompleter(List<URI> mirrorList, String opId) {
+    public BlockMirrorDeactivateCompleter(List<URI> mirrorList, List<URI> promotees, String opId) {
         super(BlockMirror.class, mirrorList, opId);
+        this._promotees = promotees;
+    }
+
+    public List<URI> getPromotees() {
+        return this._promotees;
     }
 
     @Override
@@ -50,6 +57,27 @@ public class BlockMirrorDeactivateCompleter extends BlockMirrorTaskCompleter {
                 }
                 recordBlockMirrorOperation(dbClient, OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR,
                         status, eventMessage(status, volume, mirror), mirror, volume);
+            }
+
+            List<URI> promotees = getPromotees();
+            if (promotees != null && !promotees.isEmpty()) {
+                List<Volume> promotedVolumes = dbClient.queryObject(Volume.class, promotees);
+                List<Volume> volumesToUpdate = new ArrayList<Volume>();
+                for (Volume volume : promotedVolumes) {
+                    switch (status) {
+                        case error:
+                            dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
+                            volume.setInactive(true);
+                            volumesToUpdate.add(volume);
+                            break;
+                        default:
+                            dbClient.ready(Volume.class, volume.getId(), getOpId());
+                    }
+                }
+
+                if (!volumesToUpdate.isEmpty()) {
+                    dbClient.persistObject(volumesToUpdate);
+                }
             }
         } catch (Exception e) {
             _log.error("Failed updating status. BlockMirrorDeactivate {}, for task " + getOpId(), Joiner.on("\t").join(getIds()), e);

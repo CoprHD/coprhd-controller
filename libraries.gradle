@@ -47,9 +47,9 @@ ext {
         "net.sf.supercsv:super-csv:2.1.0", 
         "org.antlr:antlr-runtime:3.2", 
         "com.eaio.uuid:uuid:3.2",
-        "org.apache.cassandra:cassandra-clientutil:2.0.10", 
-        "org.apache.cassandra:cassandra-thrift:2.0.10", 
-        "org.apache.cassandra:cassandra-all:2.0.10", 
+        "org.apache.cassandra:cassandra-clientutil:2.0.17", 
+        "org.apache.cassandra:cassandra-thrift:2.0.17", 
+        "org.apache.cassandra:cassandra-all:2.0.17", 
         "org.apache.commons:commons-lang3:3.1", 
         "com.google.guava:guava:15.0", 
         "com.ning:compress-lzf:0.8.4",
@@ -85,12 +85,8 @@ ext {
     zookeeper = [
         slf4j,
         log4j,
-        "jline:jline:2.13",
         "org.jboss.netty:netty:3.2.8.Final",
-        // note we have a trick in coordinatorsvc.jar to overrite official zk QuorumPeer in
-        // order to support ipv6. When doing zookeeper version change, you need revisit
-        // that class as well. Otherwise you may get odd behaviour
-        "org.apache.zookeeper:zookeeper:3.5.0-alpha"
+        "org.apache.zookeeper:zookeeper:3.4.6"
     ]
 
     spring_loaded = [
@@ -227,7 +223,7 @@ ext {
 
     ]
     sblim_cim_client2 = [
-        "net.sourceforge.sblim:sblim-cim-client:2.2.3",
+        "net.sourceforge.sblim:sblim-cim-client:2.2.3-vipr1",
 
     ]
     spring = [

@@ -235,6 +235,21 @@ public class DummyDBClient implements DbClient {
 
     }
 
+    @Override
+    public <T extends DataObject> void updateObject(T object) {
+        // TODO Auto-generated method stub
+    }
+
+    @Override
+    public <T extends DataObject> void updateObject(Collection<T> objects) {
+        // TODO Auto-generated method stub
+    }
+
+    @Override
+    public <T extends DataObject> void updateObject(T... object) {
+        // TODO Auto-generated method stub
+    }
+
     @Deprecated
     public void setStatus(Class<? extends DataObject> clazz,
             URI id, String opId, String status)

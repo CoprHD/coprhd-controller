@@ -496,4 +496,9 @@ public class TestCoordinator extends CoordinatorClientImpl {
     public void setPrimarySite(String siteId) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void removeRuntimeState(String key) throws CoordinatorException {
+        return;
+    }
 }

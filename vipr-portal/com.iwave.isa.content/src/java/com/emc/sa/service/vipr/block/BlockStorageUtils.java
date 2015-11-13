@@ -21,6 +21,7 @@ import static com.emc.sa.util.ResourceType.BLOCK_SNAPSHOT;
 import static com.emc.sa.util.ResourceType.VOLUME;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,7 +70,9 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
 import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshots;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
+import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetExportsForBlockObject;
 import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
@@ -77,10 +80,12 @@ import com.emc.sa.service.vipr.block.tasks.RestoreFromFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ResynchronizeFullCopy;
 import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
+import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
+import com.emc.sa.service.vipr.tasks.GetVirtualArray;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Cluster;
@@ -102,6 +107,7 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -169,14 +175,6 @@ public class BlockStorageUtils {
         return execute(new GetStorageSystem(storageSystemId));
     }
 
-    public static List<BlockObjectRestRep> getVolumes(List<URI> volumeIds) {
-        List<BlockObjectRestRep> volumes = Lists.newArrayList();
-        for (URI volumeId : volumeIds) {
-            volumes.add(getVolume(volumeId));
-        }
-        return volumes;
-    }
-
     public static BlockSnapshotRestRep getSnapshot(URI snapshotId) {
         return execute(new GetBlockSnapshot(snapshotId));
     }
@@ -189,11 +187,37 @@ public class BlockStorageUtils {
         return execute(new GetBlockConsistencyGroup(resourceId));
     }
 
+    public static VirtualArrayRestRep getVirtualArray(URI id) {
+        return execute(new GetVirtualArray(id));
+    }
+
+    private static List<VolumeRestRep> getVolumes(List<URI> volumeIds) {
+        return execute(new GetBlockVolumes(volumeIds));
+    }
+
+    private static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
+        return execute(new GetBlockSnapshots(uris));
+    }
+
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();
+        List<URI> blockVolumes = new ArrayList<URI>();
+        List<URI> blockSnapshots = new ArrayList<URI>();
         for (URI resourceId : resourceIds) {
-            blockResources.add(getBlockResource(resourceId));
+            ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
+            switch (volumeType) {
+                case VOLUME:
+                    blockVolumes.add(resourceId);
+                    break;
+                case BLOCK_SNAPSHOT:
+                    blockSnapshots.add(resourceId);
+                    break;
+                default:
+                    break;
+            }
         }
+        blockResources.addAll(getVolumes(blockVolumes));
+        blockResources.addAll(getBlockSnapshots(blockSnapshots));
         return blockResources;
     }
 
@@ -243,7 +267,7 @@ public class BlockStorageUtils {
         return volumeIds;
     }
 
-    public static List<URI> createMultipleVolumes(List<CreateBlockVolumeHelper> helpers) {
+    public static List<URI> createMultipleVolumes(List<? extends CreateBlockVolumeHelper> helpers) {
         Tasks<VolumeRestRep> tasks = execute(new CreateMultipleBlockVolumes(helpers));
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
@@ -254,7 +278,7 @@ public class BlockStorageUtils {
         }
         return volumeIds;
     }
-
+    
     public static List<URI> createVolumes(URI projectId, URI virtualArrayId, URI virtualPoolId,
             String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId) {
         String volumeSize = gbToVolumeSize(sizeInGb);
@@ -290,10 +314,10 @@ public class BlockStorageUtils {
     }
 
     public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host,
-            Map<URI, Integer> volumeHlus) {
+            Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         String exportName = host.getHostName();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
-                host.getHostName(), host.getId(), null, volumeHlus));
+                host.getHostName(), host.getId(), null, volumeHlus, minPaths, maxPaths, pathsPerInitiator));
         URI exportId = task.getResourceId();
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(exportId);
@@ -308,18 +332,20 @@ public class BlockStorageUtils {
     }
 
     public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster,
-            Map<URI, Integer> volumeHlus) {
+            Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         String exportName = cluster.getLabel();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
-                cluster.getLabel(), null, cluster.getId(), volumeHlus));
+                cluster.getLabel(), null, cluster.getId(), volumeHlus, minPaths, maxPaths, pathsPerInitiator));
         URI exportId = task.getResourceId();
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(exportId);
         return exportId;
     }
 
-    public static void addVolumesToExport(Collection<URI> volumeIds, Integer hlu, URI exportId, Map<URI, Integer> volumeHlus) {
-        Task<ExportGroupRestRep> task = execute(new AddVolumesToExport(exportId, volumeIds, hlu, volumeHlus));
+    public static void addVolumesToExport(Collection<URI> volumeIds, Integer hlu, URI exportId, Map<URI, Integer> volumeHlus,
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
+        Task<ExportGroupRestRep> task = execute(new AddVolumesToExport(exportId, volumeIds, hlu, volumeHlus, minPaths, maxPaths,
+                pathsPerInitiator));
         addRollback(new RemoveBlockResourcesFromExport(exportId, volumeIds));
         addAffectedResource(task);
     }
@@ -385,9 +411,9 @@ public class BlockStorageUtils {
         removeExportIfEmpty(exportId);
     }
 
-    static final int MAX_RETRY_COUNT =30;
+    static final int MAX_RETRY_COUNT = 30;
     static final int RETRY_DELAY_MSEC = 60000;
-    
+
     public static void removeExportIfEmpty(URI exportId) {
         boolean retryNeeded = false;
         int retryCount = 0;
@@ -401,22 +427,22 @@ public class BlockStorageUtils {
                     addAffectedResource(response);
                 } catch (ExecutionException e) {
                     if (e.getCause() instanceof ServiceErrorException) {
-                        ServiceErrorException svcexp =(ServiceErrorException) e.getCause();
-                        if (retryCount++ < MAX_RETRY_COUNT 
+                        ServiceErrorException svcexp = (ServiceErrorException) e.getCause();
+                        if (retryCount++ < MAX_RETRY_COUNT
                                 && ServiceCode.toServiceCode(svcexp.getCode()) == ServiceCode.API_TASK_EXECUTION_IN_PROGRESS) {
                             log.info(String.format("ExportGroup %s deletion waiting on pending task execution", export.getId()));
                             retryNeeded = true;
                             try {
                                 Thread.sleep(RETRY_DELAY_MSEC);
                             } catch (InterruptedException ex) {
-                            	log.debug("Sleep interrupted");
+                                log.debug("Sleep interrupted");
                             }
                         } else {
                             throw e;
                         }
                     }
                 }
-            } 
+            }
         } while (retryNeeded);
     }
 
@@ -731,6 +757,12 @@ public class BlockStorageUtils {
         return copies;
     }
 
+    public static Tasks<BlockConsistencyGroupRestRep> swapCGContinuousCopy(URI protectionSource, URI protectionTarget, String type) {
+        Tasks<BlockConsistencyGroupRestRep> copies = execute(new SwapCGContinuousCopies(protectionSource, protectionTarget, type));
+        addAffectedResources(copies);
+        return copies;
+    }
+
     public static Task<BlockConsistencyGroupRestRep> addVolumesToConsistencyGroup(URI consistencyGroupId, List<URI> volumeIds) {
         Task<BlockConsistencyGroupRestRep> task = execute(new AddVolumesToConsistencyGroup(consistencyGroupId, volumeIds));
         addAffectedResource(task);
@@ -739,7 +771,7 @@ public class BlockStorageUtils {
 
     /**
      * Finds the exports (itl) for the given initiators.
-     * 
+     *
      * @param exports
      *            the list of all exports (itl)
      * @param initiators
@@ -835,43 +867,68 @@ public class BlockStorageUtils {
         return null;
     }
 
+    public interface Params {
+        @Override
+        public String toString();
+        public Map<String, Object> getParams();
+    }
+
     /**
-     * Stores the virtual pool, virtual array, project, host, consistency group,
-     * and HLU values for volume create services.
+     * Stores the virtual pool, virtual array, project and consistency group,
+     * values for volume create services.
      */
-    public static class VolumeParams {
+    public static class VolumeParams implements Params {
         @Param(VIRTUAL_POOL)
         public URI virtualPool;
         @Param(VIRTUAL_ARRAY)
         public URI virtualArray;
         @Param(PROJECT)
         public URI project;
-        @Param(HOST)
-        public URI hostId;
         @Param(value = CONSISTENCY_GROUP, required = false)
         public URI consistencyGroup;
-        @Param(value = HLU, required = false)
-        public Integer hlu;
 
         @Override
         public String toString() {
             return "Virtual Pool=" + virtualPool + ", Virtual Array=" + virtualArray + ", Project=" + project
-                    + ", Host Id=" + hostId + ", Consistency Group=" + consistencyGroup
-                    + ", HLU=" + hlu;
+                    + ", Consistency Group=" + consistencyGroup;
         }
 
+        @Override
         public Map<String, Object> getParams() {
             Map<String, Object> map = new HashMap<String, Object>();
             map.put(VIRTUAL_POOL, virtualPool);
             map.put(VIRTUAL_ARRAY, virtualArray);
             map.put(PROJECT, project);
-            map.put(HOST, hostId);
             map.put(CONSISTENCY_GROUP, consistencyGroup);
+            return map;
+        }
+    }
+    
+    /**
+     * Stores the host and HLU values for volume create for host services.
+     */
+    public static class HostVolumeParams extends VolumeParams {
+        @Param(HOST)
+        public URI hostId;
+        @Param(value = HLU, required = false)
+        public Integer hlu;
+
+        @Override
+        public String toString() {
+            String parent = super.toString();
+            return parent + ", Host Id=" + hostId + ", HLU=" + hlu;
+        }
+
+        @Override
+        public Map<String, Object> getParams() {
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.putAll(super.getParams());
+            map.put(HOST, hostId);
             map.put(HLU, hlu);
             return map;
         }
     }
-
+    
     /**
      * Stores the name, size, and count of volumes for multi-volume create services.
      */
@@ -899,16 +956,15 @@ public class BlockStorageUtils {
 
     /**
      * Helper method for creating a list of all the params for the createBlockVolumesHelper.
-     * 
+     *
      * @param table volume table
      * @param params for volume creation
      * @return map of all params
      */
-    public static Map<String, Object> createVolumeParam(VolumeTable table, VolumeParams params) {
+    public static Map<String, Object> createParam(VolumeTable table, Params params) {
         Map<String, Object> map = new HashMap<String, Object>();
         map.putAll(table.getParams());
         map.putAll(params.getParams());
         return map;
     }
-
 }

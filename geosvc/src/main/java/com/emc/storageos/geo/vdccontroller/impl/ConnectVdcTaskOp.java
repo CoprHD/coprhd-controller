@@ -23,6 +23,7 @@ import java.util.Set;
 
 import javax.crypto.SecretKey;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.geomodel.VdcNatCheckParam;
 import com.emc.storageos.geomodel.VdcNatCheckResponse;
@@ -453,6 +454,8 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
             }
             log.info("add {} to the merged vdc config", vdc.getShortId());
             VdcConfig vdcConfig = helper.toConfigParam(vdc);
+            DrUtil drUtil = new DrUtil(dbClient.getCoordinatorClient());
+            vdcConfig.setPrimarySiteUuid(drUtil.getPrimarySiteId(vdc.getShortId()));
             list.add(vdcConfig);
         }
         VdcConfig operatedConfig = mergeVdcInfo(operatedVdcInfo);

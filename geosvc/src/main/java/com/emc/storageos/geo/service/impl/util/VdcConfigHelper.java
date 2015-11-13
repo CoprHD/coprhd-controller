@@ -192,7 +192,14 @@ public class VdcConfigHelper {
                     newVdc.setLocal(true);
                 }
                 dbClient.createObject(newVdc);
+                VdcUtil.generateZKConfigFromVdc(coordinator, newVdc, config.getPrimarySiteUuid());
                 if (newVdc.getLocal()) {
+                    log.info("initializing local VDC pointer to {}", newVdc.getShortId());
+                    ConfigurationImpl localVdcConfigImpl = new ConfigurationImpl();
+                    localVdcConfigImpl.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
+                    localVdcConfigImpl.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
+                    localVdcConfigImpl.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, newVdc.getShortId());
+                    coordinator.persistServiceConfiguration(localVdcConfigImpl);
                     VdcUtil.invalidateVdcUrnCache();
                 }
             }

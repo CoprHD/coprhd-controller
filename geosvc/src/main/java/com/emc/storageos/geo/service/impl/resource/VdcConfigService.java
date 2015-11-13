@@ -619,6 +619,8 @@ public class VdcConfigService {
         to.setClusterStable(clusterStable);
         log.info("current cluster stable {}", clusterStable);
 
+        to.setPrimarySiteUuid(coordinator.getSiteId());
+
         return to;
     }
 

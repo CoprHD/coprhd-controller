@@ -15,7 +15,13 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
@@ -264,6 +270,47 @@ public class VdcUtil {
         log.error("Unrecognized software version {}", softwareVersion);
         // Unexpected software version number
         return null;
+    }
+
+    /**
+     * Generate VDC/site configuration in ZooKeeper from the VirtualDataCenter dbclient model instance
+     *
+     * @param coordinator
+     * @param vdc
+     * @param siteUuid
+     */
+    public static void generateZKConfigFromVdc(CoordinatorClient coordinator, VirtualDataCenter vdc, String siteUuid) {
+        // create VDC parent ZNode for site config in ZK
+        log.info("Creating parent ZNode for site {}/{}", Site.CONFIG_KIND, vdc.getShortId());
+        ConfigurationImpl vdcConfigImpl = new ConfigurationImpl();
+        vdcConfigImpl.setKind(Site.CONFIG_KIND);
+        vdcConfigImpl.setId(vdc.getShortId());
+        coordinator.persistServiceConfiguration(vdcConfigImpl);
+
+        // insert DR primary site info to ZK
+        Site site = new Site();
+        site.setUuid(siteUuid);
+        site.setName("Primary");
+        site.setVdcShortId(vdc.getShortId());
+        site.setStandbyShortId("");
+        site.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
+        site.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
+        site.setState(SiteState.PRIMARY);
+        site.setCreationTime(System.currentTimeMillis());
+        site.setVip(vdc.getApiEndpoint());
+        site.setSecretKey(vdc.getSecretKey());
+        site.setNodeCount(vdc.getHostCount());
+
+        log.info("Creating site {}/{}/{}", new Object[]{Site.CONFIG_KIND, vdc.getShortId(), siteUuid});
+        coordinator.persistServiceConfiguration(site.toConfiguration());
+
+        // set the new site as the primary site of the VDC
+        ConfigurationImpl primarySiteConfig = new ConfigurationImpl();
+        primarySiteConfig.setKind(Constants.CONFIG_DR_PRIMARY_KIND);
+        primarySiteConfig.setId(vdc.getShortId());
+        primarySiteConfig.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, siteUuid);
+        log.info("Setting site {} as the primary site for {}", siteUuid, vdc.getShortId());
+        coordinator.persistServiceConfiguration(primarySiteConfig);
     }
 
 }

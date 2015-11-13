@@ -32,6 +32,7 @@ public class VdcConfig {
 
     private String geoCommandEndpoint;
     private String geoDataEndpoint;
+    private String primarySiteUuid;
 
     public static enum ConfigChangeType {
         CONNECT_VDC,
@@ -174,6 +175,15 @@ public class VdcConfig {
 
     public void setRepStatus(String repStatus) {
         this.repStatus = repStatus;
+    }
+
+    @XmlElement(name = "primary_site_uuid")
+    public String getPrimarySiteUuid() {
+        return primarySiteUuid;
+    }
+
+    public void setPrimarySiteUuid(String primarySiteUuid) {
+        this.primarySiteUuid = primarySiteUuid;
     }
 
     @Override

@@ -860,33 +860,13 @@ public class SchemaUtil {
         vdc.setHostIPv4AddressesMap(ipv4Addresses);
         vdc.setHostIPv6AddressesMap(ipv6Addresses);
 
+        SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
+        vdc.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
+
         vdc.setLocal(true);
         dbClient.createObject(vdc);
 
-        // create VDC parent ZNode for site config in ZK
-        ConfigurationImpl vdcConfig = new ConfigurationImpl();
-        vdcConfig.setKind(Site.CONFIG_KIND);
-        vdcConfig.setId(vdc.getShortId());
-        _coordinator.persistServiceConfiguration(vdcConfig);
-
-        // insert DR primary site info to ZK
-        Site site = new Site();
-        site.setUuid(_coordinator.getSiteId());
-        site.setName("Primary");
-        site.setVdcShortId(vdc.getShortId());
-        site.setStandbyShortId("");
-        site.setHostIPv4AddressMap(ipv4Addresses);
-        site.setHostIPv6AddressMap(ipv6Addresses);
-        site.setState(SiteState.PRIMARY);
-        site.setCreationTime(System.currentTimeMillis());
-        site.setVip(_vdcEndpoint);
-
-        SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
-        site.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
-
-        site.setNodeCount(vdc.getHostCount());
-
-        _coordinator.persistServiceConfiguration(site.toConfiguration());
+        VdcUtil.generateZKConfigFromVdc(_coordinator, vdc, _coordinator.getSiteId());
 
         // update Site version in ZK
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);

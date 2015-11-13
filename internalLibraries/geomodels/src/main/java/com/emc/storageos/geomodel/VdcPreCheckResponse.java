@@ -29,6 +29,7 @@ public class VdcPreCheckResponse {
     private boolean hasData = false;
     private boolean compatible = false;
     private boolean clusterStable;
+    private String primarySiteUuid;
 
     // tenants which root has tenant role(s)
     private List<String> tenants;
@@ -204,4 +205,12 @@ public class VdcPreCheckResponse {
         this.projects = projects;
     }
 
+    @XmlElement(name = "primary_site_uuid")
+    public String getPrimarySiteUuid() {
+        return primarySiteUuid;
+    }
+
+    public void setPrimarySiteUuid(String primarySiteUuid) {
+        this.primarySiteUuid = primarySiteUuid;
+    }
 }

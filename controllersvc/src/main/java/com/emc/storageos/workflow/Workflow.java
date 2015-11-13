@@ -625,6 +625,25 @@ public class Workflow implements Serializable {
     }
 
     /**
+     * Search through the step map and find out if one of the Step has 'methodName'
+     * as its Workflow.Method
+     *
+     * @param methodName [IN] - Workflow.Method.methodName to search for
+     *
+     * @return true, if there is a Step with Workflow.Method.methodName == 'methodName'
+     */
+    public boolean stepMethodHasBeenScheduled(String methodName) {
+        for (String stepId : getStepMap().keySet()) {
+            Step step = getStepMap().get(stepId);
+            Workflow.Method method = step.executeMethod;
+            if (method.methodName.equals(methodName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Given a group of steps, determines an overall state. The precedence is:
      * 1. If any step is reporting ERROR, ERROR is returned along with that step's message.
      * 2. Otherwise if any step is reporting CANCELLED, CANCELLED is returned along with that step's message.

@@ -34,6 +34,8 @@ public class IPsecManager {
 
     private static final Logger log = LoggerFactory.getLogger(IPsecManager.class);
 
+    private static final String VDC_CONFIG_VERSION = "vdc_config_version";
+
     @Autowired
     IPsecConfig ipsecConfig;
 
@@ -102,7 +104,7 @@ public class IPsecManager {
         List<IPsecNodeState> problemNodeStatus = new ArrayList<>();
 
         for (IPsecNodeState node : nodeStatus) {
-            if (! node.getVersion().equals(vdcConfigVersion)) {
+            if ( (node.getVersion() == null) || ! vdcConfigVersion.equals(node.getVersion())) {
                 problemNodeStatus.add(node);
             }
         }
@@ -114,7 +116,7 @@ public class IPsecManager {
         LocalRepository localRepository = new LocalRepository();
         String[] problemIPs = localRepository.checkIpsecConnection();
         boolean runtimeGood = problemIPs[0].isEmpty();
-        log.info("Checked IPsec local runtime status. Disconnected IP list is {}", runtimeGood);
+        log.info("Checked IPsec local runtime status which is {}", runtimeGood);
         return runtimeGood;
     }
 
@@ -130,8 +132,8 @@ public class IPsecManager {
                 nodeState.setIp(ip);
                 try {
                     Map<String, String> ipsecProps = localRepository.getIpsecProperties(ip);
-                    nodeState.setVersion(ipsecProps.get("version"));
-                    log.info("Collected ipsec config version from {}, which is {}", ip, ipsecProps.get("version"));
+                    nodeState.setVersion(ipsecProps.get(VDC_CONFIG_VERSION));
+                    log.info("Collected ipsec config version from {}, which is {}", ip, ipsecProps.get(VDC_CONFIG_VERSION));
                 } catch (Exception e) {
                     log.info("Failed to collect ipsec config version from {}. Just set to null", ip);
                     nodeState.setVersion(null);

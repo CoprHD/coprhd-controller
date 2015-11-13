@@ -79,7 +79,6 @@ import com.emc.fapiclient.ws.RpoPolicy;
 import com.emc.fapiclient.ws.SnapshotGranularity;
 import com.emc.fapiclient.ws.SnapshotShippingMode;
 import com.emc.fapiclient.ws.SnapshotShippingPolicy;
-import com.emc.fapiclient.ws.StorageAccessState;
 import com.emc.fapiclient.ws.SyncReplicationThreshold;
 import com.emc.fapiclient.ws.SystemStatistics;
 import com.emc.fapiclient.ws.UserVolumeSettings;
@@ -105,6 +104,7 @@ import com.emc.storageos.recoverpoint.requests.RecreateReplicationSetRequestPara
 import com.emc.storageos.recoverpoint.responses.CreateBookmarkResponse;
 import com.emc.storageos.recoverpoint.responses.GetBookmarksResponse;
 import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
+import com.emc.storageos.recoverpoint.responses.GetCGsResponse.GetCGStateResponse;
 import com.emc.storageos.recoverpoint.responses.GetCopyResponse;
 import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
 import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
@@ -455,11 +455,41 @@ public class RecoverPointClient {
                 GetCGsResponse ncg = new GetCGsResponse();
                 ncg.setCgName(settings.getName());
                 ncg.setCgId(cg.getId());
+                ncg.cgPolicy = new GetCGsResponse.GetPolicyResponse();
                 
-                // TODO: Fill these in with policy values
-                // ncg.cgPolicy.copyMode = 
-                // ncg.cgPolicy.rpoType =
-                // ncg.cgPolicy.rpoValue = 
+                // Find and store the policy information
+                if (settings.getActiveLinksSettings() != null) {
+                    for (ConsistencyGroupLinkSettings cgls : settings.getActiveLinksSettings()) {
+                        if (cgls.getLinkPolicy() != null && cgls.getLinkPolicy().getProtectionPolicy() != null) {
+                            if (cgls.getLinkPolicy().getProtectionPolicy().getProtectionType() != null) {
+                                if (cgls.getLinkPolicy().getProtectionPolicy().getProtectionType().toString().equalsIgnoreCase(ProtectionMode.SYNCHRONOUS.toString())) {
+                                    ncg.cgPolicy.synchronous = true;
+                                } else {
+                                    ncg.cgPolicy.synchronous = false;
+                                }
+                            }
+                            
+                            if (cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy() != null &&
+                                cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag() != null) {
+                                ncg.cgPolicy.rpoType = cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag().getType().name();
+                                ncg.cgPolicy.rpoValue = cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag().getValue(); 
+                            }
+                        }
+                    }
+                }
+                
+                // We assume CG health until we see something that indicates otherwise.
+                ncg.cgState = GetCGsResponse.GetCGStateResponse.HEALTHY;
+                RecoverPointCGState cgState = this.getCGState(cg);
+                if (cgState.equals(RecoverPointCGState.GONE)) {
+                    ncg.cgState = GetCGStateResponse.UNHEALTHY_ERROR;
+                } else if (cgState.equals(RecoverPointCGState.MIXED)) {
+                    ncg.cgState = GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED;
+                } else if (cgState.equals(RecoverPointCGState.PAUSED)) {
+                    ncg.cgState = GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED;
+                } else if (cgState.equals(RecoverPointCGState.STOPPED)) {
+                    ncg.cgState = GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED;
+                }
                 
                 // Fill in the Copy information
                 if (settings.getGroupCopiesSettings() == null) {
@@ -2010,13 +2040,26 @@ public class RecoverPointClient {
      *
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to get CG state for
      *
-     * @return void
+     * @return the state of the CG
      *
      * @throws RecoverPointException
      **/
     public RecoverPointCGState getCGState(RecoverPointVolumeProtectionInfo volumeInfo) throws RecoverPointException {
         ConsistencyGroupUID cgUID = new ConsistencyGroupUID();
         cgUID.setId(volumeInfo.getRpVolumeGroupID());
+        return getCGState(cgUID);
+    }
+
+    /**
+     * Return the state of a consistency group.
+     *
+     * @param cgUID - CG identifier
+     *
+     * @return the state of the CG
+     *
+     * @throws RecoverPointException
+     **/
+    private RecoverPointCGState getCGState(ConsistencyGroupUID cgUID) throws RecoverPointException {
         ConsistencyGroupSettings cgSettings = null;
         ConsistencyGroupState cgState = null;
         try {

@@ -53,6 +53,7 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGCharacteristics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -97,6 +98,10 @@ import com.emc.storageos.util.ExportUtils;
  * - Validation occurs where needed, such as ensuring that the journals and targets are assigned to the right vpools (TODO)
  * - BlockConsistencyGroup and ProtectionSet objects are created and all ingested volumes therein are updated with references to them.
  * 
+ */
+/**
+ * @author belliott
+ *
  */
 public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator {
 
@@ -179,11 +184,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         // Make sure there's an unmanaged protection set
         UnManagedProtectionSet umpset = getUnManagedProtectionSet(unManagedVolume);
-        if (umpset == null) {
-            _logger.warn("No unmanaged protection set could be found for unmanaged volume: " + unManagedVolume.getNativeGuid() + " Please run unmanaged CG discovery of registered protection system");
-            throw IngestionException.exceptions.unManagedProtectionSetNotFound(unManagedVolume.getNativeGuid());
-        }
-
+        validateUnmanagedProtectionSet(vPool, unManagedVolume, umpset);
+        
         // Test ingestion status message
         _logger.info("Printing Ingestion Report before Ingestion Attempt");
         _logger.info(getRPIngestionStatus(umpset));
@@ -1078,6 +1080,54 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }            
     }
 
+    /**
+     * Validate the unmanaged protection set before ingesting the volume.  Is the CG healthy?  Does the protection set's
+     * policies match the vpool (in the case of RP source volumes)
+     * 
+     * @param vpool virtual pool
+     * @param unManagedVolume unmanaged volume attempted to be ingested
+     * @param umpset unmanaged protection set with settings/state information
+     */
+    private void validateUnmanagedProtectionSet(VirtualPool vpool, UnManagedVolume unManagedVolume, UnManagedProtectionSet umpset) {
+        if (umpset == null) {
+            _logger.warn("No unmanaged protection set could be found for unmanaged volume: " + unManagedVolume.getNativeGuid() + " Please run unmanaged CG discovery of registered protection system");
+            throw IngestionException.exceptions.unManagedProtectionSetNotFound(unManagedVolume.getNativeGuid());
+        }
+
+        // Check the health of the consistency group first.  This applies to any volume associated with an RP CG.
+        String rpHealthy = umpset.getCGCharacteristics()
+                .get(SupportedCGCharacteristics.IS_HEALTHY.toString());
+        if (Boolean.valueOf(rpHealthy)) {
+            _logger.error("The RecoverPoint consistency group " + umpset.getCgName() + " associated with unmanaged volume: " + unManagedVolume.getNativeGuid() + " "
+                    + "is in an unhealthy state (disabled, paused, or in error).  Please resolve issue and rerun unmanaged CG discovery of registered protection system");
+            throw IngestionException.exceptions.unManagedProtectionSetNotHealthy(umpset.getCgName(), unManagedVolume.getNativeGuid());
+        }
+        
+        // Specifically for RP source volumes: Make sure the sync/async of the vpool aligns with the protection set.
+        String personality = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.RP_PERSONALITY.toString(), unManagedVolume.getVolumeInformation());
+        if (personality == null) {
+            _logger.error("Could not find the personality of unmanaged volume: " + unManagedVolume.getLabel() + ".  Run protection system unmanaged CG discovery");
+            throw IngestionException.exceptions.rpObjectNotSet("Personality", unManagedVolume.getId());
+        }
+
+        if (personality.equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString())) {
+            String rpSync = umpset.getCGCharacteristics()
+                    .get(SupportedCGCharacteristics.IS_SYNC.toString());
+            if (Boolean.valueOf(rpSync) && vpool.getRpCopyMode().equalsIgnoreCase(VirtualPool.RPCopyMode.ASYNCHRONOUS.toString())) {
+                _logger.error("The RecoverPoint consistency group " + umpset.getCgName() + " associated with unmanaged volume: " + unManagedVolume.getNativeGuid() + " "
+                        + "is running in synchronous mode, but the virtual pool requires asynchronous mode.  Modify virtual pool settings or create a new virtual pool and re-attempt operation");
+                throw IngestionException.exceptions.unManagedProtectionSetNotAsync(umpset.getCgName(), unManagedVolume.getNativeGuid());
+            }
+
+            if (!Boolean.valueOf(rpSync) && vpool.getRpCopyMode().equalsIgnoreCase(VirtualPool.RPCopyMode.SYNCHRONOUS.toString())) {
+                _logger.error("The RecoverPoint consistency group " + umpset.getCgName() + " associated with unmanaged volume: " + unManagedVolume.getNativeGuid() + " "
+                        + "is running in asynchronous mode, but the virtual pool requires synchronous mode.  Modify virtual pool settings or create a new virtual pool and re-attempt operation");
+                throw IngestionException.exceptions.unManagedProtectionSetNotSync(umpset.getCgName(), unManagedVolume.getNativeGuid());
+            }
+        }        
+    }
+
     private static enum ColumnEnum {
         NAME(0), ID(1), PERSONALITY(2), COPY_NAME(3), RSET_NAME(4), VARRAY(5), VPOOL(6);
 
@@ -1279,38 +1329,5 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
         super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
 }

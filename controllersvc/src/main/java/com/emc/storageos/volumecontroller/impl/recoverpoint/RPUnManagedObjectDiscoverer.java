@@ -34,6 +34,7 @@ import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
+import com.emc.storageos.recoverpoint.responses.GetCGsResponse.GetCGStateResponse;
 import com.emc.storageos.recoverpoint.responses.GetCopyResponse;
 import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
 import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
@@ -127,9 +128,23 @@ public class RPUnManagedObjectDiscoverer {
             unManagedProtectionSet.setCgName(cg.getCgName());
             unManagedProtectionSet.setLabel(cg.getCgName());
 
-            // TODO: Fill in these values with reality
-            unManagedProtectionSet.getCGCharacteristics().put(UnManagedProtectionSet.SupportedCGCharacteristics.IS_ENABLED.name(), Boolean.TRUE.toString());
+            // Indicate whether the CG is in a healthy state or not to ingest.
+            unManagedProtectionSet.getCGCharacteristics().put(UnManagedProtectionSet.SupportedCGCharacteristics.IS_HEALTHY.name(), 
+                    cg.cgState.equals(GetCGStateResponse.HEALTHY) ? Boolean.TRUE.toString() : Boolean.FALSE.toString());
 
+            // Indicate whether the CG is sync or async
+            unManagedProtectionSet.getCGCharacteristics().put(UnManagedProtectionSet.SupportedCGCharacteristics.IS_SYNC.name(), 
+                    cg.cgPolicy.synchronous ? Boolean.TRUE.toString() : Boolean.FALSE.toString());
+            
+            // Fill in RPO type and value information
+            StringSet rpoType = new StringSet();
+            rpoType.add(cg.cgPolicy.rpoType);
+            unManagedProtectionSet.putCGInfo(SupportedCGInformation.RPO_TYPE.toString(), rpoType);
+
+            StringSet rpoValue = new StringSet();
+            rpoValue.add(cg.cgPolicy.rpoValue.toString());
+            unManagedProtectionSet.putCGInfo(SupportedCGInformation.RPO_VALUE.toString(), rpoValue);
+            
             // Now map UnManagedVolume objects to the journal and rset (sources/targets) and put RP fields in them
             if (null == cg.getCopies()) {
                 log.info("Protection Set " + nativeGuid + " does not contain any copies.  Skipping...");

@@ -202,4 +202,13 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException invalidRPVirtualPool(String volLabel, String vpoolLabel);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unManagedProtectionSetNotHealthy(String cgName, String unmanagedVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unManagedProtectionSetNotAsync(String cgName, String unmanagedVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unManagedProtectionSetNotSync(String cgName, String unmanagedVolume);
 }

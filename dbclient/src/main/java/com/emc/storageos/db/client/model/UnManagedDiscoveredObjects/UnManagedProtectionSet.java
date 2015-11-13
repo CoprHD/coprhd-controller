@@ -61,7 +61,7 @@ public class UnManagedProtectionSet extends UnManagedDiscoveredObject {
     public enum SupportedCGCharacteristics {
         IS_MP("MetroPoint"),
         IS_SYNC("Synchronous"),
-        IS_ENABLED("Enabled");
+        IS_HEALTHY("Healthy");
  
         private final String _characteristicsKey;
 
@@ -88,7 +88,8 @@ public class UnManagedProtectionSet extends UnManagedDiscoveredObject {
      * to validate against vpool settings, such as policy settings.
      */
     public enum SupportedCGInformation {
-        RPO("RPO"),
+        RPO_TYPE("RPOType"),
+        RPO_VALUE("RPOValue"),
         PROTECTION_ID("ProtectionID");
 
         private final String _infoKey;

@@ -191,7 +191,6 @@ public class SshConfigurator {
 
         // Set to false to bypass the stability check of system. There should no contention with UpgradeManager
         coordinator.setTargetInfo(sshProps, false);
-        propertyManager.wakeupAllNodes();
 
         log.info("All ssh configurations are saved to system properties successfully");
     }

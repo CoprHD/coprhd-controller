@@ -330,7 +330,6 @@ public class UpgradeManager extends AbstractManager {
                 // a) All other nodes are in version <2.2 so there's no such concept as PropertyManager
                 // b) For most of the cases, this only happens on 1+0, in which there's no other nodes
                 // c) Even if there are, they will be rebooted shortly anyways
-                propertyManager.wakeup();
             } else {
                 log.warn("Reverting to version {}", previousVersion);
                 RepositoryInfo revertedTargetInfo = new RepositoryInfo(new SoftwareVersion(previousVersion),

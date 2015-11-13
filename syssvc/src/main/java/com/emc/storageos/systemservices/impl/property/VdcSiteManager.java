@@ -770,6 +770,7 @@ public class VdcSiteManager extends AbstractManager {
                     
                 for (Site site : toBeRemovedSites) {
                     try {
+                        poweroffRemoteSite(site);
                         removeDbNodes(site);
                     } catch (Exception e) { 
                         populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
@@ -779,6 +780,7 @@ public class VdcSiteManager extends AbstractManager {
                 for (Site site : toBeRemovedSites) {
                     try {
                         removeDbReplication(site);
+                        removeSiteConfiguration(site);
                     } catch (Exception e) { 
                         populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
                         throw e;
@@ -821,17 +823,18 @@ public class VdcSiteManager extends AbstractManager {
                     log.info("Acquiring lock {}", LOCK_PAUSE_STANDBY);
                     lock.acquire();
                     log.info("Acquired lock {}", LOCK_PAUSE_STANDBY);
+
+                    standby = drUtil.getSiteFromLocalVdc(standby.getUuid());
+                    if (!standby.getState().equals(SiteState.STANDBY_PAUSING)) {
+                        // someone else updated the status already
+                        continue;
+                    }
+
                     // exclude the paused site from strategy options of dbsvc and geodbsvc
-                    String dcId = drUtil.getCassandraDcId(standby);
-                    ((DbClientImpl) dbClient).getLocalContext().removeDcFromStrategyOptions(dcId);
-                    ((DbClientImpl) dbClient).getGeoContext().removeDcFromStrategyOptions(dcId);
+                    removeDbReplication(standby);
 
                     // remove the site from cassandra gossip ring of dbsvc and geodbsvc
-                    try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
-                         DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
-                        dbOps.removeDataCenter(dcId);
-                        geodbOps.removeDataCenter(dcId);
-                    }
+                    removeDbNodes(standby);
 
                     // update the status to STANDBY_PAUSED
                     standby.setState(SiteState.STANDBY_PAUSED);
@@ -851,29 +854,22 @@ public class VdcSiteManager extends AbstractManager {
     }
     
     private void removeDbNodes(Site site) throws Exception {
-        poweroffRemoteSite(site);
-        
         String dcName = drUtil.getCassandraDcId(site);
-        DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
-        try {
+        try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
+                DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
             dbOps.removeDataCenter(dcName);
-        } finally {
-            dbOps.close();
-        }
-        
-        DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME);
-        try {
             geodbOps.removeDataCenter(dcName);
-        } finally {
-            geodbOps.close();
         }
     }
     
     private void removeDbReplication(Site site) {
-        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
         String dcName = drUtil.getCassandraDcId(site);
         ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcName);
         ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcName);
+    }
+
+    private void removeSiteConfiguration(Site site) {
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
         coordinatorClient.removeServiceConfiguration(site.toConfiguration());
         log.info("Removed site {} configuration from ZK", site.getUuid());
     }
@@ -1170,9 +1166,11 @@ public class VdcSiteManager extends AbstractManager {
                 log.info("Old primary site has been remove by other node, no action needed.");
                 return;
             }
-                
+
+            poweroffRemoteSite(primarySite);
             removeDbNodes(primarySite);
             removeDbReplication(primarySite);
+            removeSiteConfiguration(primarySite);
             
         } catch (Exception e) {
             populateStandbySiteErrorIfNecessary(drUtil.getLocalSite(), APIException.internalServerErrors.failoverReconfigFailed(e.getMessage()));

@@ -829,12 +829,11 @@ public class VdcSiteManager extends AbstractManager {
                         // someone else updated the status already
                         continue;
                     }
-
-                    // exclude the paused site from strategy options of dbsvc and geodbsvc
-                    removeDbReplication(standby);
-
+                    
                     // remove the site from cassandra gossip ring of dbsvc and geodbsvc
                     removeDbNodes(standby);
+                    // exclude the paused site from strategy options of dbsvc and geodbsvc
+                    removeDbReplication(standby);
 
                     // update the status to STANDBY_PAUSED
                     standby.setState(SiteState.STANDBY_PAUSED);

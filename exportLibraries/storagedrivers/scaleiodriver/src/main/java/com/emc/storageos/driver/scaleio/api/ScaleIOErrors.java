@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.scaleio;
+package com.emc.storageos.driver.scaleio.api;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;

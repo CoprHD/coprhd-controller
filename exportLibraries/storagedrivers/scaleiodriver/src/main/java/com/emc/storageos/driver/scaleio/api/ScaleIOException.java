@@ -2,7 +2,7 @@
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.scaleio;
+package com.emc.storageos.driver.scaleio.api;
 
 import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;

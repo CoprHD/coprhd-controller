@@ -5,7 +5,6 @@
 
 package com.emc.storageos.volumecontroller.impl.plugins;
 
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;

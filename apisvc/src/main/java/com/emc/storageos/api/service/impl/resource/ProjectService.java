@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.NasCifsServer;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -970,16 +971,33 @@ public class ProjectService extends TaggedResource {
                 // Get list of file systems and associated project of VNAS server and validate with Project
                 URIQueryResultList fsList = new URIQueryResultList();
                 boolean projectMatched = true;
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vnas.getStorageDeviceURI());
                 for (String storagePort : vnas.getStoragePorts()) {
                     _dbClient.queryByConstraint(
                             ContainmentConstraint.Factory.getStoragePortFileshareConstraint(URI.create(storagePort)), fsList);
                     Iterator<URI> fsItr = fsList.iterator();
                     while (fsItr.hasNext()) {
                         FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
-                        if (fileShare != null && !fileShare.getInactive() &&
-                                !fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
-                            projectMatched = false;
-                            break;
+                        if (fileShare != null && !fileShare.getInactive()) {
+                            if (fileShare.getVirtualNAS() != null && 0 == fileShare.getVirtualNAS().compareTo(vnas.getId())) {                                _log.info("validation of assigned {} virtual NAS URi Servers to project : {} ",fileShare.getVirtualNAS(), fileShare.getPath());
+                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
+                                    projectMatched = false;
+
+                                    break;
+                                }
+                            } else {
+                                if (storageSystem.getSystemType().equals("Isilon")) {
+                                    if (!fileShare.getPath().startsWith(vnas.getBaseDirPath() + "/")) {
+                                        _log.info("ignored validation of assigned {} virtual NAS Servers to project : {} ",vnas.getBaseDirPath(), fileShare.getPath());
+                                        continue;
+                                    }
+                                }
+                                _log.info("ignored validation of assigned {} virtual NAS Servers to project : {} ",vnas.getBaseDirPath(), fileShare.getPath());
+                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
+                                    projectMatched = false;
+                                    break;
+                                }
+                            }
                         }
                     }
                     if (!projectMatched) {

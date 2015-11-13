@@ -650,10 +650,8 @@ public class IsilonApi {
     public IsilonList<IsilonExport> listExports(String resumeToken, String zoneName) throws IsilonException {
         URI uri = URI_NFS_EXPORTS;
         if (zoneName != null) {
-            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
-            zoneName = zoneName.replace(" ", "%20");
-            URLBuffer.append("?zone=").append(zoneName);
-            uri = URI.create(URLBuffer.toString());
+            String baseUrl = getURIWithZoneName(_baseUrl.resolve(uri).toString(), zoneName);
+            uri = URI.create(baseUrl);
             sLogger.info("get list of nfs exports for accesszone {} and uri {} ", zoneName, uri.toString());
         } else {
             uri = _baseUrl.resolve(uri);
@@ -682,11 +680,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public String createExport(IsilonExport exp, String zoneName) throws IsilonException {
-
-        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_NFS_EXPORTS).toString());
-        String accessZoneName = zoneName.replace(" ", "%20");
-        URLBuffer.append("?zone=").append(accessZoneName);
-        URI uri = URI.create(URLBuffer.toString());
+        String baseUrl = getURIWithZoneName(_baseUrl.resolve(URI_NFS_EXPORTS).toString(), zoneName);
+        URI uri = URI.create(baseUrl);
         return create(uri, "Export", exp);
     }
 
@@ -977,10 +972,8 @@ public class IsilonApi {
     public IsilonList<IsilonSMBShare> listShares(String resumeToken, String zoneName) throws IsilonException {
         URI uri = URI_SMB_SHARES;
         if (zoneName != null) {
-            zoneName = zoneName.replace(" ", "%20");
-            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
-            URLBuffer.append("?zone=").append(zoneName);
-            uri = URI.create(URLBuffer.toString());
+            String baseUrl = getURIWithZoneName(_baseUrl.resolve(uri).toString(), zoneName);
+            uri = URI.create(baseUrl);
             sLogger.info("get list of shares for accesszone {} and uri {}", zoneName, uri.toString());
         } else {
             uri = _baseUrl.resolve(uri);
@@ -1024,13 +1017,11 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public String createShare(IsilonSMBShare smbFileShare, String zoneName) throws IsilonException {
-
-        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_SMB_SHARES).toString());
-        String accessZoneName = zoneName.replace(" ", "%20");
-        URLBuffer.append("?zone=").append(accessZoneName);
-        URI uri = URI.create(URLBuffer.toString());
+        String baseUrl = getURIWithZoneName(_baseUrl.resolve(URI_SMB_SHARES).toString(), zoneName);
+        URI uri = URI.create(baseUrl);
         return create(uri, "share", smbFileShare);
     }
+
 
     /**
      * Modify SMB share
@@ -1515,8 +1506,8 @@ public class IsilonApi {
     	
     	StringBuffer buffer = new StringBuffer(id);
         buffer.append("?zone=");
-        zoneName = zoneName.replace(" ", "%20");
-        buffer.append(zoneName);
+        String accesszoneName = zoneName.replace(" ", "%20");
+        buffer.append(accesszoneName);
     	return buffer.toString();
     }
 

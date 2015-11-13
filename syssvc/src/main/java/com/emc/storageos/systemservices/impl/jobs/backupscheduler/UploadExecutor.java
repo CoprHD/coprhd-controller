@@ -80,6 +80,7 @@ public class UploadExecutor {
         setUploadStatus(tag, Status.NOT_STARTED, null, null);
         for (int i = 0; i < UPLOAD_RETRY_TIMES; i++) {
             try {
+                setUploadStatus(tag, Status.IN_PROGRESS, 0, null);
                 BackupFileSet files = this.cli.getDownloadFiles(tag);
                 if (files.isEmpty()) {
                     setUploadStatus(null, Status.FAILED, null, ErrorCode.BACKUP_NOT_EXIST);

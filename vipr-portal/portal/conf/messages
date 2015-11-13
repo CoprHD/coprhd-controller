@@ -853,7 +853,7 @@ Backup.list.title=Backups
 backup.name=Name
 backup.size=Size
 backup.creationtime=Creation Time
-backup.uploadstatus=Status
+backup.uploadstatus=Upload Status
 backup.upload=Upload
 backup.create.description=Enter the information needed to create backup
 BackupForm.title=Add Backup
@@ -3132,6 +3132,7 @@ resources.filesystems.deleteConfirm.FULL=Are you sure you want to proceed? The f
 resources.filesystems.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed?  The file systems will be removed from ViPR inventory, but will remain on the storage system.
 resources.filesystem.quotaDirectory=Quota Directory
 resources.filesystem.nfsAccessControl=NFS Access Controls
+resources.filesystem.nfs.acl.none=No NFS Access Controls
 
 resources.filesystem.export.mountpoint=Mount Point
 resources.filesystem.export.exportPath=Export Path
@@ -3423,6 +3424,7 @@ button.add=Add
 button.addExisting=Add Existing
 button.addExportRule=Add Export Rule
 button.updateAcl=Access Control
+button.addNfsAcl=Add Access Controls
 button.addSubDir=Add Share
 button.duplicate=Duplicate
 button.cancel=Cancel
@@ -4000,6 +4002,7 @@ nfsAccessControlList.permissions=Permissions
 nfsAccessControlList.name=Name
 nfsAccessControlList.type=Type
 nfsAccessControlList.domain=Domain
+nfs.subdirectory=Sub Directory
 
 
 subdir.share.name=Share Name

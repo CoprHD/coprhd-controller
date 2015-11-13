@@ -243,6 +243,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException illegalZoneMember(final String zoneMemeber);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_ZONE)
+    public BadRequestException nameZoneLongerThanAllowed(String zoneName, final int zoneNameAllowedLength);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException illegalWWN(final String wwn);
 

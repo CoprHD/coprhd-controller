@@ -68,6 +68,9 @@ class Snapshot(object):
     URI_FILE_SNAPSHOTS_TAG = URI_FILE_SNAPSHOTS + '/tags'
     URI_CONSISTENCY_GROUP_TAG = URI_CONSISTENCY_GROUP + '/{0}/tags'
     URI_SNAPSHOT_RESYNC = '/{0}/snapshots/{1}/resynchronize'
+    
+    URI_VPLEX_SNAPSHOT_IMPORT = '/block/snapshots/{0}/create-vplex-volume'
+    
 
     SHARES = 'filesystems'
     VOLUMES = 'volumes'
@@ -437,6 +440,23 @@ class Snapshot(object):
                 snapshotUri,
                 sync)
         )
+        
+    
+    
+    def import_snapshot_vplex(self, storageresType,
+                         storageresTypename, resourceUri, name):
+        snapshotUri = self.snapshot_query(
+            storageresType,
+            storageresTypename,
+            resourceUri,
+            name)
+        return (
+            self.snapshot_vplex_import_uri(
+                storageresType,
+                storageresTypename,
+                resourceUri,
+                snapshotUri)
+        )
 
     def snapshot_resync_uri(self, otype, typename, resourceUri, suri, sync):
         ''' Makes REST API call to resync Snapshot under a shares or volumes
@@ -468,6 +488,31 @@ class Snapshot(object):
             return self.block_until_complete(otype, suri, o["id"])
         else:
             return o
+        
+        
+    
+    
+    
+    def snapshot_vplex_import_uri(self, otype, typename, resourceUri, suri):
+        ''' Makes REST API call to import Snapshot as vplex volume 
+            parameters:
+                otype    : block should be provided
+                typename : volumes should be provided
+                suri     : uri of a snapshot
+                resourceUri: base resource uri
+
+            returns:
+                
+        '''
+        
+        (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port,
+                "POST",
+                Snapshot.URI_VPLEX_SNAPSHOT_IMPORT.format(suri), None)
+        o = common.json_decode(s)
+
+  
+        return o
     
     
     
@@ -2351,7 +2396,80 @@ def snapshot_resync(args):
                 "resync",
                 "snapshot",
                 e.err_text,
+                e.err_code) 
+            
+
+
+def import_to_vplex_parser(subcommand_parsers, common_parser):
+    import_to_vplex_parser = subcommand_parsers.add_parser('import-to-vplex',
+                                                   description='ViPR' +
+                                                   ' Imports snapshot as Volume' +
+                                                   ' CLI usage.',
+                                                   parents=[common_parser],
+                                                   conflict_handler='resolve',
+                                                   help='imports a snapshot as a vplex volume')
+
+    mandatory_args = import_to_vplex_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<snapshotname>',
+                                dest='name',
+                                help='Name of Snapshot',
+                                required=True)
+    import_to_vplex_parser.add_argument('-tenant', '-tn',
+                                metavar='<tenantname>',
+                                dest='tenant',
+                                help='Name of tenant',
+                                required=False)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    group = import_to_vplex_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-volume', '-vol',
+                       metavar='<volumename>',
+                       dest='volume',
+                       help='Name of a volume')
+    
+    
+
+    mandatory_args.set_defaults(func=import_snapshot_vplex)
+
+
+def import_snapshot_vplex(args):
+    obj = Snapshot(args.ip, args.port)
+    try:
+        (storageresType, storageresTypename) = obj.get_storageAttributes(
+            None, args.volume, None)
+        resourceUri = obj.storageResource_query(
+            storageresType,
+            None,
+            args.volume,
+            None,
+            args.project,
+            args.tenant)
+        obj.import_snapshot_vplex(
+            storageresType,
+            storageresTypename,
+            resourceUri,
+            args.name)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot " +
+                args.name +
+                ": Failed to Import to VPLEX\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "vplex import ",
+                "snapshot",
+                e.err_text,
                 e.err_code)           
+          
 
 
 
@@ -2646,3 +2764,6 @@ def snapshot_parser(parent_subparser, common_parser):
     
     #Export-rule command parser
     export_rule_parser(subcommand_parsers, common_parser)  
+    
+    #vplex import parser
+    import_to_vplex_parser(subcommand_parsers, common_parser)

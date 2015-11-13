@@ -591,15 +591,15 @@ public class ProtectionSystemService extends TaskResourceService {
 
     /**
      * 
-     * List all unmanaged cgs that are available for a storage system.Unmanaged cgs refers to cgs which are available within
-     * underlying storage systems , but
-     * still not managed in ViPR.
+     * List all unmanaged cgs that are available for a protection system.  
+     * Unmanaged cgs refers to cgs which are available within
+     * underlying protection systems , but still not managed in ViPR.
      * As these cgs are not managed in ViPR, there will not be any ViPR specific
      * details associated such as, virtual array, virtual pool, or project.
      * 
-     * @param id the URN of a ViPR storage system
+     * @param id the URI of a ViPR protection system
      * @prereq none
-     * @brief List of all unmanaged cgs available for a storage system
+     * @brief List of all unmanaged cgs available for a protection system
      * @return UnManagedCGList
      */
     @GET

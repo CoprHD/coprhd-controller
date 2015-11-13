@@ -998,7 +998,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         pset.setProtectionId(rpProtectionId);
         pset.setProtectionStatus(ProtectionStatus.ENABLED.toString());
         pset.setProtectionSystem(umpset.getProtectionSystemUri());
-
+        pset.setNativeGuid(umpset.getNativeGuid());
+        
         if (umpset.getManagedVolumeIds() != null) {
             for (String volumeID : umpset.getManagedVolumeIds()) {
                 Volume volume = _dbClient.queryObject(Volume.class, URI.create(volumeID));

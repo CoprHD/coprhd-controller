@@ -70,6 +70,4 @@ public class VirtualDataCenterUtils {
     public static Tasks<VirtualDataCenterRestRep> getTasks(URI id) {
         return getViprClient().vdcs().getTasks(id);
     }
-
-    public static String rotateIPsecKeys() {return getViprClient().vdcs().rotateIpsecKey();}
 }

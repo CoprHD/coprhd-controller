@@ -12,8 +12,8 @@ import controllers.Common;
 import controllers.util.ViprResourceController;
 import org.apache.commons.lang.StringUtils;
 import play.mvc.With;
+import util.IPsecUtils;
 import util.MessagesUtils;
-import util.VirtualDataCenterUtils;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SECURITY_ADMIN"),
@@ -29,7 +29,7 @@ public class IPsec extends ViprResourceController {
     }
     public static void rotateIPsecPreSharedKeys() {
         try {
-            if (StringUtils.isBlank(VirtualDataCenterUtils.rotateIPsecKeys())) {
+            if (StringUtils.isBlank(IPsecUtils.rotateIPsecKey())) {
                 flash.error(MessagesUtils.get(IPSEC_KEY_ROTATION_ERROR, INVALID_IPSEC_CONFIG_VERSION));
                 ipsec();
             }

@@ -1161,7 +1161,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 
         // Add a step to the Workflow to mark the Virtual Volumes inactive.
         // Rollback does the same thing.
-        waitFor = workflow.createStep(null, "Mark virtual volumes inactive", waitFor,
+        waitFor = workflow.createStep(null, "Mark virtual volumes inactive", VOLUME_FORGET_STEP,
                 vplexURI, DiscoveredDataObject.Type.vplex.name(), this.getClass(),
                 markVolumesInactiveMethod(allVplexVolumeURIs),
                 markVolumesInactiveMethod(allVplexVolumeURIs), null);

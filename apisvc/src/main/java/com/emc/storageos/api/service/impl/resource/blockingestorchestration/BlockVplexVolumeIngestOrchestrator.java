@@ -518,6 +518,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     BlockObject createdBlockObject = createdObjectMap.get(blockObjectNativeGuid);
                     if (createdBlockObject instanceof BlockSnapshot) {
                         _logger.info("Backend ingestion created block snapshot {}", blockObjectNativeGuid);
+
+                        // The snapshot will be created with the backend volume project, so we
+                        // need to update that to the frontend project.
+                        ((BlockSnapshot) createdBlockObject).setProject(new NamedURI(context.getFrontendProject().getId(),
+                                createdBlockObject.getLabel()));
+
                         context.getCreatedSnapshotMap().put(blockObjectNativeGuid, (BlockSnapshot) createdBlockObject);
                         createdObjectMap.put(blockObjectNativeGuid, blockObject);
                     } else {

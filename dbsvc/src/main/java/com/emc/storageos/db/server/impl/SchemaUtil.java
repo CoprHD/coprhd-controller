@@ -399,8 +399,7 @@ public class SchemaUtil {
         }
 
         Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
-                localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
             // don't add back the paused site
             _log.info("local standby site has been paused and removed from strategy options. Do nothing");
             return false;

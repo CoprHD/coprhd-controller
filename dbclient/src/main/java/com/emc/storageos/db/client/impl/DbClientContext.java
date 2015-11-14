@@ -337,7 +337,16 @@ public class DbClientContext {
             update.setName(getKeyspaceName());
             update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
             update.setStrategyOptions(strategyOptions);
-    
+
+            Map<String, List<String>> versions;
+            try {
+                versions = getCluster().describeSchemaVersions();
+            } catch (final ConnectionException e) {
+                throw DatabaseException.retryables.connectionFailed(e);
+            }
+
+            log.info("schema versions found: {}", versions);
+
             String schemaVersion;
             if (kd != null) {
                 schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();

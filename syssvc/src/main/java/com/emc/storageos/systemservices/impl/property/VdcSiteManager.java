@@ -60,6 +60,7 @@ public class VdcSiteManager extends AbstractManager {
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
+    private static final int MAX_PAUSE_RETRY = 5;
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
@@ -847,11 +848,9 @@ public class VdcSiteManager extends AbstractManager {
 
                 for (Site site : listStandbyInState(SiteState.STANDBY_PAUSING)) {
                     try {
+                        waitForSiteUnreachable(site);
                         removeDbNodes(site);
-                    } catch (IllegalStateException e) {
-                        log.info("illegal state: {}", e.getMessage());
-                        break;
-                    } catch (Exception e) {
+                    }  catch (Exception e) {
                         populateStandbySiteErrorIfNecessary(site,
                                 APIException.internalServerErrors.pauseStandbyReconfigFailed(e.getMessage()));
                         throw e;
@@ -880,6 +879,24 @@ public class VdcSiteManager extends AbstractManager {
                     log.error("Failed to release lock {}", LOCK_PAUSE_STANDBY);
                 }
             }
+        }
+    }
+
+    private void waitForSiteUnreachable(Site site) {
+        int retryCnt = 0;
+        while (!isSiteDbUnreachable(site)) {
+            if (++retryCnt > MAX_PAUSE_RETRY) {
+                throw new IllegalStateException("timeout waiting for db nodes to go down on paused site.");
+            }
+            retrySleep();
+        }
+    }
+
+    private boolean isSiteDbUnreachable(Site site) {
+        String dcName = drUtil.getCassandraDcId(site);
+        try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
+             DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
+            return dbOps.isDataCenterUnreachable(dcName) && geodbOps.isDataCenterUnreachable(dcName);
         }
     }
 
@@ -1208,6 +1225,4 @@ public class VdcSiteManager extends AbstractManager {
         
         return null;
     }
-
-    
 }

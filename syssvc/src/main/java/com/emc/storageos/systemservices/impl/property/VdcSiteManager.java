@@ -60,7 +60,7 @@ public class VdcSiteManager extends AbstractManager {
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
-    private static final int MAX_PAUSE_RETRY = 5;
+    private static final int MAX_PAUSE_RETRY = 10;
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
@@ -384,13 +384,21 @@ public class VdcSiteManager extends AbstractManager {
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
                 reconfigRestartSvcs();
-                checkAndPauseStandby();
+                checkAndPauseOnPrimary();
                 cleanupSiteErrorIfNecessary();
                 break;
             case SiteInfo.RECONFIG_IPSEC: // for ipsec key rotation
                 reconfigIPsec();
-            default:
+                break;
+            case SiteInfo.PAUSE:
                 PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
+                        String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+                localRepository.setVdcPropertyInfo(vdcProperty);
+                checkAndPauseOnStandby();
+                break;
+            default:
+                vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
                 vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
                         String.valueOf(targetSiteInfo.getVdcConfigVersion()));
                 localRepository.setVdcPropertyInfo(vdcProperty);
@@ -806,24 +814,12 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
 
-    /**
-     * Update the strategy options and remove the paused site from gossip ring on the primary site.
-     * This should be done after the firewall has been updated to block the paused site so that it's not affected.
-     */
-    private void checkAndPauseStandby() {
-        if (drUtil.isStandby()) {
-            checkAndPauseOnStandby();
-        } else {
-            checkAndPauseOnPrimary();
-        }
-    }
-
     private void checkAndPauseOnStandby() {
         Site localSite = drUtil.getLocalSite();
         if (localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
             // disconnect any established connection
-            localRepository.restart("dbsvc");
-            localRepository.restart("geodbsvc");
+            localRepository.stop("dbsvc");
+            localRepository.stop("geodbsvc");
 
             blockUntilZookeeperIsWritableConnected();
 
@@ -833,6 +829,10 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
 
+    /**
+     * Update the strategy options and remove the paused site from gossip ring on the primary site.
+     * This should be done after the firewall has been updated to block the paused site so that it's not affected.
+     */
     private void checkAndPauseOnPrimary() {
         InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_REMOVE_STANDBY);
         while (hasStandbyInState(SiteState.STANDBY_PAUSING)) {

@@ -23,6 +23,7 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String UPDATE_DATA_REVISION = "update_data_revision";
     public static final String RECONFIG_RESTART = "reconfig_restart";
     public static final String RECONFIG_IPSEC = "reconfig_ipsec";
+    public static final String PAUSE = "pause";
     public static final String NONE = "none";
 
     /**

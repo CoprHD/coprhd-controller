@@ -1417,9 +1417,6 @@ public class CoordinatorClientExt {
                     LocalRepository localRepository = LocalRepository.getInstance();
                     localRepository.reconfigCoordinator("participant");
                     localRepository.restart("coordinatorsvc");
-                    // restart dbsvc to break any existing connection with the primary site
-                    localRepository.restart("dbsvc");
-                    localRepository.restart("geodbsvc");
                 } catch (Exception ex) {
                     _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
                 }

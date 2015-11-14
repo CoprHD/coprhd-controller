@@ -378,10 +378,10 @@ public class VdcSiteManager extends AbstractManager {
         log.info("Step3: Setting vdc properties not rebooting for single VDC change, action={}", action);
         checkAndRemoveStandby();
         checkAndRemovePrimaryForFailover();
+        checkAndResumeStandby();
 
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
-                rebuildLocalDbIfNecessary();
                 reconfigRestartSvcs();
                 checkAndPauseStandby();
                 cleanupSiteErrorIfNecessary();
@@ -820,6 +820,10 @@ public class VdcSiteManager extends AbstractManager {
     private void checkAndPauseOnStandby() {
         Site localSite = drUtil.getLocalSite();
         if (localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
+            // disconnect any established connection
+            localRepository.restart("dbsvc");
+            localRepository.restart("geodbsvc");
+
             localSite.setState(SiteState.STANDBY_PAUSED);
             log.info("Updating local site state to {}", SiteState.STANDBY_PAUSED);
             coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
@@ -900,36 +904,11 @@ public class VdcSiteManager extends AbstractManager {
         log.info("Removed site {} configuration from ZK", site.getUuid());
     }
 
-    private void rebuildLocalDbIfNecessary() throws Exception {
+    private void checkAndResumeStandby() {
         Site localSite = drUtil.getLocalSite();
-
-        String svcId = coordinator.getMySvcId();
-        while (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
-            if (!getVdcLock(svcId)) {
-                retrySleep(); // retry until we get the lock
-                localSite = drUtil.getLocalSite();
-                continue;
-            }
-
-            try {
-                int nodeCount = localSite.getNodeCount();
-
-                // add back the paused site from strategy options of dbsvc and geodbsvc
-                String dcId = drUtil.getCassandraDcId(localSite);
-                ((DbClientImpl) dbClient).getLocalContext().addDcToStrategyOptions(dcId, nodeCount);
-                ((DbClientImpl) dbClient).getGeoContext().addDcToStrategyOptions(dcId, nodeCount);
-
-                localSite.setState(SiteState.STANDBY_SYNCING);
-                coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
-            } finally {
-                coordinator.releasePersistentLock(svcId, vdcLockId);
-            }
-        }
-
-        // restart db services to initiate the rebuild
-        if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
-            localRepository.restart("dbsvc");
-            localRepository.restart("geodbsvc");
+        if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+            localSite.setState(SiteState.STANDBY_SYNCING);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
         }
     }
 

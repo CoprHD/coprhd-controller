@@ -721,14 +721,14 @@ public class VdcSiteManager extends AbstractManager {
      * 
      * @return
      */
-    private boolean hasRemovingStandby() {
-        return !listRemovingStandby().isEmpty();
+    private boolean hasStandbyInState(SiteState state) {
+        return !listStandbyInState(state).isEmpty();
     }
     
-    private List<Site> listRemovingStandby() {
-        List<Site> result = new ArrayList<Site>();
+    private List<Site> listStandbyInState(SiteState state) {
+        List<Site> result = new ArrayList<>();
         for(Site site : drUtil.listSites()) {
-            if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
+            if (site.getState().equals(state)) {
                 result.add(site);
             }
         }
@@ -758,14 +758,12 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private void checkAndRemoveOnPrimary() throws Exception {
-        String svcId = coordinator.getMySvcId();
-        
         InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_REMOVE_STANDBY);
-        while (hasRemovingStandby()) {
+        while (hasStandbyInState(SiteState.STANDBY_REMOVING)) {
             log.info("Acquiring lock {}", LOCK_REMOVE_STANDBY); 
             lock.acquire();
             log.info("Acquired lock {}", LOCK_REMOVE_STANDBY); 
-            List<Site> toBeRemovedSites = listRemovingStandby();
+            List<Site> toBeRemovedSites = listStandbyInState(SiteState.STANDBY_REMOVING);
             try {
                     
                 for (Site site : toBeRemovedSites) {
@@ -794,13 +792,13 @@ public class VdcSiteManager extends AbstractManager {
     }
     
     private void checkAndRemoveOnStandby() {
-        List<Site> toBeRemovedSites = listRemovingStandby();
+        List<Site> toBeRemovedSites = listStandbyInState(SiteState.STANDBY_REMOVING);
         if (isRemovingCurrentSite(toBeRemovedSites)) {
             log.info("Current standby site is removed from DR. You can power it on and promote it as primary later");
             return;
         } else {
             log.info("Waiting for completion of site removal from primary site");
-            while (hasRemovingStandby()) {
+            while (hasStandbyInState(SiteState.STANDBY_REMOVING)) {
                 log.info("Waiting for completion of site removal from primary site");
                 retrySleep();
             }
@@ -813,45 +811,72 @@ public class VdcSiteManager extends AbstractManager {
      */
     private void checkAndPauseStandby() {
         if (drUtil.isStandby()) {
-            return;
+            checkAndPauseOnStandby();
+        } else {
+            checkAndPauseOnPrimary();
         }
+    }
 
-        for (Site standby : drUtil.listStandbySites()) {
-            if (standby.getState().equals(SiteState.STANDBY_PAUSING)) {
-                InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_REMOVE_STANDBY);
-                try {
-                    log.info("Acquiring lock {}", LOCK_PAUSE_STANDBY);
-                    lock.acquire();
-                    log.info("Acquired lock {}", LOCK_PAUSE_STANDBY);
+    private void checkAndPauseOnStandby() {
+        Site localSite = drUtil.getLocalSite();
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
+            localSite.setState(SiteState.STANDBY_PAUSED);
+            log.info("Updating local site state to {}", SiteState.STANDBY_PAUSED);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+        }
+    }
 
-                    standby = drUtil.getSiteFromLocalVdc(standby.getUuid());
-                    if (!standby.getState().equals(SiteState.STANDBY_PAUSING)) {
-                        // someone else updated the status already
-                        continue;
-                    }
+    private void checkAndPauseOnPrimary() {
+        InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_REMOVE_STANDBY);
+        while (hasStandbyInState(SiteState.STANDBY_PAUSING)) {
+            try {
+                log.info("Acquiring lock {}", LOCK_PAUSE_STANDBY);
+                lock.acquire();
+                log.info("Acquired lock {}", LOCK_PAUSE_STANDBY);
 
-                    // remove the site from cassandra gossip ring of dbsvc and geodbsvc
-                    removeDbNodes(standby);
-                    // exclude the paused site from strategy options of dbsvc and geodbsvc
-                    removeDbReplication(standby);
+                if (!hasStandbyInState(SiteState.STANDBY_PAUSING)) {
+                    // someone else updated the status already
+                    break;
+                }
 
-                    // update the status to STANDBY_PAUSED
-                    standby.setState(SiteState.STANDBY_PAUSED);
-                    coordinator.getCoordinatorClient().persistServiceConfiguration(standby.toConfiguration());
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                } finally {
+                for (Site site : listStandbyInState(SiteState.STANDBY_PAUSING)) {
                     try {
-                        log.info("Releasing lock {}", LOCK_PAUSE_STANDBY);
-                        lock.release();
+                        removeDbNodes(site);
                     } catch (Exception e) {
-                        log.error("Failed to release lock {}", LOCK_PAUSE_STANDBY);
+                        populateStandbySiteErrorIfNecessary(site,
+                                APIException.internalServerErrors.pauseStandbyReconfigFailed(e.getMessage()));
+                        throw e;
                     }
+                }
+
+                for (Site site : listStandbyInState(SiteState.STANDBY_PAUSING)) {
+                    try {
+                        removeDbReplication(site);
+                        // update the status to STANDBY_PAUSED
+                        site.setState(SiteState.STANDBY_PAUSED);
+                        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+                    } catch (Exception e) {
+                        populateStandbySiteErrorIfNecessary(site,
+                                APIException.internalServerErrors.pauseStandbyReconfigFailed(e.getMessage()));
+                        throw e;
+                    }
+                }
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            } finally {
+                try {
+                    log.info("Releasing lock {}", LOCK_PAUSE_STANDBY);
+                    lock.release();
+                } catch (Exception e) {
+                    log.error("Failed to release lock {}", LOCK_PAUSE_STANDBY);
                 }
             }
         }
     }
-    
+
+    /**
+     * remove a site from cassandra gossip ring of dbsvc and geodbsvc
+     */
     private void removeDbNodes(Site site) throws Exception {
         String dcName = drUtil.getCassandraDcId(site);
         try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
@@ -860,7 +885,9 @@ public class VdcSiteManager extends AbstractManager {
             geodbOps.removeDataCenter(dcName);
         }
     }
-    
+
+    // exclude the paused site from strategy options of dbsvc and geodbsvc
+    // exclude the paused site from strategy options of dbsvc and geodbsvc
     private void removeDbReplication(Site site) {
         String dcName = drUtil.getCassandraDcId(site);
         ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcName);

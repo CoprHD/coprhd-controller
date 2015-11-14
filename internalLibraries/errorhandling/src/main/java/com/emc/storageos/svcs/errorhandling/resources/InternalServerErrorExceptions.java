@@ -260,6 +260,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_PRECHECK_FAILED)
     InternalServerErrorException pauseStandbyPrecheckFailed(String siteId, String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_RECONFIG_FAILED)
+    InternalServerErrorException pauseStandbyReconfigFailed(String errMsg);
+
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
     public InternalServerErrorException resumeStandbyFailed(final String siteId, String errMsg);
 

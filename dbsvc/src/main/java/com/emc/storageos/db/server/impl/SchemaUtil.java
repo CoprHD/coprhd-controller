@@ -303,6 +303,8 @@ public class SchemaUtil {
                     }
 
                     checkStrategyOptions();
+
+                    // strategy options should be up-to-date, rebuild the node to get the latest data
                     if (onStandby) {
                         Site currentSite = drUtil.getLocalSite();
 

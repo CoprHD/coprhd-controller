@@ -824,6 +824,8 @@ public class VdcSiteManager extends AbstractManager {
             localRepository.restart("dbsvc");
             localRepository.restart("geodbsvc");
 
+            blockUntilZookeeperIsWritableConnected();
+
             localSite.setState(SiteState.STANDBY_PAUSED);
             log.info("Updating local site state to {}", SiteState.STANDBY_PAUSED);
             coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
@@ -846,6 +848,9 @@ public class VdcSiteManager extends AbstractManager {
                 for (Site site : listStandbyInState(SiteState.STANDBY_PAUSING)) {
                     try {
                         removeDbNodes(site);
+                    } catch (IllegalStateException e) {
+                        log.info("illegal state: {}", e.getMessage());
+                        break;
                     } catch (Exception e) {
                         populateStandbySiteErrorIfNecessary(site,
                                 APIException.internalServerErrors.pauseStandbyReconfigFailed(e.getMessage()));
@@ -881,10 +886,16 @@ public class VdcSiteManager extends AbstractManager {
     /**
      * remove a site from cassandra gossip ring of dbsvc and geodbsvc
      */
-    private void removeDbNodes(Site site) throws Exception {
+    private void removeDbNodes(Site site) {
         String dcName = drUtil.getCassandraDcId(site);
         try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
                 DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
+            if (!dbOps.isDataCenterUnreachable(dcName)) {
+                throw new IllegalStateException(String.format("dbsvc of site %s is still reachable", dcName));
+            }
+            if (!geodbOps.isDataCenterUnreachable(dcName)) {
+                throw new IllegalStateException(String.format("geodbsvc of site %s is still reachable", dcName));
+            }
             dbOps.removeDataCenter(dcName);
             geodbOps.removeDataCenter(dcName);
         }
@@ -1060,7 +1071,7 @@ public class VdcSiteManager extends AbstractManager {
 
     private void proccessNewPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is switchover standby site (new primary)");
-        
+
         blockUntilZookeeperIsWritableConnected();
         
         DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
@@ -1197,4 +1208,6 @@ public class VdcSiteManager extends AbstractManager {
         
         return null;
     }
+
+    
 }

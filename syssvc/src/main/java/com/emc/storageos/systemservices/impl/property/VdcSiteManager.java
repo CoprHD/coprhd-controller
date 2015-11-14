@@ -60,7 +60,7 @@ public class VdcSiteManager extends AbstractManager {
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
-    private static final int MAX_PAUSE_RETRY = 0;
+    private static final int MAX_PAUSE_RETRY = 5;
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
@@ -817,10 +817,6 @@ public class VdcSiteManager extends AbstractManager {
     private void checkAndPauseOnStandby() {
         Site localSite = drUtil.getLocalSite();
         if (localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
-            // disconnect any established connection
-            //localRepository.stop("dbsvc");
-            //localRepository.stop("geodbsvc");
-
             blockUntilZookeeperIsWritableConnected();
 
             localSite.setState(SiteState.STANDBY_PAUSED);

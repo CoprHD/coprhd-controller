@@ -422,21 +422,6 @@ public class LocalRepository {
     }
 
     /**
-     * Stop a service
-     *
-     * @param serviceName service name
-     * @throws LocalRepositoryException
-     */
-    public void stop(final String serviceName) throws LocalRepositoryException {
-        final String prefix = "stop(): serviceName=" + serviceName + " ";
-        _log.debug(prefix);
-
-        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_STOP, serviceName };
-        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
-        checkFailure(result, prefix);
-    }
-
-    /**
      * Notify a service to reload configs after /etc/genconfig regenerates them.
      * The notification is done via systool since the service is not owned by storageos.
      * 

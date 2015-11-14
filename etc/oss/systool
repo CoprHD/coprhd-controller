@@ -254,10 +254,6 @@ _restart() {
     /usr/bin/systemctl restart storageos-${1%*svc} || _fatal2 67 "Unexpected restart ${1} failure. Error code $?"
 }
 
-_stop() {
-    /usr/bin/systemctl stop storageos-${1%*svc} || _fatal2 68 "Unexpected stop ${1} failure. Error code $?"
-}
-
 _reload() {
     case ${1} in
         ntp)     
@@ -552,7 +548,6 @@ case ${#} in
             --setvdcprops)            _x _set_vdc_props        "${2}" ;;
             --setsslprops)            _x _set_ssl_props        "${2}" ;;
             --restart)                _x _restart              "${2}" ;;
-            --stop)                   _x _stop                 "${2}" ;;
             --reconfig-props)          _x _reconfig_props       "${2}" ;;
             --reconfig-coordinator)   _x  _reconfig_coordinator "${2}" ;;
             --reload)                 _x _reload               "${2}" ;;

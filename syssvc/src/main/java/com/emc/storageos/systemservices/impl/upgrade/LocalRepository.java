@@ -79,7 +79,6 @@ public class LocalRepository {
     private static final String _SYSTOOL_RECONFIG = "--reconfig";
     private static final String _SYSTOOL_RECONFIG_PROPS = "--reconfig-props";
     private static final String _SYSTOOL_RESTART = "--restart";
-    private static final String _SYSTOOL_STOP = "--stop";
     private static final String _SYSTOOL_RELOAD = "--reload";
     private static final String _SYSTOOL_IS_APPLIANCE = "--is-appliance";
     private static final String _SYSTOOL_RECONFIG_COORDINATOR = "--reconfig-coordinator";

@@ -113,7 +113,9 @@ public class VdcConfigUtil {
             // exclude the paused sites from the standby site list on every site except the paused site
             // this will make it easier to resume the data replication.
             if (!drUtil.isLocalSite(site)) {
-                if (site.getState().equals(SiteState.STANDBY_PAUSING) || site.getState().equals(SiteState.STANDBY_REMOVING)
+                if (site.getState().equals(SiteState.STANDBY_PAUSING)
+                        || site.getState().equals(SiteState.STANDBY_PAUSED)
+                        || site.getState().equals(SiteState.STANDBY_REMOVING)
                         || site.getState().equals(SiteState.PRIMARY_FAILING_OVER)) {
                     continue;
                 }

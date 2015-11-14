@@ -464,6 +464,15 @@ public class SchemaUtil {
         changed |= addNewVdc(strategyOptions);
 
         if (changed) {
+            Map<String, List<String>> versions;
+            try {
+                versions = clientContext.getCluster().describeSchemaVersions();
+            } catch (final ConnectionException e) {
+                throw DatabaseException.retryables.connectionFailed(e);
+            }
+
+            _log.info("schema versions found: {}", versions);
+
             _log.info("strategyOptions changed to {}", strategyOptions);
             clientContext.setCassandraStrategyOptions(strategyOptions, true);
         }

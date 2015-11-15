@@ -263,7 +263,7 @@ public class DisasterRecoveryService {
                 log.info("Persist standby site {} to ZK", standby.getVip());
             }
             
-            updateVdcTargetVersionAndDataRevision(SiteInfo.UPDATE_DATA_REVISION);
+            drUtil.updateVdcTargetVersionAndDataRevision(coordinator.getSiteId(), SiteInfo.UPDATE_DATA_REVISION);
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
@@ -587,6 +587,9 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(standby.toConfiguration());
 
             for (Site site : drUtil.listStandbySites()) {
+                if (site.getState().equals(SiteState.STANDBY_PAUSING)) {
+                    drUtil.updateVdcTargetVersionAndDataRevision(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+                }
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
 
@@ -738,22 +741,6 @@ public class DisasterRecoveryService {
             log.error("Can't find site {} from ZK", uuid);
             throw APIException.badRequests.siteIdNotFound();
         }
-    }
-
-    private void updateVdcTargetVersionAndDataRevision(String action) throws Exception {
-        int ver = 1;
-        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
-        if (siteInfo != null) {
-            if (!siteInfo.isNullTargetDataRevision()) {
-                String currentDataRevision = siteInfo.getTargetDataRevision();
-                ver = Integer.valueOf(currentDataRevision);
-            }
-        }
-        String targetDataRevision = String.valueOf(++ver);
-        siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
-        coordinator.setTargetInfo(siteInfo);
-        log.info("VDC target version updated to {}, revision {}",
-                siteInfo.getVdcConfigVersion(), targetDataRevision);
     }
     
     /*

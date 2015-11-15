@@ -6498,6 +6498,8 @@ dr_multisite_tests()
     dr get $standby_site_b
     dr get $primary_site
 
+    dr waitforstable 10 600
+
     echo "---ADD STANDBY SITE C---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
@@ -6591,20 +6593,30 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     project show $test_projectid
 
-    # delete standby
-    echo "---DELETE STANDBY $standby_site_c---"
+    echo "Power off primary site $DR_SITE_A_IP to do failover"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr delete $standby_site_c
+    dr poweroffcluster $DR_SITE_A_IP
 
-    echo "---WAIT FOR REMOVED $standby_site_c---should throw exceptions---"
-    dr waitforstate $standby_site_c STANDBY_REMOVING 30 600 -n|| echo "standby removed"
-    echo "Removing dr done"
+    echo "Sleep 300 seconds to wait standby ZK switch to participant"
+    sleep 300
 
-    # verify deleted
-    echo "---VERIFY STANDBY DELETED $standby_site_c---should throw exceptions---"
-    dr list $DR_SITE_C_NAME || echo "standby removed from site list"
-    dr get $standby_site_c || echo "standby uuid removed from primary"
+    echo "Wait for stable"
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip $DR_SITE_C_IP 10 600
+
+    echo "Failover to promote site $DR_SITE_C_NAME as primary"
+    dr failover --ip $DR_SITE_C_IP $standby_site_c
+    sleep 300
+
+    echo "Wait for stable"
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip $DR_SITE_C_IP 10 600
+
+    echo "Wait site state to be PRIAMRY after failover"
+    dr waitforstate $standby_site_c PRIMARY 30 600 --ip $DR_SITE_C_IP
 
     #disabling pipefail option to pipe exit codes
     set +o pipefail

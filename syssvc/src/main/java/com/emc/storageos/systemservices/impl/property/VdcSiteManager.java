@@ -390,15 +390,8 @@ public class VdcSiteManager extends AbstractManager {
             case SiteInfo.RECONFIG_IPSEC: // for ipsec key rotation
                 reconfigIPsec();
                 break;
-            case SiteInfo.PAUSE:
-                PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
-                        String.valueOf(targetSiteInfo.getVdcConfigVersion()));
-                localRepository.setVdcPropertyInfo(vdcProperty);
-                checkAndPauseOnStandby();
-                break;
             default:
-                vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+                PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
                 vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
                         String.valueOf(targetSiteInfo.getVdcConfigVersion()));
                 localRepository.setVdcPropertyInfo(vdcProperty);
@@ -814,17 +807,6 @@ public class VdcSiteManager extends AbstractManager {
                 log.info("Waiting for completion of site removal from primary site");
                 retrySleep();
             }
-        }
-    }
-
-    private void checkAndPauseOnStandby() {
-        Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
-            blockUntilZookeeperIsWritableConnected();
-
-            localSite.setState(SiteState.STANDBY_PAUSED);
-            log.info("Updating local site state to {}", SiteState.STANDBY_PAUSED);
-            coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
         }
     }
 

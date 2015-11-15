@@ -308,7 +308,8 @@ public class SchemaUtil {
                     if (onStandby) {
                         Site currentSite = drUtil.getLocalSite();
 
-                        if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+                        if (currentSite.getState().equals(SiteState.STANDBY_ADDING) ||
+                                currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
                             currentSite.setState(SiteState.STANDBY_SYNCING);
                             _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
                         }

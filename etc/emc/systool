@@ -480,10 +480,8 @@ _reload() {
         ipsec)
             exec /usr/bin/systemctl restart ipsec ;;
         reset-coordinator)
-	        /etc/storageos/storageos stop
+            /etc/storageos/storageos stop
             rm -fR /data/zk/version-2/
-            rm -fR /data/db/1/*
-            rm -fR /data/geodb/1/*
             /etc/storageos/storageos drstandby
             ;;
         *)

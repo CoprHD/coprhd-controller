@@ -587,9 +587,6 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(standby.toConfiguration());
 
             for (Site site : drUtil.listStandbySites()) {
-                if (site.getState().equals(SiteState.STANDBY_PAUSING)) {
-                    drUtil.updateVdcTargetVersionAndDataRevision(site.getUuid(), SiteInfo.RECONFIG_RESTART);
-                }
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
 

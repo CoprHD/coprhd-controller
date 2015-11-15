@@ -24,14 +24,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
@@ -2275,7 +2273,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
                 }
             }
-            
+
             // Check if the volumes have been in the CG, and not ingestion case
             if (consistencyGroup.getTypes().contains(Types.LOCAL.toString()) && !cgVolumes.isEmpty()) {
                 Set<String> cgVolumesURISet = new HashSet<String>();
@@ -2285,20 +2283,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 Iterator<URI> iter = addVolumes.iterator();
                 while (iter.hasNext()) {
                     if (cgVolumesURISet.contains(iter.next().toString())) {
-                         iter.remove();
+                        iter.remove();
                     }
                 }
-                
+
                 if (addVolumes.isEmpty()) {
                     // All volumes in the addVolumes list have been in the CG. return success
                     s_logger.info("The volumes have been added to the CG");
                     Operation op = new Operation();
                     op.setResourceType(ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
                     op.ready("Volumes have been added to the consistency group");
-                    _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(), taskId, op);      
+                    _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(), taskId, op);
                     return toTask(consistencyGroup, taskId, op);
                 }
-                
+
             }
         }
 
@@ -3290,7 +3288,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public void verifyAddVolumeToCG(Volume volume, BlockConsistencyGroup cg,
             List<Volume> cgVolumes, StorageSystem cgStorageSystem) {
         super.verifyAddVolumeToCG(volume, cg, cgVolumes, cgStorageSystem);
-        
+
         Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
         verifyIfVolumeHasMultipleReplicas(backendVolume);
 
@@ -3394,7 +3392,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
                     _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
                             volumesWithSameNativeGuid.get(0).getId().toString()));
-            throw APIException.badRequests.cantDeleteSnapshotExposedByVolume(snapshot.getId().toString(), vplexVolumes.get(0).getLabel());
+            throw APIException.badRequests
+                    .cantDeleteSnapshotExposedByVolume(snapshot.getLabel().toString(), vplexVolumes.get(0).getLabel());
         }
         super.deleteSnapshot(snapshot, taskId);
     }

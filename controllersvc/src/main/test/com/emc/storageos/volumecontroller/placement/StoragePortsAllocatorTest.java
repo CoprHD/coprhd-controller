@@ -839,6 +839,7 @@ public class StoragePortsAllocatorTest {
 
     protected static StoragePort createFCPort(String name, String wwpn) {
         StoragePort port = new StoragePort();
+        port.setCompatibilityStatus("COMPATIBLE");
         port.setPortName(name);
         port.setPortGroup(name.replaceAll(":.*", ""));
         port.setPortNetworkId(wwpn);

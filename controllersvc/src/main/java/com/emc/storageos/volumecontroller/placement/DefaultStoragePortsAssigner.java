@@ -498,8 +498,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             List<StoragePort> portsAssigned = existingAssignments.get(hostExistingInitiator);
             if (portsAssigned != null) {
                 for (StoragePort port : portsAssigned) {
-                    _log.info(String.format("Existinging assignment initiator %s port %s", 
-                            hostExistingInitiator.getInitiatorPort(), port.getPortNetworkId()));
+                    _log.info(String.format("Existinging assignment initiator %s (%s) port %s (%s)", 
+                            hostExistingInitiator.getInitiatorPort(), hostExistingInitiator.getHostName(),
+                            port.getPortName(), port.getPortNetworkId()));
                     addPortUse(portUseCounts, port);
                 }
             }
@@ -542,8 +543,8 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                         entry.getValue().remove(0);
                         addedThisPass = true;
                     } else {
-                        _log.info(String.format("No available ports to provision initiator %s (%s), "
-                                + initiator.getInitiatorPort(), initiator.getHostName()));
+                        _log.info(String.format("No available ports to provision initiator %s (%s)",
+                                initiator.getInitiatorPort(), initiator.getHostName()));
                     }
                 }
             }

@@ -126,7 +126,7 @@ URI_DR_DELETE              = URI_DR   + '/{0}'
 URI_DR_PAUSE               = URI_DR   + '/{0}' + '/pause'
 URI_DR_RESUME              = URI_DR   + '/{0}' + '/resume'
 URI_DR_SWITCHOVER          = URI_DR    + '/{0}/switchover'
-URI_DR_FAILOVER		   = URI_DR   + '/{0}/failover'
+URI_DR_FAILOVER            = URI_DR   + '/{0}/failover'
 
 URI_VDC                     = URI_SERVICES_BASE  + '/vdc'
 URI_VDC_GET                 = URI_VDC    + '/{0}'
@@ -3308,7 +3308,7 @@ class Bourne:
         return resp
 
     def dr_failover(self,uuid):
-	resp = self.api('POST', URI_DR_FAILOVER.format(uuid))
+        resp = self.api('POST', URI_DR_FAILOVER.format(uuid))
         print "DR FAILOVER RESP = ",resp
         return resp
 

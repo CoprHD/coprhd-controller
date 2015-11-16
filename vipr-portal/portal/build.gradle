@@ -172,7 +172,7 @@ task messagesCopy(type: Copy) {
         filter { String line ->
             if(line.contains('ViPR '))
             {
-                line.replaceAll('ViPR ', "CoprHD");
+                line.replaceAll('ViPR ', "CoprHD ");
             }
         }
     }

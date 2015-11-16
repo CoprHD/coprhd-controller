@@ -201,7 +201,7 @@
         <property name="matcherFramework" ref="matcherFramework"/>
     </bean>
     
-    <bean id="StorageContainerService" class="com.emc.storageos.api.service.impl.resource.StorageContainerService">
+    <bean id="storageContainerService" class="com.emc.storageos.api.service.impl.resource.StorageContainerService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="matcherFramework" ref="matcherFramework"/>
@@ -437,6 +437,7 @@
                     
                 <ref bean="fileVirtualPoolService"/>
                 <ref bean="objectVirtualPoolService"/>
+                <ref bean="storageContainerService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.BlockVirtualPoolService">
                   <property name="dbClient" ref="dbclient"/>
                   <property name="coordinator" ref="coordinator"/>

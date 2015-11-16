@@ -147,7 +147,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                     try {
                         UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(nativeGuid, dbClient);
                         if (unManagedVolume != null) {
-                            _logger.info("Set UnManagedVolume {} for {} to non ingestable", unManagedVolume.getId(), nativeGuid);
+                            _logger.info("Set UnManagedVolume {} for {} to non ingestable, this snapshot target is the source of other snapshot targets.", unManagedVolume.getId(), nativeGuid);
                             unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(),
                                     FALSE);
                             modifiedUnManagedVolumes.add(unManagedVolume);
@@ -159,7 +159,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                         for (String tgtNativeId : targets) {
                             UnManagedVolume tgtUnManagedVolume = checkUnManagedVolumeExistsInDB(tgtNativeId, dbClient);
                             if (tgtUnManagedVolume != null) {
-                                _logger.info("Set UnManagedVolume {} for {} to non ingestable", unManagedVolume.getId(), tgtNativeId);
+                                _logger.info("Set UnManagedVolume {} for {} to non ingestable, the source of this snapshot target is also a snapshot target.", unManagedVolume.getId(), tgtNativeId);
                                 tgtUnManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(),
                                         FALSE);
                                 modifiedUnManagedVolumes.add(tgtUnManagedVolume);

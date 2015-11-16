@@ -36,10 +36,12 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
+import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.exceptions.RetryableBackupException;
 import com.emc.storageos.services.util.FileUtils;
@@ -808,11 +810,35 @@ public class BackupOps {
         return inetAddress.hasInet4() ? inetAddress.getInet4() : inetAddress.getInet6();
     }
 
+    private boolean isNodeAvailable(String host) {
+        for (String nodeId : hosts.keySet())
+        if (hosts.get(nodeId).equals(host)) {
+            return getAvailableNodes().contains(nodeId);
+        }
+        return false;
+    }
+
+    private List<String> getAvailableNodes() {
+        List<String> goodNodes = new ArrayList<String>();
+        String dbVersion = coordinatorClient.getTargetDbSchemaVersion();
+        List<Service> svcs = coordinatorClient.locateAllServices(Constants.DBSVC_NAME, dbVersion, (String) null, null);
+        for (Service svc : svcs) {
+            String svcId = svc.getId();
+            goodNodes.add("vipr" + svcId.substring(svcId.lastIndexOf("-") + 1));
+        }
+        log.info("Available nodes: {}", goodNodes);
+        return goodNodes;
+    }
+
     /**
      * Create a connection to the JMX agent
      */
     private JMXConnector connect(String host, int port) {
         try {
+            if (!isNodeAvailable(host)) {
+                log.info("Node({}) is unavailable", host);
+                throw new IllegalStateException("Node is unavailable");
+            }
             log.debug("Connecting to JMX Server {}:{}", host, port);
             String connectorAddress = String.format(serviceUrl, host, port);
             JMXServiceURL jmxUrl = new JMXServiceURL(connectorAddress);

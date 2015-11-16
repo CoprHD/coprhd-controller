@@ -69,7 +69,7 @@ class Snapshot(object):
     URI_CONSISTENCY_GROUP_TAG = URI_CONSISTENCY_GROUP + '/{0}/tags'
     URI_SNAPSHOT_RESYNC = '/{0}/snapshots/{1}/resynchronize'
     
-    URI_VPLEX_SNAPSHOT_IMPORT = '/block/snapshots/{0}/create-vplex-volume'
+    URI_VPLEX_SNAPSHOT_IMPORT = '/block/snapshots/{0}/expose'
     
 
     SHARES = 'filesystems'

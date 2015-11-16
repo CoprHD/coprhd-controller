@@ -61,6 +61,7 @@ public class VdcSiteManager extends AbstractManager {
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 5;
+    private static final int MAX_RESUME_RETRY = 5;
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
@@ -89,6 +90,7 @@ public class VdcSiteManager extends AbstractManager {
     
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
+    private static final String LOCK_RESUME_STANDBY="drResumeStandbyLock";
     
     private static final String LOCK_FAILOVER_REMOVE_OLD_PRIMARY="drFailoverRemoveOldPrimaryLock";
     
@@ -815,7 +817,7 @@ public class VdcSiteManager extends AbstractManager {
      * This should be done after the firewall has been updated to block the paused site so that it's not affected.
      */
     private void checkAndPauseOnPrimary() {
-        InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_REMOVE_STANDBY);
+        InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_PAUSE_STANDBY);
         while (hasStandbyInState(SiteState.STANDBY_PAUSING)) {
             try {
                 log.info("Acquiring lock {}", LOCK_PAUSE_STANDBY);
@@ -916,9 +918,54 @@ public class VdcSiteManager extends AbstractManager {
     private void checkAndResumeStandby() {
         Site localSite = drUtil.getLocalSite();
         if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
-            localSite.setState(SiteState.STANDBY_SYNCING);
-            coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+            InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_RESUME_STANDBY);
+            try {
+                log.info("Acquiring lock {}", LOCK_RESUME_STANDBY);
+                lock.acquire();
+                log.info("Acquired lock {}", LOCK_RESUME_STANDBY);
+
+                localSite = drUtil.getLocalSite();
+                if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) { //nobody get the lock before me
+                    waitForSchemaAgreement();
+
+                    int nodeCount = localSite.getNodeCount();
+                    String dcName = drUtil.getCassandraDcId(localSite);
+                    ((DbClientImpl) dbClient).getLocalContext().addDcToStrategyOptions(dcName, nodeCount);
+                    ((DbClientImpl) dbClient).getGeoContext().addDcToStrategyOptions(dcName, nodeCount);
+
+                    localSite.setState(SiteState.STANDBY_SYNCING);
+                    coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                }
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            } finally {
+                try {
+                    log.info("Releasing lock {}", LOCK_PAUSE_STANDBY);
+                    lock.release();
+                } catch (Exception e) {
+                    log.error("Failed to release lock {}", LOCK_PAUSE_STANDBY);
+                }
+            }
+
+            if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+                localRepository.restart("dbsvc");
+                localRepository.restart("geodbsvc");
+            }
         }
+    }
+
+    private void waitForSchemaAgreement() {
+        Map<String, List<String>> dbSchemaVersions;
+        Map<String, List<String>> geodbSchemaVersions;
+        int retryCnt = 0;
+        do {
+            dbSchemaVersions = ((DbClientImpl) dbClient).getLocalContext().getSchemaVersions();
+            geodbSchemaVersions = ((DbClientImpl) dbClient).getLocalContext().getSchemaVersions();
+            if (++retryCnt > MAX_RESUME_RETRY) {
+                throw new IllegalStateException("timeout waiting for db schema to reach agreement on paused site.");
+            }
+            retrySleep();
+        } while (dbSchemaVersions.size() > 1 || geodbSchemaVersions.size() > 1);
     }
 
     private void poweroffRemoteSite(Site site) {

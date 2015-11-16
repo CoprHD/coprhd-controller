@@ -308,8 +308,7 @@ public class SchemaUtil {
                     if (onStandby) {
                         Site currentSite = drUtil.getLocalSite();
 
-                        if (currentSite.getState().equals(SiteState.STANDBY_ADDING) ||
-                                currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+                        if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
                             currentSite.setState(SiteState.STANDBY_SYNCING);
                             _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
                         }
@@ -400,7 +399,8 @@ public class SchemaUtil {
         }
 
         Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
+                localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
             // don't add back the paused site
             _log.info("local standby site has been paused and removed from strategy options. Do nothing");
             return false;

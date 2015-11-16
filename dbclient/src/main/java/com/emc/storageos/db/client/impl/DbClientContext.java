@@ -338,15 +338,6 @@ public class DbClientContext {
             update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
             update.setStrategyOptions(strategyOptions);
 
-            Map<String, List<String>> versions;
-            try {
-                versions = getCluster().describeSchemaVersions();
-            } catch (final ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
-            }
-
-            log.info("schema versions found: {}", versions);
-
             String schemaVersion;
             if (kd != null) {
                 schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
@@ -413,15 +404,8 @@ public class DbClientContext {
     public void waitForSchemaChange(String schemaVersion) {
         long start = System.currentTimeMillis();
         while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
-            Map<String, List<String>> versions;
-            try {
-                versions = getCluster().describeSchemaVersions();
-            } catch (final ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
-            }
-
             log.info("schema version to sync to: {}", schemaVersion);
-            log.info("schema versions found: {}", versions);
+            Map<String, List<String>> versions = getSchemaVersions();
 
             if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
                 log.info("schema version sync to: {} done", schemaVersion);
@@ -434,6 +418,23 @@ public class DbClientContext {
             } catch (InterruptedException ex) {}
         }
         log.warn("Unable to sync schema version {}", schemaVersion);
+    }
+
+    /**
+     * Get Cassandra schema versions -> nodes mapping.
+     *
+     * @return
+     */
+    public Map<String, List<String>> getSchemaVersions() {
+        Map<String, List<String>> versions;
+        try {
+            versions = getCluster().describeSchemaVersions();
+        } catch (final ConnectionException e) {
+            throw DatabaseException.retryables.connectionFailed(e);
+        }
+
+        log.info("schema versions found: {}", versions);
+        return versions;
     }
 
     private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName, String dbVersion) {

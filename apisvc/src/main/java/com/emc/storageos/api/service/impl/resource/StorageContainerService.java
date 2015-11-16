@@ -30,7 +30,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-@Path("/vdc/storagecontainer")
+@Path("/object/storagecontainer")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
         readAcls = { ACL.USE },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -79,11 +79,9 @@ public class StorageContainerService extends VirtualPoolService {
     }
     
     @GET
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/container_id")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response getResponseStatus(){
+        _log.info("*******enter in get response***********");
         return Response.status(200).build();
     }
 

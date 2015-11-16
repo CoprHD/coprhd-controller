@@ -1080,14 +1080,14 @@ public class VdcSiteManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
                     log.info("Step5: site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverPrimaryFailedTimeout(
-                            site.getUuid(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                            site.getName(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
                 }
                 break;
             case STANDBY_SWITCHING_OVER:
                 if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
                     log.info("Step5: site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverStandbyFailedTimeout(
-                            site.getUuid(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                            site.getName(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
                 }
                 break;
         }

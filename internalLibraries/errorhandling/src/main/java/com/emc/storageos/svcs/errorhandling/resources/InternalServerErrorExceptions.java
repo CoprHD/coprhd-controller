@@ -243,16 +243,16 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException configStandbyFailed(String errMsg);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_PRECHECK_FAILED)
-    public InternalServerErrorException removeStandbyPrecheckFailed(String siteId, String errMsg);
+    public InternalServerErrorException removeStandbyPrecheckFailed(String siteNames, String errMsg);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
-    public InternalServerErrorException removeStandbyFailed(final String siteId, String errMsg);
+    public InternalServerErrorException removeStandbyFailed(final String siteNames, String errMsg);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_RECONFIG_FAILED)
     public InternalServerErrorException removeStandbyReconfigFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_FAILED)
-    public InternalServerErrorException pauseStandbyFailed(final String siteId, String errMsg);
+    public InternalServerErrorException pauseStandbyFailed(final String siteName, String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_TIMEOUT)
     InternalServerErrorException pauseStandbyFailedTimeout(final long timeoutValue);
@@ -264,7 +264,7 @@ public interface InternalServerErrorExceptions {
     InternalServerErrorException pauseStandbyReconfigFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
-    public InternalServerErrorException resumeStandbyFailed(final String siteId, String errMsg);
+    public InternalServerErrorException resumeStandbyFailed(final String siteName, String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_TIMEOUT)
     public InternalServerErrorException resumeStandbyFailedTimeout(final long timeoutValue);
@@ -273,16 +273,22 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException dataSyncFailedTimeout(final long timeoutValue);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_PRECHECK_FAILED)
-    public InternalServerErrorException switchoverPrecheckFailed(final String siteId, String errMsg);
+    public InternalServerErrorException switchoverPrecheckFailed(final String siteName, String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_FAILED)
-    public InternalServerErrorException switchoverFailed(String primaryId, String standbyId, String errMsg);
+    public InternalServerErrorException switchoverFailed(String primaryName, String standbyName, String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_PRIMARY_FAILED_TIMEOUT)
-    public InternalServerErrorException switchoverPrimaryFailedTimeout(String siteId, int timeoutValue);
+    public InternalServerErrorException switchoverPrimaryFailedTimeout(String siteName, int timeoutValue);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_STANDBY_FAILED_TIMEOUT)
-    public InternalServerErrorException switchoverStandbyFailedTimeout(String siteId, int timeoutValue);
+    public InternalServerErrorException switchoverStandbyFailedTimeout(String siteName, int timeoutValue);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_ACQUIRE_OPERATION_LOCK_FAILED)
+    public InternalServerErrorException failToAcquireDROperationLock();
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_CONCURRENT_OPERATION_NOT_ALLOWED)
+    public InternalServerErrorException concurrentDROperationNotAllowed(String sitedName, String state);
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedErrorVolumePlacement(Exception ex);

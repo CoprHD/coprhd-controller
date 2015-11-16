@@ -588,28 +588,33 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @return last step added to waitFor
      * @throws ControllerException
      */
-    public String addStepsForAddToConsistencyGroup(Workflow workflow, String waitFor,
-            List<VolumeDescriptor> volumesDescriptors) throws ControllerException {
+    public String addStepsForUpdateConsistencyGroup(Workflow workflow, String waitFor,
+            List<VolumeDescriptor> volumesDescriptorsToAdd, List<VolumeDescriptor> volumesDescriptorsToRemove) throws ControllerException {
 
-        // Filter any BLOCK_DATAs that need to be created.
-        List<VolumeDescriptor> volumes = VolumeDescriptor.filterByType(volumesDescriptors,
+        // Filter any BLOCK_DATAs that need to be added to CG.
+        List<VolumeDescriptor> addDescriptors = VolumeDescriptor.filterByType(volumesDescriptorsToAdd,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
+                new VolumeDescriptor.Type[] {});
+        
+        // Filter any BLOCK_DATAs that need to be removed from CG.
+        List<VolumeDescriptor> removeDescriptors = VolumeDescriptor.filterByType(volumesDescriptorsToRemove,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
                 new VolumeDescriptor.Type[] {});
 
         // If no volumes to be created, just return.
-        if (volumes.isEmpty()) {
+        if (addDescriptors.isEmpty() && removeDescriptors.isEmpty()) {
             return waitFor;
         }
-
-        // Get the consistency group. If no consistency group,
-        // just return. Get CG from any descriptor.
-        final VolumeDescriptor firstVolume = volumes.get(0);
+        
+        VolumeDescriptor firstVolume = addDescriptors.get(0);
         if (firstVolume == null || NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI())) {
-            return waitFor;
+            firstVolume = removeDescriptors.get(0);
+            if (firstVolume == null || NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI())) {
+                return waitFor;
+            }
         }
-        final URI consistencyGroupURI = firstVolume.getConsistencyGroupURI();
-        final BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupURI);
-
+                
+        // Check for SRDF
         if (firstVolume.getType() != null) {
             if (VolumeDescriptor.Type.SRDF_SOURCE.toString().equalsIgnoreCase(firstVolume.getType().toString())
                     || VolumeDescriptor.Type.SRDF_TARGET.toString().equalsIgnoreCase(firstVolume.getType().toString())
@@ -617,36 +622,89 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 return waitFor;
             }
         }
+        
+        final String addVolumesKey = "ADD";
+        final String removeVolumesKey = "REMOVE";
 
-        // Store map of devices to volumes, we could have multiple devices (example VPLEX metro volume with
-        // two different backing arrays).
-        Map<URI, List<URI>> deviceURIs = new HashMap<URI, List<URI>>();
-        for (VolumeDescriptor descr : volumes) {
-            Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
-
+        // We want the map to contain both the volumes to ADD and REMOVE segregated by device and also by CG.
+        // The map will look like the below:
+        // Device Id
+        // --> CG Id
+        // ----> ADD -> List of Volumes to Add from this CG for this device
+        // ----> REMOVE -> List of Volumes to Remove from this CG for this device
+        Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap 
+            = new HashMap<URI, Map<URI, Map<String, List<URI>>>>();       
+        
+        // Volumes to add
+        for (VolumeDescriptor descr : addDescriptors) {
+            // Segregated by device
             URI deviceURI = descr.getDeviceURI();
-            List<URI> volumesToUpdate = deviceURIs.get(deviceURI);
+            Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceToCGMap.get(deviceURI);
+            if (volumesToUpdateByCG == null) {
+                volumesToUpdateByCG = new HashMap<URI, Map<String, List<URI>>>();
+                deviceToCGMap.put(deviceURI, volumesToUpdateByCG);
+            }                        
+            // Segregated by CG
+            URI consistencyGroupURI = descr.getConsistencyGroupURI();  
+            Map<String, List<URI>> volumesToUpdate = volumesToUpdateByCG.get(consistencyGroupURI);
             if (volumesToUpdate == null) {
-                volumesToUpdate = new ArrayList<URI>();
-                deviceURIs.put(deviceURI, volumesToUpdate);
+                volumesToUpdate = new HashMap<String, List<URI>>();
+                volumesToUpdateByCG.put(consistencyGroupURI, volumesToUpdate);
+            }              
+            // Segregated by volumes to ADD
+            List<URI> volumesToAdd = volumesToUpdate.get(addVolumesKey);
+            if (volumesToAdd == null) {
+                volumesToAdd = new ArrayList<URI>();
+                volumesToUpdate.put(addVolumesKey, volumesToAdd);
             }
-            volumesToUpdate.add(volume.getId());
+            volumesToAdd.add(descr.getVolumeURI());            
+        }
+        
+        // Volumes to remove
+        for (VolumeDescriptor descr : removeDescriptors) {                                                
+            // Segregated by device
+            URI deviceURI = descr.getDeviceURI();
+            Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceToCGMap.get(deviceURI);
+            if (volumesToUpdateByCG == null) {
+                volumesToUpdateByCG = new HashMap<URI, Map<String, List<URI>>>();
+                deviceToCGMap.put(deviceURI, volumesToUpdateByCG);
+            }                        
+            // Segregated by CG
+            URI consistencyGroupURI = descr.getConsistencyGroupURI();
+            Map<String, List<URI>> volumesToUpdate = volumesToUpdateByCG.get(consistencyGroupURI);
+            if (volumesToUpdate == null) {
+                volumesToUpdate = new HashMap<String, List<URI>>();
+                volumesToUpdateByCG.put(consistencyGroupURI, volumesToUpdate);
+            }              
+            // Segregated by volumes to REMOVE
+            List<URI> volumesToRemove = volumesToUpdate.get(removeVolumesKey);
+            if (volumesToRemove == null) {
+                volumesToRemove = new ArrayList<URI>();
+                volumesToUpdate.put(removeVolumesKey, volumesToRemove);
+            }
+            volumesToRemove.add(descr.getVolumeURI());            
         }
 
-        for (Map.Entry<URI, List<URI>> entry : deviceURIs.entrySet()) {
-            URI deviceURI = entry.getKey();
-            List<URI> volumesToAdd = entry.getValue();
+        // Distill the steps down to Device -> CG -> ADD and REMOVE volumes
+        for (Map.Entry<URI,  Map<URI, Map<String, List<URI>>>> deviceEntry : deviceToCGMap.entrySet()) {
+            URI deviceURI = deviceEntry.getKey();
+            Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceToCGMap.get(deviceURI);
+            for (Map.Entry<URI, Map<String, List<URI>>> cgEntry : volumesToUpdateByCG.entrySet()) {
+                URI consistencyGroupURI = cgEntry.getKey();                       
+                List<URI> volumesToAdd = cgEntry.getValue().get(addVolumesKey);
+                List<URI> volumesToRemove = cgEntry.getValue().get(removeVolumesKey);
 
-            waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                    String.format("Updating consistency group  %s", consistencyGroupURI), waitFor,
-                    entry.getKey(), getDeviceType(deviceURI),
-                    this.getClass(),
-                    new Workflow.Method("updateConsistencyGroup", deviceURI, consistencyGroupURI, volumesToAdd, null),
-                    null, null);
-            _log.info(String.format("Step created for adding volumes [%s] to CG [%s] on device [%s]",
-                    Joiner.on("\t").join(volumesToAdd),
-                    consistencyGroup.getLabel(),
-                    deviceURI));
+                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                        String.format("Updating consistency group  %s", consistencyGroupURI), waitFor,
+                        deviceURI, getDeviceType(deviceURI),
+                        this.getClass(),
+                        new Workflow.Method("updateConsistencyGroup", deviceURI, consistencyGroupURI, volumesToAdd, volumesToRemove),
+                        null, null);
+                _log.info(String.format("Step created for adding volumes [%s] to CG [%s] on device [%s]",
+                        Joiner.on("\t").join(volumesToAdd),
+                        consistencyGroupURI,
+                        deviceURI));
+            }
         }
 
         return waitFor;
@@ -3616,7 +3674,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (addVolumesList != null && !addVolumesList.isEmpty()) {
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                        String.format("Updating consistency group %s", consistencyGroup),
+                        String.format("Adding volumes to consistency group %s", consistencyGroup),
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
                         addToConsistencyGroupMethod(storage, consistencyGroup, addVolumesList),
@@ -3625,7 +3683,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (removeVolumesList != null && !removeVolumesList.isEmpty()) {
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                        String.format("Updating consistency group %s", consistencyGroup),
+                        String.format("Removing volumes from consistency group %s", consistencyGroup),
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
                         removeFromConsistencyGroupMethod(storage, consistencyGroup, removeVolumesList),

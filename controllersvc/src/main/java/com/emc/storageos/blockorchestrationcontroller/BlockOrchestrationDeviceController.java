@@ -494,7 +494,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     "postRPChangeVpoolCreateCG");
 
             // Add a step to update the local array consistency group with the volumes to add
-            waitFor = _blockDeviceController.addStepsForAddToConsistencyGroup(workflow, waitFor, blockDataDescriptors);
+            waitFor = _blockDeviceController.addStepsForUpdateConsistencyGroup(workflow, waitFor, blockDataDescriptors, null);
         }
 
         return waitFor;

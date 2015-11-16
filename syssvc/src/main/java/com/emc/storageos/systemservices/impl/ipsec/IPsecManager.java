@@ -140,6 +140,7 @@ public class IPsecManager {
                     log.info("Failed to collect ipsec config version from {}. Just set to null", ip);
                     nodeState.setVersion(null);
                 }
+                nodeStatus.add(nodeState);
             }
         }
 

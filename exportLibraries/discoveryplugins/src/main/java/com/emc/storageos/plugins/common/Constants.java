@@ -127,7 +127,7 @@ public class Constants {
     public static final String VNXPOOLSETTINGS = "vnxpoolsettings";
     public static final String VNXPOOLSETTINGINSTANCES = "vnxpoolsettinginstances";
     public static final String VNXPOOLCAPABILITIES_TIER = "vnxpoolcapabilities_tier";
-    public static final String HYPEN = "-";
+    public static final String HYPHEN = "-";
     public static final String PLUS = "+";
     public static final String SYMMETRIX_U = "SYMMETRIX";
     public static final String INSTANCEID = "InstanceID";

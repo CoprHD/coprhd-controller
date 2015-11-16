@@ -3,8 +3,9 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.systemservices.impl.jobs;
+package com.emc.storageos.systemservices.impl.jobs.common;
 
+import java.io.Serializable;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -17,11 +18,11 @@ import org.apache.curator.framework.recipes.queue.QueueSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DbConsistencyJobSerializer implements QueueSerializer<DbConsistencyJob> {
-    private static final Logger log = LoggerFactory.getLogger(DbConsistencyJobSerializer.class);
+public class JobSerializer implements QueueSerializer<Serializable> {
+    private static final Logger log = LoggerFactory.getLogger(JobSerializer.class);
 
     @Override
-    public byte[] serialize(DbConsistencyJob item) {
+    public byte[] serialize(Serializable item) {
         byte[] Objbytes = null;
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutput out = null;
@@ -43,7 +44,7 @@ public class DbConsistencyJobSerializer implements QueueSerializer<DbConsistency
     }
 
     @Override
-    public DbConsistencyJob deserialize(byte[] bytes) {
+    public Serializable deserialize(byte[] bytes) {
         Object job = null;
         ByteArrayInputStream bis = null;
         ObjectInput in = null;
@@ -61,7 +62,7 @@ public class DbConsistencyJobSerializer implements QueueSerializer<DbConsistency
                 log.error("Error while closing Streams ", e);
             }
         }
-        return (DbConsistencyJob) job;
+        return (Serializable) job;
     }
 
 }

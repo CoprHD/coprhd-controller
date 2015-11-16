@@ -159,8 +159,27 @@ task myCopy(type: Copy) {
     
 }
 
+task messagesCopy(type: Copy) {
+    from file('conf/')
+    into file("${play.compileDir}/conf")
 
-task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare, myCopy]) {
+    include ('messages')
+
+    //rename ('main.less', 'tempMain.less')
+
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+        // Use a closure to remove lines
+        filter { String line ->
+            if(line.contains('ViPR '))
+            {
+                line.replaceAll('ViPR ', "CoprHD");
+            }
+        }
+    }
+
+}
+
+task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare, myCopy, messagesCopy]) {
     compress = true
     sourceFile file("${play.compileDir}/public/stylesheets/tempMain.less")
     destinationFile file("${play.compileDir}/public/stylesheets/main.css")

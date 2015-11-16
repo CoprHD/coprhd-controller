@@ -185,9 +185,8 @@ public class MiscService extends TaskResourceService {
     @Path("/os-volume-transfer/detail")	
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})        
     public Response getVolumeTransfers(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
-        _log.info("RAG START getVolumeTransfers");
         CinderOsVolumeTransferRestResp volTransferResp = new CinderOsVolumeTransferRestResp();
-        //Todo
+        //ToDo
         // need to support You can transfer a volume from one owner to another by using the cinder transfer* commands
         // this involves Create a volume transfer request,  Accept a volume transfer request
         // and Delete a volume transfer
@@ -208,7 +207,6 @@ public class MiscService extends TaskResourceService {
     @Path("/os-services")	
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})        
     public Response getOsServices(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
-        _log.info("RAG START getOsServices");       
         //ToDo
         // need to support system Information os-service
 

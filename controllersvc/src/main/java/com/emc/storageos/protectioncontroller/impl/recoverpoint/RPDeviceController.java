@@ -661,9 +661,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return addExportRemoveVolumesSteps(workflow, waitFor, rpVolumes);
     }
 
-    @Override
+
+    /**
+     * RP Specific steps to perform after a volume has been deleted
+     * 
+     * @param workflow - a Workflow that is being constructed
+     * @param waitFor -- The String key that should be used for waiting on previous steps in Workflow.createStep
+     * @param volumes -- The entire list of VolumeDescriptors for this request (all technologies).
+     * @param taskId -- The top level operation's taskId
+     * @param completer -- The completer for the entire workflow.
+     * @param blockDeviceController -- Reference to a BlockDeviceController, used for specific 
+     *                                 steps on the volumes not covered by RP but required for the operation to be complete.
+     * @return A waitFor key that can be used by subsequent controllers to wait on
+     *         the Steps created by this controller.
+     * @throws InternalException
+     */
     public String addStepsForPostDeleteVolumes(Workflow workflow,
-            String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId, VolumeWorkflowCompleter completer) throws InternalException {
+            String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId, VolumeWorkflowCompleter completer, 
+            BlockDeviceController blockDeviceController) throws InternalException {
         // Filter to get only the RP volumes.
         List<VolumeDescriptor> rpSourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
@@ -673,8 +688,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         if (rpSourceDescriptors.isEmpty()) {
             return waitFor;
         }
-                                
-        waitFor = addRemoveProtectionOnVolumeStep(workflow, waitFor, rpSourceDescriptors, taskId);          
+                                        
+        waitFor = addRemoveProtectionOnVolumeStep(workflow, waitFor, rpSourceDescriptors, taskId, blockDeviceController);          
 
         // Lock the CG (no-op for non-CG)
         // May be more appropriate in block orchestrator's deleteVolume, but I preferred it here
@@ -5555,10 +5570,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param waitFor The previous waitFor step ID or Group
      * @param volumeDescriptors RP Source volume descriptors
      * @param taskId The Task ID
+     * @param blockDeviceController Reference to a BlockDeviceController, used for specific steps on 
+     *                              the volumes not covered by RP but required for the operation to be complete.
      * @return The next waitFor step ID or Group
      */
     private String addRemoveProtectionOnVolumeStep(Workflow workflow, String waitFor, 
-            List<VolumeDescriptor> volumeDescriptors, String taskId) {
+            List<VolumeDescriptor> volumeDescriptors, String taskId, BlockDeviceController blockDeviceController) {
         List<URI> volumeURIs = new ArrayList<URI>();
         URI newVpoolURI = null;
         for (VolumeDescriptor descriptor : volumeDescriptors) {
@@ -5575,6 +5592,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         if (volumeURIs.isEmpty()) {
             return waitFor;
         }
+        
+        // Next, call the BlockDeviceController to perform untag operations.
+        waitFor = blockDeviceController.addStepsForUntagVolumes(workflow, waitFor, volumeDescriptors, taskId);
         
         // Grab any volume from the list so we can grab the protection system. This 
         // request could be over multiple protection systems but we don't really

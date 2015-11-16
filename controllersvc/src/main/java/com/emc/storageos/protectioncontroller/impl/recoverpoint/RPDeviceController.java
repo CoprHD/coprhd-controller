@@ -661,6 +661,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return addExportRemoveVolumesSteps(workflow, waitFor, rpVolumes);
     }
 
+    @Override
+    public String addStepsForPostDeleteVolumes(Workflow workflow,
+            String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId, VolumeWorkflowCompleter completer)
+            throws InternalException {
+        return waitFor;
+    }
 
     /**
      * RP Specific steps to perform after a volume has been deleted

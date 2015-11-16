@@ -3397,9 +3397,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 result =false;
                 break;
             }
-            if ((replicationGroup != null && rpName != null && !replicationGroup.equals(rpName)) ||
-                    (replicationGroup == null && rpName != null) ||
-                    (replicationGroup != null && rpName == null)) {
+            if (rpName == null || !replicationGroup.equals(rpName)) {
                 result = false;
                 break;
             }

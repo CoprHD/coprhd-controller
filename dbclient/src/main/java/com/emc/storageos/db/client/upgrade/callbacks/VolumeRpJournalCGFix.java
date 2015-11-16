@@ -117,7 +117,7 @@ public class VolumeRpJournalCGFix extends BaseCustomMigrationCallback {
                 volsToUpdate.add(vol);
 
                 // look for associated volumes and update those as well (means this journal volume is a vplex virtual volume)
-                if (vol.getAssociatedVolumes() != null || !vol.getAssociatedVolumes().isEmpty()) {
+                if (vol.getAssociatedVolumes() != null && !vol.getAssociatedVolumes().isEmpty()) {
                     for (String volId : vol.getAssociatedVolumes()) {
                         Volume assocVol = getDbClient().queryObject(Volume.class, URI.create(volId));
                         if (assocVol != null && !assocVol.getInactive()) {

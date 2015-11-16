@@ -48,15 +48,14 @@ public class VplexVolumesInCGMigration extends BaseCustomMigrationCallback {
             URI storageUri = volume.getStorageController();
             if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
-                if (cg == null) {
+                StorageSystem system = dbClient.queryObject(StorageSystem.class, storageUri);
+                if (cg == null || system == null) {
                     continue;
                 }
-                StorageSystem system = dbClient.queryObject(StorageSystem.class, storageUri);
                 if (system.getSystemType().equals(DiscoveredDataObject.Type.vplex.name()) &&
                         cg.checkForType(Types.LOCAL)) {
                     StringSet associatedVolumeIds = volume.getAssociatedVolumes();
-                   
-                    // Get the backend volume either source or ha.
+                    // Update the backend volumes
                     for (String associatedVolumeId : associatedVolumeIds) {
                         Volume backendVol = dbClient.queryObject(Volume.class,
                                 URI.create(associatedVolumeId));

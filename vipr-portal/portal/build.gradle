@@ -143,8 +143,12 @@ clean.dependsOn('cleanUnpackWebjars')
 
 
 task myCopy(type: Copy) {
-    from file('public/stylesheets/main.less')
-    into file("${play.compileDir}/public/stylesheets/main.less")
+    from file('public/stylesheets/')
+    into file("${play.compileDir}/public/stylesheets/")
+
+    include ('main.less')
+
+    rename ('main.less', 'tempMain.less')
 
     if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
         // Use a closure to remove lines
@@ -158,7 +162,7 @@ task myCopy(type: Copy) {
 
 task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare, myCopy]) {
     compress = true
-    sourceFile file("${play.compileDir}/public/stylesheets/main.less")
+    sourceFile file("${play.compileDir}/public/stylesheets/tempMain.less")
     destinationFile file("${play.compileDir}/public/stylesheets/main.css")
 }
 playCompile.dependsOn(compileCss)

@@ -3276,9 +3276,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public void verifyAddVolumeToCG(Volume volume, BlockConsistencyGroup cg,
             List<Volume> cgVolumes, StorageSystem cgStorageSystem) {
         super.verifyAddVolumeToCG(volume, cg, cgVolumes, cgStorageSystem);
-        
-        Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
-        verifyIfVolumeHasMultipleReplicas(backendVolume);
 
         // We will not allow a VPLEX volume that was created using the target
         // volume of a block snapshot to be added to a consistency group.
@@ -3297,6 +3294,21 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 throw APIException.badRequests.notAllowedAddVolumeToCGWithIngestedVolumes();
             }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG) {
+        // Get all backend volumes
+        List<Volume> backendVolumes = new ArrayList<Volume>();
+        for (Volume volume : volumes) {
+            backendVolumes.add(VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient));
+        }
+
+        // Verify replica count
+        super.verifyReplicaCount(backendVolumes, cgVolumes, volsAlreadyInCG);
     }
 
     private void checkIfClusterIsUnknown(String cluster, String varrayURI, String vplexStorageSystemURI) {

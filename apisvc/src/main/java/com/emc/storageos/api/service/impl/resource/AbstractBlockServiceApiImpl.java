@@ -82,6 +82,7 @@ import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
@@ -1525,47 +1526,99 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
         // Don't allow partially ingested volume to be added to CG.
         BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
-
-        // Don't allow volume with multiple replicas
-        // Currently we do not have a way to group replicas based on their time stamp
-        // and put them into different groups on array.
-        verifyIfVolumeHasMultipleReplicas(volume);
     }
 
     /**
-     * Verify if volume has multiple replicas (snapshots/clones/mirrors).
-     * This is not yet supported via add Volume/Replica to CG.
-     * 
-     * @param volume the volume
+     * {@inheritDoc}
      */
-    protected void verifyIfVolumeHasMultipleReplicas(Volume volume) {
-        // multiple snapshot check
-        URIQueryResultList list = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
-                list);
-        Iterator<URI> it = list.iterator();
-        int snapCount = 0;
-        while (it.hasNext()) {
-            it.next();
-            snapCount++;
-        }
-        if (snapCount > 1) {
-            throw APIException.badRequests
-                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "snapshots");
+    @Override
+    public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG) {
+        /*
+         * For VMAX, volumes to be added can have replicas only if
+         *    1. CG has no existing volumes, and
+         *    2. SMI-S 8.x
+         * For other arrays, or VMAX (CG has existing volumes, or non SMI-S 8.x), volumes to be added cannot have replicas
+         */
+        boolean isReplicaAllowed = false;
+        if ((volsAlreadyInCG || cgVolumes.isEmpty()) && ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient)) {
+            isReplicaAllowed = true;
         }
 
-        // multiple clone check
-        StringSet fullCopies = volume.getFullCopies();
-        if (fullCopies != null && fullCopies.size() > 1) {
-            throw APIException.badRequests
-                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "full copies");
-        }
+        int knownSnapCount = -1;
+        int knownCloneCount = -1;
+        int knownMirrorCount = -1;
+        for (Volume volume : volumes) {
+            // snapshot check
+            URIQueryResultList list = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
+                    list);
+            Iterator<URI> it = list.iterator();
+            int snapCount = 0;
+            while (it.hasNext()) {
+                it.next();
+                snapCount++;
+            }
 
-        // multiple mirror check
-        StringSet mirrors = volume.getMirrors();
-        if (mirrors != null && mirrors.size() > 1) {
-            throw APIException.badRequests
-                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "mirrors");
+            if (!isReplicaAllowed && snapCount > 0) {
+                throw APIException.badRequests
+                        .volumesWithReplicaCannotBeAdded(volume.getLabel(), "snapshots");
+            }
+
+            // Don't allow volume with multiple replicas
+            // Currently we do not have a way to group replicas based on their time stamp
+            // and put them into different groups on array.
+            if (snapCount > 1) {
+                throw APIException.badRequests
+                        .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "snapshots");
+            }
+
+            // Volume should have same number of replicas with other volumes
+            if (knownSnapCount != -1 && snapCount != knownSnapCount) {
+                throw APIException.badRequests
+                        .volumeWithDifferentNumberOfReplicasCannotBeAdded(volume.getLabel(), "snapshots");
+            }
+
+            // clone check
+            StringSet fullCopies = volume.getFullCopies();
+            int cloneCount = fullCopies == null ? 0 : fullCopies.size();
+
+            if (!isReplicaAllowed && cloneCount > 0) {
+                throw APIException.badRequests
+                        .volumesWithReplicaCannotBeAdded(volume.getLabel(), "full copies");
+            }
+
+            if (cloneCount > 1) {
+                throw APIException.badRequests
+                        .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "full copies");
+            }
+
+            if (knownCloneCount != -1 && cloneCount != knownCloneCount) {
+                throw APIException.badRequests
+                        .volumeWithDifferentNumberOfReplicasCannotBeAdded(volume.getLabel(), "full copies");
+            }
+
+            // mirror check
+            StringSet mirrors = volume.getMirrors();
+            int mirrorCount = mirrors == null ? 0 : mirrors.size();
+
+            if (!isReplicaAllowed && mirrorCount > 0) {
+                throw APIException.badRequests
+                        .volumesWithReplicaCannotBeAdded(volume.getLabel(), "mirrors");
+            }
+
+            if (mirrorCount > 1) {
+                throw APIException.badRequests
+                        .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "mirrors");
+            }
+
+            if (knownMirrorCount != -1 && mirrorCount != knownMirrorCount) {
+                throw APIException.badRequests
+                        .volumeWithDifferentNumberOfReplicasCannotBeAdded(volume.getLabel(), "mirrors");
+            }
+
+            knownSnapCount = snapCount;
+            knownCloneCount = cloneCount;
+            knownMirrorCount = mirrorCount;
         }
     }
 

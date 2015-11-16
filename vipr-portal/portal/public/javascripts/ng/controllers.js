@@ -393,9 +393,20 @@ angular.module("portalApp").controller({
        }
     },
     AssociateProjectCtrl: function($scope, $http, $window, translate) {
+    	
+    	var resetModal = function() {
+    		$scope.associateForm = {};
+    		$scope.tenant = {};
+    		$scope.project = {};
+    	}
+    	
     	$scope.populateModal = function(ids) {
+    		
+    		resetModal();
     		$scope.nasIds = ids;
     		$scope.projectOptions = [];
+    		$scope.projectTenantOptions = [];
+    		
             $http.get(routes.StorageSystems_getProjectsForNas()).success(function(data) {
             	$scope.projectTenantOptions = data;
             });

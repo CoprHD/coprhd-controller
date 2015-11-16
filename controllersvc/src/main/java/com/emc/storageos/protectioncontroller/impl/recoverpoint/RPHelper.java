@@ -320,6 +320,9 @@ public class RPHelper {
                     if (!NullColumnValueGetter.isNullURI(volToDelete.getRpJournalVolume())) {
                         journalVols.add(volToDelete.getRpJournalVolume());
                     }
+                    if (!NullColumnValueGetter.isNullURI(volToDelete.getSecondaryRpJournalVolume())) {
+                        journalVols.add(volToDelete.getSecondaryRpJournalVolume());
+                    }
                 }
 
                 _log.info(String
@@ -1727,16 +1730,17 @@ public class RPHelper {
             if (RPHelper.isVPlexVolume(volume)) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                    if (associatedVolume != null
-                            && !associatedVolume.getInactive()
-                            && !NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
-                            && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
-                        associatedVolume.setVirtualPool(oldVpool.getId());
-                        dbClient.updateObject(associatedVolume);
-                        _log.info(String.format("Backing volume [%s] has had it's virtual pool rolled back to [%s].",
-                                associatedVolume.getLabel(),
-                                oldVpool.getLabel()));
-                    }
+                    if (associatedVolume != null && !associatedVolume.getInactive()) {                                            
+                        if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
+                                && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
+                            associatedVolume.setVirtualPool(oldVpool.getId());                                                
+                            _log.info(String.format("Backing volume [%s] has had it's virtual pool rolled back to [%s].",
+                                        associatedVolume.getLabel(),
+                                        oldVpool.getLabel()));
+                        }
+                        associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                        dbClient.updateObject(associatedVolume);                    
+                    }                    
                 }
             }
 

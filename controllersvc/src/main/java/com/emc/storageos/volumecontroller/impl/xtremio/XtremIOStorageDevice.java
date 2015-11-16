@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -38,6 +39,7 @@ import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -103,10 +105,18 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             boolean isCG = false;
             Volume vol = volumes.get(0);
             // If the volume is regular volume and in CG
-            if (vol.getConsistencyGroup() != null && !vol.checkForRp()) {
+            if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {                
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
-                isCG = true;
+                if (cgObj != null 
+                        && cgObj.created(storage.getId())
+                        && !vol.checkForRp()) {     
+                    // Only set this flag to true if the CG reference is valid
+                    // and it is already created on the storage system.
+                    // Also, exclude RP volumes.
+                    isCG = true;
+                } 
             }
+            
             // find the project this volume belongs to.
             URI projectUri = volumes.get(0).getProject().getURI();
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
@@ -157,7 +167,10 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     // For version 2, tag the created volume
                     if (isVersion2) {
                         client.tagObject(volumesFolderName, XTREMIO_ENTITY_TYPE.Volume.name(), volume.getLabel(), clusterName);
-                        if (isCG) {
+                        // Do not add RP+VPlex journal or target backing volumes to consistency groups.
+                        // This causes issues with local array snapshots of RP+VPlex volumes.
+                        if (isCG && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
+                                        PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
                             client.addVolumeToConsistencyGroup(volume.getLabel(), cgObj.getLabel(), clusterName);
                         }
                     }
@@ -620,10 +633,20 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             List<BlockObject> updatedBlockObjects = new ArrayList<BlockObject>();
             for (URI uri : blockObjects) {
                 BlockObject blockObject = BlockObject.fetch(dbClient, uri);
-                if (blockObject != null) {
+                if (blockObject != null) {                    
+                    if (blockObject.getClass().isInstance(Volume.class)) {
+                        Volume volume = (Volume)blockObject;
+                        if (volume.checkForRp() 
+                                || RPHelper.isAssociatedToRpVplexType(volume, dbClient,
+                                        PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
+                            // Do not add RP+VPlex journal or target backing volumes to consistency groups.
+                            // This causes issues with local array snapshots of RP+VPlex volumes.
+                            continue;
+                        }
+                    }
                     client.addVolumeToConsistencyGroup(blockObject.getLabel(), consistencyGroup.getLabel(), clusterName);
                     blockObject.setConsistencyGroup(consistencyGroupId);
-                    updatedBlockObjects.add(blockObject);
+                    updatedBlockObjects.add(blockObject);                    
                 }
             }
             dbClient.updateAndReindexObject(updatedBlockObjects);

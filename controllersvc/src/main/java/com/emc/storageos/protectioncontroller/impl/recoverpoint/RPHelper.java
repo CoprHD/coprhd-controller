@@ -229,7 +229,7 @@ public class RPHelper {
         _log.info(String.format("Getting all RP volumes to delete for requested list: %s", reqDeleteVolumes));
 
         Set<URI> volumeIDs = new HashSet<URI>();
-        Set<URI> protectionSetIds = new HashSet<URI>();
+        Set<URI> protectionSetIds = new HashSet<URI>();        
 
         Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, reqDeleteVolumes, true);
 
@@ -255,7 +255,7 @@ public class RPHelper {
                 allVolsInRSetURI.add(vol.getId());
 
                 if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
-                    cgURI = vol.getConsistencyGroup();
+                	cgURI = vol.getConsistencyGroup();
                 }
 
                 if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
@@ -263,7 +263,7 @@ public class RPHelper {
                     // find any stale volume references
                     protectionSetIds.add(vol.getProtectionSet().getURI());
                 }
-            }
+            }                        
 
             // Add the replication set volume IDs to the list of volumes to be deleted
             _log.info(String.format("Adding volume %s to the list of volumes to be deleted", allVolsInRSetURI.toString()));
@@ -275,22 +275,24 @@ public class RPHelper {
                 if (cgsToVolumesForDelete.get(cgURI) == null) {
                     cgsToVolumesForDelete.put(cgURI, new HashSet<URI>());
                 }
-                cgsToVolumesForDelete.get(cgURI).addAll(allVolsInRSetURI);
+                cgsToVolumesForDelete.get(cgURI).addAll(allVolsInRSetURI);               
             } else {
                 _log.warn(String
                         .format("Unable to find a valid CG for replication set volumes %s. Unable to determine if the entire CG is being deleted as part of this request.",
                                 allVolsInRSetURI.toString()));
             }
         }
-
-        // if we're deleting all of the volumes in this consistency group, we can add the journal volumes
+        
+        // Determine if we're deleting all of the volumes in this consistency group
         for (Map.Entry<URI, Set<URI>> cgToVolumesForDelete : cgsToVolumesForDelete.entrySet()) {
-            List<Volume> cgVolumes = getCgVolumes(cgToVolumesForDelete.getKey(), _dbClient);
-
+        	BlockConsistencyGroup cg = null;
+        	URI cgURI = cgToVolumesForDelete.getKey();
+            cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+        	List<Volume> cgVolumes = getCgVolumes(cgURI, _dbClient);                        
+            
             // determine if all of the source and target volumes in the consistency group are on the list
             // of volumes to delete; if so, we will add the journal volumes to the list.
             // also create a list of stale volumes to be removed from the protection set
-            Set<URI> journalVols = new HashSet<URI>();
             boolean wholeCG = true;
             if (cgVolumes != null) {
                 for (Volume cgVol : cgVolumes) {
@@ -312,20 +314,25 @@ public class RPHelper {
             }
 
             if (wholeCG) {
-                // Determine all the journals in the CG based on the source/target volume journal
-                // references.
-                Set<URI> cgVolsToDelete = cgToVolumesForDelete.getValue();
-                for (URI volToDeleteUri : cgVolsToDelete) {
-                    Volume volToDelete = _dbClient.queryObject(Volume.class, volToDeleteUri);
-                    if (!NullColumnValueGetter.isNullURI(volToDelete.getRpJournalVolume())) {
-                        journalVols.add(volToDelete.getRpJournalVolume());
+                // We are removing the CG, determine all the journal volumes in it and
+            	// add them to the list of volumes to be removed
+                if (cg != null) {
+                    List<Volume> allJournals = getCgVolumes(cg.getId(), Volume.PersonalityTypes.METADATA.toString());                    
+                    if (allJournals != null && !allJournals.isEmpty()) {
+                    	Set<URI> allJournalURIs = new HashSet<URI> ();
+                    	for (Volume journalVolume : allJournals) {
+                    		allJournalURIs.add(journalVolume.getId());
+                    	}
+                    	_log.info(String
+                    			.format("Determined that this is a request to delete consistency group %s.  Adding journal volumes to the list of volumes to delete: %s",
+                    					cgURI, allJournalURIs.toString()));
+                    	volumeIDs.addAll(allJournalURIs);
                     }
-                }
-
-                _log.info(String
-                        .format("Determined that this is a request to delete consistency group %s.  Adding journal volumes to the list of volumes to delete: %s",
-                                cgToVolumesForDelete.getKey(), journalVols.toString()));
-                volumeIDs.addAll(journalVols);
+                } else {
+                	_log.info(String.format(
+                            "Could not determine journal volumes for consistency group %s .",
+                            cgToVolumesForDelete.getKey()));
+                }                
             } else {
                 _log.info(String.format(
                         "Consistency group %s will not be removed.  Only a subset of the replication sets are being removed.",
@@ -1804,7 +1811,7 @@ public class RPHelper {
 
         return volume;
     }
-
+    
     /**
      * returns the list of journal volumes for one site
      *

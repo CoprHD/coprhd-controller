@@ -2612,7 +2612,7 @@ public class ExportGroupService extends TaskResourceService {
                     // i.e. maskParams.ppi = pathParms.ppi and pathParams.minPath <= maskParams.maxpath <= pathParams.maxPath
                     if (pathParam.getPathsPerInitiator() == maskParam.getPathsPerInitiator() 
                             && (pathParam.getMinPaths() <= maskParam.getMaxPaths() 
-                            && maskParam.getMaxPaths() <= maskParam.getMaxPaths())) {
+                            && maskParam.getMaxPaths() <= pathParam.getMaxPaths())) {
                         _log.info(String.format("Export mask %s is compatible with the requested parameters", 
                                 exportMask.getMaskName()));
                     } else {

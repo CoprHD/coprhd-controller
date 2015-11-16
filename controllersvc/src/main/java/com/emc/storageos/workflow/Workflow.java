@@ -627,16 +627,19 @@ public class Workflow implements Serializable {
     /**
      * Search through the step map and find out if one of the Step has 'methodName'
      * as its Workflow.Method
-     *
+     * 
+     * @param controllerClass [IN] - Controller class for the step we're searching for
+     * @param deviceURI [IN] - Device URI for which the step applies
      * @param methodName [IN] - Workflow.Method.methodName to search for
      *
      * @return true, if there is a Step with Workflow.Method.methodName == 'methodName'
      */
-    public boolean stepMethodHasBeenScheduled(String methodName) {
+    public boolean stepMethodHasBeenScheduled(Class controllerClass, URI deviceURI, String methodName) {
         for (String stepId : getStepMap().keySet()) {
             Step step = getStepMap().get(stepId);
             Workflow.Method method = step.executeMethod;
-            if (method.methodName.equals(methodName)) {
+            if (method.methodName.equals(methodName) && step.controllerName.equals(controllerClass.getName())
+                    && step.deviceURI.equals(deviceURI)) {
                 return true;
             }
         }

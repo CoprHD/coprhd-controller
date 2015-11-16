@@ -53,7 +53,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
@@ -1169,7 +1168,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         waitFor = workflow.createStep(null, name, waitFor, vplexURI, DiscoveredDataObject.Type.vplex.name(),
                 this.getClass(), previousStepWaiter, previousStepWaiter, null);
 
-        if (workflow.stepMethodHasBeenScheduled(FORGET_VOLUMES_METHOD_NAME)) {
+        if (workflow.stepMethodHasBeenScheduled(this.getClass(), vplexURI, FORGET_VOLUMES_METHOD_NAME)) {
             Workflow.Method forgetVolumesWaiter = stepWaiter(FORGET_VOLUMES_METHOD_NAME);
             waitFor = workflow.createStep(null, "Wait for forgetVolumes step", VOLUME_FORGET_STEP, vplexURI,
                     DiscoveredDataObject.Type.vplex.name(), this.getClass(), forgetVolumesWaiter, forgetVolumesWaiter, null);

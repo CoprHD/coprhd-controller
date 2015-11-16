@@ -171,7 +171,7 @@ public class RPUnManagedObjectDiscoverer {
                         log.info("Protection Set {} contains volume {} that is already managed", 
                                 nativeGuid, volume.getWwn());
                         // make sure it's in the UnManagedProtectionSet's ManagedVolume ids
-                        if (!unManagedProtectionSet.getManagedVolumeIds().contains(managedVolume.getId())) {
+                        if (!unManagedProtectionSet.getManagedVolumeIds().contains(managedVolume.getId().toString())) {
                             unManagedProtectionSet.getManagedVolumeIds().add(managedVolume.getId().toString());
                         }
                         
@@ -179,7 +179,7 @@ public class RPUnManagedObjectDiscoverer {
                             log.info("Protection Set {} also has an orphaned UnManagedVolume {} that will be removed",
                                     nativeGuid, unManagedVolume.getLabel());
                             // remove the unManagedVolume from the UnManagedProtectionSet's UnManagedVolume ids
-                            unManagedProtectionSet.getUnManagedVolumeIds().remove(unManagedVolume.getId());
+                            unManagedProtectionSet.getUnManagedVolumeIds().remove(unManagedVolume.getId().toString());
                             unManagedVolumesToDelete.add(unManagedVolume);
                         }
                         
@@ -191,7 +191,7 @@ public class RPUnManagedObjectDiscoverer {
                     log.info("Processing Journal UnManagedVolume {}", unManagedVolume.forDisplay());
                     
                     // Add the unmanaged volume to the list (if it's not there already)
-                    if (!unManagedProtectionSet.getUnManagedVolumeIds().contains(unManagedVolume.getId())) {
+                    if (!unManagedProtectionSet.getUnManagedVolumeIds().contains(unManagedVolume.getId().toString())) {
                         unManagedProtectionSet.getUnManagedVolumeIds().add(unManagedVolume.getId().toString());
                     }
                     
@@ -252,7 +252,7 @@ public class RPUnManagedObjectDiscoverer {
                         log.info("Protection Set {} contains volume {} that is already managed", 
                                 nativeGuid, volume.getWwn());
                         // make sure it's in the UnManagedProtectionSet's ManagedVolume ids
-                        if (!unManagedProtectionSet.getManagedVolumeIds().contains(managedVolume.getId())) {
+                        if (!unManagedProtectionSet.getManagedVolumeIds().contains(managedVolume.getId().toString())) {
                             unManagedProtectionSet.getManagedVolumeIds().add(managedVolume.getId().toString());
                         }
                         
@@ -260,7 +260,7 @@ public class RPUnManagedObjectDiscoverer {
                             log.info("Protection Set {} also has an orphaned UnManagedVolume {} that will be removed",
                                     nativeGuid, unManagedVolume.getLabel());
                             // remove the unManagedVolume from the UnManagedProtectionSet's UnManagedVolume ids
-                            unManagedProtectionSet.getUnManagedVolumeIds().remove(unManagedVolume.getId());
+                            unManagedProtectionSet.getUnManagedVolumeIds().remove(unManagedVolume.getId().toString());
                             unManagedVolumesToDelete.add(unManagedVolume);
                         }
                         
@@ -272,7 +272,7 @@ public class RPUnManagedObjectDiscoverer {
                     log.info("Processing Replication Set UnManagedVolume {}", unManagedVolume.forDisplay());
 
                     // Add the unmanaged volume to the list (if it's not there already)
-                    if (!unManagedProtectionSet.getUnManagedVolumeIds().contains(unManagedVolume.getId())) {
+                    if (!unManagedProtectionSet.getUnManagedVolumeIds().contains(unManagedVolume.getId().toString())) {
                         unManagedProtectionSet.getUnManagedVolumeIds().add(unManagedVolume.getId().toString());
                     }
 

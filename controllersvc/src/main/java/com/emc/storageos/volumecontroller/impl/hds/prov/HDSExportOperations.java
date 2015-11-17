@@ -965,7 +965,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 throw HDSException.exceptions
                         .notAbleToFindHostStorageDomain(systemObjectID);
             }
-            if (null != exportMask && !exportMask.getInactive() && null != hsdList && !hsdList.isEmpty()) {
+            if (null != exportMask && !exportMask.getInactive()) {
                 for (String hsdObjectId : hsdList) {
                     HostStorageDomain hsd = exportMgr.getHostStorageDomain(
                             systemObjectID, hsdObjectId);

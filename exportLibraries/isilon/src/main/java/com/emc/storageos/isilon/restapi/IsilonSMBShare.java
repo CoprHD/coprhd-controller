@@ -204,6 +204,14 @@ public class IsilonSMBShare {
         return this.path;
     }
 
+    public Boolean getInheritablePathAcl() {
+        return this.inheritable_path_acl;
+    }
+
+    public void setInheritablePathAcl(Boolean inheritablePathAcl ) {
+        this.inheritable_path_acl = inheritablePathAcl;
+    }
+    
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("Share ( id: " + id);

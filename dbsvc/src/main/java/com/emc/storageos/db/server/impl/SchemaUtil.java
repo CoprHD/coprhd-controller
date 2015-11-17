@@ -401,12 +401,12 @@ public class SchemaUtil {
     private boolean addNewVdc(Map<String, String> strategyOptions) {
         // no need to add new vdc for local db
         // TODO: need to consider DR in future
-        if (!isGeoDbsvc()) {
+        if (!isGeoDbsvc() || onStandby) {
             return false;
         }
 
         _log.info("vdcList={}", _vdcList);
-        if (!onStandby && _vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
+        if (_vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
             // the current vdc is removed
             strategyOptions.clear();
         }

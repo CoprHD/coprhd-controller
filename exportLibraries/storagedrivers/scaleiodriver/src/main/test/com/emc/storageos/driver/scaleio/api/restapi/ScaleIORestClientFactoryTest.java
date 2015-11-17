@@ -16,6 +16,6 @@ public class ScaleIORestClientFactoryTest {
 
     @Test
     public void testGetClientHandle() throws Exception {
-        System.out.print("test");
+        System.out.print("test git");
     }
 }

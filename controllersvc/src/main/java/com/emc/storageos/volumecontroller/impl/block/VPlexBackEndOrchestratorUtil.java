@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
@@ -28,6 +29,8 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
+import com.emc.storageos.vplex.api.VPlexApiException;
+import com.emc.storageos.vplex.api.VPlexApiExceptions;
 
 public class VPlexBackEndOrchestratorUtil {
     private static final Logger _log = LoggerFactory.getLogger(VPlexBackEndOrchestratorUtil.class);
@@ -188,6 +191,30 @@ public class VPlexBackEndOrchestratorUtil {
             _log.info(String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
                     mask.getMaskName(), ExportUtils.NO_VIPR));
             passed = false;
+        }
+        
+        // Rule 5. Every port in the ExportMask must have the varray in its tagged varray set.
+        StringBuilder portsNotInVarray = new StringBuilder();
+        for (String portId : mask.getStoragePorts()) {
+            StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portId));
+            if (port == null || port.getInactive()) {
+                continue;
+            }
+            // Validate port is tagged for Varray
+            StringSet taggedVarrays = port.getTaggedVirtualArrays();
+            if (taggedVarrays == null || taggedVarrays.isEmpty() 
+                    || !taggedVarrays.contains(varrayURI.toString())) {
+                portsNotInVarray.append(port.getPortName() + " ");
+            }
+        }
+        if (portsNotInVarray.length() > 0) {
+            String virtualArrayName = varrayURI.toString();
+            VirtualArray virtualArray = dbClient.queryObject(VirtualArray.class, varrayURI);
+            if (virtualArray != null) {
+                virtualArrayName = virtualArray.getLabel();
+            }
+            throw VPlexApiException.exceptions.cantUseBackendExportMaskNotAllPortsInVarray(mask.getMaskName(), 
+                    virtualArrayName, portsNotInVarray.toString());
         }
 
         int volumeCount = (mask.getVolumes() != null) ? mask.getVolumes().size() : 0;

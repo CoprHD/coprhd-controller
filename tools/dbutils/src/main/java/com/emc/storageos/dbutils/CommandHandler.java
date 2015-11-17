@@ -13,6 +13,7 @@ import java.util.Map;
 import java.text.SimpleDateFormat;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 
 import org.apache.commons.lang3.StringUtils;
@@ -427,8 +428,8 @@ public abstract class CommandHandler {
         String _owner = null;
         long _timeout = 0;
 
-        Keyspace _keyspace = null;			         // geo keyspace
-        ColumnFamily<String, String> _cf = null;	 // global lock CF
+        Keyspace _keyspace = null;                   // geo keyspace
+        ColumnFamily<String, String> _cf = null;     // global lock CF
 
         public GlobalLockHandler(String[] args) {
             if (args.length < 2) {
@@ -658,30 +659,15 @@ public abstract class CommandHandler {
     }
 
     public static class CheckDBHandler extends CommandHandler {
-        private boolean generateCleanupFile;
         public CheckDBHandler(String[] args) {
-            if (args.length == 2 && Main.GENERATE_CLEANUP_CQL.equals(args[1])) {
-                generateCleanupFile = true;
-            } else {
+            if (args.length != 1) {
                 throw new IllegalArgumentException("Invalid command option. ");
             }
         }
 
         @Override
         public void process(DBClient _client) {
-            if (generateCleanupFile && CleanupFileWriter.existingCleanupFiles()) {
-                System.err.println(String.format(
-                        "When specify %s please make sure you removed the last generated cql files [%s , %s, %s] in current folder.",
-                        Main.GENERATE_CLEANUP_CQL, CleanupFileWriter.CLEANUP_FILE_STORAGEOS,
-                        CleanupFileWriter.CLEANUP_FILE_GEOSTORAGEOS, CleanupFileWriter.CLEANUP_FILE_REBUILD_INDEX));
-                return;
-            }
-            _client.checkDB(generateCleanupFile);
-            try {
-                CleanupFileWriter.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            _client.checkDB();
         }
     }
 
@@ -689,7 +675,7 @@ public abstract class CommandHandler {
         private String rebuildIndexFileName;
         static final String KEY_ID = "id";
         static final String KEY_CFNAME = "cfName";
-        static final String KEY_COMMENT_CHAR = "#";
+        static final String KEY_COMMENT_CHAR = DbCheckerFileWriter.COMMENT_CHAR;
 
         public RebuildIndexHandler(String[] args) {
             if (args.length == 2) {

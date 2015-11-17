@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.hds.HDSException;
-import com.emc.storageos.hds.api.HDSApiClient;
 import com.emc.storageos.hds.model.Add;
 import com.emc.storageos.hds.model.ArrayGroup;
 import com.emc.storageos.hds.model.Delete;
@@ -85,6 +84,7 @@ public class HDSApiVolumeManager {
             attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
             attributeMap.put(HDSConstants.ARRAY_GROUP, arrayGroup);
             attributeMap.put(HDSConstants.ADD, addOp);
+            attributeMap.put(HDSConstants.MODEL, model);
             attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnit);
             String createVolumeInputXML = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.CREATE_THICK_VOLUMES_OP, attributeMap,
@@ -209,18 +209,17 @@ public class HDSApiVolumeManager {
      * @return : asyncMessageId
      * @throws Exception
      */
-    public String modifyVirtualVolume(String systemId, String luObjectId, Long newLUCapacityInBytes) throws Exception {
+    public String modifyVirtualVolume(String systemId, String luObjectId, Long newLUCapacityInBytes, String model) throws Exception {
         Long luCapacityInKB = newLUCapacityInBytes / 1024;
         InputStream responseStream = null;
         String asyncTaskMessageId = null;
-        Object params[] = null;
         try {
             Map<String, Object> attributeMap = new HashMap<String, Object>();
             StorageArray storageArray = new StorageArray(systemId);
             Modify modifyOp = new Modify(HDSConstants.VIRTUALVOLUME, false);
             LogicalUnit logicalUnit = new LogicalUnit(luObjectId, String.valueOf(luCapacityInKB));
             attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
-
+            attributeMap.put(HDSConstants.MODEL, model);
             attributeMap.put(HDSConstants.MODIFY, modifyOp);
             attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnit);
             String modifyVolumeInputXML = InputXMLGenerationClient.getInputXMLString(
@@ -275,8 +274,6 @@ public class HDSApiVolumeManager {
      */
     public String formatLogicalUnit(String systemObjectId, String luObjectId) {
         InputStream responseStream = null;
-        String formatLogicalUnitQueryWithParams = null;
-        Object params[] = null;
         String asyncTaskMessageId = null;
         try {
 
@@ -329,7 +326,7 @@ public class HDSApiVolumeManager {
         return asyncTaskMessageId;
     }
 
-    public String deleteThickLogicalUnits(String systemObjectID, Set<String> logicalUnitIdList)
+    public String deleteThickLogicalUnits(String systemObjectID, Set<String> logicalUnitIdList, String model)
             throws Exception {
         InputStream responseStream = null;
         String asyncTaskMessageId = null;
@@ -347,6 +344,7 @@ public class HDSApiVolumeManager {
             }
             attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
             attributeMap.put(HDSConstants.DELETE, deleteOp);
+            attributeMap.put(HDSConstants.MODEL, model);
             attributeMap.put(HDSConstants.LOGICALUNIT_LIST, luList);
             String deleteVolumesInputXML = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.DELETE_VOLUMES_OP, attributeMap,
@@ -392,7 +390,7 @@ public class HDSApiVolumeManager {
         return asyncTaskMessageId;
     }
 
-    public String deleteThinLogicalUnits(String systemObjectID, Set<String> logicalUnitIdList)
+    public String deleteThinLogicalUnits(String systemObjectID, Set<String> logicalUnitIdList, String model)
             throws Exception {
         InputStream responseStream = null;
         String asyncTaskMessageId = null;
@@ -408,6 +406,7 @@ public class HDSApiVolumeManager {
             }
             attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
             attributeMap.put(HDSConstants.DELETE, deleteOp);
+            attributeMap.put(HDSConstants.MODEL, model);
             attributeMap.put(HDSConstants.LOGICALUNIT_LIST, luList);
             String deleteVolumesInputXML = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.DELETE_VOLUMES_OP, attributeMap,
@@ -492,7 +491,6 @@ public class HDSApiVolumeManager {
      * @throws Exception
      */
     public Pool getStoragePoolInfo(String systemObjectId, String poolObjectId) throws Exception {
-        String poolQueryWithParams = null;
         InputStream responseStream = null;
         Pool storagePool = null;
         String poolMethodType = null;
@@ -565,7 +563,6 @@ public class HDSApiVolumeManager {
      * @throws Exception
      */
     public LogicalUnit getLogicalUnitInfo(String systemObjectId, String logicalUnitObjectId) throws Exception {
-        StringBuilder logicalUnitXMLPart = new StringBuilder();
         InputStream responseStream = null;
         LogicalUnit logicalUnit = null;
 
@@ -653,12 +650,10 @@ public class HDSApiVolumeManager {
     public LogicalUnit releaseLUSE(String systemObjectId, String logicalUnitId) throws Exception {
 
         Map<String, Object> attributeMap = new HashMap<String, Object>();
-        List<LDEV> ldevsList = new LinkedList<LDEV>();
         StorageArray storageArray = new StorageArray(systemObjectId);
         attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
         Add addOp = new Add(HDSConstants.LUSE_TARGET);
         attributeMap.put(HDSConstants.GET, addOp);
-        LogicalUnit lu = new LogicalUnit(logicalUnitId, null);
         attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnitId);
         String releaseLUSEVolumeInputXML = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.RELEASE_LUSE_VOLUME_OP, attributeMap,
@@ -805,7 +800,7 @@ public class HDSApiVolumeManager {
     }
 
     public String modifyThinVolumeTieringPolicy(String systemObjectID, String luObjectID,
-            String ldevObjectID, String tieringPolicyName) {
+            String ldevObjectID, String tieringPolicyName, String model) {
         InputStream responseStream = null;
         String asyncTaskMessageId = null;
         Map<String, Object> attributeMap = new HashMap<String, Object>();
@@ -817,6 +812,7 @@ public class HDSApiVolumeManager {
         ldev.setTierLevel(Integer.parseInt(tieringPolicyName));
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.MODIFY, modifyOp);
+        attributeMap.put(HDSConstants.MODEL, model);
         attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnit);
         attributeMap.put(HDSConstants.LDEV, ldev);
 
@@ -854,12 +850,11 @@ public class HDSApiVolumeManager {
         return asyncTaskMessageId;
     }
 
-    public String createSnapshotVolume(String systemObjectId, Long luCapacityInBytes) throws Exception {
+    public String createSnapshotVolume(String systemObjectId, Long luCapacityInBytes, String model) throws Exception {
 
         Long luCapacityInKB = luCapacityInBytes / 1024;
         InputStream responseStream = null;
         String asyncTaskMessageId = null;
-        Object params[] = null;
 
         try {
             log.info("Creating snapshot with {}KB size on Storage System {}", luCapacityInKB, systemObjectId);
@@ -874,6 +869,7 @@ public class HDSApiVolumeManager {
             logicalUnit.setEmulation(HDSConstants.EMULATION_OPENV);
 
             attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
+            attributeMap.put(HDSConstants.MODEL, model);
             attributeMap.put(HDSConstants.ARRAY_GROUP, arrayGroup);
             attributeMap.put(HDSConstants.ADD, addOp);
             attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnit);
@@ -921,7 +917,7 @@ public class HDSApiVolumeManager {
 
     }
 
-    public String deleteSnapshotVolume(String storageSystemObjId, String logicalUnitObjId)
+    public String deleteSnapshotVolume(String storageSystemObjId, String logicalUnitObjId, String model)
             throws Exception {
 
         String asyncTaskMessageId = null;
@@ -937,6 +933,7 @@ public class HDSApiVolumeManager {
                 logicalUnit.setObjectID(logicalUnitObjId);
 
                 attributeMap.put(HDSConstants.DELETE, deleteOp);
+                attributeMap.put(HDSConstants.MODEL, model);
                 attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
                 attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnit);
 

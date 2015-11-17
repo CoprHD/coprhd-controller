@@ -17,34 +17,36 @@
             lockable: true
         },
 
-        name:{
-            type:"text",
-            validation:{
+        volumes:{
+          type:"table",
+          items:{
+            name:{
+              type:"text",
+              validation:{
                 min:2,
                 max:128
+              }
+            },
+            size:{
+              type:"storageSize",
+              validation:{
+                min:1
+              }
+            },
+            numberOfVolumes:{
+              type:"number",
+              initialValue: "1",
+              validation:{
+                  min:1
+              }
             }
+          }
         },
 
         consistencyGroup:{
             type:"assetType.vipr.consistencyGroup",
             required:false
-        },
-
-        numberOfVolumes:{
-            type:"number",
-            initialValue: "1",
-            validation:{
-                min:1
-            }
-        },
-
-        size:{
-            type:"storageSize",
-            validation:{
-                min:1
-            }
         }
-
     }
 
 }

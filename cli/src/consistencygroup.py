@@ -24,6 +24,7 @@ from project import Project
 import uuid
 import json
 from common import TableGenerator
+from virtualarray import VirtualArray
 
 
 class ConsistencyGroup(object):
@@ -50,6 +51,15 @@ class ConsistencyGroup(object):
         '/block/consistency-groups/search?tag={0}'
     URI_CONSISTENCY_GROUP_TAGS = \
         '/block/consistency-groups/{0}/tags'
+        
+    URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE = \
+        URI_CONSISTENCY_GROUPS_INSTANCE + "/protection/continuous-copies"
+    URI_BLOCK_CONSISTENCY_GROUP_SWAP = \
+        URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/swap"
+    URI_BLOCK_CONSISTENCY_GROUP_FAILOVER = \
+        URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover"
+    URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL = \
+        URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover-cancel"
 
     def __init__(self, ipAddr, port):
         '''
@@ -420,9 +430,60 @@ class ConsistencyGroup(object):
             None, None)
 
         o = common.json_decode(s)
-        return o
-# Consistency Group Create routines
+        return o       
+        
+    def consitencygroup_protection_failover_ops(self, name, project, tenant, copyvarray,
+                                    type="native", op="failover"):
+        '''
+        Failover the consistency group protection
+        Parameters:
+            name        : name of the consistency group
+            project     : name of the project
+            copyvarray  : name of the copy target virtual array
+            type        : type of protection
+        Returns:
+            result of the action.
+        '''
+        group_uri = self.consistencygroup_query(name, project, tenant)
+        body = self.protection_copyparam(copyvarray, type)
 
+        uri = self.URI_BLOCK_CONSISTENCY_GROUP_FAILOVER.format(group_uri)
+        if op == 'failover_cancel':
+            uri = self.URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL.format(
+                     group_uri)
+        elif op == 'swap':
+            uri = self.URI_BLOCK_CONSISTENCY_GROUP_SWAP.format(
+                     group_uri)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            uri,
+            body)
+        return common.json_decode(s)   
+        
+    def protection_copyparam(
+            self, copyvarray, type="native", sync='false'):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = type
+        #true=split
+        if(sync == 'true'):
+            copy['sync'] = "true"
+        else:
+            copy['sync'] = "false"
+        #for rp and srdf target virtual array should be provided
+        from virtualarray import VirtualArray
+        varray_obj = VirtualArray(self.__ipAddr, self.__port)
+        varray_uri = varray_obj.varray_query(copyvarray)
+    
+        copy['copyID'] = varray_uri
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+        return json.dumps(copies_param)               
+        
+# Consistency Group Create routines
 
 def create_parser(subcommand_parsers, common_parser):
     # create command parser
@@ -457,8 +518,7 @@ def consistencygroup_create(args):
     except SOSError as e:
         common.format_err_msg_and_raise("create", "consistency group",
                                         e.err_text, e.err_code)
-# Consistency Group Create routines
-
+# Consistency Group Updates routines
 
 def update_parser(subcommand_parsers, common_parser):
     # update command parser
@@ -513,7 +573,6 @@ def consistencygroup_update(args):
 
 # consistency group Delete routines
 
-
 def delete_parser(subcommand_parsers, common_parser):
     # delete command parser
     delete_parser = subcommand_parsers.add_parser(
@@ -549,8 +608,7 @@ def consistencygroup_delete(args):
         raise SOSError(SOSError.SOS_FAILURE_ERR, "Consistency Group " +
                        args.name + ": Delete failed:\n" + e.err_text)
 
-# consistency group Delete routines
-
+# consistency group List routines
 
 def list_parser(subcommand_parsers, common_parser):
     # list command parser
@@ -614,7 +672,6 @@ def consistencygroup_list(args):
 
 # consistency group Show routines
 
-
 def show_parser(subcommand_parsers, common_parser):
     # show command parser
     show_parser = subcommand_parsers.add_parser(
@@ -659,8 +716,6 @@ def consistencygroup_show(args):
         raise e
 
 # Consistency group snapshot commands
-
-
 def snapshot_parser(subcommand_parsers, common_parser):
     snapshot_parser = subcommand_parsers.add_parser(
         'snapshot', parents=[common_parser],
@@ -900,6 +955,143 @@ def snapshot_restore(args):
     except SOSError as e:
         raise e
 
+# consistency group Protection routines
+
+def failover_parser(subcommand_parsers, common_parser):
+    # consistency group failover parser
+    failover_parser = subcommand_parsers.add_parser(
+        'failover',
+        description='ViPR Consistency group failover CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='failover consistency group')
+    mandatory_args = failover_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<consistencygroupname>',
+                                dest='name',
+                                help='name of Consistency Group ',
+                                required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='name of Project',
+                                required=True)
+    failover_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='container tenant name')
+    mandatory_args.add_argument('-copyvarray', '-cv',
+                               metavar='<copyvarray>',
+                               dest='copyvarray',
+                               help='copy virtual array name',
+                               required=True)
+    failover_parser.add_argument('-type', '-t',
+                               metavar='<type>',
+                               dest='type',
+                               help='type of protection - native, rp, srdf')  
+                               
+    failover_parser.set_defaults(func=failover)
+                         
+def failover_cancel_parser(subcommand_parsers, common_parser):                          
+    # cancel consistency group failover
+    failover_cancel_parser = subcommand_parsers.add_parser(
+        'failover_cancel',
+        description='ViPR Consistency group failover cancel CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='cancel consistency group failover')
+    mandatory_args = failover_cancel_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<consistencygroupname>',
+                                dest='name',
+                                help='name of Consistency Group ',
+                                required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='name of Project',
+                                required=True)
+    failover_cancel_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='container tenant name')
+    mandatory_args.add_argument('-copyvarray', '-cv',
+                               metavar='<copyvarray>',
+                               dest='copyvarray',
+                               help='copy virtual array name',
+                               required=True)
+    failover_cancel_parser.add_argument('-type', '-t',
+                               metavar='<type>',
+                               dest='type',
+                               help='type of protection - native, rp, srdf')   
+                               
+    failover_cancel_parser.set_defaults(func=failover_cancel)                                 
+
+def swap_parser(subcommand_parsers, common_parser): 
+    # swap consistency group protection
+    swap_parser = subcommand_parsers.add_parser(
+        'swap',
+        description='ViPR Consistency group swap protection CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='swap consistency group protection')
+    mandatory_args = swap_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<consistencygroupname>',
+                                dest='name',
+                                help='name of Consistency Group ',
+                                required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='name of Project',
+                                required=True)
+    swap_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='container tenant name')
+    mandatory_args.add_argument('-copyvarray', '-cv',
+                               metavar='<copyvarray>',
+                               dest='copyvarray',
+                               help='copy virtual array name',
+                               required=True)
+    swap_parser.add_argument('-type', '-t',
+                               metavar='<type>',
+                               dest='type',
+                               help='type of protection - native, rp, srdf')     
+                                  
+    swap_parser.set_defaults(func=swap)
+    
+def failover(args):
+    obj = ConsistencyGroup(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
+                                   args.copyvarray, args.type, "failover")
+    except SOSError as e:
+        raise e
+        
+def failover_cancel(args):
+    obj = ConsistencyGroup(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
+                                   args.copyvarray, args.type, "failover_cancel")
+    except SOSError as e:
+        raise e   
+        
+def swap(args):
+    obj = ConsistencyGroup(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
+                                   args.copyvarray, args.type, "swap")
+    except SOSError as e:
+        raise e                    
+
 #
 # consistency Group Main parser routine
 #
@@ -925,13 +1117,21 @@ def consistencygroup_parser(parent_subparser, common_parser):
     # delete command parser
     delete_parser(subcommand_parsers, common_parser)
 
-    # show command parser
+    # list command parser
     list_parser(subcommand_parsers, common_parser)
 
     # show command parser
     show_parser(subcommand_parsers, common_parser)
 
-    # list command parser
-    #snapshot_parser(subcommand_parsers, common_parser)
+    # failover parser
+    failover_parser(subcommand_parsers, common_parser)
+    
+    # cancel failover parser    
+    failover_cancel_parser(subcommand_parsers, common_parser)
+    
+    # swap parser    
+    swap_parser(subcommand_parsers, common_parser)
 
+    # snapshot command parser
+    #snapshot_parser(subcommand_parsers, common_parser)
 

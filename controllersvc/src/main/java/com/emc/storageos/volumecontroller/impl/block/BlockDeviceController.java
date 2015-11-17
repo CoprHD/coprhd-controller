@@ -1507,10 +1507,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_TARGET
                 }, null);
+        // Check to see if there are any volumes flagged to not be fully deleted.
+        // Any flagged volumes will be removed from the list of volumes to delete.
+        List<VolumeDescriptor> descriptorsToRemove = VolumeDescriptor.getDoNotDeleteDescriptors(volumes);
+        volumes.removeAll(descriptorsToRemove);
+        
+        // If there are no volumes, just return
         if (volumes.isEmpty()) {
             return waitFor;
         }
-
+        
         // Segregate by device.
         Map<URI, List<VolumeDescriptor>> deviceMap = VolumeDescriptor.getDeviceMap(volumes);
 
@@ -1560,12 +1566,27 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             while (volumeURIsIter.hasNext()) {
                 URI volumeURI = volumeURIsIter.next();
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                entryLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", volume
-                        .getPool().toString(), volumeURI.toString()));
-                exitLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", volume
-                        .getPool().toString(), volumeURI.toString()));
+                String poolId = NullColumnValueGetter.isNullURI(volume.getPool()) ? "null" : volume.getPool().toString();
+                entryLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
+                exitLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
                 VolumeDeleteCompleter volumeCompleter = new VolumeDeleteCompleter(volumeURI, opId);
                 if (volume.getInactive() == false) {
+                    // It is possible that there is a BlockSnaphot instance that references the
+                    // same device Volume if a VPLEX virtual volume has been created from the
+                    // snapshot. If this is the case then the VPLEX volume is being deleted and
+                    // volume is represents the source side backend volume for that VPLEX volume.
+                    // In this case, we won't delete the backend volume because the volume is
+                    // still a block snapshot target and the deletion would fail. The volume will
+                    // be deleted when the BlockSnapshot instance is deleted. All we want to do is
+                    // mark the Volume instance inactive.
+                    List<BlockSnapshot> snapshots = CustomQueryUtility
+                            .getActiveBlockSnapshotByNativeGuid(_dbClient, volume.getNativeGuid());
+                    if (!snapshots.isEmpty()) {
+                        volume.setInactive(true);
+                        _dbClient.persistObject(volume);
+                        continue;
+                    }
+
                     // Add the volume to the list to delete
                     volumes.add(volume);
                 } else {
@@ -1592,9 +1613,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _log.info(exitLogMsgBuilder.toString());
         } catch (InternalException e) {
             doFailTask(Volume.class, volumeURIs, opId, e);
+            WorkflowStepCompleter.stepFailed(opId, e);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             doFailTask(Volume.class, volumeURIs, opId, serviceError);
+            WorkflowStepCompleter.stepFailed(opId, DeviceControllerException.exceptions.unexpectedCondition(e.getMessage()));
         }
     }
 
@@ -3694,7 +3717,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * 2. Get the target volumes for the SRDF source volumes and adds them to the
      * target consistency group
      * Note: Target CG will be created using source system provider
-     *
+     * 
      * @param sourceCG the source cg
      * @param addVolumesList the add volumes list
      * @param workflow the workflow

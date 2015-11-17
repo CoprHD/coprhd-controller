@@ -695,7 +695,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             return waitFor;
         }
                                         
-        waitFor = addRemoveProtectionOnVolumeStep(workflow, waitFor, rpSourceDescriptors, taskId, blockDeviceController);          
+        waitFor = addRemoveProtectionOnVolumeStep(workflow, waitFor, volumeDescriptors, taskId, blockDeviceController);          
 
         // Lock the CG (no-op for non-CG)
         // May be more appropriate in block orchestrator's deleteVolume, but I preferred it here
@@ -5602,7 +5602,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             List<VolumeDescriptor> volumeDescriptors, String taskId, BlockDeviceController blockDeviceController) {
         List<URI> volumeURIs = new ArrayList<URI>();
         URI newVpoolURI = null;
-        for (VolumeDescriptor descriptor : volumeDescriptors) {
+        
+        // Filter to get only the RP Source volumes.
+        List<VolumeDescriptor> rpSourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
+                new VolumeDescriptor.Type[] {});
+        
+        for (VolumeDescriptor descriptor : rpSourceDescriptors) {
             if (descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null) {
                 // This is a rollback protection operation. We do not want to delete the volume but we do
                 // want to remove protection from it.
@@ -5617,8 +5624,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             return waitFor;
         }
         
-        // Next, call the BlockDeviceController to perform untag operations.
-        waitFor = blockDeviceController.addStepsForUntagVolumes(workflow, waitFor, volumeDescriptors, taskId);
+        // Filter to get only the Block Data volumes
+        List<VolumeDescriptor> blockDataDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
+                new VolumeDescriptor.Type[] {});
+        
+        // Check to see if there are any volumes flagged to not be fully deleted.
+        // These volumes could potentially need to have some untag operation performed 
+        // on the underlying array even though they won't be deleted.
+        List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(blockDataDescriptors); 
+        
+        if (doNotDeleteDescriptors != null && !doNotDeleteDescriptors.isEmpty()) {
+            _log.info(String.format("Adding steps to untag volumes"));
+            // Next, call the BlockDeviceController to perform untag operations.
+            waitFor = blockDeviceController.addStepsForUntagVolumes(workflow, waitFor, doNotDeleteDescriptors, taskId);
+        }
         
         // Grab any volume from the list so we can grab the protection system. This 
         // request could be over multiple protection systems but we don't really

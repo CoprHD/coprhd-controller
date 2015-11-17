@@ -1640,19 +1640,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public String addStepsForUntagVolumes(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
         // The the list of Volumes that the BlockDeviceController needs to process.
-        List<VolumeDescriptor> descriptors = VolumeDescriptor.filterByType(volumes,
+        List<VolumeDescriptor> untagVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] {
-                        VolumeDescriptor.Type.BLOCK_DATA,
-                        VolumeDescriptor.Type.RP_JOURNAL,
-                        VolumeDescriptor.Type.RP_TARGET,
-                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL,
-                        VolumeDescriptor.Type.RP_VPLEX_VIRT_TARGET
-                }, null);
-        
-        // Check to see if there are any volumes flagged to not be fully deleted.
-        // These volumes could potentially need to have some untag operation performed 
-        // on the underlying array even though they won't be deleted.
-        List<VolumeDescriptor> untagVolumeDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(descriptors);                                
+                        VolumeDescriptor.Type.BLOCK_DATA }, null);
         
         // If there are no volumes, just return
         if (untagVolumeDescriptors.isEmpty()) {

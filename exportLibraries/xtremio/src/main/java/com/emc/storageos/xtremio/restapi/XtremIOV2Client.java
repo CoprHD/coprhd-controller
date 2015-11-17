@@ -29,6 +29,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOCluster;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusterInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusters;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroups;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
@@ -153,6 +154,15 @@ public class XtremIOV2Client extends XtremIOClient {
         XtremIOVolumesInfo volumeLinks = getResponseObject(XtremIOVolumesInfo.class, response);
 
         return Arrays.asList(volumeLinks.getVolumeInfo());
+    }
+    
+    @Override
+    public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_V2_CONSISTENCY_GROUPS_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
+        ClientResponse response = get(URI.create(uriString));
+        XtremIOConsistencyGroups cgLinks = getResponseObject(XtremIOConsistencyGroups.class, response);
+        
+        return Arrays.asList(cgLinks.getConsitencyGroupsInfo());
     }
 
     @Override

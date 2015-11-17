@@ -140,7 +140,14 @@ public class XtremIOV1Client extends XtremIOClient {
         return volumeList;
     }
 
+    
+    
     @Override
+	public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception {   	
+    	throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroups");
+	}
+
+	@Override
     public List<XtremIOObjectInfo> getXtremIOVolumeLinks(String clusterName) throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_VOLUMES_URI);
         XtremIOVolumesInfo volumeLinks = getResponseObject(XtremIOVolumesInfo.class, response);

@@ -169,6 +169,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
         String xioClusterName = xtremIOClient.getClusterDetails(storageSystem.getSerialNumber()).getName();
         // get the xtremio volume links and process them in batches
         List<XtremIOObjectInfo> volLinks = xtremIOClient.getXtremIOVolumeLinks(xioClusterName);
+        
+        List<XtremIOObjectInfo> consistencyGroupInfo = xtremIOClient.getXtremIOConsistencyGroups(xioClusterName);
 
         // Get the volume details
         List<List<XtremIOObjectInfo>> volume_partitions = Lists.partition(volLinks, Constants.DEFAULT_PARTITION_SIZE);

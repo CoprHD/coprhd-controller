@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.api.mapper;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -17,6 +19,7 @@ import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -37,6 +40,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TypedRelatedResourceRep;
+import com.emc.storageos.model.application.ApplicationRestRep;
 import com.emc.storageos.model.customconfig.CustomConfigRestRep;
 import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
@@ -259,6 +263,28 @@ public class DbObjectMapper {
         to.setRegistered(from.getRegistered());
         to.setSystemDefault(from.getSystemDefault());
         return to;
+    }
+    
+    /**
+     * Map an application to ApplicationRestRep
+     * @param from application
+     * @return ApplicationRestRep
+     */
+    public static ApplicationRestRep map(Application from) {
+        if ( from == null) {
+            return null;
+        }
+        ApplicationRestRep rep = new ApplicationRestRep();
+        rep.setDescription(from.getDescription());
+        rep.setName(from.getLabel());
+        rep.setId(from.getId());
+        if (from.getProject() != null) {
+            rep.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
+        }
+        if (from.getTenant() != null) {
+            rep.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant().getURI()));
+        }
+        return rep;
     }
 
 }

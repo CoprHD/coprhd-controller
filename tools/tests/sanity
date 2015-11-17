@@ -6380,11 +6380,15 @@ dr_basic_tests()
     echo "---WAIT 30s FOR $primary_site TO STABILIZE---"
     sleep 30
 
+    echo "---WAIT FOR PAUSE $standby_site---"
+    dr waitforstate $standby_site STANDBY_PAUSED 30 1200
+    echo "Pausing dr done"
+
     echo "---RESUME SITE $standby_site---"
     dr resume $standby_site || { echo "resume dr standby site failed."; exit 1; }
 
     echo "---WAIT FOR SYNC $standby_site---"
-    dr waitforstate $standby_site STANDBY_SYNCED 30 600
+    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
     echo "Syncing dr done"
 
     # wait both primary and standby to be stable, ready to do switchover

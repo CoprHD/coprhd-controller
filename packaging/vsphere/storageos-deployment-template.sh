@@ -177,6 +177,8 @@ network_gateway6=${gateway6}
 network_prefix_length=${ipv6_prefix_length}
 network_vip6=${vip6}
 
+ipsec_key_from_ovfenv=${ipsec_key}
+
 node_count=${node_count}"
 }
 
@@ -1226,6 +1228,9 @@ _init_parameters() {
         -clusterversion)
             # comes from the config file of redeploy mode
             cluster_version="${settings[$i]}"
+            ;;
+        -ipsec_key)
+            ipsec_key="${ipsec_key:-${settings[$i]}}"
             ;;
         *)
             _fatal "Unknown option ${option}" ;;

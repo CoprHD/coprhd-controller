@@ -898,7 +898,7 @@
                 <entry key="vmax" value="4"/>
                 <entry key="isilon" value="15"/>
                 <entry key="datadomain" value="32"/>
-                <entry key="vplex" value="4"/>
+                <entry key="vplex" value="10"/>
                 <entry key="mds" value="4"/>
                 <entry key="brocade" value="4"/>
                 <entry key="rp" value="5"/>

@@ -235,7 +235,7 @@ public class BackupService {
         job.setStatus(Status.NOT_STARTED);
         jobProducer.enqueue(job);
 
-        return Response.ok().build();
+        return Response.status(202).build();
     }
 
     @GET

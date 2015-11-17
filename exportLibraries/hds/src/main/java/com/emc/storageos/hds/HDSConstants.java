@@ -162,6 +162,7 @@ public interface HDSConstants {
     String HUS_SERIES_MODEL = "HUS";
     String HITACHI_D800S_MODEL_STR = "D800S";
     String HUSVM_MODEL = "HM700";
+    String VSP_G1000_MODEL = "R800";
     String HUSVM_ARRAYFAMILY_MODEL = "HUS VM";
     String VSP_ARRAYFAMILY_MODEL = "VSP";
     String USPV_ARRAYFAMILY_MODEL = "USP_V";

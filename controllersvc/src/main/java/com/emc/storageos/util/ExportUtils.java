@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -1166,9 +1167,11 @@ public class ExportUtils {
      * @param dbClient an instance of {@link DbClient}
      * @param storageSystemURI the URI of the storage system
      * @param varrayURI the virtual array
+     * @param pathParams ExportPathParams may contain a set of allowable ports. Optional, can be null.
      * @return a list of storage ports that are in good operational status and assigned to the virtual array
      */
-    public static List<StoragePort> getStorageSystemAssignablePorts(DbClient dbClient, URI storageSystemURI, URI varrayURI) {
+    public static List<StoragePort> getStorageSystemAssignablePorts(DbClient dbClient, URI storageSystemURI, 
+            URI varrayURI, ExportPathParams pathParams) {
         URIQueryResultList sports = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.
                 getStorageDeviceStoragePortConstraint(storageSystemURI), sports);
@@ -1176,6 +1179,7 @@ public class ExportUtils {
         List<StoragePort> spList = new ArrayList<StoragePort>();
         List<String> notRegisteredOrOk = new ArrayList<String>();
         List<String> notInVarray = new ArrayList<String>();
+        List<String> notInPathParams = new ArrayList<String>();
         while (it.hasNext()) {
             StoragePort sp = dbClient.queryObject(StoragePort.class, it.next());
             if (sp.getInactive() || sp.getNetwork() == null
@@ -1193,6 +1197,10 @@ public class ExportUtils {
                 _log.debug("Storage port {} not selected because it is not connected " +
                         "or assigned to requested virtual array {}", sp.getNativeGuid(), varrayURI);
                 notInVarray.add(sp.qualifiedPortName());
+            } else if (pathParams != null && !pathParams.getStoragePorts().isEmpty() 
+                    && !pathParams.getStoragePorts().contains(sp.getId().toString())) {
+                _log.debug("Storage port {} not selected because it is not in ExportPathParams port list", sp.getNativeGuid());
+                notInPathParams.add(sp.qualifiedPortName());
             } else {
                 spList.add(sp);
             }
@@ -1205,6 +1213,10 @@ public class ExportUtils {
         if (!notInVarray.isEmpty()) {
             _log.info("Ports not selected because they are not assigned to the requested virtual array: "
                     + varrayURI + " " + Joiner.on(" ").join(notInVarray));
+        }
+        if (!notInPathParams.isEmpty()) {
+            _log.info("Ports not selected because they are not in the ExportPathParams port list: " 
+                    + Joiner.on(" ").join(notInPathParams));
         }
         return spList;
     }

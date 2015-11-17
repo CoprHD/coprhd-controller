@@ -66,7 +66,7 @@ public class CommitedSettingsInstanceProcessor extends PoolProcessor {
             StoragePool pool = checkStoragePoolExistsInDB(poolID, _dbClient, device);
             int tierMethodologyUsedForThisCreatedSetting = Integer
                     .parseInt((String) keyMap.get(poolSettingPath.toString()
-                            + Constants.HYPEN + Constants.TIERMETHODOLOGY));
+                            + Constants.HYPHEN + Constants.TIERMETHODOLOGY));
             if (null != pool) {
                 updatePoolSettingId(tierMethodologyUsedForThisCreatedSetting, pool,
                         poolSettingId);

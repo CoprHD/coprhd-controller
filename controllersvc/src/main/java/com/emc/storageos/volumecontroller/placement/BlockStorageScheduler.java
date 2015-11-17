@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -103,27 +104,28 @@ public class BlockStorageScheduler {
      * @return the ports determined to be usable
      * @throws PlacementException
      */
-    public List<URI> getAllocatableStorageSystemTargetPorts(StorageSystem storage, URI varray, Initiator initiator) {
-        List<URI> sports = new ArrayList<URI>();
-        NetworkLite network = getInitiatorNetwork(initiator, _dbClient);
-        if (network == null) {
-            return sports;
-        }
-        Map<URI, NetworkLite> networkMap = new HashMap<URI, NetworkLite>();
-        networkMap.put(network.getId(), network);
-        StoragePortsAllocator allocator = new StoragePortsAllocator();
-        Set<StoragePort> previouslyAllocatedPorts = new HashSet<StoragePort>();
-        List<URI> orderedNetworks = new ArrayList<URI>();
-        Map<URI, Map<StoragePort, Long>> portUsageMap =
-                computeStoragePortUsageMap(storage.getId(), networkMap, varray, orderedNetworks);
-        if (portUsageMap.get(network.getId()).isEmpty()) {
-            throw PlacementException.exceptions.cannotAllocateRequestedPorts(
-                    network.getLabel(), storage.getNativeGuid(), 1, 0, 0);
-        }
-        sports.addAll(getPortURIs(allocatePortsFromNetwork(storage.getId(), network, varray, 1,
-                portUsageMap.get(network.getId()), allocator, previouslyAllocatedPorts, false)));
-        return sports;
-    }
+    // DEAD CODE? TLW
+//    public List<URI> getAllocatableStorageSystemTargetPorts(StorageSystem storage, URI varray, Initiator initiator) {
+//        List<URI> sports = new ArrayList<URI>();
+//        NetworkLite network = getInitiatorNetwork(initiator, _dbClient);
+//        if (network == null) {
+//            return sports;
+//        }
+//        Map<URI, NetworkLite> networkMap = new HashMap<URI, NetworkLite>();
+//        networkMap.put(network.getId(), network);
+//        StoragePortsAllocator allocator = new StoragePortsAllocator();
+//        Set<StoragePort> previouslyAllocatedPorts = new HashSet<StoragePort>();
+//        List<URI> orderedNetworks = new ArrayList<URI>();
+//        Map<URI, Map<StoragePort, Long>> portUsageMap =
+//                computeStoragePortUsageMap(storage.getId(), networkMap, varray, orderedNetworks);
+//        if (portUsageMap.get(network.getId()).isEmpty()) {
+//            throw PlacementException.exceptions.cannotAllocateRequestedPorts(
+//                    network.getLabel(), storage.getNativeGuid(), 1, 0, 0);
+//        }
+//        sports.addAll(getPortURIs(allocatePortsFromNetwork(storage.getId(), network, varray, 1,
+//                portUsageMap.get(network.getId()), allocator, previouslyAllocatedPorts, false)));
+//        return sports;
+//    }
 
     /**
      * Invoke placement to select storage ports for export, and then
@@ -201,7 +203,7 @@ public class BlockStorageScheduler {
         Map<NetworkLite, List<Initiator>> initiatorsByNetwork = getNewInitiatorsByNetwork(newInitiators, existingZoningMap, _dbClient);
         // Get the storage ports in the storage system that can be used in the initiators networks
         Map<NetworkLite, List<StoragePort>> portsByNetwork =
-                selectStoragePortsInNetworks(system.getId(), initiatorsByNetwork.keySet(), varray);
+                selectStoragePortsInNetworks(system.getId(), initiatorsByNetwork.keySet(), varray, pathParams);
         // allocate ports balancing across networks and considering port metrics
         Map<NetworkLite, List<StoragePort>> allocatedPorts = allocatePorts(system,
                 varray, initiatorsByNetwork, portsByNetwork, volumeURIs, pathParams, existingZoningMap);
@@ -801,13 +803,14 @@ public class BlockStorageScheduler {
      * @return
      * @throws PlacementException
      */
-    private Map<URI, Map<StoragePort, Long>> computeStoragePortUsageMap(
-            URI storageUri, Map<URI, NetworkLite> networkMap, URI varrayURI, List<URI> orderedNetworks)
-            throws PlacementException {
-        Map<NetworkLite, List<StoragePort>> selectedStoragePortsMap =
-                selectStoragePortsInNetworks(storageUri, networkMap.values(), varrayURI);
-        return computeStoragePortUsageMapForPorts(storageUri, networkMap, varrayURI, orderedNetworks, selectedStoragePortsMap);
-    }
+// DEAD CODE ? TLW
+//    private Map<URI, Map<StoragePort, Long>> computeStoragePortUsageMap(
+//            URI storageUri, Map<URI, NetworkLite> networkMap, URI varrayURI, List<URI> orderedNetworks)
+//            throws PlacementException {
+//        Map<NetworkLite, List<StoragePort>> selectedStoragePortsMap =
+//                selectStoragePortsInNetworks(storageUri, networkMap.values(), varrayURI);
+//        return computeStoragePortUsageMapForPorts(storageUri, networkMap, varrayURI, orderedNetworks, selectedStoragePortsMap);
+//    }
 
     /**
      * Inner class for sorting Network Usage.
@@ -1029,13 +1032,16 @@ public class BlockStorageScheduler {
      * @param storageSystemURI The URI of the storage system
      * @param networkURI The URI of the network.
      * @param varrayURI The URI of the virtual array.
+     * @param pathParams The ExportPathParameter settings which may contain a set of allowed ports. 
+     *              Optional, can be null.
      * 
      * @return The list of storage ports.
      */
     public Map<NetworkLite, List<StoragePort>> selectStoragePortsInNetworks(URI storageSystemURI, Collection<NetworkLite> networks,
-            URI varrayURI) {
+            URI varrayURI, ExportPathParams pathParams) {
         Map<NetworkLite, List<StoragePort>> portsInNetwork = new HashMap<NetworkLite, List<StoragePort>>();
-        List<StoragePort> storagePorts = ExportUtils.getStorageSystemAssignablePorts(_dbClient, storageSystemURI, varrayURI);
+        List<StoragePort> storagePorts = ExportUtils.getStorageSystemAssignablePorts(
+                                                _dbClient, storageSystemURI, varrayURI, pathParams);
         for (NetworkLite networkLite : networks) {
             URI networkURI = networkLite.getId();
             _log.info("Selecting ports for network {} {}", networkLite.getLabel(), networkLite.getId());
@@ -1355,21 +1361,21 @@ public class BlockStorageScheduler {
                     hostInitiatorCounts.put(host, newValue);
                     ppi++;
                 }
-                if (ppi > param.pathsPerInitiator) {
-                    param.pathsPerInitiator = ppi;
+                if (ppi > param.getPathsPerInitiator()) {
+                    param.setPathsPerInitiator(ppi);
                 }
             }
             // Return the maximum of any host.
             for (Integer value : hostInitiatorCounts.values()) {
-                if (value > param.maxPaths) {
-                    param.maxPaths = value;
+                if (value > param.getMaxPaths()) {
+                    param.setMaxPaths(value);
                 }
             }
         } else {
             // If there is not a zoning map, we won't change things.
             _log.info(String.format("No zoning map for mask %s (%s), will not change zoning",
                     mask.getMaskName(), mask.getId()));
-            param.maxPaths = Integer.MAX_VALUE;
+            param.setMaxPaths(Integer.MAX_VALUE);
         }
         return param;
     }
@@ -1385,10 +1391,10 @@ public class BlockStorageScheduler {
      * @param overrideNumPaths - if greater than zero, will override the calculation and be returned.
      * @return numPaths
      */
-    public ExportPathParams calculateExportPathParmForVolumes(Collection<URI> blockObjectURIs,
-            Integer overrideNumPaths) {
-        return calculateExportPathParamForVolumes(blockObjectURIs, overrideNumPaths, null);
-    }
+//    public ExportPathParams calculateExportPathParmForVolumes(Collection<URI> blockObjectURIs,
+//            Integer overrideNumPaths) {
+//        return calculateExportPathParamForVolumes(blockObjectURIs, overrideNumPaths, null);
+//    }
 
     /**
      * Given a collection of volume URIs, generates the ExportPathParam
@@ -1401,11 +1407,14 @@ public class BlockStorageScheduler {
      * @param overrideNumPaths - if greater than zero, will override the calculation and be returned.
      * @param storageSystemURI URI of Storage System, if not null, filters out
      *            BlockObjects created on other systems
+     * @param exportGroupURI exportGroupURI
      * @return numPaths
      */
     public ExportPathParams calculateExportPathParamForVolumes(Collection<URI> blockObjectURIs,
-            Integer overrideNumPaths, URI storageSystemURI) {
+            Integer overrideNumPaths, URI storageSystemURI, URI exportGroupURI) {
         ExportPathParams param = new ExportPathParams(0, 0, 0);
+        // Look up the exportGroup
+        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         // If overrideNumPaths is set, do that with pathsPerInitiator=2
         if (overrideNumPaths != null && overrideNumPaths > 0) {
             param = new ExportPathParams(overrideNumPaths, 0, 0);
@@ -1422,9 +1431,20 @@ public class BlockStorageScheduler {
                         !storageSystemURI.equals(blockObject.getStorageController())) {
                     continue;
                 }
-
-                URI vPoolURI = getBlockObjectVPoolURI(blockObject, _dbClient);
-                ExportPathParams volParam = getExportPathParam(blockObject, vPoolURI, _dbClient);
+                
+                ExportPathParams volParam = null;
+                if (exportGroup != null) {
+                    // Check to see if the ExportGroup has path parameters for volume
+                    if (exportGroup.getPathParameters().containsKey(uri.toString())) {
+                        URI exportPathParamsUri = URI.create(exportGroup.getPathParameters().get(uri.toString()));
+                        volParam = _dbClient.queryObject(ExportPathParams.class, exportPathParamsUri);
+                    }
+                }
+                if (volParam == null) {
+                    // Otherwise check use the Vpool path parameters
+                    URI vPoolURI = getBlockObjectVPoolURI(blockObject, _dbClient);
+                    volParam = getExportPathParam(blockObject, vPoolURI, _dbClient);
+                }
                 if (volParam.getMaxPaths() > param.getMaxPaths()) {
                     param = volParam;
                 }
@@ -1501,8 +1521,8 @@ public class BlockStorageScheduler {
     private void validateMinPaths(ExportPathParams pathParams,
             Map<URI, List<Initiator>> hostInitiatorsMap, Map<Initiator, List<StoragePort>> assignments) {
         // Do not validate ExportGroup Initiator type exports
-        if (pathParams.getExportGroupType() == null
-                || pathParams.getExportGroupType().equals(ExportGroup.ExportGroupType.Initiator)) {
+        if (pathParams.returnExportGroupType() == null
+                || pathParams.returnExportGroupType().equals(ExportGroup.ExportGroupType.Initiator)) {
             return;
         }
         for (URI hostURI : hostInitiatorsMap.keySet()) {
@@ -1528,7 +1548,7 @@ public class BlockStorageScheduler {
                 throw PlacementException.exceptions.hostHasFewerThanMinPaths(
                         hostName, hostURI.toString(), totalPorts, pathParams.getMinPaths());
             }
-            if (pathParams.getExportGroupType() == ExportGroupType.Initiator && unassignedInitiators > 0) {
+            if (pathParams.returnExportGroupType() == ExportGroupType.Initiator && unassignedInitiators > 0) {
                 _log.info(String.format("Host %s (%s) has %d initiators that were not assigned ports even though type Initiator",
                         hostName, hostURI, unassignedInitiators));
                 throw PlacementException.exceptions.hostHasUnusedInitiators(hostName, hostURI.toString());
@@ -1544,8 +1564,8 @@ public class BlockStorageScheduler {
      */
     private void validateHACapabilities(ExportPathParams pathParams, Map<Initiator, List<StoragePort>> assignments) {
         // Do not validate ExportGroup Initiator type exports
-        if (pathParams.getExportGroupType() == null
-                || pathParams.getExportGroupType().equals(ExportGroup.ExportGroupType.Initiator)) {
+        if (pathParams.returnExportGroupType() == null
+                || pathParams.returnExportGroupType().equals(ExportGroup.ExportGroupType.Initiator)) {
             return;
         }
         Set<URI> haDomains = null;
@@ -1614,14 +1634,16 @@ public class BlockStorageScheduler {
      * 
      * @param mask -- The ExportMask being manipulated
      * @param varray -- The Virtual Array (normally from the ExportGroup)
+     * @param exportGroupURI -- URI of the ExportGroup
      * 
      *            Assumption: the export mask has up to date initiators and storage ports
      */
-    public void updateZoningMap(ExportMask mask, URI varray) {
+    public void updateZoningMap(ExportMask mask, URI varray, URI exportGroupURI) {
         // Convert the volumes to a Collection.
         List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(mask);
         // Determine the number of paths required for the volumes in the export mask.
-        ExportPathParams pathParams = calculateExportPathParamForVolumes(volumeURIs, 0, mask.getStorageDevice());
+        ExportPathParams pathParams = calculateExportPathParamForVolumes(
+                volumeURIs, 0, mask.getStorageDevice(), exportGroupURI);
         _log.info(String.format("Updating zoning map for ExportMask %s (%s) pathParams %s",
                 mask.getMaskName(), mask.getId(), pathParams.toString()));
 
@@ -1705,13 +1727,13 @@ public class BlockStorageScheduler {
         for (URI networkURI : network2InitiatorsMap.keySet()) {
             for (Initiator initiator : network2InitiatorsMap.get(networkURI)) {
                 StringSet ports = mask.getZoningMap().get(initiator.getId().toString());
-                if ((null == ports) || (ports.size() <= pathParams.pathsPerInitiator)) {
+                if ((null == ports) || (ports.size() <= pathParams.getPathsPerInitiator())) {
                     continue;
                 }
                 _log.info(String.format("Limiting paths for initiator %s to %s; initial ports %s",
-                        initiator.getInitiatorPort(), pathParams.pathsPerInitiator.toString(), ports));
+                        initiator.getInitiatorPort(), pathParams.getPathsPerInitiator().toString(), ports));
                 boolean removedPort = true;
-                outer: while (removedPort && ports.size() > pathParams.pathsPerInitiator) {
+                outer: while (removedPort && ports.size() > pathParams.getPathsPerInitiator()) {
                     // First try not removing an already removed port
                     removedPort = false;
                     for (String port : ports) {
@@ -1737,7 +1759,7 @@ public class BlockStorageScheduler {
         // Now check that the total number of entries is not higher than maxPaths.
         // Remove paths from Networks with the most initiators to the list by removing initiators.
         ExportPathParams currentPathParams = calculateExportPathParamForExportMask(_dbClient, mask);
-        Integer overMaxPaths = currentPathParams.maxPaths - pathParams.maxPaths;
+        Integer overMaxPaths = currentPathParams.getMaxPaths() - pathParams.getMaxPaths();
 
         // Make a sorted map of initiator count to networks.
         SortedMap<Integer, Set<URI>> initiatorCountToNetwork = new TreeMap<Integer, Set<URI>>();
@@ -1786,10 +1808,10 @@ public class BlockStorageScheduler {
             pathCount += ports.size();
         }
         _log.info(String.format("ExportMask %s (%s) pathCount %s", mask.getMaskName(), mask.getId(), pathCount.toString()));
-        if (pathCount < pathParams.minPaths) {
+        if (pathCount < pathParams.getMinPaths()) {
             throw PlacementException.exceptions.cannotAllocateMinPaths(
-                    pathParams.minPaths, initiatorCount,
-                    pathParams.pathsPerInitiator, pathParams.minPaths, pathParams.maxPaths);
+                    pathParams.getMinPaths(), initiatorCount,
+                    pathParams.getPathsPerInitiator(), pathParams.getMinPaths(), pathParams.getMaxPaths());
         }
 
         // Save the updated ExportMask
@@ -1957,7 +1979,7 @@ public class BlockStorageScheduler {
                 // discover existing zones that are for the storage system and varray
                 // At this time we are not discovering routed zones but we will take care of this
                 Collection<StoragePort> ports = ExportUtils.getStorageSystemAssignablePorts(
-                        _dbClient, storage.getId(), virtualArrayUri);
+                        _dbClient, storage.getId(), virtualArrayUri, pathParams);
                 Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(newInitiators, _dbClient);
                 Map<NetworkLite, List<StoragePort>> portByNetwork = ExportUtils.mapStoragePortsToNetworks(ports,
                         initiatorsByNetwork.keySet(), _dbClient);
@@ -2028,7 +2050,7 @@ public class BlockStorageScheduler {
     private ExportPathParams getPrezoningPathParam(URI virtualArrayUri,
             ExportPathParams exportPathParams, StorageSystem storage, boolean backend) {
         ExportPathParams prezoningPathParams = new ExportPathParams(exportPathParams.getMaxPaths(),
-                exportPathParams.getMinPaths(), exportPathParams.getPathsPerInitiator(), exportPathParams.getExportGroupType());
+                exportPathParams.getMinPaths(), exportPathParams.getPathsPerInitiator(), exportPathParams.returnExportGroupType());
         if (!allocateFromPrezonedPortsOnly(virtualArrayUri, null, false)) {
             // If the application is expected to supply missing paths, then the export path needs to be
             // changed to avoid failure on minPath check when prezoned paths do not meet the requirements

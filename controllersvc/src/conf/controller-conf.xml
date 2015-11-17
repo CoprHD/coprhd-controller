@@ -582,6 +582,7 @@
           
     <bean id="isilonDevice" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonFileStorageDevice">
         <property name="isilonApiFactory" ref="isilonapifactory"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
     	<property name="configinfo">
     		<util:map map-class="java.util.HashMap" key-type="java.lang.String" value-type="java.lang.String">
         		<entry key="thresholdsIncludeOverhead" value="true" />
@@ -638,7 +639,7 @@
 		<property name="coordinator" ref="coordinator"/>
       	<property name="workflowService" ref="workflowService" />
       	<property name="rpStatsHelper" ref="rpStatsHelper" />
-        <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
+        <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />        
     </bean>
 
     <bean id="rpcontroller" class="com.emc.storageos.protectioncontroller.impl.RPControllerImpl">

@@ -4,7 +4,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="dbSchemaVersion" class="java.lang.String">
-        <constructor-arg value="2.4"/>
+        <constructor-arg value="2.5"/>
     </bean>
 
     <bean id="dbVersionInfo" class="com.emc.storageos.coordinator.client.model.DbVersionInfo">

@@ -28,6 +28,34 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="createThickVolumes" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,ArrayGroup,LogicalUnit</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Add</name>
+				<model>com.emc.storageos.hds.model.Add</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ArrayGroup</name>
+				<model>com.emc.storageos.hds.model.Pool</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>LogicalUnit</name>
+				<model>com.emc.storageos.hds.model.LogicalUnit</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="createThinVolumes" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,ArrayGroup,LogicalUnit</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -36,6 +64,34 @@
 				<name>APIInfo</name>
 				<properties>version</properties>
 				<values>7.4.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Add</name>
+				<model>com.emc.storageos.hds.model.Add</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ArrayGroup</name>
+				<model>com.emc.storageos.hds.model.Pool</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>LogicalUnit</name>
+				<model>com.emc.storageos.hds.model.LogicalUnit</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
+	<operation name="createThinVolumes" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,ArrayGroup,LogicalUnit</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
 				<name>Add</name>
@@ -88,6 +144,34 @@
 				<name>APIInfo</name>
 				<properties>version</properties>
 				<values>7.4.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Modify</name>
+				<model>com.emc.storageos.hds.model.Modify</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>LogicalUnit</name>
+				<model>com.emc.storageos.hds.model.LogicalUnit</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>LDEV</name>
+				<model>com.emc.storageos.hds.model.LDEV</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
+    <operation name="modifyThinVolume" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Modify,StorageArray,LogicalUnit,LDEV</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
 				<name>Modify</name>
@@ -210,6 +294,32 @@
 				<name>APIInfo</name>
 				<properties>version</properties>
 				<values>7.4.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Delete</name>
+				<model>com.emc.storageos.hds.model.Delete</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>LogicalUnit</name>
+				<model>com.emc.storageos.hds.model.LogicalUnit</model>
+				<childExists>false</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
+	<operation name="deleteVolumes" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,LogicalUnit</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
 				<name>Delete</name>
@@ -426,6 +536,32 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="addPathToHSD" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,Path</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Add</name>
+				<model>com.emc.storageos.hds.model.Add</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Path</name>
+				<model>com.emc.storageos.hds.model.Path</model>
+				<childExists>false</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="getFreeLunInfo" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Get,StorageArray,HostStorageDomain,FreeLUN</xmlElementSequence>
 		<xmlElementsToClose>APIInfo,FreeLUN</xmlElementsToClose>
@@ -476,6 +612,32 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="batchAddInitiatorsToHSDs" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,HostStorageDomain</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Add</name>
+				<model>com.emc.storageos.hds.model.Add</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>HostStorageDomain</name>
+				<model>com.emc.storageos.hds.model.HostStorageDomain</model>
+				<childExists>true</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="addWWNToHSD" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,HostStorageDomain,WorldWideName</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -506,6 +668,36 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="addWWNToHSD" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,HostStorageDomain,WorldWideName</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Add</name>
+				<model>com.emc.storageos.hds.model.Add</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>HostStorageDomain</name>
+				<model>com.emc.storageos.hds.model.HostStorageDomain</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>WorldWideName</name>
+				<model>com.emc.storageos.hds.model.WorldWideName</model>
+				<childExists>false</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="deleteWWNFromHSD" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,HostStorageDomain,WorldWideName</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -514,6 +706,36 @@
 				<name>APIInfo</name>
 				<properties>version</properties>
 				<values>7.4.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Delete</name>
+				<model>com.emc.storageos.hds.model.Delete</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>HostStorageDomain</name>
+				<model>com.emc.storageos.hds.model.HostStorageDomain</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>WorldWideName</name>
+				<model>com.emc.storageos.hds.model.WorldWideName</model>
+				<childExists>false</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
+	<operation name="deleteWWNFromHSD" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,HostStorageDomain,WorldWideName</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
 				<name>Delete</name>
@@ -567,6 +789,36 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="addiSCSINameToHSD" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,HostStorageDomain,ISCSIName</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Add</name>
+				<model>com.emc.storageos.hds.model.Add</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>HostStorageDomain</name>
+				<model>com.emc.storageos.hds.model.HostStorageDomain</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ISCSIName</name>
+				<model>com.emc.storageos.hds.model.ISCSIName</model>
+				<childExists>false</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="removeiSCSINameFromHSD" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,HostStorageDomain,ISCSIName</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -575,6 +827,36 @@
 				<name>APIInfo</name>
 				<properties>version</properties>
 				<values>7.4.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Delete</name>
+				<model>com.emc.storageos.hds.model.Delete</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>HostStorageDomain</name>
+				<model>com.emc.storageos.hds.model.HostStorageDomain</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ISCSIName</name>
+				<model>com.emc.storageos.hds.model.ISCSIName</model>
+				<childExists>false</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
+	<operation name="removeiSCSINameFromHSD" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,HostStorageDomain,ISCSIName</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
 				<name>Delete</name>
@@ -621,6 +903,30 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="addHSDToSystem" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,HostStorageDomain</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Add</name>
+				<model>com.emc.storageos.hds.model.Add</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>HostStorageDomain</name>
+				<model>com.emc.storageos.hds.model.HostStorageDomain</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="batchAddHSDsToSystem" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,HostStorageDomain</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -629,6 +935,32 @@
 				<name>APIInfo</name>
 				<properties>version</properties>
 				<values>7.4.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Add</name>
+				<model>com.emc.storageos.hds.model.Add</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>HostStorageDomain</name>
+				<model>com.emc.storageos.hds.model.HostStorageDomain</model>
+				<childExists>true</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
+	<operation name="batchAddHSDsToSystem" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,HostStorageDomain</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
 				<name>Add</name>
@@ -671,6 +1003,30 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="deleteHSDFromSystem" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,HostStorageDomain</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Delete</name>
+				<model>com.emc.storageos.hds.model.Delete</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>HostStorageDomain</name>
+				<model>com.emc.storageos.hds.model.HostStorageDomain</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="batchDeleteHSDsFromSystem" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,HostStorageDomain</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -697,6 +1053,32 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="batchDeleteHSDsFromSystem" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,HostStorageDomain</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Delete</name>
+				<model>com.emc.storageos.hds.model.Delete</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>HostStorageDomain</name>
+				<model>com.emc.storageos.hds.model.HostStorageDomain</model>
+				<childExists>true</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="deletePathsFromHSD" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,Path</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -705,6 +1087,32 @@
 				<name>APIInfo</name>
 				<properties>version</properties>
 				<values>7.4.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Delete</name>
+				<model>com.emc.storageos.hds.model.Delete</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Path</name>
+				<model>com.emc.storageos.hds.model.Path</model>
+				<childExists>false</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
+	<operation name="deletePathsFromHSD" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,Path</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
 				<name>Delete</name>
@@ -901,6 +1309,30 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="createShadowImagePair" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,ReplicationGroup,ReplicationInfo</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Add</name>
+				<model>com.emc.storageos.hds.model.Add</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ReplicationGroup</name>
+				<model>com.emc.storageos.hds.model.ReplicationGroup</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ReplicationInfo</name>
+				<model>com.emc.storageos.hds.model.ReplicationInfo</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="modifyShadowImagePair" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Modify,ReplicationGroup,ReplicationInfo</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -925,6 +1357,30 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="modifyShadowImagePair" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Modify,ReplicationGroup,ReplicationInfo</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Modify</name>
+				<model>com.emc.storageos.hds.model.Modify</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ReplicationGroup</name>
+				<model>com.emc.storageos.hds.model.ReplicationGroup</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ReplicationInfo</name>
+				<model>com.emc.storageos.hds.model.ReplicationInfo</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="deletePair" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,ReplicationGroup,ReplicationInfo</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -933,6 +1389,30 @@
 				<name>APIInfo</name>
 				<properties>version</properties>
 				<values>7.4.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Delete</name>
+				<model>com.emc.storageos.hds.model.Delete</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ReplicationGroup</name>
+				<model>com.emc.storageos.hds.model.ReplicationGroup</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ReplicationInfo</name>
+				<model>com.emc.storageos.hds.model.ReplicationInfo</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
+	<operation name="deletePair" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,ReplicationGroup,ReplicationInfo</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
 				<name>Delete</name>
@@ -1025,6 +1505,34 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="createThinImagePair" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,Host,SnapshotGroup,ReplicationInfo</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Add</name>
+				<model>com.emc.storageos.hds.model.Add</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Host</name>
+				<model>com.emc.storageos.hds.model.HDSHost</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>SnapshotGroup</name>
+				<model>com.emc.storageos.hds.model.SnapshotGroup</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ReplicationInfo</name>
+				<model>com.emc.storageos.hds.model.ReplicationInfo</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="createSnapshotVolume" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,ArrayGroup,LogicalUnit</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -1033,6 +1541,34 @@
 				<name>APIInfo</name>
 				<properties>version</properties>
 				<values>7.6.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Add</name>
+				<model>com.emc.storageos.hds.model.Add</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ArrayGroup</name>
+				<model>com.emc.storageos.hds.model.ArrayGroup</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>LogicalUnit</name>
+				<model>com.emc.storageos.hds.model.LogicalUnit</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
+	<operation name="createSnapshotVolume" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Add,StorageArray,ArrayGroup,LogicalUnit</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
 				<name>Add</name>
@@ -1081,6 +1617,34 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="restoreThinImagePair" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Modify,Host,SnapshotGroup,ReplicationInfo</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Modify</name>
+				<model>com.emc.storageos.hds.model.Modify</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Host</name>
+				<model>com.emc.storageos.hds.model.HDSHost</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>SnapshotGroup</name>
+				<model>com.emc.storageos.hds.model.SnapshotGroup</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ReplicationInfo</name>
+				<model>com.emc.storageos.hds.model.ReplicationInfo</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="deleteThinImagePair" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,Host,SnapshotGroup,ReplicationInfo</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -1109,6 +1673,34 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="deleteThinImagePair" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,Host,SnapshotGroup,ReplicationInfo</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Delete</name>
+				<model>com.emc.storageos.hds.model.Delete</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Host</name>
+				<model>com.emc.storageos.hds.model.HDSHost</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>SnapshotGroup</name>
+				<model>com.emc.storageos.hds.model.SnapshotGroup</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>ReplicationInfo</name>
+				<model>com.emc.storageos.hds.model.ReplicationInfo</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
 	<operation name="deleteSnapshotVolume" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,LogicalUnit</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
@@ -1117,6 +1709,30 @@
 				<name>APIInfo</name>
 				<properties>version</properties>
 				<values>7.6.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Delete</name>
+				<model>com.emc.storageos.hds.model.Delete</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>LogicalUnit</name>
+				<model>com.emc.storageos.hds.model.LogicalUnit</model>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
+	
+	<operation name="deleteSnapshotVolume" models="VSP G1000">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Delete,StorageArray,LogicalUnit</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>8.0</values>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
 				<name>Delete</name>

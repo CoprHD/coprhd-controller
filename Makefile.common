@@ -85,7 +85,7 @@ endif
             PRODUCT_BRAND ?= ViPR
              PRODUCT_NAME  = $(shell echo "$(PRODUCT_BRAND)" | tr '[A-Z]' '[a-z]')
              PRODUCT_CAPS  = $(shell echo "$(PRODUCT_BRAND)" | tr '[a-z]' '[A-Z]')
-          PRODUCT_VERSION ?= 2.4.0.0
+          PRODUCT_VERSION ?= 2.5.0.0
            PRODUCT_PREFIX  = /opt/storageos
           PRODUCT_ID_TUPLE = "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 

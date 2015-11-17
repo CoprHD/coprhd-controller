@@ -757,29 +757,15 @@ public class BlockFullCopyManager {
      * @return true if the volume can be deleted, false otherwise.
      */
     public boolean volumeCanBeDeleted(Volume volume) {
-        /**
-         * Delete volume api call will delete all its related replicas for VMAX using SMI 8.0.3.
-         * Hence vmax using 8.0.3 can be delete even if volume has replicas.
-         */
-        if (volume.isInCG() && BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
-            return true;
+        if ((BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) ||
+                (BlockFullCopyUtils.isVolumeFullCopySource(volume, _dbClient))) {
+            // Delegate to the platform specific full copy implementation
+            // for the passed volume.
+            BlockFullCopyApi fullCopyApiImpl = getPlatformSpecificFullCopyImpl(volume);
+            return fullCopyApiImpl.volumeCanBeDeleted(volume);
         }
 
-        boolean volumeCanBeDeleted = true;
-
-        // Verify that a volume that is a full copy is detached.
-        if ((BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) &&
-                (!BlockFullCopyUtils.isFullCopyDetached(volume, _dbClient))) {
-            volumeCanBeDeleted = false;
-        }
-
-        // Verify that a volume that is a full copy source is detached
-        // from those full copies.
-        if ((volumeCanBeDeleted) && (BlockFullCopyUtils.isVolumeFullCopySource(volume, _dbClient))) {
-            volumeCanBeDeleted = BlockFullCopyUtils.volumeDetachedFromFullCopies(volume, _dbClient);
-        }
-
-        return volumeCanBeDeleted;
+        return true;
     }
 
     /**

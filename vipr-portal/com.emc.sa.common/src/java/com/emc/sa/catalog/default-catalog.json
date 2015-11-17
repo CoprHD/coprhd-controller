@@ -142,6 +142,10 @@
         {
           "image": "Service_Add_Journal_Capacity.png",
           "baseService": "AddJournalCapacity"
+        },
+        {
+          "image": "icon_CreateVplexVolumeSnapshot.png",
+          "baseService": "CreateVplexVolumeFromSnapshot"
         }
       ]
     },

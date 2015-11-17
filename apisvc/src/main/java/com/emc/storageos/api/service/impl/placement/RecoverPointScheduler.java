@@ -2946,7 +2946,22 @@ public class RecoverPointScheduler implements Scheduler {
             URI storageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
                     ProtectionSystem.getAssociatedStorageSystemSerialNumber(associatedStorageSystem),
                     dbClient, StorageSystemType.BLOCK);
-
+            
+            if (storageSystemURI == null) {
+                // For some reason we did not get a valid storage system URI back,
+                // so just continue.
+                // There could be a couple reasons for this but the main one is 
+                // likely that the Storage System has been removed/deleted and
+                // RP Discovery hasn't run since. So there are probably stale entries
+                // in the associatedStorageSystems list.
+                _log.warn(String.format("Protection System [%s](%s) has an invalid entry for associated storage systems [%s]. "
+                            + "Please re-run Protection System discovery to correct this.", 
+                            candidateProtectionSystem.getLabel(),
+                            candidateProtectionSystem.getId(),
+                            associatedStorageSystem));
+                continue;
+            }
+            
             // If this is a RP+VPLEX or MetroPoint request check to see if the associatedStorageSystem is
             // in the list of valid VPLEXs, if it is, add the internalSiteName.
             if (vplexs != null && !vplexs.isEmpty()) {
@@ -3026,6 +3041,22 @@ public class RecoverPointScheduler implements Scheduler {
             URI storageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
                     ProtectionSystem.getAssociatedStorageSystemSerialNumber(associatedStorageSystem),
                     dbClient, StorageSystemType.BLOCK);
+                        
+            if (storageSystemURI == null) {
+                // For some reason we did not get a valid storage system URI back,
+                // so just continue.
+                // There could be a couple reasons for this but the main one is 
+                // likely that the Storage System has been removed/deleted and
+                // RP Discovery hasn't run since. So there are probably stale entries
+                // in the associatedStorageSystems list.
+                _log.warn(String.format("Protection System [%s](%s) has an invalid entry for associated storage systems [%s]. "
+                            + "Please re-run Protection System discovery to correct this.", 
+                            protectionSystem.getLabel(),
+                            protectionSystem.getId(),
+                            associatedStorageSystem));
+                continue;
+            }
+            
             String internalSiteName = ProtectionSystem.getAssociatedStorageSystemSiteName(associatedStorageSystem);
 
             // If this is a RP+VPLEX or MetroPoint request

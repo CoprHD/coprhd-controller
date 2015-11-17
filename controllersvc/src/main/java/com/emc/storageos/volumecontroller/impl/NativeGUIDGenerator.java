@@ -314,8 +314,7 @@ public class NativeGUIDGenerator {
      * @throws IOException
      */
     public static String generateNativeGuid(DbClient dbClient, Volume volume) throws IOException {
-        StoragePool pool = dbClient.queryObject(StoragePool.class, volume.getPool());
-        StorageSystem device = dbClient.queryObject(StorageSystem.class, pool.getStorageDevice());
+        StorageSystem device = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return String.format("%s+%s+" + VOLUME + "+%s", _deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(),
                 volume.getNativeId());
     }

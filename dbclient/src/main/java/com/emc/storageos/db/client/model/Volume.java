@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
@@ -760,6 +761,35 @@ public class Volume extends BlockObject implements ProjectResource {
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
         return exportGroupURIs.iterator().hasNext();
+    }
+    
+    /**
+     * Returns true if the passed volume is in an export group, false otherwise.
+     * 
+     * @param dbClient A reference to a DbClient.
+     * @param ignoreRPExports If true, ignore if this volume has been exported to RP
+     * @return true if the passed volume is in an export group, false otherwise.
+     */
+    public boolean isVolumeExported(DbClient dbClient, boolean ignoreRPExports, boolean ignoreVPlexExports) {
+        boolean isExported = false;
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
+        if (ignoreRPExports) {
+            
+            while (exportGroupURIs.iterator().hasNext()) {
+                URI exportGroupURI = exportGroupURIs.iterator().next();
+                if (exportGroupURI != null) {
+                    ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
+                    if (!exportGroup.checkInternalFlags(Flag.RECOVERPOINT)) {
+                        isExported = true;
+                        break;
+                    }
+                }
+            }            
+        } else {
+            isExported = exportGroupURIs.iterator().hasNext();
+        }
+        return isExported;
     }
 
     /**

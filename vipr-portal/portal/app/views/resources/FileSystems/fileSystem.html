@@ -61,6 +61,9 @@
     #{expandPanel titleKey:'resources.filesystem.shares', url: @fileSystemShares(fileSystem.id) /}
     #{expandPanel titleKey:'resources.filesystem.snapshots', url: @fileSystemSnapshots(fileSystem.id) /}
     #{expandPanel titleKey:'resources.filesystem.quotaDirectory', url: @fileSystemQuotaDirectories(fileSystem.id) /}
+    #{if fileSystem.protocols.contains('NFSv4')}
+    #{expandPanel titleKey:'resources.filesystem.nfsAccessControl', url: @fileSystemNfsACLs(fileSystem.id) /}
+    #{/if}
 
     <br/>
     
@@ -198,6 +201,57 @@
     </div>
   #{/Modal.body}
 #{/Modal.dialog}
+
+#{Modal.dialog id:'addNfsAclDialog', cssClass:'extra-wide'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'resources.filesystem.share.acl.add'}</h4>
+  #{/Modal.header}
+  #{Modal.body}
+    <div ng-controller="NfsAclCtrl" id="acl">
+    
+       <div class="container-fluid">
+          <div class="row"  >
+                <control-group v-field='nfs.subdirectory' style="text-align:right;">
+                    <input-text></input-text>
+                </control-group>
+           </div>
+          <hr style="margin:5px;"/>
+           <div class="row" style="padding-top:20px; padding-bottom:0px;">
+                <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'nfsACL.type'}</strong></div>
+                <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'nfsACL.name'}</strong></div>
+                <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'nfsACL.domain'}</strong></div>
+                <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'nfsACL.permissionType'}</strong></div>
+                <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'nfsACL.permissions'}</strong></div>
+                <div class="pull-left col-md-1"></div>
+           </div>
+           <hr style="margin:5px;"/>
+           <div class="row"  ng-repeat="info in acl.accesscontrols" style="margin-bottom:5px;">
+               <div class="pull-left col-md-2" v-field="info.type" style="padding-right:0px;"><select-one options="typeOpt"></select-one></div>
+               <div class="pull-left col-md-2" v-field="info.name"><input-text></input-text><label style="position: absolute; color:#a94442; font-size: 18px; right: -0px; top: 8px;">*</label></div>
+               <div class="pull-left col-md-2" v-field="info.domain"><input-text></input-text></div>
+               <div class="pull-left col-md-2" v-field="info.permissionType" style="padding-right:0px;"><select-one options="permissionTypeOpt"></select-one></div>
+               <div class="pull-left col-md-3" v-field="info.permission" style="padding-right:0px;"></<input><select-many options="permOpt"></select-many></div>
+               <div class="pull-left col-md-1" style="padding-left:0px; margin-top:5px;"><button type="button" ng-click="deleteACE($index)" class="close">&times;</button></div>
+           </div>
+           <div class="row">
+               <div class="pull-left col-sm-11"><button type="button" ng-click="addACE()" class="btn btn-sm btn-success"><i v-icon=plus></i> &{'button.add'}</button></div>
+           </div>
+           #{form @addSubDirAndNfsAcl(), id:'nfsACLForm', class:'form form-horizontal', autocomplete:"off"}
+             <input type="hidden" name="formAccessControlList" ng-value="formAccessControlList"/>
+             <input type="hidden" name="fileSystemSubDirAndPath" value="${fileSystemSubDirAndPath}">
+              <input type="hidden" name="fileSystem" value="${fileSystem.id}" />
+             <input type="hidden" name="subDir" ng-value="nfs.subdirectory" />
+             
+             <div class="row">
+               #{Modal.buttonBar}
+                 <button type="submit" style="margin-left:45px;" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>
+               #{/Modal.buttonBar}
+             </div>
+           #{/form}
+       </div>
+    </div>
+  #{/Modal.body}
+#{/Modal.dialog}
     
 
 
@@ -224,6 +278,20 @@
 	  var scope = angular.element($('#subDirForm')).scope();
 	  scope.populateModal();
 	  $('#subDirectory').modal('show');
+  }
+
+  function showDialogClick() {
+	showDialog();
+  }
+
+  function hideDialog() {
+    $('.modal').modal('hide');
+  }
+  
+  function showDialog() {
+	    var scope = angular.element($('#acl')).scope();
+		scope.populateModal();
+		$('#addNfsAclDialog').modal('show');
   }
   
 </script>

@@ -8,7 +8,6 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,7 +50,6 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -3886,7 +3884,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                  * it is a disruptive process (host cannot access it)
                  * (Exception: phantom SG case, and VMAX3 where array & provider (8.0.3) supports it)
                  */
-                if (exportMask.getCreatedBySystem()) {
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURIs.get(0));
+                if (exportMask.getCreatedBySystem() || Volume.checkForVplexBackEndVolume(_dbClient, volume)) {
+                    // ExportMask is not system created for VPLEX backend volumes
                     Map<String, List<URI>> volumesByStorageGroup = _helper
                             .groupVolumesBasedOnExistingGroups(storage,
                                     storageGroupName, volumeURIs);

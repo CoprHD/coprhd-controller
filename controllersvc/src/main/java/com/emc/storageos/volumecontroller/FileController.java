@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
@@ -177,4 +178,8 @@ public interface FileController extends StorageController {
 
     public void deleteShareACLs(URI storage, URI fs, String shareName, String opId)
             throws InternalException;
+
+    public void updateNFSAcl(URI storage, URI fs, NfsACLUpdateParams param, String opId) throws InternalException;
+
+    public void deleteNFSAcls(URI storage, URI fs, String subDir, String opId) throws InternalException;
 }

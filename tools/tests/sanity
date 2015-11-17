@@ -2149,6 +2149,7 @@ rp_vpool_setup()
     rp_cdp
     rp_crr
     rp_clr
+    rp_noprotection
     if [ "${RPVPLEX_TESTS}" = "1" ]; then
 	rpvplex_targets
 	rpvplex_ha
@@ -2158,9 +2159,9 @@ rp_vpool_setup()
 	mp_cdp
 	mp_crr
 	mp_clr
-    rp_noprotection
-    rpvplexlocal_noprotection
-    rpvplexdist_noprotection
+	rpvplexlocal_noprotection
+	rpvplexdist_noprotection
+    fi
 }
 
 rp_varray_setup()
@@ -3114,6 +3115,7 @@ recoverpoint_tests()
                 echo 'MetroPoint volume create...'
                 run volume create ${mpvolume} $PROJECT ${mp_src_varray} ${mp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_METROPOINT_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
             fi
+	fi
 
         # Have to account for "-1" being added to volume name if
         # volume count is greater than 1.
@@ -3182,8 +3184,8 @@ recoverpoint_tests()
                 # Failover Test
                 recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
 				
-				# CG Failover/Swap Test
-				recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
+		# CG Failover/Swap Test
+		recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
 	    fi
 
             # RP+VPLEX test cases
@@ -3198,8 +3200,8 @@ recoverpoint_tests()
                 # Failover Test
                 recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
 				
-				# CG Failover/Swap Test
-				recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
+		# CG Failover/Swap Test
+		recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
             fi
 
             # MP test cases
@@ -3214,8 +3216,8 @@ recoverpoint_tests()
                 # Failover Test
                 recoverpoint_failover_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier}
 				
-				# CG Failover/Swap Test
-				recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${mp_src_varray} ${mp_tgt_volumes} ${mp_tgt_varrays}
+		# CG Failover/Swap Test
+		recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${mp_src_varray} ${mp_tgt_volumes} ${mp_tgt_varrays}
             fi
         fi
 

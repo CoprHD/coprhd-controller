@@ -36,9 +36,9 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Service;
@@ -820,13 +820,20 @@ public class BackupOps {
 
     private List<String> getAvailableNodes() {
         List<String> goodNodes = new ArrayList<String>();
-        String dbVersion = coordinatorClient.getTargetDbSchemaVersion();
-        List<Service> svcs = coordinatorClient.locateAllServices(Constants.DBSVC_NAME, dbVersion, (String) null, null);
-        for (Service svc : svcs) {
-            String svcId = svc.getId();
-            goodNodes.add("vipr" + svcId.substring(svcId.lastIndexOf("-") + 1));
+        try {
+            List<Service> svcs = coordinatorClient.locateAllServices(
+                    ((CoordinatorClientImpl) coordinatorClient).getSysSvcName(),
+                    ((CoordinatorClientImpl) coordinatorClient).getSysSvcVersion(),
+                    (String) null, null);
+            for (Service svc : svcs) {
+                String svcId = svc.getId();
+                goodNodes.add("vipr" + svcId.substring(svcId.lastIndexOf("-") + 1));
+            }
+            log.debug("Available nodes: {}", goodNodes);
+        } catch (Exception e) {
+            log.warn("Failed to get available nodes by query syssvc beacon", e);
+            goodNodes.addAll(hosts.keySet());
         }
-        log.info("Available nodes: {}", goodNodes);
         return goodNodes;
     }
 

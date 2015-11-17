@@ -31,6 +31,16 @@ def dr_list_standby(args):
                 return
         raise ValueError("site %s doesn't exist" % (args.name))
 
+def dr_find_site(args):
+    bourne.connect(args.ip)
+    sites=bourne.dr_list_standby()
+    for site in sites['site']:
+        for key, value in site.iteritems():
+            if args.key in key and args.value in value:
+                print site['uuid']
+                return
+    raise ValueError("site with key value pair %s:%s doesn't exist" % (args.key,args.value))
+
 def dr_get_standby(args):
     bourne.connect(args.ip)
     standby=bourne.dr_get_standby(args.uuid)
@@ -139,6 +149,11 @@ waitforstable = argparse.ArgumentParser(parents = [parser], conflict_handler='re
 waitforstable.add_argument('sleep', help = 'sleep of waiting time', type=float)
 waitforstable.add_argument('length', help = 'the whole waiting time', type=float)
 
+# list dr standby
+drfindsite = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drfindsite.add_argument('key', help = 'key to search sites for')
+drfindsite.add_argument('value', help = 'value to find in site key')
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -177,5 +192,8 @@ elif (cmd == "switchover"):
 elif (cmd == "waitforstable"):
     args = waitforstable.parse_args()
     wait_for_stable(args)
+elif (cmd == "find"):
+    args = drfindsite.parse_args()
+    dr_find_site(args)
 else:
     parser.print_help()

@@ -13,4 +13,9 @@ public class ScaleIORestClientFactoryTest {
     public void testCreateNewRestClient() throws Exception {
 
     }
+
+    @Test
+    public void testGetClientHandle() throws Exception {
+        System.out.print("test");
+    }
 }

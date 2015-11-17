@@ -19,4 +19,8 @@ public class ScaleIORestClientFactory extends RestClientFactory {
         return new ScaleIORestClient(endpoint, username, password, client);
     }
 
+    public ScaleIORestClient getClientHandle(String system_native_id) {
+        ScaleIORestClient handle = null;
+        return handle;
+    }
 }

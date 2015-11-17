@@ -637,7 +637,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 // Compare the volume labels of the to-be-deleted and existing volumes
                 /**
                  * This will fail in the case when the user just changes the label of the
-                 * volume...till we subsribe to indications from the provider, we will live with
+                 * volume...until we subscribe to indications from the provider, we will live with
                  * that.
                  */
                 String volToDeleteLabel = volume.getDeviceLabel();
@@ -2643,5 +2643,36 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
         return false;
     }
-
+    
+    @Override
+    public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        try {
+            int volumeCount = 0;
+            String[] volumeNativeIds = new String[volumes.size()];
+            StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                    "Untag Volume Start - Array:%s", storageSystem.getSerialNumber()));
+            MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;            
+            for (Volume volume : volumes) {
+                logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
+                _helper.doApplyRecoverPointTag(storageSystem, volume, false);
+            }                        
+        } catch (WBEMException e) {
+            _log.error("Problem making SMI-S call: ", e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e
+                    .getMessage());
+            taskCompleter.error(_dbClient, error);
+        } catch (Exception e) {
+            _log.error("Problem in doUntagVolume: ", e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doUntagVolume",
+                    e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        }
+        StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                "Untag Volume End - Array: %s", storageSystem.getSerialNumber()));
+        for (Volume volume : volumes) {
+            logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
+        }
+        _log.info(logMsgBuilder.toString());        
+    }
 }

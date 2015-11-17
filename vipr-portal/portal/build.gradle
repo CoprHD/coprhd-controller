@@ -179,8 +179,7 @@ task messagesCopy(type: Copy){
     if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {            
         (file('conf/messages')).text = file('conf/messages').getText() + file('conf/messages.coprhd').getText()
     }
-
-
+    
     from baseInput
     into file("${play.compileDir}/conf/")
 

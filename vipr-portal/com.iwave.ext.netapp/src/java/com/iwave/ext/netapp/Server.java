@@ -23,12 +23,12 @@ public class Server {
 
     private NaServer server = null;
 
-    Server(String host, int port, String username, String password, boolean useHTTPS)
+    public Server(String host, int port, String username, String password, boolean useHTTPS)
     {
         server = createNaServer(host, port, username, password, useHTTPS, false, null, false);
     }
     
-    Server(String host, int port, String username, String password, boolean useHTTPS, boolean isCluster)
+    public Server(String host, int port, String username, String password, boolean useHTTPS, boolean isCluster)
     {
         server = createNaServer(host, port, username, password, useHTTPS, false, null, isCluster);
     }

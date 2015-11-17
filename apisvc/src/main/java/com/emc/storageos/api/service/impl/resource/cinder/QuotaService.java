@@ -50,7 +50,6 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-
 @Path("/v2/{tenant_id}/os-quota-sets")
 		
 @DefaultPermissions( readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
@@ -195,7 +194,6 @@ public class QuotaService extends TaskResourceService {
     	CinderQuotaDetails	respCinderDefaultQuota  = new CinderQuotaDetails();
     	    	    
     	return getQuotaDetailFormat(header, respCinderDefaultQuota);
-    	
     }
     
     

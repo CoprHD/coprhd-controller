@@ -179,13 +179,6 @@ public class UpgradeManager extends AbstractManager {
             }
 
             if (hasLock) {
-                try {
-                    handleDataNodes();
-                } catch (Exception e) {
-                    log.info("Setting target version failed and will be retried: {}", e.getMessage());
-                    retrySleep();
-                    continue;
-                }
 
                 try {
                     coordinator.releasePersistentLock(svcId, upgradeLockId);
@@ -302,40 +295,6 @@ public class UpgradeManager extends AbstractManager {
             // Step6: sleep
             log.info("Step6: sleep");
             longSleep();
-        }
-    }
-
-    /**
-     * Handle datanodes after the first node is upgraded from 2.2-(exclusive) to 2.2+(inclusive).
-     * If datanodes are configured and previous version can be found, revert the upgrade.
-     * If datanodes are configured but previous version cannot be found, reset the system_datanode_ipaddrs property
-     * and proceed.
-     * 
-     * @throws Exception
-     */
-    private void handleDataNodes() throws Exception {
-        PropertyInfoExt targetPropInfo = coordinator.getTargetInfo(PropertyInfoExt.class);
-        String datanodeList = targetPropInfo.getAllProperties().get("system_datanode_ipaddrs");
-        if (datanodeList != null && !datanodeList.isEmpty()) {
-            log.error("datanodeList is: {}", datanodeList);
-            log.error("There are datanodes configured in the system, the 2.2 version doesn't support this feature, roll back to previous version");
-            String previousVersion = getPreviousVersion();
-            if (previousVersion == null) {
-                log.warn("Cannot find previous version. Reset system_datanode_ipaddrs and proceed with upgrade.");
-                PropertyInfoExt removeDataNodeProp = coordinator.getTargetInfo(PropertyInfoExt.class);
-                removeDataNodeProp.addProperty("system_datanode_ipaddrs", "");
-                removeDataNodeProp.addProperty(PropertyInfoRestRep.CONFIG_VERSION, String.valueOf(System.currentTimeMillis()));
-                coordinator.setTargetInfo(removeDataNodeProp);
-                // There's no need to wake up other nodes, because
-                // a) All other nodes are in version <2.2 so there's no such concept as PropertyManager
-                // b) For most of the cases, this only happens on 1+0, in which there's no other nodes
-                // c) Even if there are, they will be rebooted shortly anyways
-            } else {
-                log.warn("Reverting to version {}", previousVersion);
-                RepositoryInfo revertedTargetInfo = new RepositoryInfo(new SoftwareVersion(previousVersion),
-                        coordinator.getTargetInfo(RepositoryInfo.class).getVersions());
-                coordinator.setTargetInfo(revertedTargetInfo, false);
-            }
         }
     }
 

@@ -320,12 +320,10 @@ public class DisasterRecoveryService {
         try {
             Site site = drUtil.getSiteFromLocalVdc(uuid);
             return siteMapper.map(site);
-        } catch (CoordinatorException e) {
-            log.info("Can't find site with specified site ID {}", uuid);
         } catch (Exception e) {
-            log.error("Error finding site from ZK for UUID " + uuid, e);
+            log.error("Can't find site with specified site ID {}", uuid);
+            throw APIException.badRequests.siteIdNotFound();
         }
-        return null;
     }
 
     /**

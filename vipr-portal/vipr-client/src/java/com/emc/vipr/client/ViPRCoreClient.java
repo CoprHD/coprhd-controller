@@ -20,6 +20,7 @@ import com.emc.vipr.client.core.BlockVirtualPools;
 import com.emc.vipr.client.core.BlockVolumes;
 import com.emc.vipr.client.core.Clusters;
 import com.emc.vipr.client.core.ComputeElements;
+import com.emc.vipr.client.core.ComputeImageServers;
 import com.emc.vipr.client.core.ComputeImages;
 import com.emc.vipr.client.core.ComputeSystems;
 import com.emc.vipr.client.core.ComputeVirtualPools;
@@ -228,6 +229,10 @@ public class ViPRCoreClient {
     
     public ComputeVirtualPools computeVpools() {
         return new ComputeVirtualPools(this, client);
+    }
+
+    public ComputeImageServers computeImageServers() {
+        return new ComputeImageServers(this, client);
     }
 
     public ComputeImages computeImages() {

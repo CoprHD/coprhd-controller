@@ -175,7 +175,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             // Determine the VPLEX system managed by this management server.
             Map<String, StorageSystemViewObject> scanCache = accessProfile.getCache();
+            s_logger.info("Storage System scanCache before scanning:" + scanCache);
             scanManagedSystems(client, mgmntServer, scanCache);
+            s_logger.info("Storage System scanCache after scanning:" + scanCache);
             scanStatusMessage = String.format("Scan job completed successfully for " +
                     "VPLEX management server: %s", mgmntServerURI.toString());
         } catch (Exception e) {

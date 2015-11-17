@@ -156,6 +156,7 @@ URI_BLOCK_SNAPSHOTS_EXPORTS     = URI_BLOCK_SNAPSHOTS + '/exports'
 URI_BLOCK_SNAPSHOTS_UNEXPORTS   = URI_BLOCK_SNAPSHOTS + '/exports/{1},{2},{3}'
 URI_BLOCK_SNAPSHOTS_RESTORE     = URI_BLOCK_SNAPSHOTS + '/restore'
 URI_BLOCK_SNAPSHOTS_ACTIVATE    = URI_BLOCK_SNAPSHOTS + '/activate'
+URI_BLOCK_SNAPSHOTS_EXPOSE      = URI_BLOCK_SNAPSHOTS + '/expose'
 URI_BLOCK_SNAPSHOTS_TASKS       = URI_BLOCK_SNAPSHOTS + '/tasks/{1}'
 URI_VOLUME_CHANGE_VPOOL           = URI_VOLUME          + '/vpool'
 URI_VOLUME_CHANGE_VPOOL_MATCH     = URI_VOLUME          + '/vpool-change/vpool'
@@ -213,10 +214,14 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_ACTIVATE   = URI_BLOCK_CONSISTENCY_GROUP_SN
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_DEACTIVATE = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/deactivate"
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_RESTORE    = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/restore"
 
+URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE       = URI_BLOCK_CONSISTENCY_GROUP + "/protection/continuous-copies"
+URI_BLOCK_CONSISTENCY_GROUP_SWAP                  = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/swap"
+URI_BLOCK_CONSISTENCY_GROUP_FAILOVER              = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover"
+URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL       = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover-cancel"
+
 #Object Platform ECS bucket definitions
 URI_ECS_BUCKET_LIST                     = URI_SERVICES_BASE             + '/object/buckets'
 URI_ECS_BUCKET                          = URI_SERVICES_BASE             + '/object/buckets/{0}'
-
 
 URI_NETWORKSYSTEMS              = URI_SERVICES_BASE   + '/vdc/network-systems'
 URI_NETWORKSYSTEM               = URI_NETWORKSYSTEMS  + '/{0}'
@@ -3561,9 +3566,10 @@ class Bourne:
     def volume_full_copies(self, uri):
         return self.api('GET', URI_VOLUME_FULL_COPY.format(uri))
 
-    def volume_change_cos(self, uri, cos_uri):
+    def volume_change_cos(self, uri, cos_uri, cg_uri):
         parms = {
             'vpool' : cos_uri,
+            'consistency_group' : cg_uri
         }
         tr = self.api('PUT', URI_VOLUME_CHANGE_VPOOL.format(uri), parms, {})
 
@@ -4011,6 +4017,78 @@ class Bourne:
         s = self.api_sync_2(id, task_id, self.block_consistency_group_show_task)
         return (o, s)
 
+    def block_consistency_group_swap(self, group, copyType, targetVarray):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+        
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_SWAP.format(group), copies_param )
+        self.assert_is_dict(o)
+        
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
+    def block_consistency_group_failover(self, group, copyType, targetVarray):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+        
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_FAILOVER.format(group), copies_param )
+        self.assert_is_dict(o)
+        
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
+    def block_consistency_group_failover_cancel(self, group, copyType, targetVarray):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+        
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL.format(group), copies_param )
+        self.assert_is_dict(o)
+        
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
     def block_consistency_group_snapshot_show_task(self, group, snapshot, task):
         return self.api('GET', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_TASKS.format(group, snapshot, task))
 
@@ -4018,7 +4096,7 @@ class Bourne:
         return self.api('GET', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT.format(group, snapshot))
 
     def block_consistency_group_snapshot_query(self, group, name):
-        if (self.__is_uri(name)):
+        if (self.__is_uri(name)):   
             return name
 
         return (self.block_consistency_group_snapshot_get_id_by_name(group, name))
@@ -4419,7 +4497,7 @@ class Bourne:
     def storageport_query(self, name):
         #
         # name = { port_uri | concat(storagedevice, port) }
-        #
+        # 
         try:
             (sdname, port) = name.split('/', 1)
         except:
@@ -4561,7 +4639,7 @@ class Bourne:
             exportgroups.append(resource['id'])
         return exportgroups
 
-    def export_group_create(self, name, project, neighborhood, type, volspec, initList, hostList, clusterList):
+    def export_group_create(self, name, project, neighborhood, type, volspec, initList, hostList, clusterList, pathParam):
         projectURI = self.project_query(project).strip()
         nhuri = self.neighborhood_query(neighborhood).strip()
 
@@ -4570,6 +4648,11 @@ class Bourne:
             'project' : projectURI,
             'varray' : nhuri,
         }
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
 
         # Build volume parameter, if specified
         if (volspec):
@@ -4619,11 +4702,20 @@ class Bourne:
 
         o = self.api('POST', URI_EXPORTGROUP_LIST, parms)
         self.assert_is_dict(o)
-	s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        try:
+	    s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        except:
+            print o
         return (o, s)
 
-    def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList):
+    def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList, pathParam):
         parms = {}
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+
         # Build volume change input, if specified
         volChanges = {}
         if (addVolspec):
@@ -4717,7 +4809,10 @@ class Bourne:
     def export_group_delete(self, groupId):
         o = self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_EXPORTGROUP_INSTANCE.format(groupId)))
         self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        except:
+            print o;
         return (o, s)
 
     def export_group_add_volume(self, groupId, volspec):
@@ -4902,6 +4997,14 @@ class Bourne:
     def block_snapshot_exports(self, snapshot):
         vuri = self.block_snapshot_query(snapshot).strip()
         return self.api('GET', URI_BLOCK_SNAPSHOTS_EXPORTS.format(vuri))
+
+    def block_snapshot_expose(self, snapshot):
+        vuri = self.block_snapshot_query(snapshot)
+        vuri = vuri.strip()
+        o = self.api('POST', URI_BLOCK_SNAPSHOTS_EXPOSE.format(vuri))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.block_snapshot_show_task)
+        return (o, s['state'], s['message'])
 
 #
 # protection system APIs

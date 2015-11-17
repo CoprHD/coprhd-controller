@@ -23,11 +23,15 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.CifsServerMap;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NASServer;
+import com.emc.storageos.db.client.model.NasCifsServer;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
@@ -35,6 +39,8 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
@@ -43,15 +49,20 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.isilon.restapi.IsilonAccessZone;
 import com.emc.storageos.isilon.restapi.IsilonApi;
+import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonClusterConfig;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
+import com.emc.storageos.isilon.restapi.IsilonNetworkPool;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfo;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfoV2;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
+import com.emc.storageos.isilon.restapi.IsilonSnapshot;
+import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePool;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
 import com.emc.storageos.plugins.AccessProfile;
@@ -67,6 +78,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.ZeroRecordGenera
 import com.emc.storageos.volumecontroller.impl.plugins.metering.file.FileDBInsertion;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.file.FileZeroRecordGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.isilon.IsilonStatsRecorder;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
@@ -77,7 +89,7 @@ import com.google.common.collect.Sets;
  * Class for Isilon discovery and collecting stats from Isilon storage device
  */
 public class IsilonCommunicationInterface extends ExtendedCommunicationInterfaceImpl {
-    private Logger _log = LoggerFactory.getLogger(IsilonCommunicationInterface.class);
+    private final Logger _log = LoggerFactory.getLogger(IsilonCommunicationInterface.class);
     private static final String POOL_TYPE = "IsilonNodePool";
     private static final int BYTESCONVERTER = 1024;
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
@@ -93,9 +105,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String RW = "rw";
     private static final String ROOT = "root";
     private static final String NFS = "NFS";
+    private static final String CIFS = "CIFS";
     private static final String UNIXSECURITY = "unix";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String SYSSECURITY = "sys";
+    private static final String NFSv4 = "NFSv4";
+
+    private static final Long MAX_NFS_EXPORTS_V7_2 = 1500L;
+    private static final Long MAX_CIFS_SHARES = 40000L;
+    private static final Long MAX_STORAGE_OBJECTS = 40000L;
+    private static final String SYSTEM_ACCESS_ZONE_NAME = "System";
+    private static final Long GB_IN_BYTES = 1073741824L;
+    private static final String ONEFS_V8 = "8.0.0.0";
+    private static final String ONEFS_V7_2 = "7.2.0.0";
 
     private IsilonApiFactory _factory;
 
@@ -187,6 +209,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonStatsRecorder recorder = new IsilonStatsRecorder(zeroRecordGenerator, statsColumnInjector);
             _keyMap.put(Constants._TimeCollected, System.currentTimeMillis());
 
+            // compute static load processor code
+            computeStaticLoadMetrics(storageSystemId);
+
             // get first page of quota data, process and insert to database
             IsilonApi.IsilonList<IsilonSmartQuota> quotas = api.listQuotas(null);
             for (IsilonSmartQuota quota : quotas.getList()) {
@@ -243,6 +268,204 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             _log.error("CollectStatisticsInformation failed. Storage system: " + storageSystemId, e);
             throw (new IsilonCollectionException(e.getMessage()));
         }
+    }
+
+    private void computeStaticLoadMetrics(final URI storageSystemId) throws BaseCollectionException {
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+
+        _log.info("started computeStaticLoadMetrics for storagesystem: {}", storageSystem.getLabel());
+        StringMap dbMetrics = null;
+        String accessZoneId = null;
+        try {
+            IsilonApi isilonApi = getIsilonDevice(storageSystem);
+            VirtualNAS virtualNAS = null;
+            // //step-1 process the dbmetrics for user define access zones
+            List<IsilonAccessZone> accessZoneList = isilonApi.getAccessZones(null);
+            for (IsilonAccessZone isAccessZone : accessZoneList) {
+                accessZoneId = isAccessZone.getZone_id().toString();
+                // get the total fs count and capacity for AZ
+                if (isAccessZone.isSystem() != true) {
+                    virtualNAS = findvNasByNativeId(storageSystem, accessZoneId);
+                    if (virtualNAS != null) {
+                        _log.info("Process db metrics for access zone : {}", isAccessZone.getName());
+                        dbMetrics = virtualNAS.getMetrics();
+                        if (dbMetrics == null) {
+                            dbMetrics = new StringMap();
+                        }
+                        // process db metrics
+                        populateDbMetricsAz(isAccessZone, isilonApi, dbMetrics);
+
+                        // set AZ dbMetrics in db
+                        virtualNAS.setMetrics(dbMetrics);
+                        _dbClient.updateObject(virtualNAS);
+                    }
+                } else {
+                    PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, accessZoneId);
+                    if (physicalNAS == null) {
+                        _log.error(String.format("computeStaticLoadMetrics is failed for  Storagesystemid: %s", storageSystemId));
+                        return;
+                    }
+                    dbMetrics = physicalNAS.getMetrics();
+                    if (dbMetrics == null) {
+                        dbMetrics = new StringMap();
+                    }
+                    /* process the system accesszone dbmetrics */
+                    _log.info("process db metrics for access zone : {}", isAccessZone.getName());
+                    populateDbMetricsAz(isAccessZone, isilonApi, dbMetrics);
+                    physicalNAS.setMetrics(dbMetrics);
+                    _dbClient.updateObject(physicalNAS);
+                }
+            }
+        } catch (Exception e) {
+            _log.error("CollectStatisticsInformation failed. Storage system: " + storageSystemId, e);
+        }
+    }
+
+    /**
+     * process dbmetrics for total count and capacity
+     * 
+     * @param azName
+     * @param isilonApi
+     * @param dbMetrics
+     */
+    private void populateDbMetricsAz(final IsilonAccessZone accessZone, IsilonApi isilonApi, StringMap dbMetrics) {
+
+        long totalProvCap = 0L;
+        long totalFsCount = 0L;
+        String resumeToken = null;
+        String zoneName = accessZone.getName();
+        String baseDirPath = accessZone.getPath() + "/";
+
+        // filesystems count & Capacity
+        IsilonList<IsilonSmartQuota> quotas = null;
+
+        do {
+            quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
+
+            if (quotas != null && !quotas.getList().isEmpty()) {
+                for (IsilonSmartQuota quota : quotas.getList()) {
+                    if (quota.getThresholds() != null && quota.getThresholds().getHard() != null) {
+                        totalProvCap = totalProvCap + quota.getThresholds().getHard();
+                        totalFsCount++;
+                    }
+                }
+                resumeToken = quotas.getToken();
+            }
+        } while (resumeToken != null);
+
+        //get the base dir paths
+        List<String> baseDirPaths = null;
+        if (baseDirPath.equals(IFS_ROOT)) {
+            List<IsilonAccessZone> isilonAccessZoneList = isilonApi.getAccessZones(resumeToken);
+            baseDirPaths = new ArrayList<String>();
+            for (IsilonAccessZone isiAccessZone: isilonAccessZoneList) {
+                if (isiAccessZone.isSystem() == false) {
+                    baseDirPaths.add(isiAccessZone.getPath() + "/");
+                }
+            }
+        }
+        //snapshots count & snap capacity
+        resumeToken = null;
+        IsilonList<IsilonSnapshot> snapshots = null;
+        do {
+            snapshots = isilonApi.listSnapshots(resumeToken);
+            if (snapshots != null && !snapshots.getList().isEmpty()) {
+                if (!baseDirPath.equals(IFS_ROOT)) { //if it not system access zone then compare with fs path with base dir path
+                    _log.info("access zone base directory path {}", baseDirPath);
+                    for (IsilonSnapshot isilonSnap: snapshots.getList()) {
+                        if (isilonSnap.getPath().startsWith(baseDirPath)) {
+                            totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
+                            totalFsCount ++;
+                        }
+                    }
+                } else {//process the snapshots for system access zone
+                    boolean snapSystem = true;
+                    for (IsilonSnapshot isilonSnap: snapshots.getList()) {
+                        snapSystem = true;
+                        //first check fs path with user defined AZ's paths
+                        if (baseDirPaths != null && !baseDirPaths.isEmpty()) {
+                            for (String basePath : baseDirPaths) {
+                                if (isilonSnap.getPath().startsWith(basePath)) {
+                                    snapSystem = false;
+                                    break;
+                                }
+                            }
+                        }
+                        //if it not matched with any user define AZ's then it is belongs system AZ
+                        if (snapSystem) {
+                            totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
+                            totalFsCount ++;
+                            _log.info("System access zone base directory path: {}", accessZone.getPath());
+
+                        }
+                    }
+                }
+                resumeToken = snapshots.getToken();
+               }
+        } while (resumeToken != null);
+
+        _log.info("Total fs Count {} for access zone : {}", String.valueOf(totalFsCount), accessZone.getName());
+        _log.info("Total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());
+
+        // get total exports
+        int nfsExportsCount = 0;
+        int cifsSharesCount = 0;
+        resumeToken = null;
+        IsilonList<IsilonExport> isilonNfsExports = null;
+        do {
+            isilonNfsExports = isilonApi.listExports(resumeToken, zoneName);
+            if (isilonNfsExports != null) {
+                nfsExportsCount = nfsExportsCount + isilonNfsExports.size();
+                resumeToken = isilonNfsExports.getToken();
+            }
+        } while (resumeToken != null);
+        _log.info("Total NFS exports {} for access zone : {}", String.valueOf(nfsExportsCount), accessZone.getName());
+
+        // get cifs exports for given access zone
+        resumeToken = null;
+        IsilonList<IsilonSMBShare> isilonCifsExports = null;
+        do {
+            isilonCifsExports = isilonApi.listShares(resumeToken, zoneName);
+            if (isilonCifsExports != null) {
+                cifsSharesCount = cifsSharesCount + isilonCifsExports.size();
+                resumeToken = isilonCifsExports.getToken();
+            }
+        } while (resumeToken != null);
+        _log.info("Total CIFS sharess {} for access zone : {}", String.valueOf(cifsSharesCount), accessZone.getName());
+
+        if (dbMetrics == null) {
+            dbMetrics = new StringMap();
+        }
+        // set total nfs and cifs exports for give AZ
+        dbMetrics.put(MetricsKeys.totalNfsExports.name(), String.valueOf(nfsExportsCount));
+        dbMetrics.put(MetricsKeys.totalCifsShares.name(), String.valueOf(cifsSharesCount));
+        // set total fs objects and their sum of capacity for give AZ
+        dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalFsCount));
+        dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalProvCap));
+
+        Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics) +
+                MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
+        Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
+        Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
+
+        Long totalExports = Long.valueOf(nfsExportsCount + cifsSharesCount);
+        // setting overLoad factor (true or false)
+        String overLoaded = FALSE;
+        if (totalExports >= maxExports || totalProvCap >= maxCapacity || totalFsCount >= maxStorObjs) {
+            overLoaded = TRUE;
+        }
+
+        double percentageLoadExports = 0.0;
+        // percentage calculator
+        if (totalExports > 0.0) {
+            percentageLoadExports = ((double) (totalExports) / maxExports) * 100;
+        }
+        double percentageLoadStorObj = ((double) (totalProvCap) / maxCapacity) * 100;
+        double percentageLoad = (percentageLoadExports + percentageLoadStorObj) / 2;
+
+        dbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
+        dbMetrics.put(MetricsKeys.overLoaded.name(), overLoaded);
+        return;
     }
 
     /**
@@ -348,6 +571,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports.get(NEW),
                     allExistPorts, _dbClient, _coordinator, poolsToMatchWithVpool);
+            // discover the access zone and it's network interfaces
+            discoverAccessZones(storageSystem);
+
+            // Update the virtual nas association with virtual arrays!!!
+            // For existing virtual nas ports!!
+            StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistPorts, null, _dbClient);
+            _completer.statusPending(_dbClient, "Completed Access Zone discovery");
 
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Isilon: %s",
@@ -370,6 +600,258 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     _log.error("Error while persisting object to DB", ex);
                 }
             }
+        }
+    }
+
+    /**
+     * discover the network interface of given Isilon storage cluster
+     * 
+     * @param storageSystem
+     * @return
+     * @throws IsilonCollectionException
+     */
+    private List<IsilonNetworkPool> discoverNetworkPools(StorageSystem storageSystem) throws IsilonCollectionException {
+        List<IsilonNetworkPool> isilonNetworkPoolList = new ArrayList<IsilonNetworkPool>();
+        URI storageSystemId = storageSystem.getId();
+        _log.info("discoverNetworkPools for storage system {} - start", storageSystemId);
+        List<IsilonNetworkPool> isilonNetworkPoolsTemp = null;
+        try {
+            if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageSystem.getFirmwareVersion()) >= 0) {
+                _log.info("Isilon release version {} and storagesystem label {}",
+                        storageSystem.getFirmwareVersion(), storageSystem.getLabel());
+                IsilonApi isilonApi = getIsilonDevice(storageSystem);
+                isilonNetworkPoolsTemp = isilonApi.getNetworkPools(null);
+                if (isilonNetworkPoolsTemp != null) {
+                    isilonNetworkPoolList.addAll(isilonNetworkPoolsTemp);
+                }
+            } else {
+                IsilonSshApi sshDmApi = new IsilonSshApi();
+                sshDmApi.setConnParams(storageSystem.getIpAddress(), storageSystem.getUsername(),
+                        storageSystem.getPassword());
+                Map<String, List<String>> networkPools = sshDmApi.getNetworkPools();
+                List<String> smartconnects = null;
+                IsilonNetworkPool isiNetworkPool = null;
+                for (Map.Entry<String, List<String>> networkpool : networkPools.entrySet()) {
+                    smartconnects = networkpool.getValue();
+                    if (smartconnects != null) {
+
+                        for (String smartconnect : smartconnects) {
+                            isiNetworkPool = new IsilonNetworkPool();
+                            isiNetworkPool.setAccess_zone(networkpool.getKey());
+                            isiNetworkPool.setSc_dns_zone(smartconnect);
+                            isilonNetworkPoolList.add(isiNetworkPool);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            _log.error("discover of NetworkPools is failed. %s", e.getMessage());
+        }
+        return isilonNetworkPoolList;
+    }
+
+    /**
+     * discover the access zone and add to vipr db
+     * 
+     * @param storageSystem
+     */
+    private void discoverAccessZones(StorageSystem storageSystem) {
+        URI storageSystemId = storageSystem.getId();
+
+        VirtualNAS virtualNAS = null;
+        PhysicalNAS physicalNAS = null;
+        List<IsilonAccessZone> accessZoneListTemp = null;
+
+        List<VirtualNAS> newvNASList = new ArrayList<VirtualNAS>();
+        List<VirtualNAS> existingvNASList = new ArrayList<VirtualNAS>();
+
+        List<PhysicalNAS> newPhysicalNASList = new ArrayList<PhysicalNAS>();
+        List<PhysicalNAS> existingPhysicalNASList = new ArrayList<PhysicalNAS>();
+        
+        List<VirtualNAS> discoveredVNASList = new ArrayList<VirtualNAS>();
+
+        // Discover storage ports
+        try {
+            _log.info("discoverAccessZones for storage system {} - start", storageSystemId);
+
+            List<IsilonAccessZone> accessZoneList = new ArrayList<IsilonAccessZone>();
+            IsilonApi isilonApi = getIsilonDevice(storageSystem);
+
+            // make restapi call to get access zones
+            accessZoneListTemp = isilonApi.getAccessZones(null);
+            if (accessZoneListTemp == null || accessZoneListTemp.isEmpty()) {
+                // No ports defined throw an exception and fail the discovery
+                IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. No Zones defined");
+                throw ice;
+            } else {
+                accessZoneList.addAll(accessZoneListTemp);
+            }
+
+            // find the smart connet zones for system
+            IsilonNetworkPool isilonNetworkPoolSystem = null;
+            List<IsilonNetworkPool> isilonNetworkPoolsSysAZ = new ArrayList<>();
+
+            // get the system access zone and use it later
+            List<IsilonNetworkPool> isilonNetworkPoolList = discoverNetworkPools(storageSystem);
+            for (IsilonNetworkPool isilonNetworkPool : isilonNetworkPoolList) {
+                if (isilonNetworkPool.getAccess_zone().equalsIgnoreCase(SYSTEM_ACCESS_ZONE_NAME)) {
+                    isilonNetworkPoolsSysAZ.add(isilonNetworkPool);
+                }
+            }
+            // set the protocol based storagesystem version
+            // by default all version support CIFS and version above 7.2 NFS also
+            StringSet protocols = new StringSet();
+            protocols.add(CIFS);
+            boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
+            if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, storageSystem.getFirmwareVersion()) >= 0) {
+                protocols.add(NFS);
+                if (isNfsV4Enabled) {
+                    protocols.add(NFSv4);
+                }
+            }
+
+            StoragePort storagePort = null;
+            StringSet storagePorts = null;
+            CifsServerMap cifsServersMap = null;
+            List<IsilonNetworkPool> isilonNetworkPools = null;
+
+            // process the access zones list
+            for (IsilonAccessZone isilonAccessZone : accessZoneList) {
+                // add protocol to NAS servers
+                // is it a System access zone?
+                isilonNetworkPools = null;
+
+                if (isilonAccessZone.isSystem() == false) {
+                    _log.info("Process the user defined access zone {} ", isilonAccessZone.toString());
+                    isilonNetworkPools = new ArrayList<IsilonNetworkPool>();
+                    // get the smart connect zone information
+                    for (IsilonNetworkPool eachNetworkPool : isilonNetworkPoolList) {
+                        if (eachNetworkPool.getAccess_zone().equalsIgnoreCase(isilonAccessZone.getName())) {
+                            isilonNetworkPools.add(eachNetworkPool);
+                        }
+                    }
+                    // if the smart connect is null then set default access zone
+                    if (isilonNetworkPools != null && isilonNetworkPools.isEmpty()) {
+                        isilonNetworkPools.addAll(isilonNetworkPoolsSysAZ);
+                    }
+
+                    // find virtualNAS in db
+                    virtualNAS = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
+                    if (virtualNAS == null) {
+                        virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
+                        newvNASList.add(virtualNAS);
+                    } else {
+                        setMaxDbMetricsAz(storageSystem, virtualNAS.getMetrics());
+                        existingvNASList.add(virtualNAS);
+                        
+                    }
+
+                    // authenticate providers
+                    cifsServersMap = getCifsServerMap(isilonAccessZone);
+                    if (!cifsServersMap.isEmpty()) {
+                        virtualNAS.setCifsServersMap(cifsServersMap);
+                    }
+                    // set protocol support
+                    virtualNAS.setProtocols(protocols);
+                    // set the smart connect
+                    if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
+                        storagePorts = virtualNAS.getStoragePorts();
+                        if (storagePorts == null) {
+                            storagePorts = new StringSet();
+                        } else {
+                            storagePorts.clear();
+                        }
+                        for (IsilonNetworkPool isiNetworkPool : isilonNetworkPools) {
+                            storagePort = findStoragePortByNativeId(storageSystem,
+                                    isiNetworkPool.getSc_dns_zone());
+                            if (storagePort != null) {
+                                storagePorts.add(storagePort.getId().toString());
+                            }
+                        }
+                        virtualNAS.setStoragePorts(storagePorts);
+                    }
+                } else {
+                    _log.info("Process the System access zone {} ", isilonAccessZone.toString());
+                    // set protocols
+                    StringSet protocolSet = new StringSet();
+                    protocolSet.add(CIFS);
+                    protocolSet.add(NFS);
+                    if (isNfsV4Enabled) {
+                        protocolSet.add(NFSv4);
+                    }
+
+                    physicalNAS = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
+                    if (physicalNAS == null) {
+                        physicalNAS = createPhysicalNas(storageSystem, isilonAccessZone);
+                        physicalNAS.setProtocols(protocolSet);
+                        // add system access zone
+                        newPhysicalNASList.add(physicalNAS);
+                    } else {
+                        setMaxDbMetricsAz(storageSystem, physicalNAS.getMetrics());
+                        existingPhysicalNASList.add(physicalNAS);
+                    }
+                    // add authentication providers
+                    cifsServersMap = getCifsServerMap(isilonAccessZone);
+                    if (!cifsServersMap.isEmpty()) {
+                        physicalNAS.setCifsServersMap(cifsServersMap);
+                    }
+
+                    // set the smart connect
+                    if (isilonNetworkPoolsSysAZ != null) {
+                        storagePorts = physicalNAS.getStoragePorts();
+                        if (storagePorts == null) {
+                            storagePorts = new StringSet();
+                        } else {
+                            storagePorts.clear();
+                        }
+                        for (IsilonNetworkPool isiNetworkPool : isilonNetworkPoolsSysAZ) {
+                            storagePort = findStoragePortByNativeId(storageSystem,
+                                    isiNetworkPool.getSc_dns_zone());
+                            if (storagePort != null) {
+                                storagePorts.add(storagePort.getId().toString());
+                            }
+                        }
+                        physicalNAS.setStoragePorts(storagePorts);
+                    }
+                }
+            }
+
+            // Persist the vNAS servers and
+            if (newvNASList != null && !newvNASList.isEmpty()) {
+                // add the parent system access zone to user defined access zones
+                if (physicalNAS != null) {
+                    for (VirtualNAS vNas : newvNASList) {
+                        // set the parent uri or system access zone uri to vNAS
+                        vNas.setParentNasUri(physicalNAS.getId());
+                    }
+                }
+                _log.info("New Virtual NAS servers size {}", newvNASList.size());
+                _dbClient.createObject(newvNASList);
+                discoveredVNASList.addAll(newvNASList);
+            }
+
+            if (existingvNASList != null && !existingvNASList.isEmpty()) {
+                _log.info("Modified Virtaul NAS servers size {}", existingvNASList.size());
+                _dbClient.updateObject(existingvNASList);
+                discoveredVNASList.addAll(existingvNASList);
+            }
+            // Persist the NAS servers!!!
+            if (existingPhysicalNASList != null && !existingPhysicalNASList.isEmpty()) {
+                _log.info("Modified Physical NAS servers size {}", existingPhysicalNASList.size());
+                _dbClient.updateObject(existingPhysicalNASList);
+            }
+
+            if (newPhysicalNASList != null && !newPhysicalNASList.isEmpty()) {
+                _log.info("New Physical NAS servers size {}", newPhysicalNASList.size());
+                _dbClient.createObject(newPhysicalNASList);
+            }
+            
+            DiscoveryUtils.checkVirtualNasNotVisible(discoveredVNASList, _dbClient, storageSystemId);
+
+        } catch (Exception e) {
+            _log.error("discoverAccessZones failed. Storage system: {}", storageSystemId, e);
+            IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. Storage system: " + storageSystemId);
+            throw ice;
         }
     }
 
@@ -431,6 +913,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             StoragePool storagePool;
+            boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
 
             List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
             for (IsilonStoragePool isilonPool : isilonStoragePools) {
@@ -465,6 +948,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     StringSet protocols = new StringSet();
                     protocols.add("NFS");
                     protocols.add("CIFS");
+
                     storagePool.setProtocols(protocols);
                     storagePool.setPoolName(isilonPool.getNativeId());
                     storagePool.setNativeId(isilonPool.getNativeId());
@@ -476,6 +960,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     newPools.add(storagePool);
                 } else {
                     existingPools.add(storagePool);
+                }
+
+                if (isNfsV4Enabled) {
+                    storagePool.getProtocols().add(NFSv4);
+                } else {
+                    storagePool.getProtocols().remove(NFSv4);
                 }
 
                 // scale capacity size
@@ -599,6 +1089,48 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
     }
 
+    /**
+     * add user define the access zone to Discovery path
+     * 
+     * @param accessZones
+     */
+    void setDiscPathForAccess(List<IsilonAccessZone> accessZones) {
+        if (accessZones != null && !accessZones.isEmpty()) {
+            for (IsilonAccessZone isilonAccessZone : accessZones) {
+                if (isilonAccessZone.isSystem() == false) {
+                    getDiscPathsForUnManaged().add(isilonAccessZone.getPath() + "/");
+                    _log.info("setDiscPathForAccess: {}", isilonAccessZone.getPath() + "/");
+                }
+            }
+        }
+    }
+
+    /**
+     * get the NAS Server object
+     * 
+     * @param nasServerMap
+     * @param fsPath
+     * @return
+     */
+    private NASServer getMatchedNASServer(Map<String, NASServer> nasServerMap, String fsPath) {
+        NASServer nasServer = null;
+        if (nasServerMap != null && !nasServerMap.isEmpty()) {
+            for (Entry<String, NASServer> entry : nasServerMap.entrySet()) {
+                if (!SYSTEM_ACCESS_ZONE_NAME.equals(entry.getValue().getNasName())) {
+                    if (fsPath.startsWith(entry.getKey())) {
+                        nasServer = entry.getValue();
+                        break;
+                    }
+                }
+            }
+            if (nasServer == null) {
+                nasServer = nasServerMap.get(IFS_ROOT + "/");
+            }
+        }
+
+        return nasServer;
+    }
+
     private void discoverUmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
 
         _log.debug("Access Profile Details :  IpAddress : PortNumber : {}, namespace : {}",
@@ -648,12 +1180,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             int totalIsilonFSDiscovered = 0;
 
+            // get the associated storage port for vnas Server
+            List<IsilonAccessZone> isilonAccessZones = isilonApi.getAccessZones(null);
+            setDiscPathForAccess(isilonAccessZones);
+            Map<String, NASServer> nasServers = getNASServer(storageSystem, isilonAccessZones);
+
             // Get All FileShare
-            HashMap<String, HashSet<String>> allSMBShares = discoverAllSMBShares(storageSystem);
+            HashMap<String, HashSet<String>> allSMBShares = discoverAllSMBShares(storageSystem, isilonAccessZones);
             List<UnManagedCifsShareACL> unManagedCifsShareACLList = new ArrayList<UnManagedCifsShareACL>();
             List<UnManagedCifsShareACL> oldunManagedCifsShareACLList = new ArrayList<UnManagedCifsShareACL>();
 
-            HashMap<String, HashSet<Integer>> expMap = discoverAllExports(storageSystem);
+            HashMap<String, HashSet<Integer>> expMap = discoverAllExports(storageSystem, isilonAccessZones);
 
             UnManagedExportVerificationUtility validationUtility = new UnManagedExportVerificationUtility(
                     _dbClient);
@@ -680,17 +1217,29 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         String fsUnManagedFsNativeGuid =
                                 NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(storageSystem.getSystemType(),
                                         storageSystem.getSerialNumber(), fs.getNativeId());
-
+                        String fsPathName = fs.getPath();
                         UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
+                        // get the matched vNAS Server
+                        NASServer nasServer = getMatchedNASServer(nasServers, fsPathName);
+                        if (nasServer != null) {
+                            _log.info("fs path {} and nas server details {}", fs.getPath(), nasServer.toString());
+                            if (nasServer.getStoragePorts() != null && !nasServer.getStoragePorts().isEmpty()) {
+                                storagePort = _dbClient.queryObject(StoragePort.class,
+                                        URI.create(nasServer.getStoragePorts().iterator().next()));
+                            }
+                        } else {
+                            _log.info("fs path {} and vnas server not found", fs.getPath(), nasServer.toString());
+                        }
+
                         boolean alreadyExist = unManagedFs == null ? false : true;
                         unManagedFs = createUnManagedFileSystem(unManagedFs,
-                                fsUnManagedFsNativeGuid, storageSystem, storagePool, storagePort, fs);
+                                fsUnManagedFsNativeGuid, storageSystem, storagePool, nasServer, fs);
 
                         // get umcifs & ACLs for given filesystem
                         UnManagedCifsShareACL existingACL = null;
                         List<UnManagedCifsShareACL> tempunManagedCifsShareACL = new ArrayList<UnManagedCifsShareACL>();
                         int noOfShares = 0;
-                        String fsPathName = fs.getPath();
+
                         // get all shares for given file system path
                         HashSet<String> smbShareHashSet = new HashSet<String>();
                         for (Entry<String, HashSet<String>> entry : allSMBShares.entrySet()) {
@@ -704,7 +1253,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         if (!smbShareHashSet.isEmpty()) {
                             // get UnManaged ACL and also set the shares in fs object
                             getUnmanagedCifsShareACL(unManagedFs, smbShareHashSet,
-                                    tempunManagedCifsShareACL, storagePort, fs.getName(), isilonApi);
+                                    tempunManagedCifsShareACL, storagePort, fs.getName(), nasServer.getNasName(), isilonApi);
                             noOfShares += 1;
                             if (!tempunManagedCifsShareACL.isEmpty()) {
                                 unManagedFs.setHasShares(true);
@@ -745,7 +1294,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                         List<UnManagedFileExportRule> unManagedExportRules = new ArrayList<UnManagedFileExportRule>();
                         if (!expIdMap.keySet().isEmpty()) {
-                            boolean validExportsFound = getUnManagedFSExportMap(unManagedFs, expIdMap, storagePort, fs.getPath(), isilonApi);
+                            boolean validExportsFound = getUnManagedFSExportMap(unManagedFs, expIdMap, storagePort,
+                                    fs.getPath(), nasServer.getNasName(), isilonApi);
                             if (!validExportsFound) {
                                 // Invalid exports so ignore the FS
                                 String invalidExports = "";
@@ -759,7 +1309,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 continue;
                             }
                             List<UnManagedFileExportRule> validExportRules = getUnManagedFSExportRules(unManagedFs, expIdMap, storagePort,
-                                    fs.getPath(), isilonApi);
+                                    fs.getPath(), nasServer.getNasName(), isilonApi);
                             _log.info("Number of exports discovered for file system {} is {}", unManagedFs.getId(), validExportRules.size());
                             UnManagedFileExportRule existingRule = null;
                             for (UnManagedFileExportRule dbExportRule : validExportRules) {
@@ -793,13 +1343,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                         newUnManagedExportRules.size());
                             }
                         }
-                        
+
                         if (unManagedFs.getHasExports() || unManagedFs.getHasShares()) {
-                        	_log.info("FS {} is having exports/shares", fs.getPath());
-                        	unManagedFs.putFileSystemCharacterstics(
+                            _log.info("FS {} is having exports/shares", fs.getPath());
+                            unManagedFs.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString(), TRUE);
                         } else {
-                             // NO exports found
+                            // NO exports found
                             _log.info("FS {} is ignored because it doesnt have exports and shares", fs.getPath());
                         }
 
@@ -899,7 +1449,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @return
      */
 
-    private HashMap<String, HashSet<String>> discoverAllSMBShares(StorageSystem storageSystem) {
+    private HashMap<String, HashSet<String>> discoverAllSMBShares(final StorageSystem storageSystem,
+            final List<IsilonAccessZone> isilonAccessZones) {
         // Discover All FileShares
         String resumeToken = null;
         HashMap<String, HashSet<String>> allShares = new HashMap<String, HashSet<String>>();
@@ -908,32 +1459,36 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         try {
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-            do {
-                IsilonApi.IsilonList<IsilonSMBShare> isilonShares =
-                        isilonApi.listShares(resumeToken);
+            for (IsilonAccessZone isilonAccessZone : isilonAccessZones) {
+                do {
+                    IsilonApi.IsilonList<IsilonSMBShare> isilonShares =
+                            isilonApi.listShares(resumeToken, isilonAccessZone.getName());
 
-                List<IsilonSMBShare> isilonSMBShareList = isilonShares.getList();
-                HashSet<String> sharesHashSet = null;
-                for (IsilonSMBShare share : isilonSMBShareList) {
-                    // get the filesystem path and shareid
-                    String path = share.getPath();
-                    String shareId = share.getId();
-                    sharesHashSet = allShares.get(path);
-                    if (null == sharesHashSet) {
-                        sharesHashSet = new HashSet<String>();
-                        sharesHashSet.add(shareId);
-                        allShares.put(path, sharesHashSet);
-                    } else {
-                        // if shares already exist for path then add
-                        sharesHashSet.add(shareId);
-                        allShares.put(path, sharesHashSet);
+                    List<IsilonSMBShare> isilonSMBShareList = isilonShares.getList();
+                    HashSet<String> sharesHashSet = null;
+                    for (IsilonSMBShare share : isilonSMBShareList) {
+                        // get the filesystem path and shareid
+                        String path = share.getPath();
+                        String shareId = share.getId();
+                        sharesHashSet = allShares.get(path);
+                        if (null == sharesHashSet) {
+                            sharesHashSet = new HashSet<String>();
+                            sharesHashSet.add(shareId);
+                            allShares.put(path, sharesHashSet);
+                        } else {
+                            // if shares already exist for path then add
+                            sharesHashSet.add(shareId);
+                            allShares.put(path, sharesHashSet);
+                        }
+
+                        _log.info("Discovered SMB Share name {} and path {}", shareId, path);
                     }
 
-                    _log.info("Discovered SMB Share name {} and path {}", shareId, path);
-                }
-
-                resumeToken = isilonShares.getToken();
-            } while (resumeToken != null);
+                    resumeToken = isilonShares.getToken();
+                } while (resumeToken != null);
+                _log.info("discoverd AllShares for access zone {} ", isilonAccessZone.getName());
+                resumeToken = null;
+            }
 
             return allShares;
         } catch (IsilonException ie) {
@@ -1085,8 +1640,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return qualified;
     }
 
-    private HashMap<String, HashSet<Integer>> discoverAllExports(StorageSystem storageSystem)
-            throws IsilonCollectionException {
+    private HashMap<String, HashSet<Integer>>
+            discoverAllExports(StorageSystem storageSystem, final List<IsilonAccessZone> isilonAccessZones)
+                    throws IsilonCollectionException {
 
         // Discover All FileSystem
         HashMap<String, HashSet<Integer>> allExports = new HashMap<String, HashSet<Integer>>();
@@ -1100,26 +1656,30 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
 
-            do {
-                IsilonApi.IsilonList<IsilonExport> isilonExports = isilonApi.listExports(resumeToken);
+            for (IsilonAccessZone isilonAccessZone : isilonAccessZones) {
+                do {
+                    IsilonApi.IsilonList<IsilonExport> isilonExports = isilonApi.listExports(resumeToken,
+                            isilonAccessZone.getName());
+                    List<IsilonExport> exports = isilonExports.getList();
 
-                List<IsilonExport> exports = isilonExports.getList();
-
-                for (IsilonExport exp : exports) {
-                    _log.info("Discovered fS export {}", exp.toString());
-                    HashSet<Integer> exportIds = new HashSet<Integer>();
-                    for (String path : exp.getPaths()) {
-                        exportIds = allExports.get(path);
-                        if (exportIds == null) {
-                            exportIds = new HashSet<Integer>();
+                    for (IsilonExport exp : exports) {
+                        _log.info("Discovered fS export {}", exp.toString());
+                        HashSet<Integer> exportIds = new HashSet<Integer>();
+                        for (String path : exp.getPaths()) {
+                            exportIds = allExports.get(path);
+                            if (exportIds == null) {
+                                exportIds = new HashSet<Integer>();
+                            }
+                            exportIds.add(exp.getId());
+                            allExports.put(path, exportIds);
+                            _log.debug("Discovered fS put export Path {} Export id {}", path, exportIds.size() + ":" + exportIds);
                         }
-                        exportIds.add(exp.getId());
-                        allExports.put(path, exportIds);
-                        _log.debug("Discovered fS put export Path {} Export id {}", path, exportIds.size() + ":" + exportIds);
                     }
-                }
-                resumeToken = isilonExports.getToken();
-            } while (resumeToken != null);
+                    resumeToken = isilonExports.getToken();
+                } while (resumeToken != null);
+                _log.info("discoverd All NFS Exports for access zone {} ", isilonAccessZone.getName());
+                resumeToken = null;
+            }
 
             return allExports;
 
@@ -1136,12 +1696,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
     }
 
-    private IsilonExport getIsilonExport(IsilonApi isilonApi, Integer expId) {
+    private IsilonExport getIsilonExport(IsilonApi isilonApi, Integer expId, String zoneName) {
         IsilonExport exp = null;
         try {
             _log.debug("call getIsilonExport for {} ", expId);
             if (expId != null) {
-                exp = isilonApi.getExport(expId.toString());
+                exp = isilonApi.getExport(expId.toString(), zoneName);
                 _log.debug("call getIsilonExport {}", exp.toString());
             }
         } catch (Exception e) {
@@ -1164,8 +1724,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             List<UnManagedCifsShareACL> unManagedCifsShareACLList,
             StoragePort storagePort,
             String fsname,
+            String zoneName,
             IsilonApi isilonApi) {
-        _log.info("getUnmanagedCifsShareACL for UnManagedFileSystem file path{} - start", fsname);
+        _log.info("getUnmanagedCifsShareACL for UnManagedFileSystem file path: {} - start", fsname);
 
         // HashSet<String> smbShares = allShares.get(fsPath);
         if (null != smbShares && !smbShares.isEmpty()) {
@@ -1179,7 +1740,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             for (String shareId : smbShares) {
                 // get smb share details
-                IsilonSMBShare isilonSMBShare = getIsilonSMBShare(isilonApi, shareId);
+                IsilonSMBShare isilonSMBShare = getIsilonSMBShare(isilonApi, shareId, zoneName);
                 if (null != isilonSMBShare) {
                     unManagedSMBFileShare = new UnManagedSMBFileShare();
                     unManagedSMBFileShare.setName(isilonSMBShare.getName());
@@ -1266,7 +1827,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private UnManagedFileSystem createUnManagedFileSystem(
             UnManagedFileSystem unManagedFileSystem,
             String unManagedFileSystemNativeGuid, StorageSystem storageSystem,
-            StoragePool pool, StoragePort storagePort, FileShare fileSystem)
+            StoragePool pool, NASServer nasServer, FileShare fileSystem)
             throws IOException, IsilonCollectionException {
 
         if (null == unManagedFileSystem) {
@@ -1323,11 +1884,20 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         }
 
-        if (null != storagePort) {
+        if (null != nasServer) {
             StringSet storagePorts = new StringSet();
-            storagePorts.add(storagePort.getId().toString());
-            unManagedFileSystemInformation.put(
-                    UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_PORT.toString(), storagePorts);
+            if (nasServer.getStoragePorts() != null && !nasServer.getStoragePorts().isEmpty()) {
+                storagePorts.addAll(nasServer.getStoragePorts());
+                unManagedFileSystemInformation.put(
+                        UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_PORT.toString(), storagePorts);
+                _log.info("StoragePorts :"
+                        + Joiner.on("\t").join(storagePorts));
+            }
+
+            StringSet nasServerSet = new StringSet();
+            nasServerSet.add(nasServer.getId().toString());
+            unManagedFileSystemInformation.put(UnManagedFileSystem.SupportedFileSystemInformation.NAS.toString(), nasServerSet);
+            _log.debug("nasServer uri id {}", nasServer.getId().toString());
         }
 
         unManagedFileSystemCharacteristics.put(
@@ -1415,12 +1985,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param shareId
      * @return
      */
-    private IsilonSMBShare getIsilonSMBShare(IsilonApi isilonApi, String shareId) {
+    private IsilonSMBShare getIsilonSMBShare(IsilonApi isilonApi, String shareId, String zoneName) {
         _log.debug("call getIsilonSMBShare for {} ", shareId);
         IsilonSMBShare isilonSMBShare = null;
         try {
             if (isilonApi != null) {
-                isilonSMBShare = isilonApi.getShare(shareId);
+                isilonSMBShare = isilonApi.getShare(shareId, zoneName);
                 _log.debug("call getIsilonSMBShare {}", isilonSMBShare.toString());
             }
         } catch (Exception e) {
@@ -1557,6 +2127,32 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     /**
+     * get the NAS server list
+     * 
+     * @param storageSystem
+     * @param accessZones
+     * @return
+     */
+    private Map<String, NASServer> getNASServer(final StorageSystem storageSystem,
+            List<IsilonAccessZone> accessZones) {
+        NASServer nasServer = null;
+        Map<String, NASServer> accessZonesMap = new HashMap<String, NASServer>();
+        if (accessZones != null && !accessZones.isEmpty()) {
+            for (IsilonAccessZone isilonAccessZone : accessZones) {
+                if (isilonAccessZone.isSystem() == false) {
+                    nasServer = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
+
+                    accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                } else {
+                    nasServer = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
+                    accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                }
+            }
+        }
+        return accessZonesMap;
+    }
+
+    /**
      * Generate Export Map for UnManagedFileSystem
      * Ignore exports with multiple exports for the same path
      * Ignore exports that have multiple security flavors
@@ -1572,7 +2168,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @return boolean
      */
     private List<UnManagedFileExportRule> getUnManagedFSExportRules(UnManagedFileSystem umfs, HashMap<String, HashSet<Integer>> expIdMap,
-            StoragePort storagePort, String fsPath, IsilonApi isilonApi) {
+            StoragePort storagePort, String fsPath, String zoneName, IsilonApi isilonApi) {
         List<UnManagedFileExportRule> exportRules = new ArrayList<UnManagedFileExportRule>();
         UnManagedExportVerificationUtility validationUtility =
                 new UnManagedExportVerificationUtility(_dbClient);
@@ -1585,7 +2181,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             isilonExportIds = expIdMap.get(expMapPath);
             if (isilonExportIds != null && !isilonExportIds.isEmpty()) {
                 exportRulesTemp = getUnManagedFSExportRules(umfs, storagePort,
-                        isilonExportIds, expMapPath, isilonApi);
+                        isilonExportIds, expMapPath, zoneName, isilonApi);
                 // validate export rules for each path
                 if (null != exportRulesTemp && !exportRulesTemp.isEmpty()) {
                     isAllRulesValid = validationUtility.validateUnManagedExportRules(
@@ -1625,7 +2221,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @return boolean
      */
     private boolean getUnManagedFSExportMap(UnManagedFileSystem umfs, HashMap<String, HashSet<Integer>> expIdMap,
-            StoragePort storagePort, String fsPath, IsilonApi isilonApi) {
+            StoragePort storagePort, String fsPath, String zoneName, IsilonApi isilonApi) {
 
         UnManagedFSExportMap exportMap = new UnManagedFSExportMap();
 
@@ -1637,7 +2233,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             isilonExportIds = expIdMap.get(expMapPath);
             if (isilonExportIds != null && !isilonExportIds.isEmpty()) {
                 validExports = getUnManagedFSExportMap(umfs, isilonExportIds,
-                        storagePort, expMapPath, isilonApi);
+                        storagePort, expMapPath, zoneName, isilonApi);
             } else {
                 validExports = false;
             }
@@ -1666,7 +2262,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @return boolean
      */
     private boolean getUnManagedFSExportMap(UnManagedFileSystem umfs, HashSet<Integer> isilonExportIds,
-            StoragePort storagePort, String fsPath, IsilonApi isilonApi) {
+            StoragePort storagePort, String fsPath, String zoneName, IsilonApi isilonApi) {
 
         UnManagedFSExportMap exportMap = new UnManagedFSExportMap();
 
@@ -1680,7 +2276,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
 
         for (Integer expId : isilonExportIds) {
-            IsilonExport exp = getIsilonExport(isilonApi, expId);
+            IsilonExport exp = getIsilonExport(isilonApi, expId, zoneName);
             if (exp == null) {
                 _log.info("Ignoring file system {}, export {} not found", fsPath, expId);
                 return false;
@@ -1828,7 +2424,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @return boolean
      */
     private List<UnManagedFileExportRule> getUnManagedFSExportRules(UnManagedFileSystem umfs, StoragePort storagePort,
-            HashSet<Integer> isilonExportIds, String fsPath, IsilonApi isilonApi) {
+            HashSet<Integer> isilonExportIds, String fsPath, String zoneName, IsilonApi isilonApi) {
 
         List<UnManagedFileExportRule> expRules = new ArrayList<UnManagedFileExportRule>();
         ArrayList<IsilonExport> isilonExports = new ArrayList<IsilonExport>();
@@ -1838,7 +2434,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
 
         for (Integer expId : isilonExportIds) {
-            IsilonExport exp = getIsilonExport(isilonApi, expId);
+            IsilonExport exp = getIsilonExport(isilonApi, expId, zoneName);
             if (exp == null) {
                 _log.info("Ignoring file system {}, export {} not found", fsPath, expId);
             } else if (exp.getSecurityFlavors().size() > 1) {
@@ -1941,6 +2537,240 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         }
         return expMapTree;
+    }
+
+    /**
+     * set the Max limits for static db metrics
+     * 
+     * @param system
+     * @param dbMetrics
+     */
+    private void setMaxDbMetricsAz(final StorageSystem system, StringMap dbMetrics) {
+        // Set the Limit Metric keys!!
+        dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MAX_STORAGE_OBJECTS));
+
+        Long MaxNfsExports = 0L;
+        Long MaxCifsShares = 30000L;
+
+        if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, system.getFirmwareVersion()) > 0) {
+            MaxNfsExports = MAX_NFS_EXPORTS_V7_2;
+            MaxCifsShares = MAX_CIFS_SHARES;
+        }
+
+        dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(MaxNfsExports));
+        dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(MaxCifsShares));
+
+        // set the max capacity in GB
+        long MaxCapacity = Math.round(getClusterStorageCapacity(system));
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity*GB_IN_BYTES));
+        return;
+    }
+
+    /**
+     * get the cluster capacity using ssh cli command
+     * 
+     * @param storageSystem
+     * @return
+     */
+    private Double getClusterStorageCapacity(final StorageSystem storageSystem) {
+        Double cluserCap = 0.0;
+        IsilonSshApi sshDmApi = new IsilonSshApi();
+        sshDmApi.setConnParams(storageSystem.getIpAddress(), storageSystem.getUsername(),
+                storageSystem.getPassword());
+        cluserCap = sshDmApi.getClusterSize();
+        return cluserCap;
+    }
+
+    /**
+     * Create Virtual NAS for the specified Isilon cluster storage array
+     * 
+     * @param system
+     * @param isiAccessZone
+     * @return Virtual NAS Server
+     */
+    private VirtualNAS createVirtualNas(final StorageSystem system, final IsilonAccessZone isiAccessZone) {
+        VirtualNAS vNas = new VirtualNAS();
+
+        vNas.setStorageDeviceURI(system.getId());
+        // set name
+        vNas.setNasName(isiAccessZone.getName());
+        vNas.setNativeId(isiAccessZone.getId());
+        // set base directory path
+        vNas.setBaseDirPath(isiAccessZone.getPath());
+        vNas.setNasState(VirtualNasState.LOADED.toString());
+        vNas.setId(URIUtil.createId(VirtualNAS.class));
+
+        // set native "Guid"
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, isiAccessZone.getZone_id().toString(), NativeGUIDGenerator.VIRTUAL_NAS);
+        vNas.setNativeGuid(nasNativeGuid);
+
+        StringMap dbMetrics = vNas.getMetrics();
+        _log.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
+        if (dbMetrics == null) {
+            dbMetrics = new StringMap();
+        }
+        // set the Limitation Metrics keys
+        setMaxDbMetricsAz(system, dbMetrics);
+        vNas.setMetrics(dbMetrics);
+        return vNas;
+    }
+
+    /**
+     * Create Physical NAS for the specified Isilon cluster storage array
+     * 
+     * @param system
+     * @param isiAccessZone
+     * @return Physical NAS Server
+     */
+    private PhysicalNAS createPhysicalNas(final StorageSystem system, IsilonAccessZone isiAccessZone) {
+        PhysicalNAS phyNas = new PhysicalNAS();
+
+        phyNas.setStorageDeviceURI(system.getId());
+        phyNas.setNasName(isiAccessZone.getName());
+        phyNas.setNativeId(isiAccessZone.getId());
+        // set base directory path
+
+        phyNas.setNasState(VirtualNasState.LOADED.toString());
+        phyNas.setId(URIUtil.createId(PhysicalNAS.class));
+        // Set storage port details to vNas
+        String physicalNasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, isiAccessZone.getZone_id().toString(), NativeGUIDGenerator.PHYSICAL_NAS);
+        phyNas.setNativeGuid(physicalNasNativeGuid);
+        _log.info("Physical NAS created with guid {} ", phyNas.getNativeGuid());
+
+        StringMap dbMetrics = phyNas.getMetrics();
+        if (dbMetrics == null) {
+            dbMetrics = new StringMap();
+        }
+        // set the Limitation Metrics keys
+        setMaxDbMetricsAz(system, dbMetrics);
+        phyNas.setMetrics(dbMetrics);
+
+        return phyNas;
+    }
+
+    /**
+     * get the cifs servers for accesszone
+     * 
+     * @param isiAccessZone
+     * @return cifs server map
+     */
+    CifsServerMap getCifsServerMap(final IsilonAccessZone isiAccessZone) {
+        // add authentication map
+        ArrayList<String> authArrayList = isiAccessZone.getAuth_providers();
+        CifsServerMap cifsServersMap = new CifsServerMap();
+        if (authArrayList != null && !authArrayList.isEmpty()) {
+            for (String authProvider : authArrayList) {
+                NasCifsServer nasCifsServer = new NasCifsServer();
+                String[] providerArray = authProvider.split(":");
+                nasCifsServer.setName(providerArray[0]);
+                nasCifsServer.setDomain(providerArray[1]);
+                cifsServersMap.put(providerArray[0], nasCifsServer);
+            }
+        }
+        if (isiAccessZone.isAll_auth_providers() == true) {
+            NasCifsServer nasCifsServer = new NasCifsServer();
+            String[] providerArray = isiAccessZone.getSystem_provider().split(":");
+            nasCifsServer.setName(providerArray[0]);
+            nasCifsServer.setDomain(providerArray[1]);
+            cifsServersMap.put(providerArray[0], nasCifsServer);
+        }
+        return cifsServersMap;
+    }
+
+    /**
+     * Find the Virtual NAS by Native ID for Isilon cluster
+     * 
+     * @param system storage system information including credentials.
+     * @param Native id of the specified Virtual NAS
+     * @return Virtual NAS Server
+     */
+    private VirtualNAS findvNasByNativeId(StorageSystem system, String nativeId) {
+        URIQueryResultList results = new URIQueryResultList();
+        VirtualNAS vNas = null;
+
+        // Set storage port details to vNas
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, nativeId, NativeGUIDGenerator.VIRTUAL_NAS);
+
+        _dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getVirtualNASByNativeGuidConstraint(nasNativeGuid),
+                results);
+        Iterator<URI> iter = results.iterator();
+        VirtualNAS tmpVnas = null;
+        while (iter.hasNext()) {
+            tmpVnas = _dbClient.queryObject(VirtualNAS.class, iter.next());
+
+            if (tmpVnas != null && !tmpVnas.getInactive()) {
+                vNas = tmpVnas;
+                _log.info("found virtual NAS {}", tmpVnas.getNativeGuid() + ":" + tmpVnas.getNasName());
+                break;
+            }
+        }
+
+        return vNas;
+    }
+
+    /**
+     * Find the Physical NAS by Native ID for Isilon cluster
+     * 
+     * @param system storage system information including credentials.
+     * @param Native id of the specified Physical NAS
+     * @return Physical NAS Server
+     */
+    private PhysicalNAS findPhysicalNasByNativeId(StorageSystem system, String nativeId) {
+        PhysicalNAS physicalNas = null;
+        URIQueryResultList results = new URIQueryResultList();
+        // Set storage port details to vNas
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, nativeId, NativeGUIDGenerator.PHYSICAL_NAS);
+
+        _dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getPhysicalNasByNativeGuidConstraint(nasNativeGuid),
+                results);
+        PhysicalNAS tmpNas = null;
+        Iterator<URI> iter = results.iterator();
+        while (iter.hasNext()) {
+            tmpNas = _dbClient.queryObject(PhysicalNAS.class, iter.next());
+
+            if (tmpNas != null && !tmpNas.getInactive()) {
+                physicalNas = tmpNas;
+                _log.info("found physical NAS {}", physicalNas.getNativeGuid() + ":" + physicalNas.getNasName());
+                break;
+            }
+        }
+
+        return physicalNas;
+    }
+
+    /**
+     * Find the Storageport by Native ID for given Isilon Cluster
+     * 
+     * @param system
+     * @param nativeId
+     * @return storageport object
+     */
+    private StoragePort findStoragePortByNativeId(StorageSystem system, String nativeId) {
+        StoragePort storagePort = null;
+        String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, nativeId,
+                NativeGUIDGenerator.PORT);
+        // Check if storage port was already discovered
+        URIQueryResultList resultSetList = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                getStoragePortByNativeGuidConstraint(portNativeGuid), resultSetList);
+        StoragePort port = null;
+        for (URI portUri : resultSetList) {
+            port = _dbClient.queryObject(StoragePort.class, portUri);
+            if (port != null) {
+                if (port.getStorageDevice().equals(system.getId()) && !port.getInactive()) {
+                    storagePort = port;
+                    break;
+                }
+            }
+        }
+        return storagePort;
     }
 
 }

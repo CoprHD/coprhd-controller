@@ -18,7 +18,7 @@ import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
-import com.emc.storageos.systemservices.impl.jobs.JobConstants;
+import com.emc.storageos.systemservices.impl.jobs.common.JobConstants;
 
 /**
  * DbDowntimeTracker is to track the downtime of dbsvc and geodbsvc.

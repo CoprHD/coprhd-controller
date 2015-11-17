@@ -4,6 +4,7 @@
  */
 package controllers.infra;
 
+import com.emc.storageos.model.db.DbConsistencyStatusRestRep;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.DownloadProgress;
 import com.emc.vipr.model.sys.NodeProgress;
@@ -17,6 +18,7 @@ import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
+import util.BourneUtil;
 import util.MessagesUtils;
 
 import java.util.Collection;
@@ -32,6 +34,8 @@ public class Upgrade extends Controller {
     public static String FALSE = "0";
 
     private static String DOWNLOADING_CLUSTER_STATE = "DOWNLOADING";
+
+    private static String NOT_STARTED = "NOT_STARTED";
 
     public static void index() {
         render();
@@ -49,13 +53,54 @@ public class Upgrade extends Controller {
         boolean isWorking = !isStable && !clusterState.equalsIgnoreCase(ClusterInfo.ClusterState.UNKNOWN.toString());
         boolean isDownloading = clusterState.equals(DOWNLOADING_CLUSTER_STATE);
 
+        DbConsistencyStatusRestRep checkDbState = getSysClient().upgrade().getDbCheckState();
+        String isDbCheckStatus = checkDbState.getStatus().toString();
+        int checkProgress = checkDbState.getProgress();
+
         Map<String, DownloadStatus> downloadStatus = Maps.newHashMap();
         if (isDownloading) {
             DownloadProgress downloadProgress = getSysClient().upgrade().getDownloadProgress();
             downloadStatus = calculateDownloadStatus(downloadProgress);
         }
 
-        render(clusterInfo, clusterState, newVersions, repositoryVersions, isStable, isWorking, isDownloading, downloadStatus);
+        render(clusterInfo, clusterState, newVersions, repositoryVersions, isStable, isWorking, isDownloading, downloadStatus,
+                checkProgress, isDbCheckStatus);
+    }
+
+
+    /*
+     * Method to trigger Database consistency check
+     */
+    public static void checkDbStatus() {
+        try {
+            BourneUtil.getSysClient().upgrade().triggerDbCheck();
+        } catch (Exception e) {
+            Logger.error(e, "Checking Database Consistency");
+            flash.error(e.getMessage());
+        }
+        render();
+    }
+
+    public static void checkDbStatusOK() {
+        index();
+    }
+
+    /*
+     * Method to cancel ongoing Database check
+     */
+    public static void cancelCheckDbStatus() {
+        try {
+            BourneUtil.getSysClient().upgrade().cancelDbCheck();
+        } catch (Exception e) {
+            Logger.error(e, "Cancelling Database Consistency");
+            flash.error(e.getMessage());
+        }
+        index();
+    }
+
+    public static void checkDbProgress() {
+        DbConsistencyStatusRestRep dbState = getSysClient().upgrade().getDbCheckState();
+        renderJSON(dbState);
     }
 
     public static void installVersion(String version) {
@@ -175,4 +220,5 @@ public class Upgrade extends Controller {
             return !(status.equals("COMPLETED") || status.equals("NORMAL"));
         }
     }
+
 }

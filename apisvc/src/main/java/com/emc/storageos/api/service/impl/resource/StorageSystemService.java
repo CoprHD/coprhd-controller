@@ -580,7 +580,7 @@ public class StorageSystemService extends TaskResourceService {
         system.setSmisUseSSL(param.getSmisUseSSL());
 
         _dbClient.createObject(system);
-
+        _log.info("Created Storage System with Native Guid:" + system.getNativeGuid());
         return system;
     }
 
@@ -979,7 +979,7 @@ public class StorageSystemService extends TaskResourceService {
      */
     @SuppressWarnings("rawtypes")
     public static Class storageSystemClass(String systemType) {
-    	  	
+
         if (systemType.equals(StorageSystem.Type.isilon.toString())
                 || systemType.equals(StorageSystem.Type.vnxfile.toString())
                 || systemType.equals(StorageSystem.Type.netapp.toString())
@@ -988,10 +988,10 @@ public class StorageSystemService extends TaskResourceService {
             return FileController.class;
         } else if (systemType.equals(StorageSystem.Type.rp.toString())) {
             return RPController.class;
-        } else  if (systemType.equals(StorageSystem.Type.ecs.toString())) {
-        	return ObjectController.class;
+        } else if (systemType.equals(StorageSystem.Type.ecs.toString())) {
+            return ObjectController.class;
         }
-			
+
         return BlockController.class;
     }
 

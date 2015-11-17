@@ -211,6 +211,7 @@ public class FileStorageScheduler {
 
             if (vNAS.getStorageDeviceURI().equals(storageDevice)) {
                 fRec.setStoragePorts(storagePortURIList);
+                fRec.setvNAS(vNAS.getId());
                 fileRecommendations.add(fRec);
             }
 
@@ -441,21 +442,30 @@ public class FileStorageScheduler {
 
             @Override
             public int compare(VirtualNAS v1, VirtualNAS v2) {
-                // 1. Sort virtual nas servers based on static load factor 'storageCapacity'.
-                // 2. If multiple virtual nas servers found to be similar performance,
-                // sort the virtual nas based on number of storage objects!!!
-                Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, v1.getMetrics());
-                Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, v2.getMetrics());
+            	
+            	 int value = 0;
+                 Double percentLoadV1 = MetricsKeys.getDoubleOrNull(MetricsKeys.percentLoad, v1.getMetrics());
+                 Double percentLoadV2 = MetricsKeys.getDoubleOrNull(MetricsKeys.percentLoad, v2.getMetrics());
+                 if (percentLoadV1 != null && percentLoadV2 != null) {
+                     value = percentLoadV1.compareTo(percentLoadV2);
+                 }
 
-                int value = storageCapacityOfV1.compareTo(storageCapacityOfV2);
-
-                if (value != 0) {
-                    return value;
-                } else {
+                if (value == 0) {
+                	// 1. Sort virtual nas servers based on static load factor 'storageCapacity'.
+                    // 2. If multiple virtual nas servers found to be similar performance,
+                    // sort the virtual nas based on number of storage objects!!!
+                    Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, v1.getMetrics());
+                    Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, v2.getMetrics());
+                    value = storageCapacityOfV1.compareTo(storageCapacityOfV2);
+                }
+                
+                if (value == 0) {
                     Long storageObjectsOfV1 = MetricsKeys.getLong(MetricsKeys.storageObjects, v1.getMetrics());
                     Long storageObjectsOfV2 = MetricsKeys.getLong(MetricsKeys.storageObjects, v2.getMetrics());
                     return storageObjectsOfV1.compareTo(storageObjectsOfV2);
                 }
+                
+                return value;
 
             }
         });

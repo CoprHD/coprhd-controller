@@ -330,7 +330,7 @@ public class DataCollectionJobUtil {
         accessProfile.setPortNumber(providerInfo.getPortNumber());
         accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
     }
-    
+
     /**
      * inject details needed for Scanning
      * 
@@ -525,7 +525,7 @@ public class DataCollectionJobUtil {
             if (null != nameSpace) {
                 accessProfile.setnamespace(nameSpace);
             }
-        }  else if (storageDevice.getSystemType().equals(
+        } else if (storageDevice.getSystemType().equals(
                 Type.ecs.toString())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());
@@ -658,6 +658,7 @@ public class DataCollectionJobUtil {
 
         for (String scannedSystemNativeGuid : scannedSystemNativeGuidKeySet) {
             try {
+                _logger.info("scannedSystemNativeGuid:" + scannedSystemNativeGuid);
                 List<StorageSystem> systems =
                         CustomQueryUtility.getActiveStorageSystemByNativeGuid(_dbClient, scannedSystemNativeGuid);
                 if (DecommissionedResource.checkDecommissioned(_dbClient, scannedSystemNativeGuid,
@@ -671,7 +672,10 @@ public class DataCollectionJobUtil {
                     storageSystem = createStorageSystem(
                             scannedSystemsNativeGuidsMap.get(scannedSystemNativeGuid),
                             scannedSystemNativeGuid, providersToUpdate);
-                    systemsToCreate.add(storageSystem);
+                    if (storageSystem != null) {
+                        systemsToCreate.add(storageSystem);
+                        _logger.info("Added new storage system to be created to the create list with Native Guid:" + storageSystem.getNativeGuid());
+                    }
                 }
             } catch (Exception e) {
                 _logger.error(e.getMessage(), e);
@@ -753,9 +757,20 @@ public class DataCollectionJobUtil {
         StorageSystem newStorageSystem = null;
         Iterator<String> iterator = providerSet.iterator();
         if (iterator.hasNext()) {
-            String provider = iterator.next();
-            StorageProvider providerFromDB = _dbClient.queryObject(StorageProvider.class,
-                    URI.create(provider));
+            // Find StorageProvider that should be associated with this StorageSystem.
+            StorageProvider providerFromDB;
+            do {
+                String provider = iterator.next();
+                providerFromDB = _dbClient.queryObject(StorageProvider.class, URI.create(provider));
+            } while (iterator.hasNext() && (providerFromDB == null || providerFromDB.getInactive()));
+
+            // If after looking through the provider list there was nothing active found, return null
+            if (providerFromDB == null || providerFromDB.getInactive()) {
+                _logger.info(String.format("StorageSystem %s was found during scan but could not find its associated active providers. " +
+                        "Could have been deleted while scan was occurring.", scannedStorageSystemNativeGuid));
+                return null;
+            }
+            _logger.info("Scanned StorageSystemNativeGuid for a new Storage System:" + scannedStorageSystemNativeGuid);
             newStorageSystem = new StorageSystem();
             newStorageSystem.setId(URIUtil.createId(StorageSystem.class));
             newStorageSystem.setNativeGuid(scannedStorageSystemNativeGuid);
@@ -901,7 +916,7 @@ public class DataCollectionJobUtil {
                                                 .getRegistrationStatus())) {
                             injectReachableStatusInSystem(storageSystemInDb,
                                     null, NullColumnValueGetter.getNullURI(), false);
-                        } 
+                        }
                     }
                 }
             } catch (Exception e) {

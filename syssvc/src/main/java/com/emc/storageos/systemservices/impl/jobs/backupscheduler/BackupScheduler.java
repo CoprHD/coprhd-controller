@@ -27,7 +27,7 @@ import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
-import com.emc.storageos.systemservices.impl.jobs.JobConstants;
+import com.emc.storageos.systemservices.impl.jobs.common.JobConstants;
 import com.emc.storageos.systemservices.impl.property.Notifier;
 import com.emc.storageos.systemservices.impl.resource.BackupService;
 import com.emc.storageos.systemservices.impl.util.SkipOutputStream;
@@ -92,6 +92,13 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         return singletonInstance;
     }
 
+    public UploadExecutor getUploadExecutor() {
+        if (this.uploadExec == null) {
+            this.uploadExec = new UploadExecutor(this.cfg, this);
+        }
+        return this.uploadExec;
+    }
+
     private void cancelScheduledTask() {
         this.scheduledTask.cancel(false);
         log.info("Previous scheduled task cancelled");
@@ -125,7 +132,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         log.info("Enabling scheduler");
 
         this.backupExec = new BackupExecutor(this.cfg, this);
-        this.uploadExec = UploadExecutor.create(this.cfg, this);
+        this.uploadExec = new UploadExecutor(this.cfg, this);
 
         // Run once immediately in case we're crashed previously
         run();
@@ -155,10 +162,8 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
             // If we made any new backup, notify uploader thread to perform upload
             this.backupExec.runOnce();
+            this.uploadExec.runOnce();
 
-            if (this.uploadExec != null) {
-                this.uploadExec.runOnce();
-            }
         } catch (Exception e) {
             log.error("Exception occurred in scheduler", e);
             if (e instanceof InterruptedException) {

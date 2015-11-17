@@ -184,7 +184,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
                 .get(argument.getValue());
         CIMInstance vnxPoolSettingInstance = vnxPoolSettingInstances.get(index);
         String tierMethod = (String) keyMap.get(vnxPoolSettingInstance.getObjectPath()
-                .toString() + Constants.HYPEN + Constants.TIERMETHODOLOGY);
+                .toString() + Constants.HYPHEN + Constants.TIERMETHODOLOGY);
         _logger.debug("Tier Method got from Mapping :" + tierMethod);
         CIMProperty<?> prop = new CIMProperty<Object>(Constants.INITIAL_STORAGE_TIER_METHODOLOGY, CIMDataType.UINT16_T,
                 new UnsignedInteger16(tierMethod));

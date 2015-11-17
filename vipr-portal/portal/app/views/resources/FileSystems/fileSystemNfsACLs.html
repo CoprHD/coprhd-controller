@@ -25,5 +25,7 @@
   </table>
 #{/if}
 #{else}
-  &{'resources.filesystem.share.none'}
+  &{'resources.filesystem.nfs.acl.none'}
 #{/else}
+<div class="pull-right"><button type="button" onclick="showDialogClick()" class="btn btn-xs btn-success"><i v-icon=plus></i> &{'button.addNfsAcl'}</button></div>
+

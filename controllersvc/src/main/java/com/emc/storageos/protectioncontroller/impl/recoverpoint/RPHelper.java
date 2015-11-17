@@ -319,7 +319,7 @@ public class RPHelper {
                 if (cg != null) {
                     List<Volume> allJournals = getCgVolumes(cg.getId(), Volume.PersonalityTypes.METADATA.toString());                    
                     if (allJournals != null && !allJournals.isEmpty()) {
-                    	Set<URI> allJournalURIs = new HashSet<URI> ();
+                    	Set<URI> allJournalURIs = new HashSet<URI>();
                     	for (Volume journalVolume : allJournals) {
                     		allJournalURIs.add(journalVolume.getId());
                     	}

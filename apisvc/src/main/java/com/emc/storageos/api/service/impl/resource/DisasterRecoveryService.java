@@ -987,12 +987,22 @@ public class DisasterRecoveryService {
 
     // encapsulate the create ViPRCoreClient operation for easy UT writing because need to mock ViPRCoreClient
     protected ViPRCoreClient createViPRCoreClient(String vip, String username, String password){
-        return new ViPRCoreClient(vip, true).withLogin(username, password);
+        try {
+            return new ViPRCoreClient(vip, true).withLogin(username, password);
+        } catch (Exception e) {
+            log.error(String.format("Fail to create vipr client, vip: %s, username: %s", vip, username), e);
+            throw APIException.internalServerErrors.failToCreateViPRClient();
+        }
     }
 
     // encapsulate the create ViPRSystemClient operation for easy UT writing because need to mock ViPRSystemClient
     protected ViPRSystemClient createViPRSystemClient(String vip, String username, String password){
-        return new ViPRSystemClient(vip, true).withLogin(username, password);
+        try {
+            return new ViPRSystemClient(vip, true).withLogin(username, password);
+        } catch (Exception e) {
+            log.error(String.format("Fail to create vipr client, vip: %s, username: %s", vip, username), e);
+            throw APIException.internalServerErrors.failToCreateViPRClient();
+        }
     }
     
     private void setSiteError(String siteId, InternalServerErrorException exception) {

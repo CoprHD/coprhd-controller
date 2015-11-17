@@ -902,7 +902,6 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     // exclude the paused site from strategy options of dbsvc and geodbsvc
-    // exclude the paused site from strategy options of dbsvc and geodbsvc
     private void removeDbReplication(Site site) {
         String dcName = drUtil.getCassandraDcId(site);
         ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcName);

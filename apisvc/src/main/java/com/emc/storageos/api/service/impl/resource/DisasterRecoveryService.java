@@ -558,7 +558,8 @@ public class DisasterRecoveryService {
         }
 
         for (Site site : drUtil.listStandbySites()) {
-            if (siteIdList.contains(site.getUuid())) {
+            // don't check node state for sites to be or already paused.
+            if (siteIdList.contains(site.getUuid()) || site.getState().equals(SiteState.STANDBY_PAUSED)) {
                 continue;
             }
             int nodeCount = site.getNodeCount();

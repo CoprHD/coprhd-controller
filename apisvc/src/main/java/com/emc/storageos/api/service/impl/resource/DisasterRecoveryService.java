@@ -584,8 +584,9 @@ public class DisasterRecoveryService {
             for (Site standbySite : drUtil.listSites()) {
                 if (standbySite.getState().equals(SiteState.STANDBY_PAUSING)) {
                     drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.NONE);
+                } else {
+                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
                 }
-                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
             auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, siteIdStr);
             return Response.status(Response.Status.ACCEPTED).build();

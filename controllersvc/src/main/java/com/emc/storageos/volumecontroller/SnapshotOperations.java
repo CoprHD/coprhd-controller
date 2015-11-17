@@ -249,12 +249,13 @@ public interface SnapshotOperations {
      * @param snapshotURI The URI of the BlockSnapshot instance in ViPR that will represent
      *            the new target volume.
      * @param copyMode The copy mode in which the target is linked to the snapshot.
+     * @param targetExists true if the target exists, false if a new one needs to be created.
      * @param completer A reference to the task completer.
      * 
      * @throws DeviceControllerException
      */
     public void linkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
-            String copyMode, TaskCompleter completer) throws DeviceControllerException;
+            String copyMode, Boolean targetExists, TaskCompleter completer) throws DeviceControllerException;
 
     /**
      * Re-links a target volume to an array snapshot on the passed storage system.

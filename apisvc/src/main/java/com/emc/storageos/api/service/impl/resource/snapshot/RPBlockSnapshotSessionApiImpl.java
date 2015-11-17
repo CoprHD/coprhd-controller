@@ -100,7 +100,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
             // the SMIS code/array will get confused trying to look for a consistency
             // group that only exists in RecoverPoint.
             snapshot.setConsistencyGroup(null);
-            _dbClient.persistObject(snapshot);
+            _dbClient.updateObject(snapshot);
         }
         return snapshotMap;
     }

@@ -64,7 +64,7 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingComple
                     StringSet linkedTargets = snapSession.getLinkedTargets();
                     if ((linkedTargets != null) && (linkedTargets.contains(snapshotId))) {
                         linkedTargets.remove(snapshotId);
-                        dbClient.persistObject(snapSession);
+                        dbClient.updateObject(snapSession);
                     }
 
                     // Note that even if the target is not deleted, mark the associated
@@ -75,7 +75,7 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingComple
                     // BlcokSnapshot inactive so it is garbage collected.
                     BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
                     snapshot.setInactive(true);
-                    dbClient.persistObject(snapshot);
+                    dbClient.updateObject(snapshot);
                     break;
                 default:
                     String errMsg = String.format("Unexpected status %s for completer for step %s", status.name(), getOpId());

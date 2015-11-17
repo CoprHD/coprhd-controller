@@ -369,7 +369,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         for (BlockSnapshot snapshot : snapshotMap.values()) {
             Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
             snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
-            _dbClient.persistObject(snapshot);
+            _dbClient.updateObject(snapshot);
         }
 
         return snapshotMap;

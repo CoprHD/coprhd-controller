@@ -363,7 +363,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
      */
     @Override
     public void linkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
-            String copyMode, TaskCompleter completer)
+            String copyMode, Boolean targetExists, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

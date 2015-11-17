@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -156,9 +157,9 @@ import com.google.common.base.Joiner;
 /**
  * Generic Block Controller Implementation that does all of the database
  * operations and calls methods on the array specific implementations
- *
- *
- *
+ * 
+ * 
+ * 
  */
 public class BlockDeviceController implements BlockController, BlockOrchestrationInterface {
     // Constants for Event Types
@@ -240,7 +241,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Creates a rollback workflow method that does nothing, but allows rollback
      * to continue to prior steps back up the workflow chain.
-     *
+     * 
      * @return A workflow method
      */
     Workflow.Method rollbackMethodNullMethod() {
@@ -255,7 +256,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * rollback method is invoked. It says the rollback step succeeded,
      * which will then allow other rollback operations to execute for other
      * workflow steps executed by the other controller.
-     *
+     * 
      * See the VPlexDeviceController restoreVolume method which creates a
      * workflow step that invokes the BlockDeviceController restoreVolume
      * method. The rollback method for this step is this no-op. If the
@@ -263,9 +264,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * method is invoked, which simply says the rollback for the step
      * was successful. This in turn allows the other steps in the workflow
      * rollback.
-     *
+     * 
      * @param stepId The id of the step being rolled back.
-     *
+     * 
      * @throws WorkflowException
      */
     public void rollbackMethodNull(String stepId) throws WorkflowException {
@@ -274,7 +275,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Fail the task
-     *
+     * 
      * @param clazz
      * @param id
      * @param opId
@@ -291,7 +292,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Set the status of operation to 'ready'
-     *
+     * 
      * @param clazz The data object class.
      * @param ids The ids of the data objects for which the task completed.
      * @param opId The task id.
@@ -310,7 +311,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Fail the task. Called when an exception occurs attempting to
      * execute a task on multiple data objects.
-     *
+     * 
      * @param clazz The data object class.
      * @param ids The ids of the data objects for which the task failed.
      * @param opId The task id.
@@ -330,7 +331,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Fail the task. Called when an exception occurs attempting to
      * execute a task.
-     *
+     * 
      * @param clazz The data object class.
      * @param id The id of the data object for which the task failed.
      * @param opId The task id.
@@ -346,7 +347,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Create a nice event based on the volume
-     *
+     * 
      * @param volume Volume for which the event is about
      * @param type Type of event such as VolumeCreated or VolumeDeleted
      * @param description Description for the event if needed
@@ -368,7 +369,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Workflow step associated with creating volumes.
      * TODO: RB3294, Do we really need these steps? Can we just call the method directly if that's all its really doing?
-     *
+     * 
      * @param systemURI storage system
      * @param poolURI storage pool
      * @param volumeURIs list of volume uris that were pre-created in the db
@@ -498,7 +499,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Add Steps to create any BLOCK_MIRRORs specified in the VolumeDescriptor list.
-     *
+     * 
      * @param workflow -- The Workflow being built
      * @param waitFor -- Previous steps to waitFor
      * @param volumes -- List<VolumeDescriptors> -- volumes of all types to be processed
@@ -530,7 +531,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Add Steps to create the required consistency group
-     *
+     * 
      * @param workflow -- The Workflow being built
      * @param waitFor -- Previous steps to waitFor
      * @param volumesDescriptors -- List<VolumeDescriptors> -- volumes of all types to be processed
@@ -613,7 +614,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Add Steps to add volumes to the required consistency group
-     *
+     * 
      * @param workflow -- The Workflow being built
      * @param waitFor -- Previous steps to waitFor
      * @param volumesDescriptors -- List<VolumeDescriptors> -- volumes of all types to be processed
@@ -686,7 +687,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Returns a message containing information about each volume.
-     *
+     * 
      * @param volumeURIs
      * @return
      */
@@ -711,7 +712,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for createVolumes.
-     *
+     * 
      * @param systemURI
      * @param poolURI
      * @param volumeURIs
@@ -728,7 +729,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Hitachi allows setting of tieringpolicy at LDEV level, hence We should have a LDEV id of a LogicalUnit.
      * But LDEV is only created after we LogicalUnit is created. Hence createVolumes workflow includes creation of LU (i.e. LDEV)
      * And LDEV modification (to set tieringPolicy.)
-     *
+     * 
      */
     @Override
     public void modifyVolumes(URI systemURI, URI poolURI, List<URI> volumeURIs, String opId) throws ControllerException {
@@ -786,7 +787,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for createVolumes.
-     *
+     * 
      * @param systemURI
      * @param poolURI
      * @param volumeURIs
@@ -866,7 +867,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for rollbackCreateVolumes
-     *
+     * 
      * @param systemURI
      * @param volumeURI
      * @return Workflow.Method
@@ -989,7 +990,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for createMetaVolumes.
-     *
+     * 
      * @param systemURI
      * @param poolURI
      * @param volumeURIs
@@ -1003,7 +1004,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for rollbackCreateMetaVolumes.
-     *
+     * 
      * @param systemURI
      * @param volumeURIs
      * @return Workflow.Method
@@ -1014,7 +1015,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for createVolumes.
-     *
+     * 
      * @param systemURI
      * @param poolURI
      * @param volumeURI
@@ -1028,7 +1029,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for rollbackCreateMetaVolume.
-     *
+     * 
      * @param systemURI
      * @param volumeURI
      * @return Workflow.Method
@@ -1101,7 +1102,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for rollbackExpandVolume.
-     *
+     * 
      * @param systemURI
      * @param volumeURI
      * @return Workflow.Method
@@ -1298,7 +1299,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for expandVolume.
-     *
+     * 
      * @param storage storage system
      * @param pool storage pool
      * @param volume volume to expand
@@ -1543,12 +1544,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // Any flagged volumes will be removed from the list of volumes to delete.
         List<VolumeDescriptor> descriptorsToRemove = VolumeDescriptor.getDoNotDeleteDescriptors(volumes);
         volumes.removeAll(descriptorsToRemove);
-        
+
         // If there are no volumes, just return
         if (volumes.isEmpty()) {
             return waitFor;
         }
-        
+
         // Segregate by device.
         Map<URI, List<VolumeDescriptor>> deviceMap = VolumeDescriptor.getDeviceMap(volumes);
 
@@ -1569,7 +1570,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for deleteVolumes.
-     *
+     * 
      * @param systemURI
      * @param volumeURIs
      * @return
@@ -1655,7 +1656,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Workflow step to delete a volume
-     *
+     * 
      * @param storageURI the storage system ID
      * @param volumes the volume IDs
      * @param token the task ID from the workflow
@@ -1703,7 +1704,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Select volumes from an export group that resides on a given storage array
-     *
+     * 
      * @param exportGroup
      * @param exportMask
      * @return
@@ -1931,15 +1932,87 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         splitRollbackMethod, null);
             }
 
-            waitFor = workflow.createStep(BLOCK_VOLUME_RESTORE_GROUP, description, waitFor,
-                    storage, getDeviceType(storage), BlockDeviceController.class,
-                    restoreVolumeMethod(storage, pool, volume, snapshot, updateOpStatus),
-                    rollbackMethodNullMethod(), null);
+            if (system.checkIfVmax3()) {
+                // To restore the source from a linked target volume for VMAX3 SnapVX, we must
+                // do the following:
+                //
+                // 1. Create a temporary snapshot session of the linked target volume.
+                // 2. Link the source volume of the BlockSnapshot to the temporary snapshot session in copy mode.
+                // 3. Wait for the data from the session to be copied to the source.
+                // 4. Unlink the source from the temporary session.
+                // 5. Delete the temporary session.
 
-            // Skip the step for VMAX3, as restore operation may still be in progress (OPT#476325)
-            // Regardless, termination of restore session should be call before restore
-            // Note this is not needed for VNX
-            if (!system.checkIfVmax3()) {
+                // Create a BlockSnapshotSession to represent this temporary session that will
+                // be created on the BlockSnapshot target volume.
+                BlockSnapshotSession snapSession = new BlockSnapshotSession();
+                URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
+                snapSession.setId(snapSessionURI);
+                snapSession.setLabel(blockSnapshot.getLabel() + System.currentTimeMillis());
+                snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
+                snapSession.addInternalFlags(Flag.INTERNAL_OBJECT);
+                _dbClient.createObject(snapSession);
+
+                // Now create a workflow step that will create the snapshot session.
+                waitFor = workflow.createStep(CREATE_SNAPSHOT_SESSION_STEP_GROUP,
+                        String.format("Create snapshot session %s for snapshot target volume %s", snapSessionURI, snapshot),
+                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
+                        createBlockSnapshotSessionMethod(storage, Arrays.asList(snapSessionURI)),
+                        rollbackMethodNullMethod(), null);
+
+                // Create a workflow step to link the source volume for the passed snapshot
+                // to the snapshot session create by the previous step. We link the source
+                // volume in copy mode so that that the point-in-time copy of the snapshot
+                // target volume represented by the snapshot session is copied to the source
+                // volume. This is essentially the restore step so that the source will now
+                // reflect the data on the snapshot target volume. Note that because source
+                // for the passed snapshot will be linked to a snapshot session, it will be
+                // a linked target, so we need a BlockSnapshot instance to represent the source
+                // as a linked target.
+                BlockSnapshot sourceSnapshot = new BlockSnapshot();
+                URI sourceSnapshotURI = URIUtil.createId(BlockSnapshot.class);
+                sourceSnapshot.setId(sourceSnapshotURI);
+                sourceSnapshot.setNativeId(sourceVolume.getNativeId());
+                sourceSnapshot.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
+                sourceSnapshot.setSourceNativeId(blockSnapshot.getNativeId());
+                sourceSnapshot.setStorageController(storage);
+                sourceSnapshot.addInternalFlags(Flag.INTERNAL_OBJECT);
+                _dbClient.createObject(sourceSnapshot);
+                waitFor = workflow.createStep(
+                        LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
+                        String.format("Link source volume %s to snapshot session for snapshot target volume %s", volume, snapshot),
+                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
+                        linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI,
+                                BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE),
+                        rollbackMethodNullMethod(), null);
+
+                // Need to wait until copy state is copied.
+                Thread.sleep(60000);
+
+                // Once the data is fully copied to the source, we can unlink the source from the session.
+                waitFor = workflow.createStep(
+                        UNLINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
+                        String.format("Unlink source volume %s from snapshot session for snapshot target volume %s", volume, snapshot),
+                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
+                        unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI, Boolean.FALSE),
+                        rollbackMethodNullMethod(), null);
+
+                // Finally create a step to delete the snapshot session we created on the snapshot
+                // target volume.
+                workflow.createStep(
+                        DELETE_SNAPSHOT_SESSION_STEP_GROUP,
+                        String.format("Delete snapshot session %s for snapshot target volume %s", snapSessionURI, snapshot),
+                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
+                        deleteBlockSnapshotSessionMethod(storage, snapSessionURI, Boolean.TRUE),
+                        rollbackMethodNullMethod(), null);
+            } else {
+                waitFor = workflow.createStep(BLOCK_VOLUME_RESTORE_GROUP, description, waitFor,
+                        storage, getDeviceType(storage), BlockDeviceController.class,
+                        restoreVolumeMethod(storage, pool, volume, snapshot, updateOpStatus),
+                        rollbackMethodNullMethod(), null);
+
+                // Skip the step for VMAX3, as restore operation may still be in progress (OPT#476325)
+                // Regardless, termination of restore session should be call before restore
+                // Note this is not needed for VNX
                 addPostRestoreVolumeSteps(workflow, system, sourceVolume, blockSnapshot, waitFor);
             }
 
@@ -1966,7 +2039,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for restoreVolume
-     *
+     * 
      * @param storage storage system
      * @param pool storage pool
      * @param volume target of restore operation
@@ -2460,7 +2533,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Adds the additional steps necessary to promote mirrors to regular block volumes
-     *
+     * 
      * @param workflow
      * @param waitFor
      * @param descriptors
@@ -2582,7 +2655,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Adds the additional steps necessary to delete local mirrors.
-     *
+     * 
      * @param workflow
      * @param waitFor
      * @param descriptors List<VolumeDescriptor> volumes to be processed
@@ -2709,7 +2782,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * An orchestration controller method for detaching and deleting a mirror
-     *
+     * 
      * @param storage URI of storage controller.
      * @param mirrorList List of URIs of block mirrors
      * @param promotees List of URIs of promoted volumes
@@ -2718,7 +2791,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @throws ControllerException
      */
     @Override
-    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId) throws ControllerException {
+    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId)
+            throws ControllerException {
         _log.info("deactivateMirror: START");
         TaskCompleter taskCompleter = null;
         String mirrorStr = Joiner.on("\t").join(mirrorList);
@@ -3176,10 +3250,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Creates a connection to monitor events generated by the storage
      * identified by the passed URI.
-     *
+     * 
      * @param storage A database client URI that identifies the storage to be
      *            monitored.
-     *
+     * 
      * @throws ControllerException When errors occur connecting the storage for
      *             event monitoring.
      */
@@ -3211,10 +3285,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Removes a connection that was previously established for monitoring
      * events from the storage identified by the passed URI.
-     *
+     * 
      * @param storage A database client URI that identifies the storage to be
      *            disconnected.
-     *
+     * 
      * @throws ControllerException When errors occur disconnecting the storage
      *             for event monitoring.
      */
@@ -3329,7 +3403,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @throws WorkflowException
      */
     @Override
@@ -3530,7 +3604,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Get the deviceType for a StorageSystem.
-     *
+     * 
      * @param deviceURI -- StorageSystem URI
      * @return deviceType String
      */
@@ -3548,7 +3622,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * 1) Not null
      * 2) Has valid sync state integer value
      * 3) Sync state is not already fractured (paused) and not resynchronizing
-     *
+     * 
      * @param mirrorList The BlockMirrors to test
      * @return true, if at least one mirror is applicable for pause operation
      */
@@ -3571,7 +3645,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Pending mirrors are mirrors that are pending creation on the physical array
-     *
+     * 
      * @param mirrorURIs
      * @return list of active mirrors, waiting to be created
      */
@@ -3590,7 +3664,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Check if a mirror exists in ViPR as an active model and is pending creation on the
      * storage array.
-     *
+     * 
      * @param mirror
      * @return true if the mirror is pending creation
      */
@@ -3820,7 +3894,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     *
+     * 
      * @param sourceVolumeList
      * @return URI list of target volumes for the given source volumes
      */
@@ -3958,7 +4032,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for restoreVolume
-     *
+     * 
      * @param storage storage system
      * @param pool storage pool
      * @param volume target of restore operation
@@ -4099,7 +4173,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for resync
-     *
+     * 
      * @param storage storage system
      * @param clone list of clones
      * @param updateOpStatus update operation status flag
@@ -4314,7 +4388,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Add step to create list clone.
-     *
+     * 
      * @param workflow The Workflow being built
      * @param storageSystem Storage system
      * @param waitFor Previous step to waitFor
@@ -4396,7 +4470,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Add Steps to create list mirror.
-     *
+     * 
      * @param workflow The Workflow being built
      * @param storageSystem Storage system
      * @param waitFor Previous step to waitFor
@@ -4518,7 +4592,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                     LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                                     String.format("Linking targets for snapshot session %s", snapSessionURI),
                                     waitFor, systemURI, getDeviceType(systemURI), getClass(),
-                                    linkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURI, copyMode),
+                                    linkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURI, copyMode, Boolean.FALSE),
                                     rollbackLinkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURI), null);
                         }
                     }
@@ -4577,12 +4651,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
      * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
      * @param copyMode The manner in which the target is linked to the array snapshot.
+     * @param targetExists true if the target exists, false if a new one needs to be created.
      * 
      * @return A reference to a Workflow.Method for linking a target volume to an array snapshot.
      */
     public static Workflow.Method linkBlockSnapshotSessionTargetMethod(URI systemURI,
-            URI snapSessionURI, URI snapshotURI, String copyMode) {
-        return new Workflow.Method(LINK_SNAPSHOT_SESSION_TARGET_METHOD, systemURI, snapSessionURI, snapshotURI, copyMode);
+            URI snapSessionURI, URI snapshotURI, String copyMode, Boolean targetExists) {
+        return new Workflow.Method(LINK_SNAPSHOT_SESSION_TARGET_METHOD, systemURI, snapSessionURI, snapshotURI, copyMode, targetExists);
     }
 
     /**
@@ -4595,16 +4670,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
      * @param snapshotURI The URI of the BlockSnapshot instance representing the linked target volume.
      * @param copyMode The manner in which the target is linked to the array snapshot.
+     * @param targetExists true if the target exists, false if a new one needs to be created.
      * @param stepId The unique id of the workflow step in which the target is linked.
      */
     public void linkBlockSnapshotSessionTarget(URI systemURI, URI snapSessionURI,
-            URI snapshotURI, String copyMode, String stepId) {
+            URI snapshotURI, String copyMode, Boolean targetExists, String stepId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
             completer = new BlockSnapshotSessionLinkTargetCompleter(snapSessionURI, snapshotURI, stepId);
             getDevice(system.getSystemType()).doLinkBlockSnapshotSessionTarget(system, snapSessionURI,
-                    snapshotURI, copyMode, completer);
+                    snapshotURI, copyMode, targetExists, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -4673,7 +4749,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Linking target for snapshot session %s", snapSessionURI),
                         null, systemURI, getDeviceType(systemURI), getClass(),
-                        linkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURI, copyMode),
+                        linkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURI, copyMode, Boolean.FALSE),
                         rollbackLinkBlockSnapshotSessionTargetMethod(systemURI, snapSessionURI, snapshotURI), null);
             }
             workflow.executePlan(completer, "Create and link new target volumes for block snapshot session successful");
@@ -4918,7 +4994,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             workflow.createStep(DELETE_SNAPSHOT_SESSION_STEP_GROUP,
                     String.format("Delete snapshot session %s", snapSessionURI),
                     null, systemURI, getDeviceType(systemURI), getClass(),
-                    deleteBlockSnapshotSessionMethod(systemURI, snapSessionURI),
+                    deleteBlockSnapshotSessionMethod(systemURI, snapSessionURI, Boolean.FALSE),
                     null, null);
 
             // Execute the workflow.
@@ -4937,11 +5013,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * 
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * @param markInactive true if the step should mark the session inactive, false otherwise.
      * 
      * @return A reference to a Workflow.Method for deleting the array snapshot.
      */
-    public static Workflow.Method deleteBlockSnapshotSessionMethod(URI systemURI, URI snapSessionURI) {
-        return new Workflow.Method(DELETE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURI);
+    public static Workflow.Method deleteBlockSnapshotSessionMethod(URI systemURI, URI snapSessionURI, Boolean markInactive) {
+        return new Workflow.Method(DELETE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURI, markInactive);
     }
 
     /**
@@ -4951,12 +5028,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
      * @param stepId The unique id of the workflow step in which the session is deleted.
+     * @param markInactive true if the step should mark the session inactive, false otherwise.
      */
-    public void deleteBlockSnapshotSession(URI systemURI, URI snapSessionURI, String stepId) {
+    public void deleteBlockSnapshotSession(URI systemURI, URI snapSessionURI, Boolean markInactive, String stepId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            completer = new BlockSnapshotSessionDeleteCompleter(snapSessionURI, stepId);
+            completer = new BlockSnapshotSessionDeleteCompleter(snapSessionURI, markInactive, stepId);
             getDevice(system.getSystemType()).doDeleteBlockSnapshotSession(system, snapSessionURI, completer);
         } catch (Exception e) {
             if (completer != null) {

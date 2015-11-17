@@ -81,7 +81,7 @@ public class BlockSnapshotSessionRelinkTargetCompleter extends TaskLockingComple
                         // Remove from the current snapshot session.
                         StringSet currentSnapSessionTargets = currentSnapSession.getLinkedTargets();
                         currentSnapSessionTargets.remove(snapshotId);
-                        dbClient.persistObject(currentSnapSession);
+                        dbClient.updateObject(currentSnapSession);
 
                         // Add to the target snapshot session.
                         if (tgtSnapSessionTargets == null) {
@@ -89,7 +89,7 @@ public class BlockSnapshotSessionRelinkTargetCompleter extends TaskLockingComple
                             tgtSnapSession.setLinkedTargets(tgtSnapSessionTargets);
                         }
                         tgtSnapSessionTargets.add(snapshotId);
-                        dbClient.persistObject(tgtSnapSession);
+                        dbClient.updateObject(tgtSnapSession);
                     }
                     break;
                 default:

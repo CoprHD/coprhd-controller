@@ -81,7 +81,7 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
                                 // marked inactive, so be sure to check for null.
                                 if ((snapshot != null) && (!snapshot.getInactive())) {
                                     snapshot.setInactive(true);
-                                    dbClient.persistObject(snapshot);
+                                    dbClient.updateObject(snapshot);
                                 }
                             }
                         }

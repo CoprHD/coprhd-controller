@@ -115,12 +115,12 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
                             .format("For target volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). Associated volume is %5$s (%6$s)",
                                     volumePath.toString(), snapshot.getId().toString(), volumeDeviceId,
                                     volumeElementName, sourceObj.getNativeId(), sourceObj.getDeviceLabel()));
-                    dbClient.persistObject(snapshot);
+                    dbClient.updateObject(snapshot);
                 }
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 s_logger.info("Failed to link snapshot session target {} for task {}", snapshot.getId(), completer.getOpId());
                 snapshot.setInactive(true);
-                dbClient.persistObject(snapshot);
+                dbClient.updateObject(snapshot);
             }
         } catch (Exception e) {
             setPostProcessingErrorStatus("Encountered an internal error in link snapshot session target job status processing: "

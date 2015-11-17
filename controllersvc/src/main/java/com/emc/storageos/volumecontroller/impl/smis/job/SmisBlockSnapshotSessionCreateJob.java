@@ -75,7 +75,7 @@ public class SmisBlockSnapshotSessionCreateJob extends SmisJob {
                     String instanceId = syncAspectPath.getKeyValue(Constants.INSTANCEID).toString();
                     s_logger.info("SynchronizationAspect instance id is {}", instanceId);
                     snapSession.setSessionInstance(instanceId);
-                    dbClient.persistObject(snapSession);
+                    dbClient.updateObject(snapSession);
                 }
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 s_logger.info("Failed to create snapshot session for task ", getTaskCompleter().getOpId());

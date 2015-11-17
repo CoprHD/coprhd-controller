@@ -52,7 +52,7 @@ public class BlockSnapshotSessionCreateCompleter extends TaskCompleter {
                     case error:
                         // Mark ViPR snapshot session inactive on error.
                         snapSession.setInactive(true);
-                        dbClient.persistObject(snapSession);
+                        dbClient.updateObject(snapSession);
                         break;
                     case ready:
                         break;

@@ -1643,13 +1643,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * Attempts to delete a system consistency group via an SMI-S provider, if it exists.
      * Since a {@link BlockConsistencyGroup} may reference multiple system consistency groups, attempt to remove its
      * reference, in addition to updating the types field.
-     *
+     * 
      * This method may be called as part of a workflow rollback.
-     *
-     * @param storage               StorageSystem
-     * @param consistencyGroupId    BlockConsistencyGroup URI
-     * @param markInactive          True, if the user initiated removal of the BlockConsistencyGroup
-     * @param taskCompleter         TaskCompleter
+     * 
+     * @param storage StorageSystem
+     * @param consistencyGroupId BlockConsistencyGroup URI
+     * @param markInactive True, if the user initiated removal of the BlockConsistencyGroup
+     * @param taskCompleter TaskCompleter
      * @throws DeviceControllerException
      */
     @Override
@@ -2671,10 +2671,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
-            String copyMode, TaskCompleter completer) throws DeviceControllerException {
+            String copyMode, Boolean targetExists, TaskCompleter completer) throws DeviceControllerException {
 
         try {
-            _snapshotOperations.linkSnapshotSessionTarget(system, snapSessionURI, snapshotURI, copyMode, completer);
+            _snapshotOperations.linkSnapshotSessionTarget(system, snapSessionURI, snapshotURI, copyMode, targetExists, completer);
         } catch (Exception e) {
             _log.error(String.format("Exception trying to create and link new target to block snapshot session %s on array %s",
                     snapSessionURI, system.getSerialNumber()), e);

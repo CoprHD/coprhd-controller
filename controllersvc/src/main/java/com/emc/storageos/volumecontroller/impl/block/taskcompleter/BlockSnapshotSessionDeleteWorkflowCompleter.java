@@ -64,7 +64,7 @@ public class BlockSnapshotSessionDeleteWorkflowCompleter extends BlockSnapshotSe
 
                     // Mark snapshot session inactive.
                     snapSession.setInactive(true);
-                    dbClient.persistObject(snapSession);
+                    dbClient.updateObject(snapSession);
                     break;
                 default:
                     String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());

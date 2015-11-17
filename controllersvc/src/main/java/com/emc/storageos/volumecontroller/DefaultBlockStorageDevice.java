@@ -152,7 +152,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList,
-                                         Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
@@ -183,7 +183,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doDeleteSelectedSnapshot(StorageSystem storage, URI snapshot,
-                                         TaskCompleter taskCompleter) throws DeviceControllerException {
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
@@ -241,7 +241,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
-    
+
     @Override
     public void doChangeCopyMode(StorageSystem system, Volume target,
             TaskCompleter completer) throws DeviceControllerException {
@@ -685,12 +685,14 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doCreateListReplica(StorageSystem storage, List<URI> replicaList, Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doCreateListReplica(StorageSystem storage, List<URI> replicaList, Boolean createInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
-    public void doDetachListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doDetachListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -713,7 +715,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
      */
     @Override
     public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapShotURI,
-            String copyMode, TaskCompleter completer) throws DeviceControllerException {
+            String copyMode, Boolean targetExists, TaskCompleter completer) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 

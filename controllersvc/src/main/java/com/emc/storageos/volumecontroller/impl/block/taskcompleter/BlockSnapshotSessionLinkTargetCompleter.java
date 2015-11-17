@@ -63,7 +63,7 @@ public class BlockSnapshotSessionLinkTargetCompleter extends TaskLockingComplete
                         snapSession.setLinkedTargets(linkedTargets);
                     }
                     linkedTargets.add(snapshotId);
-                    dbClient.persistObject(snapSession);
+                    dbClient.updateObject(snapSession);
                     break;
                 default:
                     String errMsg = String.format("Unexpected status %s for completer for step %s", status.name(), getOpId());

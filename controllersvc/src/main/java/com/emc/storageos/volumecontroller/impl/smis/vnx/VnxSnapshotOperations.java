@@ -681,7 +681,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      */
     @Override
     public void linkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
-            String copyMode, TaskCompleter completer)
+            String copyMode, Boolean targetExists, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -572,8 +573,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         StringSet linkedTargetIds = snapSession.getLinkedTargets();
         if ((linkedTargetIds != null) && (!linkedTargetIds.isEmpty())) {
             List<URI> linkedTargetURIs = URIUtil.toURIList(linkedTargetIds);
-            List<BlockSnapshot> activeLinkedTargets = _dbClient.queryObject(BlockSnapshot.class, linkedTargetURIs, true);
-            if (!activeLinkedTargets.isEmpty()) {
+            Iterator<BlockSnapshot> activeLinkedTargets = _dbClient.queryIterativeObjects(BlockSnapshot.class, linkedTargetURIs, true);
+            if (activeLinkedTargets.hasNext()) {
                 throw APIException.badRequests.canDeactivateSnapshotSessionWithLinkedTargets();
             }
         }

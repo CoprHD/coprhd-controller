@@ -744,7 +744,7 @@ public class BlockSnapshotSessionManager {
             for (DataObject object : preparedObjects) {
                 object.setInactive(true);
             }
-            _dbClient.persistObject(preparedObjects);
+            _dbClient.updateObject(preparedObjects);
         }
     }
 }

@@ -111,7 +111,7 @@ public class SRDFOperations implements SmisConstants {
     private FindProviderFactory findProviderFactory;
 
     public enum Mode {
-        SYNCHRONOUS(2), ASYNCHRONOUS(3), ADAPTIVECOPY(32768);
+        SYNCHRONOUS(2), ASYNCHRONOUS(3), ADAPTIVECOPY(32768), ACTIVE(32770);
 
         int mode;
 

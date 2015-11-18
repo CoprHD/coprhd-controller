@@ -116,6 +116,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final Long MAX_STORAGE_OBJECTS = 40000L;
     private static final String SYSTEM_ACCESS_ZONE_NAME = "System";
     private static final Long GB_IN_BYTES = 1073741824L;
+    private static final Long GB_IN_KB =    1048576L;
+    private static final Long MB_IN_BYTES = 1048576L;
+    private static final Long KB_IN_BYTES = 1024L;
     private static final String ONEFS_V8 = "8.0.0.0";
     private static final String ONEFS_V7_2 = "7.2.0.0";
 
@@ -404,9 +407,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                }
         } while (resumeToken != null);
 
+        if (totalProvCap >= KB_IN_BYTES) {
+            totalProvCap = (totalProvCap/KB_IN_BYTES);
+        }
         _log.info("Total fs Count {} for access zone : {}", String.valueOf(totalFsCount), accessZone.getName());
         _log.info("Total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());
-
+	
         // get total exports
         int nfsExportsCount = 0;
         int cifsSharesCount = 0;
@@ -2562,7 +2568,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         // set the max capacity in GB
         long MaxCapacity = Math.round(getClusterStorageCapacity(system));
-        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity*GB_IN_BYTES));
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity*GB_IN_KB));
         return;
     }
 

@@ -6393,10 +6393,10 @@ dr_basic_tests()
 
     # wait both primary and standby to be stable, ready to do switchover
     echo "---WAIT BOTH PRIMARY AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
+    # there's no point in updating the property on both primary and standby since they are shared
     syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
     dr waitforstable 10 600
-    syssvc $CONFIG_FILE "$DR_SITE_B_IP" set_prop system_permit_root_ssh yes
-    dr waitforstable 10 600
+    dr waitforstable --ip "$DR_SITE_B_IP" 10 600
 
     # switchover to standby
     echo "---SWITCHOVER FROM TO $primary_site TO $standby_site---"

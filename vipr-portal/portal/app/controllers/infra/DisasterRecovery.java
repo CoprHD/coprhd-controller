@@ -68,8 +68,10 @@ public class DisasterRecovery extends ViprResourceController {
     public static void pause(String id) {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
-            SiteRestRep sitepause = DisasterRecoveryUtils.pauseStandby(id);
-            flash.success(MessagesUtils.get(PAUSED_SUCCESS, sitepause.getName()));
+            SiteIdListParam param = new SiteIdListParam();
+            param.getIds().add(id);
+            DisasterRecoveryUtils.pauseStandby(param);
+            flash.success(MessagesUtils.get(PAUSED_SUCCESS, result.getName()));
         }
         list();
     }

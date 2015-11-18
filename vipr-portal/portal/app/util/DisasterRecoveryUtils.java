@@ -36,8 +36,8 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().deleteSite(ids);
     }
 
-    public static SiteRestRep pauseStandby(String uuid) {
-        return getViprClient().site().pauseSite(uuid);
+    public static ClientResponse pauseStandby(SiteIdListParam ids) {
+        return getViprClient().site().pauseSite(ids);
     }
 
     public static SiteRestRep resumeStandby(String uuid) {

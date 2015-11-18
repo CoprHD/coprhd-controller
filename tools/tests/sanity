@@ -6571,6 +6571,44 @@ dr_multisite_tests()
     dr get $standby_site_c
     dr get $primary_site
 
+    # pause standby b
+    echo "---PAUSE SITE $standby_site_b---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr pause $standby_site_b || { echo "pause dr standby site b failed."; exit 1; }
+
+    echo "---WAIT 30s FOR $primary_site_b TO STABILIZE---"
+    sleep 30
+
+    echo "---WAIT FOR PAUSE $standby_site_b---"
+    dr waitforstate $standby_site_b STANDBY_PAUSED 30 1200
+    echo "Pausing dr done"
+
+    # pause standby c
+    echo "---PAUSE SITE $standby_site_c---"
+    dr pause $standby_site_c || { echo "pause dr standby site c failed."; exit 1; }
+
+    echo "---WAIT 30s FOR $primary_site_c TO STABILIZE---"
+    sleep 30
+
+    echo "---WAIT FOR PAUSE $standby_site_c---"
+    dr waitforstate $standby_site_c STANDBY_PAUSED 30 1200
+    echo "Pausing dr done"
+
+    echo "---RESUME SITE $standby_site_b---"
+    dr resume $standby_site_b || { echo "resume dr standby site b failed."; exit 1; }
+
+    echo "---WAIT FOR SYNC $standby_site_b---"
+    dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
+    echo "Syncing dr done"
+
+    echo "---RESUME SITE $standby_site_c---"
+    dr resume $standby_site_c || { echo "resume dr standby site c failed."; exit 1; }
+
+    echo "---WAIT FOR SYNC $standby_site_c---"
+    dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
+    echo "Syncing dr done"
+
     # delete standby
     echo "---DELETE STANDBY $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_A_IP

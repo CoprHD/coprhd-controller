@@ -6492,6 +6492,9 @@ dr_multisite_tests()
     dr waitforstate $standby_site_b STANDBY_SYNCED 30 600
     echo "Syncing dr done"
 
+    echo "---WAIT 30s FOR $standby_site_b TO BOOTSTRAP---"
+    sleep 30
+
     # login to standby with auth
     echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_B_IP

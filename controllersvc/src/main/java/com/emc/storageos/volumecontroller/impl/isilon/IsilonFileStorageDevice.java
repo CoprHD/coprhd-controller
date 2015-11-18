@@ -362,6 +362,14 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             }
             
         } else {
+        	/** inheritablePathAcl - true: Apply Windows Default ACLs
+        	 *     false: Do not change existing permissions. 
+        	 **/
+        	boolean inheritablePathAcl = true;
+            if (configinfo != null && configinfo.containsKey("inheritablePathAcl")) {
+            	inheritablePathAcl = Boolean.parseBoolean(configinfo.get("inheritablePathAcl"));
+            	isilonSMBShare.setInheritablePathAcl(inheritablePathAcl);
+            }
             // new share
         	if(zoneName != null) {
         		_log.debug("Share will be created in zone: {}", zoneName);

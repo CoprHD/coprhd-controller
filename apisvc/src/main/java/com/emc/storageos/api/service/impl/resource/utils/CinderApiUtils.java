@@ -11,11 +11,8 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.net.URI;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -26,6 +23,12 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import com.emc.storageos.api.service.impl.resource.VirtualPoolService;
+import com.emc.storageos.cinder.model.CinderQos;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.QosSpecification;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.VirtualPool;
 import org.apache.commons.lang3.StringUtils;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -59,6 +62,10 @@ public class CinderApiUtils {
 	private static final String XML_REGULAR_EXP = ".*application/xml.*";
 	
 	private static final String JSON_REGULAR_EXP = ".*application/json.*";
+
+    private static final Integer UNLIMITED_SNAPSHOTS = -1;
+
+    private static final Integer DISABLED_SNAPSHOTS = 0;
 	
     /**
      * Unmodifiable map used to keep key value for the Http Response code
@@ -209,4 +216,51 @@ public class CinderApiUtils {
     public static String timeFormat(Calendar cal) {
         return new java.text.SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z").format(cal.getTimeInMillis());
     }
+
+    /**
+     * Retrieves information from given Virtual Pool
+     *
+     * @param virtualPool Virtual Pool
+     * @return QosSpecification filled with information from Virtual Pool
+     */
+    public static QosSpecification getDataFromVirtualPool(VirtualPool virtualPool) {
+        _log.debug("Fetching data from Virtual Pool, id: {}", virtualPool.getId());
+        QosSpecification qos = new QosSpecification();
+        String systems = virtualPool.getProtocols().toString();
+        qos.setName("specs-" + virtualPool.getLabel());
+        qos.setConsumer("back-end");
+        qos.setLabel(virtualPool.getLabel());
+        qos.setId(URIUtil.createId(QosSpecification.class));
+        //qos.setId(UUID.randomUUID().toString());
+        // TODO: return UUID instead of URI
+        qos.setVirtualPoolId(virtualPool.getId());
+        StringMap specs = new StringMap();
+        specs.put("Provisioning Type", virtualPool.getSupportedProvisioningType());
+        specs.put("Protocol", systems.substring(1, systems.length() - 1));
+        specs.put("Drive Type", virtualPool.getDriveType());
+        specs.put("System Type", VirtualPoolService.getSystemType(virtualPool));
+        specs.put("Multi-Volume Consistency", Boolean.toString(virtualPool.getMultivolumeConsistency()));
+        if (virtualPool.getArrayInfo().get("raid_level") != null) {
+            specs.put("RAID LEVEL", virtualPool.getArrayInfo().get("raid_level").toString());
+        }
+        specs.put("Expendable", Boolean.toString(virtualPool.getExpandable()));
+        specs.put("Maximum SAN paths", Integer.toString(virtualPool.getNumPaths()));
+        specs.put("Minimum SAN paths", Integer.toString(virtualPool.getMinPaths()));
+        specs.put("Paths per Initiator", Integer.toString(virtualPool.getPathsPerInitiator()));
+        // TODO: max mirrors
+        if (virtualPool.getHighAvailability() != null) {
+            specs.put("High Availability", virtualPool.getHighAvailability());
+        }
+        if (virtualPool.getMaxNativeSnapshots().equals(UNLIMITED_SNAPSHOTS)) {
+            specs.put("Maximum Snapshots", "unlimited");
+        }else if(virtualPool.getMaxNativeSnapshots().equals(DISABLED_SNAPSHOTS)){
+            specs.put("Maximum Snapshots", "disabled");
+        }else{
+            specs.put("Maximum Snapshots", Integer.toString(virtualPool.getMaxNativeSnapshots()));
+        }
+
+        qos.setSpecs(specs);
+        return qos;
+    }
+
 }

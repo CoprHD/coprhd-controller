@@ -23,6 +23,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.api.service.impl.resource.VirtualPoolService;
 import com.emc.storageos.cinder.model.*;
+import com.emc.storageos.db.client.model.QosSpecification;
 import com.emc.storageos.db.client.model.VirtualPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +52,6 @@ public class QosService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(QosService.class);
     private static final String EVENT_SERVICE_TYPE = "block";
-    private static final Integer UNLIMITED_SNAPSHOTS = -1;
 
     /**
      * Create Qos for the given tenant
@@ -94,16 +94,16 @@ public class QosService extends TaskResourceService {
     	CinderQosListRestResp qosListResp= new CinderQosListRestResp();
         _log.info("START get QoS list");
 
-        List<URI> virtualPools = _dbClient.queryByType(VirtualPool.class, true);
-        for(URI vpool:virtualPools){
-            VirtualPool pool = _dbClient.queryObject(VirtualPool.class, vpool);
-            _log.debug("Virtual Pool found, id: {}", pool.getId());
-            if(pool != null && pool.getType().equalsIgnoreCase(VirtualPool.Type.block.name())){
-                // TODO: implement fetching qos from db
-                qosListResp.getQos_specs().add(getDataFromVirtualPool(pool));
+        List<URI> qosSpecs = _dbClient.queryByType(QosSpecification.class, true);
+        for(URI qos:qosSpecs){
+            QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class, qos);
+            if(qosSpecification != null){
+                _log.debug("Qos Specification found, id: {}", qosSpecification.getId());
+                qosListResp.getQos_specs().add(getDataFromQosSpecification(qosSpecification));
             }
         }
 
+        // TODO: Create a new qos entry in database for each Virtual Pool without a qos specs
         _log.info("END get QoS list");
         return qosListResp;
     }
@@ -128,14 +128,10 @@ public class QosService extends TaskResourceService {
         CinderQosDetail qosDetailed = new CinderQosDetail();
         _log.info("START get QoS specs detailed");
 
-        List<URI> virtualPools = _dbClient.queryByType(VirtualPool.class, true);
-        for(URI vpool:virtualPools){
-            VirtualPool pool = _dbClient.queryObject(VirtualPool.class, vpool);
-            _log.info("Comparing {} with {}", pool.getId().toString(), qos_id);
-            if(pool != null && pool.getType().equalsIgnoreCase(VirtualPool.Type.block.name()) && pool.getId().getSchemeSpecificPart().split("\\:")[2].equals(qos_id)){
-                // TODO: implement fetching qos from db
-                qosDetailed.qos_spec = getDataFromVirtualPool(pool);
-            }
+        QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class, URI.create(qos_id));
+        if(qosSpecification != null){
+            _log.info("Fetched Qos Specification, id: {}", qosSpecification.getId());
+            qosDetailed.qos_spec = getDataFromQosSpecification(qosSpecification);
         }
 
         _log.info("END get QoS specs detailed");
@@ -272,32 +268,14 @@ public class QosService extends TaskResourceService {
     
 
     //INTERNAL FUNCTIONS
-    private CinderQos getDataFromVirtualPool(VirtualPool virtualPool){
-        _log.debug("Fetching data from Virtual Pool, id: {}", virtualPool.getId());
+    private CinderQos getDataFromQosSpecification(QosSpecification qosSpecs){
+        _log.debug("Fetching data from Qos Specification, id: {}", qosSpecs.getId());
         CinderQos qos = new CinderQos();
-        String systems = virtualPool.getProtocols().toString();
-        qos.name = "specs-" + virtualPool.getLabel();
-        qos.consumer = "back-end";
-        qos.specs = new HashMap<String, String>();
-        //Get Virtual Pool UUID
-        qos.id = virtualPool.getId().getSchemeSpecificPart().split("\\:")[2];
-        qos.specs.put("Provisioning Type", virtualPool.getSupportedProvisioningType());
-        qos.specs.put("Protocol", systems.substring(1, systems.length() - 1));
-        qos.specs.put("Drive Type", virtualPool.getDriveType());
-        qos.specs.put("System Type", VirtualPoolService.getSystemType(virtualPool));
-        qos.specs.put("Multi-Volume Consistency", Boolean.toString(virtualPool.getMultivolumeConsistency()));
-        qos.specs.put("RAID LEVEL", virtualPool.getArrayInfo().get("raid_level").toString());
-        qos.specs.put("Expendable", Boolean.toString(virtualPool.getExpandable()));
-        qos.specs.put("Maximum SAN paths", Integer.toString(virtualPool.getNumPaths()));
-        qos.specs.put("Minimum SAN paths", Integer.toString(virtualPool.getMinPaths()));
-        qos.specs.put("Paths per Initiator", Integer.toString(virtualPool.getPathsPerInitiator()));
-        // TODO: max mirrors
-        qos.specs.put("High Availability", virtualPool.getHighAvailability());
-        if(virtualPool.getMaxNativeSnapshots().equals(UNLIMITED_SNAPSHOTS)){
-            qos.specs.put("Maximum Snapshots", "unlimited");
-        }else{
-            qos.specs.put("Maximum Snapshots", Integer.toString(virtualPool.getMaxNativeSnapshots()));
-        }
+
+        qos.id = qosSpecs.getId().toString();
+        qos.consumer = qosSpecs.getConsumer();
+        qos.name = qosSpecs.getName();
+        qos.specs = qosSpecs.getSpecs();
 
         return qos;
     }

@@ -319,7 +319,7 @@ public class DbManager implements DbManagerMBean {
         for (InetAddress nodeIp : liveNodes) {
             IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
             String dc = snitch.getDatacenter(nodeIp);
-            log.info("node Ip {}, dcName {} ", nodeIp, dc);
+            log.info("node {} belongs to data center {} ", nodeIp, dc);
             if (dc.equals(dcName)) {
                 return false;
             }
@@ -338,7 +338,7 @@ public class DbManager implements DbManagerMBean {
         for (InetAddress nodeIp : allNodes) {
             IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
             String dc = snitch.getDatacenter(nodeIp);
-            log.info("node Ip {}, dcName {} ", nodeIp, dc);
+            log.info("node {} belongs to data center {} ", nodeIp, dc);
             if (dc.equals(dcName)) {
                 Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
                 String guid = hostIdMap.get(nodeIp.getHostAddress());

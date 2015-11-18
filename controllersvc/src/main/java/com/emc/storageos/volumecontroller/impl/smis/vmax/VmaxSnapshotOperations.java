@@ -1475,7 +1475,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
                 CIMArgument[] inArgs = null;
                 CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getModifySettingsDefinedStateForLinkTargets(settingsStatePath, targetPath, copyMode);
+                inArgs = _helper.getModifySettingsDefinedStateForLinkTargets(system, settingsStatePath, targetPath, copyMode);
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionLinkTargetJob(jobPath,
@@ -1660,19 +1660,26 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             try {
                 _log.info("Delete snapshot session {} START", snapSessionURI);
                 BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                URI sourceURI = snapSession.getParent().getURI();
-                BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
-                CIMObjectPath sourcePath = _cimPath.getBlockObjectPath(system, sourceObj);
                 String syncAspectPath = snapSession.getSessionInstance();
-                CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
-                CIMArgument[] inArgs = null;
-                CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(settingsStatePath, false);
-                _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
-                CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionDeleteJob(jobPath,
-                        system.getId(), completer)));
+                if (NullColumnValueGetter.isNullValue(syncAspectPath)) {
+                    // If there is no session instance, it must have failed creation and
+                    // this is method is being called due to a rollback.
+                    _log.info("No session instance specified for snapshot session {}", snapSessionURI);
+                    completer.ready(_dbClient);
+                } else {
+                    CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+                    URI sourceURI = snapSession.getParent().getURI();
+                    BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
+                    CIMObjectPath sourcePath = _cimPath.getBlockObjectPath(system, sourceObj);
+                    CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
+                    CIMArgument[] inArgs = null;
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(settingsStatePath, false);
+                    _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
+                    CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+                    ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionDeleteJob(jobPath,
+                            system.getId(), completer)));
+                }
             } catch (Exception e) {
                 _log.info("Exception restoring snapshot session", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());

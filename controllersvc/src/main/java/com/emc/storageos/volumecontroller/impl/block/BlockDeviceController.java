@@ -1957,7 +1957,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         String.format("Create snapshot session %s for snapshot target volume %s", snapSessionURI, snapshot),
                         waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
                         createBlockSnapshotSessionMethod(storage, Arrays.asList(snapSessionURI)),
-                        rollbackMethodNullMethod(), null);
+                        deleteBlockSnapshotSessionMethod(storage, snapSessionURI, Boolean.TRUE), null);
 
                 // Create a workflow step to link the source volume for the passed snapshot
                 // to the snapshot session create by the previous step. We link the source
@@ -1983,10 +1983,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
                         linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI,
                                 BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE),
-                        rollbackMethodNullMethod(), null);
+                        unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI, Boolean.FALSE), null);
 
                 // Need to wait until copy state is copied.
-                Thread.sleep(60000);
+                waitFor = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
+                        String.format("Waiting for synchronization of source %s", volume),
+                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
+                        waitForSynchronizedMethod(Volume.class, storage, Arrays.asList(volume), false),
+                        rollbackMethodNullMethod(), null);
 
                 // Once the data is fully copied to the source, we can unlink the source from the session.
                 waitFor = workflow.createStep(

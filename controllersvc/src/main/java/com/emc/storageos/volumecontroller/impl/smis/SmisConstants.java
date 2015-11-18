@@ -92,6 +92,7 @@ public interface SmisConstants {
     static final int STORAGE_ELEMENT_CAPACITY_EXPANSION_VALUE = 12;
     static final int MODE_SYNCHRONOUS = 2;
     static final int RELINK_TARGET_VALUE = 0x8001;
+    static final int COPY_METHODOLOGY_FULL_COPY = 3;
 
     static final String SE_REPLICATIONSETTING_DATA = "SE_ReplicationSettingData";
     static final String CP_REPLICATIONSETTING_DATA = "ReplicationSettingData";

@@ -855,10 +855,16 @@ public abstract class BlockIngestOrchestrator {
     }
 
     /**
-     * Return the source volume based on the replication type either local or remote.
+     * Return a list specifying the native guids of the parent(s) of the unmanaged volume
+     * associated with the passed unmanaged volume info. An unmanaged volume typically
+     * has a single source volume based on its replica type or whether or not it is a
+     * VPLEX backend volume. However, there is at least one case where the unmanaged
+     * volume can have multiple parents and this is when the unmanaged volume in not
+     * only a snapshot target volume, but is also the backend volume of a VPLEX volume.
      * 
      * @param unManagedVolumeInformation
-     * @return
+     * @return A list specifying the native guids of the parent(s) of the unmanaged volume
+     *         associated with the passed unmanaged volume info.
      */
     private List<String> getParentVolumeNativeGUIDByRepType(StringSetMap unManagedVolumeInformation) {
         List<String> parentVolumeNativeGuids = new ArrayList<String>();

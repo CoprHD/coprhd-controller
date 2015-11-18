@@ -181,6 +181,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public static final String RESTORE_VOLUME_STEP = "restoreVolume";
     private static final String RESTORE_VOLUME_METHOD_NAME = "restoreVolume";
+    
+    private static final String ADD_VOLUMES_TO_CG_KEY = "ADD";
+    private static final String REMOVE_VOLUMES_FROM_CG_KEY = "REMOVE";
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
@@ -628,10 +631,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 return waitFor;
             }
         }
-        
-        final String addVolumesKey = "ADD";
-        final String removeVolumesKey = "REMOVE";
-
+       
         // We want the map to contain both the volumes to ADD and REMOVE segregated by device and also by CG.
         // The map will look like the below:
         // Device URI
@@ -639,57 +639,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // ----> ADD -> List of Volumes to Add from this CG for this device
         // ----> REMOVE -> List of Volumes to Remove from this CG for this device
         Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap 
-            = new HashMap<URI, Map<URI, Map<String, List<URI>>>>();       
-        
-        // Volumes to add
-        for (VolumeDescriptor descr : addDescriptors) {
-            // Segregated by device
-            URI deviceURI = descr.getDeviceURI();
-            Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceToCGMap.get(deviceURI);
-            if (volumesToUpdateByCG == null) {
-                volumesToUpdateByCG = new HashMap<URI, Map<String, List<URI>>>();
-                deviceToCGMap.put(deviceURI, volumesToUpdateByCG);
-            }                        
-            // Segregated by CG
-            URI consistencyGroupURI = descr.getConsistencyGroupURI();  
-            Map<String, List<URI>> volumesToUpdate = volumesToUpdateByCG.get(consistencyGroupURI);
-            if (volumesToUpdate == null) {
-                volumesToUpdate = new HashMap<String, List<URI>>();
-                volumesToUpdateByCG.put(consistencyGroupURI, volumesToUpdate);
-            }              
-            // Segregated by volumes to ADD
-            List<URI> volumesToAdd = volumesToUpdate.get(addVolumesKey);
-            if (volumesToAdd == null) {
-                volumesToAdd = new ArrayList<URI>();
-                volumesToUpdate.put(addVolumesKey, volumesToAdd);
-            }
-            volumesToAdd.add(descr.getVolumeURI());            
-        }
-        
-        // Volumes to remove
-        for (VolumeDescriptor descr : removeDescriptors) {                                                
-            // Segregated by device
-            URI deviceURI = descr.getDeviceURI();
-            Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceToCGMap.get(deviceURI);
-            if (volumesToUpdateByCG == null) {
-                volumesToUpdateByCG = new HashMap<URI, Map<String, List<URI>>>();
-                deviceToCGMap.put(deviceURI, volumesToUpdateByCG);
-            }                        
-            // Segregated by CG
-            URI consistencyGroupURI = descr.getConsistencyGroupURI();
-            Map<String, List<URI>> volumesToUpdate = volumesToUpdateByCG.get(consistencyGroupURI);
-            if (volumesToUpdate == null) {
-                volumesToUpdate = new HashMap<String, List<URI>>();
-                volumesToUpdateByCG.put(consistencyGroupURI, volumesToUpdate);
-            }              
-            // Segregated by volumes to REMOVE
-            List<URI> volumesToRemove = volumesToUpdate.get(removeVolumesKey);
-            if (volumesToRemove == null) {
-                volumesToRemove = new ArrayList<URI>();
-                volumesToUpdate.put(removeVolumesKey, volumesToRemove);
-            }
-            volumesToRemove.add(descr.getVolumeURI());            
-        }
+            = createDeviceToCGMapFromDescriptors(addDescriptors, removeDescriptors);
 
         // Distill the steps down to Device -> CG -> ADD and REMOVE volumes
         for (Map.Entry<URI,  Map<URI, Map<String, List<URI>>>> deviceEntry : deviceToCGMap.entrySet()) {
@@ -697,8 +647,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceEntry.getValue();
             for (Map.Entry<URI, Map<String, List<URI>>> cgEntry : volumesToUpdateByCG.entrySet()) {
                 URI consistencyGroupURI = cgEntry.getKey();                       
-                List<URI> volumesToAdd = cgEntry.getValue().get(addVolumesKey);
-                List<URI> volumesToRemove = cgEntry.getValue().get(removeVolumesKey);
+                List<URI> volumesToAdd = cgEntry.getValue().get(ADD_VOLUMES_TO_CG_KEY);
+                List<URI> volumesToRemove = cgEntry.getValue().get(REMOVE_VOLUMES_FROM_CG_KEY);
 
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Updating consistency group  %s", consistencyGroupURI), waitFor,
@@ -722,6 +672,78 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
 
         return waitFor;
+    }
+
+    /**
+     * Convenience method to create a map Device to CG to Volume to ADD and REMOVE.
+     * 
+     * We want the map to contain both the volumes to ADD and REMOVE segregated by device and also by CG.
+     * The map will look like the below:
+     * Device URI
+     * --> CG URI
+     * ----> ADD -> List of Volumes to Add from this CG for this device
+     * ----> REMOVE -> List of Volumes to Remove from this CG for this device
+     * 
+     * @param addDescriptors BLOCK_DATA descriptors of volumes to add to CG
+     * @param removeDescriptors BLOCK_DATA descriptors of volumes to remove from CG
+     * @return populated map
+     */
+    private Map<URI, Map<URI, Map<String, List<URI>>>> createDeviceToCGMapFromDescriptors(List<VolumeDescriptor> addDescriptors,
+            List<VolumeDescriptor> removeDescriptors) {        
+        Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap 
+            = new HashMap<URI, Map<URI, Map<String, List<URI>>>>();       
+        
+        // Volumes to add
+        for (VolumeDescriptor descr : addDescriptors) {
+            // Segregated by device
+            URI deviceURI = descr.getDeviceURI();
+            Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceToCGMap.get(deviceURI);
+            if (volumesToUpdateByCG == null) {
+                volumesToUpdateByCG = new HashMap<URI, Map<String, List<URI>>>();
+                deviceToCGMap.put(deviceURI, volumesToUpdateByCG);
+            }                        
+            // Segregated by CG
+            URI consistencyGroupURI = descr.getConsistencyGroupURI();  
+            Map<String, List<URI>> volumesToUpdate = volumesToUpdateByCG.get(consistencyGroupURI);
+            if (volumesToUpdate == null) {
+                volumesToUpdate = new HashMap<String, List<URI>>();
+                volumesToUpdateByCG.put(consistencyGroupURI, volumesToUpdate);
+            }              
+            // Segregated by volumes to ADD
+            List<URI> volumesToAdd = volumesToUpdate.get(ADD_VOLUMES_TO_CG_KEY);
+            if (volumesToAdd == null) {
+                volumesToAdd = new ArrayList<URI>();
+                volumesToUpdate.put(ADD_VOLUMES_TO_CG_KEY, volumesToAdd);
+            }
+            volumesToAdd.add(descr.getVolumeURI());            
+        }
+        
+        // Volumes to remove
+        for (VolumeDescriptor descr : removeDescriptors) {                                                
+            // Segregated by device
+            URI deviceURI = descr.getDeviceURI();
+            Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceToCGMap.get(deviceURI);
+            if (volumesToUpdateByCG == null) {
+                volumesToUpdateByCG = new HashMap<URI, Map<String, List<URI>>>();
+                deviceToCGMap.put(deviceURI, volumesToUpdateByCG);
+            }                        
+            // Segregated by CG
+            URI consistencyGroupURI = descr.getConsistencyGroupURI();
+            Map<String, List<URI>> volumesToUpdate = volumesToUpdateByCG.get(consistencyGroupURI);
+            if (volumesToUpdate == null) {
+                volumesToUpdate = new HashMap<String, List<URI>>();
+                volumesToUpdateByCG.put(consistencyGroupURI, volumesToUpdate);
+            }              
+            // Segregated by volumes to REMOVE
+            List<URI> volumesToRemove = volumesToUpdate.get(REMOVE_VOLUMES_FROM_CG_KEY);
+            if (volumesToRemove == null) {
+                volumesToRemove = new ArrayList<URI>();
+                volumesToUpdate.put(REMOVE_VOLUMES_FROM_CG_KEY, volumesToRemove);
+            }
+            volumesToRemove.add(descr.getVolumeURI());            
+        }
+        
+        return deviceToCGMap;
     }
 
     /**

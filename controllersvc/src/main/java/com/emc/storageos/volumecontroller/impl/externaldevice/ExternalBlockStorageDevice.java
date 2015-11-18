@@ -1,5 +1,13 @@
+/*
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.volumecontroller.impl.externaldevice;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,13 +22,18 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
+import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.impl.LockManagerImpl;
 import com.emc.storageos.storagedriver.impl.RegistryImpl;
+import com.emc.storageos.storagedriver.model.StorageVolume;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 
@@ -85,8 +98,55 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
         BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
         if (driver == null) {
-            throw DeviceControllerException.exceptions.connectStorageFailedNoDevice(
-                    storageSystem.getSystemType());
+            String errorMsg = String.format("No driver entry defined for device type: %s . ", storageSystem.getSystemType());
+            _log.info(errorMsg);
+            //  todo revisit
+            throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                    null, errorMsg, null, null);
+        }
+
+        List<StorageVolume> driverVolumes = new ArrayList<>();
+        Map<StorageVolume, Volume> driverVolumeToVolumeMap = new HashMap<>();
+
+        try {
+            for (Volume volume : volumes) {
+                StorageVolume driverVolume = new StorageVolume();
+                driverVolume.setStorageSystemId(storageSystem.getNativeId());
+                driverVolume.setStoragePoolId(storagePool.getNativeId());
+                driverVolume.setRequestedCapacity(volume.getCapacity());
+                driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
+                // Todo complete attribute setting.
+
+                driverVolumes.add(driverVolume);
+                driverVolumeToVolumeMap.put(driverVolume, volume);
+            }
+
+            DriverTask task = driver.createVolumes(driverVolumes, null);
+            // TODO: this is short cut for now, assuming synchronous driver implementation
+            // We will implement support for async case later.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                updateVolumesWithDriverVolumeInfo(dbClient, driverVolumeToVolumeMap);
+                dbClient.updateObject(driverVolumeToVolumeMap.values());
+                _log.info("Calling task completer....");
+                taskCompleter.ready(dbClient);
+            } else {
+                // failed
+                // TODO support async
+                // Set volumes to inactive state
+                List<URI> volumeURIs = new ArrayList<>();
+                for (Volume volume : volumes) {
+                    volume.setInactive(true);
+                    volumeURIs.add(volume.getId());
+                }
+                String errorMsg = String.format("doCreateVolumes -- Failed to create volumes: %s .", task.getMessage());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed(volumeURIs.toString(), errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (IOException e) {
+            _log.error("doCreateVolumes -- Failed to create volumes. ", e);
+            ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("doCreateVolumes", e.getMessage());
+            taskCompleter.error(dbClient, serviceError);
         }
     }
 
@@ -120,6 +180,24 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         }
         _log.info("doConnect to external device {} - start", storageSystem.getId());
         _log.info("doConnect to external device {} - end", storageSystem.getId());
+    }
+
+
+    private void updateVolumesWithDriverVolumeInfo(DbClient dbClient, Map<StorageVolume, Volume> driverVolumesMap)
+                  throws IOException {
+        for (Map.Entry driverVolumeToVolume : driverVolumesMap.entrySet()) {
+            StorageVolume driverVolume = (StorageVolume)driverVolumeToVolume.getKey();
+            Volume volume = (Volume)driverVolumeToVolume.getValue();
+            volume.setNativeId(driverVolume.getNativeId());
+            volume.setDeviceLabel(driverVolume.getDeviceLabel());
+            volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
+
+            if (driverVolume.getWwn() != null) {
+                volume.setWWN(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
+            }
+            volume.setProvisionedCapacity(driverVolume.getProvisionedCapacity());
+            volume.setAllocatedCapacity(driverVolume.getAllocatedCapacity());
+        }
     }
 
 }

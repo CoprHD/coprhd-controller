@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,7 +116,8 @@ public class NumPathsMatcher extends AttributeMatcher {
                     continue;
                 }
                 // If we need two or more paths, must have at least two HA Domains
-                if (!system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name())
+                if (!system.getIsDriverManaged()
+                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name())
                         && !system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name())) {
                     if (maxPaths >= 2 && cachedUsableFCHADomains.get(dev) < 2) {
                         _logger.info("NumPathsMatcher disqualified pool: " + pool.getNativeGuid() + " max_paths: " + maxPaths

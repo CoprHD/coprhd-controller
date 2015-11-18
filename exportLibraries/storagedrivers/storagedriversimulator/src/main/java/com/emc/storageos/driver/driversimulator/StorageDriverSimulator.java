@@ -1,5 +1,6 @@
 package com.emc.storageos.driver.driversimulator;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -70,11 +71,11 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
     @Override
     public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
          StorageSystem storageSystem = storageSystems.get(0);
-        _log.info("StorageDriver: discoverStorageSystem information for storage system {} - start",
-                storageSystem.getIpAddress());
+        _log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - start",
+                storageSystem.getIpAddress(), storageSystem.getSystemName());
 
-        storageSystem.setSerialNumber(UUID.randomUUID().toString());
-        storageSystem.setNativeId(STORAGE_DEVICE_ID);
+        storageSystem.setSerialNumber(storageSystem.getSystemName());
+        storageSystem.setNativeId(storageSystem.getSystemName());
         storageSystem.setFirmwareVersion("2.4-3.12");
         storageSystem.setIsSupportedVersion(true);
 
@@ -94,11 +95,11 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
         _log.info("Discovery of storage pools for storage system {} .", storageSystem.getNativeId());
         for (int i =0; i <= 2; i++ ) {
             StoragePool pool = new StoragePool();
-            pool.setNativeId("pool-12345-" + i);
+            pool.setNativeId("pool-1234577-" + i);
             pool.setStorageSystemId(storageSystem.getNativeId());
             _log.info("Discovered Pool {}, storageSystem {}", pool.getNativeId(), pool.getStorageSystemId());
 
-            pool.setDeviceLabel("er-pool-12345" + i);
+            pool.setDeviceLabel("er-pool-1234577" + i);
             pool.setPoolName(pool.getDeviceLabel());
             Set<StoragePool.Protocols> protocols = new HashSet<>();
             protocols.add(StoragePool.Protocols.FC);
@@ -145,15 +146,15 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
         // Create ports
         for (int i =0; i <= 2; i++ ) {
             StoragePort port = new StoragePort();
-            port.setNativeId("port-12345-" + i);
+            port.setNativeId("port-1234577-" + i);
             port.setStorageSystemId(storageSystem.getNativeId());
             _log.info("Discovered Port {}, storageSystem {}", port.getNativeId(), port.getStorageSystemId());
 
-            port.setDeviceLabel("er-port-12345" + i);
+            port.setDeviceLabel("er-port-1234577" + i);
             port.setPortName(port.getDeviceLabel());
-            port.setNetworkId("er-network11");
+            port.setNetworkId("er-network77");
             port.setTransportType(StoragePort.TransportType.FC);
-            port.setPortNetworkId("50:FE:FE:FE:FE:FE:FE:0" + i);
+            port.setPortNetworkId("50:FE:FE:FE:FE:FE:FE:1" + i);
             port.setOperationalStatus(StoragePort.OperationalStatus.OK);
             storagePorts.add(port);
         }
@@ -170,7 +171,29 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
 
     @Override
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-        return null;
+
+        //String newVolumes = "";
+        Set<String> newVolumes = new HashSet<>();
+
+        for (StorageVolume volume : volumes) {
+            volume.setNativeId("driverSimulatorVolume" + UUID.randomUUID().toString());
+            volume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
+            volume.setProvisionedCapacity(0L);
+            volume.setAllocatedCapacity(10L * 1024 * 1024);
+            volume.setDeviceLabel(volume.getNativeId());
+            volume.setWwn(String.format("%s%s", volume.getStorageSystemId(), volume.getNativeId()));
+
+            // newVolumes = newVolumes + volume.getNativeId() + " ";
+            newVolumes.add(volume.getNativeId());
+        }
+        String taskType = "create-storage-volumes";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        _log.info("StorageDriver: createVolumes information for storage system {}, volume nativeIds {} - end",
+                volumes.get(0).getStorageSystemId(), Arrays.toString(newVolumes.toArray()));
+        return task;
     }
 
     @Override

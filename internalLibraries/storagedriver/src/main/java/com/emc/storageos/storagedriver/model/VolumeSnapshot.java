@@ -1,7 +1,7 @@
 package com.emc.storageos.storagedriver.model;
 
 
-public class VolumeSnapshot extends StorageObject {
+public class VolumeSnapshot extends StorageBlockObject {
 
     // volume Id this snapshot is associated with. Type: Input.
     private String parentId;

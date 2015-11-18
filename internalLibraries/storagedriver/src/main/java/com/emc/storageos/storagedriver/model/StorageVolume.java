@@ -1,7 +1,7 @@
 package com.emc.storageos.storagedriver.model;
 
 
-public class StorageVolume extends StorageObject {
+public class StorageVolume extends StorageBlockObject {
 
     // storage system of this volume. Type: Input.
     private String storageSystemId;
@@ -38,6 +38,14 @@ public class StorageVolume extends StorageObject {
 
     public void setStoragePoolId(String storagePoolId) {
         this.storagePoolId = storagePoolId;
+    }
+
+    public Long getRequestedCapacity() {
+        return requestedCapacity;
+    }
+
+    public void setRequestedCapacity(Long requestedCapacity) {
+        this.requestedCapacity = requestedCapacity;
     }
 
     public Long getProvisionedCapacity() {

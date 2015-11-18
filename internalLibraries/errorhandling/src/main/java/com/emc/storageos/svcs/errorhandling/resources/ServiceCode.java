@@ -543,6 +543,9 @@ public enum ServiceCode {
     ECS_BUCKET_DELETE_ERROR(65011),
     ECS_BUCKET_GET_OWNER_ERROR(65012),
 
+    // External Device Errors (66000 - 66999)
+    EXTERNALDEVICE_CREATE_VOLUMES_ERROR(66001),
+
     // ****************************
     // Old style of Service codes
     // ****************************

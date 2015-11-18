@@ -5,11 +5,15 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +125,8 @@ public class ExternalDeviceCommunicationInterface extends
 
             // discover ports
             List<com.emc.storageos.db.client.model.StoragePort> allPorts = new ArrayList<>();
-            Map<String, List<com.emc.storageos.db.client.model.StoragePort>> ports = discoverStoragePorts(driver, accessProfile);
+            Set<Network> networksToUpdate = new HashSet<>();
+            Map<String, List<com.emc.storageos.db.client.model.StoragePort>> ports = discoverStoragePorts(driver, networksToUpdate, accessProfile);
             _log.info("No of newly discovered ports {}", ports.get(NEW).size());
             _log.info("No of existing discovered ports {}", ports.get(EXISTING).size());
             if (null != ports && !ports.get(NEW).isEmpty()) {
@@ -133,6 +138,11 @@ public class ExternalDeviceCommunicationInterface extends
                 allPorts.addAll(ports.get(EXISTING));
                 _dbClient.updateObject(ports.get(EXISTING));
             }
+
+            if (!networksToUpdate.isEmpty()) {
+                _dbClient.updateObject(networksToUpdate);
+            }
+
             List<com.emc.storageos.db.client.model.StoragePort> notVisiblePorts = DiscoveryUtils.checkStoragePortsNotVisible(allPorts,
                     _dbClient, accessProfile.getSystemId());
             List<com.emc.storageos.db.client.model.StoragePort> allExistPorts = new ArrayList<>(ports.get(EXISTING));
@@ -176,6 +186,7 @@ public class ExternalDeviceCommunicationInterface extends
             // process discovery results.
             if (task.getStatus() == DriverTask.TaskStatus.READY)  {
                 // discovery completed
+                storageSystem.setIsDriverManaged(true);
                 storageSystem.setSerialNumber(driverStorageSystem.getSerialNumber());
                 storageSystem.setNativeId(driverStorageSystem.getNativeId());
                 String nativeGuid = NativeGUIDGenerator.generateNativeGuid(accessProfile.getSystemType(),
@@ -255,6 +266,7 @@ public class ExternalDeviceCommunicationInterface extends
                         _log.info("Pool {} is new, native GUID {}", storagePool.getNativeId(), poolNativeGuid);
                         pool = new com.emc.storageos.db.client.model.StoragePool();
                         pool.setId(URIUtil.createId(com.emc.storageos.db.client.model.StoragePool.class));
+                        pool.setIsDriverManaged(true);
                         pool.setStorageDevice(accessProfile.getSystemId());
                         pool.setNativeId(storagePool.getNativeId());
                         pool.setNativeGuid(poolNativeGuid);
@@ -319,7 +331,8 @@ public class ExternalDeviceCommunicationInterface extends
 
     }
 
-    private Map<String, List<com.emc.storageos.db.client.model.StoragePort>> discoverStoragePorts(DiscoveryDriver driver, AccessProfile accessProfile)
+    private Map<String, List<com.emc.storageos.db.client.model.StoragePort>> discoverStoragePorts(DiscoveryDriver driver, Set<Network> networksToUpdate,
+                                                                                                  AccessProfile accessProfile)
             throws BaseCollectionException {
 
         URI storageSystemId = accessProfile.getSystemId();
@@ -329,6 +342,7 @@ public class ExternalDeviceCommunicationInterface extends
 
         List<com.emc.storageos.db.client.model.StoragePort> newStoragePorts = new ArrayList<>();
         List<com.emc.storageos.db.client.model.StoragePort> existingStoragePorts = new ArrayList<>();
+        List<String> endpoints = new ArrayList<>();
 
         StorageSystem driverStorageSystem = initStorageSystem(storageSystem);
         // Discover storage ports
@@ -363,6 +377,7 @@ public class ExternalDeviceCommunicationInterface extends
                         // New port processing
                         storagePort = new com.emc.storageos.db.client.model.StoragePort();
                         storagePort.setId(URIUtil.createId(com.emc.storageos.db.client.model.StoragePort.class));
+                        storagePort.setIsDriverManaged(true);
                         storagePort.setTransportType(driverPort.getTransportType());
                         storagePort.setNativeGuid(portNativeGuid);
                         storagePort.setNativeId(driverPort.getNativeId());
@@ -374,6 +389,19 @@ public class ExternalDeviceCommunicationInterface extends
                         if (storagePort.getPortGroup() == null) {
                             storagePort.setPortGroup(storagePort.getPortName());
                         }
+                        storagePort.setPortEndPointID(driverPort.getEndPointID());
+                        _log.info("discoverPort: portNetworkId: {} ", storagePort.getPortNetworkId());
+                        if (driverPort.getNetworkId() != null) {
+                            // Get or create Network object for this port
+                            Network portNetwork = getNetworkForStoragePort(driverPort);
+                            storagePort.setNetwork(portNetwork.getId());
+                            // Add endpoint to the network.
+                            // TODO we move this to process for all ports (existing port got a network or changed network cases)
+                            // TODO and should we check if existing port was in other network and delete the endpoint from the old network?
+                            portNetwork.addEndpoints(new ArrayList<String>(Arrays.asList(driverPort.getPortNetworkId())), true);
+                            networksToUpdate.add(portNetwork);
+                        }
+                        storagePort.setTcpPortNumber(driverPort.getTcpPortNumber());
                         storagePort.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
                         _log.info("Creating new storage port using NativeGuid : {}", portNativeGuid);
                         newStoragePorts.add(storagePort);
@@ -384,14 +412,7 @@ public class ExternalDeviceCommunicationInterface extends
                     storagePort.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                     storagePort.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
                     storagePort.setOperationalStatus(driverPort.getOperationalStatus());
-                    storagePort.setPortEndPointID(driverPort.getEndPointID());
-                    _log.info("discoverPort: portNetworkId: {} ", storagePort.getPortNetworkId());
-                    if (driverPort.getNetworkId() != null) {
-                        // Get or create Network object for this port
-                        Network portNetwork = getNetworkForStoragePort(driverPort);
-                        storagePort.setNetwork(portNetwork.getId());
-                    }
-                    storagePort.setTcpPortNumber(driverPort.getTcpPortNumber());
+
                     storagePort.setAvgBandwidth(driverPort.getAvgBandwidth());
                     storagePort.setPortSpeed(driverPort.getPortSpeed());
                     // Set usage metric for the port

@@ -9,6 +9,9 @@ public class DiscoveredDataObject extends DataObject {
     // Unique Bourne identifier.
     private String _nativeGuid;
 
+    // Indicates if the object is Southbound driver managed.
+    private Boolean _isDriverManaged = false;
+
     // known device types
     public static enum Type {
         isilon,
@@ -107,5 +110,15 @@ public class DiscoveredDataObject extends DataObject {
     public void setNativeGuid(String nativeGuid) {
         _nativeGuid = nativeGuid;
         setChanged("nativeGuid");
+    }
+
+    @Name("isDriverManaged")
+    public Boolean getIsDriverManaged() {
+        return _isDriverManaged;
+    }
+
+    public void setIsDriverManaged(Boolean isDriverManaged) {
+        _isDriverManaged = isDriverManaged;
+        setChanged("isDriverManaged");
     }
 }

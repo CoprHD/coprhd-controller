@@ -1,7 +1,7 @@
 package com.emc.storageos.storagedriver.model;
 
 
-public class VolumeMirror extends StorageObject {
+public class VolumeMirror extends StorageBlockObject {
 
     // Volume Id this mirror is associated with. Type: Input.
     private String parentId;

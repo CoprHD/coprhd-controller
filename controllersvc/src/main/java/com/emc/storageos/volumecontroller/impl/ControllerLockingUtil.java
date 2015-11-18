@@ -128,7 +128,7 @@ public class ControllerLockingUtil {
             if (initiator == null || initiator.getInactive()) {
                 continue;
             }
-            hostNames.add(initiator.getHostName());
+            hostNames.add(initiator.getClusterName());
         }
    
         // Now make a key for every host / storage pair

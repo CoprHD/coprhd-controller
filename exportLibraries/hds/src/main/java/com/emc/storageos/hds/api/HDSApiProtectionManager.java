@@ -236,14 +236,15 @@ public class HDSApiProtectionManager {
      * @param arraySerialNumber
      * @param pvolDevNum
      * @param svolDevNum
+     * @param model
      * @return {@link ReplicationInfo}
      */
     public ReplicationInfo createShadowImagePair(String replicationGroupObjId, String pairName, String arrayType,
-            String arraySerialNumber, String pvolDevNum, String svolDevNum) throws Exception {
+            String arraySerialNumber, String pvolDevNum, String svolDevNum, String model) throws Exception {
         log.info("Shadow Image pair creation started");
         InputStream responseStream = null;
-        String syncTaskMessageId = null;
         ReplicationInfo replicationInfoResponse = null;
+        String syncTaskMessageId = null;
         try {
             log.info("replicationGroupObjId {} "
                     , replicationGroupObjId);
@@ -265,6 +266,7 @@ public class HDSApiProtectionManager {
             replicationInfo.setReplicationFunction(HDSConstants.SHADOW_IMAGE);
 
             attributeMap.put(HDSConstants.ADD, addOp);
+            attributeMap.put(HDSConstants.MODEL, model);
             attributeMap.put(HDSConstants.REPLICATION_GROUP, replicationGroup);
             attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);
 
@@ -330,12 +332,11 @@ public class HDSApiProtectionManager {
      * @throws Exception
      */
     public boolean createThinImagePair(String snapshotGroupObjId, String hostObjId,
-            String sourNativeId, String snapNativeId, String thinImagePoolId) throws Exception {
+            String sourNativeId, String snapNativeId, String thinImagePoolId, String model) throws Exception {
         log.info("Thin Image pair creation started");
         boolean status = false;
         InputStream responseStream = null;
         String syncTaskMessageId = null;
-        ReplicationInfo replicationInfoResponse = null;
         try {
             log.info("snapshotGroupObjId {} "
                     , snapshotGroupObjId);
@@ -356,6 +357,7 @@ public class HDSApiProtectionManager {
             replicationInfo.setPvolPoolID(thinImagePoolId);
 
             attributeMap.put(HDSConstants.ADD, addOp);
+            attributeMap.put(HDSConstants.MODEL, model);
             attributeMap.put(HDSConstants.HOST, host);
             attributeMap.put(HDSConstants.SNAPSHOTGROUP, snapshotGroup);
             attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);
@@ -421,7 +423,7 @@ public class HDSApiProtectionManager {
      * @throws Exception
      */
     public ReplicationInfo modifyShadowImagePair(String replicationGroupId, String replicationInfoId,
-            ShadowImageOperationType operationType) throws Exception {
+            ShadowImageOperationType operationType, String model) throws Exception {
 
         InputStream responseStream = null;
         ReplicationInfo replicationInfo = null;
@@ -437,6 +439,7 @@ public class HDSApiProtectionManager {
                 replicationInfo = new ReplicationInfo();
                 replicationInfo.setObjectID(replicationInfoId);
                 attributeMap.put(HDSConstants.MODIFY, modifyOp);
+                attributeMap.put(HDSConstants.MODEL, model);
                 attributeMap.put(HDSConstants.REPLICATION_GROUP, replicationGroup);
                 attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);
 
@@ -507,7 +510,7 @@ public class HDSApiProtectionManager {
      * @return {@link ReplicationInfo}
      * @throws Exception
      */
-    public ReplicationInfo deleteShadowImagePair(String replicationGroupObjId, String replicationInfoObjId) throws Exception {
+    public ReplicationInfo deleteShadowImagePair(String replicationGroupObjId, String replicationInfoObjId, String model) throws Exception {
 
         InputStream responseStream = null;
         ReplicationInfo replicationInfo = null;
@@ -521,6 +524,7 @@ public class HDSApiProtectionManager {
                 replicationInfo = new ReplicationInfo();
                 replicationInfo.setObjectID(replicationInfoObjId);
                 attributeMap.put(HDSConstants.DELETE, deleteOp);
+                attributeMap.put(HDSConstants.MODEL, model);
                 attributeMap.put(HDSConstants.REPLICATION_GROUP, replicationGroup);
                 attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);
 
@@ -575,7 +579,7 @@ public class HDSApiProtectionManager {
      * @throws Exception
      */
     public void deleteThinImagePair(String hostObjId, String snapshotGroupObjId,
-            String replicationInfoObjId) throws Exception {
+            String replicationInfoObjId, String model) throws Exception {
 
         InputStream responseStream = null;
         ReplicationInfo replicationInfo = null;
@@ -593,6 +597,7 @@ public class HDSApiProtectionManager {
 
                 attributeMap.put(HDSConstants.DELETE, deleteOp);
                 attributeMap.put(HDSConstants.HOST, host);
+                attributeMap.put(HDSConstants.MODEL, model);
                 attributeMap.put(HDSConstants.SNAPSHOTGROUP, snapshotGroup);
                 attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);
 
@@ -714,7 +719,7 @@ public class HDSApiProtectionManager {
      * @throws Exception
      */
     public boolean restoreThinImagePair(String pairMgmtServerHostObjId, String snapshotGroupObjId,
-            String replicationInfoObjId) throws Exception {
+            String replicationInfoObjId, String model) throws Exception {
 
         InputStream responseStream = null;
         ReplicationInfo replicationInfo = null;
@@ -736,6 +741,7 @@ public class HDSApiProtectionManager {
                 replicationInfo.setObjectID(replicationInfoObjId);
 
                 attributeMap.put(HDSConstants.MODIFY, modifyOp);
+                attributeMap.put(HDSConstants.MODEL, model);
                 attributeMap.put(HDSConstants.HOST, host);
                 attributeMap.put(HDSConstants.SNAPSHOTGROUP, snapshotGroup);
                 attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);

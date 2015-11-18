@@ -49,6 +49,7 @@ class Fileshare(object):
 
     URI_TASK_LIST = URI_FILESHARE + '/tasks'
     URI_TASK = URI_TASK_LIST + '/{1}'
+    URI_NFS_ACL = '/file/filesystems/{0}/acl'
 
     isTimeout = False
     timeout = 300
@@ -606,6 +607,48 @@ class Fileshare(object):
         o = common.json_decode(s)
         return o
     
+    #Delete and List NFS ACL Routines
+    
+    def nfs_acl_delete(self, name, subdir):
+        '''
+        Delete filesystem acls or filesystem subdir
+        Parameters:
+            name: name of fileshare
+            subdir:name of subdirectory
+        
+        '''
+        uri_nfs_qp = Fileshare.URI_NFS_ACL
+        if(subdir is not None):
+            uri_nfs_qp = Fileshare.URI_NFS_ACL + '?' + "subDir=" + subdir
+        
+        fileshare_uri = self.fileshare_query(name)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "DELETE",
+            Fileshare.URI_NFS_ACL.format(fileshare_uri),
+            None)
+        return 
+    
+    def nfs_acl_list(self, name, alldir, subdir):
+        '''
+        Deletes a fileshare based on fileshare name
+        Parameters:
+            name: name of fileshare
+            
+        '''
+        uri_nfs_qp = Fileshare.URI_NFS_ACL
+        if(alldir == True):
+            uri_nfs_qp = Fileshare.URI_NFS_ACL + '?' + "allDir=true"
+        if(subdir is not None):
+            uri_nfs_qp = Fileshare.URI_NFS_ACL + '?' + "subDir=" + subdir
+        fileshare_uri = self.fileshare_query(name)
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "GET",
+            uri_nfs_qp.format(fileshare_uri),
+            None)
+        o = common.json_decode(s)
+        return o
+    
     # update cifs acl for given share    
     def cifs_acl(self, tenant, project, fsname, sharename, operation, user=None, permission=None, domain=None, group=None):
         path = tenant + "/" + project + "/"
@@ -643,6 +686,48 @@ class Fileshare(object):
                     Fileshare.URI_CIFS_ACL.format(fs_uri, sharename) , body)
         o = common.json_decode(s)
         return o
+    
+    
+    #Main routine for NFSv4 ACL
+    def nfs_acl(self, tenant, project, fsname, subdir, permissiontype, type, operation, user=None, permission=None, domain=None, group=None):
+        path = tenant + "/" + project + "/"
+        fs_name = path + fsname
+        
+        
+        fs_uri = self.fileshare_query(fs_name)        
+        
+        
+        nfs_acl_param = dict()
+        if(permissiontype):
+            nfs_acl_param['permission_type'] = permissiontype
+        if(permission):
+            nfs_acl_param['permissions'] = permission
+        if(user):
+            nfs_acl_param['user'] = user
+        if(domain):
+            nfs_acl_param['domain'] = domain
+        if(type):
+            nfs_acl_param['type'] = type
+            
+        request = dict()
+        
+        if("add" == operation):
+            request = {'add': [nfs_acl_param] }
+        if("delete" == operation):
+            request = {'delete' : [nfs_acl_param]}
+        if("update" == operation):
+            request = {'modify' : [nfs_acl_param]}
+        if(subdir):
+            request['subDir']= subdir 
+        body = json.dumps(request)
+        
+        (s, h) = common.service_json_request(
+                    self.__ipAddr, self.__port, 
+                    "PUT", 
+                    Fileshare.URI_NFS_ACL.format(fs_uri) , body)
+        o = common.json_decode(s)
+        return o
+
 
 
     # Deletes a fileshare given a fileshare uri
@@ -1119,6 +1204,92 @@ def fileshare_acl(args):
         common.format_err_msg_and_raise("share-acl", "filesystem",
                                         e.err_text, e.err_code)
 
+
+
+#NFSv4 ACL parser
+
+def nfs_acl_parser(subcommand_parsers, common_parser):
+    nfs_acl_parser = subcommand_parsers.add_parser(
+        'nfs-acl',
+        description='ViPR Filesystem NFSv4 ACL CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Add/Update/Delete ACLs rules for FileSystem ')
+    mandatory_args = nfs_acl_parser.add_argument_group(
+        'mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                dest='name',
+                                metavar='<filesystemname>',
+                                help='Name of Filesystem',
+                                required=True)
+    mandatory_args.add_argument('-operation', '-op',
+                                choices=["add", "update", "delete"],
+                                dest='operation',
+                                metavar='<acloperation>',
+                                help='nfs acl operation',
+                                required=True)
+    mandatory_args.add_argument('-permissions', '-perms',
+                                    dest='permissions',
+                                    choices=["Read", "Write", "Execute","Read,write" ,"Read,Execute","Read,Write,Execute"],
+                                    metavar='<permissions>',
+                                    help='Provide permissions for Acl',
+                                    required=True)
+    nfs_acl_parser.add_argument('-permissiontype', '-permtype',
+                                    dest='permissiontype',
+                                    choices=["allow", "deny"],
+                                    metavar='<permission_type>',
+                                    help='Provide permission type for Acl')
+    nfs_acl_parser.add_argument('-tenant', '-tn',
+                                     metavar='<tenantname>',
+                                     dest='tenant',
+                                     help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-user', '-u',
+                                    dest='user',
+                                    metavar='<user>',
+                                    help='User',
+                                    required=True)
+    nfs_acl_parser.add_argument('-domain','-dom',
+                                    dest='domain',
+                                    metavar='<domain>',
+                                    help='Domain')
+    
+    nfs_acl_parser.add_argument('-type','-t',
+                                    dest='type',
+                                    metavar='<type>',
+                                    choices = ["user","group", "wellknown"],
+                                    help='Type')
+    nfs_acl_parser.add_argument('-subdirectory', '-subdir',
+                                    dest='subdir',
+                                    metavar='<subdirectory>',
+                                    help='Subdirectory Name ')  
+                  
+    nfs_acl_parser.set_defaults(func=nfs_acl)
+
+
+def nfs_acl(args):
+    obj = Fileshare(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        
+        res = obj.nfs_acl(args.tenant, args.project, 
+                           args.name, 
+                           args.subdir,
+                           args.permissiontype, 
+                           args.type,
+                           args.operation, 
+                           args.user, 
+                           args.permissions,
+                           args.domain)
+    except SOSError as e:
+        common.format_err_msg_and_raise("nfs-acl", "filesystem",
+                                        e.err_text, e.err_code)
+
 # Fileshare Delete routines
 
 def acl_delete_parser(subcommand_parsers, common_parser):
@@ -1148,7 +1319,6 @@ def acl_delete_parser(subcommand_parsers, common_parser):
                                dest='share',
                                required=True)
     
- 
     acl_delete_parser.set_defaults(func=fileshare_acl_delete)
 
 
@@ -1163,7 +1333,48 @@ def fileshare_acl_delete(args):
     except SOSError as e:
         common.format_err_msg_and_raise("delete-acl", "filesystem",
                                         e.err_text, e.err_code)
-        
+ 
+
+def nfs_acl_delete_parser(subcommand_parsers, common_parser):
+    nfs_acl_delete_parser = subcommand_parsers.add_parser(
+        'nfs-delete-acl',
+        description='ViPR ACL Delete CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Delete a ACL of Filesystem')
+    mandatory_args = nfs_acl_delete_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                help='Name of Filesystem',
+                                required=True)
+    nfs_acl_delete_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    nfs_acl_delete_parser.add_argument('-subdirectory', '-subdir',
+                                    dest='subdir',
+                                    metavar='<subdirectory>',
+                                    help='Subdirectory Name ') 
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    nfs_acl_delete_parser.set_defaults(func=nfs_acl_delete)
+
+
+def nfs_acl_delete(args):
+    if(not args.tenant):
+        args.tenant = ""
+    obj = Fileshare(args.ip, args.port)
+    try:
+        res = obj.nfs_acl_delete(
+            args.tenant + "/" + args.project + "/" + args.name, args.subdir)
+    except SOSError as e:
+        common.format_err_msg_and_raise("delete-nfs-acl", "filesystem",
+                                        e.err_text, e.err_code)
+       
         
 # routine to list the acls of a share .
 
@@ -1217,10 +1428,63 @@ def fileshare_acl_list(args):
                                         e.err_text, e.err_code)
         
         
+
+
+#NFS ACL LIST PARSER
+
+def nfs_acl_list_parser(subcommand_parsers, common_parser):
+    nfs_acl_list_parser = subcommand_parsers.add_parser(
+        'nfs-list-acl',
+        description='ViPR NFS ACL List CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='LIST ACL of Filesystem')
+    mandatory_args = nfs_acl_list_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                help='Name of Filesystem',
+                                required=True)
+    nfs_acl_list_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    nfs_acl_list_parser.add_argument('-subdirectory', '-subdir',
+                                    dest='subdir',
+                                    metavar='<subdirectory>',
+                                    help='Subdirectory Name ')  
+    nfs_acl_list_parser.add_argument('-alldirectories', '-alldir',
+                                    dest='alldir',
+                                    action = 'store_true',
+                                    help='Enable All Directories')        
+    
+    nfs_acl_list_parser.set_defaults(func=nfs_acl_list)
+
+
+def nfs_acl_list(args):
+    if(not args.tenant):
+        args.tenant = ""
+    obj = Fileshare(args.ip, args.port)
+    resultList = []
+    try:
+        res = obj.nfs_acl_list(
+            args.tenant + "/" + args.project + "/" + args.name ,args.alldir, args.subdir)
         
-
-
-
+        if ( len(res['nfs_acl']) == 0 ):
+            print " No NFSv4 ACLs for the Filesystem/Subdirectory"
+        else:
+            from common import TableGenerator
+            TableGenerator(res['nfs_acl'][0]['ace'], ['domain','user','permissions','permission_type','type']).printTable() 
+        
+    except SOSError as e:
+        common.format_err_msg_and_raise("list-nfs-acl", "filesystem",
+                                        e.err_text, e.err_code)
+       
 # Fileshare Export routines
 
 
@@ -2133,3 +2397,13 @@ def fileshare_parser(parent_subparser, common_parser):
 
     #ACL fileshare command parser 
     cifs_acl_parser(subcommand_parsers, common_parser)
+    
+    #ACL FOR NFS FILESYSTEM
+    nfs_acl_parser(subcommand_parsers, common_parser)
+    
+    #ACL LIST PARSER
+    nfs_acl_list_parser(subcommand_parsers, common_parser)
+    
+    
+    #ACL DELETE PARSER
+    nfs_acl_delete_parser(subcommand_parsers, common_parser)

@@ -327,7 +327,7 @@ public class DataCollectionJobUtil {
         accessProfile.setPortNumber(providerInfo.getPortNumber());
         accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
     }
-    
+
     /**
      * inject details needed for Scanning
      * 
@@ -519,7 +519,7 @@ public class DataCollectionJobUtil {
             if (null != nameSpace) {
                 accessProfile.setnamespace(nameSpace);
             }
-        }  else if (storageDevice.getSystemType().equals(
+        } else if (storageDevice.getSystemType().equals(
                 Type.ecs.toString())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());
@@ -661,6 +661,7 @@ public class DataCollectionJobUtil {
 
         for (String scannedSystemNativeGuid : scannedSystemNativeGuidKeySet) {
             try {
+                _logger.info("scannedSystemNativeGuid:" + scannedSystemNativeGuid);
                 List<StorageSystem> systems =
                         CustomQueryUtility.getActiveStorageSystemByNativeGuid(_dbClient, scannedSystemNativeGuid);
                 if (DecommissionedResource.checkDecommissioned(_dbClient, scannedSystemNativeGuid,
@@ -676,6 +677,7 @@ public class DataCollectionJobUtil {
                             scannedSystemNativeGuid, providersToUpdate);
                     if (storageSystem != null) {
                         systemsToCreate.add(storageSystem);
+                        _logger.info("Added new storage system to be created to the create list with Native Guid:" + storageSystem.getNativeGuid());
                     }
                 }
             } catch (Exception e) {
@@ -771,7 +773,7 @@ public class DataCollectionJobUtil {
                         "Could have been deleted while scan was occurring.", scannedStorageSystemNativeGuid));
                 return null;
             }
-
+            _logger.info("Scanned StorageSystemNativeGuid for a new Storage System:" + scannedStorageSystemNativeGuid);
             newStorageSystem = new StorageSystem();
             newStorageSystem.setId(URIUtil.createId(StorageSystem.class));
             newStorageSystem.setNativeGuid(scannedStorageSystemNativeGuid);
@@ -917,7 +919,7 @@ public class DataCollectionJobUtil {
                                                 .getRegistrationStatus())) {
                             injectReachableStatusInSystem(storageSystemInDb,
                                     null, NullColumnValueGetter.getNullURI(), false);
-                        } 
+                        }
                     }
                 }
             } catch (Exception e) {

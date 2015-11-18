@@ -1136,12 +1136,17 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
+
+        // Check for common Vpool updates handled by generic code. It returns true if handled.
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
+            return;
+        }
+
         // Check if any of the volumes passed is a VPLEX volume
         // in a VPLEX CG with corresponding local consistency
         // group(s) for the backend volumes.
         BlockConsistencyGroup cg = null;
-        if ((!checkCommonVpoolUpdates(volumes, vpool, taskId)) &&
-                ((cg = isVPlexVolumeInCgWithLocalType(volumes)) != null)) {
+        if ((cg = isVPlexVolumeInCgWithLocalType(volumes)) != null) {
             s_logger.info("Change vpool request for volume in VPLEX CG with backing local CGs");
             // If any of the volumes is in such a CG and if this is a data
             // migration of the volumes, then the volumes passed must be all
@@ -3285,9 +3290,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public void verifyAddVolumeToCG(Volume volume, BlockConsistencyGroup cg,
             List<Volume> cgVolumes, StorageSystem cgStorageSystem) {
         super.verifyAddVolumeToCG(volume, cg, cgVolumes, cgStorageSystem);
-        
-        Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
-        verifyIfVolumeHasMultipleReplicas(backendVolume);
 
         // We will not allow a VPLEX volume that was created using the target
         // volume of a block snapshot to be added to a consistency group.
@@ -3306,6 +3308,21 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 throw APIException.badRequests.notAllowedAddVolumeToCGWithIngestedVolumes();
             }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG) {
+        // Get all backend volumes
+        List<Volume> backendVolumes = new ArrayList<Volume>();
+        for (Volume volume : volumes) {
+            backendVolumes.add(VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient));
+        }
+
+        // Verify replica count
+        super.verifyReplicaCount(backendVolumes, cgVolumes, volsAlreadyInCG);
     }
 
     private void checkIfClusterIsUnknown(String cluster, String varrayURI, String vplexStorageSystemURI) {

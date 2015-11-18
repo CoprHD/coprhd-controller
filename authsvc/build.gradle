@@ -81,12 +81,8 @@ task transformLoginDotLess(type: Copy) {
     from file('src/main/webapp/docs/')
     into file('src/main/webapp/docs/')
     include ('login.less')
-//    include ('login.html')
-//    include ('changePassword.html')
     
     rename ('login.less', 'transformed-login.less')
-//    rename ('login.html', 'transformed-login.html')
-//    rename ('changePassword.html', 'transformed-changePassword.html')
 
     if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
         println("Using CoprHD CSS theme")

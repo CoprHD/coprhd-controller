@@ -87,7 +87,7 @@ public interface XtremIODiscoveryClient {
      * @return
      * @throws Exception
      */
-    public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception;
+    public List<XtremIOObjectInfo> getXtremIOConsistencyGroupVolumes(String clusterName) throws Exception;
 
     /**
      * Get all the volume folder names of the given cluster. This is relevant only for version 1 REST API

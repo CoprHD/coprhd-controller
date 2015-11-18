@@ -52,6 +52,7 @@ import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroupVolInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
@@ -170,7 +171,9 @@ public class XtremIOUnManagedVolumeDiscoverer {
         // get the xtremio volume links and process them in batches
         List<XtremIOObjectInfo> volLinks = xtremIOClient.getXtremIOVolumeLinks(xioClusterName);
         
-        List<XtremIOObjectInfo> consistencyGroupInfo = xtremIOClient.getXtremIOConsistencyGroups(xioClusterName);
+        List<XtremIOObjectInfo> consistencyGroupVolInfo = xtremIOClient.getXtremIOConsistencyGroupVolumes(xioClusterName);
+        
+        getConsistencyGroupVolumeDetails(xtremIOClient, consistencyGroupVolInfo, xioClusterName);
 
         // Get the volume details
         List<List<XtremIOObjectInfo>> volume_partitions = Lists.partition(volLinks, Constants.DEFAULT_PARTITION_SIZE);
@@ -271,6 +274,17 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 dbClient, partitionManager);
     }
 
+    private void getConsistencyGroupVolumeDetails(XtremIOClient xtremIOClient, List<XtremIOObjectInfo>consistencyGroupInfo, String xioClusterName) throws Exception {
+    	Map<String, String> volumesToCgs = new HashMap<String, String>();
+    	for (XtremIOObjectInfo cg : consistencyGroupInfo){
+    		XtremIOConsistencyGroupVolInfo cgVol = xtremIOClient.getXtremIOConsistencyGroupInfo(cg, xioClusterName);
+    		log.info("Sathish" + cgVol.getContent().toString());
+    		
+    		for (int i = 0; i <= cgVol.getContent().getVolList().size(); i++){
+    			volumesToCgs.put(cgVol.getContent().getVolList().get(i), cgVol.getContent().getName());
+    		}
+    	}
+    }
     private void populateKnownVolsMap(XtremIOVolume vol, BlockObject viprObj, Map<String, StringSet> igKnownVolumesMap) {
         for (List<Object> lunMapEntries : vol.getLunMaps()) {
             @SuppressWarnings("unchecked")

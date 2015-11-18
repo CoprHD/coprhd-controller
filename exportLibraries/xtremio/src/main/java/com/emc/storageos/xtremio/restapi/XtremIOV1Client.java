@@ -143,7 +143,7 @@ public class XtremIOV1Client extends XtremIOClient {
     
     
     @Override
-	public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception {   	
+	public List<XtremIOObjectInfo> getXtremIOConsistencyGroupVolumes(String clusterName) throws Exception {   	
     	throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroups");
 	}
 

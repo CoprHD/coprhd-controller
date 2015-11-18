@@ -26,6 +26,7 @@ import java.util.Map;
 import javax.xml.bind.DataBindingException;
 
 import org.apache.commons.lang.StringUtils;
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -605,11 +606,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         List<VolumeDescriptor> removeDescriptors = VolumeDescriptor.filterByType(volumesDescriptorsToRemove,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
                 new VolumeDescriptor.Type[] {});
-
-        // If no volumes to be created, just return.
-        if (addDescriptors.isEmpty() && removeDescriptors.isEmpty()) {
-            return waitFor;
-        }
         
         // We need at least one volume to check, so either get it from
         // the add descriptors or the delete descriptors.
@@ -618,9 +614,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             firstVolume = addDescriptors.get(0);
         } else if (!removeDescriptors.isEmpty()) {
             firstVolume = removeDescriptors.get(0);
+        } else {
+            _log.warn("No volumes to add or remove from CG, skip step.");
+            // No volumes to be added or removed, just return.
+            return waitFor;
         }
         
-        if (firstVolume == null || NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI())) {
+        if (NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI())) {
+            _log.warn(String.format("Volume (%s) has a null CG reference, skip step.", firstVolume.getVolumeURI()));
             return waitFor;
         }
                 
@@ -629,6 +630,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (VolumeDescriptor.Type.SRDF_SOURCE.toString().equalsIgnoreCase(firstVolume.getType().toString())
                     || VolumeDescriptor.Type.SRDF_TARGET.toString().equalsIgnoreCase(firstVolume.getType().toString())
                     || VolumeDescriptor.Type.SRDF_EXISTING_SOURCE.toString().equalsIgnoreCase(firstVolume.getType().toString())) {
+                _log.warn(String.format("Volume (%s) is of type SRDF, skip step.", firstVolume.getVolumeURI()));
                 return waitFor;
             }
         }

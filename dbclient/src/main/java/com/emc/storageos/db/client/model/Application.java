@@ -35,6 +35,9 @@ public class Application extends DataObject {
 
     @Name("volumes")
     public StringSet getVolumes() {
+        if(volumes == null) {
+            volumes = new StringSet();
+        }
         return volumes;
     }
 

@@ -22,6 +22,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -44,6 +45,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 public class ApplicationService extends TaskResourceService {
     private static final String APPLICATION_NAME = "name";
     private static final String APPLICATION_ROLES = "roles";
+    private static final String EVENT_SERVICE_TYPE = "application";
     
     @Override
     protected DataObject queryResource(URI id) {
@@ -61,6 +63,11 @@ public class ApplicationService extends TaskResourceService {
     @Override
     protected URI getTenantOwner(final URI id) {
         return null;
+    }
+    
+    @Override
+    public String getServiceType() {
+        return EVENT_SERVICE_TYPE;
     }
 
     /**
@@ -80,6 +87,7 @@ public class ApplicationService extends TaskResourceService {
             ArgValidator.checkFieldValueFromEnum(role, APPLICATION_ROLES, Application.ApplicationRole.class);
         }
         Application application = new Application();
+        application.setId(URIUtil.createId(Application.class));
         application.setLabel(param.getName());
         application.setDescription(param.getDescription());
         application.addRoles(param.getRoles());

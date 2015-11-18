@@ -2,8 +2,6 @@ package com.emc.storageos.driver.scaleio;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
 /**
  * Created by shujinwu on 11/17/15.
  */
@@ -11,7 +9,7 @@ public class ScaleIOStorageDriverTest {
 
     @Test
     public void testCreateVolumes() throws Exception {
-
+        System.out.print("Tested!");
     }
 
     @Test

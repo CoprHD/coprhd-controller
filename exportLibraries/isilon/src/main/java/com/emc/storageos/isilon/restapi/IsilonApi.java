@@ -21,6 +21,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.isilon.restapi.IsilonOneFS8Event.Events;
 import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
@@ -56,6 +57,7 @@ public class IsilonApi {
             .create("/platform/1/cluster/smartconnect_zones");
     // private static final URI URI_EVENTS = URI.create("/platform/1/events/");
     private static final URI URI_EVENTS = URI.create("/platform/2/event/events/");
+    private static final URI URI_ONEFS8_EVENTS = URI.create("/platform/3/event/eventlists/");
 
     private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
@@ -650,9 +652,8 @@ public class IsilonApi {
     public IsilonList<IsilonExport> listExports(String resumeToken, String zoneName) throws IsilonException {
         URI uri = URI_NFS_EXPORTS;
         if (zoneName != null) {
-            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
-            URLBuffer.append("?zone=").append(zoneName);
-            uri = URI.create(URLBuffer.toString());
+            String baseUrl = getURIWithZoneName(_baseUrl.resolve(uri).toString(), zoneName);
+            uri = URI.create(baseUrl);
             sLogger.info("get list of nfs exports for accesszone {} and uri {} ", zoneName, uri.toString());
         } else {
             uri = _baseUrl.resolve(uri);
@@ -681,10 +682,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public String createExport(IsilonExport exp, String zoneName) throws IsilonException {
-
-        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_NFS_EXPORTS).toString());
-        URLBuffer.append("?zone=").append(zoneName);
-        URI uri = URI.create(URLBuffer.toString());
+        String baseUrl = getURIWithZoneName(_baseUrl.resolve(URI_NFS_EXPORTS).toString(), zoneName);
+        URI uri = URI.create(baseUrl);
         return create(uri, "Export", exp);
     }
 
@@ -975,9 +974,8 @@ public class IsilonApi {
     public IsilonList<IsilonSMBShare> listShares(String resumeToken, String zoneName) throws IsilonException {
         URI uri = URI_SMB_SHARES;
         if (zoneName != null) {
-            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
-            URLBuffer.append("?zone=").append(zoneName);
-            uri = URI.create(URLBuffer.toString());
+            String baseUrl = getURIWithZoneName(_baseUrl.resolve(uri).toString(), zoneName);
+            uri = URI.create(baseUrl);
             sLogger.info("get list of shares for accesszone {} and uri {}", zoneName, uri.toString());
         } else {
             uri = _baseUrl.resolve(uri);
@@ -1021,10 +1019,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public String createShare(IsilonSMBShare smbFileShare, String zoneName) throws IsilonException {
-
-        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_SMB_SHARES).toString());
-        URLBuffer.append("?zone=").append(zoneName);
-        URI uri = URI.create(URLBuffer.toString());
+        String baseUrl = getURIWithZoneName(_baseUrl.resolve(URI_SMB_SHARES).toString(), zoneName);
+        URI uri = URI.create(baseUrl);
         return create(uri, "share", smbFileShare);
     }
 
@@ -1230,10 +1226,33 @@ public class IsilonApi {
      * Get list of events from the url
      * 
      * @param url
+     * @param firmwareVersion : Isilon version
      * @return ArrayList of IsilonEvent objects
      * @throws IsilonException
      */
-    private IsilonList<IsilonEvent> getEvents(URI url) throws IsilonException {
+    private IsilonList<IsilonEvent> getEvents(URI url, String firmwareVersion) throws IsilonException {
+
+        // Get list of ISILON events using eventlists if ISILON version is OneFS8.0 or more else using events.
+        if (firmwareVersion.startsWith("8")) {
+            List<IsilonOneFS8Event> eventLists = list(url, "eventlists", IsilonOneFS8Event.class, null).getList();
+            IsilonList<IsilonEvent> isilonEventList = new IsilonList<IsilonEvent>();
+
+            for (IsilonOneFS8Event eventFS8 : eventLists) {
+                for (Events event : eventFS8.getEvents()) {
+                    IsilonEvent isilonEvent = new IsilonEvent();
+                    isilonEvent.devid = event.devid;
+                    isilonEvent.event_type = event.event;
+                    isilonEvent.id = event.id;
+                    isilonEvent.message = event.message;
+                    isilonEvent.severity = event.severity;
+                    isilonEvent.start = event.time;
+                    isilonEvent.specifiers = event.getSpecifier();
+                    isilonEvent.value = event.value;
+                    isilonEventList.add(isilonEvent);
+                }
+            }
+            return isilonEventList;
+        }
         return list(url, "events", IsilonEvent.class, null);
 
     }
@@ -1255,10 +1274,11 @@ public class IsilonApi {
      * @param begin number of seconds relative to current (e.g. -3600 for 1hr
      *            back)
      * @param end number of seconds relative to current
+     * @param firmwareVersion : Isilon version
      * @return ArrayList of IsilonEvent objects
      * @throws IsilonException
      */
-    public IsilonList<IsilonEvent> queryEvents(long begin, long end) throws IsilonException {
+    public IsilonList<IsilonEvent> queryEvents(long begin, long end, String firmwareVersion) throws IsilonException {
         // In Isilon API, 0 value for time in query is used as beginning of
         // absolute time.
         // We use 0 value for time to indicate current time on remote host.
@@ -1268,7 +1288,12 @@ public class IsilonApi {
         // Default behavior is intersect = true.
         String query = (end != 0) ? String.format("?begin=%1$d&end=%2$d", begin, end) : String
                 .format("?begin=%1$d", begin);
-        return getEvents(_baseUrl.resolve(URI_EVENTS.resolve(query)));
+
+        // If ISILON version is OneFS8.0 then get events URI will be /platform/3/event/eventlists/.
+        if (firmwareVersion.startsWith("8")) {
+            return getEvents(_baseUrl.resolve(URI_ONEFS8_EVENTS.resolve(query)), firmwareVersion);
+        }
+        return getEvents(_baseUrl.resolve(URI_EVENTS.resolve(query)), firmwareVersion);
     }
 
     /**
@@ -1508,11 +1533,10 @@ public class IsilonApi {
     }
     
     private String getURIWithZoneName(String id, String zoneName) {
-    	
-    	StringBuffer buffer = new StringBuffer(id);
+        StringBuffer buffer = new StringBuffer(id);
         buffer.append("?zone=");
-        zoneName = zoneName.replace(" ", "%20");
-        buffer.append(zoneName);
+        String accesszoneName = zoneName.replace(" ", "%20");
+        buffer.append(accesszoneName);
     	return buffer.toString();
     }
 

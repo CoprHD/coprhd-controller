@@ -5,9 +5,10 @@
 
 package com.emc.storageos.model.application;
 
-import java.net.URI;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.valid.Length;
@@ -19,15 +20,15 @@ import com.emc.storageos.model.valid.Length;
 public class ApplicationCreateParam {
     private String name;
     private String description;
-    private URI project;
+    private Set<String> roles;
     
     public ApplicationCreateParam() {
     }
     
-    public ApplicationCreateParam(String name, URI project, String description) {
+    public ApplicationCreateParam(String name, String description, Set<String> roles) {
         this.name = name;
         this.description = description;
-        this.project = project;
+        this.roles = roles;
     }
     
     /**
@@ -58,18 +59,20 @@ public class ApplicationCreateParam {
         this.description = description;
     }
     
+    @XmlElementWrapper(name = "roles", required = true)
     /**
-     * The ViPR project to which the application will belong.
+     * The set of supported roles for the application.
      * 
-     * @valid example: a valid URI of a ViPR project
+     * @valid COPY
+     * @valid DR
      */
-    @XmlElement(required = true)
-    public URI getProject() {
-        return project;
+    @XmlElement(name = "role", required = true)
+    public Set<String> getRoles() {
+        return roles;
     }
 
-    public void setProject(URI project) {
-        this.project = project;
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
     }
 
 }

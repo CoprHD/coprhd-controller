@@ -4,10 +4,10 @@
  */
 package com.emc.storageos.db.client.model;
 
-import javax.xml.bind.annotation.XmlTransient;
+import java.util.Set;
 
 @Cf("Application")
-public class Application extends DataObject implements ProjectResource{
+public class Application extends DataObject {
 
     private static final long serialVersionUID = 2559507385303958088L;
 
@@ -15,11 +15,13 @@ public class Application extends DataObject implements ProjectResource{
     private String description;
     // Volumes URIs in the application
     private StringSet volumes;
-    // project this application is associated with
-    private NamedURI project;
- // Tenant who owns this application
-    private NamedURI tenant;
+    // The role of the application, either COPY or DR
+    private StringSet roles;
     
+    public static enum ApplicationRole {
+        COPY,
+        DR
+    }
 
     @Name("description")
     public String getDescription() {
@@ -41,28 +43,27 @@ public class Application extends DataObject implements ProjectResource{
         setChanged("volumes");
     }
     
-    @Override
-    @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
-    @Name("project")
-    public NamedURI getProject() {
-        return project;
-    }
-
-    public void setProject(NamedURI project) {
-        this.project = project;
-        setChanged("project");
+    @Name("roles")
+    public StringSet getRoles() {
+        return roles;
     }
     
-    @Override
-    @XmlTransient
-    @NamedRelationIndex(cf = "NamedRelation")
-    @Name("tenant")
-    public NamedURI getTenant() {
-        return tenant;
+    public void setRoles(StringSet roles) {
+        this.roles = roles;
+        setChanged("roles");
     }
-
-    public void setTenant(NamedURI tenant) {
-        this.tenant = tenant;
-        setChanged("tenant");
+    
+    /**
+     * Add roles.
+     * 
+     * @param roles
+     */
+    public void addRoles(final Set<String> newRoles) {
+        if (null == this.roles) {
+            setRoles(new StringSet());
+        }
+        if (newRoles != null && !newRoles.isEmpty()) {
+            roles.addAll(newRoles);
+        }
     }
 }

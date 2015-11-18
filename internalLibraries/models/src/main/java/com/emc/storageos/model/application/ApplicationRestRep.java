@@ -5,7 +5,9 @@
 package com.emc.storageos.model.application;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -20,8 +22,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 @XmlRootElement(name = "application")
 public class ApplicationRestRep extends DataObjectRestRep{
     private String description;
-    private RelatedResourceRep project;
-    private RelatedResourceRep tenant;
+    private Set<String> roles;
     private List<RelatedResourceRep> volumes;
     
     @XmlElement
@@ -49,29 +50,20 @@ public class ApplicationRestRep extends DataObjectRestRep{
         this.volumes = volumes;
     }
     
+    @XmlElementWrapper(name = "roles")
     /**
-     * This application's project
+     * Roles of the application
+     * @valid none
      */
-    @XmlElement
-    public RelatedResourceRep getProject() {
-        return project;
+    @XmlElement(name = "role")
+    public Set<String> getRoles() {
+        if (roles == null) {
+            roles = new HashSet<String>();
+        }
+        return roles;
     }
 
-    public void setProject(RelatedResourceRep project) {
-        this.project = project;
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
     }
-    
-    /**
-     * This application's tenant
-     * 
-     */
-    @XmlElement
-    public RelatedResourceRep getTenant() {
-        return tenant;
-    }
-
-    public void setTenant(RelatedResourceRep tenant) {
-        this.tenant = tenant;
-    }
-
 }

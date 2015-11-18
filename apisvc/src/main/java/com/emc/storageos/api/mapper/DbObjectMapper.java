@@ -8,6 +8,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +29,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.TenantResource;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -275,14 +277,16 @@ public class DbObjectMapper {
             return null;
         }
         ApplicationRestRep rep = new ApplicationRestRep();
+        mapDataObjectFields(from, rep);
         rep.setDescription(from.getDescription());
-        rep.setName(from.getLabel());
-        rep.setId(from.getId());
-        if (from.getProject() != null) {
-            rep.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
-        }
-        if (from.getTenant() != null) {
-            rep.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant().getURI()));
+        rep.setRoles(from.getRoles());
+        StringSet volumes = from.getVolumes();
+        if (!volumes.isEmpty()) {
+            List<RelatedResourceRep> volumesRep = new ArrayList<RelatedResourceRep>();
+            for (String volUri : volumes) {
+                volumesRep.add(toRelatedResource(ResourceTypeEnum.VOLUME, URI.create(volUri)));
+            }
+            rep.setVolumes(volumesRep);
         }
         return rep;
     }

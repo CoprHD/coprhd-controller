@@ -362,7 +362,7 @@ public class SchemaUtil {
     }
 
     /**
-     * Add new standby site into the db/geodb strategy options on each new standby site
+     * Put to be added or resumed standby site into the db/geodb strategy options on each new standby site
      *
      * @param strategyOptions
      * @return true to indicate keyspace strategy option is changed
@@ -380,8 +380,7 @@ public class SchemaUtil {
         }
 
         Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
-                localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
             // don't add back the paused site
             _log.info("local standby site has been paused and removed from strategy options. Do nothing");
             return false;
@@ -932,7 +931,8 @@ public class SchemaUtil {
             _log.info("Check bootstrap info on standby");
             Site currentSite = drUtil.getLocalSite();
 
-            if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+            if (currentSite.getState().equals(SiteState.STANDBY_ADDING) ||
+                currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
                 currentSite.setState(SiteState.STANDBY_SYNCING);
                 _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
             }

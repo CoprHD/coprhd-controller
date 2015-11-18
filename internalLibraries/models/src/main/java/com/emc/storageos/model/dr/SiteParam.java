@@ -26,6 +26,7 @@ public class SiteParam {
     private String secretKey;
     private String state;
     private String ipsecKey;
+    private long creationTime;
 
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -144,15 +145,30 @@ public class SiteParam {
         this.nodeCount = nodeCount;
     }
 
+    @XmlElement(name = "creationTime")
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    public void setCreationTime(long creationTime) {
+        this.creationTime = creationTime;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("SiteAddParam [uuid=");
+        builder.append("Site Param [uuid=");
         builder.append(uuid);
         builder.append(", name=");
         builder.append(name);
+        builder.append(", shortid=");
+        builder.append(shortId);
+        builder.append(", state=");
+        builder.append(state);
         builder.append(", vip=");
         builder.append(vip);
+        builder.append(", node count=");
+        builder.append(nodeCount);
         builder.append(", hostIPv4AddressMap=");
         builder.append(hostIPv4AddressMap);
         builder.append(", hostIPv6AddressMap=");
@@ -163,6 +179,8 @@ public class SiteParam {
         builder.append(dbSchemaVersion);
         builder.append(", freshInstallation=");
         builder.append(freshInstallation);
+        builder.append(", creationTime=");
+        builder.append(creationTime);
         builder.append("]");
         return builder.toString();
     }

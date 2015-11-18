@@ -5,11 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
@@ -91,6 +87,7 @@ public class DisasterRecoveryService {
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
     private static final String DR_OPERATION_LOCK = "droperation";
     private static final int LOCK_WAIT_TIME_SEC = 5;
+    private static final int DEFAULT_GC_GRACE_PERIOD = 5 * 24 * 60 * 60; // 5 days;
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -98,6 +95,7 @@ public class DisasterRecoveryService {
     private CoordinatorClient coordinator;
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
+    private Properties _dbCommonInfo;
     private DrUtil drUtil;
     
     @Autowired
@@ -194,30 +192,8 @@ public class DisasterRecoveryService {
             }
             drUtil.updateVdcTargetVersion(siteId, SiteInfo.NONE);
 
-            // reconfig standby site
-            log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());
-            Site primary = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
-            SiteConfigParam configParam = new SiteConfigParam();
-            SiteParam primarySite = new SiteParam();
-            primarySite.setHostIPv4AddressMap(primary.getHostIPv4AddressMap());
-            primarySite.setHostIPv6AddressMap(primary.getHostIPv6AddressMap());
-            primarySite.setName(param.getName()); // this is the name for the standby site
-            primarySite.setSecretKey(primary.getSecretKey());
-            primarySite.setUuid(coordinator.getSiteId());
-            primarySite.setVip(primary.getVip());
-            primarySite.setIpsecKey(ipsecConfig.getPreSharedKey());
-            primarySite.setNodeCount(primary.getNodeCount());
-            primarySite.setState(String.valueOf(SiteState.PRIMARY));
-
-            configParam.setPrimarySite(primarySite);
-            
-            List<SiteParam> standbySites = new ArrayList<>();
-            for (Site standby : drUtil.listStandbySites()) {
-                SiteParam standbyParam = new SiteParam();
-                siteMapper.map(standby, standbyParam);
-                standbySites.add(standbyParam);
-            }
-            configParam.setStandbySites(standbySites);
+            // sync site related info with to be added standby site
+            SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey());
             viprCoreClient.site().syncSite(configParam);
             auditDisasterRecoveryOps(OperationTypeEnum.ADD_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null,
                     param.getVip(), param.getName());
@@ -239,8 +215,38 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Sync all the site information from the primary site to the new standby
-     * The current site will be demoted from primary to standby during the process
+     * Prepare all sites related info for synchronizing them from master to be added or resumed standby site
+     *
+     * @param ipsecKey cluster ipsec key
+     * @return SiteConfigParam all the sites configuration
+     */
+    private SiteConfigParam prepareSiteConfigParam(String ipsecKey) {
+        log.info("Preparing to sync sites info among to be added/resumed standby site...");
+        Site primary = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
+        SiteConfigParam configParam = new SiteConfigParam();
+        SiteParam primarySite = new SiteParam();
+        siteMapper.map(primary, primarySite);
+        primarySite.setIpsecKey(ipsecKey);
+        log.info("    primay site info:{}", primarySite.toString());
+        configParam.setPrimarySite(primarySite);
+
+        List<SiteParam> standbySites = new ArrayList<>();
+        for (Site standby : drUtil.listStandbySites()) {
+            SiteParam standbyParam = new SiteParam();
+            siteMapper.map(standby, standbyParam);
+            standbySites.add(standbyParam);
+            log.info("    standby site info:{}", standbyParam.toString());
+        }
+        configParam.setStandbySites(standbySites);
+
+        return configParam;
+    }
+
+    /**
+     * Sync all the site information from the primary site to to be added/resumed standby
+     * a) For adding standby site scenario, the current site will be demoted from primary to standby during the process
+     * b) For resuming standby site scenario, the current site's original data will be cleaned by setting new data revision.
+     *    It is now only used for resuming long paused (> 5 days) standby site
      * 
      * @param configParam
      * @return
@@ -268,7 +274,6 @@ public class DisasterRecoveryService {
             // Add other standby sites
             for (SiteParam standby : configParam.getStandbySites()) {
                 Site site = new Site();
-                site.setCreationTime((new Date()).getTime());
                 siteMapper.map(standby, site);
                 site.setVdcShortId(drUtil.getLocalVdcShortId());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
@@ -521,6 +526,7 @@ public class DisasterRecoveryService {
 
         try {
             standby.setState(SiteState.STANDBY_PAUSED);
+            standby.setPausedTime(System.currentTimeMillis());
             coordinator.persistServiceConfiguration(standby.toConfiguration());
 
             // exclude the paused site from strategy options of dbsvc and geodbsvc
@@ -574,7 +580,25 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(standby.toConfiguration());
 
             for (Site site : drUtil.listStandbySites()) {
-                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+                if (site.getUuid().equals(uuid)) {
+                    int gcGracePeriod = DEFAULT_GC_GRACE_PERIOD;
+                    String strVal = _dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
+                    if (strVal != null) {
+                        gcGracePeriod = Integer.parseInt(strVal);
+                    }
+
+                    if ((System.currentTimeMillis() - site.getPausedTime())/1000 >= gcGracePeriod) {
+                        log.error("site {} has been paused too long, we will clean and rebuild all db data in standby", uuid);
+                        ViPRCoreClient viprCoreClient;
+                        viprCoreClient = createViPRCoreClient(site.getVip(),"root", "ChangeMe");
+
+                        // sync site related info with to be resumed standby site
+                        SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey());
+                        viprCoreClient.site().syncSite(configParam);
+                    }
+                } else {
+                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+                }
             }
 
             // update the local(primary) site last
@@ -1045,5 +1069,10 @@ public class DisasterRecoveryService {
 
     public void setIpsecConfig(IPsecConfig ipsecConfig) {
         this.ipsecConfig = ipsecConfig;
+    }
+
+    // DBSVC config parameters
+    public void setDbCommonInfo(Properties dbCommonInfo) {
+        _dbCommonInfo = dbCommonInfo;
     }
 }

@@ -133,6 +133,14 @@ class Volume(object):
     URI_CG_CLONE_DEACTIVATE = "/block/consistency-groups/{0}/protection/full-copies/{1}/deactivate"
     URI_CG_CLONE_LIST = "/block/consistency-groups/{0}/protection/full-copies"
     URI_CG_CLONE_GET= "/block/consistency-groups/{0}/protection/full-copies/{1}"
+	
+    #New Migration URIs
+    URI_MIGRATION_LIST = "/block/migrations"
+    URI_MIGRATION_SHOW = "/block/migrations/{0}"
+    URI_MIGRATION_CANCEL = "/block/migrations/{0}/cancel"
+    URI_MIGRATION_PAUSE = "/block/migrations/{0}/pause"
+    URI_MIGRATION_RESUME = "/block/migrations/{0}/resume"
+    URI_MIGRATION_DEACTIVATE = "/block/migrations/{0}/deactivate"
     
     #New API for adding volumes to RP Journal CG 
     URI_RP_JOURNAL_CAPACITY = "/block/volumes/protection/addJournalCapacity"
@@ -1489,21 +1497,21 @@ class Volume(object):
         else:
             return o    
 
-			
+        
     #To check whether a cloned volume is in detachable state or not
     def is_volume_detachable(self, name):
         
         volumeUri = self.volume_query(name)
         vol = self.show_by_uri(volumeUri)
-		#Filtering based on "replicaState" attribute value of Cloned volume.
-		#If "replicaState" value is "SYNCHRONIZED" then only Cloned volume would be in detachable state.
+        #Filtering based on "replicaState" attribute value of Cloned volume.
+        #If "replicaState" value is "SYNCHRONIZED" then only Cloned volume would be in detachable state.
         if(vol and 'protection' in vol and
             'full_copies' in vol['protection'] and
             'replicaState' in vol['protection']['full_copies']):
             if(vol['protection']['full_copies']['replicaState'] == 'SYNCHRONIZED'):
                 return True
-			else:
-                return False	
+            else:
+                return False
         else:
             return False
         
@@ -1651,7 +1659,84 @@ class Volume(object):
         else:
             return o   
 
-  
+    
+    def migration_list(self):
+        uri_migration_list = Volume.URI_MIGRATION_LIST
+    	(s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "GET", uri_migration_list,
+                                             None)
+        if(not s):
+            return None
+    
+        o = common.json_decode(s)
+    
+        return o
+		
+	
+    def migration_show(self, migration_id):
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "GET",
+                                              Volume.URI_MIGRATION_SHOW.format(
+                                                  migration_id),
+                                             None)
+        if(not s):
+            return None
+    
+        o = common.json_decode(s)
+    
+        return o
+
+    def migration_cancel(self, migration_id):
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                              Volume.URI_MIGRATION_CANCEL.format(
+                                                  migration_id),
+                                             None)
+        if(not s):
+            return None
+    
+        o = common.json_decode(s)
+    
+        return o
+
+    def migration_pause(self, migration_id):
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                              Volume.URI_MIGRATION_PAUSE.format(
+                                                  migration_id),
+                                             None)
+        if(not s):
+            return None
+    
+        o = common.json_decode(s)
+    
+        return o
+
+    def migration_resume(self, migration_id):
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                              Volume.URI_MIGRATION_RESUME.format(
+                                                  migration_id),
+                                             None)
+        if(not s):
+            return None
+    
+        o = common.json_decode(s)
+    
+        return o
+
+    def migration_deactivate(self, migration_id):
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                              Volume.URI_MIGRATION_DEACTIVATE.format(
+                                                  migration_id),
+                                             None)
+        if(not s):
+            return None
+    
+        o = common.json_decode(s)
+    
+        return o		
 
 # volume Create routines
 
@@ -1765,7 +1850,7 @@ def rp_journal_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-cg', '-consistencygroup',
                                help='The name of the consistency group',
                                dest='consistencygroup',
-                               metavar='<consistentgroupname>',
+                               metavar='<consistencygroupname>',
                                required=True)
     rp_journal_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
@@ -1827,7 +1912,7 @@ def volume_clone_common_parser(cc_common_parser):
     group.add_argument('-volume', '-vol',
                        metavar='<volumename>',
                        dest='volume',
-                       help='Name of a volume')
+                       help='Name of a volume , N/A for clone-deactivate')
     mandatory_args.add_argument('-project', '-pr',
                                 metavar='<projectname>',
                                 dest='project',
@@ -2087,8 +2172,8 @@ def clone_deactivate_parser(subcommand_parsers, common_parser):
         'clone-deactivate',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Deactivate the Fullcopy of a volume/consistency group',
-        description='ViPR Deactivate Fullcopy of a volume/consistency group CLI usage.')
+        help='Deactivate the Fullcopy of a consistency group',
+        description='ViPR Deactivate Fullcopy of a consistency group CLI usage.')
     
     # Add parameter from common clone parser.
     volume_clone_common_parser(clone_deactivate_parser)
@@ -3150,7 +3235,7 @@ def mirror_protect_parser(subcommand_parsers, common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         description='ViPR continuous_copies show CLI usage.',
-        help='Show Continuous copy volume')
+        help='Show Continuous copy volume ,For Native and RP only')
     # Add parameter from common protection parser.
     add_protection_sub_common_parser(mptshow_parser)
     mptshow_parser.set_defaults(func=volume_mirror_protect_show)
@@ -3180,7 +3265,7 @@ def mirror_protect_parser(subcommand_parsers, common_parser):
         description='ViPR continuous_copies stop CLI usage.',
         help='Stop Continuous copy volume')
     # Add parameter from common protection parser.
-    add_protection_common_parser_nosrdf(mptstop_parser)
+    add_protection_common_parser(mptstop_parser)
     mptstop_parser.set_defaults(func=volume_mirror_protect_stop)
 
     # mirror protection delete
@@ -3249,7 +3334,7 @@ def mirror_protect_parser(subcommand_parsers, common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         description='ViPR continuous_copies list CLI usage.',
-        help='List continous copies for given volume')
+        help='List continous copies for given volume , For Native and RP only')
     mandatory_args = mptlist_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<volumename>',
@@ -3989,8 +4074,159 @@ def volume_tag(args):
             "tag",
             e.err_text,
             e.err_code)
+			
 
+def migration_list_parser(subcommand_parsers, common_parser):
+    migration_list_parser = subcommand_parsers.add_parser(
+        'migration-list',
+        description='ViPR Volume Migrations list',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='List all the migrations')
+    mandatory_args = migration_list_parser.add_argument_group('mandatory arguments')
+    migration_list_parser.set_defaults(func=migration_list)
+	
+def migration_list(args):
+    obj = Volume(args.ip, args.port)
+    try:
+        return common.format_json_object(obj.migration_list())
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "get",
+            "migrations",
+            e.err_text,
+            e.err_code)
+			
+def migration_show_parser(subcommand_parsers, common_parser):
+    migration_show_parser = subcommand_parsers.add_parser(
+        'migration-show',
+        description='ViPR Volume Migration show',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Show a migration')
+    mandatory_args = migration_show_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-migration_id','-id',
+                                help='Migration Id',
+                                dest='migration_id',
+                                required='True',
+                                metavar='<migration_id>')	
+    migration_show_parser.set_defaults(func=migration_show)
+	
+def migration_show(args):
+    obj = Volume(args.ip, args.port)
+    try:
+        return common.format_json_object(obj.migration_show(args.migration_id))
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "get",
+            "migration",
+            e.err_text,
+            e.err_code)
 
+def migration_cancel_parser(subcommand_parsers, common_parser):
+    migration_cancel_parser = subcommand_parsers.add_parser(
+        'migration-cancel',
+        description='ViPR Volume Migration cancel',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='cancel the in-progress data migration')
+    mandatory_args = migration_cancel_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-migration_id','-id',
+                                help='Migration Id',
+                                dest='migration_id',
+                                required='True',
+                                metavar='<migration_id>')	
+    migration_cancel_parser.set_defaults(func=migration_cancel)
+	
+def migration_cancel(args):
+    obj = Volume(args.ip, args.port)
+    try:
+        return common.format_json_object(obj.migration_cancel(args.migration_id))
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "post",
+            "migration",
+            e.err_text,
+            e.err_code)
+			
+def migration_pause_parser(subcommand_parsers, common_parser):
+    migration_pause_parser = subcommand_parsers.add_parser(
+        'migration-pause',
+        description='ViPR Volume Migration pause',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='pause the in-progress data migration')
+    mandatory_args = migration_pause_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-migration_id','-id',
+                                help='Migration Id',
+                                dest='migration_id',
+                                required='True',
+                                metavar='<migration_id>')	
+    migration_pause_parser.set_defaults(func=migration_pause)
+	
+def migration_pause(args):
+    obj = Volume(args.ip, args.port)
+    try:
+        return common.format_json_object(obj.migration_pause(args.migration_id))
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "post",
+            "migration",
+            e.err_text,
+            e.err_code)
+			
+def migration_resume_parser(subcommand_parsers, common_parser):
+    migration_resume_parser = subcommand_parsers.add_parser(
+        'migration-resume',
+        description='ViPR Volume Migration resume',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='resume paused data migration')
+    mandatory_args = migration_resume_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-migration_id','-id',
+                                help='Migration Id',
+                                dest='migration_id',
+                                required='True',
+                                metavar='<migration_id>')	
+    migration_resume_parser.set_defaults(func=migration_resume)
+	
+def migration_resume(args):
+    obj = Volume(args.ip, args.port)
+    try:
+        return common.format_json_object(obj.migration_resume(args.migration_id))
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "post",
+            "migration",
+            e.err_text,
+            e.err_code)
+			
+def migration_deactivate_parser(subcommand_parsers, common_parser):
+    migration_deactivate_parser = subcommand_parsers.add_parser(
+        'migration-deactivate',
+        description='ViPR Volume Migration deactivate',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='remove the finished migration in ViPR and VPLEX')
+    mandatory_args = migration_deactivate_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-migration_id','-id',
+                                help='Migration Id',
+                                dest='migration_id',
+                                required='True',
+                                metavar='<migration_id>')	
+    migration_deactivate_parser.set_defaults(func=migration_deactivate)
+	
+def migration_deactivate(args):
+    obj = Volume(args.ip, args.port)
+    try:
+        return common.format_json_object(obj.migration_deactivate(args.migration_id))
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "post",
+            "migration",
+            e.err_text,
+            e.err_code)
+			
 #
 # Volume Main parser routine
 #
@@ -4081,3 +4317,21 @@ def volume_parser(parent_subparser, common_parser):
     unmanaged_parser(subcommand_parsers, common_parser)
 
     tag_parser(subcommand_parsers, common_parser)
+	
+    # migration list command parser
+    migration_list_parser(subcommand_parsers, common_parser)
+	
+    # migration list command parser
+    migration_show_parser(subcommand_parsers, common_parser)
+	
+    # cancel migration command parser
+    migration_cancel_parser(subcommand_parsers, common_parser)
+	
+    # pause migration command parser
+    migration_pause_parser(subcommand_parsers, common_parser)
+	
+    # resume migration command parser
+    migration_resume_parser(subcommand_parsers, common_parser)
+	
+    # deactivate migration command parser
+    migration_deactivate_parser(subcommand_parsers, common_parser)

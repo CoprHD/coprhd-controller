@@ -8,6 +8,9 @@ import static com.emc.sa.service.ServiceParams.SHARE_COMMENT;
 import static com.emc.sa.service.ServiceParams.SHARE_NAME;
 import static com.emc.sa.service.ServiceParams.SNAPSHOT;
 
+import java.util.List;
+
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -31,6 +34,10 @@ public class ShareFileSnapshotService extends ViPRService {
     @Override
     public void precheck() throws Exception {
         if (fileSnapshotShareACLs != null && fileSnapshotShareACLs.length > 0) {
+            List<String> invalidNames = FileStorageUtils.getInvalidFileACLs(fileSnapshotShareACLs);
+            if (!invalidNames.isEmpty()) {
+                ExecutionUtils.fail("failTask.CreateCifsShareHelper.invalidName", invalidNames, invalidNames);
+            }
             fileSnapshotShareACLs = FileStorageUtils.clearEmptyFileACLs(fileSnapshotShareACLs);
         }
     }

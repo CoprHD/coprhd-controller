@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -23,6 +24,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -33,10 +35,13 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ComputeImage;
+import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.model.BulkIdParam;
@@ -55,6 +60,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * Service class responsible for serving rest requests of ComputeImageServer
@@ -76,6 +82,7 @@ public class ComputeImageServerService extends TaskResourceService {
     private static final String IMAGESERVER_PASSWORD = "imageServerPassword";
     private static final String IMAGESERVER_USER = "imageServerUser";
     private static final String OS_INSTALL_TIMEOUT_MS = "osInstallTimeoutMs";
+    private static final String IMAGE_SERVER_IMAGEDIR = "image_server_image_directory";
 
     @Override
     protected ComputeImageServer queryResource(URI id) {
@@ -112,7 +119,7 @@ public class ComputeImageServerService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response deleteComputeImageServer(@PathParam("id") URI id) {
         // Validate the imageServer
-        log.info("Delete computeImageServer id {} ",id);
+        log.info("Delete computeImageServer id {} ", id);
         ArgValidator.checkFieldUriType(id, ComputeImageServer.class, "id");
         ComputeImageServer imageServer = _dbClient.queryObject(
                 ComputeImageServer.class, id);
@@ -123,25 +130,38 @@ public class ComputeImageServerService extends TaskResourceService {
 
         // Remove the association with the ComputeSystem and then delete the
         // imageServer
-        List<URI> computeSystemURIList = _dbClient.queryByType(
-                ComputeSystem.class, true);
-        if (computeSystemURIList != null
-                && computeSystemURIList.iterator().hasNext()) {
-            List<ComputeSystem> computeSystems = _dbClient.queryObject(
-                    ComputeSystem.class, computeSystemURIList);
-            if (!CollectionUtils.isEmpty(computeSystems)) {
-                for (ComputeSystem computeSystem : computeSystems) {
-                    if (computeSystem.getComputeImageServer() != null
-                            && computeSystem.getComputeImageServer().equals(id)) {
-                        computeSystem
-                                .setComputeImageServer(NullColumnValueGetter
-                                        .getNullURI());
-                        _dbClient.persistObject(computeSystem);
-                        log.info(
-                                "Disassociating imageServer {} from ComputeSystem id {} ",
-                                id, computeSystem.getId());
-                    }
+        List<URI> imageServerURIList = _dbClient.queryByType(
+                ComputeImageServer.class, true);
+        ArrayList<URI> tempList = Lists.newArrayList(imageServerURIList
+                .iterator());
+
+        if (tempList.size() > 1) {
+            removeImageServerFromComputeSystem(id);
+        } else if (tempList.size() == 1) {
+
+            // If the imageServer being deleted is the last one,
+            // then check if there are any valid AVAILABLE images, if so
+            // throw exception because user cannot delete all imageServers when
+            // there are valid images available.
+            boolean hasValidImages = false;
+            List<URI> imageURIList = _dbClient.queryByType(ComputeImage.class,
+                    true);
+            Iterator<ComputeImage> imageItr = _dbClient.queryIterativeObjects(
+                    ComputeImage.class, imageURIList);
+
+            while (imageItr.hasNext()) {
+                ComputeImage computeImage = (ComputeImage) imageItr.next();
+                if (ComputeImageStatus.AVAILABLE.name().equals(
+                        computeImage.getComputeImageStatus())) {
+                    hasValidImages = true;
+                    break;
                 }
+            }
+
+            if (hasValidImages) {
+                throw APIException.badRequests.cannotDeleteImageServer();
+            } else {
+                removeImageServerFromComputeSystem(id);
             }
         }
 
@@ -170,16 +190,17 @@ public class ComputeImageServerService extends TaskResourceService {
     public TaskResourceRep createComputeImageServer(
             ComputeImageServerCreate createParams) {
         log.info("Create computeImageServer");
+        String imageServerName = createParams.getName();
         String imageServerAddress = createParams.getImageServerIp();
+        ArgValidator.checkFieldNotEmpty(imageServerName, "imageServerName");
         ArgValidator.checkFieldNotEmpty(imageServerAddress, IMAGESERVER_IP);
-        checkDuplicateLabel(ComputeImageServer.class, imageServerAddress,
-                IMAGESERVER_IP);
+        checkDuplicateImageServer(null, imageServerAddress, imageServerName);
 
         String bootDir = createParams.getTftpBootDir();
         String osInstallAddress = createParams.getImageServerSecondIp();
         String username = createParams.getImageServerUser();
         String password = createParams.getImageServerPassword();
-        Integer installTimeout = createParams.getOsInstallTimeoutMs();
+        Integer installTimeout = createParams.getOsInstallTimeout();
 
         ArgValidator.checkFieldNotEmpty(bootDir, TFTPBOOTDIR);
         ArgValidator.checkFieldNotEmpty(osInstallAddress,
@@ -187,16 +208,19 @@ public class ComputeImageServerService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(username, IMAGESERVER_USER);
         ArgValidator.checkFieldNotEmpty(password, IMAGESERVER_PASSWORD);
         ArgValidator.checkFieldNotNull(installTimeout, OS_INSTALL_TIMEOUT_MS);
+        ArgValidator.checkFieldRange(installTimeout, 0, 2147483, "seconds", "osInstallTimeout");
 
         ComputeImageServer imageServer = new ComputeImageServer();
         imageServer.setId(URIUtil.createId(ComputeImageServer.class));
-        imageServer.setLabel(imageServerAddress);
+        imageServer.setLabel(imageServerName);
         imageServer.setImageServerIp(imageServerAddress);
         imageServer.setTftpBootDir(bootDir);
         imageServer.setImageServerUser(username);
         imageServer.setImageServerPassword(password);
-        imageServer.setOsInstallTimeoutMs((int) installTimeout);
+        imageServer.setOsInstallTimeoutMs(new Long(
+                TimeUnit.SECONDS.toMillis(installTimeout)).intValue());
         imageServer.setImageServerSecondIp(osInstallAddress);
+        imageServer.setImageDir(_coordinator.getPropertyInfo().getProperty(IMAGE_SERVER_IMAGEDIR));
 
         auditOp(OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES, true, null,
                 imageServer.getId().toString(), imageServer.getImageServerIp());
@@ -234,7 +258,7 @@ public class ComputeImageServerService extends TaskResourceService {
             @PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, ComputeImageServer.class, "id");
         ComputeImageServer imageServer = queryResource(id);
-        return map(imageServer);
+        return map(_dbClient, imageServer);
     }
 
     /**
@@ -282,35 +306,60 @@ public class ComputeImageServerService extends TaskResourceService {
         if (null == imageServer || imageServer.getInactive()) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         } else {
+            StringSet availImages = imageServer.getComputeImages();
+            // make sure there are no active jobs associated with this imageserver
+            checkActiveJobsForImageServer(id);
+            String imageServerName = param.getName();
             String imageServerAddress = param.getImageServerIp();
             String bootDir = param.getTftpBootDir();
             String osInstallAddress = param.getImageServerSecondIp();
             String username = param.getImageServerUser();
             String password = param.getImageServerPassword();
-            Integer installTimeout = param.getOsInstallTimeoutMs();
-
-            ArgValidator.checkFieldNotEmpty(bootDir, TFTPBOOTDIR);
-            ArgValidator.checkFieldNotEmpty(osInstallAddress,
-                    IMAGESERVER_SECONDARY_IP);
-            ArgValidator.checkFieldNotEmpty(username, IMAGESERVER_USER);
-            ArgValidator.checkFieldNotEmpty(password, IMAGESERVER_PASSWORD);
-            ArgValidator.checkFieldNotNull(installTimeout,
-                    OS_INSTALL_TIMEOUT_MS);
-            // make sure there are no active jobs associated with this imageserver
-            checkActiveJobsForImageServer(id);
-            imageServer.setLabel(imageServerAddress);
-            imageServer.setImageServerIp(imageServerAddress);
-            imageServer.setTftpBootDir(bootDir);
-            imageServer.setImageServerUser(username);
-            imageServer.setImageServerPassword(password);
-            imageServer.setOsInstallTimeoutMs((int) installTimeout);
-            imageServer.setImageServerSecondIp(osInstallAddress);
-
+            Integer installTimeout = param.getOsInstallTimeout();
+            if (StringUtils.isNotBlank(imageServerName)
+                    && !imageServerName
+                            .equalsIgnoreCase(imageServer.getLabel())) {
+                checkDuplicateLabel(ComputeImageServer.class, imageServerName,
+                        imageServerName);
+                imageServer.setLabel(param.getName());
+            }
+            if (StringUtils.isNotBlank(imageServerAddress)
+                    && !imageServerAddress.equalsIgnoreCase(imageServer
+                            .getImageServerIp())) {
+                checkDuplicateImageServer(id, imageServerAddress, null);
+                disassociateComputeImages(imageServer);
+                imageServer.setImageServerIp(imageServerAddress);
+            }
+            if(StringUtils.isNotBlank(osInstallAddress)){
+                imageServer.setImageServerSecondIp(osInstallAddress);
+            }
+            if(StringUtils.isNotBlank(username)){
+                imageServer.setImageServerUser(username);
+            }
+            if(null != installTimeout){
+                ArgValidator.checkFieldRange(installTimeout, 0, 2147483, "seconds", "osInstallTimeout");
+                imageServer.setOsInstallTimeoutMs(new Long(
+                        TimeUnit.SECONDS.toMillis(installTimeout)).intValue());
+            }
+            if (StringUtils.isNotBlank(bootDir)) {
+                if (!CollectionUtils.isEmpty(availImages)
+                        && !imageServer.getTftpBootDir().equals(bootDir)) {
+                    log.info("Cannot update TFTPBOOT directory, while "
+                            + "an image server has associated successful import images.");
+                    throw APIException.badRequests
+                            .cannotUpdateTFTPBOOTDirectory();
+                } else {
+                    imageServer.setTftpBootDir(bootDir);
+                }
+            }
+            if(StringUtils.isNotBlank(password)){
+                imageServer.setImageServerPassword(password);
+            }
             auditOp(OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES, true,
                     null, imageServer.getId().toString(),
                     imageServer.getImageServerIp());
 
-            _dbClient.persistObject(imageServer);
+            _dbClient.updateObject(imageServer);
 
             ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
             String taskId = UUID.randomUUID().toString();
@@ -327,7 +376,7 @@ public class ComputeImageServerService extends TaskResourceService {
             controller.verifyImageServerAndImportExistingImages(task,
                     op.getName());
         }
-        return map(imageServer);
+        return map(_dbClient, imageServer);
     }
 
     /**
@@ -364,7 +413,7 @@ public class ComputeImageServerService extends TaskResourceService {
         @Override
         public ComputeImageServerRestRep apply(
                 final ComputeImageServer imageserver) {
-            return ComputeMapper.map(imageserver);
+            return ComputeMapper.map(_dbClient, imageserver);
         }
     }
 
@@ -408,4 +457,89 @@ public class ComputeImageServerService extends TaskResourceService {
         }
     }
 
+    /**
+     * Removes the given imageServerId from each ComputeSystem present,
+     * if the computeSystem has the given imageServerId as it association or relation.
+     * Disassociate's  the imageServer from the computeSystem.
+     * @param imageServerID {@link URI} computeImageServer id
+     */
+    private void removeImageServerFromComputeSystem(URI imageServerID) {
+        // Remove the association with the ComputeSystem and then delete
+        // the imageServer
+        List<URI> computeSystemURIList = _dbClient.queryByType(
+                ComputeSystem.class, true);
+        if (computeSystemURIList != null
+                && computeSystemURIList.iterator().hasNext()) {
+            List<ComputeSystem> computeSystems = _dbClient.queryObject(
+                    ComputeSystem.class, computeSystemURIList);
+            if (!CollectionUtils.isEmpty(computeSystems)) {
+                for (ComputeSystem computeSystem : computeSystems) {
+                    if (computeSystem.getComputeImageServer() != null
+                            && computeSystem.getComputeImageServer()
+                                    .equals(imageServerID)) {
+                        computeSystem
+                                .setComputeImageServer(NullColumnValueGetter
+                                        .getNullURI());
+                        _dbClient.updateObject(computeSystem);
+                        log.info(
+                                "Disassociating imageServer {} from ComputeSystem id {} ",
+                                imageServerID, computeSystem.getId());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Check if the imageServer already exists, this method checks by both
+     * name/label and IP.
+     * @param id {@link URI} imageServer URI
+     * @param imageServerAddress {@link String} imageServer IP/FQDN
+     * @param imageServerName {@link String} label/user given name for imageServer
+     */
+    private void checkDuplicateImageServer(URI id, String imageServerAddress,
+            String imageServerName) {
+        if (StringUtils.isNotBlank(imageServerName)) {
+            checkDuplicateLabel(ComputeImageServer.class, imageServerName,
+                    imageServerName);
+        }
+        List<URI> existingImageServers = _dbClient.queryByType(
+                ComputeImageServer.class, false);
+        for (URI uri : existingImageServers) {
+            ComputeImageServer existing = _dbClient.queryObject(
+                    ComputeImageServer.class, uri);
+            if (existing == null || existing.getInactive()
+                    || existing.getId().equals(id)) {
+                continue;
+            }
+            if (existing.getImageServerIp() != null
+                    && imageServerAddress != null
+                    && existing.getImageServerIp().equalsIgnoreCase(
+                            imageServerAddress)) {
+                throw APIException.badRequests
+                        .resourceExistsWithSameName(imageServerAddress);
+            }
+        }
+    }
+
+    /**
+     * Remove computeImage associations (both success image and failed images
+     * associations)for a given imageServer
+     *
+     * @param imageServer {@link ComputeImageServer} instance
+     */
+    private void disassociateComputeImages(ComputeImageServer imageServer) {
+        StringSet successImages = imageServer.getComputeImages();
+        if (!CollectionUtils.isEmpty(successImages)) {
+            for (String image : successImages) {
+                imageServer.getComputeImages().remove(image);
+            }
+        }
+        StringSet failedImages = imageServer.getFailedComputeImages();
+        if (!CollectionUtils.isEmpty(failedImages)) {
+            for (String image : failedImages) {
+                imageServer.getFailedComputeImages().remove(image);
+            }
+        }
+    }
 }

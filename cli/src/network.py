@@ -505,14 +505,14 @@ def update_parser(subcommand_parsers, common_parser):
         '-endpoint_add', '-epadd',
         metavar='<endpoint_add>',
         dest='endpoint_add',
-        help='List of new endpoints to be associated with the network',
+        help='List of new endpoints to be associated with the network ,HostIP/Port for NFS/CIFS , wwn for FC , iqn for iSCSI',
         nargs="+")
 
     update_parser.add_argument(
         '-endpoint_remove', '-epremove',
         metavar='<endpoint_remove>',
         dest='endpoint_remove',
-        help='List of endpoints to be dis-associated from the network',
+        help='List of endpoints to be dis-associated from the network, HostIP/Port for NFS/CIFS , wwn for FC , iqn for iSCSI',
         nargs="+")
 
     update_parser.set_defaults(func=network_update)

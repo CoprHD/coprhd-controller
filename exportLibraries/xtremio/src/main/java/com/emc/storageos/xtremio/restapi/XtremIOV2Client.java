@@ -597,7 +597,7 @@ public class XtremIOV2Client extends XtremIOClient {
 
             return tags.getContent();
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            log.warn(e.getMessage(), e);
         }
         log.info("Tag not available on Array with name : {}",
                 tagName);

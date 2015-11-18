@@ -6,6 +6,7 @@ package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEMS;
+import static com.emc.sa.service.ServiceParams.TYPE;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 
@@ -36,6 +37,9 @@ public class IngestUnmanagedFilesystemsService extends ViPRService {
     @Param(VIRTUAL_ARRAY)
     protected URI virtualArray;
 
+    @Param(value = TYPE, required = false)
+    protected String type;
+
     @Override
     public void precheck() throws Exception {
         super.precheck();
@@ -44,7 +48,7 @@ public class IngestUnmanagedFilesystemsService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        List<UnManagedFileSystemRestRep> unmanaged = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool));
+        List<UnManagedFileSystemRestRep> unmanaged = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type));
         List<URI> filesystems = Lists.newArrayList();
         for (UnManagedFileSystemRestRep fileSystem : unmanaged) {
             filesystems.add(fileSystem.getId());
@@ -52,7 +56,7 @@ public class IngestUnmanagedFilesystemsService extends ViPRService {
         execute(new IngestUnmanagedFilesystems(virtualPool, virtualArray, project, filesystems));
 
         // Requery and produce a log of what was ingested or not
-        int failed = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool)).size();
+        int failed = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type)).size();
         logInfo("ingest.unmanaged.filesystems.service.ingested", unmanaged.size() - failed);
         logInfo("ingest.unmanaged.filesystems.service.skipped", failed);
     }

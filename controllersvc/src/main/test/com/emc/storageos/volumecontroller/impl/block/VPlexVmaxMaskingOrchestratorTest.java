@@ -26,10 +26,10 @@ import com.emc.storageos.util.DummyDbClient;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.placement.PortAllocatorTestContext;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocatorTest;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
-import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.vplexcontroller.VPlexBackendManager;
 
 /**
@@ -73,7 +73,7 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
         Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
         // orca.getInitiatorGroups(directorToInitiators, initiatorIdToNetwork, initiatorMap);
-        Set<Map<URI, List<StoragePort>>> portGroups = orca.getPortGroups(
+        Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(
                 allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
@@ -160,12 +160,12 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
     static Integer maskCounter = 1;
 
     private static void makeExportMasks(URI arrayURI, VPlexVmaxMaskingOrchestrator orca,
-            Set<Map<URI, List<StoragePort>>> portGroups,
+            Set<Map<URI, List<List<StoragePort>>>> portGroups,
             Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups,
             Map<URI, NetworkLite> networkMap) {
         // Iterate through the PortGroups generating zoning info and an ExportMask
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
-        for (Map<URI, List<StoragePort>> portGroup : portGroups) {
+        for (Map<URI, List<List<StoragePort>>> portGroup : portGroups) {
             String maskName = "testMask" + maskCounter.toString();
             maskCounter++;
             _log.info("Generating ExportMask: " + maskName);

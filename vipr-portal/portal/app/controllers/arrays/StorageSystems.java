@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,6 +52,7 @@ import util.StoragePortUtils;
 import util.StorageSystemUtils;
 import util.StringOption;
 import util.VCenterUtils;
+import util.TenantUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
@@ -483,16 +485,27 @@ public class StorageSystems extends ViprResourceController {
     }
     
     public static void getProjectsForNas() {
-        List<URI> tenants = getViprClient().tenants().listBulkIds();
+        List<URI> tenants = Lists.newArrayList();
+        List<StringOption> allTenants = TenantUtils.getUserSubTenantOptions();
+        Iterator<StringOption> tenantsIterator = allTenants.iterator();
+        while (tenantsIterator.hasNext()) {
+            StringOption tenant = tenantsIterator.next();
+            if (tenant == null) {
+                continue;
+            }
+            tenants.add(uri(tenant.id));
+        }
         List<StringOption> projectTenantOptions = Lists.newArrayList();
-        for (URI tenantId:tenants) {
-        	 String tenantName = getViprClient().tenants().get(tenantId).getName();
-        	 List<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
-             List<String> projectOptions = Lists.newArrayList();
-             for (ProjectRestRep project : projects) {
-            	 projectOptions.add(project.getId().toString()+"~~~"+project.getName());
-             }
-             projectTenantOptions.add(new StringOption(projectOptions.toString(), tenantName));
+        for (URI tenantId : tenants) {
+            String tenantName = getViprClient().tenants().get(tenantId).getName();
+            List<String> projectOptions = Lists.newArrayList();
+
+            List<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
+            for (ProjectRestRep project : projects) {
+                projectOptions.add(project.getId().toString() + "~~~" + project.getName());
+            }
+
+            projectTenantOptions.add(new StringOption(projectOptions.toString(), tenantName));
         }
        
         renderJSON(projectTenantOptions);

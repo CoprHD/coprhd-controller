@@ -319,6 +319,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                 String mountPath = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.MOUNT_PATH.toString(),
                         unManagedFileSystemInformation);
+                
+                String systemType = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.SYSTEM_TYPE.toString(),
+                        unManagedFileSystemInformation);
 
                 Long lcapcity = Long.valueOf(capacity);
                 Long lusedCapacity = Long.valueOf(usedCapacity);
@@ -425,9 +429,20 @@ public class UnManagedFilesystemService extends TaggedResource {
                         unManagedFileSystem.getHasExports());
                 
                 StoragePort sPort = null;
-                if (port != null && neighborhood != null) {
-                    sPort = compareAndSelectPortURIForUMFS(system, port, neighborhood);
-                }
+                /**
+                 * if Storage system type is Isilon assign UMFS's storage port 
+                 * instead of randomly assigning storage port
+                 * 
+                 */
+				if (StorageSystem.Type.isilon.equals(systemType)) {
+					sPort=port;
+				} else {
+					if (port != null && neighborhood != null) {
+						sPort = compareAndSelectPortURIForUMFS(system, port,
+								neighborhood);
+					}
+				}
+				
                 if (unManagedFileSystem.getHasExports()) {
                     _logger.info("Storage Port Found {}", sPort);
                     if (null != sPort) {

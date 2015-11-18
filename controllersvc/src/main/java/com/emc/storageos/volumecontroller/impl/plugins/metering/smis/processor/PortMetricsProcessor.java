@@ -1052,17 +1052,23 @@ public class PortMetricsProcessor {
                 	}
                 }
                 
-                // Determine initiator count from zoning map unmanaged export mask
+                // Determine initiator count from zoning map in unmanaged export mask.
+                // If the zoningInfoMap is empty, assume one initiator.
                 Long unmanagedInitiators = 0L;
                 ZoneInfoMap zoneInfoMap = umask.getZoningMap();
-                for (ZoneInfo info : zoneInfoMap.values()) {
-                	if (info.getPortWwn().equals(sp.getPortNetworkId())) {
-                		unmanagedInitiators += 1L;
-                	}
+                if (!zoneInfoMap.isEmpty()) {
+                    for (ZoneInfo info : zoneInfoMap.values()) {
+                        if (info.getPortWwn().equals(sp.getPortNetworkId())) {
+                            unmanagedInitiators += 1L;
+                        }
+                    }
+                } else {
+                    // Assume one initiator for the unmanaged mask
+                    unmanagedInitiators += 1L;
                 }
 
                 _log.info(String.format("Port %s UnManagedExportMask %s " +
-                        "unmanagedVolumes %d unknownInitiators %d",
+                        "unmanagedVolumes %d unmanagedInitiators %d",
                         sp.getPortName(), umask.getMaskName(),
                         unmanagedVolumes, unmanagedInitiators));
                 volumeCount += unmanagedVolumes;

@@ -369,6 +369,7 @@ RegistrationStatus.REGISTERED=Registered
 
 RemoteCopyMode.ASYNCHRONOUS=Asynchronous
 RemoteCopyMode.SYNCHRONOUS=Synchronous
+RemoteCopyMode.ACTIVE=Active
 
 RpoType.SECONDS=Seconds
 RpoType.MINUTES=Minutes

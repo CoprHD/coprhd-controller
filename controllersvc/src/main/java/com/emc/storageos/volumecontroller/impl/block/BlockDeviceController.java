@@ -584,11 +584,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * Add Steps to add volumes to the required consistency group
-     *
+     * Add Steps to add or remove volumes to the required consistency group
+     * 
      * @param workflow -- The Workflow being built
      * @param waitFor -- Previous steps to waitFor
-     * @param volumesDescriptors -- List<VolumeDescriptors> -- volumes of all types to be processed
+     * @param volumesDescriptorsToAdd -- List<VolumeDescriptors> -- volumes of all types to be processed for adding to CG
+     * @param volumesDescriptorsToRemove -- List<VolumeDescriptors> -- volumes of all types to be processed for removing from CG
      * @return last step added to waitFor
      * @throws ControllerException
      */

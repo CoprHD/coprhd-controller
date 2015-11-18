@@ -587,6 +587,8 @@
     		<util:map map-class="java.util.HashMap" key-type="java.lang.String" value-type="java.lang.String">
         		<entry key="thresholdsIncludeOverhead" value="true" />
         		<entry key="includeSnapshots" value="true" />
+        		<!-- true: Apply Windows Default ACLs; false: Do not change existing permissions     -->
+        		<entry key="inheritablePathAcl" value="true" />
 		</util:map>
 	</property>  
 	<property name="dbClient" ref="dbclient"/>
@@ -896,7 +898,7 @@
                 <entry key="vmax" value="4"/>
                 <entry key="isilon" value="15"/>
                 <entry key="datadomain" value="32"/>
-                <entry key="vplex" value="4"/>
+                <entry key="vplex" value="10"/>
                 <entry key="mds" value="4"/>
                 <entry key="brocade" value="4"/>
                 <entry key="rp" value="5"/>

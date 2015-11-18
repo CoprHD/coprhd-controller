@@ -647,7 +647,7 @@ public class FileSystems extends ResourceController {
         }
 
         if (formAccessControlList == null || "".equals(formAccessControlList)) {
-            flash.error(MessagesUtils.get("resources.filesystem.share.acl.invalid.settings"), null);
+            flash.error(MessagesUtils.get("resources.filesystem.share.acl.invalid.name"), null);
             listAcl(fileSystem, shareName);
         }
         FileCifsShareACLUpdateParams input = createCifsShareAclParams(formAccessControlList);

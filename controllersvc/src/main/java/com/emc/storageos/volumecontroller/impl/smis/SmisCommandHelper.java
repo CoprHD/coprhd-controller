@@ -5559,8 +5559,8 @@ public class SmisCommandHelper implements SmisConstants {
                 volumePathItr = getAssociatorInstances(storage, maskingViewPath, null,
                         CIM_STORAGE_VOLUME, null, null, PS_EMCWWN);
                 // COP-18172 - Use a cache for holding StorageGroup information. There could be many volumes in the MaskingView, which
-                // could be associated with the same StorageGroup(s). It would efficient to cache the StorageGroup information to prevent
-                // hitting provider information about the same StorageGroups over and over again.
+                // could be associated with the same StorageGroup(s). It could be more efficient to cache the StorageGroup information, so
+                // that we don't hit the provider over and over again for the same StorageGroup information.
                 class StorageGroupInfo {
                     Set<String> policyNames;
                     String storageGroupName;

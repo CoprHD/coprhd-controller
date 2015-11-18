@@ -34,7 +34,11 @@ public class ScaleIOConstants {
     public static final String SCALEIO_IN_USE_CAPACITY = "InUseCapacity";
     public static final String SCALEIO_PROTECTED_CAPACITY = "ProtectedCapacity";
     public static final String SCALEIO_SNAPSHOT_CAPACITY = "SnapshotCapacity";
-
+    public static final String IP_ADDRESS="IpAddress";
+    public static final String PORT_NUMBER="PortNumber";
+    public static final String USER_NAME="UserName";
+    public static final String PASSWORD="Password";
+    public static final String DRIVER_NAME="ScaleIO";
     enum PoolCapacityMultiplier {
 
         BYTES("Bytes", 1),

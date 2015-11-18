@@ -419,7 +419,7 @@ public class RPHelper {
 
                     _log.info(String.format("Adding %s descriptor to %s%s volume [%s] (%s)",
                             volumeType, operationType,
-                            (volumeType.equals(LOG_MSG_VOLUME_TYPE_RP) ? "" : "virtual "),
+                            (volumeType.equals(LOG_MSG_VOLUME_TYPE_RP) ? "" : " virtual"),
                             volume.getLabel(), volume.getId()));
                     volumeDescriptors.add(descriptor);
                 }
@@ -450,7 +450,7 @@ public class RPHelper {
                         // a previous failed delete may have already removed associated volumes
                         if (associatedVolume != null && !associatedVolume.getInactive()) {
                             descriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, associatedVolume.getStorageController(),
-                                    associatedVolume.getId(), null, null);
+                                    associatedVolume.getId(), associatedVolume.getPool(), associatedVolume.getConsistencyGroup(), null);
                             // Add a flag to not delete these backing volumes if this is a Source volume and
                             // the deletion type is Remove Protection
                             if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {

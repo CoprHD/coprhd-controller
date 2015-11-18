@@ -5634,7 +5634,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // on the underlying array even though they won't be deleted.
         List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(blockDataDescriptors);         
         if (doNotDeleteDescriptors != null && !doNotDeleteDescriptors.isEmpty()) {
-            _log.info(String.format("Adding steps to untag volumes"));
             // Next, call the BlockDeviceController to perform untag operations.
             waitFor = blockDeviceController.addStepsForUntagVolumes(workflow, waitFor, doNotDeleteDescriptors, taskId);
             

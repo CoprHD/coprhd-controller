@@ -607,12 +607,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             return waitFor;
         }
         
-        VolumeDescriptor firstVolume = addDescriptors.get(0);
-        if (firstVolume == null || NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI())) {
+        // We need at least one volume to check, so either get it from
+        // the add descriptors or the delete descriptors.
+        VolumeDescriptor firstVolume = null;        
+        if (!addDescriptors.isEmpty()) {
+            firstVolume = addDescriptors.get(0);
+        } else if (!removeDescriptors.isEmpty()) {
             firstVolume = removeDescriptors.get(0);
-            if (firstVolume == null || NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI())) {
-                return waitFor;
-            }
+        }
+        
+        if (firstVolume == null || NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI())) {
+            return waitFor;
         }
                 
         // Check for SRDF
@@ -629,8 +634,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         // We want the map to contain both the volumes to ADD and REMOVE segregated by device and also by CG.
         // The map will look like the below:
-        // Device Id
-        // --> CG Id
+        // Device URI
+        // --> CG URI
         // ----> ADD -> List of Volumes to Add from this CG for this device
         // ----> REMOVE -> List of Volumes to Remove from this CG for this device
         Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap 
@@ -689,7 +694,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // Distill the steps down to Device -> CG -> ADD and REMOVE volumes
         for (Map.Entry<URI,  Map<URI, Map<String, List<URI>>>> deviceEntry : deviceToCGMap.entrySet()) {
             URI deviceURI = deviceEntry.getKey();
-            Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceToCGMap.get(deviceURI);
+            Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceEntry.getValue();
             for (Map.Entry<URI, Map<String, List<URI>>> cgEntry : volumesToUpdateByCG.entrySet()) {
                 URI consistencyGroupURI = cgEntry.getKey();                       
                 List<URI> volumesToAdd = cgEntry.getValue().get(addVolumesKey);
@@ -701,10 +706,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         this.getClass(),
                         new Workflow.Method("updateConsistencyGroup", deviceURI, consistencyGroupURI, volumesToAdd, volumesToRemove),
                         null, null);
-                _log.info(String.format("Step created for adding volumes [%s] to CG [%s] on device [%s]",
-                        Joiner.on("\t").join(volumesToAdd),
-                        consistencyGroupURI,
-                        deviceURI));
+                if (volumesToAdd != null) {
+                    _log.info(String.format("Step created for adding volumes [%s] to CG [%s] on device [%s]",
+                            Joiner.on("\t").join(volumesToAdd),
+                            consistencyGroupURI,
+                            deviceURI));
+                }                
+                if (volumesToRemove != null) {
+                    _log.info(String.format("Step created for removing volumes [%s] from CG [%s] on device [%s]",
+                            Joiner.on("\t").join(volumesToRemove),
+                            consistencyGroupURI,
+                            deviceURI));
+                }
             }
         }
 
@@ -1721,6 +1734,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         this.getClass(),
                         untagVolumesMethod(deviceURI, volumeURIs),
                         rollbackMethodNullMethod(), null);
+                _log.info(String.format("Adding step to untag volumes (%s)", Joiner.on(",").join(volumeURIs)));
             }
         }        
         

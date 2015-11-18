@@ -676,11 +676,12 @@ public abstract class BlockIngestOrchestrator {
                         List<String> parents = getParentVolumeNativeGUIDByRepType(unManagedVolumeInformation);
                         if (parents.isEmpty()) {
                             parentVolumeNativeGUID = null;
+                            _logger.info("No parent for current unmanagedvolume {}", rootUnManagedVolume.getNativeGuid());
                         } else {
                             parentVolumeNativeGUID = parents.get(0);
+                            _logger.info("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
+                                    rootUnManagedVolume.getNativeGuid());
                         }
-                        _logger.info("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
-                                rootUnManagedVolume.getNativeGuid());
 
                         // if the parent is null and this is a VPLEX backend volume, then it
                         // would seem the backend array has been discovered for

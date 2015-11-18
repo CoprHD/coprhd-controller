@@ -6396,10 +6396,14 @@ dr_basic_tests()
     # there's no point in updating the property on both primary and standby since they are shared
     syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
     dr waitforstable 10 600
-    dr waitforstable --ip "$DR_SITE_B_IP" 10 600
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable 10 600
 
     # switchover to standby
     echo "---SWITCHOVER FROM TO $primary_site TO $standby_site---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr switchover $standby_site
 
     echo "---WAIT 7m AFTER SWITCHOVER FOR THE REBOOT---"

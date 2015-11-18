@@ -384,7 +384,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     Volume volume = prepareVolume(VolumeType.BLOCK_VOLUME, null,
                             size, thinVolumePreAllocationSize, vplexProject,
                             varray, vpool, storageDeviceURI,
-                            storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
+                            storagePoolURI, newVolumeLabel, null, vPoolCapabilities);
 
                     volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                     _dbClient.persistObject(volume);
@@ -401,7 +401,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     poolVolumeURIs.add(volume.getId());
                     VolumeDescriptor descriptor = new VolumeDescriptor(
                             VolumeDescriptor.Type.BLOCK_DATA, storageDeviceURI, volumeId,
-                            storagePoolURI, backendCG == null ? null : backendCG.getId(),
+                            storagePoolURI, null,
                             vPoolCapabilities, size);
                     descriptors.add(descriptor);
 

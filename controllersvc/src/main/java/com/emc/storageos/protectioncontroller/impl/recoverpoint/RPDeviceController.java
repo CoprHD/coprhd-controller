@@ -2203,7 +2203,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
                     if (volume != null 
                             && Volume.LinkStatus.FAILED_OVER.name().equalsIgnoreCase(volume.getLinkStatus())) {
-                        String imageAccessEnabledError = String.format("Can not delete volume [%s](%s) "
+                        String imageAccessEnabledError = String.format("Can not delete or remove protection from volume [%s](%s) "
                                 + "while image access is enabled in RecoverPoint", 
                                 volume.getLabel(), volume.getId());
                         _log.error(imageAccessEnabledError);

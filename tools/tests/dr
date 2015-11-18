@@ -79,6 +79,13 @@ def dr_switch_over(args):
 def wait_for_stable(args):
     SysMgr.wait_for_stable_state(args)
 
+def dr_failover_over(args):
+    bourne.connect(args.ip)
+    bourne.dr_failover(args.uuid)
+
+def poweroff_cluster(args):
+	SysMgr.poweroff_cluster(args)
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -139,6 +146,14 @@ waitforstable = argparse.ArgumentParser(parents = [parser], conflict_handler='re
 waitforstable.add_argument('sleep', help = 'sleep of waiting time', type=float)
 waitforstable.add_argument('length', help = 'the whole waiting time', type=float)
 
+# failover dr
+drfailover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drfailover.add_argument('uuid', help = 'uuid of standby site to be failover')
+
+# power off cluster
+poweroffcluster = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+poweroffcluster.add_argument('ip', metavar = 'ipaddr', help = 'IP address of a ViPR system', default=bourne_ip)
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -177,5 +192,11 @@ elif (cmd == "switchover"):
 elif (cmd == "waitforstable"):
     args = waitforstable.parse_args()
     wait_for_stable(args)
+elif (cmd == "failover"):
+    args = drfailover.parse_args()
+    dr_failover_over(args)
+elif (cmd == "poweroffcluster"):
+    args = poweroffcluster.parse_args()
+    poweroff_cluster(args)
 else:
     parser.print_help()

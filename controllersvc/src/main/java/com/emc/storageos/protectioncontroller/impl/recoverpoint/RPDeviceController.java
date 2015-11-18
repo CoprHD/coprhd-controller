@@ -2065,9 +2065,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 for (Volume volume : volumes) {
                     _log.info(String.format("Volume [%s] (%s) needs to have it's replication set removed from RP",
                             volume.getLabel(), volume.getId()));
+                        
                     // Delete the replication set if there are more volumes (other replication sets).
                     // If there are no other replications sets we will simply delete the CG instead.
                     volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(), _dbClient));
+                    
                     // Volume Info to give RP to clean up the RSets
                     replicationSetsToRemove.add(volumeProtectionInfo);
                     // Source volume to be removed from Protection Set
@@ -2191,6 +2193,25 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             URI cgId = entry.getKey();
             Set<URI> volumes = entry.getValue();
             BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+            
+            boolean deleteEntireCG = RPHelper.cgSourceVolumesContainsAll(_dbClient, consistencyGroup.getId(), volumes);
+            if (!deleteEntireCG) {
+                // If we're not deleting the entire CG, we need to ensure that none of the
+                // link statuses on the volumes are in the failed-over state. Deleting 
+                // replication sets is not allowed while image access is enabled.
+                for (URI volumeURI : volumes) {
+                    Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+                    if (volume != null 
+                            && Volume.LinkStatus.FAILED_OVER.name().equalsIgnoreCase(volume.getLinkStatus())) {
+                        String imageAccessEnabledError = String.format("Can not delete volume [%s](%s) "
+                                + "while image access is enabled in RecoverPoint", 
+                                volume.getLabel(), volume.getId());
+                        _log.error(imageAccessEnabledError);
+                        throw DeviceControllerExceptions.recoverpoint.cgDeleteStepInvalidParam(imageAccessEnabledError);
+                    }
+                }
+            }
+            
             // All protection sets can be deleted at the same time, but only one step per protection set can be running
             String cgWaitFor = waitFor;
 

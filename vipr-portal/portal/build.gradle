@@ -187,7 +187,7 @@ task transformErrorFiles(type: Copy) {
 }
 
 
-task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare, transformMainDotLess]) {
+task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare, transformMainDotLess, transformErrorFiles]) {
     // use the transient less file created by the transformMainDotLess task as input to the CSS compiler
     def input = "public/stylesheets/transformed-main.less"
     String output = "${play.compileDir}/public/stylesheets/main.css"

@@ -78,7 +78,7 @@ function renderButtonBar(o,val) {
 function watchLoadStatus(datatable, itemsJson) {
     var fields = ['status','VirtualIP','name'];
     var fieldToWatch = 'status';
-    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING'];
+    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING'];
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
 }
 $(document).ready(function() {

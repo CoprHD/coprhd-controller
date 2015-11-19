@@ -109,7 +109,7 @@ public class SiteParam {
         this.freshInstallation = freshInstallation;
     }
 
-    @XmlElement(name = "short_id", nillable = true)
+    @XmlElement(name = "short_id", required = false, nillable = true)
     public String getShortId() {
         return shortId;
     }

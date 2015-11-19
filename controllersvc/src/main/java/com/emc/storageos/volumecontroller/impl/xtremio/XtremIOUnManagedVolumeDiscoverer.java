@@ -280,9 +280,11 @@ public class XtremIOUnManagedVolumeDiscoverer {
     		XtremIOConsistencyGroupVolInfo cgVol = xtremIOClient.getXtremIOConsistencyGroupInfo(cg, xioClusterName);
 
     		for (int i =0; i < (Integer.parseInt(cgVol.getContent().getNumOfVols())); i++) {
-    			volumesToCgs.put((String) cgVol.getVolList().get(i).get(0), cgVol.getContent().getName());
+    			volumesToCgs.put((String) cgVol.getContent().getVolList().get(i).get(0), cgVol.getContent().getName());			
     		}
+    		
     	}
+    	log.info("VolumesToCgs: "+volumesToCgs.toString());
     }
     private void populateKnownVolsMap(XtremIOVolume vol, BlockObject viprObj, Map<String, StringSet> igKnownVolumesMap) {
         for (List<Object> lunMapEntries : vol.getLunMaps()) {

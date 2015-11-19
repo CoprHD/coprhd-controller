@@ -4,23 +4,17 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.api.service.impl.resource.utils.InternalSiteServiceClient;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -71,6 +65,8 @@ import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.map;
+
 /**
  * APIs implementation to standby sites lifecycle management such as add-standby, remove-standby, failover, pause
  * resume replication etc. 
@@ -97,6 +93,8 @@ public class DisasterRecoveryService {
     private IPsecConfig ipsecConfig;
     private Properties _dbCommonInfo;
     private DrUtil drUtil;
+
+    private InternalSiteServiceClient _internalSiteServiceClient;
     
     @Autowired
     private AuditLogManager auditMgr;
@@ -243,11 +241,9 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Sync all the site information from the primary site to to be added/resumed standby
-     * a) For adding standby site scenario, the current site will be demoted from primary to standby during the process
-     * b) For resuming standby site scenario, the current site's original data will be cleaned by setting new data revision.
-     *    It is now only used for resuming long paused (> 5 days) standby site
-     * 
+     * Initialize a to be added target standby
+     * The current site will be demoted from primary to standby during the process
+     *
      * @param configParam
      * @return
      */
@@ -258,7 +254,30 @@ public class DisasterRecoveryService {
     @ExcludeLicenseCheck
     public Response syncSites(SiteConfigParam configParam) {
         log.info("sync sites from primary site");
-        
+
+        return initStandby(configParam);
+    }
+
+    /**
+     * Initialize a to-be added/resumed target standby
+     *  a) re-set all the latest site related info (persisted in ZK) in the target standby
+     *  b) vdc properties would be changed accordingly
+     *  c) the target standby reboot
+     *  d) re-set zk/db data during the target standby reboot
+     *  e) the target standby would connect with primary and sync all the latest ZK&DB data.
+     *
+     * Scenarios:
+     *  a) For adding standby site scenario (External API), the current site will be demoted from primary to standby during the process
+     *  b) For resuming standby site scenario (Internal API), the current site's original data will be cleaned by setting new data revision.
+     *     It is now only used for resuming long paused (> 5 days) standby site
+     * @param configParam
+     * @return
+     */
+    @PUT
+    @Path("/internal/initstandby")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response initStandby(SiteConfigParam configParam) {
         try {
             SiteParam primary = configParam.getPrimarySite();
 
@@ -270,7 +289,7 @@ public class DisasterRecoveryService {
             siteMapper.map(primary, primarySite);
             primarySite.setVdcShortId(drUtil.getLocalVdcShortId());
             coordinator.persistServiceConfiguration(primarySite.toConfiguration());
-            
+
             // Add other standby sites
             for (SiteParam standby : configParam.getStandbySites()) {
                 Site site = new Site();
@@ -280,7 +299,7 @@ public class DisasterRecoveryService {
                 coordinator.addSite(standby.getUuid());
                 log.info("Persist standby site {} to ZK", standby.getVip());
             }
-            
+
             updateVdcTargetVersionAndDataRevision(SiteInfo.UPDATE_DATA_REVISION);
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
@@ -586,15 +605,17 @@ public class DisasterRecoveryService {
                     if (strVal != null) {
                         gcGracePeriod = Integer.parseInt(strVal);
                     }
-
                     if ((System.currentTimeMillis() - site.getPausedTime())/1000 >= gcGracePeriod) {
-                        log.error("site {} has been paused too long, we will clean and rebuild all db data in standby", uuid);
-                        ViPRCoreClient viprCoreClient;
-                        viprCoreClient = createViPRCoreClient(site.getVip(),"root", "ChangeMe");
+                        log.error("site {} has been paused for too long, we will re-init the target standby", uuid);
 
-                        // sync site related info with to be resumed standby site
+                        // init the to-be resumed standby site
                         SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey());
-                        viprCoreClient.site().syncSite(configParam);
+                        _internalSiteServiceClient = new InternalSiteServiceClient();
+                        _internalSiteServiceClient.setCoordinatorClient(coordinator);
+                        _internalSiteServiceClient.setServer(site.getVip());
+                        _internalSiteServiceClient.initStandby(configParam);
+                    } else {
+                        drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
                     }
                 } else {
                     drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);

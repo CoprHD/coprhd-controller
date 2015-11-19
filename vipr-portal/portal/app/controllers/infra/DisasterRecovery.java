@@ -26,6 +26,7 @@ import util.validation.HostNameOrIpAddress;
 
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteIdListParam;
+import com.emc.storageos.model.dr.SitePrimary;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.ClientResponse;
@@ -105,7 +106,14 @@ public class DisasterRecovery extends ViprResourceController {
 
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
-            ClientResponse failoversite = DisasterRecoveryUtils.doSwitchover(id);
+            // Check Switchover or Failover
+            SitePrimary currentSite = DisasterRecoveryUtils.checkPrimary();
+            if(currentSite.getIsPrimary() == true) {
+                DisasterRecoveryUtils.doSwitchover(id);
+            }
+            else {
+                DisasterRecoveryUtils.doFailover(id);
+            }
             standby_name = result.getName();
             standby_vip = result.getVip();
         }

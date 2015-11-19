@@ -78,6 +78,7 @@ import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.varray.VirtualArrayConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -168,7 +169,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * Constructor used to keep track of the various implementations of this class.
      * In particular, we are interested in "protection" implementations, that we need to
      * compute connectivity for.
-     * 
+     *
      * @param protectionType -- Should be null for regular Block implementation,
      *            or the DiscoveredDataObject.Type.name() value for "protection" implementations,
      *            so far RP and VPLEX.
@@ -185,7 +186,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Check if a resource can be deactivated safely
-     * 
+     *
      * @return detail type of the dependency if exist, null otherwise
      * @throws InternalException
      */
@@ -200,7 +201,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Looks up controller dependency for given hardware
-     * 
+     *
      * @param clazz controller interface
      * @param hw hardware name
      * @param <T>
@@ -214,7 +215,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws ControllerException
      */
     @Override
@@ -227,7 +228,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws ControllerException
      */
     @Override
@@ -239,7 +240,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws ControllerException
      */
     @Override
@@ -251,7 +252,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws ControllerException
      */
     @Override
@@ -263,7 +264,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws ControllerException
      */
     @Override
@@ -275,6 +276,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
+     *
      * @throws ControllerException
      */
     @Override
@@ -286,7 +288,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * @throws ControllerException 
+     *
+     * @throws ControllerException
      */
     @Override
     public TaskList deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String task) throws ControllerException {
@@ -315,7 +318,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws ControllerException
      * @throws InternalException
      */
@@ -330,7 +333,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws InternalException
      */
     @Override
@@ -389,10 +392,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Get the volume descriptors for all volumes to be deleted given the
      * passed volumes.
-     * 
+     *
      * @param systemURI The URI of the system on which the volumes reside.
      * @param volumeURIs The URIs of the volumes to be deleted.
-     * 
+     *
      * @return The list of volume descriptors.
      */
     abstract protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(
@@ -401,7 +404,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Get the volume descriptors for all volumes to be deleted given the passed
      * volumes.
-     * 
+     *
      * @param volumeDescriptors The descriptors for all volumes involved in the
      *            ViPR only delete
      */
@@ -419,9 +422,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Gets all potential vpools to to which the vpool for the passed volume can be
      * changed.
-     * 
+     *
      * @param volume A reference to the volume.
-     * 
+     *
      * @return A VirtualPoolChangeList specifying each vpool to which the volume's
      *         vpool could potentially be changed and whether or not the change would
      *         be allowed for that vpool.
@@ -460,9 +463,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Get all potential vpools for the passed volume, based strictly on
      * connectivity of the volume's storage system.
-     * 
+     *
      * @param volume A reference to a Volume.
-     * 
+     *
      * @return A collection of vpools.
      */
     protected Collection<VirtualPool> getVPoolsForVolumeBasedOnSystemConnectivity(Volume volume) {
@@ -477,19 +480,19 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // system and all other storage systems to which this storage system
         // is connected.
         URI volumeSystemURI = volume.getStorageController();
-        
+
         // If the volume storage system is a vplex, we want to find storage systems
         // associated by network connectivity with the vplex backend ports
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volumeSystemURI);
         StoragePort.PortType portType = getSystemConnectivityPortType();
         if (ConnectivityUtil.isAVPlex(storageSystem)) {
-        	s_logger.info("Volume Storage System is a VPLEX, setting port type to backend for storage systems network association check.");
-        	portType = StoragePort.PortType.backend;
+            s_logger.info("Volume Storage System is a VPLEX, setting port type to backend for storage systems network association check.");
+            portType = StoragePort.PortType.backend;
         }
-        
+
         Set<URI> connectedSystemURIs = ConnectivityUtil
                 .getStorageSystemAssociationsByNetwork(_dbClient, volumeSystemURI, portType);
-                                
+
         connectedSystemURIs.add(volumeSystemURI);
         Iterator<URI> systemURIsIter = connectedSystemURIs.iterator();
         while (systemURIsIter.hasNext()) {
@@ -528,7 +531,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * When determining storage system connectivity we typically use the frontend
      * storage ports.
-     * 
+     *
      * @return The port type for determining storage system connectivity.
      */
     protected StoragePort.PortType getSystemConnectivityPortType() {
@@ -538,12 +541,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Determine virtual pool change operation which allows on the given volume.
      * If none, the disallowed reason should be referenced in <code>notSuppReasonBuff</code>
-     * 
+     *
      * @param volume A reference to the Volume.
      * @param currentVpool A reference to the current vpool for the volume.
      * @param newVpool A reference to the new vpool
      * @param notSuppReasonBuff - reason if no change operation was allowed.
-     * 
+     *
      * @return allowed volume virtual pool change operation
      */
     private List<VirtualPoolChangeOperationEnum> getVirtualPoolChangeAllowedOperationsForVolume(
@@ -563,6 +566,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volume,
                     currentVpool, newVpool, _dbClient, pathChangeReasonBuff)) {
                 allowedOperations.add(VirtualPoolChangeOperationEnum.EXPORT_PATH_PARAMS);
+            }
+
+            // check if replication mode change is supported
+            StringBuffer replicationModeChangeReasonBuff = new StringBuffer();
+            if (VirtualPoolChangeAnalyzer.isSupportedReplicationModeChange(volume,
+                    currentVpool, newVpool, _dbClient, replicationModeChangeReasonBuff)) {
+                allowedOperations.add(VirtualPoolChangeOperationEnum.REPLICATION_MODE);
             }
 
             // check if Auto-tiering policy change operation is allowable
@@ -602,12 +612,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * the disallowed reason should be referenced in <code>notSuppReasonBuff</code> This method should be implemented in subclass get
      * operation based on specific
      * volume type.
-     * 
+     *
      * @param volume A reference to the Volume.
      * @param currentVpool A reference to the current vpool for the volume.
      * @param newVpool A reference to the new vpool.
      * @param notSuppReasonBuff - reason if no change operation was allowed.
-     * 
+     *
      * @return allowed volume virtual pool change operation
      */
     abstract protected List<VirtualPoolChangeOperationEnum> getVirtualPoolChangeAllowedOperations(
@@ -616,7 +626,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws InternalException
      */
     @Override
@@ -632,7 +642,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws InternalException
      */
     @Override
@@ -677,7 +687,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Given a list of VolumeDescriptors and a volume, adds the descriptors necessary
      * for any BlockMirrors on the volume.
-     * 
+     *
      * @param descriptors List<VolumeDescriptor>
      * @param volume
      */
@@ -697,7 +707,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Determines the Virtual Storage Array Connectivity of the given Virtual Storage Array
-     * 
+     *
      * @param dbClient - Static method needs DbClient
      * @param varrayUID - UID of the varray to find the connectivity for
      * @return A Set of VirtualArrayConnectivityRestRep
@@ -773,7 +783,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Determines whether Hitachi volume exported to a host or not.
-     * 
+     *
      * @param volume
      * @return
      */
@@ -818,9 +828,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Determines if the passed volume is a meta volume and has attached
      * mirrors.
-     * 
+     *
      * @param volume A reference to a Volume.
-     * 
+     *
      * @return true if the volume is a meta volume and has attached mirrors,
      *         false otherwise.
      */
@@ -831,10 +841,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Determines if the new size for a volume expansion exceeds the maximum volume
      * size for the volume's storage pool.
-     * 
+     *
      * @param volume A reference to a Volume.
      * @param newSize The desired volume size.
-     * 
+     *
      * @return true if the volume exceeds the max volume size, false otherwise.
      */
     protected boolean newSizeExceedsMaxVolumeSizeForPool(Volume volume, Long newSize) {
@@ -855,9 +865,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Get the maximum volume size for the passed volume's storage pool.
-     * 
+     *
      * @param volume A reference to a volume.
-     * 
+     *
      * @return The maximum volume size for the passed volume's storage pool.
      */
     private Long getMaxVolumeSizeLimit(Volume volume) {
@@ -875,9 +885,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Determines if an expansion of the passed volume would result in a meta
      * volume with attached mirrors.
-     * 
+     *
      * @param volume A reference to a volume.
-     * 
+     *
      * @return true if an expansion of the passed volume would result in a meta
      *         volume with attached mirrors, false otherwise.
      */
@@ -894,7 +904,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Determines whether passed volume is HDS thin volume or not.
-     * 
+     *
      * @param volume A reference to a volume
      * @return true if the volume belongs to Hitachi else false.
      */
@@ -904,7 +914,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Determines whether passed volume is HDS or not.
-     * 
+     *
      * @param volume
      * @return
      */
@@ -917,9 +927,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Determines if the passed volume has attached mirrors.
-     * 
+     *
      * @param volume A reference to a Volume.
-     * 
+     *
      * @return true if passed volume has attached mirrors, false otherwise.
      */
     protected boolean hasMirrors(Volume volume) {
@@ -928,9 +938,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Determines if the passed volume is a meta volume.
-     * 
+     *
      * @param volume A reference to a Volume.
-     * 
+     *
      * @return true if the passed volume is a meta volume, false otherwise.
      */
     private boolean isMeta(Volume volume) {
@@ -941,7 +951,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * Checks for Vpool updates that can be done on any device type.
      * For now, this is just the Export Path Params or Auto-tiering policy change.
      * If the update was processed, return true, else false.
-     * 
+     *
      * @param volumes
      * @param newVirtualPool
      * @param taskId
@@ -976,6 +986,34 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             exportController.updatePolicyAndLimits(volumeURIs, newVirtualPool.getId(), taskId);
             return true;
         }
+
+        if (VirtualPoolChangeAnalyzer
+                .isSupportedReplicationModeChange(volumes.get(0), volumeVirtualPool,
+                        newVirtualPool, _dbClient, notSuppReasonBuff)) {
+            Map<URI, Set<URI>> cgURIs = new HashMap<URI, Set<URI>>();
+
+            for (Volume volume : volumes) {
+                if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())
+                        && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                    if (cgURIs.get(volume.getProtectionController()) == null) {
+                        cgURIs.put(volume.getProtectionController(), new HashSet<URI>());
+                    }
+
+                    cgURIs.get(volume.getProtectionController()).add(volume.getConsistencyGroup());
+                }
+            }
+
+            RPController controller = getController(RPController.class, "rp");
+
+            for (Map.Entry<URI, Set<URI>> entry : cgURIs.entrySet()) {
+                for (URI cgUri : entry.getValue()) {
+                    controller.updateConsistencyGroupPolicy(entry.getKey(), cgUri, newVirtualPool.getRpCopyMode(), taskId);
+                }
+            }
+
+            return true;
+        }
+
         return false;
     }
 
@@ -1077,9 +1115,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Counts and returns the number of snapshots on a volume
-     * 
+     *
      * @param volume A reference to a volume.
-     * 
+     *
      * @return The number of snapshots on a volume.
      */
     protected Integer getNumNativeSnapshots(Volume volume) {
@@ -1106,7 +1144,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * an appended suffix when the volumes is in a CG with multiple volumes.
      * Also, we need to run the name through the generator, which is done
      * prior to setting the snapset label for a snapshot.
-     * 
+     *
      * @param requestedName The name to verify.
      * @param volume The volume to check.
      */
@@ -1125,13 +1163,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Prepares the snapshots for a snapshot request.
-     * 
+     *
      * @param volumes The volumes for which snapshots are to be created.
      * @param snapshotType The snapshot technology type.
      * @param snapshotName The snapshot name.
      * @param snapshotURIs [OUT] The URIs for the prepared snapshots.
      * @param taskId The unique task identifier
-     * 
+     *
      * @return The list of snapshots
      */
     @Override
@@ -1163,7 +1201,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Convenience method for when the snapshot label does not have to be unique.
      * In this case, we can use the label as the snapshot label.
-     * 
+     *
      * @param volume The volume for which the snapshot is being created.
      * @param label The label for the new snapshot
      * @return A reference to the new BlockSnapshot instance.
@@ -1175,7 +1213,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Creates and returns a new ViPR BlockSnapshot instance with the passed
      * name for the passed volume.
-     * 
+     *
      * @param volume The volume for which the snapshot is being created.
      * @param snapsetLabel The snapset label for grouping this snapshot
      * @param label The label for the new snapshot
@@ -1203,7 +1241,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Uses the appropriate controller to create the snapshots.
-     * 
+     *
      * @param reqVolume The volume from the snapshot request.
      * @param snapshotURIs The URIs of the prepared snapshots
      * @param snapshotType The snapshot technology type.
@@ -1222,7 +1260,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Uses the appropriate controller to delete the snapshot.
-     * 
+     *
      * @param snapshot The snapshot to delete
      * @param taskId The unique task identifier
      */
@@ -1235,9 +1273,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Get the snapshots for the passed volume.
-     * 
+     *
      * @param volume A reference to a volume.
-     * 
+     *
      * @return The snapshots for the passed volume.
      */
     @Override
@@ -1251,7 +1289,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Validates a restore snapshot request.
-     * 
+     *
      * @param snapshot The snapshot to restore.
      * @param parent The parent of the snapshot
      */
@@ -1269,7 +1307,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Validates a resynchronized snapshot request.
-     * 
+     *
      * @param snapshot The snapshot to be resynchronized.
      * @param parent The parent of the snapshot
      */
@@ -1283,7 +1321,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Restore the passed parent volume from the passed snapshot of that parent volume.
-     * 
+     *
      * @param snapshot The snapshot to restore
      * @param parentVolume The volume to be restored.
      * @param taskId The unique task identifier.
@@ -1298,7 +1336,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Resynchronize the passed snapshot from its parent volume.
-     * 
+     *
      * @param snapshot The snapshot to be resynchronized
      * @param parentVolume The volume to be resynchronized from.
      * @param taskId The unique task identifier.
@@ -1312,7 +1350,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * validate the given volume label is not a duplicate within given project. If so, throw exception
-     * 
+     *
      * @param label - label to validate
      * @param project - project where label is being validate.
      */
@@ -1326,7 +1364,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Generate a unique volume label based on the given base name and index.
-     * 
+     *
      * @param baseVolumeLabel - prefix of volume name
      * @param volumeIndex - index to append to prefix for name (The first volume should send down zero)
      * @param volumeCount - number of volume to generate name for
@@ -1336,7 +1374,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         StringBuilder volumeLabelBuilder = new StringBuilder(baseVolumeLabel);
         if (volumeCount > 1) {
             volumeLabelBuilder.append("-");
-            volumeLabelBuilder.append(volumeIndex+1);
+            volumeLabelBuilder.append(volumeIndex + 1);
         }
         return volumeLabelBuilder.toString();
     }
@@ -1344,7 +1382,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * Convenient method to validate whether default generate volume names for RP and SRDF will result in duplicate.
      * If there is a duplicate, throw exception
-     * 
+     *
      * @param baseVolumeLabel - prefix of volume name
      * @param volumeCount - number of volume to generate name for
      * @param project - project containing the volumes
@@ -1368,7 +1406,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     /**
      * For ViPR-only delete volume operations, we use this method to remove the
      * volume from the export group and export masks associated with the volume.
-     * 
+     *
      * @param volumeURI volume to remove from export masks
      * @param addToExistingVolumes When true, adds the volume to the existing volumes
      *            list from the mask.
@@ -1468,7 +1506,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Return a list of active BlockMirror URI's that are known to be active (in Synchronized state).
-     * 
+     *
      * @param volume Volume to check for mirrors against
      * @return List of active BlockMirror URI's
      */
@@ -1567,8 +1605,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG) {
         /*
          * For VMAX, volumes to be added can have replicas only if
-         *    1. CG has no existing volumes, and
-         *    2. SMI-S 8.x
+         * 1. CG has no existing volumes, and
+         * 2. SMI-S 8.x
          * For other arrays, or VMAX (CG has existing volumes, or non SMI-S 8.x), volumes to be added cannot have replicas
          */
         boolean isReplicaAllowed = false;
@@ -1656,7 +1694,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Verifies the system information for the volume to be added to the CG.
-     * 
+     *
      * @param volume A reference to the volume
      * @param cg A reference to the CG
      * @param cgStorageSystem A reference to the CG storage system
@@ -1674,7 +1712,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Verify if a volume belongs to a VMAX3 Storage array
-     * 
+     *
      * @param volume [in] - Volume object to check
      * @return true iff volume's StorageSystem is VMAX3
      */
@@ -1691,7 +1729,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * Debug logging method to help assure that pre-created volumes during volume creation are honored/used
      * when the placement thread assembles recommendation objects and prepares volumes during APISVC volume
      * creation steps.
-     * 
+     *
      * @param volumesDescriptors volume descriptors
      * @param task task id
      */
@@ -1699,7 +1737,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // Look for high-order source device first, which would be RP_VPLEX_VIRT_SOURCE or RP_SOURCE
         List<VolumeDescriptor> volumes = VolumeDescriptor.filterByType(volumesDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
-                                              VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
                 new VolumeDescriptor.Type[] {});
 
         // If there are none of those, look for VPLEX_VIRT_VOLUME
@@ -1712,8 +1750,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // Finally look for SRDF or regular block volumes
         if (volumes.isEmpty()) {
             volumes = VolumeDescriptor.filterByType(volumesDescriptors,
-                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, 
-                                                  VolumeDescriptor.Type.SRDF_SOURCE },
+                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA,
+                            VolumeDescriptor.Type.SRDF_SOURCE },
                     new VolumeDescriptor.Type[] {});
         }
 
@@ -1721,7 +1759,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         if (volumes.isEmpty()) {
             return;
         }
-        
+
         for (VolumeDescriptor desc : volumes) {
             s_logger.info(String.format("Volume and Task Pre-creation Objects [Exec]--  Source Volume: %s, Op: %s",
                     desc.getVolumeURI(), task));

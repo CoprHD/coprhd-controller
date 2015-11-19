@@ -7,6 +7,7 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -112,12 +113,12 @@ public class ArchiveService extends TaggedResource {
             @PathParam("minSizeAllowed") Integer minSize,
             @PathParam("maxSizeAllowed") Integer maxSize) {
 
-        _log.info("ArchiveService: createPolicy Request recieved {}", name);
+        //_log.info("ArchiveService: createPolicy Request recieved {}", name);
         //String task = UUID.randomUUID().toString();
 
         // Create the ArchivalPolicy object for the DB
         ArchivalPolicy newPolicy= new ArchivalPolicy();
-        newPolicy.setPolicyId(URIUtil.createId(ArchivalPolicy.class));
+        newPolicy.setPolicyId(String.valueOf(URIUtil.createId(ArchivalPolicy.class)));
         newPolicy.setPolicyName(name);
         newPolicy.setUnattachedPeriodUnit(periodUnit);
         newPolicy.setUnattachedPeriodValue(periodValue);
@@ -168,7 +169,7 @@ public class ArchiveService extends TaggedResource {
         @PathParam("maxSizeAllowed") Integer maxSize) {
         
         // log input received.
-        _log.info("Update archival policy request received {}", id);
+        //_log.info("Update archival policy request received {}", id);
         //String task = UUID.randomUUID().toString();
         ArgValidator.checkFieldUriType(id, ArchivalPolicy.class, "id");
         ArchivalPolicy policy = _dbClient.queryObject(ArchivalPolicy.class, id);

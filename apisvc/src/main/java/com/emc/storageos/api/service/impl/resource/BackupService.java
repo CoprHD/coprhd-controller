@@ -7,6 +7,7 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -111,12 +112,12 @@ public class BackupService extends TaggedResource {
             @PathParam("incrementalPeriodValue") Long periodValue,
             @PathParam("countForFullBackup") Integer count) {
 
-        _log.info("BackupService: createPolicy Request recieved {}", name);
+        //_log.info("BackupService: createPolicy Request recieved {}", name);
         //String task = UUID.randomUUID().toString();
 
         // Create the BackupPolicy object for the DB
         BackupPolicy newPolicy= new BackupPolicy();
-        newPolicy.setPolicyId(URIUtil.createId(BackupPolicy.class));
+        newPolicy.setPolicyId(String.valueOf(URIUtil.createId(BackupPolicy.class)));
         newPolicy.setPolicyName(name);
         newPolicy.setIncrementalPeriodUnit(periodUnit);
         newPolicy.setIncrementalPeriodValue(periodValue);
@@ -165,7 +166,7 @@ public class BackupService extends TaggedResource {
         @PathParam("countForFullBackup") Integer count) {
         
         // log input received.
-        _log.info("Update backup policy request received {}", id);
+        //_log.info("Update backup policy request received {}", id);
         //String task = UUID.randomUUID().toString();
         ArgValidator.checkFieldUriType(id, BackupPolicy.class, "id");
         BackupPolicy policy = _dbClient.queryObject(BackupPolicy.class, id);

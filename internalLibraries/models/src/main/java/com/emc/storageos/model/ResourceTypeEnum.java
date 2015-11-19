@@ -16,11 +16,13 @@ public enum ResourceTypeEnum {
     BACKUP_POLICY("backup_policy", "/backup/policies"),
     FILE("fileshare", "/file/filesystems"),
     VOLUME("volume", "/block/volumes"),
+    BUCKET("bucket", "/object/buckets"),
     PROJECT("project", "/projects"),
     TENANT("tenant", "/tenants"),
     VPOOL("vpool", "/"),
     BLOCK_VPOOL("block_vpool", "/block/vpools"),
     FILE_VPOOL("file_vpool", "/file/vpools"),
+    OBJECT_VPOOL("object_vpool", "/object/vpools"),
     COMPUTE_VPOOL("compute_vpool", "/compute/vpools"),
     VARRAY("varray", "/vdc/varrays"),
     STORAGE_SYSTEM("storage_system", "/vdc/storage-systems"),
@@ -73,7 +75,8 @@ public enum ResourceTypeEnum {
     CONFIG_TYPE("config_type", "/config/controller/types"),
     SYS_EVENT("sysevent", ""),
     USER_GROUP("user_group", "/vdc/admin/user-groups"),
-    VIRTUAL_NAS("vnas-servers", "/vdc/vnas-servers");
+    VIRTUAL_NAS("vnas-servers", "/vdc/vnas-servers"),
+    COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers");
     private final String type;
     private final String service;
 

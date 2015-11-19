@@ -320,12 +320,10 @@ public class DisasterRecoveryService {
         try {
             Site site = drUtil.getSiteFromLocalVdc(uuid);
             return siteMapper.map(site);
-        } catch (CoordinatorException e) {
-            log.info("Can't find site with specified site ID {}", uuid);
         } catch (Exception e) {
-            log.error("Error finding site from ZK for UUID " + uuid, e);
+            log.error("Can't find site with specified site ID {}", uuid);
+            throw APIException.badRequests.siteIdNotFound();
         }
-        return null;
     }
 
     /**
@@ -641,6 +639,7 @@ public class DisasterRecoveryService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{uuid}/switchover")
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public Response doSwitchover(@PathParam("uuid") String uuid) {
         log.info("Begin to switchover for standby UUID {}", uuid);
 
@@ -989,12 +988,22 @@ public class DisasterRecoveryService {
 
     // encapsulate the create ViPRCoreClient operation for easy UT writing because need to mock ViPRCoreClient
     protected ViPRCoreClient createViPRCoreClient(String vip, String username, String password){
-        return new ViPRCoreClient(vip, true).withLogin(username, password);
+        try {
+            return new ViPRCoreClient(vip, true).withLogin(username, password);
+        } catch (Exception e) {
+            log.error(String.format("Fail to create vipr client, vip: %s, username: %s", vip, username), e);
+            throw APIException.internalServerErrors.failToCreateViPRClient();
+        }
     }
 
     // encapsulate the create ViPRSystemClient operation for easy UT writing because need to mock ViPRSystemClient
     protected ViPRSystemClient createViPRSystemClient(String vip, String username, String password){
-        return new ViPRSystemClient(vip, true).withLogin(username, password);
+        try {
+            return new ViPRSystemClient(vip, true).withLogin(username, password);
+        } catch (Exception e) {
+            log.error(String.format("Fail to create vipr client, vip: %s, username: %s", vip, username), e);
+            throw APIException.internalServerErrors.failToCreateViPRClient();
+        }
     }
     
     private void setSiteError(String siteId, InternalServerErrorException exception) {

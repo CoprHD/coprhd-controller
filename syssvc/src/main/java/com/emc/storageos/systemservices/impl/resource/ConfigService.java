@@ -598,21 +598,13 @@ public class ConfigService {
             // perform after handlers
             _propertyHandlers.after(oldProps, currentProps);
 
-            /* wake up all */
-            propertyManager.wakeupOtherNodes();
         }
 
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster information");
         }
-        try {
-            return toClusterResponse(clusterInfo);
-        } finally {
-            if (doSetTarget) {
-                propertyManager.wakeup();
-            }
-        }
+        return toClusterResponse(clusterInfo);
     }
 
     /**

@@ -17,8 +17,10 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.ConfigVersion;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyMetadata;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
@@ -41,9 +43,54 @@ public class PropertyManager extends AbstractManager {
         return SysClientFactory.URI_WAKEUP_PROPERTY_MANAGER;
     }
 
+    /**
+     * Register repository info listener to monitor repository version changes
+     */
+    private void addPropertyInfoListener() {
+        try {
+            coordinator.getCoordinatorClient().addNodeListener(new PropertyInfoListener());
+        } catch (Exception e) {
+            log.error("Fail to add node listener for property info target znode", e);
+            throw APIException.internalServerErrors.addListenerFailed();
+        }
+        log.info("Successfully added node listener for property info target znode");
+    }
+
+    /**
+     * the listener class to listen the property target node change.
+     */
+    class PropertyInfoListener implements NodeListener{
+        public String getPath() {
+            return String.format("/config/%s/%s", PropertyInfoExt.TARGET_PROPERTY, PropertyInfoExt.TARGET_PROPERTY_ID);
+        }
+
+        /**
+         * called when user update the target version
+         */
+        @Override
+        public void nodeChanged() {
+            log.info("Property info changed. Waking up the property manager...");
+            wakeup();
+        }
+
+        /**
+         * called when connection state changed.
+         */
+        @Override
+        public void connectionStateChanged(State state) {
+            log.info("Property info connection state changed to {}", state);
+            if (state.equals(State.CONNECTED)) {
+                log.info("Curator (re)connected. Waking up the property manager...");
+                wakeup();
+            }
+        }
+    }
+
     @Override
     protected void innerRun() {
         final String svcId = coordinator.getMySvcId();
+
+        addPropertyInfoListener();
 
         while (doRun) {
             log.debug("Main loop: Start");

@@ -89,6 +89,13 @@ def dr_switch_over(args):
 def wait_for_stable(args):
     SysMgr.wait_for_stable_state(args)
 
+def dr_failover_over(args):
+    bourne.connect(args.ip)
+    bourne.dr_failover(args.uuid)
+
+def poweroff_cluster(args):
+	SysMgr.poweroff_cluster(args)
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------

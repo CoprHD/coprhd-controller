@@ -3988,6 +3988,7 @@ renderFunctions.disasterRecovery.status.syncing=Syncing Standby
 renderFunctions.disasterRecovery.status.synced=Standby Synched
 renderFunctions.disasterRecovery.status.pausing=Pausing Standby
 renderFunctions.disasterRecovery.status.paused=Standby Paused
+renderFunctions.disasterRecovery.status.resuming=Resuming Standby
 renderFunctions.disasterRecovery.status.testing=Test Mode
 renderFunctions.disasterRecovery.status.removing=Deleting Standby
 renderFunctions.disasterRecovery.status.error=Error

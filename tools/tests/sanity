@@ -6444,7 +6444,7 @@ dr_multisite_tests()
     projectid=$(project query $PROJECT)
     echo "Project id of $PROJECT is $projectid."
 
-    primary_site=$(dr list "$DR_SITE_A_NAME"|tail -1) || { echo "get dr primary site failed."; echo $primary_site; exit 1; }
+    primary_site=$(dr find state PRIMARY|tail -1) || { echo "get dr primary site failed."; echo $primary_site; exit 1; }
     echo "primary uuid is $primary_site"
     
     echo "---ADD STANDBY SITE B---"

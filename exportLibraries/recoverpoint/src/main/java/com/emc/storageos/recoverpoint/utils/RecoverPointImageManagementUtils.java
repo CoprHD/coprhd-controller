@@ -1119,29 +1119,46 @@ public class RecoverPointImageManagementUtils {
      * Verify that a copy is capable of being enabled.
      * 
      * @param impl - RP handle
-     * @param cgCopy - CG Copy, contains CG
+     * @param copyId - CG Copy, contains CG
+     * @param cgCopyName - copy name
+     * @param cgName - CG name
      * @throws RecoverPointException
      */
-    public ConsistencyGroupCopyState getCopyState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID cgCopy) throws RecoverPointException {
-        String cgCopyName = NAME_UNKNOWN;
-        String cgName = NAME_UNKNOWN;
-
+    public ConsistencyGroupCopyState getCopyState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyId, String cgCopyName, String cgName) throws RecoverPointException {
         try {
-            cgCopyName = impl.getGroupCopyName(cgCopy);
-            cgName = impl.getGroupName(cgCopy.getGroupUID());
-
-            ConsistencyGroupUID groupUID = cgCopy.getGroupUID();
+            ConsistencyGroupUID groupUID = copyId.getGroupUID();
             ConsistencyGroupState groupState;
             List<ConsistencyGroupCopyState> cgCopyStateList;
             groupState = impl.getGroupState(groupUID);
             cgCopyStateList = groupState.getGroupCopiesStates();
-            cgCopyStateList = impl.getGroupState(groupUID).getGroupCopiesStates();
             for (ConsistencyGroupCopyState cgCopyState : cgCopyStateList) {
-                if (RecoverPointUtils.cgCopyEqual(cgCopyState.getCopyUID(), cgCopy)) {
+                if (RecoverPointUtils.cgCopyEqual(cgCopyState.getCopyUID(), copyId)) {
                     return cgCopyState;
                 }
             }
             return null;
+        } catch (FunctionalAPIActionFailedException_Exception e) {
+            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
+        } catch (FunctionalAPIInternalError_Exception e) {
+            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
+        }
+    }
+    
+    /**
+     * Verify that a copy is capable of being enabled.
+     * 
+     * @param impl - RP handle
+     * @param copyId - CG Copy, contains CG
+     * @throws RecoverPointException
+     */
+    public ConsistencyGroupCopyState getCopyState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyId) throws RecoverPointException {
+        String cgCopyName = NAME_UNKNOWN;
+        String cgName = NAME_UNKNOWN;
+
+        try {
+            cgCopyName = impl.getGroupCopyName(copyId);
+            cgName = impl.getGroupName(copyId.getGroupUID());
+            return getCopyState(impl, copyId, cgCopyName, cgName);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {

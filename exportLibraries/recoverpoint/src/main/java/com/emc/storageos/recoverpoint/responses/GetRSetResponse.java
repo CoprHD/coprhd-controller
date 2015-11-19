@@ -36,7 +36,7 @@ public class GetRSetResponse implements Serializable {
     public String toString() {
         StringBuffer sb = new StringBuffer();
         if (volumes != null) {
-            sb.append("\nVolumes: " + name);
+            sb.append("\nReplication Set: " + name);
             for (GetVolumeResponse volume : volumes) {
                 sb.append(volume.toString());
                 sb.append("\n");

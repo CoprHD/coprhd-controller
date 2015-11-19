@@ -508,7 +508,11 @@ public class RecoverPointClient {
                             copySettings.getCopyUID().getGlobalCopyUID().getCopyUID();
                     copyUIDToNameMap.put(copyID,  copySettings.getName());
                     
-                    GlobalCopyUID globalCopyUID = copySettings.getCopyUID().getGlobalCopyUID();
+                    // Set ID fields (these are immutable no matter if things are renamed)
+                    copy.setCgId(copySettings.getCopyUID().getGroupUID().getId());
+                    copy.setClusterId(copySettings.getCopyUID().getGlobalCopyUID().getClusterUID().getId());
+                    copy.setCopyId(copySettings.getCopyUID().getGlobalCopyUID().getCopyUID());
+                    
                     if (ConsistencyGroupCopyRole.ACTIVE.equals(copySettings.getRoleInfo().getRole()) ||
                             ConsistencyGroupCopyRole.TEMPORARY_ACTIVE.equals(copySettings.getRoleInfo().getRole())) {
                         productionCopiesUID.add(copyID);
@@ -2400,57 +2404,54 @@ public class RecoverPointClient {
     /**
      * Prepares the link settings between the new production copy and all other copies.
      *
-     * @param cgCopyUID the failover/new production copy
+     * @param newProductionCopyUID the failover/new production copy
      * @throws RecoverPointException
      */
-    private void prepareLinkSettings(ConsistencyGroupCopyUID cgCopyUID) throws RecoverPointException {
-        String cgCopyName = null;
-        String cgName = null;
-
+    private void prepareLinkSettings(ConsistencyGroupCopyUID newProductionCopyUID) throws RecoverPointException {
         logger.info("Preparing link settings between new production copy and local/remote copies after failover.");
-
+        String cgName = null;
+        String newProductionCopyName = null;
+        
         try {
-            cgCopyName = functionalAPI.getGroupCopyName(cgCopyUID);
-            cgName = functionalAPI.getGroupName(cgCopyUID.getGroupUID());
-
-            ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgCopyUID.getGroupUID());
+            ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(newProductionCopyUID.getGroupUID());
             List<ConsistencyGroupLinkSettings> cgLinkSettings = groupSettings.getActiveLinksSettings();
-            List<ConsistencyGroupLinkSettings> oldProdCgLinkSettings = groupSettings.getPassiveLinksSettings();
+            List<ConsistencyGroupLinkSettings> existingProdCgLinkSettings = groupSettings.getPassiveLinksSettings();
             List<ConsistencyGroupCopyUID> productionCopiesUIDs = groupSettings.getProductionCopiesUIDs();
-            for (ConsistencyGroupCopyUID prodCopyUID : productionCopiesUIDs) {
-
-                String prodCopyName = functionalAPI.getGroupCopyName(prodCopyUID);
-
+            newProductionCopyName = functionalAPI.getGroupCopyName(newProductionCopyUID);
+            cgName = functionalAPI.getGroupName(newProductionCopyUID.getGroupUID());
+            
+            // Go through the existing production copies
+            for (ConsistencyGroupCopyUID existingProductionCopyUID : productionCopiesUIDs) {
                 List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();
-
                 ConsistencyGroupLinkSettings linkSettings = null;
+                String existingProductionCopyName = functionalAPI.getGroupCopyName(existingProductionCopyUID);
 
                 for (ConsistencyGroupCopySettings copySetting : copySettings) {
                     // We need to set the link settings for all orphaned copies. Orphaned copies
-                    // are identified by not being the production copy or the current copy.
-                    if (!copySetting.getName().equalsIgnoreCase(prodCopyName)
-                            && !copySetting.getName().equalsIgnoreCase(cgCopyName)) {
-
+                    // are identified by not being the existing production copy or the current production copy.
+                    if (!RecoverPointUtils.cgCopyEqual(copySetting.getCopyUID(), existingProductionCopyUID) &&
+                        !RecoverPointUtils.cgCopyEqual(copySetting.getCopyUID(), newProductionCopyUID)) {
                         String copyName = functionalAPI.getGroupCopyName(copySetting.getCopyUID());
+
                         // Check to see if a link setting already exists for the link between the 2 copies
                         linkSettings = findLinkSettings(
-                                cgLinkSettings, cgCopyUID.getGlobalCopyUID(), copySetting.getCopyUID().getGlobalCopyUID(),
-                                cgCopyName, copyName);
+                                cgLinkSettings, newProductionCopyUID.getGlobalCopyUID(), copySetting.getCopyUID().getGlobalCopyUID(),
+                                newProductionCopyName, copyName);
 
                         if (linkSettings == null) {
                             // Link settings for the source/target copies does not exist so we need to create one
                             // Find the corresponding link settings prior to the failover.
                             linkSettings = findLinkSettings(
-                                    oldProdCgLinkSettings, prodCopyUID.getGlobalCopyUID(), copySetting.getCopyUID().getGlobalCopyUID(),
-                                    prodCopyName, copyName);
+                                    existingProdCgLinkSettings, existingProductionCopyUID.getGlobalCopyUID(), copySetting.getCopyUID().getGlobalCopyUID(),
+                                    existingProductionCopyName, copyName);
 
                             if (linkSettings != null) {
                                 logger.info(String
                                         .format("Generate new link settings between %s and %s based on existing link settings between the current production copy %s and %s.",
-                                                cgCopyName, copyName, prodCopyName, copyName));
+                                                newProductionCopyName, copyName, existingProductionCopyName, copyName));
                                 ConsistencyGroupLinkUID cgLinkUID = linkSettings.getGroupLinkUID();
                                 // Set the link copies appropriately
-                                GlobalCopyUID sourceCopy = cgCopyUID.getGlobalCopyUID();
+                                GlobalCopyUID sourceCopy = newProductionCopyUID.getGlobalCopyUID();
                                 GlobalCopyUID targetCopy = copySetting.getCopyUID().getGlobalCopyUID();
 
                                 cgLinkUID.setFirstCopy(sourceCopy);
@@ -2463,13 +2464,13 @@ public class RecoverPointClient {
                                     // local copy
                                     logger.info(String.format(
                                             "Creating new local copy link settings between %s and %s, for consistency group %s.",
-                                            cgCopyName, copyName, cgName));
+                                            newProductionCopyName, copyName, cgName));
                                     linkPolicy.getProtectionPolicy().setReplicatingOverWAN(false);
                                 } else {
                                     // remote copy
                                     logger.info(String.format(
                                             "Creating new remote copy link settings between %s and %s, for consistency group %s.",
-                                            cgCopyName, copyName, cgName));
+                                            newProductionCopyName, copyName, cgName));
                                     linkPolicy.getProtectionPolicy().setReplicatingOverWAN(true);
                                 }
 
@@ -2480,9 +2481,9 @@ public class RecoverPointClient {
                 }
             }
         } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.failedToFailoverCopy(cgCopyName, cgName, e);
+            throw RecoverPointException.exceptions.failedToFailoverCopy(newProductionCopyName, cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {
-            throw RecoverPointException.exceptions.failedToFailoverCopy(cgCopyName, cgName, e);
+            throw RecoverPointException.exceptions.failedToFailoverCopy(newProductionCopyName, cgName, e);
         }
     }
 

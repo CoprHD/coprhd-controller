@@ -2066,7 +2066,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 List<RecoverPointVolumeProtectionInfo> replicationSetsToRemove = new ArrayList<RecoverPointVolumeProtectionInfo>();
                 List<String> removeVolumeIDs = new ArrayList<String>();
                 for (Volume volume : volumes) {
-                    _log.info(String.format("Volume [%s] (%s) needs to have it's replication set removed from RP", 
+                    _log.info(String.format("Volume [%s] (%s) needs to have its replication set removed from RP", 
                             volume.getLabel(), volume.getId()));                                       
                     // Delete the replication set if there are more volumes (other replication sets).
                     // If there are no other replications sets we will simply delete the CG instead.
@@ -5529,7 +5529,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     if (rpRelatedVol.getVirtualPool().equals(oldVpool.getId())) {
                         rpRelatedVol.setVirtualPool(newVpool.getId());
                         _dbClient.updateObject(rpRelatedVol);
-                        _log.info(String.format("Volume [%s] has had it's virtual pool updated to [%s].", rpRelatedVol.getLabel(),
+                        _log.info(String.format("Volume [%s] has had its virtual pool updated to [%s].", rpRelatedVol.getLabel(),
                                 newVpool.getLabel()));
                     }
                 }

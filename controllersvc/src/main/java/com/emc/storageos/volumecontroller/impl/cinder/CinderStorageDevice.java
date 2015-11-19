@@ -860,9 +860,9 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     public void doRemoveFromConsistencyGroup(StorageSystem storage,
             URI consistencyGroupId, List<URI> blockObjects,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        log.info("{} doAddToConsistencyGroup START ...", storage.getSerialNumber());
+        log.info("{} doRemoveFromConsistencyGroup START ...", storage.getSerialNumber());
         taskCompleter.ready(dbClient);
-        log.info("{} doAddToConsistencyGroup END ...", storage.getSerialNumber());
+        log.info("{} doRemoveFromConsistencyGroup END ...", storage.getSerialNumber());
     }
 
 }

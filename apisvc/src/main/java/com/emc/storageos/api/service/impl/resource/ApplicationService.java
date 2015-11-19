@@ -15,6 +15,7 @@ import java.util.Set;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -29,7 +30,10 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.application.ApplicationCreateParam;
 import com.emc.storageos.model.application.ApplicationList;
 import com.emc.storageos.model.application.ApplicationRestRep;
+import com.emc.storageos.model.application.ApplicationUpdateParam;
+import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
 import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -141,7 +145,9 @@ public class ApplicationService extends TaskResourceService {
     @Path("/{id}/deactivate")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public Response deactivateApplication(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, Application.class, "id");
         Application application = (Application)queryResource(id);
         ArgValidator.checkReference(Application.class, id, checkForDelete(application));
         if (!application.getVolumes().isEmpty()) {
@@ -154,4 +160,39 @@ public class ApplicationService extends TaskResourceService {
                 application.getLabel());
         return Response.ok().build();
     }
+    
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public ApplicationRestRep updateApplication(@PathParam("id") final URI id,
+            final ApplicationUpdateParam param) {
+        ArgValidator.checkFieldUriType(id, Application.class, "id");
+        Application application = (Application)queryResource(id);
+        if (application.getInactive()) {
+            throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(), "The application has been deleted");
+        }
+        String apname = param.getName();
+        if (apname != null && !apname.isEmpty()) {
+            checkDuplicateLabel(Application.class, apname, "Application");
+            application.setLabel(apname);
+        }
+        String description = param.getDescription();
+        if (description != null && !description.isEmpty()) {
+            application.setDescription(description);
+        }
+        Set<String> roles = param.getRoles();
+        if (roles != null && !roles.isEmpty()) {
+            for (String role : roles) {
+                ArgValidator.checkFieldValueFromEnum(role, APPLICATION_ROLES, Application.ApplicationRole.class);
+            }
+            application.setRoles(null);
+            application.addRoles(roles);
+        }
+        _dbClient.updateObject(application);
+        auditOp(OperationTypeEnum.UPDATE_APPLICATION, true, null, application.getId().toString(),
+                application.getLabel());
+        return DbObjectMapper.map(application); 
+    } 
 }

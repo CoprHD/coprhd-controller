@@ -2612,4 +2612,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException applicationWithVolumesCantBeDeleted(final String applicationName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException applicationCantBeUpdated(final String applicationName, final String reason);
 }

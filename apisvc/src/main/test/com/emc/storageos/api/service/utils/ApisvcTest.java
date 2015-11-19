@@ -10,7 +10,8 @@ public class ApisvcTest extends ApisvcTestBase {
 		startApisvc();
 	}
 	
-	// @Test
+    // Test hanging in IDE and "gradlew test"
+    // @Test
 	public void test1() {
 		printLog("Test1 running");
 		try {

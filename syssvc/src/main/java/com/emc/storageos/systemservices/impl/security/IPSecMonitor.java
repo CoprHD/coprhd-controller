@@ -29,7 +29,7 @@ public class IPSecMonitor implements Runnable {
 
     public ScheduledExecutorService scheduledExecutorService;
 
-    public void start() throws Exception {
+    public void start() {
         log.info("start IPSecMonitor.");
         scheduledExecutorService = Executors.newScheduledThreadPool(1);
         scheduledExecutorService.scheduleAtFixedRate(

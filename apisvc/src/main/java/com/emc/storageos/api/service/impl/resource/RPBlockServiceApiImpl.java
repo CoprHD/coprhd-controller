@@ -7,7 +7,6 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
-import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -39,7 +38,6 @@ import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationControll
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -97,7 +95,6 @@ import com.emc.storageos.volumecontroller.RPRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 /**
@@ -2692,35 +2689,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         return snapshots;        
-    }
-    
-    /**
-     * Determines if a Volume is being referenced as an associated volume by an RP+VPlex
-     * volume of a specified personality type (SOURCE, TARGET, METADATA, etc.).
-     *
-     * @param volume the volume we are trying to find a parent RP+VPlex volume reference for.
-     * @param dbClient the DB client.
-     * @param types the personality types.
-     * @return true if this volume is associated to an RP+VPlex journal, false otherwise.
-     */
-    public static boolean isAssociatedToRpVplexType(Volume volume, DbClient dbClient, PersonalityTypes... types) {
-        final List<Volume> vplexVirtualVolumes = CustomQueryUtility
-                .queryActiveResourcesByConstraint(dbClient, Volume.class,
-                        getVolumesByAssociatedId(volume.getId().toString()));
-
-        for (Volume vplexVirtualVolume : vplexVirtualVolumes) {
-            if (NullColumnValueGetter.isNotNullValue(vplexVirtualVolume.getPersonality())) {
-                // If the personality type matches any of the passed in personality
-                // types, we can return true.
-                for (PersonalityTypes type : types) {
-                    if (vplexVirtualVolume.getPersonality().equals(type.name())) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
     }
 
     @Override

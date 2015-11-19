@@ -149,7 +149,15 @@ waitforstable = argparse.ArgumentParser(parents = [parser], conflict_handler='re
 waitforstable.add_argument('sleep', help = 'sleep of waiting time', type=float)
 waitforstable.add_argument('length', help = 'the whole waiting time', type=float)
 
-# list dr standby
+# failover dr
+drfailover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drfailover.add_argument('uuid', help = 'uuid of standby site to be failover')
+
+# power off cluster
+poweroffcluster = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+poweroffcluster.add_argument('ip', metavar = 'ipaddr', help = 'IP address of a ViPR system', default=bourne_ip)
+
+# find dr standby
 drfindsite = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 drfindsite.add_argument('key', help = 'key to search sites for')
 drfindsite.add_argument('value', help = 'value to find in site key')
@@ -192,6 +200,12 @@ elif (cmd == "switchover"):
 elif (cmd == "waitforstable"):
     args = waitforstable.parse_args()
     wait_for_stable(args)
+elif (cmd == "failover"):
+    args = drfailover.parse_args()
+    dr_failover_over(args)
+elif (cmd == "poweroffcluster"):
+    args = poweroffcluster.parse_args()
+    poweroff_cluster(args)
 elif (cmd == "find"):
     args = drfindsite.parse_args()
     dr_find_site(args)

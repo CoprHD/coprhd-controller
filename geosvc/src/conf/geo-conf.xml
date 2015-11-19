@@ -80,6 +80,7 @@
     <bean id="vdcConfService" class="com.emc.storageos.geo.service.impl.resource.VdcConfigService">
         <property name="service" ref="serviceinfo"/>
         <property name="sysUtils" ref="sysUtils" />
+        <property name="ipsecConfig" ref="ipsecConfig" />
     </bean>
 
     <bean id="vdcConfHelper" class="com.emc.storageos.geo.service.impl.util.VdcConfigHelper"/>

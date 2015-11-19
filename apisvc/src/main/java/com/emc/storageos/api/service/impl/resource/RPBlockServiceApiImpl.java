@@ -2674,7 +2674,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param volume A reference to a volume.
      * @return The snapshots for the passed volume.
      */
-    public List<BlockSnapshot> getSnapshotsForThisVolumeOnly(Volume volume) {
+    public List<BlockSnapshot> getSnapshotsForVolume(Volume volume) {
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         
         // Get all the related local snapshots and RP bookmarks for this RP Volume
@@ -3393,7 +3393,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
                 }
                 
-                List<BlockSnapshot> snapshots = this.getSnapshotsForThisVolumeOnly(targetVolume);
+                List<BlockSnapshot> snapshots = this.getSnapshotsForVolume(targetVolume);
                 for (BlockSnapshot snapshot : snapshots) {
                     if (TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
                         // If there are RP bookmarks that have been exported, throw an exception to inform the

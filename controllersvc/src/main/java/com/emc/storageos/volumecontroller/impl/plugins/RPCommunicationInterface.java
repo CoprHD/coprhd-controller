@@ -76,6 +76,8 @@ import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
  * Class for RecoverPoint discovery and collecting stats from RecoverPoint storage device
  */
 public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl {
+    private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
+    private static final String RPA = "-rpa-";
     private static final String RP_INITIATOR_PREFIX = "50:01:24";
 
     private Logger _log = LoggerFactory.getLogger(RPCommunicationInterface.class);
@@ -660,16 +662,29 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                             if (discoveredEndpoints.containsKey(rpaWWN.getKey().toUpperCase())) {
                                 _log.info("WWN " + rpaWWN.getKey() + " is in Network : " + network.getLabel());
 
-                                // Insert the initiator into the database and mark as RP
                                 Initiator initiator = new Initiator();
                                 initiator.addInternalFlags(Flag.RECOVERPOINT);
-                                initiator.setHostName(site.getInternalSiteName());
-                                initiator.setInitiatorPort(wwn);
-                                initiator.setInitiatorNode(rpaWWN.getValue().replaceAll("[^A-Za-z0-9_]", ""));
+                                // Remove all non alpha-numeric characters, excluding "_", from the hostname
+                                String rpClusterName = site.getSiteName().replaceAll(ALPHA_NUMERICS, "");
+                                _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
+                                initiator.setClusterName(rpClusterName);
                                 initiator.setProtocol("FC");
                                 initiator.setIsManualCreation(false);
-                                initiator = getOrCreateNewInitiator(initiator);
 
+                                // Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
+                                // A child RP IG will be created containing all the RPA IGs
+                                String hostName = rpClusterName + RPA + rpaId;
+                                hostName = hostName.replaceAll(ALPHA_NUMERICS, "");
+                                _log.info(String.format("Setting RP initiator host name : %s", hostName));
+                                initiator.setHostName(hostName);
+
+                                _log.info(String.format("Setting Initiator port WWN : %s, nodeWWN : %s", rpaWWN.getKey(), rpaWWN.getValue()));
+                                initiator.setInitiatorPort(rpaWWN.getKey());
+                                initiator.setInitiatorNode(rpaWWN.getValue());
+
+                                // Either get the existing initiator or create a new if needed
+                                initiator = getOrCreateNewInitiator(initiator);
+                                
                                 isNetworkSystemConfigured = true; // Set this to true as we found the RP initiators in a Network on the Network
                                 // System
                                 for (String discoveredEndpoint : discoveredEndpoints.keySet()) {

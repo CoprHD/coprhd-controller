@@ -11,9 +11,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
@@ -191,6 +193,11 @@ public class DisasterRecoveryServiceTest {
                 .getSiteFromLocalVdc(NONEXISTENT_ID);
         doReturn(primarySite.getUuid()).when(drUtil).getPrimarySiteId();
         doReturn(primarySite).when(drUtil).getSiteFromLocalVdc(primarySite.getUuid());
+
+        InterProcessLock lock = mock(InterProcessLock.class);
+        doReturn(lock).when(coordinator).getLock(anyString());
+        doReturn(true).when(lock).acquire(anyInt(), any(TimeUnit.class));
+        doNothing().when(lock).release();
     }
 
     @Test
@@ -366,8 +373,9 @@ public class DisasterRecoveryServiceTest {
 
         // test for invalid uuid
         try {
-            doReturn(null).when(coordinator).queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND),
-                    "a918ebd4-bbf4-378b-8034-b03423f9edfd");
+            APIException e = APIException.internalServerErrors.switchoverPrecheckFailed(standby.getUuid(),
+                    "Standby uuid is not valid, can't find in ZK");
+            doThrow(e).when(drUtil).getSiteFromLocalVdc(standbyUUID);
             drService.precheckForSwitchover(standbyUUID);
             fail("should throw exception when met invalid standby uuid");
         } catch (InternalServerErrorException e) {

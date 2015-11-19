@@ -6380,22 +6380,44 @@ dr_basic_tests()
     echo "---WAIT 30s FOR $primary_site TO STABILIZE---"
     sleep 30
 
+    echo "---WAIT FOR PAUSE $standby_site---"
+    dr waitforstate $standby_site STANDBY_PAUSED 30 1200
+    echo "Pausing dr done"
+
+    echo "---CREATE A NEW PROJECT ON PRIMARY---"
+    PROJECT_NEW=${PROJECT}_new
+    project create ${PROJECT_NEW} --tenant $TENANT
+    projectid_new=$(project query ${PROJECT_NEW})
+    echo "Project id of ${PROJECT_NEW} is ${projectid_new}."
+
     echo "---RESUME SITE $standby_site---"
     dr resume $standby_site || { echo "resume dr standby site failed."; exit 1; }
 
     echo "---WAIT FOR SYNC $standby_site---"
-    dr waitforstate $standby_site STANDBY_SYNCED 30 600
+    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
     echo "Syncing dr done"
+
+    echo "---VERIFY NEW PROJECT FROM $standby_site---"
+    sleep 30
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    project show ${projectid_new}
 
     # wait both primary and standby to be stable, ready to do switchover
     echo "---WAIT BOTH PRIMARY AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
+    # there's no point in updating the property on both primary and standby since they are shared
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
     dr waitforstable 10 600
-    syssvc $CONFIG_FILE "$DR_SITE_B_IP" set_prop system_permit_root_ssh yes
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable 10 600
 
     # switchover to standby
     echo "---SWITCHOVER FROM TO $primary_site TO $standby_site---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr switchover $standby_site
 
     echo "---WAIT 7m AFTER SWITCHOVER FOR THE REBOOT---"
@@ -6484,6 +6506,9 @@ dr_multisite_tests()
     dr waitforstate $standby_site_b STANDBY_SYNCED 30 600
     echo "Syncing dr done"
 
+    echo "---WAIT 30s FOR $standby_site_b TO BOOTSTRAP---"
+    sleep 30
+
     # login to standby with auth
     echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_B_IP
@@ -6562,6 +6587,64 @@ dr_multisite_tests()
     dr get $standby_site_b
     dr get $standby_site_c
     dr get $primary_site
+
+    # pause standby b
+    echo "---PAUSE SITE $standby_site_b---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr pause $standby_site_b || { echo "pause dr standby site b failed."; exit 1; }
+
+    echo "---WAIT 30s FOR $primary_site_b TO STABILIZE---"
+    sleep 30
+
+    echo "---WAIT FOR PAUSE $standby_site_b---"
+    dr waitforstate $standby_site_b STANDBY_PAUSED 30 1200
+    echo "Pausing dr done"
+
+    # pause standby c
+    echo "---PAUSE SITE $standby_site_c---"
+    dr pause $standby_site_c || { echo "pause dr standby site c failed."; exit 1; }
+
+    echo "---WAIT 30s FOR $primary_site_c TO STABILIZE---"
+    sleep 30
+
+    echo "---WAIT FOR PAUSE $standby_site_c---"
+    dr waitforstate $standby_site_c STANDBY_PAUSED 30 1200
+    echo "Pausing dr done"
+
+    echo "---CREATE A NEW PROJECT ON PRIMARY---"
+    PROJECT_NEW=${PROJECT}_new
+    project create ${PROJECT_NEW} --tenant $TENANT
+    projectid_new=$(project query ${PROJECT_NEW})
+    echo "Project id of ${PROJECT_NEW} is ${projectid_new}."
+
+    echo "---RESUME SITE $standby_site_b---"
+    dr resume $standby_site_b || { echo "resume dr standby site b failed."; exit 1; }
+
+    echo "---WAIT FOR SYNC $standby_site_b---"
+    dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
+    echo "Syncing dr done"
+
+    echo "---VERIFY NEW PROJECT FROM $standby_site_b---"
+    sleep 30
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    project show ${projectid_new}
+
+    echo "---RESUME SITE $standby_site_c---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr resume $standby_site_c || { echo "resume dr standby site c failed."; exit 1; }
+
+    echo "---WAIT FOR SYNC $standby_site_c---"
+    dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
+    echo "Syncing dr done"
+
+    echo "---VERIFY NEW PROJECT FROM $standby_site_c---"
+    sleep 30
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    project show ${projectid_new}
 
     # delete standby
     echo "---DELETE STANDBY $standby_site_b---"

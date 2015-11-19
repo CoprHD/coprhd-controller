@@ -446,6 +446,8 @@ public class SchemaUtil {
         changed |= addNewVdc(strategyOptions);
 
         if (changed) {
+            // log current schema versions for debug purpose
+            clientContext.getSchemaVersions();
             _log.info("strategyOptions changed to {}", strategyOptions);
             clientContext.setCassandraStrategyOptions(strategyOptions, true);
         }

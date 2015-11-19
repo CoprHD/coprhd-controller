@@ -7,6 +7,9 @@
 					dataTable:dataTable,
 					expandable: true,
 					deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
+    #{Form.button name:'disasterRecovery.pauseButton', class:'danger', icon:'pause',
+                  submit:'pauseForm', data:['enabled':'selected']/}
+    #{DataTable.formAction @pause(), id:'pauseForm', table:'disasterRecovery'/}
 #{/DataTable.crudTable}
 
 <script id="inlineActions.html" type="text/ng-template">

@@ -15,10 +15,7 @@ import com.emc.vipr.model.sys.backup.BackupUploadStatus.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.nio.channels.UnsupportedAddressTypeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -92,6 +89,8 @@ public class UploadExecutor {
                 }
 
                 String zipName = this.cli.generateZipFileName(tag, files);
+
+                uploader.markInvalidZipFile(zipName);
 
                 Long existingLen = uploader.getFileSize(zipName);
                 long len = existingLen == null ? 0 : existingLen;

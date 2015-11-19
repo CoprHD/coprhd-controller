@@ -218,6 +218,29 @@ class FakeUploader extends Uploader {
             }
         };
     }
+
+    @Override
+    public List<String> listFiles() throws Exception{
+       return new ArrayList<String>(this.fileMap.keySet());
+    }
+
+    @Override
+    public void rename(String fromFileName,String toFileName) {
+        this.fileMap.put(toFileName,this.fileMap.get(fromFileName));
+        this.fileMap.remove(fromFileName);
+    }
+
+    @Override
+    public void markInvalidZipFile(String toUploadedFileName) {
+        String noExtendFileName = toUploadedFileName.split(ScheduledBackupTag.ZIP_FILE_SURFIX)[0];
+        String toUploadFilePrefix = noExtendFileName.substring(0, noExtendFileName.length() - 2);
+        for (String file : this.fileMap.keySet()) {
+            if (file.endsWith(ScheduledBackupTag.ZIP_FILE_SURFIX) && file.startsWith(toUploadFilePrefix)) {
+                if (toUploadedFileName.endsWith("-1-1.zip") && toUploadedFileName.equals(file)) continue;
+                rename(file, ScheduledBackupTag.toInvalidFileName(file));
+                }
+            }
+    }
 }
 
 class FakeBackupClient extends BackupScheduler {

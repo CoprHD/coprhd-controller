@@ -6,6 +6,9 @@ package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
 
 import com.emc.storageos.systemservices.impl.util.ProcessOutputStream;
 import com.emc.storageos.systemservices.impl.util.ProcessRunner;
@@ -22,6 +25,7 @@ public class FtpsUploader extends Uploader {
     private final static String FTPS_URL_PREFIX = "ftps://";
     private final static String FTP_URL_PREFIX = "ftp://";
     private final static int FILE_DOES_NOT_EXIST = 19;
+    private static final String BACKUP_TAG_SEPERATOR = "-";
 
     public FtpsUploader(SchedulerConfig cfg, BackupScheduler cli) {
         super(cfg, cli);
@@ -98,4 +102,81 @@ public class FtpsUploader extends Uploader {
 
         return new ProcessOutputStream(builder.start());
     }
+
+    @Override
+    public List<String> listFiles() throws Exception {
+        ProcessBuilder builder = getBuilder();
+        builder.command().add("-l");
+        builder.command().add(this.cfg.uploadUrl);
+
+        List<String> fileList = new ArrayList<String>();
+        try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
+            StringBuilder errText = new StringBuilder();
+            processor.captureAllTextInBackground(processor.getStdErr(), errText);
+
+            for (String line : processor.enumLines(processor.getStdOut())) {
+                fileList.add(line);
+            }
+
+            int exitCode = processor.join();
+            if (exitCode != 0) {
+                throw new IOException(errText.length() > 0 ? errText.toString() : Integer.toString(exitCode));
+            }
+        }
+        return fileList;
+    }
+
+    @Override
+    public void rename(String fromFileName, String toFileName) throws Exception {
+        ProcessBuilder builder = getBuilder();
+        builder.command().add(this.cfg.uploadUrl);
+        builder.command().add("-Q");
+        builder.command().add("RNFR " + fromFileName);
+        builder.command().add("-Q");
+        builder.command().add("RNTO " + toFileName);
+
+        try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
+            StringBuilder errText = new StringBuilder();
+            processor.captureAllTextInBackground(processor.getStdErr(), errText);
+            int exitCode = processor.join();
+            if (exitCode != 0) {
+                throw new IOException(errText.length() > 0 ? errText.toString() : Integer.toString(exitCode));
+            }
+        }
+    }
+
+    @Override
+    public void markInvalidZipFile(String toUploadedFileName) {
+        String noExtendFileName = toUploadedFileName.split(ScheduledBackupTag.ZIP_FILE_SURFIX)[0];
+        String toUploadFilePrefix = noExtendFileName.substring(0, noExtendFileName.length() - 2);
+        log.info("check with prefix  {}", toUploadFilePrefix);
+        try {
+            List<String> ftpFiles = this.listFiles();
+            for (String file : ftpFiles) {
+                if(isIncompletedFile(file,toUploadFilePrefix)) {
+                    if (isFullNodeFileName(noExtendFileName) && file.equals(toUploadedFileName)) {
+                        continue;
+                    }
+                    rename(file, ScheduledBackupTag.toInvalidFileName(file));
+                }
+            }
+
+        } catch (Exception e) {
+            log.warn("Mark invalide  uploaded backup zip file failed", e);
+
+        }
+    }
+
+    private Boolean isFullNodeFileName(String noExtendFileName) {
+        String[] filenames = noExtendFileName.split(BACKUP_TAG_SEPERATOR);
+        String availableNodes = filenames[filenames.length - 1];
+        String allNodes = filenames[filenames.length - 2];
+        return allNodes.equals(availableNodes);
+    }
+    private Boolean isIncompletedFile(String filename,String prefix){
+        Pattern pattern = Pattern.compile("^"+prefix+"-\\d"+ScheduledBackupTag.ZIP_FILE_SURFIX +"$");
+        return pattern.matcher(filename).matches();
+    }
+
+
 }

@@ -419,14 +419,16 @@ public class VdcSiteManager extends AbstractManager {
      */
     private void updateVdcPropertiesAndWaitForAll() throws Exception {
         VdcPropertyBarrier vdcBarrier = new VdcPropertyBarrier(targetSiteInfo, VDC_RPOP_BARRIER_TIMEOUT);
-        vdcBarrier.enter();
+        try {
+            vdcBarrier.enter();
 
-        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-        // set the vdc_config_version to an invalid value so that it always gets retried on failure.
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
-        localRepository.setVdcPropertyInfo(vdcProperty);
-
-        vdcBarrier.leave();
+            PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+            // set the vdc_config_version to an invalid value so that it always gets retried on failure.
+            vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
+            localRepository.setVdcPropertyInfo(vdcProperty);
+        } finally {
+            vdcBarrier.leave();
+        }
     }
 
     /**
@@ -478,9 +480,8 @@ public class VdcSiteManager extends AbstractManager {
             if (allEntered) {
                 log.info("All nodes entered VdcPropBarrier");
             } else {
-                // something wrong just leave itself.
-                barrier.leave();
-                throw new Exception("Only Part of nodes entered within 5 seconds, Skip updating");
+                log.warn("Only Part of nodes entered within {} seconds", timeout);
+                throw new Exception("Only Part of nodes entered within timeout");
             }
         }
 
@@ -563,13 +564,16 @@ public class VdcSiteManager extends AbstractManager {
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
             log.info("Wait for barrier to reconfig/restart coordinator when switchover");
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-            barrier.enter();
-            localRepository.reconfigProperties("coordinator");
-            barrier.leave();
+            try {
+                barrier.enter();
+                localRepository.reconfigProperties("coordinator");
+            } finally {
+                barrier.leave();
+            }
         } else {
             localRepository.reconfigProperties("coordinator");
         }
-        
+
         localRepository.restart("coordinatorsvc");
     }
 
@@ -1043,14 +1047,16 @@ public class VdcSiteManager extends AbstractManager {
         blockUntilZookeeperIsWritableConnected();
         
         VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-        barrier.enter();
+        try {
+            barrier.enter();
 
-        log.info("Set state to PRIMARY");
-        site.setState(SiteState.PRIMARY);
-        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-        
-        barrier.leave();
-        
+            log.info("Set state to PRIMARY");
+            site.setState(SiteState.PRIMARY);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        } finally {
+            barrier.leave();
+        }
+
         log.info("Reboot this node after switchover");
         localRepository.reboot();
     }
@@ -1061,14 +1067,16 @@ public class VdcSiteManager extends AbstractManager {
         blockUntilZookeeperIsWritableConnected();
 
         VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-        barrier.enter();
+        try {
+            barrier.enter();
 
-        log.info("Set state to SYNCED");
-        site.setState(SiteState.STANDBY_SYNCED);
-        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-        
-        barrier.leave();
-        
+            log.info("Set state to SYNCED");
+            site.setState(SiteState.STANDBY_SYNCED);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        } finally {
+            barrier.leave();
+        }
+
         log.info("Reboot this node after switchover");
         localRepository.reboot();
     }
@@ -1086,12 +1094,14 @@ public class VdcSiteManager extends AbstractManager {
         
         log.info("Wait for barrier to set site state as Primary for failover");
         VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-        barrier.enter();
+        try {
+            barrier.enter();
 
-        site.setState(SiteState.PRIMARY);
-        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-        
-        barrier.leave();
+            site.setState(SiteState.PRIMARY);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        } finally {
+            barrier.leave();
+        }
         
         log.info("Reboot this node after failover");
         localRepository.reboot();

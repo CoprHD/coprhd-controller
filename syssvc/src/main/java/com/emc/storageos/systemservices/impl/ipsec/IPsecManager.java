@@ -1,24 +1,20 @@
 /*
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.ipsec;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.model.ipsec.IPsecNodeState;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.security.ipsec.IPsecKeyGenerator;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import com.emc.storageos.security.exceptions.SecurityException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,15 +30,13 @@ public class IPsecManager {
 
     private static final Logger log = LoggerFactory.getLogger(IPsecManager.class);
 
-    private static final String VDC_CONFIG_VERSION = "vdc_config_version";
-
     @Autowired
     IPsecConfig ipsecConfig;
 
     @Autowired
     IPsecKeyGenerator ipsecKeyGenerator;
 
-    CoordinatorClientImpl coordinator;
+    CoordinatorClient coordinator;
     DrUtil drUtil;
 
     /**
@@ -50,12 +44,11 @@ public class IPsecManager {
      * @return
      */
     public IPsecStatus checkStatus() {
-
         log.info("Checking ipsec status ...");
 
         String vdcConfigVersion = loadVdcConfigVersionFromZK();
 
-        boolean runtimeGood = checkRunTimeStatus();
+        boolean runtimeGood = checkIPsecStatus();
 
         boolean configGood = false;
         List<IPsecNodeState> problemNodeStatus = null;
@@ -89,32 +82,33 @@ public class IPsecManager {
      * @return
      */
     public String rotateKey() {
-        String psk = ipsecKeyGenerator.generate();
+        String psk = ipsecConfig.generateKey();
         try {
             ipsecConfig.setPreSharedKey(psk);
             String version = updateTargetSiteInfo();
             log.info("IPsec Key gets rotated successfully to the version {}", version);
             return version;
         } catch (Exception e) {
-            throw com.emc.storageos.security.exceptions.SecurityException.fatals.failToRotateIPsecKey(e);
+            log.warn("Fail to rotate ipsec key due to: {}", e);
+            throw SecurityException.fatals.failToRotateIPsecKey(e);
         }
     }
 
     private List<IPsecNodeState> checkConfigurations(String vdcConfigVersion, List<IPsecNodeState> nodeStatus) {
-        List<IPsecNodeState> problemNodeStatus = new ArrayList<>();
+        List<IPsecNodeState> unreachableNodes = new ArrayList<>();
 
         for (IPsecNodeState node : nodeStatus) {
             log.info("vdcVersion = {}, node version = {}", vdcConfigVersion, node.getVersion());
             if ( (node.getVersion() == null) || ! vdcConfigVersion.equals(node.getVersion()) ) {
                 log.info("Found problem on the node {} where the config version is {}", node.getIp(), node.getVersion());
-                problemNodeStatus.add(node);
+                unreachableNodes.add(node);
             }
         }
 
-        return problemNodeStatus;
+        return unreachableNodes;
     }
 
-    private boolean checkRunTimeStatus() {
+    private boolean checkIPsecStatus() {
         LocalRepository localRepository = new LocalRepository();
         String[] problemIPs = localRepository.checkIpsecConnection();
         boolean runtimeGood = problemIPs[0].isEmpty();
@@ -134,8 +128,8 @@ public class IPsecManager {
                 nodeState.setIp(ip);
                 try {
                     Map<String, String> ipsecProps = localRepository.getIpsecProperties(ip);
-                    nodeState.setVersion(ipsecProps.get(VDC_CONFIG_VERSION));
-                    log.info("Collected ipsec config version from {}, which is {}", ip, ipsecProps.get(VDC_CONFIG_VERSION));
+                    nodeState.setVersion(ipsecProps.get(Constants.VDC_CONFIG_VERSION));
+                    log.info("Collected ipsec config version from {}, which is {}", ip, ipsecProps.get(Constants.VDC_CONFIG_VERSION));
                 } catch (Exception e) {
                     log.info("Failed to collect ipsec config version from {}. Just set to null", ip);
                     nodeState.setVersion(null);
@@ -154,7 +148,6 @@ public class IPsecManager {
     }
 
     private String updateTargetSiteInfo() {
-
         long vdcConfigVersion = System.currentTimeMillis();
 
         for (Site site : drUtil.listSites()) {
@@ -178,7 +171,7 @@ public class IPsecManager {
      * get the coordinator client
      * @return
      */
-    public CoordinatorClientImpl getCoordinator() {
+    public CoordinatorClient getCoordinator() {
         return coordinator;
     }
 
@@ -186,7 +179,7 @@ public class IPsecManager {
      * set the coordinator client.
      * @param coordinator
      */
-    public void setCoordinator(CoordinatorClientImpl coordinator) {
+    public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
         drUtil = new DrUtil(this.coordinator);
     }

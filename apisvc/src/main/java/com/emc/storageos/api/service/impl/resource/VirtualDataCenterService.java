@@ -31,7 +31,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.security.helpers.SecurityUtil;
 import org.apache.commons.codec.binary.Base64;
@@ -107,8 +106,6 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Autowired
     private Service service;
 
-    DrUtil drUtil;
-
     private Map<String, StorageOSUser> _localUsers;
 
     public void setLocalUsers(Map<String, StorageOSUser> localUsers) {
@@ -145,7 +142,6 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Override
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
-        drUtil = new DrUtil(coordinator);
     }
 
     private CoordinatorConfigStoringHelper coordConfigStoringHelper;

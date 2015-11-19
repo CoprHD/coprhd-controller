@@ -13,6 +13,7 @@ package com.emc.storageos.security.ipsec;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper;
 import org.apache.commons.codec.binary.StringUtils;
+import org.apache.commons.lang.RandomStringUtils;
 import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 
@@ -30,6 +31,7 @@ public class IPsecConfig {
     private static final String IPSEC_CONFIG_KIND = "ipsec";
     private static final String IPSEC_CONFIG_ID = "ipsec";
     private static final String IPSEC_PSK_KEY = "ipsec_key";
+    private static final int KEY_LENGHT = 64;
 
     // Properties injected by spring
     private CoordinatorClient coordinator;
@@ -59,6 +61,15 @@ public class IPsecConfig {
     public void setPreSharedKey(String preSharedKey) throws Exception {
         getCoordinatorHelper().createOrUpdateConfig(preSharedKey, IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
     }
+
+    /**
+     * generate a 64-byte key for IPsec
+     * @return
+     */
+    public String generateKey() {
+        return RandomStringUtils.random(KEY_LENGHT, true, true);
+    }
+
 
     private String loadDefaultIpsecKeyFromFile() throws Exception {
         BufferedReader in = new BufferedReader(new FileReader(new File(defaultPskFile)));

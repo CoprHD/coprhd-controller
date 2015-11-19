@@ -3986,6 +3986,7 @@ renderFunctions.disasterRecovery.status.primary=Active
 renderFunctions.disasterRecovery.status.adding=Adding Standby
 renderFunctions.disasterRecovery.status.syncing=Syncing Standby
 renderFunctions.disasterRecovery.status.synced=Standby Synched
+renderFunctions.disasterRecovery.status.pausing=Pausing Standby
 renderFunctions.disasterRecovery.status.paused=Standby Paused
 renderFunctions.disasterRecovery.status.testing=Test Mode
 renderFunctions.disasterRecovery.status.removing=Deleting Standby

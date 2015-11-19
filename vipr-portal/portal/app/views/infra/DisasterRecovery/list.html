@@ -96,6 +96,7 @@ function standbyStatusIcon(o, val) {
     var labels = {
         'PRIMARY': 'label-success',
         'STANDBY_ADDING': 'label-info',
+        'STANDBY_PAUSING': 'label-info',
         'STANDBY_PAUSED': 'label-success',
         'STANDBY_SYNCED': 'label-success',
         'STANDBY_ERROR':  'label-danger',
@@ -106,6 +107,7 @@ function standbyStatusIcon(o, val) {
     var icons = {
         'PRIMARY':     'glyphicon glyphicon-ok',
         'STANDBY_ADDING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_PAUSING': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_PAUSED': 'glyphicon glyphicon-ok',
         'STANDBY_SYNCED': 'glyphicon glyphicon-ok',
         'STANDBY_ERROR':  'glyphicon glyphicon-remove',
@@ -119,6 +121,7 @@ function standbyStatusIcon(o, val) {
 		'STANDBY_ADDING': Messages.get("renderFunctions.disasterRecovery.status.adding"),
 		'STANDBY_SYNCING': Messages.get("renderFunctions.disasterRecovery.status.syncing"),
 		'STANDBY_SYNCED': Messages.get("renderFunctions.disasterRecovery.status.synced"),
+		'STANDBY_PAUSING': Messages.get("renderFunctions.disasterRecovery.status.pausing"),
 		'STANDBY_PAUSED': Messages.get("renderFunctions.disasterRecovery.status.paused"),
 		'STANDBY_REMOVING': Messages.get("renderFunctions.disasterRecovery.status.removing"),
 		'STANDBY_TESTING': Messages.get("renderFunctions.disasterRecovery.status.testing"),

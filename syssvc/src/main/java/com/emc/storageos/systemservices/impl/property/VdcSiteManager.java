@@ -424,12 +424,14 @@ public class VdcSiteManager extends AbstractManager {
     private void updateVdcPropertiesAndWaitForAll() throws Exception {
         DistributedDoubleBarrier barrier = enterBarrier("VdcPropBarrier", VDC_RPOP_BARRIER_TIMEOUT);
 
-        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-        // set the vdc_config_version to an invalid value so that it always gets retried on failure.
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
-        localRepository.setVdcPropertyInfo(vdcProperty);
-
-        leaveBarrier(barrier);
+        try {
+            PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+            // set the vdc_config_version to an invalid value so that it always gets retried on failure.
+            vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
+            localRepository.setVdcPropertyInfo(vdcProperty);
+        } finally {
+            leaveBarrier(barrier);
+        }
     }
 
     /**

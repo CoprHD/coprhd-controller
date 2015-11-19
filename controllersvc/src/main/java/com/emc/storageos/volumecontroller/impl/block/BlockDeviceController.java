@@ -29,6 +29,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationDeviceController;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
@@ -160,6 +161,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private BlockStorageScheduler _blockScheduler;
     private WorkflowService _workflowService;
     private SRDFDeviceController srdfDeviceController;
+    private ReplicaDeviceController _replicaDeviceController;
 
     private static final String ATTACH_MIRRORS_WF_NAME = "ATTACH_MIRRORS_WORKFLOW";
     private static final String DETACH_MIRRORS_WF_NAME = "DETACH_MIRRORS_WORKFLOW";
@@ -199,6 +201,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void setWorkflowService(WorkflowService workflowService) {
         _workflowService = workflowService;
+    }
+
+    public void setReplicaDeviceController(ReplicaDeviceController replicaDeviceController) {
+        _replicaDeviceController = replicaDeviceController;
     }
 
     public BlockStorageDevice getDevice(String deviceType) {
@@ -3599,6 +3605,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     }
                 }
             }
+
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     UPDATE_CONSISTENCY_GROUP_WF_NAME, false, task);
@@ -3621,9 +3628,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         this.getClass(),
                         addToConsistencyGroupMethod(storage, consistencyGroup, addVolumesList),
                         rollbackMethodNullMethod(), null);
+
+                // call ReplicaDeviceController
+                _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, consistencyGroup, addVolumesList, task);
             }
 
             if (removeVolumesList != null && !removeVolumesList.isEmpty()) {
+                // call ReplicaDeviceController
+                _replicaDeviceController.addStepsForRemovingVolumesFromCG(workflow, waitFor, consistencyGroup, removeVolumesList, task);
+
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Updating consistency group %s", consistencyGroup),
                         waitFor, storage, storageSystem.getSystemType(),

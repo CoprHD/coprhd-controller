@@ -278,7 +278,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
     	Map<String, String> volumesToCgs = new HashMap<String, String>();
     	for (XtremIOObjectInfo cg : consistencyGroupInfo){
     		XtremIOConsistencyGroupVolInfo cgVol = xtremIOClient.getXtremIOConsistencyGroupInfo(cg, xioClusterName);
-    		log.info("Sathish" + cgVol.getContent().toString());
+//    		log.info("Sathish" + cgVol.getContent().toString());
     		
 //    		for (int i = 0; i <= cgVol.getContent().getVolList().size(); i++){
 //    			volumesToCgs.put(cgVol.getContent().getVolList(), cgVol.getContent().getName());

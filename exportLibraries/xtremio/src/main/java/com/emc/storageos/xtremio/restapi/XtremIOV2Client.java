@@ -156,7 +156,7 @@ public class XtremIOV2Client extends XtremIOClient {
              URI cgURI = URI.create(cgVolume.getHref().concat(XtremIOConstants.getInputClusterString(clusterName)));
              ClientResponse response = get(cgURI);
              cgInfo = getResponseObject(XtremIOConsistencyGroupVolInfo.class, response);
-             log.info("ConsistencyGroup {}", cgInfo.getContent().getName()+ "has" + cgInfo.getContent().getNumOfVols());
+             log.info("ConsistencyGroup {}", cgInfo.getContent().getName() + " has " + cgInfo.getContent().getNumOfVols() + " Volumes");
          } catch (InternalException ex) {
                 log.warn("Exception while trying to retrieve xtremio volume link {}", cgVolume.getHref());
          }

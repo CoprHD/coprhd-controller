@@ -1942,8 +1942,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // 4. Unlink the source from the temporary session.
                 // 5. Delete the temporary session.
 
-                // Create a BlockSnapshotSession to represent this temporary session that will
-                // be created on the BlockSnapshot target volume.
+                // Create a BlockSnapshotSession to represent this temporary snapshot session
+                // that will be created on the target volume of the passed BlockSnapshot.
                 BlockSnapshotSession snapSession = new BlockSnapshotSession();
                 URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
                 snapSession.setId(snapSessionURI);
@@ -1959,15 +1959,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         createBlockSnapshotSessionMethod(storage, Arrays.asList(snapSessionURI)),
                         deleteBlockSnapshotSessionMethod(storage, snapSessionURI, Boolean.TRUE), null);
 
-                // Create a workflow step to link the source volume for the passed snapshot
-                // to the snapshot session create by the previous step. We link the source
-                // volume in copy mode so that that the point-in-time copy of the snapshot
-                // target volume represented by the snapshot session is copied to the source
-                // volume. This is essentially the restore step so that the source will now
-                // reflect the data on the snapshot target volume. Note that because source
-                // for the passed snapshot will be linked to a snapshot session, it will be
-                // a linked target, so we need a BlockSnapshot instance to represent the source
-                // as a linked target.
+                // Create a BlockSnapshot to represent the passed source volume when it is
+                // it is linked to the snapshot session created in the previous step.
                 BlockSnapshot sourceSnapshot = new BlockSnapshot();
                 URI sourceSnapshotURI = URIUtil.createId(BlockSnapshot.class);
                 sourceSnapshot.setId(sourceSnapshotURI);
@@ -1977,6 +1970,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 sourceSnapshot.setStorageController(storage);
                 sourceSnapshot.addInternalFlags(Flag.INTERNAL_OBJECT);
                 _dbClient.createObject(sourceSnapshot);
+
+                // Create a workflow step to link the source volume for the passed snapshot
+                // to the snapshot session create by the previous step. We link the source
+                // volume in copy mode so that that the point-in-time copy of the snapshot
+                // target volume represented by the snapshot session is copied to the source
+                // volume. This is essentially the restore step so that the source will now
+                // reflect the data on the snapshot target volume.
                 waitFor = workflow.createStep(
                         LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Link source volume %s to snapshot session for snapshot target volume %s", volume, snapshot),
@@ -1985,7 +1985,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE),
                         unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI, Boolean.FALSE), null);
 
-                // Need to wait until copy state is copied.
+                // Now we create a step to wait until the source volume is synchronized with
+                // the data captured by the snapshot session of the snapshot target volume.
                 waitFor = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
                         String.format("Waiting for synchronization of source %s", volume),
                         waitFor, storage, getDeviceType(storage), BlockDeviceController.class,

@@ -6378,26 +6378,27 @@ public class SmisCommandHelper implements SmisConstants {
             CIMInstance repSettingData = null;
             if (syncType == SmisConstants.CLONE_VALUE) {
                 if (createInactive && storageDevice.getUsingSmis80()) {
-                    repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName, COPY_BEFORE_ACTIVATE);
+                    repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName,
+                            COPY_BEFORE_ACTIVATE, true);
                 } else if (storageDevice.checkIfVmax3() && ControllerUtils.isVmaxUsing81SMIS(storageDevice, _dbClient)) {
                     /**
                      * VMAX3 using SMI 8.1 provider needs to send DesiredCopyMethodology=32770
                      * to create TimeFinder differential clone.
                      */
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName,
-                            SMIS810_TF_DIFFERENTIAL_CLONE_VALUE);
+                            SMIS810_TF_DIFFERENTIAL_CLONE_VALUE, true);
                 } else {
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName,
-                            DIFFERENTIAL_CLONE_VALUE);
+                            DIFFERENTIAL_CLONE_VALUE, true);
                 }
             } else if (syncType == SmisConstants.SNAPSHOT_VALUE) {
                 // For VMAX2 arrays use the VPSNAPS during createListReplica.
                 if (!storageDevice.checkIfVmax3()) {
-                    repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName, VP_SNAP_VALUE);
+                    repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName, VP_SNAP_VALUE, true);
                 } else {
                     // For VMAX3, we always create snapvx snapshots
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName,
-                            INSTRUMENTATION_DECIDES_VALUE);
+                            INSTRUMENTATION_DECIDES_VALUE, true);
                 }
             }
             args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingData));
@@ -6797,20 +6798,25 @@ public class SmisCommandHelper implements SmisConstants {
         return argsList.toArray(argsNew);
     }
 
-    public CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, int desiredValue) {
-        return this.getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, null, desiredValue);
+    public CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, int desiredValue,
+            Boolean setTargetSupplier) {
+        return this.getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, null, desiredValue, setTargetSupplier);
     }
 
     /*
      * Get ReplicationSettingData instance.
      * 
-     * @param storageSystem
+     * @param storageSystem A reference to the storage system
+     * 
+     * @param elementName An optional name for the instance
      * 
      * @param desiredValue DesiredCopyMethodology value
+     * 
+     * @param steTargetSupplier Whether or not the TargetElementSupplier should also be specified.
      */
     @SuppressWarnings("rawtypes")
     public CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, final String elementName,
-            int desiredValue) {
+            int desiredValue, Boolean setTargetSupplier) {
         CIMInstance modifiedInstance = null;
         // only for vmax, otherwise, return null
         if (!storageSystem.deviceIsType(Type.vmax)) {
@@ -6834,9 +6840,12 @@ public class SmisCommandHelper implements SmisConstants {
                         CIMProperty<?> desiredMethod = new CIMProperty<Object>(SmisConstants.DESIRED_COPY_METHODOLOGY, UINT16_T,
                                 new UnsignedInteger16(desiredValue));
                         list.add(desiredMethod);
-                        CIMProperty<?> targetElementSupplier = new CIMProperty<Object>(TARGET_ELEMENT_SUPPLIER,
-                                UINT16_T, new UnsignedInteger16(CREATE_NEW_TARGET_VALUE));
-                        list.add(targetElementSupplier);
+                        if (setTargetSupplier) {
+                            CIMProperty<?> targetElementSupplier = new CIMProperty<Object>(TARGET_ELEMENT_SUPPLIER,
+                                    UINT16_T, new UnsignedInteger16(CREATE_NEW_TARGET_VALUE));
+
+                            list.add(targetElementSupplier);
+                        }
                         if (null != elementName) {
                             CIMProperty<?> elementNameProp = new CIMProperty<Object>(SmisConstants.CP_ELEMENT_NAME, STRING_T,
                                     elementName);
@@ -6891,7 +6900,7 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.reference(CP_TARGET_ELEMENT, targetDevicePath));
         if (copyMode.equals(BlockSnapshotSession.CopyMode.copy.name())) {
             CIMInstance replicationsettingDataInstance = getReplicationSettingDataInstanceForDesiredCopyMethod(system,
-                    COPY_METHODOLOGY_FULL_COPY);
+                    COPY_METHODOLOGY_FULL_COPY, false);
             args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, replicationsettingDataInstance));
             args.add(_cimArgument.uint16(CP_OPERATION, COPY_TO_TARGET_VALUE));
         } else {

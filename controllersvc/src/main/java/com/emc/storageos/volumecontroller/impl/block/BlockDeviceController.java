@@ -1976,7 +1976,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // volume in copy mode so that that the point-in-time copy of the snapshot
                 // target volume represented by the snapshot session is copied to the source
                 // volume. This is essentially the restore step so that the source will now
-                // reflect the data on the snapshot target volume.
+                // reflect the data on the snapshot target volume. This step will not complete
+                // until the data is copied and the link has achieved the copied state.
                 waitFor = workflow.createStep(
                         LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Link source volume %s to snapshot session for snapshot target volume %s", volume, snapshot),
@@ -1984,14 +1985,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI,
                                 BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE),
                         unlinkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURI, Boolean.FALSE), null);
-
-                // Now we create a step to wait until the source volume is synchronized with
-                // the data captured by the snapshot session of the snapshot target volume.
-                waitFor = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
-                        String.format("Waiting for synchronization of source %s", volume),
-                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
-                        waitForSynchronizedMethod(Volume.class, storage, Arrays.asList(volume), false),
-                        rollbackMethodNullMethod(), null);
 
                 // Once the data is fully copied to the source, we can unlink the source from the session.
                 waitFor = workflow.createStep(

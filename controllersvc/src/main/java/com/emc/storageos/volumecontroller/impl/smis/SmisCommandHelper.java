@@ -6903,6 +6903,7 @@ public class SmisCommandHelper implements SmisConstants {
                     COPY_METHODOLOGY_FULL_COPY, false);
             args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, replicationsettingDataInstance));
             args.add(_cimArgument.uint16(CP_OPERATION, COPY_TO_TARGET_VALUE));
+            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED));
         } else {
             args.add(_cimArgument.uint16(CP_OPERATION, ATTACH_TO_TARGET_VALUE));
         }

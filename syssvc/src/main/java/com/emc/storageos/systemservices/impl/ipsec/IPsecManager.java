@@ -12,7 +12,6 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.model.ipsec.IPsecNodeState;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.security.ipsec.IPsecConfig;
-import com.emc.storageos.security.ipsec.IPsecKeyGenerator;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.security.exceptions.SecurityException;
 import org.slf4j.Logger;
@@ -32,9 +31,6 @@ public class IPsecManager {
 
     @Autowired
     IPsecConfig ipsecConfig;
-
-    @Autowired
-    IPsecKeyGenerator ipsecKeyGenerator;
 
     CoordinatorClient coordinator;
     DrUtil drUtil;

@@ -23,8 +23,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
-import com.emc.storageos.systemservices.impl.jobs.producer.DbConsistencyJobProducer;
-
+import com.emc.storageos.systemservices.impl.jobs.common.JobProducer;
 
 
 /**
@@ -35,7 +34,7 @@ import com.emc.storageos.systemservices.impl.jobs.producer.DbConsistencyJobProdu
 public class DbConsistencyService {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyService.class);
     private CoordinatorClient coordinator;
-    private DbConsistencyJobProducer jobProducer;
+    private JobProducer jobProducer;
 
     @POST
     @Path("consistency")
@@ -119,12 +118,12 @@ public class DbConsistencyService {
     }
 
 
-    public DbConsistencyJobProducer getJobProducer() {
+    public JobProducer getJobProducer() {
         return jobProducer;
     }
 
 
-    public void setJobProducer(DbConsistencyJobProducer jobProducer) {
+    public void setJobProducer(JobProducer jobProducer) {
         this.jobProducer = jobProducer;
     }
 }

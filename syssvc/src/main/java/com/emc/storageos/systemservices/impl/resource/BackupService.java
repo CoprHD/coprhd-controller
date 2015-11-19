@@ -31,6 +31,7 @@ import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
+import com.emc.storageos.systemservices.impl.jobs.common.JobProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,10 +55,11 @@ import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 @Path("/backupset/")
 public class BackupService {
     private static final Logger log = LoggerFactory.getLogger(BackupService.class);
+    private static final int ASYNC_STATUS = 202;
     private BackupOps backupOps;
     private BackupScheduler backupScheduler;
+    private JobProducer jobProducer;
     private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
-    private NamedThreadPoolExecutor backupUploader = new NamedThreadPoolExecutor("BackupUploader", 1);
 
     /**
      * Sets backup client
@@ -75,6 +77,15 @@ public class BackupService {
      */
     public void setBackupScheduler(BackupScheduler backupScheduler) {
         this.backupScheduler = backupScheduler;
+    }
+
+    /**
+     * Sets backup upload job producer
+     *
+     * @param jobProducer the backup upload job producer
+     */
+    public void setJobProducer(JobProducer jobProducer) {
+        this.jobProducer = jobProducer;
     }
 
     /**
@@ -219,25 +230,13 @@ public class BackupService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response uploadBackup(@QueryParam("tag") final String backupTag) {
         log.info("Received upload backup request, backup tag={}", backupTag);
-        try {
-            Runnable upload = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        log.info("Upload backup({}) begin", backupTag);
-                        backupScheduler.getUploadExecutor().runOnce(backupTag);
-                        log.info("Upload backup({}) finish", backupTag);
-                    } catch (Exception e) {
-                        log.error("Upload backup({}) failed", backupTag, e);
-                    }
-                }
-            };
-            backupUploader.execute(upload);
-        } catch (BackupException e) {
-            log.error("Failed to upload backup(tag={})", backupTag, e);
-            throw APIException.internalServerErrors.createObjectError("Backup files", e);
-        }
-        return Response.ok().build();
+
+        BackupUploadStatus job = new BackupUploadStatus();
+        job.setBackupName(backupTag);
+        job.setStatus(Status.NOT_STARTED);
+        jobProducer.enqueue(job);
+
+        return Response.status(ASYNC_STATUS).build();
     }
 
     @GET

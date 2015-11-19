@@ -83,6 +83,7 @@ import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
 import com.emc.storageos.recoverpoint.objectmodel.RPConsistencyGroup;
 import com.emc.storageos.recoverpoint.objectmodel.RPSite;
+import com.emc.storageos.recoverpoint.requests.CGPolicyParams;
 import com.emc.storageos.recoverpoint.requests.CGRequestParams;
 import com.emc.storageos.recoverpoint.requests.CreateBookmarkRequestParams;
 import com.emc.storageos.recoverpoint.requests.CreateCopyParams;
@@ -93,6 +94,7 @@ import com.emc.storageos.recoverpoint.requests.MultiCopyEnableImageRequestParams
 import com.emc.storageos.recoverpoint.requests.MultiCopyRestoreImageRequestParams;
 import com.emc.storageos.recoverpoint.requests.RPCopyRequestParams;
 import com.emc.storageos.recoverpoint.requests.RecreateReplicationSetRequestParams;
+import com.emc.storageos.recoverpoint.requests.UpdateCGPolicyParams;
 import com.emc.storageos.recoverpoint.responses.CreateBookmarkResponse;
 import com.emc.storageos.recoverpoint.responses.GetBookmarksResponse;
 import com.emc.storageos.recoverpoint.responses.MultiCopyDisableImageResponse;
@@ -848,10 +850,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         cgParams.setCgUri(cg.getId());
         cgParams.setProject(project.getId());
         cgParams.setTenant(project.getTenantOrg().getURI());
-        cgParams.cgPolicy = new CGRequestParams.CGPolicyParams();
-        cgParams.cgPolicy.copyMode = copyMode;
-        cgParams.cgPolicy.rpoType = rpoType;
-        cgParams.cgPolicy.rpoValue = rpoValue;
+        CGPolicyParams policyParams = new CGPolicyParams();
+        policyParams.setCopyMode(copyMode);
+        policyParams.setRpoType(rpoType);
+        policyParams.setRpoValue(rpoValue);
+        cgParams.setCgPolicy(policyParams);
         _log.info(String.format("CG Request param complete:%n %s", cgParams));
         return cgParams;
     }
@@ -1222,7 +1225,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * This method acquires all the RP locks necessary for the operation based on the RPExport information.
-     * 
+     *
      * @param taskId Task Id
      * @param lockException lockException
      * @param rpExports RPExports information
@@ -1259,7 +1262,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Build a map of initiators for each RP site/cluster in the export request.
-     * 
+     *
      * @param rpSystem RP system
      * @param rpExports RP Export objects
      * @return Map of RP site to its initiators
@@ -3591,6 +3594,40 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return initiator;
     }
 
+    @Override
+    public void updateConsistencyGroupPolicy(URI protectionDevice, URI cgUri, String copyMode, String task) throws InternalException {
+        _log.info(String.format("Request to update consistency group policy for CG %s", cgUri));
+        RPCGProtectionTaskCompleter taskCompleter = null;
+        try {
+            ProtectionSystem rpSystem = getRPSystem(protectionDevice);
+            taskCompleter = new RPCGProtectionTaskCompleter(cgUri, BlockConsistencyGroup.class, task);
+
+            // Lock the CG or fail
+            lockCG(taskCompleter);
+
+            RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
+
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+            CGPolicyParams policyParams = new CGPolicyParams(copyMode);
+            UpdateCGPolicyParams updateParams = new UpdateCGPolicyParams(
+                    cg.getCgNameOnStorageSystem(protectionDevice), policyParams);
+
+            taskCompleter.setOperationTypeEnum(OperationTypeEnum.START_RP_LINK);
+            rp.updateConsistencyGroupPolicy(updateParams);
+            taskCompleter.ready(_dbClient, _locker);
+        } catch (InternalException e) {
+            _log.error("Operation failed with Exception: ", e);
+            if (taskCompleter != null) {
+                taskCompleter.error(_dbClient, _locker, e);
+            }
+        } catch (Exception e) {
+            _log.error("Operation failed with Exception: ", e);
+            if (taskCompleter != null) {
+                taskCompleter.error(_dbClient, _locker, DeviceControllerException.errors.jobFailed(e));
+            }
+        }
+    }
+
     /*
      * (non-Javadoc)
      *
@@ -5398,22 +5435,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             WorkflowStepCompleter.stepExecuting(token);
             _log.info("Update CG step executing");
-            
+
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
-            
-            if (!existingProtectedSourceVolumeDescriptors.isEmpty()) {                    
+
+            if (!existingProtectedSourceVolumeDescriptors.isEmpty()) {
                 // Get the first descriptor, that's all we need. This operation will
                 // affect all the RSets in the CG by adding a new standby copy.
                 VolumeDescriptor descriptor = existingProtectedSourceVolumeDescriptors.get(0);
-                            
+
                 Volume sourceVolume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
-    
+
                 URI newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
                 URI oldVPoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID);
-    
+
                 VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVPoolURI);
-    
+
                 // Phase 1 - Only support upgrade from RP+VPLEX to MetroPoint.
                 // This includes:
                 // Adding a secondary journal and possibly adding MP targets to an existing RP+VPLEX CG
@@ -5423,7 +5460,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
                     upgradeRPVPlexToMetroPoint(sourceVolume, newVpool, oldVpool, rpSystem);
                 }
-    
+
                 // Update the ProtectionSet with any newly added protection set objects
                 // TODO support remove as well?
                 ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet());

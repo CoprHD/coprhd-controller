@@ -26,6 +26,7 @@ import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.application.ApplicationCreateParam;
 import com.emc.storageos.model.application.ApplicationList;
@@ -181,14 +182,6 @@ public class ApplicationService extends TaskResourceService {
         String description = param.getDescription();
         if (description != null && !description.isEmpty()) {
             application.setDescription(description);
-        }
-        Set<String> roles = param.getRoles();
-        if (roles != null && !roles.isEmpty()) {
-            for (String role : roles) {
-                ArgValidator.checkFieldValueFromEnum(role, APPLICATION_ROLES, Application.ApplicationRole.class);
-            }
-            application.setRoles(null);
-            application.addRoles(roles);
         }
         _dbClient.updateObject(application);
         auditOp(OperationTypeEnum.UPDATE_APPLICATION, true, null, application.getId().toString(),

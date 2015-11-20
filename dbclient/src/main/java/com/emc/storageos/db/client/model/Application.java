@@ -51,8 +51,8 @@ public class Application extends DataObject {
         return roles;
     }
     
-    public void setRoles(StringSet roles) {
-        this.roles = roles;
+    public void setRoles(StringSet theRoles) {
+        this.roles = theRoles;
         setChanged("roles");
     }
     

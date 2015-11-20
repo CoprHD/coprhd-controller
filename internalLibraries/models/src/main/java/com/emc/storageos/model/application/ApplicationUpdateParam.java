@@ -18,7 +18,6 @@ import com.emc.storageos.model.valid.Length;
 public class ApplicationUpdateParam {
     private String name;
     private String description;
-    private Set<String> roles;
     
     public static class ApplicationVolumeList {
         private List<URI> volumes;
@@ -127,19 +126,4 @@ public class ApplicationUpdateParam {
         this.description = description;
     }
     
-    @XmlElementWrapper(name = "roles", required = true)
-    /**
-     * The set of supported roles for the application.
-     * 
-     * @valid COPY
-     * @valid DR
-     */
-    @XmlElement(name = "role", required = true)
-    public Set<String> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<String> roles) {
-        this.roles = roles;
-    }
 }

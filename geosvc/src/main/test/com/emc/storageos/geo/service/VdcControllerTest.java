@@ -180,7 +180,7 @@ public class VdcControllerTest {
      * Adding vdc2 to vdc1
      */
     // Test hanging in IDE and "gradlew test"
-    // @Test
+    @Test
     public void testAddToSingleVdc() throws Exception {
         dbClient.buildInitData(1);
         // Treat as Geo strategy options already set to remove Cassandra, preventing calling to
@@ -224,7 +224,7 @@ public class VdcControllerTest {
      * Adding vdc4 to a connected vdc1/2/3
      */
     // Test hanging in IDE and "gradlew test"
-    // @Test
+    @Test
     public void testAddToMultipleVdc() throws Exception {
         // create a mockdb with 3 existing vdc
         dbClient.buildInitData(3);
@@ -265,7 +265,7 @@ public class VdcControllerTest {
     }
 
     // Test hanging in IDE and "gradlew test"
-    // @Test
+    @Test
     public void testAddVdcPrecheckFailure() throws Exception {
         // create a mock db with 2 existing vdc
         dbClient.buildInitData(2);
@@ -293,7 +293,7 @@ public class VdcControllerTest {
      * Remove vdc2 from vdc1
      */
     // Test hanging in IDE and "gradlew test"
-    // @Test
+    @Test
     public void testRemoveVdc() throws Exception {
         // create a mock db with 2 existing vdc
         dbClient.buildInitData(2);
@@ -327,7 +327,7 @@ public class VdcControllerTest {
      * Remove vdc2 from vdc1
      */
     // Test hanging in IDE and "gradlew test"
-    // @Test
+    @Test
     public void testRemoveVdcPreCheck() throws Exception {
         // create a mock db with 2 existing vdc
         dbClient.buildInitData(2);
@@ -361,7 +361,7 @@ public class VdcControllerTest {
      * Remove vdc2 from vdc1
      */
     // Test hanging in IDE and "gradlew test"
-    // @Test
+    @Test
     public void testRemoveVdcInUsePreCheck() throws Exception {
         // create a mock db with 2 existing vdc
         dbClient.buildInitData(2);
@@ -391,7 +391,7 @@ public class VdcControllerTest {
      * Remove vdc3 from vdc1/vdc2
      */
     // Test hanging in IDE and "gradlew test"
-    // @Test
+    @Test
     public void testRemoveVdcFromThreeSiteGeo() throws Exception {
         // create a mock db with 3 existing vdc
         dbClient.buildInitData(3);

@@ -890,7 +890,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
             });
             
-            return createVolumeOptions(client, snapshots);
+            return constructResyncSnapshotOptions(snapshots);
         } else {
             return getConsistencyGroupSnapshots(ctx, volumeId);
         }
@@ -1745,6 +1745,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         Map<URI, VolumeRestRep> volumeNames = getProjectVolumeNames(client, project);
         for (BlockSnapshotRestRep snapshot : snapshots) {
             options.add(new AssetOption(snapshot.getId(), getBlockObjectLabel(client, snapshot, volumeNames)));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    protected List<AssetOption> constructResyncSnapshotOptions(List<BlockSnapshotRestRep> snapshots) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (BlockSnapshotRestRep snapshot : snapshots) {
+            options.add(new AssetOption(snapshot.getId(), snapshot.getName()));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

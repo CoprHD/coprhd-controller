@@ -106,7 +106,6 @@ public class DisasterRecovery extends ViprResourceController {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
             ClientResponse failoversite = DisasterRecoveryUtils.doSwitchover(id);
-            // flash.success(MessagesUtils.get(SWITCHOVER_SUCCESS, result.getName()));
             standby_name = result.getName();
             standby_vip = result.getVip();
         }

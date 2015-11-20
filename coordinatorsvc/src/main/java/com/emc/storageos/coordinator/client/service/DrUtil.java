@@ -169,6 +169,18 @@ public class DrUtil {
         }
         return result;
     }
+
+    /**
+     * Get the total number of nodes in all sites of a VDC
+     * @return
+     */
+    public int getNodeCountWithinVdc() {
+        int vdcNodeCount = 0;
+        for (Site site : listSites()) {
+            vdcNodeCount += site.getNodeCount();
+        }
+        return vdcNodeCount;
+    }
     
     /**
      * Get number of running services in given site

@@ -823,7 +823,7 @@ case ${#} in
             --setsslprops)            _x _set_ssl_props        "${2}" ;;
             --set-data-revision)      _x _set_data_revision    "${2}" ;;
             --restart)                _x _restart              "${2}" ;;
-            --reconfig-props)          _x _reconfig_props       "${2}" ;;
+            --reconfig-props)         _x _reconfig_props       "${2}" ;;
             --reload)                 _x _reload               "${2}" ;;
             --reconfig-coordinator)   _x _reconfig_coordinator "${2}" ;;
             *)                        _usage

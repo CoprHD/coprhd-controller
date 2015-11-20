@@ -1,6 +1,13 @@
 package com.emc.storageos.driver.scaleio;
 
+import com.emc.storageos.storagedriver.DiscoveryDriver;
+import com.emc.storageos.storagedriver.model.StoragePool;
+import com.emc.storageos.storagedriver.model.StoragePort;
+import com.emc.storageos.storagedriver.model.StorageSystem;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by shujinwu on 11/17/15.
@@ -129,21 +136,115 @@ public class ScaleIOStorageDriverTest {
 
     @Test
     public void testDiscoverStorageSystem() throws Exception {
+        //DiscoveryDriver discoveryDriver = new DiscoveryDriver();
+        //DriverTask task = new DriverTask();
+        List<StorageSystem> storageSystems = new ArrayList<>();
+        StorageSystem validStorageSystem = new StorageSystem();
+        StorageSystem invalidStorageSystem = new StorageSystem();
+
+        validStorageSystem.setSystemName("TestValidSystem");
+        validStorageSystem.setSystemType("scaleio");
+        //validStorageSystem.setPortNumber();
+        validStorageSystem.setUsername("admin");
+        validStorageSystem.setPassword("Scaleio123");
+        validStorageSystem.setIpAddress("10.193.17.97");
+
+        // Valid list of storage systems
+        storageSystems.add(validStorageSystem);
+
+        //discoveryDriver.discoverStorageSystem(storageSystems);
+        //System.out.print(task);
+
+        invalidStorageSystem.setSystemName("TestInvalidSystem");
+        invalidStorageSystem.setSystemType("scaleio");
+        //invalidStorageSystem.setPortNumber();
+        invalidStorageSystem.setUsername("username");
+        invalidStorageSystem.setPassword("password");
+        invalidStorageSystem.setIpAddress("10.193.17.99");
+
+        // Partially valid list of storage systems
+        storageSystems.add(invalidStorageSystem);
+
+        //discoveryDriver.discoverStorageSystem(storageSystems);
+        //System.out.print(task);
+
+        // Invalid list of storage systems
+        storageSystems.remove(0);
+
+        //discoveryDriver.discoverStorageSystem(storageSystems);
+        // System.out.print(task);
+
+        // Empty list of storage systems
+        storageSystems.remove(0);
+
+        //discoveryDriver.discoverStorageSystem(storageSystems);
+        // System.out.print(task);
 
     }
 
     @Test
     public void testDiscoverStoragePools() throws Exception {
+        //DiscoveryDriver discoveryDriver = new DiscoveryDriver();
+        StorageSystem validStorageSystem = new StorageSystem();
+        StorageSystem invalidStorageSystem = new StorageSystem();
+
+
+        validStorageSystem.setSystemName("TestValidSystem");
+        validStorageSystem.setSystemType("scaleio");
+        //validStorageSystem.setPortNumber();
+        validStorageSystem.setUsername("admin");
+        validStorageSystem.setPassword("Scaleio123");
+        validStorageSystem.setIpAddress("10.193.17.97");
+
+        invalidStorageSystem.setSystemName("TestInvalidSystem");
+        invalidStorageSystem.setSystemType("scaleio");
+        //invalidStorageSystem.setPortNumber();
+        invalidStorageSystem.setUsername("username");
+        invalidStorageSystem.setPassword("password");
+        invalidStorageSystem.setIpAddress("10.193.17.99");
+
+        List<StoragePool> storagePools = new ArrayList<>();
+        StoragePool storagePool = new StoragePool();
+        storagePools.add(storagePool);
+
+        //discoveryDriver.discoverStoragePools(validStorageSystem, storagePools);
+        //discoveryDriver.discoverStoragePools(invalidStorageSystem, storagePools);
 
     }
 
     @Test
     public void testDiscoverStoragePorts() throws Exception {
+        //DiscoveryDriver discoveryDriver = new DiscoveryDriver();
+        StorageSystem validStorageSystem = new StorageSystem();
+        StorageSystem invalidStorageSystem = new StorageSystem();
 
+
+        validStorageSystem.setSystemName("TestValidSystem");
+        validStorageSystem.setSystemType("scaleio");
+        //validStorageSystem.setPortNumber();
+        validStorageSystem.setUsername("admin");
+        validStorageSystem.setPassword("Scaleio123");
+        validStorageSystem.setIpAddress("10.193.17.97");
+
+        invalidStorageSystem.setSystemName("TestInvalidSystem");
+        invalidStorageSystem.setSystemType("scaleio");
+        //invalidStorageSystem.setPortNumber();
+        invalidStorageSystem.setUsername("username");
+        invalidStorageSystem.setPassword("password");
+        invalidStorageSystem.setIpAddress("10.193.17.99");
+
+
+        List<StoragePort> storagePorts = new ArrayList<>();
+        StoragePort storagePort = new StoragePort();
+        storagePorts.add(storagePort);
+
+        //discoveryDriver.discoverStoragePools(validStorageSystem, storagePools);
+        //discoveryDriver.discoverStoragePools(invalidStorageSystem, storagePools);
     }
 
     @Test
     public void testGetStorageVolumes() throws Exception {
+        // We are not implementing this for the current release
 
     }
 

@@ -83,7 +83,6 @@ import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.sun.jersey.api.client.Client;
 
 @Component
 @AssetNamespace("vipr")
@@ -1289,12 +1288,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     .run();
             return createBaseResourceOptions(consistencyGroups);
         }
-//        Set<URI> volumeIds = Sets.newHashSet();
-//        for (BlockSnapshotRestRep snapshot : client.blockSnapshots().findByProject(project)) {
-//            volumeIds.add(snapshot.getParent().getId());
-//        }
-//        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds);
-//        return createVolumeOptions(client, volumes);
     }
 
     @Asset("localSnapshotBlockVolume")

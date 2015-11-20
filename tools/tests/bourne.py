@@ -126,6 +126,7 @@ URI_DR_DELETE              = URI_DR   + '/{0}'
 URI_DR_PAUSE               = URI_DR   + '/{0}' + '/pause'
 URI_DR_RESUME              = URI_DR   + '/{0}' + '/resume'
 URI_DR_SWITCHOVER          = URI_DR    + '/{0}/switchover'
+URI_DR_FAILOVER            = URI_DR   + '/{0}/failover'
 
 URI_VDC                     = URI_SERVICES_BASE  + '/vdc'
 URI_VDC_GET                 = URI_VDC    + '/{0}'
@@ -133,6 +134,8 @@ URI_VDC_DISCONNECT_POST     = URI_VDC    + '/{0}/disconnect'
 URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
+
+URI_IPSEC               = '/ipsec'
 
 URI_VDCINFO                 =  '/object/vdcs' 
 URI_VDCINFO_GET             = URI_VDCINFO    + '/vdc' + '/{0}'
@@ -3304,6 +3307,23 @@ class Bourne:
         resp = self.api('POST', URI_DR_RESUME.format(uuid))
         print "DR RESUME STANDBY RESP = ",resp
         self.assert_is_dict(resp)
+        return resp
+
+    def dr_failover(self,uuid):
+        resp = self.api('POST', URI_DR_FAILOVER.format(uuid))
+        print "DR FAILOVER RESP = ",resp
+        return resp
+
+    #
+    # IPsec APIs
+    #
+
+    def ipsc_rotate_key(self):
+        resp = self.api('POST', URI_IPSEC)
+        return resp
+
+    def ipsc_check(self):
+        resp = self.api('GET', URI_IPSEC)
         return resp
 
     #

@@ -404,6 +404,7 @@ public enum OperationTypeEnum {
     REMOVE_STANDBY("REMOVE STANDBY", "", "operation to remove an existing standby from ensemble"),
     PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to pause replication between primary and standby"),
     RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to resume replication between primary and standby"),
+    IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
     SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to switchover from primary site to a standby site"),
     FAILOVER("FAILOVER TO A STANDBY", "", "operation to failover to a standby site");
 

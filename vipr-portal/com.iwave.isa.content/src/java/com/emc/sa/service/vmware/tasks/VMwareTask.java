@@ -44,14 +44,18 @@ public class VMwareTask<T> extends ExecutionTask<T> {
     }
 
     public void cancelTask(Task task) throws Exception {
-        if (task == null || task.getTaskInfo() == null) {
-            warn("VMware task is null or has no task info. Unable to cancel it.");
-        } else {
-            TaskInfoState state = task.getTaskInfo().getState();
-            if (state == TaskInfoState.queued || state == TaskInfoState.running) {
-                info("Cancelling task '%s'", getDetail());
-                task.cancelTask();
+        try {
+            if (task == null || task.getTaskInfo() == null) {
+                warn("VMware task is null or has no task info. Unable to cancel it.");
+            } else {
+                TaskInfoState state = task.getTaskInfo().getState();
+                if (state == TaskInfoState.queued || state == TaskInfoState.running) {
+                    info("Cancelling task '%s'", getDetail());
+                    task.cancelTask();
+                }
             }
+        } catch (Exception ex) {
+            warn("Error occurred while canceling the vmware task: %s", ex.getMessage());
         }
     }
 

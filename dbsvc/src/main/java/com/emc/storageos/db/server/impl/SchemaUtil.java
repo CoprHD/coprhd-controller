@@ -373,12 +373,6 @@ public class SchemaUtil {
     private boolean checkStrategyOptionsForDROnActive(Map<String, String> strategyOptions) {
         boolean changed = false;
 
-        // this should only be done on primary site since the only standby site might be unavailable
-        // and we want the paused site to be able to resume without extra operations
-        if (onStandby) {
-            return changed;
-        }
-
         // iterate through all the sites and exclude the paused ones
         for(Site site : drUtil.listSites()) {
             String dcId = drUtil.getCassandraDcId(site);

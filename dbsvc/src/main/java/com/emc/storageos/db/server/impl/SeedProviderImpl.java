@@ -39,7 +39,7 @@ public class SeedProviderImpl implements SeedProvider {
     private String _id;
     private CoordinatorClientImpl _client;
     private List<String> extraSeeds = new ArrayList<>();
-    private boolean isDrActive;
+    private boolean isDrActiveSite;
     
     /**
      * This constructor's argument is from cassandral's yaml configuration. Here is an example
@@ -107,11 +107,18 @@ public class SeedProviderImpl implements SeedProvider {
         client.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
         client.start();
         DrUtil drUtil = new DrUtil(client);
-        isDrActive = drUtil.isPrimary();
+        isDrActiveSite = drUtil.isPrimary();
         
         _client = client;
     }
 
+    /**
+     *  We select seeds based on the following rules -
+     *  For DR standby sites, use all nodes in active site as seeds
+     *  For DR active site, use local nodes as seeds. The rule to select local seed is
+     *    - first boot node(AUTOBOOT = false) uses itself as seed nodes so that it could boot and initialize schema
+     *    - subsquent node(AUTOBOOT = true) uses other successfully booted(JOINED = true) nodes as seeds
+     */
     @Override
     public List<InetAddress> getSeeds() {
         try {
@@ -119,14 +126,15 @@ public class SeedProviderImpl implements SeedProvider {
             List<Configuration> configs = _client.queryAllConfiguration(Constants.DB_CONFIG);
             List<InetAddress> seeds = new ArrayList<>();
 
-            // Add extra seeds
+            // Add extra seeds - seeds from remote sites
             for (String seed : extraSeeds) {
                 if (StringUtils.isNotEmpty(seed)) {
                     seeds.add(InetAddress.getByName(seed));
                 }
             }
-            // on DR active site, select other nodes in the cluster as seeds
-            if (isDrActive) {
+            // On DR standby site, only use seeds from active site. On active site
+            // we use local seeds
+            if (isDrActiveSite) {
                 for (int i = 0; i < configs.size(); i++) {
                     Configuration config = configs.get(i);
                     // Bypasses item of "global" and folders of "version", just check db configurations.

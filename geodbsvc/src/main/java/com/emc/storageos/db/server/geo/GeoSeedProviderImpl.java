@@ -43,7 +43,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
     private CoordinatorClient coordinator;
     private List<String> seeds = new ArrayList<>();
-    private boolean isDrActive;
+    private boolean isDrActiveSite;
     /**
      * 
      * @param args
@@ -113,15 +113,20 @@ public class GeoSeedProviderImpl implements SeedProvider {
         client.start();
         
         DrUtil drUtil = new DrUtil(client);
-        isDrActive = drUtil.isPrimary();
+        isDrActiveSite = drUtil.isPrimary();
         
         coordinator = client;
     }
 
     /**
-     * Initialize seed list
-     * 
-     * @param args
+     *  We select seeds based on the following rules -
+     *  For DR - 
+     *     Standby sites, use all nodes in active site as seeds
+     *     Active site, use local nodes as seeds. The rule to select local seed is
+     *        - first boot node(AUTOBOOT = false) uses itself as seed nodes so that it could boot and initialize schema
+     *        - subsequent node(AUTOBOOT = true) uses other successfully booted(JOINED = true) nodes as seeds
+     *  For GEO(a.k.a multivdc) -
+     *     Use first node of all other vdc, and other active nodes in local vdc as seed nodes
      */
     private void initSeedList(Map<String, String> args) {
         // seed nodes in sites
@@ -138,7 +143,9 @@ public class GeoSeedProviderImpl implements SeedProvider {
                 seeds.add(ip);
             }
         }
-        if (isDrActive) {
+        // On DR standby site, only use seeds from active site. On active site
+        // we use local seeds
+        if (isDrActiveSite) {
             // add local seed(s):
             // -For fresh install and upgraded system from 1.1,
             // get the first started node via the AUTOBOOT flag.

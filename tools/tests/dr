@@ -36,7 +36,7 @@ def dr_find_site(args):
     sites=bourne.dr_list_standby()
     for site in sites['site']:
         for key, value in site.iteritems():
-            if args.key in key and args.value in value:
+            if args.key == key and args.value == value:
                 print site['uuid']
                 return
     raise ValueError("site with key value pair %s:%s doesn't exist" % (args.key,args.value))

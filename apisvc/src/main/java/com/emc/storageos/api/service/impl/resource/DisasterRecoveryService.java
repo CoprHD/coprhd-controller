@@ -620,6 +620,27 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.operationOnlyAllowedOnPausedSite(standby.getName(), standby.getState().toString());
         }
 
+        if (drUtil.isStandby()) {
+            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(uuid, "Operation is allowed on primary only");
+        }
+        if (!isClusterStable()) {
+            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(uuid, "Cluster is not stable");
+        }
+
+        for (Site site : drUtil.listStandbySites()) {
+            // don't check node state for paused sites.
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                continue;
+            }
+            int nodeCount = site.getNodeCount();
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                log.info("Site {} is not stable {}", site.getUuid(), state);
+                throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(uuid,
+                        String.format("Site %s is not stable", site.getName()));
+            }
+        }
+
         InterProcessLock lock = getDROperationLock();
 
         try {

@@ -48,7 +48,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
      */
     @Override
     public void setServer(String server) {
-        setServiceURI(URI.create("https://" + server + ":8443"));
+        setServiceURI(URI.create("https://" + server + ":4443"));
     }
 
     /**

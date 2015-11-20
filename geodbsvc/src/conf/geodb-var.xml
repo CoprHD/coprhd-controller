@@ -26,7 +26,6 @@
                 <value>vdc1</value>
             </list>
         </property>
-        <property name="onStandby" value="false"/>
         <property name="drUtil" ref="drUtil"/>
     </bean>
 

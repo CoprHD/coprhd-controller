@@ -21,11 +21,15 @@ public class ListHBAInfoCommand extends HpuxResultsCommand<List<HBAInfo>> {
 
     public ListHBAInfoCommand() {
         StringBuilder sb = new StringBuilder();
-        sb.append("for DEVICE in $(ioscan -kfnCfc | awk '/dev/{print $1}')");
-        sb.append("do ");
-        sb.append("  echo \"host: $DEVICE\" ; ");
-        sb.append("  /opt/fcms/bin/fcmsutil $DEVICE | grep \"World Wide Name\"  | grep \"N_Port\" ");
+        sb.append("for DEVICE in $(ioscan -kfnCfc | awk '/dev/{print $1}')\n");
+        sb.append("do \n");
+        sb.append("  echo \"host: $DEVICE\" ; \n");
+        sb.append("  /opt/fcms/bin/fcmsutil $DEVICE | grep \"World Wide Name\"  | grep \"N_Port\" \n");
         sb.append("done; ");
+
+        String command = sb.toString();
+        System.out.println(command);
+
         setCommand(sb.toString());
     }
 

@@ -245,7 +245,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             ConfigurationImpl localVdcConfigImpl = new ConfigurationImpl();
             localVdcConfigImpl.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
             localVdcConfigImpl.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
-            localVdcConfigImpl.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, "vdc1");
+            localVdcConfigImpl.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID);
             persistServiceConfiguration(localVdcConfigImpl);
             localVdcConfig = localVdcConfigImpl;
         }
@@ -1184,9 +1184,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> T queryRuntimeState(String key, Class<T> clazz) throws CoordinatorException {
-        String sitePrefix = getSitePrefix();
-
-        String path = String.format("%s%s/%s",sitePrefix,ZkPath.STATE, key);
+        String path = String.format("%s/%s",ZkPath.STATE, key);
 
         try {
             byte[] data = _zkConnection.curator().getData().forPath(path);
@@ -1204,9 +1202,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> void persistRuntimeState(String key, T state) throws CoordinatorException {
-        String sitePrefix = getSitePrefix();
-
-        String path = String.format("%s%s/%s",sitePrefix,ZkPath.STATE, key);
+        String path = String.format("%s/%s",ZkPath.STATE, key);
 
         try {
             int lastSlash = path.lastIndexOf('/');

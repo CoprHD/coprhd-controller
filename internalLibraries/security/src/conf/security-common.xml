@@ -46,8 +46,6 @@
         <property name="defaultPskFile" value="${product.home:/opt/storageos}/conf/psk.default"/>
     </bean>
 
-    <bean id="ipsecKeyGenerator" class="com.emc.storageos.security.ipsec.IPsecKeyGenerator" />
-
     <!-- Uncomment this to disable token encoding/decoding, signing
     <bean id="tokenEncodingDisabler" class="com.emc.storageos.security.TokenEncodingDisabler"/>
     -->

@@ -1,18 +1,14 @@
 /*
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.resource;
 
 import com.emc.storageos.model.ipsec.IPsecStatus;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -25,8 +21,13 @@ import javax.ws.rs.core.MediaType;
 @Path("/ipsec")
 public class IPsecService {
 
+
+    private static final String IPSEC_SERVICE_TYPE = "ipsec";
     @Autowired
-    IPsecManager ipsecMgr;
+    private IPsecManager ipsecMgr;
+
+    @Autowired
+    private AuditLogManager auditMgr;
 
     /**
      * Rotate the VIPR IPsec Pre-shared key.
@@ -38,7 +39,13 @@ public class IPsecService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public String rotateIPsecKey() {
         String version = ipsecMgr.rotateKey();
-        // auditOp(OperationTypeEnum.IPSEC_KEY_ROTATE, true, null, version);
+        auditMgr.recordAuditLog(null, null,
+                IPSEC_SERVICE_TYPE,
+                OperationTypeEnum.UPDATE_SYSTEM_PROPERTY,
+                System.currentTimeMillis(),
+                AuditLogManager.AUDITLOG_SUCCESS,
+                null);
+
         return version;
     }
 

@@ -20,7 +20,7 @@ public class ScaleIORestHandleFactory {
     private static final Logger log = LoggerFactory.getLogger(ScaleIORestHandleFactory.class);
     private final Map<String, ScaleIORestClient> ScaleIORestClientMap = new ConcurrentHashMap<String, ScaleIORestClient>();
     private final Object syncObject = new Object();
-    private ScaleIORestClientFactory scaleIORestClientFactory;
+    private ScaleIORestClientFactory scaleIORestClientFactory=new ScaleIORestClientFactory();
 
     public ScaleIORestClientFactory getScaleIORestClientFactory() {
         return scaleIORestClientFactory;

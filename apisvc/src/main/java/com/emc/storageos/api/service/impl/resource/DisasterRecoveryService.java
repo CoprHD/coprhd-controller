@@ -304,9 +304,9 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Get primary
+     * Check if current site is primary site
      * 
-     * @return site list contains all sites with detail information
+     * @return SitePrimary true if current site is primary else false 
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

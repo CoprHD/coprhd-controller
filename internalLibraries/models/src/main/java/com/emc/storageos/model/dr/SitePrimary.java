@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.dr;
@@ -9,7 +9,7 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "site_id_list")
+@XmlRootElement(name = "site_is_primary")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class SitePrimary {
 
@@ -19,7 +19,7 @@ public class SitePrimary {
         isPrimary = false;
     }
 
-    @XmlElement(name = "id")
+    @XmlElement(name = "isPrimary")
     public boolean getIsPrimary() {
         return isPrimary;
     }

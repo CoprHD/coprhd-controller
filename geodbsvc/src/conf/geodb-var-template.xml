@@ -29,7 +29,6 @@
                 </foreach>
             </list>
         </property>
-        <property name="onStandby" value="${site_is_standby}"/>
         <property name="drUtil" ref="drUtil"/>
     </bean>
 

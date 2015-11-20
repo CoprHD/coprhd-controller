@@ -74,6 +74,7 @@
     <bean id="auditLogManager"
         class="com.emc.storageos.security.audit.AuditLogManager">
       <property name="dbClient" ref="dbclient"/>
+      <property name="coordinator" ref="coordinator" />
     </bean>
 
     <bean id="backupService" class="com.emc.storageos.systemservices.impl.resource.BackupService" >
@@ -409,6 +410,8 @@
     <bean id="ipsecMgr" class="com.emc.storageos.systemservices.impl.ipsec.IPsecManager">
         <property name="coordinator" ref="coordinator"/>
     </bean>
+
+    <bean id="ipsecMonitor" class="com.emc.storageos.systemservices.impl.security.IPSecMonitor" />
 
     <bean id="dbConsistencyJobProducer" class="com.emc.storageos.systemservices.impl.jobs.producer.DbConsistencyJobProducer" init-method="startQueue" destroy-method="stopQueue">
         <property name="coordinator" ref="coordinator"/>

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2013-2014 EMC Corporation
+# Copyright (c) 2015 EMC Corporation
 # All Rights Reserved
 #
 # /etc/ipsectool
@@ -140,7 +140,7 @@ _get_remote_prop() {
 
 #
 # get values of vdc_config_version and ipsec_key from remote node
-# the 2 values separated by space
+# the 2 values are in different lines
 #
 _get_props() {
     local remote=${1}

@@ -62,6 +62,8 @@ public class VdcSiteManager extends AbstractManager {
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
+    private static final int MAX_PAUSE_RETRY = 5;
+    private static final int MAX_RESUME_RETRY = 5;
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
@@ -78,6 +80,7 @@ public class VdcSiteManager extends AbstractManager {
     // Timeout in minutes for add/resume/data sync
     // If data synchronization takes long than this value, set site to error
     public static final int ADD_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
+    public static final int PAUSE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
@@ -88,6 +91,8 @@ public class VdcSiteManager extends AbstractManager {
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
     
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
+    private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
+    private static final String LOCK_RESUME_STANDBY="drResumeStandbyLock";
     
     private static final String LOCK_FAILOVER_REMOVE_OLD_PRIMARY="drFailoverRemoveOldPrimaryLock";
     
@@ -377,17 +382,18 @@ public class VdcSiteManager extends AbstractManager {
 
         log.info("Step3: Setting vdc properties not rebooting for single VDC change, action={}", action);
         checkAndRemoveStandby();
-        
         checkAndRemovePrimaryForFailover();
+        checkAndResumeStandby();
 
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
-                rebuildLocalDbIfNecessary();
                 reconfigRestartSvcs();
+                checkAndPauseOnPrimary();
                 cleanupSiteErrorIfNecessary();
                 break;
             case SiteInfo.RECONFIG_IPSEC: // for ipsec key rotation
                 reconfigIPsec();
+                break;
             default:
                 PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
                 vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
@@ -757,14 +763,14 @@ public class VdcSiteManager extends AbstractManager {
      * 
      * @return
      */
-    private boolean hasRemovingStandby() {
-        return !listRemovingStandby().isEmpty();
+    private boolean hasStandbyInState(SiteState state) {
+        return !listStandbyInState(state).isEmpty();
     }
     
-    private List<Site> listRemovingStandby() {
-        List<Site> result = new ArrayList<Site>();
+    private List<Site> listStandbyInState(SiteState state) {
+        List<Site> result = new ArrayList<>();
         for(Site site : drUtil.listSites()) {
-            if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
+            if (site.getState().equals(state)) {
                 result.add(site);
             }
         }
@@ -794,18 +800,17 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private void checkAndRemoveOnPrimary() throws Exception {
-        String svcId = coordinator.getMySvcId();
-        
         InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_REMOVE_STANDBY);
-        while (hasRemovingStandby()) {
+        while (hasStandbyInState(SiteState.STANDBY_REMOVING)) {
             log.info("Acquiring lock {}", LOCK_REMOVE_STANDBY); 
             lock.acquire();
             log.info("Acquired lock {}", LOCK_REMOVE_STANDBY); 
-            List<Site> toBeRemovedSites = listRemovingStandby();
+            List<Site> toBeRemovedSites = listStandbyInState(SiteState.STANDBY_REMOVING);
             try {
                     
                 for (Site site : toBeRemovedSites) {
                     try {
+                        poweroffRemoteSite(site);
                         removeDbNodes(site);
                     } catch (Exception e) { 
                         populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
@@ -815,6 +820,7 @@ public class VdcSiteManager extends AbstractManager {
                 for (Site site : toBeRemovedSites) {
                     try {
                         removeDbReplication(site);
+                        removeSiteConfiguration(site);
                     } catch (Exception e) { 
                         populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
                         throw e;
@@ -828,78 +834,172 @@ public class VdcSiteManager extends AbstractManager {
     }
     
     private void checkAndRemoveOnStandby() {
-        List<Site> toBeRemovedSites = listRemovingStandby();
+        List<Site> toBeRemovedSites = listStandbyInState(SiteState.STANDBY_REMOVING);
         if (isRemovingCurrentSite(toBeRemovedSites)) {
             log.info("Current standby site is removed from DR. You can power it on and promote it as primary later");
             return;
         } else {
             log.info("Waiting for completion of site removal from primary site");
-            while (hasRemovingStandby()) {
+            while (hasStandbyInState(SiteState.STANDBY_REMOVING)) {
                 log.info("Waiting for completion of site removal from primary site");
                 retrySleep();
             }
         }
     }
-    
-    private void removeDbNodes(Site site) throws Exception {
-        poweroffRemoteSite(site);
-        
-        String dcName = drUtil.getCassandraDcId(site);
-        DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
-        try {
-            dbOps.removeDataCenter(dcName);
-        } finally {
-            dbOps.close();
-        }
-        
-        DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME);
-        try {
-            geodbOps.removeDataCenter(dcName);
-        } finally {
-            geodbOps.close();
+
+    /**
+     * Update the strategy options and remove the paused site from gossip ring on the primary site.
+     * This should be done after the firewall has been updated to block the paused site so that it's not affected.
+     */
+    private void checkAndPauseOnPrimary() {
+        InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_PAUSE_STANDBY);
+        while (hasStandbyInState(SiteState.STANDBY_PAUSING)) {
+            try {
+                log.info("Acquiring lock {}", LOCK_PAUSE_STANDBY);
+                lock.acquire();
+                log.info("Acquired lock {}", LOCK_PAUSE_STANDBY);
+
+                if (!hasStandbyInState(SiteState.STANDBY_PAUSING)) {
+                    // someone else updated the status already
+                    break;
+                }
+
+                for (Site site : listStandbyInState(SiteState.STANDBY_PAUSING)) {
+                    try {
+                        waitForSiteUnreachable(site);
+                        removeDbNodes(site);
+                    }  catch (Exception e) {
+                        populateStandbySiteErrorIfNecessary(site,
+                                APIException.internalServerErrors.pauseStandbyReconfigFailed(e.getMessage()));
+                        throw e;
+                    }
+                }
+
+                for (Site site : listStandbyInState(SiteState.STANDBY_PAUSING)) {
+                    try {
+                        removeDbReplication(site);
+                        // update the status to STANDBY_PAUSED
+                        site.setState(SiteState.STANDBY_PAUSED);
+                        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+                    } catch (Exception e) {
+                        populateStandbySiteErrorIfNecessary(site,
+                                APIException.internalServerErrors.pauseStandbyReconfigFailed(e.getMessage()));
+                        throw e;
+                    }
+                }
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            } finally {
+                try {
+                    log.info("Releasing lock {}", LOCK_PAUSE_STANDBY);
+                    lock.release();
+                } catch (Exception e) {
+                    log.error("Failed to release lock {}", LOCK_PAUSE_STANDBY);
+                }
+            }
         }
     }
-    
+
+    private void waitForSiteUnreachable(Site site) {
+        int retryCnt = 0;
+        while (!isSiteDbUnreachable(site)) {
+            if (++retryCnt > MAX_PAUSE_RETRY) {
+                throw new IllegalStateException("timeout waiting for db nodes to go down on paused site.");
+            }
+            retrySleep();
+        }
+    }
+
+    private boolean isSiteDbUnreachable(Site site) {
+        String dcName = drUtil.getCassandraDcId(site);
+        try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
+             DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
+            return dbOps.isDataCenterUnreachable(dcName) && geodbOps.isDataCenterUnreachable(dcName);
+        }
+    }
+
+    /**
+     * remove a site from cassandra gossip ring of dbsvc and geodbsvc
+     */
+    private void removeDbNodes(Site site) {
+        String dcName = drUtil.getCassandraDcId(site);
+        try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
+                DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
+            if (!dbOps.isDataCenterUnreachable(dcName)) {
+                throw new IllegalStateException(String.format("dbsvc of site %s is still reachable", dcName));
+            }
+            if (!geodbOps.isDataCenterUnreachable(dcName)) {
+                throw new IllegalStateException(String.format("geodbsvc of site %s is still reachable", dcName));
+            }
+            dbOps.removeDataCenter(dcName);
+            geodbOps.removeDataCenter(dcName);
+        }
+    }
+
+    // exclude the paused site from strategy options of dbsvc and geodbsvc
     private void removeDbReplication(Site site) {
-        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
         String dcName = drUtil.getCassandraDcId(site);
         ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcName);
         ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcName);
+    }
+
+    private void removeSiteConfiguration(Site site) {
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
         coordinatorClient.removeServiceConfiguration(site.toConfiguration());
         log.info("Removed site {} configuration from ZK", site.getUuid());
     }
 
-    private void rebuildLocalDbIfNecessary() throws Exception {
+    private void checkAndResumeStandby() {
         Site localSite = drUtil.getLocalSite();
-
-        String svcId = coordinator.getMySvcId();
-        while (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
-            if (!getVdcLock(svcId)) {
-                retrySleep(); // retry until we get the lock
-                localSite = drUtil.getLocalSite();
-                continue;
-            }
-
+        if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+            InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_RESUME_STANDBY);
             try {
-                int nodeCount = localSite.getNodeCount();
+                log.info("Acquiring lock {}", LOCK_RESUME_STANDBY);
+                lock.acquire();
+                log.info("Acquired lock {}", LOCK_RESUME_STANDBY);
 
-                // add back the paused site from strategy options of dbsvc and geodbsvc
-                String dcId = drUtil.getCassandraDcId(localSite);
-                ((DbClientImpl) dbClient).getLocalContext().addDcToStrategyOptions(dcId, nodeCount);
-                ((DbClientImpl) dbClient).getGeoContext().addDcToStrategyOptions(dcId, nodeCount);
+                localSite = drUtil.getLocalSite();
+                if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) { //nobody get the lock before me
+                    waitForSchemaAgreement();
 
-                localSite.setState(SiteState.STANDBY_SYNCING);
-                coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                    int nodeCount = localSite.getNodeCount();
+                    String dcName = drUtil.getCassandraDcId(localSite);
+                    ((DbClientImpl) dbClient).getLocalContext().addDcToStrategyOptions(dcName, nodeCount);
+                    ((DbClientImpl) dbClient).getGeoContext().addDcToStrategyOptions(dcName, nodeCount);
+
+                    localSite.setState(SiteState.STANDBY_SYNCING);
+                    coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                }
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
             } finally {
-                coordinator.releasePersistentLock(svcId, vdcLockId);
+                try {
+                    log.info("Releasing lock {}", LOCK_PAUSE_STANDBY);
+                    lock.release();
+                } catch (Exception e) {
+                    log.error("Failed to release lock {}", LOCK_PAUSE_STANDBY);
+                }
+            }
+
+            if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+                localRepository.restart("dbsvc");
+                localRepository.restart("geodbsvc");
             }
         }
+    }
 
-        // restart db services to initiate the rebuild
-        if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
-            localRepository.restart("dbsvc");
-            localRepository.restart("geodbsvc");
-        }
+    private void waitForSchemaAgreement() {
+        Map<String, List<String>> dbSchemaVersions;
+        Map<String, List<String>> geodbSchemaVersions;
+        int retryCnt = 0;
+        do {
+            dbSchemaVersions = ((DbClientImpl) dbClient).getLocalContext().getSchemaVersions();
+            geodbSchemaVersions = ((DbClientImpl) dbClient).getLocalContext().getSchemaVersions();
+            if (++retryCnt > MAX_RESUME_RETRY) {
+                throw new IllegalStateException("timeout waiting for db schema to reach agreement on paused site.");
+            }
+            retrySleep();
+        } while (dbSchemaVersions.size() > 1 || geodbSchemaVersions.size() > 1);
     }
 
     private void poweroffRemoteSite(Site site) {
@@ -989,6 +1089,13 @@ public class VdcSiteManager extends AbstractManager {
                             ADD_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
                 }
                 break;
+            case STANDBY_PAUSING:
+                if (currentTime - lastSiteUpdateTime > PAUSE_STANDBY_TIMEOUT_MILLIS) {
+                    log.info("Step5: Site {} set to error due to pause standby timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.pauseStandbyFailedTimeout(
+                            PAUSE_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                }
+                break;
             case STANDBY_RESUMING:
                 if (currentTime - lastSiteUpdateTime > RESUME_STANDBY_TIMEOUT_MILLIS) {
                     log.info("Step5: Site {} set to error due to resume standby timeout", site.getName());
@@ -1043,7 +1150,7 @@ public class VdcSiteManager extends AbstractManager {
 
     private void proccessNewPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is switchover standby site (new primary)");
-        
+
         blockUntilZookeeperIsWritableConnected();
         
         VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
@@ -1165,9 +1272,11 @@ public class VdcSiteManager extends AbstractManager {
                 log.info("Old primary site has been remove by other node, no action needed.");
                 return;
             }
-                
+
+            poweroffRemoteSite(primarySite);
             removeDbNodes(primarySite);
             removeDbReplication(primarySite);
+            removeSiteConfiguration(primarySite);
             
         } catch (Exception e) {
             populateStandbySiteErrorIfNecessary(drUtil.getLocalSite(), APIException.internalServerErrors.failoverReconfigFailed(e.getMessage()));

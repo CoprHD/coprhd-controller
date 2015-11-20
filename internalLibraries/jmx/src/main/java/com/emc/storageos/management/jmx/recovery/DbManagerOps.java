@@ -6,7 +6,6 @@ package com.emc.storageos.management.jmx.recovery;
 
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.storageos.services.util.PlatformUtils;
-import com.emc.storageos.services.util.Strings;
 import com.sun.tools.attach.AgentInitializationException;
 import com.sun.tools.attach.AgentLoadException;
 import com.sun.tools.attach.AttachNotSupportedException;
@@ -43,16 +42,14 @@ public class DbManagerOps implements AutoCloseable {
      * Create an DbManagerOps object that connects to specified service on localhost.
      * 
      * @param svcName The name of the service, which should have pid file as /var/run/svcName.pid
-     * @throws IOException
-     * @throws MalformedObjectNameException
-     * @throws AttachNotSupportedException
-     * @throws AgentLoadException
-     * @throws AgentInitializationException
      */
-    public DbManagerOps(String svcName) throws IOException, MalformedObjectNameException, AttachNotSupportedException, AgentLoadException,
-            AgentInitializationException {
-        this.conn = initJMXConnector(svcName);
-        initMbean(this.conn.getMBeanServerConnection());
+    public DbManagerOps(String svcName) {
+        try {
+            this.conn = initJMXConnector(svcName);
+            initMbean(this.conn.getMBeanServerConnection());
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -163,6 +160,11 @@ public class DbManagerOps implements AutoCloseable {
         }
     }
 
+    public boolean isDataCenterUnreachable(String dcName) {
+        log.info("Checking Cassandra nodes availability for {}", dcName);
+        return mbean.isDataCenterUnreachable(dcName);
+    }
+
     public void removeDataCenter(String dcName) {
         log.info("Removing Cassandra nodes for {}", dcName);
         mbean.removeDataCenter(dcName);
@@ -222,11 +224,15 @@ public class DbManagerOps implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         log.info("DbManagerOps.close() is called");
-        if (this.conn != null) {
-            this.conn.close();
-            this.conn = null;
+        try {
+            if (this.conn != null) {
+                this.conn.close();
+                this.conn = null;
+            }
+        } catch (IOException e) {
+            log.error("failed to close DbManagerOps", e);
         }
     }
 }

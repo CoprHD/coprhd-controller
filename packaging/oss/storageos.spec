@@ -101,6 +101,7 @@ fi
 /etc/systool
 /etc/diagtool
 /etc/powerofftool
+/etc/ipsectool
 /etc/gatherheapdumps
 /etc/getnic
 %config /etc/sysconfig/SuSEfirewall2-template

@@ -232,7 +232,10 @@ public interface InternalServerErrorExceptions {
     
     @DeclareServiceCode(ServiceCode.SYS_DR_NAT_CHECK_FAILED)
     public InternalServerErrorException invalidNatCheckCall(String clientIP, String directClientIp);
-    
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_CREATE_VIPR_CLIENT_FAILED)
+    public InternalServerErrorException failToCreateViPRClient();
+
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_FAILED)
     public InternalServerErrorException addStandbyFailed(String errMsg);
     

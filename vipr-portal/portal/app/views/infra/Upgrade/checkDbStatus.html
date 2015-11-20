@@ -34,7 +34,7 @@
 		  <span id="checkDbStatus">
 			#{if isDbCheckStatus.equals("FAILED")}&{'upgrade.checkDb.failed'}#{/if}
 		</span>
-		<span id="checkDetailMsg" style="color:#2c95dd"></span>
+		<div id="checkDetailMsg" style="color:#2c95dd"></div>
 		</td>
 		</tr>
 	</table>
@@ -110,8 +110,10 @@ function checkDbProgressUpdate() {
     		}
         	if(result.status == "FAILED") {
 				$("#checkDbStatus").text('&{'upgrade.checkDb.failed'}');
-        		updateProgressBarStyle("Status", "danger")
-        		$("#checkDetailMsg").text('Please check the syssvc log during '+result.startTime+' and '+result.endTime+' for more details and contact EMC Support Engineer');
+        		updateProgressBarStyle("Status", "danger");
+        		$("#checkDbStatus").css("color", "#d9534f");
+        		$("#checkDbStatus").css("font-weight", "bold");
+        		$("#checkDetailMsg").text('Please check the syssvc log during '+result.startTime+' and '+result.endTime+' for more details and contact EMC Support Engineer.');
         	}
         },
         error: function() {

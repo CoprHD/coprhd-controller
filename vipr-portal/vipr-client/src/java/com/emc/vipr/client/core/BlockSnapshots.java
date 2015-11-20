@@ -16,6 +16,7 @@ import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockSnapshotBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeSnapshotParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
@@ -370,4 +371,16 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
         return getIdUrl() + "/protection/full-copies";
     }
 
+    /**
+     * Begins resynchronizing a blocksnapshot of the given block volume.
+     * <p>
+     * API Call: <tt>POST /block/snapshots/{id}/resynchronize</tt>
+     * 
+     * @param snapshotId
+     *            the ID of the block snapshot to resynchronize.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockSnapshotRestRep> resynchronizeBlockSnapshot(URI snapshotId) {
+        return postTask(getIdUrl() + "/resynchronize", snapshotId);
+    }
 }

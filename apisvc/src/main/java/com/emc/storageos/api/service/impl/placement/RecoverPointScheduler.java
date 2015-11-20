@@ -578,7 +578,7 @@ public class RecoverPointScheduler implements Scheduler {
      * Returns a new RPProtectionRecommendation object. This method is invoked when a solution is not found and we need to loop back to
      * determine
      * placement solution with other storage systems/protection systems.
-     * 
+     *
      * @param vpoolChangeVolume Change Vpool volume
      * @return RPProtectionRecommendation
      */
@@ -771,11 +771,15 @@ public class RecoverPointScheduler implements Scheduler {
 
         RPRecommendation rpHaRecommendation = new RPRecommendation();
         VPlexRecommendation vplexRec = (VPlexRecommendation) haRecommendation;
+        // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
+        // these recs and they are invoked one at a time even
+        // in a multi-volume request.
+        vplexRec.setResourceCount(1);
+        rpHaRecommendation.setVirtualVolumeRecommendation(vplexRec);
         rpHaRecommendation.setSourceStoragePool(vplexRec.getSourceStoragePool());
         rpHaRecommendation.setSourceStorageSystem(vplexRec.getSourceStorageSystem());
         rpHaRecommendation.setVirtualArray(vplexRec.getVirtualArray());
         rpHaRecommendation.setVirtualPool(vplexRec.getVirtualPool());
-        rpHaRecommendation.setVirtualVolumeRecommendation(vplexRec);
         rpHaRecommendation.setResourceCount(capabilities.getResourceCount());
         rpHaRecommendation.setSize(capabilities.getSize());
         return rpHaRecommendation;
@@ -797,6 +801,7 @@ public class RecoverPointScheduler implements Scheduler {
             VirtualArray haVarray, VirtualPool haVpool, Project project,
             VirtualPoolCapabilityValuesWrapper capabilities,
             Map<String, List<StoragePool>> vplexPoolMapForVarray) {
+        Recommendation haRecommendation = null;
         List<Recommendation> vplexHaVArrayRecommendations = null;
 
         if (haVarray == null) {
@@ -812,8 +817,12 @@ public class RecoverPointScheduler implements Scheduler {
                 capabilities,
                 vplexPoolMapForVarray);
 
-        // There is only one recommendation ever, return the first recommendation.
-        return vplexHaVArrayRecommendations.get(0);
+        if (!vplexHaVArrayRecommendations.isEmpty()) {
+            // There is only one recommendation ever, return the first recommendation.
+            haRecommendation = vplexHaVArrayRecommendations.get(0);
+        }
+
+        return haRecommendation;
     }
 
     /**
@@ -2033,12 +2042,13 @@ public class RecoverPointScheduler implements Scheduler {
         // Build source journal
         Volume sourceJournal = dbClient.queryObject(Volume.class, sourceVolume.getRpJournalVolume());
         RPRecommendation sourceJournalRecommendation = new RPRecommendation();
-        VirtualPool sourceJournalVpool = dbClient.queryObject(VirtualPool.class, sourceJournal.getVirtualPool());
+        VirtualPool sourceJournalVpool = vpool.getJournalVpool() != null ?  dbClient.queryObject(VirtualPool.class, URI.create(vpool.getJournalVpool())) : vpool;
         sourceJournalRecommendation.setSourceStorageSystem(sourceJournal.getStorageController());
         sourceJournalRecommendation.setSourceStoragePool(sourceJournal.getPool());
         sourceJournalRecommendation.setVirtualArray(sourceJournal.getVirtualArray());
         sourceJournalRecommendation.setVirtualPool(sourceJournalVpool);
         sourceJournalRecommendation.setInternalSiteName(sourceJournal.getInternalSiteName());
+        // TODO: This should be getting capacity from the vpool, not the previously created volume.
         sourceJournalRecommendation.setSize(sourceJournal.getCapacity());
         sourceJournalRecommendation.setResourceCount(1);
 
@@ -2047,6 +2057,10 @@ public class RecoverPointScheduler implements Scheduler {
             vplexRec.setVPlexStorageSystem(sourceJournal.getStorageController());
             vplexRec.setVirtualArray(sourceJournal.getVirtualArray());
             vplexRec.setVirtualPool(sourceJournalVpool);
+            // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
+            // these recs and they are invoked one at a time even
+            // in a multi-volume request.
+            vplexRec.setResourceCount(1);
             sourceJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);
         }
         recommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
@@ -2055,12 +2069,13 @@ public class RecoverPointScheduler implements Scheduler {
         if (!NullColumnValueGetter.isNullURI(sourceVolume.getSecondaryRpJournalVolume())) {
             Volume standbyJournal = dbClient.queryObject(Volume.class, sourceVolume.getSecondaryRpJournalVolume());
             RPRecommendation standbyJournalRecommendation = new RPRecommendation();
-            VirtualPool standbyJournalVpool = dbClient.queryObject(VirtualPool.class, standbyJournal.getVirtualPool());
+            VirtualPool standbyJournalVpool = vpool.getStandbyJournalVpool() != null ? dbClient.queryObject(VirtualPool.class, URI.create(vpool.getStandbyJournalVpool())) : vpool;
             standbyJournalRecommendation.setSourceStorageSystem(standbyJournal.getStorageController());
             standbyJournalRecommendation.setSourceStoragePool(standbyJournal.getPool());
             standbyJournalRecommendation.setVirtualArray(standbyJournal.getVirtualArray());
             standbyJournalRecommendation.setVirtualPool(standbyJournalVpool);
             standbyJournalRecommendation.setInternalSiteName(standbyJournal.getInternalSiteName());
+            // TODO: This should be getting capacity from the vpool, not the previously created volume.
             standbyJournalRecommendation.setSize(standbyJournal.getCapacity());
             standbyJournalRecommendation.setResourceCount(1);
 
@@ -2069,6 +2084,10 @@ public class RecoverPointScheduler implements Scheduler {
                 vplexRec.setVPlexStorageSystem(sourceJournal.getStorageController());
                 vplexRec.setVirtualArray(sourceJournal.getVirtualArray());
                 vplexRec.setVirtualPool(sourceJournalVpool);
+                // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
+                // these recs and they are invoked one at a time even
+                // in a multi-volume request.
+                vplexRec.setResourceCount(1);
                 standbyJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);
             }
             recommendation.setStandbyJournalRecommendation(standbyJournalRecommendation);
@@ -2081,7 +2100,7 @@ public class RecoverPointScheduler implements Scheduler {
         sourceRecommendation.setInternalSiteName(sourceVolume.getInternalSiteName());
         sourceRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
         sourceRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool()));
-        sourceRecommendation.setSize(sourceVolume.getCapacity());
+        sourceRecommendation.setSize(capabilities.getSize());
         sourceRecommendation.setResourceCount(capabilities.getResourceCount());
 
         // Build vplex recommendation of the source if specified
@@ -2091,6 +2110,10 @@ public class RecoverPointScheduler implements Scheduler {
             virtualVolumeRecommendation.setVPlexStorageSystem(sourceVolume.getStorageController());
             virtualVolumeRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
             virtualVolumeRecommendation.setVirtualPool(sourceVirtualPool);
+            // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
+            // these recs and they are invoked one at a time even
+            // in a multi-volume request.
+            virtualVolumeRecommendation.setResourceCount(1);
             for (String associatedVolume : sourceVolume.getAssociatedVolumes()) {
                 Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
                 if (backingVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())) {
@@ -2117,24 +2140,30 @@ public class RecoverPointScheduler implements Scheduler {
                     haVirtualRecommendation.setVirtualPool(sourceVirtualPool);
                     haVirtualRecommendation.setSourceStoragePool(haVolume.getPool());
                     haVirtualRecommendation.setSourceStorageSystem(haVolume.getStorageController());
+                    // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
+                    // these recs and they are invoked one at a time even
+                    // in a multi-volume request.
+                    haVirtualRecommendation.setResourceCount(1);
                     haRec.setVirtualVolumeRecommendation(haVirtualRecommendation);
                 }
             }
             sourceRecommendation.setHaRecommendation(haRec);
         }
 
+        Map<URI, VpoolProtectionVarraySettings> protectionSettings = VirtualPool.getProtectionSettings(vpool, dbClient);
+        
         // Build targets
         for (VirtualArray protectionVarray : protectionVarrays) {
             RPRecommendation targetRecommendation = new RPRecommendation();
             Volume targetVolume = getTargetVolumeForProtectionVirtualArray(sourceVolume, protectionVarray);
-            VirtualPool targetVpool = dbClient.queryObject(VirtualPool.class, targetVolume.getVirtualPool());
+            VirtualPool targetVpool = protectionSettings.get(protectionVarray.getId()) != null ? dbClient.queryObject(VirtualPool.class, protectionSettings.get(protectionVarray.getId()).getVirtualPool()) : sourceVirtualPool;
             targetRecommendation.setInternalSiteName(targetVolume.getInternalSiteName());
             targetRecommendation.setVirtualArray(targetVolume.getVirtualArray());
             targetRecommendation.setVirtualPool(targetVpool);
             StoragePool targetPool = dbClient.queryObject(StoragePool.class, targetVolume.getPool());
             targetRecommendation.setSourceStoragePool(targetPool.getId());
             targetRecommendation.setSourceStorageSystem(targetPool.getStorageDevice());
-            targetRecommendation.setSize(targetVolume.getCapacity());
+            targetRecommendation.setSize(capabilities.getSize());
             targetRecommendation.setResourceCount(capabilities.getResourceCount());
 
             if (VirtualPool.vPoolSpecifiesHighAvailability(targetVpool)) {
@@ -2142,6 +2171,10 @@ public class RecoverPointScheduler implements Scheduler {
                 targetVplexRec.setVPlexStorageSystem(targetVolume.getStorageController());
                 targetVplexRec.setVirtualArray(targetVolume.getVirtualArray());
                 targetVplexRec.setVirtualPool(targetVpool);
+                // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
+                // these recs and they are invoked one at a time even
+                // in a multi-volume request.
+                targetVplexRec.setResourceCount(1);
                 targetRecommendation.setVirtualVolumeRecommendation(targetVplexRec);
             }
 
@@ -2153,7 +2186,7 @@ public class RecoverPointScheduler implements Scheduler {
             // Build target Journals
             RPRecommendation targetJournalRecommendation = new RPRecommendation();
             Volume targetJournal = dbClient.queryObject(Volume.class, targetVolume.getRpJournalVolume());
-            VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, targetJournal.getVirtualPool());
+            VirtualPool targetJournalVpool = protectionSettings.get(protectionVarray.getId()).getJournalVpool() != null ? dbClient.queryObject(VirtualPool.class, protectionSettings.get(protectionVarray.getId()).getJournalVpool()) : targetVpool;
             targetJournalRecommendation.setSourceStoragePool(targetJournal.getPool());
             targetJournalRecommendation.setSourceStorageSystem(targetJournal.getStorageController());
             targetJournalRecommendation.setVirtualPool(targetJournalVpool);
@@ -2167,6 +2200,10 @@ public class RecoverPointScheduler implements Scheduler {
                 targetJournalVplexRec.setVPlexStorageSystem(targetJournal.getStorageController());
                 targetJournalVplexRec.setVirtualArray(targetJournal.getVirtualArray());
                 targetJournalVplexRec.setVirtualPool(targetJournalVpool);
+                // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
+                // these recs and they are invoked one at a time even
+                // in a multi-volume request.
+                targetJournalVplexRec.setResourceCount(1);
                 targetJournalRecommendation.setVirtualVolumeRecommendation(targetJournalVplexRec);
             }
 
@@ -2507,6 +2544,9 @@ public class RecoverPointScheduler implements Scheduler {
             virtualVolumeRecommendation.setVPlexStorageSystem((sourceStorageSytemUri));
             virtualVolumeRecommendation.setSourceStoragePool(sourcePool.getId());
             virtualVolumeRecommendation.setSourceStorageSystem(sourcePool.getStorageDevice());
+            // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
+            // these recs and they are invoked one at a time even
+            // in a multi-volume request.
             virtualVolumeRecommendation.setResourceCount(1);
             rpRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
         }
@@ -2910,7 +2950,22 @@ public class RecoverPointScheduler implements Scheduler {
             URI storageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
                     ProtectionSystem.getAssociatedStorageSystemSerialNumber(associatedStorageSystem),
                     dbClient, StorageSystemType.BLOCK);
-
+            
+            if (storageSystemURI == null) {
+                // For some reason we did not get a valid storage system URI back,
+                // so just continue.
+                // There could be a couple reasons for this but the main one is 
+                // likely that the Storage System has been removed/deleted and
+                // RP Discovery hasn't run since. So there are probably stale entries
+                // in the associatedStorageSystems list.
+                _log.warn(String.format("Protection System [%s](%s) has an invalid entry for associated storage systems [%s]. "
+                            + "Please re-run Protection System discovery to correct this.", 
+                            candidateProtectionSystem.getLabel(),
+                            candidateProtectionSystem.getId(),
+                            associatedStorageSystem));
+                continue;
+            }
+            
             // If this is a RP+VPLEX or MetroPoint request check to see if the associatedStorageSystem is
             // in the list of valid VPLEXs, if it is, add the internalSiteName.
             if (vplexs != null && !vplexs.isEmpty()) {
@@ -2990,6 +3045,22 @@ public class RecoverPointScheduler implements Scheduler {
             URI storageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
                     ProtectionSystem.getAssociatedStorageSystemSerialNumber(associatedStorageSystem),
                     dbClient, StorageSystemType.BLOCK);
+                        
+            if (storageSystemURI == null) {
+                // For some reason we did not get a valid storage system URI back,
+                // so just continue.
+                // There could be a couple reasons for this but the main one is 
+                // likely that the Storage System has been removed/deleted and
+                // RP Discovery hasn't run since. So there are probably stale entries
+                // in the associatedStorageSystems list.
+                _log.warn(String.format("Protection System [%s](%s) has an invalid entry for associated storage systems [%s]. "
+                            + "Please re-run Protection System discovery to correct this.", 
+                            protectionSystem.getLabel(),
+                            protectionSystem.getId(),
+                            associatedStorageSystem));
+                continue;
+            }
+            
             String internalSiteName = ProtectionSystem.getAssociatedStorageSystemSiteName(associatedStorageSystem);
 
             // If this is a RP+VPLEX or MetroPoint request

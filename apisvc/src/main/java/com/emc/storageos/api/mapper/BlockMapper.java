@@ -16,7 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +32,10 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.ProtectionSet;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
@@ -67,6 +68,7 @@ import com.emc.storageos.model.block.tier.StorageTierRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
+import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 
 public class BlockMapper {
 
@@ -112,6 +114,22 @@ public class BlockMapper {
         to.setThinlyProvisioned(from.getThinlyProvisioned());
         to.setAccessState(from.getAccessState());
         to.setLinkStatus(from.getLinkStatus());
+        // Set xio3xvolume in virtualvolume only if it's backend volume belongs to xtremio & version is 3.x
+        if (null != dbClient && null != from.getAssociatedVolumes() && !from.getAssociatedVolumes().isEmpty()) {
+            for (String backendVolumeuri : from.getAssociatedVolumes()) {
+                Volume backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
+                if (null != backendVol) {
+                    StorageSystem system = dbClient.queryObject(StorageSystem.class, backendVol.getStorageController());
+
+                    if (null != system && StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
+                            && !XtremIOProvUtils.is4xXtremIOModel(system.getModel())) {
+                        to.setHasXIO3XVolumes(Boolean.TRUE);
+                        break;
+                    }
+                }
+            }
+        }
+
         if (from.getPool() != null) {
             to.setPool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getPool()));
         }
@@ -358,7 +376,8 @@ public class BlockMapper {
                 // CG.
                 Volume volume = dbClient.queryObject(Volume.class, volumes.iterator().next());
 
-                if (from.getTypes().contains(BlockConsistencyGroup.Types.RP.toString()) && volume.getProtectionSet() != null) {
+                if (from.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())
+                        && !NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
                     // Get the protection set from the first volume and set the appropriate fields
                     ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                     to.setRpConsistenyGroupId(protectionSet.getProtectionId());

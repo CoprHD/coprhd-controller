@@ -18,10 +18,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.SynchronizationState;
@@ -382,11 +384,11 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         } else {
             if (!isCG) {
                 Collection<String> mirrorTargetIds =
-                        Collections2.transform(blockMirrors, FCTN_VOLUME_URI_TO_STR);
+                        Collections2.transform(mirrorsToProcess, FCTN_VOLUME_URI_TO_STR);
                 String mirrorTargetCommaDelimList = Joiner.on(',').join(mirrorTargetIds);
                 Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
                         ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR, mirrorTargetCommaDelimList);
-                taskList.getTaskList().add(toTask(sourceVolume, blockMirrors, taskId, op));
+                taskList.getTaskList().add(toTask(sourceVolume, mirrorsToProcess, taskId, op));
             } else {
                 populateTaskList(sourceVolume, groupMirrorSourceMap, taskList, taskId,
                         ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR);
@@ -551,23 +553,53 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         Volume sourceVolume = _dbClient.queryObject(Volume.class, mirror.getSource().getURI());
         List<URI> mirrorURIs = new ArrayList<URI>();
         boolean isCG = sourceVolume.isInCG();
+        List<URI> promotees = null;
+
         if (isCG) {
-            Map<BlockMirror, Volume> groupMirrorSourceMap = getGroupMirrorSourceMap(mirrorURI, sourceVolume);
+            // for group mirrors, deactivate task will detach and delete the mirror that user asked to deactivate, and promote other mirrors in the group
+            Map<BlockMirror, Volume> groupMirrorSourceMap = getGroupMirrorSourceMap(mirror, sourceVolume);
             mirrorURIs = new ArrayList<URI>(transform(new ArrayList<BlockMirror>(groupMirrorSourceMap.keySet()), FCTN_MIRROR_TO_URI));
-            populateTaskList(sourceVolume, groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR);
+
+            // deactivate (detach and delete) mirrorURI
+            Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
+                    ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, mirrorURI.toString());
+            taskList.getTaskList().add(toTask(sourceVolume, Arrays.asList(mirror), taskId, op));
+
+            // detach and promote other mirrors in the group
+            groupMirrorSourceMap.remove(mirror);
+            populateTaskList(sourceVolume, groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.DETACH_BLOCK_MIRROR);
+
+            // detached mirrors (except the one deleted), will be promoted to regular block volumes
+            promotees = preparePromotedVolumes(new ArrayList<BlockMirror>(groupMirrorSourceMap.keySet()), taskList, taskId);
         } else {
+            // for single volume mirror, deactivate task will detach and delete the mirror
             mirrorURIs = Arrays.asList(mirror.getId());
             Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
                     ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, mirror.getId().toString());
             taskList.getTaskList().add(toTask(sourceVolume, Arrays.asList(mirror), taskId, op));
         }
+
         try {
             BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-            controller.deactivateMirror(storageSystem.getId(), mirrorURIs, isCG, taskId);
+            controller.deactivateMirror(storageSystem.getId(), mirrorURIs, promotees, isCG, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to deactivate continuous copy %s", mirror.getId().toString());
             _log.error(errorMsg, e);
+
+            if (promotees != null && !promotees.isEmpty()) {
+                List<Volume> volumes = _dbClient.queryObject(Volume.class, promotees);
+                for (Volume volume : volumes) {
+                    volume.setInactive(true);
+                }
+                _dbClient.persistObject(volumes);
+            }
+
             _dbClient.error(Volume.class, mirror.getSource().getURI(), taskId, e);
+
+            for (TaskResourceRep taskResourceRep : taskList.getTaskList()) {
+                taskResourceRep.setState(Operation.Status.error.name());
+                taskResourceRep.setMessage(errorMsg);
+            }
         }
 
         return taskList;
@@ -657,7 +689,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      */
     @Override
     protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
-            List<URI> volumeURIs) {
+            List<URI> volumeURIs, String deletionType) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         for (URI volumeURI : volumeURIs) {
             VolumeDescriptor desc = new VolumeDescriptor(
@@ -735,8 +767,13 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                             .getReplicationGroupInstance()), queryResults);
             Iterator<URI> resultsIter = queryResults.iterator();
             while (resultsIter.hasNext()) {
-                BlockMirror obj = _dbClient.queryObject(BlockMirror.class, resultsIter.next());
-                mirrorSourceMap.put(obj, _dbClient.queryObject(Volume.class, obj.getSource()));
+                URI uri = resultsIter.next();
+                if (uri.equals(mirror.getId())) {
+                    mirrorSourceMap.put(mirror, sourceVolume);
+                } else {
+                    BlockMirror obj = _dbClient.queryObject(BlockMirror.class, uri);
+                    mirrorSourceMap.put(obj, _dbClient.queryObject(Volume.class, obj.getSource()));
+                }
             }
         }
 
@@ -754,7 +791,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      */
     private void populateTaskList(Volume source, Map<BlockMirror, Volume> groupMirrorSourceMap, TaskList taskList, String taskId,
             ResourceOperationTypeEnum operationType) {
-        Map<URI, String> groupsToMirrorIds = new HashMap<>();
+        Set<URI> groupSet = new HashSet<URI>();
 
         addTask(taskList, source, taskId, operationType);
         for (Entry<BlockMirror, Volume> entry : groupMirrorSourceMap.entrySet()) {
@@ -762,16 +799,14 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             Volume mirrorSource = entry.getValue();
 
             if (source.isInCG() && null != taskList.getTaskList()) {
-                groupsToMirrorIds.put(mirrorSource.getConsistencyGroup(), mirror.getId().toString());
+                groupSet.add(mirrorSource.getConsistencyGroup());
             }
         }
 
-        List<BlockConsistencyGroup> groups = _dbClient.queryObject(BlockConsistencyGroup.class,
-                groupsToMirrorIds.keySet());
+        List<BlockConsistencyGroup> groups = _dbClient.queryObject(BlockConsistencyGroup.class, groupSet);
         for (BlockConsistencyGroup group : groups) {
             addTask(taskList, group, taskId, operationType);
         }
-
     }
 
     private void addTask(TaskList taskList, DataObject object, String taskId, ResourceOperationTypeEnum opType) {

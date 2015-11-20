@@ -49,7 +49,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -102,7 +101,6 @@ import com.emc.storageos.recoverpoint.responses.MultiCopyRestoreImageResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointCGResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointStatisticsResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo;
-import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -154,12 +152,13 @@ import com.google.common.base.Joiner;
 public class RPDeviceController implements RPController, BlockOrchestrationInterface, MaskingOrchestrator {
 
     private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
-	private static final String RPA = "-rpa-";
-	// RecoverPoint consistency group name prefix
+    private static final String RPA = "-rpa-";
+    // RecoverPoint consistency group name prefix
     private static final String CG_NAME_PREFIX = "ViPR-";
     private static final String VIPR_SNAPSHOT_PREFIX = "ViPR-snapshot-";
 
     // Various steps for workflows
+    private static final String STEP_REMOVE_PROTECTION = "rpRemoveProtectionStep";
     private static final String STEP_CG_CREATION = "cgCreation";
     private static final String STEP_CG_UPDATE = "cgUpdate";
 
@@ -185,7 +184,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     // Methods in the create workflow. Constants helps us avoid step dependency flubs.
     private static final String METHOD_CG_CREATE_STEP = "cgCreateStep";
     private static final String METHOD_CG_CREATE_ROLLBACK_STEP = "cgCreateRollbackStep";
-    
+
     // Methods in the add journal volume workflow.
     private static final String METHOD_ADD_JOURNAL_STEP = "addJournalStep";
     private static final String METHOD_ADD_JOURNAL_ROLLBACK_STEP = "addJournalRollbackStep";
@@ -231,13 +230,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
     private static final Logger _log = LoggerFactory.getLogger(RPDeviceController.class);
-  
+
     private static final String METHOD_EXPORT_ORCHESTRATE_STEP = "exportOrchestrationSteps";
     private static final String METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "exportOrchestrationRollbackSteps";
     private static final String STEP_EXPORT_ORCHESTRATION = "exportOrchestration";
 
     private static final String EXPORT_ORCHESTRATOR_WF_NAME = "RP_EXPORT_ORCHESTRATION_WORKFLOW";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
+
+    private static final String METHOD_REMOVE_PROTECTION_STEP = "removeProtectionStep";
+    private static final String METHOD_REMOVE_PROTECTION_ROLLBACK_STEP = "removeProtectionRollback";
 
     private static DbClient _dbClient = null;
     protected CoordinatorClient _coordinator;
@@ -306,8 +308,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         @Override
         public String toString() {
-            return "RPExport [storageSystem=" + storageSystem.toString() + ", rpSite="
-                    + rpSite + ", varray=" + varray.toString() + "]";
+            return "RPExport [storageSystem=" + this.getStorageSystem().toString() + ", rpSite="
+                    + this.getRpSite() + ", varray=" + this.getVarray().toString() + "]";
         }
     }
 
@@ -343,10 +345,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         if (_dbClient == null) {
             _dbClient = dbClient;
         }
-    }
-
-    private BlockStorageDevice getDevice(String deviceType) {
-        return _devices.get(deviceType);
     }
 
     public void setWorkflowService(WorkflowService workflowService) {
@@ -407,7 +405,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_TARGET,
                         VolumeDescriptor.Type.RP_EXISTING_PROTECTED_SOURCE,
                         VolumeDescriptor.Type.RP_JOURNAL,
-                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL},
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL },
                 new VolumeDescriptor.Type[] {});
         // If there are no RP volumes, just return
         if (protectionControllerDescriptors.isEmpty()) {
@@ -416,22 +414,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
 
         _log.info("Adding RP steps for create volumes");
-        
+
         // Determine if this operation only involves adding additional journal capacity
         boolean isJournalAdd = false;
         List<VolumeDescriptor> journalDescriptors = VolumeDescriptor.filterByType(protectionControllerDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_JOURNAL,
-                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL},
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL },
                 new VolumeDescriptor.Type[] {});
         if (!journalDescriptors.isEmpty()) {
-        	for (VolumeDescriptor journDesc : journalDescriptors) {
-        		if (journDesc.getCapabilitiesValues().getAddJournalCapacity()) {
-        			isJournalAdd = true;
-        			break;
-        		}
-        	}
+            for (VolumeDescriptor journDesc : journalDescriptors) {
+                if (journDesc.getCapabilitiesValues().getAddJournalCapacity()) {
+                    isJournalAdd = true;
+                    break;
+                }
+            }
         }
-        
+
         // Grab any volume from the list so we can grab the protection system, which will be the same for all volumes.
         Volume volume = _dbClient.queryObject(Volume.class, protectionControllerDescriptors.get(0).getVolumeURI());
         ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
@@ -450,9 +448,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // If there are no RP volumes, just return
         if (volumeDescriptorsTypeFilter.isEmpty()) {
             return waitFor;
-        }        
-        
-        String lastStep = waitFor;        
+        }
+
+        String lastStep = waitFor;
 
         try {
             List<VolumeDescriptor> existingProtectedSourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
@@ -469,13 +467,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Handle creation or updating of the Consistency Group (moved from the Export Workflow)
             // Get the CG Params based on the volume descriptors
             CGRequestParams params = this.getCGRequestParams(volumeDescriptors, rpSystem);
-            updateCGParams(params);            
-            
+            updateCGParams(params);
+
             if (isJournalAdd) {
-            	lastStep = addAddJournalVolumesToCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
-            	return lastStep;
-            }            
-            
+                lastStep = addAddJournalVolumesToCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
+                return lastStep;
+            }
+
             if (executeCreateSteps) {
                 _log.info("Adding steps for Create CG...");
                 lastStep = addCreateCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
@@ -484,7 +482,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             else {
                 _log.info("Adding steps for Update CG...");
                 lastStep = addUpdateCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
-            }                               
+            }
 
         } catch (Exception e) {
             doFailAddStep(volumeDescriptorsTypeFilter, taskId, e);
@@ -572,11 +570,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         // Update the Virtual Volume with the original assets.
                         srcVolume.setVirtualArray(volWithOriginalAssets.getVirtualArray());
                         srcVolume.setVirtualPool(volWithOriginalAssets.getVirtualPool());
-                        _dbClient.persistObject(srcVolume);
+                        _dbClient.updateObject(srcVolume);
                     }
                 }
             }
-            
+
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
             _log.info(METHOD_RP_VPLEX_REINSTATE_SRC_VVOL_STEP + " is complete.");
@@ -658,26 +656,48 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         // Task 1: If this is the last volume, remove the consistency group
         waitFor = addDeleteCGStep(workflow, waitFor, rpVolumes);
-
+       
         // Tasks 2: Remove the volumes from the export group
         return addExportRemoveVolumesSteps(workflow, waitFor, rpVolumes);
     }
 
     @Override
     public String addStepsForPostDeleteVolumes(Workflow workflow,
-            String waitFor, List<VolumeDescriptor> volumes, String taskId, VolumeWorkflowCompleter completer) throws InternalException {
+            String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId, VolumeWorkflowCompleter completer)
+            throws InternalException {
+        return waitFor;
+    }
+
+    /**
+     * RP Specific steps to perform after a volume has been deleted
+     * 
+     * @param workflow - a Workflow that is being constructed
+     * @param waitFor -- The String key that should be used for waiting on previous steps in Workflow.createStep
+     * @param volumes -- The entire list of VolumeDescriptors for this request (all technologies).
+     * @param taskId -- The top level operation's taskId
+     * @param completer -- The completer for the entire workflow.
+     * @param blockDeviceController -- Reference to a BlockDeviceController, used for specific 
+     *                                 steps on the volumes not covered by RP but required for the operation to be complete.
+     * @return A waitFor key that can be used by subsequent controllers to wait on
+     *         the Steps created by this controller.
+     * @throws InternalException
+     */
+    public String addStepsForPostDeleteVolumes(Workflow workflow,
+            String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId, VolumeWorkflowCompleter completer, 
+            BlockDeviceController blockDeviceController) throws InternalException {
         // Filter to get only the RP volumes.
-        List<VolumeDescriptor> rpVolumes = VolumeDescriptor.filterByType(volumes,
+        List<VolumeDescriptor> rpSourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
                 new VolumeDescriptor.Type[] {});
         // If there are no RP volumes, just return
-        if (rpVolumes.isEmpty()) {
+        if (rpSourceDescriptors.isEmpty()) {
             return waitFor;
         }
+                                        
+        waitFor = addRemoveProtectionOnVolumeStep(workflow, waitFor, volumeDescriptors, taskId, blockDeviceController);          
 
         // Lock the CG (no-op for non-CG)
-        // http://lglah169.lss.emc.com/r/6348/
         // May be more appropriate in block orchestrator's deleteVolume, but I preferred it here
         // to keep it closer to the feature it locks and the service codes that are produced when
         // the lock fails.
@@ -717,8 +737,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String copyMode = null;
         String rpoType = null;
         Long rpoValue = null;
-        int maxNumberOfSnapShots = 0; 
-        
+        int maxNumberOfSnapShots = 0;
+
         Map<URI, Volume> volumeMap = new HashMap<URI, Volume>();
 
         // Sort the volume descriptors using the natural order of the enum.
@@ -742,9 +762,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             boolean isRPSource = _rpHelper.isRPSource(volumeDescriptor);
             boolean isRPTarget = _rpHelper.isRPTarget(volumeDescriptor);
             boolean extraParamsGathered = false;
-                        
+
             if (volumeDescriptor.getCapabilitiesValues() != null) {
-            	maxNumberOfSnapShots = volumeDescriptor.getCapabilitiesValues().getRPMaxSnaps();
+                maxNumberOfSnapShots = volumeDescriptor.getCapabilitiesValues().getRPMaxSnaps();
             }
 
             // Set up the source and target volumes in their respective replication sets
@@ -760,8 +780,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                     copyMode = volumeDescriptor.getCapabilitiesValues().getRpCopyMode();
                     rpoType = volumeDescriptor.getCapabilitiesValues().getRpRpoType();
-                    rpoValue = volumeDescriptor.getCapabilitiesValues().getRpRpoValue();                                                           
-                    
+                    rpoValue = volumeDescriptor.getCapabilitiesValues().getRpRpoValue();
+
                     // Flag so we only grab this information once
                     extraParamsGathered = true;
                 }
@@ -807,15 +827,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Set up the journal volumes in the copy objects
             if (volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_JOURNAL)
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL)) {
-            	if (cgName == null) {
-            		project = _dbClient.queryObject(Project.class, volume.getProject());
-            		cg = _dbClient.queryObject(BlockConsistencyGroup.class, volumeDescriptor.getCapabilitiesValues()
-	                        .getBlockConsistencyGroup());
-	                cgName = cg.getCgNameOnStorageSystem(rpSystem.getId());
-	                if (cgName == null) {
-	                    cgName = CG_NAME_PREFIX + cg.getLabel();
-	                }
-            	}
+                if (cgName == null) {
+                    project = _dbClient.queryObject(Project.class, volume.getProject());
+                    cg = _dbClient.queryObject(BlockConsistencyGroup.class, volumeDescriptor.getCapabilitiesValues()
+                            .getBlockConsistencyGroup());
+                    cgName = cg.getCgNameOnStorageSystem(rpSystem.getId());
+                    if (cgName == null) {
+                        cgName = CG_NAME_PREFIX + cg.getLabel();
+                    }
+                }
                 CreateVolumeParams volumeParams = populateVolumeParams(volume.getId(),
                         volume.getStorageController(),
                         volume.getVirtualArray(),
@@ -960,6 +980,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         RPCGExportOrchestrationCompleter completer = new RPCGExportOrchestrationCompleter(volUris, taskId);
         Workflow workflow = null;
         boolean lockException = false;
+        Map<URI, Set<URI>> exportGroupVolumesAdded = new HashMap<URI, Set<URI>>();
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
@@ -977,6 +998,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             // Get the RP Exports from the CGRequestParams object
             Collection<RPExport> rpExports = generateStorageSystemExportMaps(params, volumeDescriptors);
+
+            Map<String, Set<URI>> rpSiteInitiatorsMap = getRPSiteInitiators(rpSystem, rpExports);            
+
+            // Acquire all the RP lock keys needed for export before we start assembling the export groups.
+            acquireRPLockKeysForExport(taskId, rpExports, rpSiteInitiatorsMap);
 
             // For each RP Export, create a workflow to either add the volumes to an existing export group
             // or create a new one.
@@ -1023,43 +1049,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // exporting of VPLEX volumes to RPAs.
                 exportGroup.setZoneAllInitiators(true);
 
-                // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
-                Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
-
-                if (rpaWWNs == null || rpaWWNs.isEmpty()) {
-                    throw DeviceControllerExceptions.recoverpoint.noInitiatorsFoundOnRPAs();
-                }
-
-                // Convert to initiator object
-                List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String rpaId : rpaWWNs.keySet()) {
-            	   for (Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
-                    Initiator initiator = new Initiator();
-                    initiator.addInternalFlags(Flag.RECOVERPOINT);
-                    // Remove all non alpha-numeric characters, excluding "_", from the hostname
-                    String rpClusterName = rpSiteName.replaceAll(ALPHA_NUMERICS, "");
-                    _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
-                    initiator.setClusterName(rpClusterName);
-                    initiator.setProtocol("FC");
-                    initiator.setIsManualCreation(false);
-                    
-                    //Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
-                    //A child RP IG will be created containing all the RPA IGs
-                    String hostName = rpClusterName + RPA + rpaId; 
-                    hostName = hostName.replaceAll(ALPHA_NUMERICS, "");
-                    _log.info(String.format("Setting RP initiator host name : %s", hostName));
-                    initiator.setHostName(hostName);
-                    
-                    _log.info(String.format("Setting Initiator port WWN : %s, nodeWWN : %s", rpaWWN.getKey(), rpaWWN.getValue()));
-                    initiator.setInitiatorPort(rpaWWN.getKey());
-                    initiator.setInitiatorNode(rpaWWN.getValue());
-                   
-                    // Either get the existing initiator or create a new if needed
-                    initiator = getOrCreateNewInitiator(initiator);
-                    initiators.add(initiator);
-            	   }
-                }
-
                 // We need to find and distill only those RP initiators that correspond to the network of the storage system and
                 // that network has front end port from the storage system.
                 // In certain lab environments, its quite possible that there are 2 networks one for the storage system FE ports and one for
@@ -1068,19 +1057,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // back-end ports, so
                 // we will ignore those initiators that are connected to a network that has only storage system back end port connectivity.
                 Map<URI, Set<Initiator>> rpNetworkToInitiatorsMap = new HashMap<URI, Set<Initiator>>();
-                if (initiators != null) {
-                    for (Initiator initiator : initiators) {
-                        URI rpInitiatorNetworkURI = getInitiatorNetwork(exportGroup, initiator);
+                Set<URI> rpSiteInitiatorUris = rpSiteInitiatorsMap.get(internalSiteName);
+                if (rpSiteInitiatorUris != null) {
+                    for (URI rpSiteInitiatorUri : rpSiteInitiatorUris) {
+                    	Initiator rpSiteInitiator = _dbClient.queryObject(Initiator.class, rpSiteInitiatorUri);
+                        URI rpInitiatorNetworkURI = getInitiatorNetwork(exportGroup, rpSiteInitiator);
                         if (rpInitiatorNetworkURI != null) {
                             if (rpNetworkToInitiatorsMap.get(rpInitiatorNetworkURI) == null) {
                                 rpNetworkToInitiatorsMap.put(rpInitiatorNetworkURI, new HashSet<Initiator>());
                             }
-                            rpNetworkToInitiatorsMap.get(rpInitiatorNetworkURI).add(initiator);
-                            _log.info(String.format("RP Initiator [%s] found on network: [%s]", 
-                            		initiator.getInitiatorPort(), rpInitiatorNetworkURI.toASCIIString()));
+                            rpNetworkToInitiatorsMap.get(rpInitiatorNetworkURI).add(rpSiteInitiator);
+                            _log.info(String.format("RP Initiator [%s] found on network: [%s]",
+                                    rpSiteInitiator.getInitiatorPort(), rpInitiatorNetworkURI.toASCIIString()));
                         } else {
-                    	  _log.info(String.format("RP Initiator [%s] was not found on any network. Excluding from automated exports", 
-                              		initiator.getInitiatorPort()));                         
+                            _log.info(String.format("RP Initiator [%s] was not found on any network. Excluding from automated exports",
+                                    rpSiteInitiator.getInitiatorPort()));
                         }
                     }
                 }
@@ -1094,7 +1085,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         rpNetworkToInitiatorsMap, storageSystemURI, varrayURI);
 
                 for (URI networkURI : initiatorPortMap.keySet()) {
-                    for (StoragePort storagePort : initiatorPortMap.get(networkURI)) {                  
+                    for (StoragePort storagePort : initiatorPortMap.get(networkURI)) {
                         _log.info(String.format("Network : [%s] - Port : [%s]", networkURI.toString(), storagePort.getLabel()));
                     }
                 }
@@ -1112,17 +1103,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 for (Initiator initiator : initiatorList) {
                     initiatorSet.add(initiator.getId());
-                }
-
-                List<String> lockKeys = ControllerLockingUtil
-                        .getStorageLockKeysByHostName(_dbClient,                             
-                                initiatorSet, storageSystemURI);
-                boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
-                        taskId, lockKeys, LockTimeoutValue.get(LockType.RP_EXPORT));
-                if (!acquiredLocks) {
-                    lockException = true;
-                    throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                            "ExportOrchestrationSteps: " + exportGroup.getLabel());
                 }
 
                 // See if the export group already exists
@@ -1167,13 +1147,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     volumesToAdd.put(volumeID, ExportGroup.LUN_UNASSIGNED);
                 }
 
+                // Keep track of volumes added to export group
+                if (!volumesToAdd.isEmpty()) {
+                    exportGroupVolumesAdded.put(exportGroup.getId(), volumesToAdd.keySet());
+                }
+
                 // Persist the export group
                 if (addExportGroupToDB) {
                     exportGroup.addInitiators(initiatorSet);
                     exportGroup.setNumPaths(numPaths);
                     _dbClient.createObject(exportGroup);
                 } else {
-                    _dbClient.persistObject(exportGroup);
+                    _dbClient.updateObject(exportGroup);
                 }
 
                 // If the export group already exists, add the volumes to it, otherwise create a brand new
@@ -1224,6 +1209,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         } catch (Exception ex) {
             _log.error("Could not create volumes: " + volUris, ex);
+
+            // Rollback volumes that has been added/persisted to export groups
+            if (!exportGroupVolumesAdded.isEmpty()) {
+                for (Entry<URI, Set<URI>> entry : exportGroupVolumesAdded.entrySet()) {
+                    if (entry.getValue() != null && !entry.getValue().isEmpty()) {
+                        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, entry.getKey());
+                        _log.info(String.format("Removing volumes %s from ExportGroup %s.", entry.getValue(), entry.getKey()));
+                        exportGroup.removeVolumes(new ArrayList<URI>(entry.getValue()));
+                        _dbClient.updateObject(exportGroup);
+                    }
+                }
+            }
+
             if (workflow != null) {
                 _workflowService.releaseAllWorkflowLocks(workflow);
             }
@@ -1243,6 +1241,95 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return true;
     }
 
+    /**
+     * This method acquires all the RP locks necessary for the operation based on the RPExport information.
+     * 
+     * @param taskId Task Id
+     * @param lockException lockException
+     * @param rpExports RPExports information
+     * @param rpSiteInitiatorsMap RP site initiators map
+     * @return
+     */
+    private void acquireRPLockKeysForExport(String taskId, Collection<RPExport> rpExports,
+            Map<String, Set<URI>> rpSiteInitiatorsMap) {
+        _log.info("Start : Acquiring RP lock keys for export");
+        List<String> lockKeys = new ArrayList<String>();
+
+        for (RPExport rpExport : rpExports) {
+            Set<URI> rpSiteInitiatorUris = rpSiteInitiatorsMap.get(rpExport.getRpSite());     
+            lockKeys.addAll(ControllerLockingUtil.getStorageLockKeysByHostName(_dbClient,
+                    rpSiteInitiatorUris, rpExport.getStorageSystem()));
+        }
+
+        boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
+                taskId, lockKeys, LockTimeoutValue.get(LockType.RP_EXPORT));
+        if (!acquiredLocks) {
+            throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                    "ExportOrchestrationSteps: RP Export");
+        }
+        for (String lockKey : lockKeys) {
+            _log.info("Acquired lock : " + lockKey);
+        }
+        _log.info("Done : Acquiring RP lock keys for export");
+    }
+
+    /**
+     * Build a map of initiators for each RP site/cluster in the export request.
+     * 
+     * @param rpSystem RP system
+     * @param rpExports RP Export objects
+     * @return Map of RP site to its initiators
+     */
+    private Map<String, Set<URI>> getRPSiteInitiators(ProtectionSystem rpSystem, Collection<RPExport> rpExports) {
+        Map<String, Set<URI>> rpSiteInitiators = new HashMap<String, Set<URI>>();
+        // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
+
+        for (RPExport rpExport : rpExports) {
+
+            String rpSiteName = rpExport.getRpSite();
+            Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(rpSiteName);
+
+            if (rpaWWNs == null || rpaWWNs.isEmpty()) {
+                throw DeviceControllerExceptions.recoverpoint.noInitiatorsFoundOnRPAs();
+            }
+
+            // Convert to initiator object
+
+            for (String rpaId : rpaWWNs.keySet()) {
+                for (Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
+                    Initiator initiator = new Initiator();
+                    initiator.addInternalFlags(Flag.RECOVERPOINT);
+                    // Remove all non alpha-numeric characters, excluding "_", from the hostname
+                    String rpClusterName = rpSiteName.replaceAll(ALPHA_NUMERICS, "");
+                    _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
+                    initiator.setClusterName(rpClusterName);
+                    initiator.setProtocol("FC");
+                    initiator.setIsManualCreation(false);
+
+                    // Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
+                    // A child RP IG will be created containing all the RPA IGs
+                    String hostName = rpClusterName + RPA + rpaId;
+                    hostName = hostName.replaceAll(ALPHA_NUMERICS, "");
+                    _log.info(String.format("Setting RP initiator host name : %s", hostName));
+                    initiator.setHostName(hostName);
+
+                    _log.info(String.format("Setting Initiator port WWN : %s, nodeWWN : %s", rpaWWN.getKey(), rpaWWN.getValue()));
+                    initiator.setInitiatorPort(rpaWWN.getKey());
+                    initiator.setInitiatorNode(rpaWWN.getValue());
+
+                    // Either get the existing initiator or create a new if needed
+                    initiator = getOrCreateNewInitiator(initiator);
+                    if (!rpSiteInitiators.containsKey(rpSiteName)) {
+                        rpSiteInitiators.put(rpSiteName, new HashSet<URI>());
+                    }
+                                        
+                    rpSiteInitiators.get(rpSiteName).add(initiator.getId());
+                }
+            }
+        }
+        return rpSiteInitiators;
+    }
+
     @SuppressWarnings("serial")
     private static class WorkflowCallback implements Workflow.WorkflowCallbackHandler, Serializable {
         @SuppressWarnings("unchecked")
@@ -1257,31 +1344,31 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * This operation will add additional journal volumes to a recoverpoint consistency group
-     * 
+     *
      * @param rpSystemId - recoverpoint system
      * @param volumeDescriptors - journal volumes to add
      * @param taskId - task tracking the operation
      * @return boolean indicating the result of the operation
      */
-    public boolean addJournalStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, String taskId) {    	
-    	WorkflowStepCompleter.stepExecuting(taskId);
-    	if (volumeDescriptors.isEmpty()) {
-    		stepFailed(taskId, "addJournalStep");
-    	}
-    	ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);    	
-    	RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);    	    	    	    	
-    	CGRequestParams cgParams = this.getCGRequestParams(volumeDescriptors, rpSystem);
-        updateCGParams(cgParams);    	
-    	
-        try {
-        	rp.addJournalVolumesToCG(cgParams, volumeDescriptors.get(0).getCapabilitiesValues().getRPCopyType());    
-        	WorkflowStepCompleter.stepSucceded(taskId);
-        } catch (Exception e) {
-        	stepFailed(taskId, "addJournalStep");
+    public boolean addJournalStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, String taskId) {
+        WorkflowStepCompleter.stepExecuting(taskId);
+        if (volumeDescriptors.isEmpty()) {
+            stepFailed(taskId, "addJournalStep");
         }
-    	return true;
-    }        
-    
+        ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
+        RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
+        CGRequestParams cgParams = this.getCGRequestParams(volumeDescriptors, rpSystem);
+        updateCGParams(cgParams);
+
+        try {
+            rp.addJournalVolumesToCG(cgParams, volumeDescriptors.get(0).getCapabilitiesValues().getRPCopyType());
+            WorkflowStepCompleter.stepSucceded(taskId);
+        } catch (Exception e) {
+            stepFailed(taskId, "addJournalStep");
+        }
+        return true;
+    }
+
     /**
      * Recoverpoint specific workflow method for creating an Export Group
      * NOTE: Workflow.Method requires that opId is added as a param.
@@ -1312,7 +1399,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // If there was a rollback triggered, we need to cleanup the Export Group we created.
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             exportGroup.setInactive(true);
-            _dbClient.persistObject(exportGroup);
+            _dbClient.updateObject(exportGroup);
 
             _log.info(String.format("Rollback complete for Export Group: [%s]", exportGroupURI));
 
@@ -1354,10 +1441,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         return STEP_CG_CREATION;
     }
-    
+
     /**
      * Method that adds the step to the workflow for adding a journal volume to a CG.
-     * 
+     *
      * @param workflow
      * @param recommendation
      * @param rpSystem
@@ -1374,13 +1461,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         Workflow.Method addJournalExecutionRollbackMethod = new Workflow.Method(METHOD_ADD_JOURNAL_ROLLBACK_STEP,
                 rpSystem.getId());
 
-        workflow.createStep(STEP_ADD_JOURNAL_VOLUME, "Create add journal volume to consistency group subtask for RP CG: " + cgParams.getCgName(),
+        workflow.createStep(STEP_ADD_JOURNAL_VOLUME,
+                "Create add journal volume to consistency group subtask for RP CG: " + cgParams.getCgName(),
                 STEP_EXPORT_ORCHESTRATION, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
                 addJournalExecuteMethod, addJournalExecutionRollbackMethod, stepId);
 
         return STEP_ADD_JOURNAL_VOLUME;
     }
-    
+
     /**
      * Workflow step method for rolling back adding journal volumes to CG.
      *
@@ -1394,7 +1482,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         WorkflowStepCompleter.stepSucceded(token);
         return true;
     }
-    
+
     /**
      * Workflow step method for creating/updating a consistency group.
      *
@@ -1456,8 +1544,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             RecoverPointCGResponse response = null;
             // The CG already exists if it contains volumes and is of type RP
-            _log.info("Submitting RP Request: " + cgParams);            
-                 
+            _log.info("Submitting RP Request: " + cgParams);
+
             if (cg.nameExistsForStorageSystem(rpSystem.getId(), cgParams.getCgName()) && rp.doesCgExist(cgParams.getCgName())) {
                 // cg exists in both the ViPR db and on the RP system
                 response = rp.addReplicationSetsToCG(cgParams, metropoint, attachAsClean);
@@ -1468,7 +1556,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgParams.getCgUri());
                 cg.addSystemConsistencyGroup(rpSystemId.toString(), cgParams.getCgName());
                 cg.addConsistencyGroupTypes(Types.RP.name());
-                _dbClient.persistObject(cg);
+                _dbClient.updateObject(cg);
             }
 
             setVolumeConsistencyGroup(volumeDescriptors, cgParams.getCgUri());
@@ -1482,7 +1570,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
                 volume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
                 volume.setProtectionController(rpSystemId);
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
 
                 // We might need to update the vpools of the backing volumes if this is an RP+VPLEX
                 // or MetroPoint change vpool.
@@ -1511,20 +1599,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     protectionSet = protectionSets.get(0);
                     protectionSet = updateProtectionSet(protectionSet, cgParams);
                 }
-                _dbClient.persistObject(protectionSet);
+                _dbClient.updateObject(protectionSet);
             }
 
             // Set the CG last created time to now.
             rpSystem.setCgLastCreatedTime(Calendar.getInstance());
-            _dbClient.persistObject(rpSystem);
-          
+            _dbClient.updateObject(rpSystem);
+
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
 
             // collect and update the protection system statistics to account for
             // the newly created CG.
             _log.info("Collecting RP statistics post CG create.");
-            collectRPStatistics(rpSystem);                   
+            collectRPStatistics(rpSystem);
         } catch (Exception e) {
             if (lockException) {
                 List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
@@ -1539,7 +1627,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
         return true;
     }
-    
+
     /**
      * Workflow step method for cg create rollback
      *
@@ -1550,26 +1638,26 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @throws WorkflowException
      */
     public boolean cgCreateRollbackStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, String token) throws WorkflowException {
-        
-    	_log.info("Start cg create rollback step");
-    	WorkflowStepCompleter.stepExecuting(token);    	
-    	 // Get only the RP source volumes from the descriptors.
+
+        _log.info("Start cg create rollback step");
+        WorkflowStepCompleter.stepExecuting(token);
+        // Get only the RP source volumes from the descriptors.
         List<VolumeDescriptor> sourceVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
                         VolumeDescriptor.Type.RP_EXISTING_SOURCE,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
                 new VolumeDescriptor.Type[] {});
-        
+
         if (sourceVolumeDescriptors == null || sourceVolumeDescriptors.isEmpty()) {
             WorkflowStepCompleter.stepSucceded(token);
             return true;
         }
-        
-    	List<URI> volumeIDs = new ArrayList<URI>();
-    	for (VolumeDescriptor descriptor : sourceVolumeDescriptors) {
-    		volumeIDs.add(descriptor.getVolumeURI());
-    	}
-    	    	    	
+
+        List<URI> volumeIDs = new ArrayList<URI>();
+        for (VolumeDescriptor descriptor : sourceVolumeDescriptors) {
+            volumeIDs.add(descriptor.getVolumeURI());
+        }
+
         return cgDeleteStep(rpSystemId, volumeIDs, token);
     }
 
@@ -1583,7 +1671,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());
             volume.setConsistencyGroup(cgURI);
-            _dbClient.persistObject(volume);
+            _dbClient.updateObject(volume);
         }
     }
 
@@ -1899,28 +1987,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         String.format("Delete or remove volumes from RP consistency group %s", cg.getCgNameOnStorageSystem(rpSystem)));
             }
 
-            // Validate that all volumes belong to one protection set. In the meantime, figure out the protection set for future use.
-            ProtectionSet protectionSet = null;
+            // Validate that all volumes belong to the same BlockConsistencyGroup
             for (Volume volume : volumes) {
-                if (protectionSet == null) {
-                	//Check if the volumes' protection set is valid. This method is called on rollback of cgCreate. 
-                	//It is possible that the failure can happen before we got to creating the CG and updating the protection 
-                	//set on the volume. 
-                	if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
-            			protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                	}
-                } else if (!protectionSet.getId().equals(volume.getProtectionSet().getURI())) {
-                    _log.error("Not all volumes belong to the same protection set.");
-                    throw DeviceControllerExceptions.recoverpoint.cgDeleteStepInvalidParam("volumes from different protection sets");
+                if (!volume.getConsistencyGroup().equals(cg.getId())) {
+                    _log.error("Not all volumes belong to the same consistency group.");
+                    throw DeviceControllerExceptions.recoverpoint.cgDeleteStepInvalidParam("volumes from different consistency groups");
                 }
             }
 
-            // TODO: Check to make sure there are no other non-journal volumes in that copy
-            // Check to see if there are any more volumes in this protection set.
-            if (protectionSet == null || protectionSet.getInactive()) {
-                _log.info("Protection set does not exist for volume or it has been already cleaned up.  Not performing RP CG operation");
-                WorkflowStepCompleter.stepSucceded(token);
-                return true;
+            // Find a valid protection set reference so we can cleanup the protection set later.
+            ProtectionSet protectionSet = null;
+            for (Volume volume : volumes) {
+                if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
+                    protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                    break;
+                }
             }
 
             RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
@@ -1928,19 +2009,30 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Validate that we found the protection info for each volume.
             RecoverPointVolumeProtectionInfo volumeProtectionInfo = null;
             for (Volume volume : volumes) {
-                try {                	
-                    volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(), _dbClient));
-                    VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-                    volumeProtectionInfo.setMetroPoint(VirtualPool.vPoolSpecifiesMetroPoint(virtualPool));
+                try {
+                    if (volumeProtectionInfo == null) {
+                        volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(), _dbClient));
+                        VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+                        volumeProtectionInfo.setMetroPoint(VirtualPool.vPoolSpecifiesMetroPoint(virtualPool));
+                    }
                 } catch (Exception e) {
+                    // Do nothing. If we cannot find volume protection info for a volume, we do not want that
+                    // exception preventing us from trying to find it for other volumes being deleted.
                     _log.warn("Looks like the volume(s) we're trying to remove from the RP appliance are no longer associated with a RP CG, continuing delete process.");
-                    WorkflowStepCompleter.stepSucceded(token);
-                    return true;
                 }
             }
 
-            if (RPHelper.containsAllRPSourceVolumes(_dbClient, protectionSet, volumeIDs)) {
-                // There are no more volumes in the protection set so delete the CG
+            // If we haven't been able to find protection info for at least one volume, we know there
+            // is nothing in RP we need to cleanup.
+            if (volumeProtectionInfo == null) {
+                _log.warn("Looks like the volume(s) we're trying to remove from the RP appliance are no longer associated with a RP CG, continuing delete process.");
+                WorkflowStepCompleter.stepSucceded(token);
+                return true;
+            }
+
+            if (RPHelper.cgSourceVolumesContainsAll(_dbClient, cg.getId(), volumeIDs)) {
+                // We are deleting all source volumes in the consistency group so we can delete the
+                // RecoverPoint CG as well.
                 rp.deleteCG(volumeProtectionInfo);
 
                 // We want to reflect the CG being deleted in the BlockConsistencyGroup
@@ -1951,7 +2043,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     if (vol.getConsistencyGroup() != null) {
                         cg = _dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                         cg.removeSystemConsistencyGroup(rpSystem.toString(), CG_NAME_PREFIX + cg.getLabel());
-                        _dbClient.persistObject(cg);
+                        _dbClient.updateObject(cg);
                     }
 
                     if (protectionSet == null || protectionSet.getInactive() || protectionSet.getVolumes() == null
@@ -1971,26 +2063,26 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 List<RecoverPointVolumeProtectionInfo> replicationSetsToRemove = new ArrayList<RecoverPointVolumeProtectionInfo>();
                 List<String> removeVolumeIDs = new ArrayList<String>();
                 for (Volume volume : volumes) {
-                    _log.info(String.format("Volume [%s] (%s) needs to have it's replication set removed from RP", 
-                            volume.getLabel(), volume.getId()));                                       
-                    
+                    _log.info(String.format("Volume [%s] (%s) needs to have it's replication set removed from RP",
+                            volume.getLabel(), volume.getId()));
                     // Delete the replication set if there are more volumes (other replication sets).
                     // If there are no other replications sets we will simply delete the CG instead.
                     volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(), _dbClient));
                     // Volume Info to give RP to clean up the RSets
                     replicationSetsToRemove.add(volumeProtectionInfo);
                     // Source volume to be removed from Protection Set
-                    if (!NullColumnValueGetter.isNullURI(volume.getId())) {                        
-                        removeVolumeIDs.add(volume.getId().toString());                        
-                    }                    
+                    if (!NullColumnValueGetter.isNullURI(volume.getId())) {
+                        removeVolumeIDs.add(volume.getId().toString());
+                    }
                     // All Target volumes to be removed from Protection Set
-                    if (volume.getRpTargets() != null) {                        
-                        removeVolumeIDs.addAll(volume.getRpTargets());
+                    List<Volume> targetVolumes = _rpHelper.getTargetVolumes(volume);
+                    for (Volume targetVol : targetVolumes) {
+                        removeVolumeIDs.add(targetVol.getId().toString());
                     }
                 }
-                // Remove the Replication Sets from RP                
+                // Remove the Replication Sets from RP
                 rp.deleteReplicationSets(replicationSetsToRemove);
-                
+
                 // Cleanup the ViPR Protection Set
                 cleanupProtectionSetVolumes(protectionSet, removeVolumeIDs, false);
             }
@@ -2023,17 +2115,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param markProtectionSetForDeletion if true, marks the protection set for deletion.
      */
     private void cleanupProtectionSetVolumes(ProtectionSet protectionSet, List<String> volumeIDs, boolean markProtectionSetForDeletion) {
-        _log.info("Removing the following volumes from protection set {}: {}", protectionSet.getLabel(), volumeIDs.toString());
-        StringSet psetVolumes = protectionSet.getVolumes();
-        psetVolumes.removeAll(volumeIDs);
-        protectionSet.setVolumes(psetVolumes);
+        if (protectionSet != null) {
+            _log.info("Removing the following volumes from protection set {}: {}", protectionSet.getLabel(), volumeIDs.toString());
+            StringSet psetVolumes = protectionSet.getVolumes();
+            psetVolumes.removeAll(volumeIDs);
+            protectionSet.setVolumes(psetVolumes);
 
-        if (markProtectionSetForDeletion) {
-            // Mark the protection set for deletion
-            protectionSet.setInactive(true);
+            if (markProtectionSetForDeletion) {
+                // Mark the protection set for deletion
+                protectionSet.setInactive(true);
+            }
+
+            _dbClient.persistObject(protectionSet);
         }
 
-        _dbClient.persistObject(protectionSet);
+        _dbClient.updateObject(protectionSet);
     }
 
     /**
@@ -2064,31 +2160,42 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String returnStep = waitFor;
 
         // Create a map of all of the protection sets this delete operation impacts.
-        Map<URI, Set<URI>> psetVolumeMap = new HashMap<URI, Set<URI>>();
+        Map<URI, Set<URI>> cgVolumeMap = new HashMap<URI, Set<URI>>();
+        Map<URI, URI> cgProtectionSetMap = new HashMap<URI, URI>();
+        boolean validCg = false;
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());
 
-            if (volume.getProtectionSet() == null) {
+            if (NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                 // Don't try to delete the CG, there isn't one
-                return returnStep;
+                continue;
+            } else {
+                // If we have at least one valid CG to try and delete, we must keep track so we can
+                // return the correct waitFor.
+                validCg = true;
             }
 
-            if (psetVolumeMap.get(volume.getProtectionSet().getURI()) == null) {
-                psetVolumeMap.put(volume.getProtectionSet().getURI(), new HashSet<URI>());
+            if (cgVolumeMap.get(volume.getConsistencyGroup()) == null) {
+                cgVolumeMap.put(volume.getConsistencyGroup(), new HashSet<URI>());
             }
-            psetVolumeMap.get(volume.getProtectionSet().getURI()).add(volume.getId());
+            cgVolumeMap.get(volume.getConsistencyGroup()).add(volume.getId());
+
+            // Set the consistency group to protection system mapping
+            if (cgProtectionSetMap.get(volume.getConsistencyGroup()) == null) {
+                cgProtectionSetMap.put(volume.getConsistencyGroup(), volume.getProtectionController());
+            }
         }
 
         // For each of the protection sets, create a series of steps to delete replication sets/cgs
-        for (Entry<URI, Set<URI>> entry : psetVolumeMap.entrySet()) {
-            URI psetId = entry.getKey();
+        for (Entry<URI, Set<URI>> entry : cgVolumeMap.entrySet()) {
+            URI cgId = entry.getKey();
             Set<URI> volumes = entry.getValue();
-            ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, psetId);
+            BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
             // All protection sets can be deleted at the same time, but only one step per protection set can be running
-            String psetWaitFor = waitFor;
+            String cgWaitFor = waitFor;
 
             String stepId = workflow.createStepId();
-            ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, protectionSet.getProtectionSystem());
+            ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, cgProtectionSetMap.get(cgId));
             List<URI> volumeList = new ArrayList<URI>();
             volumeList.addAll(volumes);
             Workflow.Method cgRemovalExecuteMethod = new Workflow.Method(METHOD_DELETE_CG_STEP,
@@ -2096,11 +2203,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     volumeList);
 
             // Make all of the steps in removing this CG (or replication sets from this CG) sequential.
-            psetWaitFor = workflow.createStep(STEP_DV_REMOVE_CG, "Remove replication set(s) and/or consistency group subtask (if no more volumes) for RP CG: "
-                    + protectionSet.getLabel(),
-                    psetWaitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
+            cgWaitFor = workflow.createStep(STEP_DV_REMOVE_CG,
+                    "Remove replication set(s) and/or consistency group subtask (if no more volumes) for RP CG: "
+                            + consistencyGroup.getLabel(),
+                    cgWaitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
                     cgRemovalExecuteMethod, null, stepId);
         }
+
+        if (!validCg) {
+            // If there are no valid CGs to process then return the original waitFor.
+            return returnStep;
+        }
+
         return STEP_DV_REMOVE_CG;
     }
 
@@ -2120,7 +2234,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String returnStep = waitFor;
         Set<URI> volumeURIs = _rpHelper.getVolumesToDelete(VolumeDescriptor.getVolumeURIs(filteredSourceVolumeDescriptors));
 
-        _log.info(String.format("Following volume(s) will be unexported from their Export Groups :  [%s]", Joiner.on("--").join(volumeURIs)));
+        _log.info(String
+                .format("Following volume(s) will be unexported from their Export Groups :  [%s]", Joiner.on("--").join(volumeURIs)));
 
         Map<URI, RPExport> rpExports = new HashMap<URI, RPExport>();
         for (URI volumeURI : volumeURIs) {
@@ -2172,7 +2287,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         }
                     }
                 }
-            } else if (VirtualPool.vPoolSpecifiesMetroPoint(virtualPool)) {
+            } else if (NullColumnValueGetter.isNotNullValue(volume.getPersonality())
+                    && PersonalityTypes.SOURCE.toString().equals(volume.getPersonality())
+                    && VirtualPool.vPoolSpecifiesMetroPoint(virtualPool)) {
                 // We are dealing with a MetroPoint distributed volume so we need to get 2 export groups, one
                 // export group for each cluster.
                 if (volume.getAssociatedVolumes() != null &&
@@ -2251,24 +2368,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param snapshots snapshot list
-     * 
+     *
      * @param initatorURIs initiators to send to the block controller
-     * 
+     *
      * @param token The task object
      */
     @Override
@@ -2371,7 +2488,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         Workflow.Method enableImageAccessExecuteMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_STEP,
                 rpSystem.getId(), snapshots);
         Workflow.Method enableImageAccessExecutionRollbackMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_ROLLBACK_STEP,
-                rpSystem.getId(), snapshots, true);
+                rpSystem.getId(), snapshots, false);
 
         workflow.createStep(STEP_ENABLE_IMAGE_ACCESS, "Enable image access subtask for export group: " + snapshots.keySet(),
                 waitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
@@ -2452,19 +2569,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2577,15 +2694,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     * 
+     *
      * @param workflow Workflow
-     * 
+     *
      * @param waitFor waitFor step id
-     * 
+     *
      * @param snapshots list of snapshot to disable
-     * 
+     *
      * @param rpSystem RP system
-     * 
+     *
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -2753,24 +2870,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportGroupID The export group
-     * 
+     *
      * @param snapshot RP snapshot
-     * 
+     *
      * @param lun HLU
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2868,15 +2985,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * RPDeviceController.exportRemoveVolume()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to remove an RP volume from an export group.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volume
      * - Disable the bookmarks associated with the snapshot.
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
      * @param exportgroupID The export group
      * @param snapshotID snapshot ID to remove
@@ -2981,14 +3098,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             for (CreateVolumeParams volume : copy.getJournals()) {
                 Volume dbVolume = _dbClient.queryObject(Volume.class, volume.getVolumeURI());
                 volume.setNativeGuid(dbVolume.getNativeGuid());
-                volume.setWwn(RPHelper.getRPWWn(dbVolume.getId(), _dbClient));                
+                volume.setWwn(RPHelper.getRPWWn(dbVolume.getId(), _dbClient));
             }
         }
 
         for (CreateRSetParams rset : params.getRsets()) {
             _log.info("View rset: " + rset.getName());
             for (CreateVolumeParams volume : rset.getVolumes()) {
-                Volume dbVolume = _dbClient.queryObject(Volume.class, volume.getVolumeURI());                
+                Volume dbVolume = _dbClient.queryObject(Volume.class, volume.getVolumeURI());
                 volume.setNativeGuid(dbVolume.getNativeGuid());
                 volume.setWwn(RPHelper.getRPWWn(dbVolume.getId(), _dbClient));
             }
@@ -3004,7 +3121,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private void lockCG(TaskLockingCompleter completer) throws DeviceControllerException {
         if (!completer.lockCG(_dbClient, _locker)) {
             // Gather information necessary to give a good error message...
-            Volume volume = _dbClient.queryObject(Volume.class, completer.getId());
+            Volume volume = null;
+            if (URIUtil.isType(completer.getId(), BlockConsistencyGroup.class)) {
+                List<Volume> volumes = RPHelper.getCgVolumes(completer.getId(), _dbClient);
+                if (volumes != null && !volumes.isEmpty()) {
+                    volume = volumes.get(0);
+                }
+            } else if (URIUtil.isType(completer.getId(), Volume.class)) {
+                volume = _dbClient.queryObject(Volume.class, completer.getId());
+            }
+
             if (volume != null) {
                 if (volume.getProtectionController() != null && volume.getProtectionSet() != null) {
                     ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
@@ -3092,7 +3218,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private RecreateReplicationSetRequestParams getReplicationSettings(ProtectionSystem rpSystem, URI volumeId)
             throws RecoverPointException {
         RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
-        Volume volume = _dbClient.queryObject(Volume.class, volumeId);        
+        Volume volume = _dbClient.queryObject(Volume.class, volumeId);
         RecoverPointVolumeProtectionInfo volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(), _dbClient));
         return rp.getReplicationSet(volumeProtectionInfo);
     }
@@ -3165,8 +3291,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
 
             for (URI volumeId : volumeIds) {
-                Volume volume = _dbClient.queryObject(Volume.class, volumeId);                                                
-                RecoverPointVolumeProtectionInfo volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(), _dbClient));
+                Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+                RecoverPointVolumeProtectionInfo volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(),
+                        _dbClient));
                 // Get the volume's source volume in order to determine if we are dealing with a MetroPoint
                 // configuration.
                 Volume sourceVolume = RPHelper.getRPSourceVolume(_dbClient, volume);
@@ -3290,7 +3417,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         vol.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                         vol.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
                     }
-                    _dbClient.persistObject(vol);
+                    _dbClient.updateObject(vol);
                     protectionSetVolumes.add(vol.getId().toString());
                     _log.info(String.format("Adding volume [%s] to protection set [%s]", vol.getLabel(), protectionSet.getLabel()));
                 }
@@ -3311,7 +3438,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     vol.setProtectionSet(new NamedURI(protectionSet.getId(), vol.getLabel()));
                     vol.setInternalSiteName(volume.getInternalSiteName());
                     vol.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
-                    _dbClient.persistObject(vol);
+                    _dbClient.updateObject(vol);
                     protectionSetVolumes.add(vol.getId().toString());
                     _log.info(String.format("Adding volume [%s] to protection set [%s]", vol.getLabel(), protectionSet.getLabel()));
                 }
@@ -3324,7 +3451,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             protectionSet.getVolumes().addAll(protectionSetVolumes);
         }
 
-        _dbClient.persistObject(protectionSet);
+        _dbClient.updateObject(protectionSet);
 
         return protectionSet;
     }
@@ -3470,7 +3597,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (NullColumnValueGetter.isNotNullValue(initiator.getHostName())
                     && !initiator.getHostName().equals(initiatorParam.getHostName())) {
                 initiator.setHostName(initiatorParam.getHostName());
-                _dbClient.persistObject(initiator);
+                _dbClient.updateObject(initiator);
             }
         } else {
             initiatorParam.setId(URIUtil.createId(Initiator.class));
@@ -3483,7 +3610,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -3493,7 +3620,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         try {
             ProtectionSystem rpSystem = getRPSystem(protectionDevice);
 
-            taskCompleter = new RPCGProtectionTaskCompleter(id, task);
+            if (URIUtil.isType(id, Volume.class)) {
+                taskCompleter = new RPCGProtectionTaskCompleter(id, Volume.class, task);
+            } else if (URIUtil.isType(id, BlockConsistencyGroup.class)) {
+                taskCompleter = new RPCGProtectionTaskCompleter(id, BlockConsistencyGroup.class, task);
+            }
 
             // Lock the CG or fail
             lockCG(taskCompleter);
@@ -3503,9 +3634,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             Volume protectionVolume = (copyID == null) ?
                     _dbClient.queryObject(Volume.class, id) : _dbClient.queryObject(Volume.class, copyID);
 
-            RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);                        			
-            
-            RecoverPointVolumeProtectionInfo volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
+            RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
+
+            RecoverPointVolumeProtectionInfo volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(
+                    protectionVolume.getId(), _dbClient));
 
             if (op.equals("stop")) {
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.STOP_RP_LINK);
@@ -3642,7 +3774,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                             // 1. delete the standby CDP copy if it exists
                             if (rp.doesProtectionVolumeExist(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient))) {
-                                RecoverPointVolumeProtectionInfo standbyCdpCopy = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient));
+                                RecoverPointVolumeProtectionInfo standbyCdpCopy = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(
+                                        standbyCopyVol.getId(), _dbClient));
                                 rp.deleteCopy(standbyCdpCopy);
                             }
 
@@ -3785,14 +3918,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 protectionVolume.setPersonality(Volume.PersonalityTypes.SOURCE.toString());
                 protectionVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
                 protectionVolume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
-                _dbClient.persistObject(protectionVolume);
+                _dbClient.updateObject(protectionVolume);
             } else if (protectionVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                 _log.info("Change personality of source volume " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient) + " to target");
                 protectionVolume.setPersonality(Volume.PersonalityTypes.TARGET.toString());
                 protectionVolume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                 protectionVolume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
                 protectionVolume.getRpTargets().clear();
-                _dbClient.persistObject(protectionVolume);
+                _dbClient.updateObject(protectionVolume);
             } else if (!protectionVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.toString())) {
                 _log.info("Target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient) + " is a target that remains a target");
                 // TODO: Handle failover to CRR. Need to remove the CDP volumes (including journals)
@@ -3829,11 +3962,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 _log.info("Change flags of failover target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
                 protectionVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
                 protectionVolume.setLinkStatus(Volume.LinkStatus.FAILED_OVER.name());
-                _dbClient.persistObject(protectionVolume);
+                _dbClient.updateObject(protectionVolume);
             } else if (protectionVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                 _log.info("Change flags of failover source " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
                 protectionVolume.setLinkStatus(Volume.LinkStatus.FAILED_OVER.name());
-                _dbClient.persistObject(protectionVolume);
+                _dbClient.updateObject(protectionVolume);
             }
         }
     }
@@ -3865,11 +3998,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 _log.info("Change flags of failover target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
                 protectionVolume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                 protectionVolume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
-                _dbClient.persistObject(protectionVolume);
+                _dbClient.updateObject(protectionVolume);
             } else if (protectionVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                 _log.info("Change flags of failover source " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
                 protectionVolume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
-                _dbClient.persistObject(protectionVolume);
+                _dbClient.updateObject(protectionVolume);
             }
         }
     }
@@ -3881,7 +4014,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
@@ -4112,7 +4245,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 for (URI snapshotURI : snapshotList) {
                     BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
                     snapshot.setEmName(snapshotName);
-                    _dbClient.persistObject(snapshot);
+                    _dbClient.updateObject(snapshot);
                 }
             }
             WorkflowStepCompleter.stepSucceded(token);
@@ -4198,8 +4331,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // been deleted from the RPA.
             //
             // May be able to remove this if the protection set object is more detailed (for instance, if
-            // we store the copy id with the volume)                                    
-            RecoverPointVolumeProtectionInfo protectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(targetVolume.getId(), _dbClient));
+            // we store the copy id with the volume)
+            RecoverPointVolumeProtectionInfo protectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(targetVolume.getId(),
+                    _dbClient));
             for (RPConsistencyGroup rpcg : response.getCgBookmarkMap().keySet()) {
                 if (rpcg.getCGUID().getId() == protectionInfo.getRpVolumeGroupID()) {
                     for (RPBookmark bookmark : response.getCgBookmarkMap().get(rpcg)) {
@@ -4232,7 +4366,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             _log.info(String.format("Updated bookmark %1$s associated with block volume %2$s on site %3$s.", name, volume.getDeviceLabel(),
                     snapshot.getEmInternalSiteName()));
-            _dbClient.persistObject(snapshot);
+            _dbClient.updateObject(snapshot);
 
             List<URI> taskSnapshotURIList = new ArrayList<URI>();
             taskSnapshotURIList.add(snapshot.getId());
@@ -4651,7 +4785,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 snapshot.setInactive(false);
                 snapshot.setIsSyncActive(true);
                 snapshots.add(snapshot.getNativeId());
-                _dbClient.persistObject(snapshot);
+                _dbClient.updateObject(snapshot);
             }
 
             completer.ready(_dbClient);
@@ -4738,17 +4872,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                     volumeWWNs.add(RPHelper.getRPWWn(targetVolume.getId(), _dbClient));
                 }
-            }
 
-            // Now disable image access to that bookmark
-            RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
-            MultiCopyDisableImageRequestParams request = new MultiCopyDisableImageRequestParams();
-            request.setVolumeWWNSet(volumeWWNs);
-            request.setEmName(emName);
-            MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
+                // Now disable image access to that bookmark
+                RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+                MultiCopyDisableImageRequestParams request = new MultiCopyDisableImageRequestParams();
+                request.setVolumeWWNSet(volumeWWNs);
+                request.setEmName(emName);
+                if (doDisableImageCopies(snapshot)) {
+                    MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
 
-            if (response == null) {
-                throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
+                    if (response == null) {
+                        throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
+                    }
+                }
             }
 
             // Mark the snapshots
@@ -4761,7 +4897,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // remove snapshots from exports.
                 snapshot.setIsSyncActive(setSnapshotSyncActive);
                 snapshots.add(snapshot.getNativeId());
-                _dbClient.persistObject(snapshot);
+                _dbClient.updateObject(snapshot);
             }
 
             completer.ready(_dbClient);
@@ -4781,6 +4917,28 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
             }
         }
+    }
+
+    /**
+     * It is possible that RP snapshots are exported to more than one host and hence part of more than one ExportGroup.
+     * If the same snapshot is part of more than one active ExportGroup, do not disable Image Access on the RP CG.
+     *
+     * @param snapshot snapshot to be unexported
+     * @return true if it is safe to disable image access on the CG, false otherwise
+     */
+    public boolean doDisableImageCopies(BlockSnapshot snapshot) {
+        ContainmentConstraint constraint = ContainmentConstraint.
+                Factory.getBlockObjectExportGroupConstraint(snapshot.getId());
+
+        List<URI> exportGroupIdsForSnapshot = _dbClient.queryByConstraint(constraint);
+        if (exportGroupIdsForSnapshot.size() > 1) {
+            _log.info(String.format("Snapshot %s is in %d active exportGroups. Not safe to disable the CG", snapshot.getEmName(),
+                    exportGroupIdsForSnapshot.size()));
+            return false;
+        }
+
+        _log.info("Safe to disable image access on the CG");
+        return true;
     }
 
     @Override
@@ -4809,7 +4967,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (snapshot != null && !snapshot.getInactive()) {
                     snapshot.setInactive(true);
                     snapshot.setIsSyncActive(false);
-                    _dbClient.persistObject(snapshot);
+                    _dbClient.updateObject(snapshot);
                 }
 
                 // Perhaps the snap is already deleted/inactive.
@@ -4865,7 +5023,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     if (protectionSet.getInactive() == false) {
                         _log.info("Change the status to: " + protectionSetStatus);
                         protectionSet.setProtectionStatus(protectionSetStatus);
-                        _dbClient.persistObject(protectionSet);
+                        _dbClient.updateObject(protectionSet);
                         break;
                     }
                 }
@@ -5175,10 +5333,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void updateVPlexBackingVolumeVpools(Volume volume, URI srcVpoolURI) {
         // Check to see if this is a VPLEX virtual volume
-        if (volume.getAssociatedVolumes() != null
-                && !volume.getAssociatedVolumes().isEmpty()) {
-
-            _log.info("Update the virtual pool on backing volume(s) for virtual volume [{}].", volume.getLabel());
+        if (RPHelper.isVPlexVolume(volume)) {
+            _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).",
+                    volume.getLabel(), volume.getId()));
             VirtualPool srcVpool = _dbClient.queryObject(VirtualPool.class, srcVpoolURI);
             String srcVpoolName = srcVpool.getLabel();
             URI haVpoolURI = null;
@@ -5211,10 +5368,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     vpoolName = haVpoolName;
                 }
 
-                _log.info("Update backing volume [{}] virtual pool to [{}].", associatedVol.getLabel(), vpoolName);
+                VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, associatedVol.getVirtualPool());
+                _log.info(String.format("Update backing volume [%s] (%s) virtual pool from [%s] (%s) to [%s] (%s).",
+                        associatedVol.getLabel(), associatedVol.getId(), oldVpool.getLabel(), oldVpool.getId(), vpoolName, vpoolURI));
                 associatedVol.setVirtualPool(vpoolURI);
                 // Update the backing volume
-                _dbClient.persistObject(associatedVol);
+                _dbClient.updateObject(associatedVol);
             }
         }
     }
@@ -5256,18 +5415,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             WorkflowStepCompleter.stepExecuting(token);
             _log.info("Update CG step executing");
-
+            
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
-
-            for (VolumeDescriptor descriptor : existingProtectedSourceVolumeDescriptors) {
+            
+            if (!existingProtectedSourceVolumeDescriptors.isEmpty()) {                    
+                // Get the first descriptor, that's all we need. This operation will
+                // affect all the RSets in the CG by adding a new standby copy.
+                VolumeDescriptor descriptor = existingProtectedSourceVolumeDescriptors.get(0);
+                            
                 Volume sourceVolume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
-
+    
                 URI newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
                 URI oldVPoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID);
-                
+    
                 VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVPoolURI);
-
+    
                 // Phase 1 - Only support upgrade from RP+VPLEX to MetroPoint.
                 // This includes:
                 // Adding a secondary journal and possibly adding MP targets to an existing RP+VPLEX CG
@@ -5277,7 +5440,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
                     upgradeRPVPlexToMetroPoint(sourceVolume, newVpool, oldVpool, rpSystem);
                 }
-
+    
                 // Update the ProtectionSet with any newly added protection set objects
                 // TODO support remove as well?
                 ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet());
@@ -5303,7 +5466,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Upgrades a RP+VPLEX CG to MetroPoint by adding a standby journal to the HA side.
      *
-     * Prerequiste: All RSets(volumes) in the CG must have had their HA sides already exported to RP in VPLEX.
+     * Prerequisite: All RSets(volumes) in the CG must have had their HA sides already exported to RP in VPLEX.
      *
      * @param sourceVolume A single source volume from the CG, we only need one.
      * @param rpSystem The rpSystem we're using
@@ -5317,8 +5480,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             _log.info(String.format("Upgrade RP+VPLEX CG to MetroPoint by adding new standby journal [%s] to the CG",
                     standbyProdJournal.getLabel()));
             RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
-           
-            RecoverPointVolumeProtectionInfo protectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(sourceVolume.getId(), _dbClient));
+
+            RecoverPointVolumeProtectionInfo protectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(sourceVolume.getId(),
+                    _dbClient));
             _log.info(String.format("RecoverPointVolumeProtectionInfo [%s] retrieved", protectionInfo.getRpProtectionName()));
 
             RPCopyRequestParams copyParams = new RPCopyRequestParams();
@@ -5359,7 +5523,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 for (Volume rpRelatedVol : allRelatedVolumes) {
                     if (rpRelatedVol.getVirtualPool().equals(oldVpool.getId())) {
                         rpRelatedVol.setVirtualPool(newVpool.getId());
-                        _dbClient.persistObject(rpRelatedVol);
+                        _dbClient.updateObject(rpRelatedVol);
                         _log.info(String.format("Volume [%s] has had it's virtual pool updated to [%s].", rpRelatedVol.getLabel(),
                                 newVpool.getLabel()));
                     }
@@ -5421,5 +5585,109 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     public void rollbackMethodNull(String stepId) throws WorkflowException {
         WorkflowStepCompleter.stepSucceded(stepId);
+    }
+
+    /**
+     * Step to remove protection on RP Source volumes
+     *
+     * @param workflow The current WF
+     * @param waitFor The previous waitFor step ID or Group
+     * @param volumeDescriptors RP Source volume descriptors
+     * @param taskId The Task ID
+     * @param blockDeviceController Reference to a BlockDeviceController, used for specific steps on 
+     *                              the volumes not covered by RP but required for the operation to be complete.
+     * @return The next waitFor step ID or Group
+     */
+    private String addRemoveProtectionOnVolumeStep(Workflow workflow, String waitFor, 
+            List<VolumeDescriptor> volumeDescriptors, String taskId, BlockDeviceController blockDeviceController) {
+        List<URI> volumeURIs = new ArrayList<URI>();
+        URI newVpoolURI = null;
+        
+        // Filter to get only the RP Source volumes.
+        List<VolumeDescriptor> rpSourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
+                new VolumeDescriptor.Type[] {});
+        
+        for (VolumeDescriptor descriptor : rpSourceDescriptors) {
+            if (descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null) {
+                // This is a rollback protection operation. We do not want to delete the volume but we do
+                // want to remove protection from it.
+                newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
+                _log.info(String.format("Adding step to remove protection from Volume (%s) and move it to vpool (%s)",
+                        descriptor.getVolumeURI(), newVpoolURI));
+                volumeURIs.add(descriptor.getVolumeURI());
+            }
+        }
+
+        if (volumeURIs.isEmpty()) {
+            return waitFor;
+        }
+        
+        // Filter to get only the Block Data volumes
+        List<VolumeDescriptor> blockDataDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
+                new VolumeDescriptor.Type[] {});
+        
+        // Check to see if there are any volumes flagged to not be fully deleted.
+        // These volumes could potentially need to have some untag operation performed 
+        // on the underlying array even though they won't be deleted.
+        List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(blockDataDescriptors); 
+        
+        if (doNotDeleteDescriptors != null && !doNotDeleteDescriptors.isEmpty()) {
+            _log.info(String.format("Adding steps to untag volumes"));
+            // Next, call the BlockDeviceController to perform untag operations.
+            waitFor = blockDeviceController.addStepsForUntagVolumes(workflow, waitFor, doNotDeleteDescriptors, taskId);
+        }
+        
+        // Grab any volume from the list so we can grab the protection system. This 
+        // request could be over multiple protection systems but we don't really
+        // care at this point. We just need this reference to pass into the
+        // WorkFlow.
+        Volume volume = _dbClient.queryObject(Volume.class, volumeURIs.get(0));
+        ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
+
+        String stepId = workflow.createStepId();
+        Workflow.Method removeProtectionExecuteMethod = new Workflow.Method(METHOD_REMOVE_PROTECTION_STEP, volumeURIs, newVpoolURI);
+
+        workflow.createStep(STEP_REMOVE_PROTECTION, "Remove RP protection on volume(s)",
+                waitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
+                removeProtectionExecuteMethod, null, stepId);
+
+        return STEP_REMOVE_PROTECTION;
+    }
+
+    /**
+     * Removes ViPR level protection attributes from RP Source volumes
+     *
+     * @param volumes All volumes to remove protection attributes from
+     * @param newVpoolURI The vpool to move this volume to
+     * @param stepId The step id in this WF
+     */
+    public boolean removeProtectionStep(List<URI> volumeURIs, URI newVpoolURI, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        try {
+            for (URI volumeURI : volumeURIs) {
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+
+                if (RPHelper.isVPlexVolume(volume)) {
+                    // We might need to update the vpools of the backing volumes after the
+                    // change vpool operation to remove protection
+                    updateVPlexBackingVolumeVpools(volume, newVpoolURI);
+                }
+
+                // Rollback protection on the volume
+                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
+                _log.info(String.format("Removing protection from Volume [%s] (%s) and moving it to Virtual Pool [%s] (%s)",
+                        volume.getLabel(), volume.getId(), vpool.getLabel(), vpool.getId()));
+                RPHelper.rollbackProtectionOnVolume(volume, vpool, _dbClient);
+            }
+
+            WorkflowStepCompleter.stepSucceded(stepId);
+            return true;
+        } catch (Exception e) {
+            stepFailed(stepId, e, "removeProtection operation failed.");
+            return false;
+        }
     }
 }

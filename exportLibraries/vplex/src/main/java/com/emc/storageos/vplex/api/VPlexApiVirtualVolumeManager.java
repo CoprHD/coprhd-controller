@@ -536,10 +536,13 @@ public class VPlexApiVirtualVolumeManager {
      * migrating the backend volume(s) to volume(s) with a larger capacity.
      * 
      * @param virtualVolumeName The name of the virtual volume.
+     * @param expansionStatusRetryCount Retry count to check virtual volume's expansion status.
+     * @param expansionStatusSleepTime Sleep time in between expansion status check retries.
      * 
      * @throws VPlexApiException When an exception occurs expanding the volume.
      */
-    VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName)
+    VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName,
+            int expansionStatusRetryCount, long expansionStatusSleepTime)
             throws VPlexApiException {
         s_logger.info("Expanding virtual volume {}", virtualVolumeName);
 
@@ -599,7 +602,8 @@ public class VPlexApiVirtualVolumeManager {
         }
 
         // Update the virtual volume info with the new capacity.
-        updateVirtualVolumeInfoAfterExpansion(clusterName, virtualVolumeInfo);
+        updateVirtualVolumeInfoAfterExpansion(clusterName, virtualVolumeInfo,
+                expansionStatusRetryCount, expansionStatusSleepTime);
         s_logger.info("Updated virtual volume info");
 
         return virtualVolumeInfo;
@@ -613,36 +617,49 @@ public class VPlexApiVirtualVolumeManager {
      * 
      * @param clusterName The cluster for the virtual volume.
      * @param virtualVolumeInfo A reference to the virtual volume info.
+     * @param expansionStatusRetryCount Retry count to check virtual volume's expansion status.
+     * @param expansionStatusSleepTime Sleep time in between expansion status check retries.
      * 
      * @throws VPlexApiException When an exception occurs attempting to update
      *             the virtual volume info.
      */
     private void updateVirtualVolumeInfoAfterExpansion(String clusterName,
-            VPlexVirtualVolumeInfo virtualVolumeInfo) throws VPlexApiException {
+            VPlexVirtualVolumeInfo virtualVolumeInfo, int expansionStatusRetryCount,
+            long expansionStatusSleepTime) throws VPlexApiException {
 
         int retryCount = 0;
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-        while (++retryCount <= VPlexApiConstants.EXPANSION_STATUS_RETRY_COUNT) {
+
+        while (++retryCount <= expansionStatusRetryCount) {
             try {
                 discoveryMgr.updateVirtualVolumeInfo(clusterName, virtualVolumeInfo);
                 s_logger.info("Expansion status is {}", virtualVolumeInfo.getExpansionStatus());
                 if (VPlexVirtualVolumeInfo.ExpansionStatus.INPROGRESS.getStatus().equals(
                         virtualVolumeInfo.getExpansionStatus())) {
                     s_logger.info("Expansion still in progress");
-                    VPlexApiUtils.pauseThread(VPlexApiConstants.EXPANSION_STATUS_SLEEP_TIME_MS);
+                    VPlexApiUtils.pauseThread(expansionStatusSleepTime);
+                    continue;
                 } else {
                     break;
                 }
             } catch (VPlexApiException vae) {
                 s_logger.error("An error occurred updating the virtual volume info: {}",
                         vae.getMessage());
-                if (retryCount < VPlexApiConstants.EXPANSION_STATUS_RETRY_COUNT) {
+                if (retryCount < expansionStatusRetryCount) {
                     s_logger.info("Trying again to get virtual volume info");
-                    VPlexApiUtils.pauseThread(VPlexApiConstants.EXPANSION_STATUS_SLEEP_TIME_MS);
+                    VPlexApiUtils.pauseThread(expansionStatusSleepTime);
                 } else {
                     throw vae;
                 }
             }
+        }
+        if (VPlexVirtualVolumeInfo.ExpansionStatus.INPROGRESS.getStatus().equals(
+                virtualVolumeInfo.getExpansionStatus())) {
+            s_logger.info(String.format("After %s retries with wait of %s ms between each retry volume %s "
+                    + "expansion status is still in progress.", String.valueOf(expansionStatusRetryCount),
+                    String.valueOf(expansionStatusSleepTime), virtualVolumeInfo.getName()));
+            throw VPlexApiException.exceptions.failedExpandVolumeStatusAfterRetries(virtualVolumeInfo.getName(),
+                    String.valueOf(expansionStatusRetryCount), String.valueOf(expansionStatusSleepTime));
         }
     }
 

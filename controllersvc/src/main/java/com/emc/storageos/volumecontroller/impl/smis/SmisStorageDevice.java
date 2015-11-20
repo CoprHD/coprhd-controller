@@ -637,7 +637,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 // Compare the volume labels of the to-be-deleted and existing volumes
                 /**
                  * This will fail in the case when the user just changes the label of the
-                 * volume...till we subsribe to indications from the provider, we will live with
+                 * volume...until we subscribe to indications from the provider, we will live with
                  * that.
                  */
                 String volToDeleteLabel = volume.getDeviceLabel();
@@ -698,21 +698,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 CIMArgument[] inArgs = _helper.getDeleteVolumesInputArguments(storageSystem,
                         volumeNativeIds);
                 CIMArgument[] outArgs = new CIMArgument[5];
-                StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem,
-                        volumes.get(0));
                 String returnElementsMethod;
-                if (forProvider.getUsingSmis80()) {
+                if (storageSystem.getUsingSmis80()) {
                     returnElementsMethod = SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL;
                 } else {
                     returnElementsMethod = SmisConstants.EMC_RETURN_TO_STORAGE_POOL;
                 }
-                _helper.invokeMethod(forProvider, configSvcPath,
+                _helper.invokeMethod(storageSystem, configSvcPath,
                         returnElementsMethod, inArgs, outArgs);
                 CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs,
                         SmisConstants.JOB);
                 if (job != null) {
                     ControllerServiceImpl.enqueueJob(new QueueJob(new SmisDeleteVolumeJob(job,
-                            forProvider.getId(), taskCompleter)));
+                            storageSystem.getId(), taskCompleter)));
                 }
             } else {
                 // If we are here, there are no volumes to delete, we have
@@ -1026,7 +1024,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * This interface will return a mapping of the port name to the URI of the ExportMask in which
      * it is contained.
-     *
+     * 
      * @param storage
      *            [in] - StorageSystem object representing the array
      * @param initiatorNames
@@ -1204,7 +1202,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * This method is for adding volumes to a consistency group. Be aware that this method is going
      * to be invoked by the SmisCreateVolumeJob, after there is a successful completion of the
      * volume create.
-     *
+     * 
      * @param storage
      * @param consistencyGroup
      * @param volumes
@@ -1312,7 +1310,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     /**
      * Method will remove the volume from the consistency group to which it currently belongs.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object
      * @param volume
@@ -1369,8 +1367,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
                                 SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
                         _log.info("Removing volume {} from device masking group {}", volume.getNativeId(), maskingGroupPath.toString());
-                        inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath,
-                                volumePaths, true);
+                        inArgs = _helper.getRemoveAndUnmapMaskingGroupMembersInputArguments(maskingGroupPath,
+                                volumePaths, storage, true);
                         _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
                                 SmisConstants.REMOVE_MEMBERS, inArgs, outArgs, null);
                     } else {
@@ -1400,7 +1398,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * the volume. Typically, on VNX arrays, if there's a restore operation against an 'advanced'
      * snap, there will be backup snapshot created. There isn't any easy way to get to this backup
      * using the SMI-S API, so we'll have to clean them all up when we go to delete the volume.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object
      * @param volume
@@ -1436,7 +1434,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Method will look up backup snapshots that were created when a snapshot restore operation was
      * performed, then clean them up. This would be required in order to do the volume delete.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object representing the array
      * @param volume
@@ -1475,7 +1473,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Method will look up backup snapshots that were created when a snapshot restore operation was
      * performed, then clean them up. This would be required in order to delete the ReplicationGroup.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object representing the array
      * @param replicationGroupPath
@@ -1640,60 +1638,75 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         return sourceProvider;
     }
 
+    /**
+     * Attempts to delete a system consistency group via an SMI-S provider, if it exists.
+     * Since a {@link BlockConsistencyGroup} may reference multiple system consistency groups, attempt to remove its
+     * reference, in addition to updating the types field.
+     *
+     * This method may be called as part of a workflow rollback.
+     *
+     * @param storage               StorageSystem
+     * @param consistencyGroupId    BlockConsistencyGroup URI
+     * @param markInactive          True, if the user initiated removal of the BlockConsistencyGroup
+     * @param taskCompleter         TaskCompleter
+     * @throws DeviceControllerException
+     */
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
             Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
-        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
-                consistencyGroupId);
-        try {
-            // Check if the consistency group exists
-            String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
-            storage = findProviderFactory.withGroup(storage, groupName).find();
 
-            if (storage == null) {
-                ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
-                taskCompleter.error(_dbClient, error);
-                consistencyGroup.setInactive(true);
-                _dbClient.persistObject(consistencyGroup);
+        ServiceError serviceError = null;
+        URI systemURI = storage.getId();
+        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+
+        try {
+            if (consistencyGroup == null || consistencyGroup.getInactive()) {
+                _log.info(String.format("%s is inactive or deleted", consistencyGroupId));
                 return;
             }
-            // To minimize the existing changes, we will be executing group path one more time.
-            // TODO if its taking time, then we can refactor this.
+
+            // This will be null, if consistencyGroup references no system CG's for storage.
+            String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
+            if (groupName == null) {
+                _log.info(String.format("%s contains no system CG for %s.  Assuming it has already been deleted.",
+                        consistencyGroupId, systemURI));
+                return;
+            }
+
+            // Find a provider with reference to the CG
+            storage = findProviderFactory.withGroup(storage, groupName).find();
+            if (storage == null) {
+                // Fail the task
+                serviceError = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
+                _log.warn(String.format("Consistency group %s not found on %s", groupName, systemURI));
+                return;
+            }
+
+            // Check if the CG exists
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
-            CIMArgument[] inArgs;
-            CIMArgument[] outArgs = new CIMArgument[5];
             CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
-            // If there is no consistency group with the given name, set the operation to error
-            if (cgPathInstance == null) {
-                ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
-                taskCompleter.error(_dbClient, error);
-                consistencyGroup.setInactive(true);
-                _dbClient.persistObject(consistencyGroup);
-                return;
+            if (cgPathInstance != null) {
+                if (storage.deviceIsType(Type.vnxblock)) {
+                    cleanupAnyGroupBackupSnapshots(storage, cgPath);
+                }
+
+                // Invoke the deletion of the consistency group
+                CIMArgument[] inArgs;
+                CIMArgument[] outArgs = new CIMArgument[5];
+                inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
+                _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
+                        outArgs);
             }
 
-            if (storage.deviceIsType(Type.vnxblock)) {
-                cleanupAnyGroupBackupSnapshots(storage, cgPath);
-            }
+            // Remove the replication group name from the SystemConsistencyGroup field
+            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), groupName);
 
-            // Invoke the deletion of the consistency group
-            inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
-            _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
-                    outArgs);
-            // Set the consistency group to inactive
-            URI systemURI = storage.getId();
-            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
-                    consistencyGroup.getCgNameOnStorageSystem(systemURI));
-            if (markInactive) {
-                consistencyGroup.setInactive(true);
-            }
-
-            // Verify if the BlockConsistencyGroup references any LOCAL arrays. If we
-            // no longer have any references we can remove the 'LOCAL' type from the
-            // BlockConsistencyGroup.
-            List<URI> referencedArrays =
-                    BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient);
+            /*
+             * Verify if the BlockConsistencyGroup references any LOCAL arrays.
+             * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
+             */
+            List<URI> referencedArrays = BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient);
             boolean cgReferenced = false;
             for (URI storageSystemUri : referencedArrays) {
                 StringSet cgs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemUri.toString());
@@ -1716,15 +1729,18 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
 
-            _dbClient.persistObject(consistencyGroup);
-            // Set task to ready
-            taskCompleter.ready(_dbClient);
+            // Update the consistency group model
+            consistencyGroup.setInactive(markInactive);
+            _dbClient.updateObject(consistencyGroup);
         } catch (Exception e) {
             _log.error("Failed to delete consistency group: ", e);
-            // Set task to error
-            ServiceError error = DeviceControllerErrors.smis.methodFailed(
-                    "doDeleteConsistencyGroup", e.getMessage());
-            taskCompleter.error(_dbClient, error);
+            serviceError = DeviceControllerErrors.smis.methodFailed("doDeleteConsistencyGroup", e.getMessage());
+        } finally {
+            if (serviceError != null) {
+                taskCompleter.error(_dbClient, serviceError);
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
         }
     }
 
@@ -2299,7 +2315,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             } else {
                 String[] members = _helper.getBlockObjectAlternateNames(replicasPartOfGroup);
                 CIMObjectPath[] memberPaths = _cimPath.getVolumePaths(storage, members);
-                CIMArgument[] inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, true);
+                CIMArgument[] inArgs = _helper.getRemoveAndUnmapMaskingGroupMembersInputArguments(
+                        maskingGroupPath, memberPaths, storage, true);
                 CIMArgument[] outArgs = new CIMArgument[5];
 
                 _log.info("Invoking remove replicas {} from Device Masking Group equivalent to its Replication Group {}",
@@ -2539,7 +2556,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Before the clone could be deleted, if the clone is from a CG, we will
      * remove the target group, then reset the replicationGroupInstance for the clones in the group.
-     *
+     * 
      * @param storage
      * @param clones
      * @throws Exception
@@ -2592,7 +2609,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     /**
      * This method tests if the array represented by 'storageSystem' supports volume expand.
-     *
+     * 
      * @param storageSystem [IN] - StorageSystem object to check the volume expand capabilities
      * @return true iff The array indicates that it supports volume expand.
      */
@@ -2626,5 +2643,36 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
         return false;
     }
-
+    
+    @Override
+    public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        try {
+            int volumeCount = 0;
+            String[] volumeNativeIds = new String[volumes.size()];
+            StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                    "Untag Volume Start - Array:%s", storageSystem.getSerialNumber()));
+            MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;            
+            for (Volume volume : volumes) {
+                logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
+                _helper.doApplyRecoverPointTag(storageSystem, volume, false);
+            }                        
+        } catch (WBEMException e) {
+            _log.error("Problem making SMI-S call: ", e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e
+                    .getMessage());
+            taskCompleter.error(_dbClient, error);
+        } catch (Exception e) {
+            _log.error("Problem in doUntagVolume: ", e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doUntagVolume",
+                    e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        }
+        StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                "Untag Volume End - Array: %s", storageSystem.getSerialNumber()));
+        for (Volume volume : volumes) {
+            logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
+        }
+        _log.info(logMsgBuilder.toString());        
+    }
 }

@@ -237,14 +237,14 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
                 .get(Constants.USED_IN_CHECKING_GROUPNAMES_EXISTENCE);
         if (AutoTieringPolicy.ProvisioningType.ThicklyProvisioned.toString().equalsIgnoreCase(
                 provisioningType)) {
-            deviceNamesExistence.add(policyRuleName + Constants.HYPEN + Constants.THICKDEVICEGROUP);
+            deviceNamesExistence.add(policyRuleName + Constants.HYPHEN + Constants.THICKDEVICEGROUP);
         } else if (AutoTieringPolicy.ProvisioningType.ThinlyProvisioned.toString()
                 .equalsIgnoreCase(provisioningType)) {
-            deviceNamesExistence.add(policyRuleName + Constants.HYPEN + Constants.THINDEVICEGROUP);
+            deviceNamesExistence.add(policyRuleName + Constants.HYPHEN + Constants.THINDEVICEGROUP);
         } else if (AutoTieringPolicy.ProvisioningType.All.toString()
                 .equalsIgnoreCase(provisioningType)) {
             deviceNamesExistence
-                    .add(policyRuleName + Constants.HYPEN + Constants.THINANDTHICKDEVICEGROUP);
+                    .add(policyRuleName + Constants.HYPHEN + Constants.THINANDTHICKDEVICEGROUP);
         }
     }
 
@@ -262,15 +262,15 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
                 .get(Constants.USED_IN_CHECKING_GROUPNAMES_TO_FASTPOLICY);
         if (AutoTieringPolicy.ProvisioningType.ThicklyProvisioned.toString().equalsIgnoreCase(
                 provisioningType)) {
-            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPEN
+            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPHEN
                     + Constants.THICKDEVICEGROUP);
         } else if (AutoTieringPolicy.ProvisioningType.ThinlyProvisioned.toString()
                 .equalsIgnoreCase(provisioningType)) {
-            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPEN
+            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPHEN
                     + Constants.THINDEVICEGROUP);
         } else if (AutoTieringPolicy.ProvisioningType.All.toString()
                 .equalsIgnoreCase(provisioningType)) {
-            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPEN
+            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPHEN
                     + Constants.THINANDTHICKDEVICEGROUP);
         }
     }

@@ -216,7 +216,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 // Step 1: Create all HSD's using batch operation.
                 List<HostStorageDomain> hsdResponseList = hdsApiClient
                         .getHDSBatchApiExportManager().addHostStorageDomains(
-                                systemObjectID, hsdsToCreate);
+                                systemObjectID, hsdsToCreate, storage.getModel());
 
                 if (null == hsdResponseList || hsdResponseList.isEmpty()) {
                     log.error("Batch HSD creation failed. Aborting operation...");
@@ -225,11 +225,11 @@ public class HDSExportOperations implements ExportMaskOperations {
                 }
                 // Step 2: Add initiators to all HSD's.
                 hsdsWithInitiators = executeBatchHSDAddInitiatorsCommand(hdsApiClient,
-                        systemObjectID, hsdResponseList, storagePorts, initiatorList);
+                        systemObjectID, hsdResponseList, storagePorts, initiatorList, storage.getModel());
 
                 // Step 3: Add volumes to all HSD's.
                 List<Path> allHSDPaths = executeBatchHSDAddVolumesCommand(hdsApiClient,
-                        systemObjectID, hsdsWithInitiators, volumeURIHLUs);
+                        systemObjectID, hsdsWithInitiators, volumeURIHLUs, storage.getModel());
 
                 if (null != allHSDPaths && !allHSDPaths.isEmpty()) {
                     updateExportMaskDetailInDB(hsdsWithInitiators, allHSDPaths,
@@ -247,7 +247,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 if (null != hsdsWithInitiators && !hsdsWithInitiators.isEmpty()) {
                     hdsApiClient.getHDSBatchApiExportManager()
                             .deleteBatchHostStorageDomains(systemObjectID,
-                                    hsdsWithInitiators);
+                                    hsdsWithInitiators, storage.getModel());
                 } else {
                     if (null != hsdsToCreate && !hsdsToCreate.isEmpty()) {
                         List<HostStorageDomain> allHSDs = hdsApiClient
@@ -257,7 +257,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                                 allHSDs, hsdsToCreate);
                         hdsApiClient.getHDSBatchApiExportManager()
                                 .deleteBatchHostStorageDomains(systemObjectID,
-                                        partialHSDListToRemove);
+                                        partialHSDListToRemove, storage.getModel());
                     }
                 }
                 log.error(String.format("createExportMask failed - maskName: %s",
@@ -333,12 +333,13 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @param systemId
      * @param hsdsWithInitiators
      * @param volumeURIHLUs
+     * @param model
      * @return
      * @throws Exception
      */
     private List<Path> executeBatchHSDAddVolumesCommand(HDSApiClient hdsApiClient,
             String systemId, List<HostStorageDomain> hsdsWithInitiators,
-            VolumeURIHLU[] volumeURIHLUs) throws Exception {
+            VolumeURIHLU[] volumeURIHLUs, String model) throws Exception {
         if (null == hsdsWithInitiators || hsdsWithInitiators.isEmpty()) {
             log.error("Batch HSD creation failed. Aborting operation...");
             throw HDSException.exceptions.notAbleToAddHSD(systemId);
@@ -355,7 +356,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             }
         }
         return hdsApiClient.getHDSBatchApiExportManager().addLUNPathsToHSDs(systemId,
-                pathList);
+                pathList, model);
     }
 
     /**
@@ -372,7 +373,8 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @throws Exception
      */
     private List<HostStorageDomain> executeBatchHSDAddInitiatorsCommand(HDSApiClient hdsApiClient, String systemObjectID,
-            List<HostStorageDomain> createHsdsResponseList, List<StoragePort> storagePorts, List<Initiator> initiators) throws Exception {
+            List<HostStorageDomain> createHsdsResponseList, List<StoragePort> storagePorts, List<Initiator> initiators, String model)
+            throws Exception {
 
         List<HostStorageDomain> fcHsdsToAddInitiators = new ArrayList<HostStorageDomain>();
         List<HostStorageDomain> iSCSIHsdsToAddInitiators = new ArrayList<HostStorageDomain>();
@@ -407,13 +409,13 @@ public class HDSExportOperations implements ExportMaskOperations {
         }
         if (!fcHsdsToAddInitiators.isEmpty()) {
             hsdsWithAddIniResponseList.addAll(hdsApiClient.getHDSBatchApiExportManager()
-                    .addWWNsToHostStorageDomain(systemObjectID, fcHsdsToAddInitiators));
+                    .addWWNsToHostStorageDomain(systemObjectID, fcHsdsToAddInitiators, model));
         }
 
         if (!iSCSIHsdsToAddInitiators.isEmpty()) {
             hsdsWithAddIniResponseList.addAll(hdsApiClient.getHDSBatchApiExportManager()
                     .addISCSINamesToHostStorageDomain(systemObjectID,
-                            iSCSIHsdsToAddInitiators));
+                            iSCSIHsdsToAddInitiators, model));
         }
 
         if (null == hsdsWithAddIniResponseList || hsdsWithAddIniResponseList.isEmpty()) {
@@ -818,7 +820,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 if (!hsdToDeleteList.isEmpty()) {
                     hdsApiClient.getHDSBatchApiExportManager()
                             .deleteBatchHostStorageDomains(systemObjectId,
-                                    hsdToDeleteList);
+                                    hsdToDeleteList, storage.getModel());
                 }
                 // By this time, we have removed all HSD's created in this mask.
                 taskCompleter.ready(dbClient);
@@ -890,7 +892,7 @@ public class HDSExportOperations implements ExportMaskOperations {
 
                 List<Path> pathResponseList = hdsApiClient
                         .getHDSBatchApiExportManager().addLUNPathsToHSDs(
-                                systemObjectID, pathList);
+                                systemObjectID, pathList, storage.getModel());
                 if (null != pathResponseList && !pathResponseList.isEmpty()) {
                     // update volume-lun relationship to exportmask.
                     updateVolumeHLUInfo(volumeURIHLUs, pathResponseList,
@@ -975,7 +977,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 if (!pathObjectIdList.isEmpty()) {
                     hdsApiClient.getHDSBatchApiExportManager()
                             .deleteLUNPathsFromStorageSystem(systemObjectID,
-                                    pathObjectIdList);
+                                    pathObjectIdList, storage.getModel());
 
                 } else {
                     log.info("No volumes found on system: {}", systemObjectID);
@@ -1063,7 +1065,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     // Step 1: Create all HSD's using batch operation.
                     List<HostStorageDomain> hsdResponseList = hdsApiClient
                             .getHDSBatchApiExportManager().addHostStorageDomains(
-                                    systemObjectID, hsdsToCreate);
+                                    systemObjectID, hsdsToCreate, storage.getModel());
 
                     if (null == hsdResponseList || hsdResponseList.isEmpty()) {
                         log.error("Batch HSD creation failed to add new initiators. Aborting operation...");
@@ -1072,11 +1074,11 @@ public class HDSExportOperations implements ExportMaskOperations {
                     }
                     // Step 2: Add initiators to all HSD's.
                     hsdsWithInitiators = executeBatchHSDAddInitiatorsCommand(hdsApiClient,
-                            systemObjectID, hsdResponseList, ports, initiators);
+                            systemObjectID, hsdResponseList, ports, initiators, storage.getModel());
 
                     // Step 3: Add volumes to all HSD's.
                     List<Path> allHSDPaths = executeBatchHSDAddVolumesCommand(hdsApiClient,
-                            systemObjectID, hsdsWithInitiators, volumeURIHLUs);
+                            systemObjectID, hsdsWithInitiators, volumeURIHLUs, storage.getModel());
 
                     if (null != allHSDPaths && !allHSDPaths.isEmpty()) {
                         updateExportMaskDetailInDB(hsdsWithInitiators, allHSDPaths,
@@ -1094,7 +1096,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 if (null != hsdsWithInitiators && !hsdsWithInitiators.isEmpty()) {
                     hdsApiClient.getHDSBatchApiExportManager()
                             .deleteBatchHostStorageDomains(systemObjectID,
-                                    hsdsWithInitiators);
+                                    hsdsWithInitiators, storage.getModel());
                 } else {
                     if (null != hsdsToCreate && !hsdsToCreate.isEmpty()) {
                         List<HostStorageDomain> allHSDs = hdsApiClient
@@ -1104,7 +1106,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                                 allHSDs, hsdsToCreate);
                         hdsApiClient.getHDSBatchApiExportManager()
                                 .deleteBatchHostStorageDomains(systemObjectID,
-                                        partialHSDListToRemove);
+                                        partialHSDListToRemove, storage.getModel());
                     }
                 }
                 log.error(String.format("addInitiator failed - maskURI: %s",
@@ -1174,24 +1176,33 @@ public class HDSExportOperations implements ExportMaskOperations {
                     }
                     List<String> fcInitiators = getFCInitiatorsExistOnHSD(hsd, initiators);
                     List<String> iSCSIInitiators = getISCSIInitiatorsExistOnHSD(hsd, initiators);
+                    boolean isLastFCInitiator = (fcInitiators.size() == 1 && null != hsd.getWwnList() && hsd
+                            .getWwnList().size() == fcInitiators.size());
+                    boolean isLastISCSIInitiator = (iSCSIInitiators.size() == 1 && null != hsd.getIscsiList() && hsd
+                            .getIscsiList().size() == iSCSIInitiators.size());
                     // If Initiator is last one, remove the HSD
-                    if ((null != fcInitiators && fcInitiators.size() == 1)
-                            || (null != iSCSIInitiators && iSCSIInitiators.size() == 1)) {
-                        exportMgr.deleteHostStorageDomain(systemObjectID, hsd.getObjectID());
+                    if (isLastFCInitiator || isLastISCSIInitiator) {
+                        exportMgr.deleteHostStorageDomain(systemObjectID, hsd.getObjectID(), storage.getModel());
+                        exportMask.getDeviceDataMap().remove(hsd.getObjectID());
                     } else {
                         if (null != fcInitiators && !fcInitiators.isEmpty()) {
                             // remove FC initiators from HSD.
                             exportMgr.deleteWWNsFromHostStorageDomain(systemObjectID, hsd.getObjectID(),
-                                    fcInitiators);
+                                    fcInitiators, storage.getModel());
                         }
                         if (null != iSCSIInitiators && !iSCSIInitiators.isEmpty()) {
                             // remove ISCSInames from HSD.
                             exportMgr.deleteISCSIsFromHostStorageDomain(systemObjectID, hsd.getObjectID(),
-                                    iSCSIInitiators);
+                                    iSCSIInitiators, storage.getModel());
                         }
                     }
                 }
+                dbClient.updateObject(exportMask);
                 // update the task status after processing all HSD's.
+                taskCompleter.ready(dbClient);
+            } else {
+                log.info("No Host groups configured on exportMask {}", exportMaskURI);
+                // No HSD's found in exportMask.
                 taskCompleter.ready(dbClient);
             }
 
@@ -1790,7 +1801,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                                 tieringPolicyName.replaceAll(HDSConstants.SLASH_OPERATOR,
                                         HDSConstants.UNDERSCORE_OPERATOR)).getKey();
                         String asyncMessageId = hdsApiClient.modifyThinVolumeTieringPolicy(systemObjectID, luObjectId,
-                                ldev.getObjectID(), policId);
+                                ldev.getObjectID(), policId, storage.getModel());
                         if (null != asyncMessageId) {
                             HDSJob modifyHDSJob = new HDSModifyVolumeJob(asyncMessageId, volume.getStorageController(),
                                     taskCompleter, HDSModifyVolumeJob.VOLUME_VPOOL_CHANGE_JOB);

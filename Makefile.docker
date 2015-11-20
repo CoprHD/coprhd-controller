@@ -8,8 +8,8 @@
 # limited to the terms and conditions of the License Agreement under which
 # it is provided by or on behalf of EMC.
 #
-DEVKIT_BUILD=20
-DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.3.0.0.$(DEVKIT_BUILD)
+DEVKIT_BUILD=1
+DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.4.1.0.$(DEVKIT_BUILD)
 DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR):/workspace" $(DEVKIT_IMAGE)
  
 %::

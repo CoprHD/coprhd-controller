@@ -208,6 +208,7 @@ render.discoveryStatusIcon = function(o, val) {
         'IN_PROGRESS': 'label-info',
         'SCHEDULED':   'label-info',
         'COMPLETE':    'label-success',
+        'PARTIAL_SUCCESS': 'label-warning',
         'ERROR':       'label-danger'
     }
     var icons = {
@@ -215,6 +216,7 @@ render.discoveryStatusIcon = function(o, val) {
         'IN_PROGRESS': 'glyphicon glyphicon-refresh rotate',
         'SCHEDULED':   'glyphicon glyphicon-time',
         'COMPLETE':    'glyphicon glyphicon-ok',
+        'PARTIAL_SUCCESS': 'glyphicon glyphicon-warning-sign',
         'ERROR':       'glyphicon glyphicon-remove'
     };
 
@@ -226,8 +228,13 @@ render.discoveryStatusIcon = function(o, val) {
         label = 'label-warning';
         icon = 'glyphicon glyphicon-exclamation-sign';
     }
-    
-    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span>';
+	if (label == 'label-warning') {
+		return '<span class="label ' + label + '"><span class="'
+				+ '<a href="#" data-toggle="tooltip" data-placement="left" title="Import failed to at least one Compute Image Server"><span class="glyphicon glyphicon-warning-sign"></a>'
+				+ '</span></span>';
+	} else {
+		return '<span class="label ' + label + '"><span class="' + icon + '"></span></span>';		
+	}
 }
 
 render.discoveryStatusMessage = function(o, val) {
@@ -239,6 +246,7 @@ render.discoveryStatusMessage = function(o, val) {
         'SCHEDULED':   Messages.get("renderFunctions.discovery.status.scheduled"),
         'IN_PROGRESS': Messages.get("renderFunctions.discovery.status.progress"),
         'COMPLETE':    Messages.get("renderFunctions.discovery.status.complete"),
+        'PARTIAL_SUCCESS':    Messages.get("renderFunctions.discovery.status.importFailed"),
         'ERROR':       Messages.get("renderFunctions.discovery.status.failed")
     };
 

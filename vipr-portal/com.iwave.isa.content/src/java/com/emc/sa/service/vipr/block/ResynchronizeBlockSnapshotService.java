@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 EMC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;

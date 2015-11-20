@@ -8,6 +8,7 @@ import java.net.URI;
 
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.httpclient.util.URIUtil;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +60,8 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             ClientResponse response = get(XtremIOConstants.XTREMIO_V2_XMS_URI);
             XtremIOXMSsInfo xmssInfo = getResponseObject(XtremIOXMSsInfo.class, response);
             for (XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
-                URI xmsURI = URI.create(xmsInfo.getHref().concat(XtremIOConstants.XTREMIO_XMS_FILTER_STR));
+                URI xmsURI = URI.create(URIUtil.getFromPath(xmsInfo.getHref().concat(XtremIOConstants.XTREMIO_XMS_FILTER_STR)));
+                log.debug("Trying to get xms details for {}", xmsURI.toString());
                 response = get(xmsURI);
                 log.debug("Got response {} for url {}.", response.getClientResponseStatus(), xmsURI);
                 if (response.getClientResponseStatus() != ClientResponse.Status.OK) {

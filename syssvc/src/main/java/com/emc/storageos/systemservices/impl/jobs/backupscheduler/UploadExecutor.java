@@ -256,11 +256,11 @@ public class UploadExecutor {
             this.cfg.persist();
         }
     }
+
     /**
      * Mark invalid for stale incompleted backup file on server based on the input filename.
      *
      * @param toUploadedFileName the filename about to upload,
-     * @return null.
      */
     private void markStaleIncompletedZipFile(String toUploadedFileName) {
         String noExtendFileName = toUploadedFileName.split(ScheduledBackupTag.ZIP_FILE_SURFIX)[0];
@@ -276,20 +276,19 @@ public class UploadExecutor {
                     uploader.rename(file, ScheduledBackupTag.toInvalidFileName(file));
                 }
             }
-
         } catch (Exception e) {
-            log.warn("Mark invalide  uploaded backup zip file failed", e);
+            log.warn("Mark invalid  uploaded backup zip file failed", e);
         }
     }
 
-    private Boolean isFullNodeFileName(String noExtendFileName) {
+    private boolean isFullNodeFileName(String noExtendFileName) {
         String[] filenames = noExtendFileName.split(ScheduledBackupTag.BACKUP_TAG_SEPERATOR);
         String availableNodes = filenames[filenames.length - 1];
         String allNodes = filenames[filenames.length - 2];
         return allNodes.equals(availableNodes);
     }
 
-    private Boolean isIncompletedFile(String filename, String prefix) {
+    private boolean isIncompletedFile(String filename, String prefix) {
         Pattern pattern = Pattern.compile("^" + prefix + "-\\d" + ScheduledBackupTag.ZIP_FILE_SURFIX + "$");
         return pattern.matcher(filename).matches();
     }

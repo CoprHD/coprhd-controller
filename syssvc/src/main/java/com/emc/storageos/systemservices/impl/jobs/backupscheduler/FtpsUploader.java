@@ -128,13 +128,13 @@ public class FtpsUploader extends Uploader {
     }
 
     @Override
-    public void rename(String fromFileName, String toFileName) throws Exception {
+    public void rename(String sourceFileName, String destFileName) throws Exception {
         ProcessBuilder builder = getBuilder();
         builder.command().add(this.cfg.uploadUrl);
         builder.command().add("-Q");
-        builder.command().add("RNFR " + fromFileName);
+        builder.command().add("RNFR " + sourceFileName);
         builder.command().add("-Q");
-        builder.command().add("RNTO " + toFileName);
+        builder.command().add("RNTO " + destFileName);
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
             StringBuilder errText = new StringBuilder();

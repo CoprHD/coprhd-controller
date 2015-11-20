@@ -225,9 +225,9 @@ class FakeUploader extends Uploader {
     }
 
     @Override
-    public void rename(String fromFileName,String toFileName) {
-        this.fileMap.put(toFileName,this.fileMap.get(fromFileName));
-        this.fileMap.remove(fromFileName);
+    public void rename(String sourceFileName,String destFileName) {
+        this.fileMap.put(destFileName,this.fileMap.get(sourceFileName));
+        this.fileMap.remove(sourceFileName);
     }
 }
 

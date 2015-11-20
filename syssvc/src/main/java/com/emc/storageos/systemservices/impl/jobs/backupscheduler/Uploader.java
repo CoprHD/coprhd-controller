@@ -61,12 +61,12 @@ public abstract class Uploader {
     public abstract List<String> listFiles() throws Exception;
 
     /**
-     * Delete specific file on server.
+     * Rename specific file on server.
      *
-     * @param fromFileName to be renamed filename on server
-     * @param toFileName   rename to filename on server
+     * @param sourceFileName to be renamed filename on server
+     * @param destFileName   rename to filename on server
      * @return null.
      * @throws Exception
      */
-    public abstract void rename(String fromFileName, String toFileName) throws Exception;
+    public abstract void rename(String sourceFileName, String destFileName) throws Exception;
 }

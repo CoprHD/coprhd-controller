@@ -44,7 +44,7 @@ public class IPsecService {
                 OperationTypeEnum.UPDATE_SYSTEM_PROPERTY,
                 System.currentTimeMillis(),
                 AuditLogManager.AUDITLOG_SUCCESS,
-                null, null);
+                null);
 
         return version;
     }

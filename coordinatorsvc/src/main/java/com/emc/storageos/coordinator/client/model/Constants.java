@@ -134,6 +134,8 @@ public interface Constants {
     String CONFIG_GEO_LOCAL_VDC_ID = "global";
     String CONFIG_GEO_LOCAL_VDC_SHORT_ID = "vdcShortId";
     
+    public static final String CONFIG_GEO_FIRST_VDC_SHORT_ID = "vdc1";
+    
     public static final String SITE_STATE = "state";
     public static final String SITE_ID= "siteid";
     

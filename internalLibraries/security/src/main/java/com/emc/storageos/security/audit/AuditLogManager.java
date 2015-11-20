@@ -85,7 +85,7 @@ public class AuditLogManager {
      */
     public void recordAuditLogs(RecordableAuditLog... auditlogs) {
         if (isStandby) {
-           s_logger.info("Ignore audit log on standby site {}");
+           s_logger.info("Ignore audit log on standby site");
            return;
         }
         

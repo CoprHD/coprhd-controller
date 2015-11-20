@@ -173,7 +173,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         
         List<XtremIOObjectInfo> consistencyGroupVolInfo = xtremIOClient.getXtremIOConsistencyGroupVolumes(xioClusterName);
         
-        getConsistencyGroupVolumeDetails(xtremIOClient, consistencyGroupVolInfo, xioClusterName);
+        Map<String, String> volumesToCgs = getConsistencyGroupVolumeDetails(xtremIOClient, consistencyGroupVolInfo, xioClusterName);
 
         // Get the volume details
         List<List<XtremIOObjectInfo>> volume_partitions = Lists.partition(volLinks, Constants.DEFAULT_PARTITION_SIZE);
@@ -209,6 +209,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     }
 
                     continue;
+                }
+                
+                if (volumesToCgs.containsKey(volume.getVolInfo().get(0))) {
+                	log.info("Sathish has the volume" + volume.getVolInfo().get(0));
+                } else {
+                	log.info("Sathish no use" + volume.getVolInfo().get(0));
                 }
 
                 String unManagedVolumeNatvieGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingVolume(
@@ -274,7 +280,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 dbClient, partitionManager);
     }
 
-    private void getConsistencyGroupVolumeDetails(XtremIOClient xtremIOClient, List<XtremIOObjectInfo>consistencyGroupInfo, String xioClusterName) throws Exception {
+    private Map<String, String> getConsistencyGroupVolumeDetails(XtremIOClient xtremIOClient, List<XtremIOObjectInfo>consistencyGroupInfo, String xioClusterName) throws Exception {
     	Map<String, String> volumesToCgs = new HashMap<String, String>();
     	for (XtremIOObjectInfo cg : consistencyGroupInfo){
     		XtremIOConsistencyGroupVolInfo cgVol = xtremIOClient.getXtremIOConsistencyGroupInfo(cg, xioClusterName);
@@ -284,7 +290,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
     		}
     		
     	}
-    	log.info("VolumesToCgs: "+volumesToCgs.toString());
+    	log.info("Volumes to Consistency Groups mapping: "+volumesToCgs.toString());
+    	return volumesToCgs; 
     }
     private void populateKnownVolsMap(XtremIOVolume vol, BlockObject viprObj, Map<String, StringSet> igKnownVolumesMap) {
         for (List<Object> lunMapEntries : vol.getLunMaps()) {

@@ -439,7 +439,7 @@ public class SMISProviderService extends TaskResourceService {
         URIQueryResultList list = new URIQueryResultList();
 
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
-        if (!StorageSystem.Type.isProviderStorageSystem(Type.valueOf(param.getSystemType()))) {
+        if (!StorageSystem.Type.isProviderStorageSystem(param.getSystemType())) {
             throw APIException.badRequests.cannotAddStorageSystemTypeToStorageProvider(param.getSystemType());
         }
         if ((Type.valueOf(param.getSystemType()) == Type.vnxblock) && StringUtils.isNotBlank(param.getIpAddress())) {

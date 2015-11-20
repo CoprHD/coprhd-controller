@@ -1,5 +1,6 @@
 package com.emc.storageos.driver.driversimulator;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -179,7 +180,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
             volume.setNativeId("driverSimulatorVolume" + UUID.randomUUID().toString());
             volume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
             volume.setProvisionedCapacity(0L);
-            volume.setAllocatedCapacity(10L * 1024 * 1024);
+            volume.setAllocatedCapacity(volume.getRequestedCapacity());
             volume.setDeviceLabel(volume.getNativeId());
             volume.setWwn(String.format("%s%s", volume.getStorageSystemId(), volume.getNativeId()));
 
@@ -192,7 +193,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
         task.setStatus(DriverTask.TaskStatus.READY);
 
         _log.info("StorageDriver: createVolumes information for storage system {}, volume nativeIds {} - end",
-                volumes.get(0).getStorageSystemId(), Arrays.toString(newVolumes.toArray()));
+                volumes.get(0).getStorageSystemId(), newVolumes.toString());
         return task;
     }
 
@@ -203,7 +204,19 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
 
     @Override
     public DriverTask deleteVolumes(List<StorageVolume> volumes) {
-        return null;
+        List<String> deletedVolumes = new ArrayList<>();
+
+        for (StorageVolume volume : volumes) {
+            deletedVolumes.add(volume.getNativeId());
+        }
+        String taskType = "delete-storage-volumes";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        _log.info("StorageDriver: deleteVolumes information for storage system {}, volume nativeIds {} - end",
+                volumes.get(0).getStorageSystemId(), deletedVolumes.toString());
+        return task;
     }
 
     @Override

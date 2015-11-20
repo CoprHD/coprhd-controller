@@ -113,15 +113,12 @@ public class MaxResourcesMatcher extends AttributeMatcher {
      * @return
      */
     public static Integer getNumResources(StorageSystem system, DbClient dbClient) {
-        StorageSystem.Type systemType = StorageSystem.Type.valueOf(system.getSystemType());
-        if (systemType == null) {
-            return 0;
-        }
+
         Integer count = 0;
-        if (StorageSystem.Type.isFileStorageSystem(systemType)) {
+        if (StorageSystem.Type.isFileStorageSystem(system.getSystemType())) {
             count = count + dbClient.countObjects(FileShare.class, "storageDevice", system.getId());
         }
-        if (StorageSystem.Type.isBlockStorageSystem(systemType)) {
+        if (StorageSystem.Type.isBlockStorageSystem(system.getSystemType())) {
             count = count + dbClient.countObjects(Volume.class, "storageDevice", system.getId());
         }
         return count;

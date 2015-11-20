@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,15 +62,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     private BlockStorageDriver getDriver(String driverType) {
         // look up driver
-        BlockStorageDriver discoveryDriver = blockDrivers.get(driverType);
-        if (discoveryDriver != null) {
-            return discoveryDriver;
+        BlockStorageDriver storageDriver = blockDrivers.get(driverType);
+        if (storageDriver != null) {
+            return storageDriver;
         } else {
             // init driver
             AbstractStorageDriver driver = drivers.get(driverType);
             if (driver == null) {
-                _log.info("No driver entry defined for device type: {} . ", driverType);
-                return null;
+                _log.error("No driver entry defined for device type: {} . ", driverType);
+                throw ExternalDeviceException.exceptions.noDriverDefinedForDevice(driverType);
             }
             init(driver);
             blockDrivers.put(driverType, driver);
@@ -97,13 +98,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                                 TaskCompleter taskCompleter) throws DeviceControllerException {
 
         BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-        if (driver == null) {
-            String errorMsg = String.format("No driver entry defined for device type: %s . ", storageSystem.getSystemType());
-            _log.info(errorMsg);
-            //  todo revisit
-            throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
-                    null, errorMsg, null, null);
-        }
 
         List<StorageVolume> driverVolumes = new ArrayList<>();
         Map<StorageVolume, Volume> driverVolumeToVolumeMap = new HashMap<>();
@@ -140,7 +134,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 }
                 String errorMsg = String.format("doCreateVolumes -- Failed to create volumes: %s .", task.getMessage());
                 _log.error(errorMsg);
-                ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed(volumeURIs.toString(), errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("doCreateVolumes", errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (IOException e) {
@@ -169,6 +163,37 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     public void doDeleteVolumes(StorageSystem storageSystem, String opId,
                                 List<Volume> volumes, TaskCompleter taskCompleter) throws DeviceControllerException {
 
+        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+
+        List<Volume> deletedVolumes = new ArrayList<>();
+        List<String> failedToDelete = new ArrayList<>();
+        for (Volume volume : volumes) {
+            StorageVolume driverVolume = new StorageVolume();
+            driverVolume.setStorageSystemId(storageSystem.getNativeId());
+            driverVolume.setNativeId(volume.getNativeId());
+            DriverTask task = driver.deleteVolumes(Collections.singletonList(driverVolume));
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                volume.setInactive(true);
+                deletedVolumes.add(volume);
+            } else {
+                failedToDelete.add(volume.getNativeId());
+            }
+        }
+        if (!deletedVolumes.isEmpty()){
+            _log.info("Deleted volumes on storage system {}, volumes: {} .",
+                    storageSystem.getNativeId(), deletedVolumes.toString());
+            dbClient.updateObject(deletedVolumes);
+        }
+
+        if(!failedToDelete.isEmpty()) {
+            String errorMsg = String.format("Failed to delete volumes on storage system %s, volumes: %s .",
+                    storageSystem.getNativeId(), failedToDelete.toString());
+            _log.error(errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.deleteVolumesFailed("doDeleteVolumes", errorMsg);
+            taskCompleter.error(dbClient, serviceError);
+        } else {
+            taskCompleter.ready(dbClient);
+        }
     }
 
     @Override

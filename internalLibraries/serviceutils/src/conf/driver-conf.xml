@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util
+       http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+       <bean id="storageDriverManager" class="com.emc.storageos.services.util.StorageDriverManager">
+           <property name="storageSystemsMap">
+              <map>
+                 <entry key="Simulator" value="driversystem"/>
+                 <entry key="ScaleioDriver" value="scaleioSO"/>
+                 <entry key="CloudArrayDriver" value="cloudarray"/>
+              </map>
+           </property>
+
+           <property name="blockSystems">
+               <set>
+                   <value>driversystem</value> <!-- simulator -->
+                   <value>scaleioSO</value>
+                   <value>cloudarray</value>
+               </set>
+           </property>
+
+           <property name="fileSystems">
+               <set>
+                   <value>cloudarray</value>
+               </set>
+           </property>
+
+           <property name="providerManaged">
+               <set>
+                   <value>scaleioSO</value>
+               </set>
+           </property>
+
+           <property name="directlyManaged">
+               <set>
+                   <value>driversystem</value> <!-- simulator -->
+                   <value>cloudarray</value>
+               </set>
+           </property>
+
+       </bean>
+
+</beans>

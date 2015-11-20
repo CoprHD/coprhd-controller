@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.db.client.model;
 
+import com.emc.storageos.services.util.StorageDriverManager;
+
 public class DiscoveredDataObject extends DataObject {
 
     // Unique Bourne identifier.
@@ -11,6 +13,9 @@ public class DiscoveredDataObject extends DataObject {
 
     // Indicates if the object is Southbound driver managed.
     private Boolean _isDriverManaged = false;
+
+    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
+                                              getApplicationContext().getBean("storageDriverManager");
 
     // known device types
     public static enum Type {
@@ -39,20 +44,34 @@ public class DiscoveredDataObject extends DataObject {
         ecs,
         driversystem;
 
-        static public boolean isFileStorageSystem(Type type) {
-            return (type == isilon || type == vnxfile || type == netapp || type == netappc || type == vnxe || type == datadomain);
+        static public boolean isDriverManagedStorageSystem(String storageType) {
+            return storageDriverManager.isDriverManaged(storageType);
         }
 
-        static public boolean isProviderStorageSystem(Type type) {
-            return (type == vnxblock) ||
-                    (type == datadomain) ||
-                    (type == vmax) ||
-                    (type == hds) ||
-                    (type == openstack) ||
-                    (type == vplex) ||
-                    (type == ibmxiv) ||
-                    (type == xtremio) ||
-                    (type == scaleio);
+        static public boolean isFileStorageSystem(String storageType) {
+            if (storageDriverManager.isDriverManaged(storageType)) {
+                return storageDriverManager.isFileStorageSystem(storageType);
+            } else {
+                Type type = Type.valueOf(storageType);
+                return (type == isilon || type == vnxfile || type == netapp || type == netappc || type == vnxe || type == datadomain);
+            }
+        }
+
+        static public boolean isProviderStorageSystem(String storageType) {
+            if (storageDriverManager.isDriverManaged(storageType)) {
+                return storageDriverManager.isProviderStorageSystem(storageType);
+            } else {
+                Type type = Type.valueOf(storageType);
+                return (type == vnxblock) ||
+                        (type == datadomain) ||
+                        (type == vmax) ||
+                        (type == hds) ||
+                        (type == openstack) ||
+                        (type == vplex) ||
+                        (type == ibmxiv) ||
+                        (type == xtremio) ||
+                        (type == scaleio);
+            }
         }
 
         static public boolean isVPlexStorageSystem(Type type) {
@@ -63,8 +82,13 @@ public class DiscoveredDataObject extends DataObject {
             return (type == ibmxiv);
         }
 
-        static public boolean isBlockStorageSystem(Type type) {
-            return (type == vnxblock || type == vmax || type == vnxe || type == hds || type == ibmxiv || type == xtremio || type == driversystem);
+        static public boolean isBlockStorageSystem(String storageType) {
+            if (storageDriverManager.isDriverManaged(storageType)) {
+                return storageDriverManager.isBlockStorageSystem(storageType);
+            } else {
+                Type type = Type.valueOf(storageType);
+                return (type == vnxblock || type == vmax || type == vnxe || type == hds || type == ibmxiv || type == xtremio || type == driversystem);
+            }
         }
 
         static public boolean isHDSStorageSystem(Type type) {

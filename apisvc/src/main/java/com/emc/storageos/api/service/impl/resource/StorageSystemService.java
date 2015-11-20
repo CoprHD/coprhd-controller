@@ -30,6 +30,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -257,10 +258,12 @@ public class StorageSystemService extends TaskResourceService {
     public TaskResourceRep createStorageSystem(StorageSystemRequestParam param) throws Exception {
 
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
-        ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type", EnumSet.of(
-                StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
-                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
-                StorageSystem.Type.xtremio, StorageSystem.Type.ecs, StorageSystem.Type.driversystem));
+        if (!StorageSystem.Type.isDriverManagedStorageSystem(param.getSystemType())) {
+            ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type", EnumSet.of(
+                    StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
+                    StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
+                    StorageSystem.Type.xtremio, StorageSystem.Type.ecs));
+        }
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
             validateVNXFileSMISProviderMandatoryDetails(param);
@@ -1768,11 +1771,8 @@ public class StorageSystemService extends TaskResourceService {
 
     // Counts and returns the number of resources in a storage system
     public static Integer getNumResources(StorageSystem system, DbClient dbClient) {
-        StorageSystem.Type systemType = StorageSystem.Type.valueOf(system.getSystemType());
-        if (systemType == null) {
-            return 0;
-        }
-        if (StorageSystem.Type.isFileStorageSystem(systemType)) {
+
+        if (StorageSystem.Type.isFileStorageSystem(system.getSystemType())) {
             return dbClient.countObjects(FileShare.class, "storageDevice", system.getId());
         }
         else {

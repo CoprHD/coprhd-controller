@@ -17,4 +17,7 @@ public interface ExternalDeviceErrors {
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_VOLUMES_ERROR)
     public ServiceError createVolumesFailed(String volumes, String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_VOLUMES_ERROR)
+    public ServiceError deleteVolumesFailed(String volumes, String errorMsg);
+
 }

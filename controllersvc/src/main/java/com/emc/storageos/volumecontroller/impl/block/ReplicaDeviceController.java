@@ -903,7 +903,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeList);
         if (volumes != null && !volumes.isEmpty()) {
             Volume firstVolume = volumes.get(0);
-            if (!(firstVolume != null && firstVolume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient))) {
+            if (!(firstVolume != null && ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient))) {
                 return waitFor;
             }
 

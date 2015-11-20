@@ -116,7 +116,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     private static final String MP_STANDBY_COPY_SUFFIX = " - Standby Production";
 
     private static final String VOLUME_TYPE_TARGET = "-target-";
-    private static final int LOCK_WAIT_SECONDS = 60000;
+    private static final int LOCK_WAIT_MILLISECONDS = 60000;
     private static final String VOLUME_TYPE_TARGET_JOURNAL = "-target-journal-";
 
     // Spring injected
@@ -711,7 +711,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 InterProcessLockHolder lock = null;
                 try {
                     _log.info("Attempting to acquire lock: " + lockKey);
-                    lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_SECONDS);
+                    lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_MILLISECONDS);
                     // get a unique journal volume name
                     String journalName = _rpHelper.createJournalVolumeName(varray, consistencyGroup);
 
@@ -751,7 +751,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 InterProcessLockHolder lock = null;
                 try {
                     _log.info("Attempting to acquire lock: " + lockKey);
-                    lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_SECONDS);
+                    lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_MILLISECONDS);
                     // get a unique journal volume name
                     String journalName = _rpHelper.createJournalVolumeName(varray, consistencyGroup);
 
@@ -834,7 +834,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     InterProcessLockHolder lock = null;
                     try {
                         _log.info("Attempting to acquire lock: " + lockKey);
-                        lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_SECONDS);
+                        lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_MILLISECONDS);
                         // get a unique journal volume name
                         String journalName = _rpHelper.createJournalVolumeName(targetCopyVarray, consistencyGroup);
 

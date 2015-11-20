@@ -88,6 +88,11 @@ public class DrUtil {
      */
     public String getPrimarySiteId(String vdcShortId) {
         Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, vdcShortId);
+        if (config == null && vdcShortId.equals(getLocalVdcShortId())) {
+            // active site config may not be initialized yet. Assume it is active site now
+            log.info("Cannot load active site config for vdc {}. Use current site as the active one", vdcShortId);
+            return coordinator.getSiteId();
+        }
         return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
     }
 
@@ -272,6 +277,9 @@ public class DrUtil {
     public String getLocalVdcShortId() {
         Configuration localVdc = coordinator.queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
                 Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        if (localVdc == null) {
+            return Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID; // return default vdc1 in case of localVdc is not initialized yet
+        }
         return localVdc.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
     }
     

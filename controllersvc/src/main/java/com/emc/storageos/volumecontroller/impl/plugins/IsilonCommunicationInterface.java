@@ -747,9 +747,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
                         newvNASList.add(virtualNAS);
                     } else {
-                        setMaxDbMetricsAz(storageSystem, virtualNAS.getMetrics());
+                    	copyUpdatedPropertiesInVNAS(storageSystem, isilonAccessZone, virtualNAS);
                         existingvNASList.add(virtualNAS);
-                        
                     }
 
                     // authenticate providers
@@ -2613,6 +2612,35 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         StringMap dbMetrics = vNas.getMetrics();
         _log.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
+        if (dbMetrics == null) {
+            dbMetrics = new StringMap();
+        }
+        // set the Limitation Metrics keys
+        setMaxDbMetricsAz(system, dbMetrics);
+        vNas.setMetrics(dbMetrics);
+        return vNas;
+    }
+    
+    /**
+     * Modify Virtual NAS for the specified Isilon cluster storage array
+     * 
+     * @param system the StorageSystem object
+     * @param isiAccessZone accessZone object
+     * @param vNas the VirtualNAS object
+     * @return VirtualNAS with updated attributes
+     */
+    private VirtualNAS copyUpdatedPropertiesInVNAS(final StorageSystem system,
+    		final IsilonAccessZone isiAccessZone, VirtualNAS vNas) {
+
+        vNas.setStorageDeviceURI(system.getId());
+        // set name
+        vNas.setNasName(isiAccessZone.getName());
+        vNas.setNativeId(isiAccessZone.getId());
+        // set base directory path
+        vNas.setBaseDirPath(isiAccessZone.getPath());
+        vNas.setNasState(VirtualNasState.LOADED.toString());
+
+        StringMap dbMetrics = vNas.getMetrics();
         if (dbMetrics == null) {
             dbMetrics = new StringMap();
         }

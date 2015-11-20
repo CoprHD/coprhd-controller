@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;

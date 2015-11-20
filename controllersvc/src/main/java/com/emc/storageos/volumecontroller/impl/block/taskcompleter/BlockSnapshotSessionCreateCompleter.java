@@ -11,8 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -50,6 +52,23 @@ public class BlockSnapshotSessionCreateCompleter extends TaskCompleter {
                 // Update the status map of the snapshot session.
                 switch (status) {
                     case error:
+                        // Mark any linked targets inactive. This would not
+                        // normally case when failing to create a snapshot
+                        // session as targets are not linked when a new
+                        // snapshot session is prepared in ViPR. However,
+                        // it could be the case when restoring a source volume
+                        // form a linked target.
+                        StringSet linkedTargets = snapSession.getLinkedTargets();
+                        if ((linkedTargets != null) && (!linkedTargets.isEmpty())) {
+                            for (String linkedTarget : linkedTargets) {
+                                BlockSnapshot target = dbClient.queryObject(BlockSnapshot.class, URI.create(linkedTarget));
+                                if (target != null) {
+                                    target.setInactive(true);
+                                    dbClient.updateObject(target);
+                                }
+                            }
+                        }
+
                         // Mark ViPR snapshot session inactive on error.
                         snapSession.setInactive(true);
                         dbClient.updateObject(snapSession);

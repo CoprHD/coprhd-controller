@@ -1942,23 +1942,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // 4. Unlink the source from the temporary session.
                 // 5. Delete the temporary session.
 
-                // Create a BlockSnapshotSession to represent this temporary snapshot session
-                // that will be created on the target volume of the passed BlockSnapshot.
-                BlockSnapshotSession snapSession = new BlockSnapshotSession();
-                URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
-                snapSession.setId(snapSessionURI);
-                snapSession.setLabel(blockSnapshot.getLabel() + System.currentTimeMillis());
-                snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
-                snapSession.addInternalFlags(Flag.INTERNAL_OBJECT);
-                _dbClient.createObject(snapSession);
-
-                // Now create a workflow step that will create the snapshot session.
-                waitFor = workflow.createStep(CREATE_SNAPSHOT_SESSION_STEP_GROUP,
-                        String.format("Create snapshot session %s for snapshot target volume %s", snapSessionURI, snapshot),
-                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
-                        createBlockSnapshotSessionMethod(storage, Arrays.asList(snapSessionURI)),
-                        deleteBlockSnapshotSessionMethod(storage, snapSessionURI, Boolean.TRUE), null);
-
                 // Create a BlockSnapshot to represent the passed source volume when it is
                 // it is linked to the snapshot session created in the previous step.
                 BlockSnapshot sourceSnapshot = new BlockSnapshot();
@@ -1970,6 +1953,26 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 sourceSnapshot.setStorageController(storage);
                 sourceSnapshot.addInternalFlags(Flag.INTERNAL_OBJECT);
                 _dbClient.createObject(sourceSnapshot);
+
+                // Create a BlockSnapshotSession to represent this temporary snapshot session
+                // that will be created on the target volume of the passed BlockSnapshot.
+                BlockSnapshotSession snapSession = new BlockSnapshotSession();
+                URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
+                snapSession.setId(snapSessionURI);
+                snapSession.setLabel(blockSnapshot.getLabel() + System.currentTimeMillis());
+                snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
+                snapSession.addInternalFlags(Flag.INTERNAL_OBJECT);
+                StringSet linkedTargets = new StringSet();
+                linkedTargets.add(sourceSnapshotURI.toString());
+                snapSession.setLinkedTargets(linkedTargets);
+                _dbClient.createObject(snapSession);
+
+                // Now create a workflow step that will create the snapshot session.
+                waitFor = workflow.createStep(CREATE_SNAPSHOT_SESSION_STEP_GROUP,
+                        String.format("Create snapshot session %s for snapshot target volume %s", snapSessionURI, snapshot),
+                        waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
+                        createBlockSnapshotSessionMethod(storage, Arrays.asList(snapSessionURI)),
+                        deleteBlockSnapshotSessionMethod(storage, snapSessionURI, Boolean.TRUE), null);
 
                 // Create a workflow step to link the source volume for the passed snapshot
                 // to the snapshot session create by the previous step. We link the source

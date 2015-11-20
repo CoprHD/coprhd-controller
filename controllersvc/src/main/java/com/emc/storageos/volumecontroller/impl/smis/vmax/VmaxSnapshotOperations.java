@@ -1356,6 +1356,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     @Override
     public void createSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException {
+
         if (system.checkIfVmax3()) {
             // Only supported for VMAX3 storage systems.
             try {
@@ -1556,7 +1557,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 // the sync object path representing the linked target so
                 // that it can be detached.
                 boolean syncObjectFound = false;
-                CIMObjectPath syncObjectPath = _cimPath.getSyncObject(system, snapshot);
+                CIMObjectPath syncObjectPath = getSyncObject(system, snapshot);
                 if (!SmisConstants.NULL_CIM_OBJECT_PATH.equals(syncObjectPath)) {
                     syncObjectFound = true;
                     CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
@@ -1610,6 +1611,31 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         } else {
             throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         }
+    }
+
+    /**
+     * Determine the StorgeSynchronized path for the passed block snapshot where
+     * the snapshot is the target device.
+     * 
+     * @param system A reference to the system.
+     * @param snapshot A reference to the snapshot.
+     * 
+     * @return The StorgeSynchronized path for the passed block snapshot.
+     */
+    private CIMObjectPath getSyncObject(StorageSystem system, BlockSnapshot snapshot) {
+        CIMObjectPath returnPath = SmisConstants.NULL_CIM_OBJECT_PATH;
+        CloseableIterator<CIMObjectPath> syncObjIter = _cimPath.getSyncObjects(system, snapshot);
+        while (syncObjIter.hasNext()) {
+            CIMObjectPath syncObjPath = syncObjIter.next();
+            CIMObjectPath syncedElementPath = (CIMObjectPath) syncObjPath.getKey("SyncedElement").getValue();
+            String deviceId = syncedElementPath.getKey("DeviceID").getValue().toString();
+            if (snapshot.getNativeId().equals(deviceId)) {
+                returnPath = syncObjPath;
+                break;
+            }
+        }
+
+        return returnPath;
     }
 
     /**

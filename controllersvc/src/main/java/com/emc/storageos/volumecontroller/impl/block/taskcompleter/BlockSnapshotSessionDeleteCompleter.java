@@ -56,7 +56,7 @@ public class BlockSnapshotSessionDeleteCompleter extends TaskCompleter {
                     // inactive in the workflow completer rather than this workflow
                     // step completer. In this way we able better able to prevent
                     // access to snapshot session after it has been marked inactive.
-                    if (_markInactive) {
+                    if ((_markInactive) && (snapSession != null) && (!snapSession.getInactive())) {
                         snapSession.setInactive(true);
                         dbClient.updateObject(snapSession);
                     }

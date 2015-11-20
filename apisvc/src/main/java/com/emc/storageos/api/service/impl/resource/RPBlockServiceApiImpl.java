@@ -3387,9 +3387,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     // RP+VPLEX snapshots are actually replica group snapshots (in a CG). Since we need to remove the
                     // CG from the volume we can not have the replica group containing snaps in it when trying
                     // to remove protection.
-                    String warningMessage = String.format("RecoverPoint protected VPLEX Source Volume [%s] (%s) has snapshots, please delete the "
+                    String warningMessage = String.format("RecoverPoint protected VPLEX Volume [%s](%s) has active snapshots, please delete the "
                             + "following snapshots and place the order again: %s", 
-                            volume.getLabel(), volume.getId(), existingSnaps.substring(existingSnaps.length() - 2, existingSnaps.length()));
+                            volume.getLabel(), volume.getId(), existingSnaps.toString());
+                    warningMessage = warningMessage.substring(0, warningMessage.length() - 2);
                     _log.warn(warningMessage);
                     throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
                 }
@@ -3407,7 +3408,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetId));
                 // Ensure targets are not exported
                 if (targetVolume.isVolumeExported(_dbClient, true, true)) {  
-                    String warningMessage = String.format("Target Volume [%s] (%s) is exported to Host, please "
+                    String warningMessage = String.format("Target Volume [%s](%s) is exported to Host, please "
                             + "un-export the volume from all exports and place the order again", 
                             targetVolume.getLabel(), targetVolume.getId());
                     _log.warn(warningMessage);                        
@@ -3420,7 +3421,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // If there are RP bookmarks that have been exported, throw an exception to inform the
                         // user. The user should first un-export those bookmarks.
                         if (targetSnapshot.isSnapshotExported(_dbClient)) { 
-                            String warningMessage = String.format("RP Bookmark/Snapshot [%s] (%s) is exported to Host, "
+                            String warningMessage = String.format("RP Bookmark/Snapshot [%s](%s) is exported to Host, "
                                     + "please un-export the Bookmark/Snapshot from all exports and place the order again", 
                                     targetSnapshot.getLabel(), targetSnapshot.getId());
                             _log.warn(warningMessage);
@@ -3435,8 +3436,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // There are snapshots on the targets, throw an exception to inform the
                         // user. We do not want to auto-clean up the snapshots on the target.
                         // The user should first clean up those snapshots.
-                        String warningMessage = String.format("Target Volume [%s] (%s) has a snapshot, please delete the "
-                                + "snapshot [%s] (%s) and place the order again", 
+                        String warningMessage = String.format("Target Volume [%s] (%s) has an active snapshot, please delete the "
+                                + "following snapshot and place the order again: [%s](%s)", 
                                 volume.getLabel(), volume.getId(), targetSnapshot.getLabel(), targetSnapshot.getId());
                         _log.warn(warningMessage);
                         throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);

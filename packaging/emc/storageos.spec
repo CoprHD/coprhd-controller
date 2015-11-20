@@ -140,6 +140,7 @@ fi
 /etc/systool
 /etc/diagtool
 /etc/powerofftool
+/etc/ipsectool
 /etc/diskresizetool
 /etc/gatherheapdumps
 /etc/mkdisk.sh

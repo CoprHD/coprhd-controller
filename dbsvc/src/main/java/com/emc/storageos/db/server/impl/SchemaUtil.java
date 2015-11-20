@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
 import javax.crypto.SecretKey;
 
 import com.netflix.astyanax.AstyanaxContext;
@@ -91,8 +92,8 @@ public class SchemaUtil {
 
     private static final int DEFAULT_REPLICATION_FACTOR = 1;
     private static final int MAX_REPLICATION_FACTOR = 5;
-    private static final int DBINIT_RETRY_INTERVAL = 2;
-    private static final int DBINIT_RETRY_MAX = 5;
+    private static final int DBINIT_RETRY_INTERVAL = 5;
+    private static final int DBINIT_RETRY_MAX = 20;
 
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
@@ -111,7 +112,7 @@ public class SchemaUtil {
     private boolean onStandby = false;
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private DrUtil drUtil;
-
+    
     @Autowired
     private DbRebuildRunnable dbRebuildRunnable;
 
@@ -136,8 +137,18 @@ public class SchemaUtil {
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
         drUtil = new DrUtil(coordinator);
+        onStandby = drUtil.isStandby();
     }
 
+    /**
+     * Return true if current ViPR is standby mode
+     * 
+     * @return
+     */
+    public boolean isStandby() {
+        return onStandby;
+    }
+    
     /**
      * Set DataObjectScanner
      * 
@@ -183,24 +194,6 @@ public class SchemaUtil {
         _vdcShortId = vdcId;
     }
     
-    /**
-     * Set true for standby site
-     * 
-     * @param onStandby
-     */
-    public void setOnStandby(boolean onStandby) {
-        this.onStandby = onStandby;
-    }
-
-    /**
-     * Check if current dbsvc is in standby site
-     *
-     * @return
-     */
-    public boolean isOnStandby() {
-        return onStandby;
-    }
-
     /**
      * Set the endpoint of current vdc, for example, vip
      * 
@@ -270,48 +263,21 @@ public class SchemaUtil {
      * @param waitForSchema - indicate we should wait from schema from other site.
      *            false to create keyspace by our own
      */
-    public void scanAndSetupDb(boolean waitForSchema) throws Exception{
+    public void scanAndSetupDb(boolean waitForSchema) {
         int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
         int retryTimes = 0;
         while (true) {
-            _log.info("try scan and setup db ...");
             retryTimes++;
             try {
                 KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
-                if (kd == null) {
-                    _log.info("keyspace not exist yet");
-
-                    if (waitForSchema || onStandby) {
-                        _log.info("wait for schema from other site");
-                    }  else {
-                        // fresh install
-                        _log.info("setting current version to {} in zk for fresh install", _service.getVersion());
-                        setCurrentVersion(_service.getVersion());
-
-                        // this must be a new cluster - no schema is present so we create keyspace first
-                        Map<String, String> strategyOptions = new HashMap<String, String>(){{
-                            put(_vdcShortId, Integer.toString(getReplicationFactor()));
-                        }};
-                        clientContext.setCassandraStrategyOptions(strategyOptions, true);
-                    }
+                boolean inited = false;
+                if (onStandby) {
+                    inited = checkAndInitSchemaOnStandby(kd);
                 } else {
-                    _log.info("keyspace exist already");
-
-                    String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
-                    if (currentDbSchemaVersion == null && onStandby) {
-                        _log.info("set current version for standby {}", _service.getVersion());
-                        setCurrentVersion(_service.getVersion());
-                    }
-
-                    checkStrategyOptions();
+                    inited = checkAndInitSchemaOnActive(kd, waitForSchema);
                 }
-
-                // create CF's
-                if (kd != null) {
-                    if (!onStandby)
-                        checkCf();
-                    _log.info("scan and setup db schema succeed");
-                    return;
+                if (inited) {
+                    return; 
                 }
             } catch (ConnectionException e) {
                 _log.warn("Unable to verify DB keyspace, will retry in {} secs", retryIntervalSecs, e);
@@ -333,21 +299,80 @@ public class SchemaUtil {
             }
         }
     }
+    
+    private boolean checkAndInitSchemaOnActive(KeyspaceDefinition kd, boolean waitForSchema) throws InterruptedException, ConnectionException {
+        _log.info("try scan and setup db ...");
+        if (kd == null) {
+            _log.info("keyspace not exist yet");
 
+            if (waitForSchema) {
+                _log.info("wait for schema from other site");
+            }  else {
+                // fresh install
+                _log.info("setting current version to {} in zk for fresh install", _service.getVersion());
+                setCurrentVersion(_service.getVersion());
+
+                // this must be a new cluster - no schema is present so we create keyspace first
+                Map<String, String> strategyOptions = new HashMap<String, String>(){{
+                    put(_vdcShortId, Integer.toString(getReplicationFactor()));
+                }};
+                clientContext.setCassandraStrategyOptions(strategyOptions, true);
+            }
+        } else {
+            _log.info("keyspace exist already");
+            checkStrategyOptions();
+        }
+
+        // create CF's
+        if (kd != null) {
+            checkCf();
+            _log.info("scan and setup db schema succeed");
+            return true;
+        }
+        
+        return false;
+    }
+    
+    private boolean checkAndInitSchemaOnStandby(KeyspaceDefinition kd) throws ConnectionException{
+        _log.info("try scan and setup db on standby site ...");
+        if (kd == null) {
+            _log.info("keyspace not exist yet. Wait {} seconds for schema from active site", DBINIT_RETRY_INTERVAL);
+            return false;
+        } else {
+            _log.info("keyspace exist already");
+
+            String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
+            if (currentDbSchemaVersion == null) {
+                _log.info("set current version for standby site {}", _service.getVersion());
+                setCurrentVersion(_service.getVersion());
+            }
+            checkStrategyOptions();
+            return true;
+        }
+    }
+    
+    public void rebuildDataOnStandby() {
+        Site currentSite = drUtil.getLocalSite();
+
+        if (currentSite.getState().equals(SiteState.STANDBY_ADDING) ||
+            currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+            currentSite.setState(SiteState.STANDBY_SYNCING);
+            _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
+        }
+
+        if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+            dbRebuildRunnable.run();
+        }
+    }
+    
     /**
-     * Remove paused sites from db/geodb strategy options on the primary site.
+     * Remove paused sites from db/geodb strategy options on the active site.
      *
      * @param strategyOptions
      * @return true to indicate keyspace strategy option is changed
      */
-    private boolean excludePausedSites(Map<String, String> strategyOptions) {
+    private boolean checkStrategyOptionsForDROnActive(Map<String, String> strategyOptions) {
         boolean changed = false;
-
-        // this should only be done on primary site since the only standby site might be unavailable
-        // and we want the paused site to be able to resume without extra operations
-        if (onStandby) {
-            return changed;
-        }
 
         // iterate through all the sites and exclude the paused ones
         for(Site site : drUtil.listSites()) {
@@ -367,14 +392,9 @@ public class SchemaUtil {
      * @param strategyOptions
      * @return true to indicate keyspace strategy option is changed
      */
-    private boolean addNewSite(Map<String, String> strategyOptions) {
+    private boolean checkStrategyOptionsForDROnStandby(Map<String, String> strategyOptions) {
         // no need to add new site on primary site, since dbsvc/geodbsvc are not restarted
-        if (!onStandby) {
-            return false;
-        }
-
         String dcId = drUtil.getCassandraDcId(drUtil.getLocalSite());
-
         if (strategyOptions.containsKey(dcId)) {
             return false;
         }
@@ -397,15 +417,20 @@ public class SchemaUtil {
      * @param strategyOptions
      * @return true to indicate keyspace strategy option is changed
      */
-    private boolean addNewVdc(Map<String, String> strategyOptions) {
+    private boolean checkStrategyOptionsForGeo(Map<String, String> strategyOptions) {
         // no need to add new vdc for local db
         // TODO: need to consider DR in future
         if (!isGeoDbsvc()) {
             return false;
         }
 
-        _log.info("vdcList={}", _vdcList);
-        if (!onStandby && _vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
+        if (onStandby) {
+            _log.info("Only active site updates geo strategy operation. Do nothing on standby site");
+            return false;
+        }
+        
+        _log.debug("vdcList = {}", _vdcList);
+        if (_vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
             // the current vdc is removed
             strategyOptions.clear();
         }
@@ -420,9 +445,10 @@ public class SchemaUtil {
         }
         
         if (currentSite != null) {
-            dcName = drUtil.getCassandraDcId(currentSite);  
+            dcName = drUtil.getCassandraDcId(currentSite); 
         }
-
+        
+        
         if (strategyOptions.containsKey(dcName)) {
             return false;
         }
@@ -435,14 +461,14 @@ public class SchemaUtil {
     /**
      * Check keyspace strategy options for an existing keyspace and update if necessary
      */
-    private void checkStrategyOptions() throws Exception {
+    private void checkStrategyOptions() throws ConnectionException {
         KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
         Map<String, String> strategyOptions = kd.getStrategyOptions();
-        _log.info("strategyOptions={}", strategyOptions);
+        _log.info("Current strategyOptions={}", strategyOptions);
 
-        boolean changed = excludePausedSites(strategyOptions);
-        changed |= addNewSite(strategyOptions);
-        changed |= addNewVdc(strategyOptions);
+        boolean changed = false;
+        changed |= onStandby ? checkStrategyOptionsForDROnStandby(strategyOptions) : checkStrategyOptionsForDROnActive(strategyOptions) ;
+        changed |= checkStrategyOptionsForGeo(strategyOptions);
 
         if (changed) {
             _log.info("strategyOptions changed to {}", strategyOptions);
@@ -640,7 +666,6 @@ public class SchemaUtil {
     }
 
     private boolean isRootTenantExist(DbClient dbClient) {
-
         URIQueryResultList tenants = new URIQueryResultList();
         try {
             dbClient.queryByConstraint(
@@ -920,42 +945,24 @@ public class SchemaUtil {
             }
         }
     }
-
+    
     /**
      * Init the bootstrap info, including:
      * check and setup root tenant or my vdc info, if it doesn't exist
      */
     public void checkAndSetupBootStrapInfo(DbClient dbClient) {
-     // No need to add bootstrap records on standby site
-        if (isOnStandby()) {
-            _log.info("Check bootstrap info on standby");
-            Site currentSite = drUtil.getLocalSite();
-
-            if (currentSite.getState().equals(SiteState.STANDBY_ADDING) ||
-                currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
-                currentSite.setState(SiteState.STANDBY_SYNCING);
-                _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-            }
-
-            if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
-                Thread dbRebuildThread = new Thread(dbRebuildRunnable);
-                dbRebuildThread.start();
-                try {
-                    dbRebuildThread.join();
-                } catch (InterruptedException e) {
-                    _log.warn("db rebuild interrupted");
-                }
-            }
+        // Standby site need not do the bootstrap
+        if (onStandby) {
+            _log.info("Skip boot strap info initialization on standby site");
             return;
         }
+        
         // Only the first VDC need check root tenant
-        if (isGeoDbsvc()) {
-            if (_vdcList != null && _vdcList.size() > 1) {
-                _log.info("Skip root tenant check for more than one vdcs. Current number of vdcs: {}", _vdcList.size());
-                return;
-            }
+        if (_vdcList != null && _vdcList.size() > 1) {
+            _log.info("Skip root tenant check for more than one vdcs. Current number of vdcs: {}", _vdcList.size());
+            return;
         }
-
+        
         int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
         boolean done = false;
         boolean wait;
@@ -978,7 +985,6 @@ public class SchemaUtil {
                     // insert local user's password history if not exist for local db
                     insertPasswordHistory(dbClient);
                 }
-
                 done = true;
             } catch (Exception e) {
                 if (e instanceof IllegalStateException) {

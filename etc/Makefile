@@ -45,6 +45,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/gentmpl \
     $(ETCDIR)/diagtool \
     $(ETCDIR)/powerofftool \
+    $(ETCDIR)/ipsectool \
     $(ETCDIR)/gatherheapdumps \
     $(ETCDIR)/patch-props.defaults \
     $(ETCDIR)/ovf-env.README \

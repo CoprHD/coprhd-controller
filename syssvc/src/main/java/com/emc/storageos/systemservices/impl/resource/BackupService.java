@@ -55,6 +55,7 @@ import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 @Path("/backupset/")
 public class BackupService {
     private static final Logger log = LoggerFactory.getLogger(BackupService.class);
+    private static final int ASYNC_STATUS = 202;
     private BackupOps backupOps;
     private BackupScheduler backupScheduler;
     private JobProducer jobProducer;
@@ -235,7 +236,7 @@ public class BackupService {
         job.setStatus(Status.NOT_STARTED);
         jobProducer.enqueue(job);
 
-        return Response.ok().build();
+        return Response.status(ASYNC_STATUS).build();
     }
 
     @GET

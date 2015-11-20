@@ -1116,7 +1116,7 @@ public class VolumeIngestionUtil {
 
         // remove unmanaged mask if created if the block object is not marked as internal
         if (!volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
-            _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}", 
+            _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
                     eligibleMask.getMaskName(), unManagedVolume.getLabel());
             unManagedVolume.getUnmanagedExportMasks().remove(eligibleMask.getId().toString());
             eligibleMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
@@ -2391,8 +2391,13 @@ public class VolumeIngestionUtil {
             updatedObjects.add(snapSession);
         }
 
-        if (isVplexBackendVolume) {
-            // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
+        if ((blockObject instanceof Volume) && (isVplexBackendVolume)) {
+            // VPLEX backend volumes should still have the INTERNAL_OBJECT flag.
+            // Note that snapshots can also be VPLEX backend volumes so make sure
+            // to also check the type of the block object. We don't want a
+            // BlockSnapshot instance to be made internal. The ingestion process
+            // will also create Volume instance to represent the backend volume
+            // and this is what will be marked internal.
             blockObject.addInternalFlags(Flag.INTERNAL_OBJECT);
         }
     }
@@ -2426,7 +2431,7 @@ public class VolumeIngestionUtil {
     @SuppressWarnings("rawtypes")
     public static Class getBlockObjectClass(UnManagedVolume unManagedVolume) {
         Class blockObjectClass = Volume.class;
-        if (VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
+        if ((VolumeIngestionUtil.isSnapshot(unManagedVolume)) && (!VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume))) {
             blockObjectClass = BlockSnapshot.class;
         } else if (VolumeIngestionUtil.isMirror(unManagedVolume)) {
             blockObjectClass = BlockMirror.class;

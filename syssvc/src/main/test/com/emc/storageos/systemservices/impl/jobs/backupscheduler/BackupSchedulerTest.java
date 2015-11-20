@@ -238,8 +238,8 @@ class FakeUploader extends Uploader {
             if (file.endsWith(ScheduledBackupTag.ZIP_FILE_SURFIX) && file.startsWith(toUploadFilePrefix)) {
                 if (toUploadedFileName.endsWith("-1-1.zip") && toUploadedFileName.equals(file)) continue;
                 rename(file, ScheduledBackupTag.toInvalidFileName(file));
-                }
             }
+        }
     }
 }
 

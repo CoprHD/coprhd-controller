@@ -46,7 +46,7 @@ public abstract class Uploader {
      * Upload file with resuming.
      *
      * @param fileName the file on server to be uploaded to.
-     * @param offset   from which offset on server to resume upload.
+     * @param offset from which offset on server to resume upload.
      * @return The OutputStream instance to which upload data can be written.
      * @throws Exception
      */

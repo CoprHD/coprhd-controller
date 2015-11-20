@@ -25,7 +25,7 @@ public class FtpsUploader extends Uploader {
     private final static String FTPS_URL_PREFIX = "ftps://";
     private final static String FTP_URL_PREFIX = "ftp://";
     private final static int FILE_DOES_NOT_EXIST = 19;
-    private static final String BACKUP_TAG_SEPERATOR = "-";
+    private final static String BACKUP_TAG_SEPERATOR = "-";
 
     public FtpsUploader(SchedulerConfig cfg, BackupScheduler cli) {
         super(cfg, cli);
@@ -120,6 +120,7 @@ public class FtpsUploader extends Uploader {
 
             int exitCode = processor.join();
             if (exitCode != 0) {
+                log.error("List files on FTP {} failed, Exit code {}", this.cfg.uploadUrl, exitCode);
                 throw new IOException(errText.length() > 0 ? errText.toString() : Integer.toString(exitCode));
             }
         }
@@ -140,6 +141,7 @@ public class FtpsUploader extends Uploader {
             processor.captureAllTextInBackground(processor.getStdErr(), errText);
             int exitCode = processor.join();
             if (exitCode != 0) {
+                log.error("Rename files on FTP {} failed, Exit code {}", this.cfg.uploadUrl, exitCode);
                 throw new IOException(errText.length() > 0 ? errText.toString() : Integer.toString(exitCode));
             }
         }
@@ -153,7 +155,7 @@ public class FtpsUploader extends Uploader {
         try {
             List<String> ftpFiles = this.listFiles();
             for (String file : ftpFiles) {
-                if(isIncompletedFile(file,toUploadFilePrefix)) {
+                if (isIncompletedFile(file, toUploadFilePrefix)) {
                     if (isFullNodeFileName(noExtendFileName) && file.equals(toUploadedFileName)) {
                         continue;
                     }
@@ -163,7 +165,6 @@ public class FtpsUploader extends Uploader {
 
         } catch (Exception e) {
             log.warn("Mark invalide  uploaded backup zip file failed", e);
-
         }
     }
 
@@ -173,8 +174,9 @@ public class FtpsUploader extends Uploader {
         String allNodes = filenames[filenames.length - 2];
         return allNodes.equals(availableNodes);
     }
-    private Boolean isIncompletedFile(String filename,String prefix){
-        Pattern pattern = Pattern.compile("^"+prefix+"-\\d"+ScheduledBackupTag.ZIP_FILE_SURFIX +"$");
+
+    private Boolean isIncompletedFile(String filename, String prefix) {
+        Pattern pattern = Pattern.compile("^" + prefix + "-\\d" + ScheduledBackupTag.ZIP_FILE_SURFIX + "$");
         return pattern.matcher(filename).matches();
     }
 

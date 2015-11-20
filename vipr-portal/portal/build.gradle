@@ -163,31 +163,7 @@ task transformMainDotLess(type: Copy) {
     }
 }
 
-
-
-/**
- * Before the compileCss step takes place, we want OSS builds to replace
- * the ViPR text with CoprHD text in the error pages
- */
-task transformErrorFiles(type: Copy) {
-    outputs.upToDateWhen { false }
-    from file('../../etc/nginx/error/html')
-    into file('../../build/etc/nginx/error/html')
-
-
-    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
-        println("Using CoprHD in error html files")
-        // replace the import of the emc them with the import of the coprhd theme
-        filter { String line ->
-            line.contains('<a class="navbar-brand" href="/">EMC ViPR</a>') ? '<a class="navbar-brand" href="/">CoprHD</a>' : line
-        }
-    } else {
-        println("Using ViPR in error html files")
-    }
-}
-
-
-task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare, transformMainDotLess, transformErrorFiles]) {
+task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare, transformMainDotLess]) {
     // use the transient less file created by the transformMainDotLess task as input to the CSS compiler
     def input = "public/stylesheets/transformed-main.less"
     String output = "${play.compileDir}/public/stylesheets/main.css"

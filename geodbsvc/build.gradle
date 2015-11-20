@@ -57,7 +57,5 @@ test {
     exclude "com/emc/storageos/db/server/geo/DbClientGeoTest.class"
     exclude "com/emc/storageos/db/server/geo/DbGlobalLockTest.class"
     exclude "com/emc/storageos/db/server/geo/GeoDbSvcStartupTest.class"
-    // These tests hang the gradle test run
-    exclude "com/emc/storageos/geo/service/VdcControllerTest.class"
 }
 

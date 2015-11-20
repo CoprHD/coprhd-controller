@@ -505,6 +505,9 @@ function ReadParamsFromFile($file, $isDotSettingsFile) {
 						"-clusterversion" {
 							$Script:clusterVersion=$value
 						}
+						"-ipsec_key" {
+							$Script:ipsec_key=$value
+						}
 						"-username" {
 							if ([String]::IsNullOrEmpty($Script:username)) {
 								$Script:username=$value

@@ -446,6 +446,9 @@ function ReadParamsFromFile($file, $isDotSettingsFile) {
 						"-clusterversion" {
 							$Script:clusterVersion=$value
 						}
+						"-ipsec_key" {
+							$Script:ipsec_key=$value
+						}
 						default {
 							Write-Host "WARNNING: Unknown line" -ForegroundColor Yellow
 						}

@@ -69,12 +69,4 @@ public abstract class Uploader {
      * @throws Exception
      */
     public abstract void rename(String fromFileName, String toFileName) throws Exception;
-
-    /**
-     * clean up stable incompleted backup file on server based on the input filename.
-     *
-     * @param toUploadedFileName the filename about to upload,
-     * @return null.
-     */
-    public abstract void markInvalidZipFile(String toUploadedFileName);
 }

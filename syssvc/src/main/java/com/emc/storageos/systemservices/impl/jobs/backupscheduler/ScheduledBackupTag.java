@@ -37,6 +37,7 @@ public class ScheduledBackupTag {
     };
     private static final Date MIN_DATE = new Date(0);
     protected static final String ZIP_FILE_SURFIX = ".zip";
+    protected static final String BACKUP_TAG_SEPERATOR = "-";
     private static final String INVALID_ZIP_FILE_SURFIX = "-invalid.zip";
 
     public static Date parseTimestamp(String timestampStr) throws ParseException {

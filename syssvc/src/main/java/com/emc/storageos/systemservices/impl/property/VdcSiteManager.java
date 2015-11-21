@@ -448,6 +448,7 @@ public class VdcSiteManager extends AbstractManager {
 
         DistributedDoubleBarrier barrier;
         int timeout = 0;
+        String barrierPath;
 
         /**
          * create or get a barrier
@@ -455,7 +456,7 @@ public class VdcSiteManager extends AbstractManager {
          */
         public VdcPropertyBarrier(SiteInfo siteInfo, int timeout) {
             this.timeout = timeout;
-            String barrierPath = getBarrierPath(siteInfo);
+            barrierPath = getBarrierPath(siteInfo);
             int nChildrenOnBarrier = getChildrenCountOnBarrier();
             this.barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, nChildrenOnBarrier);
             log.info("Created VdcPropBarrier on {} with the children number {}", barrierPath, nChildrenOnBarrier);
@@ -463,7 +464,7 @@ public class VdcSiteManager extends AbstractManager {
 
         public VdcPropertyBarrier(String path, int timeout, int memberQty, boolean crossSite) {
             this.timeout = timeout;
-            String barrierPath = getBarrierPath(path, crossSite);
+            barrierPath = getBarrierPath(path, crossSite);
             this.barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, memberQty);
             log.info("Created VdcPropBarrier on {} with the children number {}", barrierPath, memberQty);
         }
@@ -474,7 +475,7 @@ public class VdcSiteManager extends AbstractManager {
          * @throws Exception
          */
         public void enter() throws Exception {
-            log.info("Waiting for all nodes entering VdcPropBarrier");
+            log.info("Waiting for all nodes entering {}", barrierPath);
 
             boolean allEntered = barrier.enter(timeout, TimeUnit.SECONDS);
             if (allEntered) {
@@ -491,9 +492,9 @@ public class VdcSiteManager extends AbstractManager {
          */
         public void leave() throws Exception {
             // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
-            log.info("Waiting for all nodes leaving VdcPropBarrier");
+            log.info("Waiting for all nodes leaving {}", barrierPath);
 
-            boolean allLeft = barrier.leave(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+            boolean allLeft = barrier.leave(timeout, TimeUnit.SECONDS);
             if (allLeft) {
                 log.info("All nodes left VdcPropBarrier");
             } else {
@@ -564,8 +565,8 @@ public class VdcSiteManager extends AbstractManager {
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
             log.info("Wait for barrier to reconfig/restart coordinator when switchover");
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+            barrier.enter();
             try {
-                barrier.enter();
                 localRepository.reconfigProperties("coordinator");
             } finally {
                 barrier.leave();
@@ -575,83 +576,6 @@ public class VdcSiteManager extends AbstractManager {
         }
 
         localRepository.restart("coordinatorsvc");
-    }
-
-    private List<String> getJoiningZKNodes() {
-        return getStandbyNodeIPAddresses(targetVdcPropInfo);
-    }
-
-    private List<String> getStandbyNodeIPAddresses(PropertyInfoExt propertyInfo) {
-        Set<Map.Entry<String, String>> properties = propertyInfo.getAllProperties().entrySet();
-
-        // key=server ID e.g. 1, 2 ..
-        // value = IPv4 address | [ IPv6 address]
-        Map<Integer, String> ipaddresses = new HashMap<>();
-
-        String myVdcId = propertyInfo.getProperty(Constants.MY_VDC_ID_KEY);
-        String nodeCountProperty=String.format(Constants.VDC_NODECOUNT_KEY_TEMPLATE, myVdcId);
-
-        int startCount = Integer.valueOf(propertyInfo.getProperty(nodeCountProperty));
-
-        for (Map.Entry<String, String> property: properties) {
-            String key = property.getKey();
-
-            // we are only interested IPv4/IPv6 address of standby node
-            if (isStandByIPAddressKey(key)) {
-                String ipAddr = formalizeIPAddress(property.getValue());
-                int serverId = getStandbyServerId(key);
-
-                if (isIPv6Address(ipAddr) && ipaddresses.get(serverId) != null) {
-                    // IPv4 address has already been found
-                    // ignore the IPv6 address
-                    continue;
-                }
-
-                if (ipAddr != null && !ipAddr.isEmpty()) {
-                    ipaddresses.put(serverId, ipAddr);
-                }
-            }
-        }
-
-        List<String> servers = new ArrayList<>(ipaddresses.size());
-
-        for (Map.Entry<Integer, String> entry : ipaddresses.entrySet()) {
-            int serverId = startCount+entry.getKey();
-            StringBuilder builder = new StringBuilder(Constants.ZK_SERVER_CONFIG_PREFIX);
-            builder.append(serverId);
-            builder.append("=");
-            builder.append(entry.getValue()); // IP address
-            builder.append(Constants.ZK_OBSERVER_CONFIG_SUFFIX);
-            servers.add(builder.toString());
-        }
-
-        return servers;
-    }
-
-    private boolean isStandByIPAddressKey(String key) {
-        String myVdcId = targetVdcPropInfo.getProperty(Constants.MY_VDC_ID_KEY);
-        return key.contains(myVdcId) && key.matches(Constants.STANDBY_PROPERTY_REGEX);
-    }
-
-    private boolean isIPv6Address(String addr) {
-        return (addr != null) && addr.contains(":");
-    }
-
-    // enclose IPv6 address with '[' and ']'
-    private String formalizeIPAddress(String ipAddress) {
-        if (isIPv6Address(ipAddress)) {
-            return "["+ipAddress+"]"; //IPv6 address
-        }
-
-        return ipAddress; //IPv4 address
-    }
-
-    // the property name is like vdc_${vdcId}_standby_network_${serverId}_ipaddr[6]
-    // if we split it by '_', the [4] element is the server id
-    private int getStandbyServerId(String ipaddrPropertyName) {
-        String[] subStrs = ipaddrPropertyName.split("_");
-
-        return Integer.valueOf(subStrs[4]);
     }
 
     /**
@@ -1047,9 +971,8 @@ public class VdcSiteManager extends AbstractManager {
         blockUntilZookeeperIsWritableConnected();
         
         VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+        barrier.enter();
         try {
-            barrier.enter();
-
             log.info("Set state to PRIMARY");
             site.setState(SiteState.PRIMARY);
             coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
@@ -1067,9 +990,8 @@ public class VdcSiteManager extends AbstractManager {
         blockUntilZookeeperIsWritableConnected();
 
         VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+        barrier.enter();
         try {
-            barrier.enter();
-
             log.info("Set state to SYNCED");
             site.setState(SiteState.STANDBY_SYNCED);
             coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());

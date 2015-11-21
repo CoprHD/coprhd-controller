@@ -6352,7 +6352,7 @@ dr_basic_tests()
 
     
     echo "---WAIT FOR SYNC $standby_site---"
-    dr waitforstate $standby_site STANDBY_SYNCED 30 600
+    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
     echo "Syncing dr done"
 
     echo "---WAIT 30s FOR $standby_site TO BOOTSTRAP---"
@@ -6384,7 +6384,7 @@ dr_basic_tests()
     dr resume $standby_site || { echo "resume dr standby site failed."; exit 1; }
 
     echo "---WAIT FOR SYNC $standby_site---"
-    dr waitforstate $standby_site STANDBY_SYNCED 30 600
+    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
     echo "Syncing dr done"
 
     # wait both primary and standby to be stable, ready to do switchover
@@ -6403,8 +6403,8 @@ dr_basic_tests()
 
     # verify switchover status
     echo "---WAIT FOR SWITCHOVER FROM $primary_site TO $standby_site DONE---"
-    dr waitforstate $standby_site PRIMARY 10 600 && echo "standby has been switched into primary"
-    dr waitforstate $primary_site STANDBY_SYNCED 10 600 && echo "primary has been switched into standby"
+    dr waitforstate $standby_site PRIMARY 10 1200 && echo "standby has been switched into primary"
+    dr waitforstate $primary_site STANDBY_SYNCED 10 1200 && echo "primary has been switched into standby"
 
     # by now, primary site and standby site has been switched, need to switch variables accordingly
     local switch_tmp

@@ -88,6 +88,11 @@ public class DrUtil {
      */
     public String getPrimarySiteId(String vdcShortId) {
         Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, vdcShortId);
+        if (config == null && vdcShortId.equals(getLocalVdcShortId())) {
+            // active site config may not be initialized yet. Assume it is active site now
+            log.info("Cannot load active site config for vdc {}. Use current site as the active one", vdcShortId);
+            return coordinator.getSiteId();
+        }
         return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
     }
 
@@ -239,6 +244,28 @@ public class DrUtil {
         log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
 
+
+    /**
+     * Update SiteInfo's action, version and data revision for specified site id
+     * @param siteId site UUID
+     * @param action action to take
+     */
+    public void updateVdcTargetVersionAndDataRevision(String siteId, String action) throws Exception {
+        int ver = 1;
+        SiteInfo siteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
+        if (siteInfo != null) {
+            if (!siteInfo.isNullTargetDataRevision()) {
+                String currentDataRevision = siteInfo.getTargetDataRevision();
+                ver = Integer.valueOf(currentDataRevision);
+            }
+        }
+        String targetDataRevision = String.valueOf(++ver);
+        siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
+        coordinator.setTargetInfo(siteId, siteInfo);
+        log.info("VDC target version updated to {}, revision {}",
+                siteInfo.getVdcConfigVersion(), targetDataRevision);
+    }
+
     /**
      * Check if a specific site is the local site
      * @param site
@@ -272,6 +299,9 @@ public class DrUtil {
     public String getLocalVdcShortId() {
         Configuration localVdc = coordinator.queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
                 Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        if (localVdc == null) {
+            return Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID; // return default vdc1 in case of localVdc is not initialized yet
+        }
         return localVdc.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
     }
     

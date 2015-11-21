@@ -160,6 +160,7 @@ POST    /Catalog/service/delete                 catalog.EditCatalog.deleteServic
 
 
 *       /certificates/{action}        	        auth.Certificates.{action}
+*       /security/ipsec                         auth.IPsec.ipsec
 
 ## Execution Windows API
 ##begin

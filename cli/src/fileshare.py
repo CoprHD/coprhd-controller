@@ -1234,11 +1234,12 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
                                     metavar='<permissions>',
                                     help='Provide permissions for Acl',
                                     required=True)
-    nfs_acl_parser.add_argument('-permissiontype', '-permtype',
+    mandatory_args.add_argument('-permissiontype', '-permtype',
                                     dest='permissiontype',
                                     choices=["allow", "deny"],
                                     metavar='<permission_type>',
-                                    help='Provide permission type for Acl')
+                                    help='Provide permission type for Acl',
+                                    required=True)
     nfs_acl_parser.add_argument('-tenant', '-tn',
                                      metavar='<tenantname>',
                                      dest='tenant',

@@ -20,9 +20,15 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String CONFIG_KIND = "sitetargetconfig";
     public static final String CONFIG_ID = "global";
 
-    public static final String UPDATE_DATA_REVISION = "update_data_revision";
-    public static final String RECONFIG_RESTART = "reconfig_restart";
-    public static final String RECONFIG_IPSEC = "reconfig_ipsec";
+    //public static final String UPDATE_DATA_REVISION = "update_data_revision";
+    //public static final String RECONFIG_RESTART = "reconfig_restart";
+    public static final String IPSEC_OP_ROTATE_KEY = "ipsec_rotate_key";
+    public static final String DR_OP_ADD_STANDBY = "dr_add_standby";
+    public static final String DR_OP_REMOVE_STANDBY = "dr_remove_standby";
+    public static final String DR_OP_PAUSE_STANDBY = "dr_pause_standby";
+    public static final String DR_OP_RESUME_STANDBY = "dr_resume_standby";
+    public static final String DR_OP_SWITCHOVER = "dr_switchover";
+    public static final String DR_OP_FAILOVER = "dr_failover";
     public static final String NONE = "none";
 
     /**

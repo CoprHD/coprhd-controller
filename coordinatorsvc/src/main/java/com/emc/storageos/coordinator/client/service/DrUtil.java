@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -169,7 +170,33 @@ public class DrUtil {
         }
         return result;
     }
+    
+    /**
+     * List sites with given state
+     * 
+     * @param state
+     * @return
+     */
+    public List<Site> listSites(SiteState state) {
+        List<Site> result = new ArrayList<Site>();
+        for(Site site : listSites()) {
+            if (site.getState().equals(state)) {
+                result.add(site);
+            }
+        }
+        return result;
+    }
 
+    /**
+     * Return true if we have sites in given state
+     * 
+     * @param state
+     * @return
+     */
+    public boolean hasSiteInState(SiteState state) {
+         return !listSites(state).isEmpty();
+    }
+    
     /**
      * Get the total number of nodes in all sites of a VDC
      * @return

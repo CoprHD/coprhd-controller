@@ -188,11 +188,11 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(standbySite.toConfiguration());
             
             // wake up syssvc to regenerate configurations
-            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_ADD_STANDBY);
             for (Site site : existingSites) {
-                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_ADD_STANDBY);
             }
-            drUtil.updateVdcTargetVersion(siteId, SiteInfo.NONE);
+            drUtil.updateVdcTargetVersion(siteId, SiteInfo.DR_OP_ADD_STANDBY);
 
             // reconfig standby site
             log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());
@@ -276,7 +276,7 @@ public class DisasterRecoveryService {
                 log.info("Persist standby site {} to ZK", standby.getVip());
             }
             
-            updateVdcTargetVersionAndDataRevision(SiteInfo.UPDATE_DATA_REVISION);
+            updateVdcTargetVersionAndDataRevision(SiteInfo.DR_OP_ADD_STANDBY);
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
@@ -412,7 +412,7 @@ public class DisasterRecoveryService {
             }
             log.info("Notify all sites for reconfig");
             for (Site standbySite : drUtil.listSites()) {
-                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
+                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_REMOVE_STANDBY);
             }
             auditDisasterRecoveryOps(OperationTypeEnum.REMOVE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, siteIdStr);
             return Response.status(Response.Status.ACCEPTED).build();
@@ -529,12 +529,12 @@ public class DisasterRecoveryService {
             ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcId);
 
             for (Site site : drUtil.listStandbySites()) {
-                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY);
             }
 
             // update the local(primary) site last
 
-            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_PAUSE_STANDBY);
             auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
             return siteMapper.map(standby);
         } catch (Exception e) {
@@ -574,11 +574,11 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(standby.toConfiguration());
 
             for (Site site : drUtil.listStandbySites()) {
-                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY);
             }
 
             // update the local(primary) site last
-            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_RESUME_STANDBY);
 
             auditDisasterRecoveryOps(OperationTypeEnum.RESUME_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
 
@@ -671,7 +671,7 @@ public class DisasterRecoveryService {
             
             // trigger reconfig
             for (Site eachSite : drUtil.listSites()) {
-                drUtil.updateVdcTargetVersion(eachSite.getUuid(), SiteInfo.RECONFIG_RESTART);
+                drUtil.updateVdcTargetVersion(eachSite.getUuid(), SiteInfo.DR_OP_SWITCHOVER);
             }
 
             auditDisasterRecoveryOps(OperationTypeEnum.SWITCHOVER, AuditLogManager.AUDITLOG_SUCCESS, null, newPrimarySite.getVip(), newPrimarySite.getName());
@@ -720,7 +720,7 @@ public class DisasterRecoveryService {
             coordinator.setPrimarySite(uuid);
             
             //reconfig
-            drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);
+            drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_FAILOVER);
             
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_SUCCESS, null, uuid, currentSite.getVip(), currentSite.getName());
             return Response.status(Response.Status.ACCEPTED).build();

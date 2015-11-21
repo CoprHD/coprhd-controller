@@ -1341,7 +1341,7 @@ def nfs_acl_delete_parser(subcommand_parsers, common_parser):
         description='ViPR ACL Delete CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Delete a ACL of Filesystem')
+        help='Deletes all the ACLs which are set on a particular filesystem as well as on its sub-directories')
     mandatory_args = nfs_acl_delete_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<filesystemname>',

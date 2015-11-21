@@ -38,7 +38,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
@@ -96,6 +95,7 @@ import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.sys.ClusterInfo;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 
 /**
  * Default coordinator client implementation

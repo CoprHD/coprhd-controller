@@ -985,7 +985,7 @@ def create_parser(subcommand_parsers, common_parser):
                                 required=True)
     mandatory_args.add_argument('-protocol', '-pl',
                                 help='Protocol used {NFS,CIFS for file; ' +
-                                'FC, iSCSI for block',
+                                'FC, iSCSI for block , S3',
                                 metavar='<protocol>',
                                 dest='protocol',
                                 nargs='+',

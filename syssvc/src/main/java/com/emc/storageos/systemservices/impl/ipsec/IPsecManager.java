@@ -33,6 +33,8 @@ public class IPsecManager {
     IPsecConfig ipsecConfig;
 
     CoordinatorClient coordinator;
+    
+    @Autowired
     DrUtil drUtil;
 
     /**
@@ -177,6 +179,5 @@ public class IPsecManager {
      */
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
-        drUtil = new DrUtil(this.coordinator);
     }
 }

@@ -189,7 +189,8 @@ public class DisasterRecoveryService {
             for (Site site : existingSites) {
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_ADD_STANDBY);
             }
-            drUtil.updateVdcTargetVersion(siteId, SiteInfo.DR_OP_ADD_STANDBY);
+            long dataRevision = System.currentTimeMillis();
+            drUtil.updateVdcTargetVersion(siteId, SiteInfo.NONE, dataRevision);
 
             // reconfig standby site
             log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());
@@ -207,7 +208,8 @@ public class DisasterRecoveryService {
             primarySite.setState(String.valueOf(SiteState.PRIMARY));
 
             configParam.setPrimarySite(primarySite);
-
+            configParam.setDataRevision(dataRevision);
+            
             List<SiteParam> standbySites = new ArrayList<>();
             for (Site standby : drUtil.listStandbySites()) {
                 SiteParam standbyParam = new SiteParam();
@@ -273,7 +275,7 @@ public class DisasterRecoveryService {
                 log.info("Persist standby site {} to ZK", standby.getVip());
             }
             
-            drUtil.updateVdcTargetVersionAndDataRevision(coordinator.getSiteId(), SiteInfo.DR_OP_ADD_STANDBY);
+            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, configParam.getDataRevision());
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
@@ -1109,10 +1111,8 @@ public class DisasterRecoveryService {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
-        this.drUtil = new DrUtil(coordinator);
     }
 
-    // This method should only be used in UT for easy mocking
     public void setDrUtil(DrUtil drUtil) {
         this.drUtil = drUtil;
     }

@@ -42,6 +42,9 @@ public class DrUtil {
     
     private CoordinatorClient coordinator;
 
+    public DrUtil() {
+    }
+    
     public DrUtil(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
@@ -271,26 +274,10 @@ public class DrUtil {
         log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
 
-
-    /**
-     * Update SiteInfo's action, version and data revision for specified site id
-     * @param siteId site UUID
-     * @param action action to take
-     */
-    public void updateVdcTargetVersionAndDataRevision(String siteId, String action) throws Exception {
-        int ver = 1;
-        SiteInfo siteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
-        if (siteInfo != null) {
-            if (!siteInfo.isNullTargetDataRevision()) {
-                String currentDataRevision = siteInfo.getTargetDataRevision();
-                ver = Integer.valueOf(currentDataRevision);
-            }
-        }
-        String targetDataRevision = String.valueOf(++ver);
-        siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
+    public void updateVdcTargetVersion(String siteId, String action, long dataRevision) throws Exception {
+        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action, String.valueOf(dataRevision));
         coordinator.setTargetInfo(siteId, siteInfo);
-        log.info("VDC target version updated to {}, revision {}",
-                siteInfo.getVdcConfigVersion(), targetDataRevision);
+        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
 
     /**
@@ -366,5 +353,10 @@ public class DrUtil {
             } catch (Exception ex) {}
         }
         return null;
+    }
+    
+    public void removeSiteConfiguration(Site site) {
+        coordinator.removeServiceConfiguration(site.toConfiguration());
+        log.info("Removed site {} configuration from ZK", site.getUuid());
     }
 }

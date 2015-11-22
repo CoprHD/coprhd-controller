@@ -136,8 +136,6 @@ public class SchemaUtil {
      */
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
-        drUtil = new DrUtil(coordinator);
-        onStandby = drUtil.isStandby();
     }
 
     /**
@@ -1224,5 +1222,6 @@ public class SchemaUtil {
 
     public void setDrUtil(DrUtil drUtil) {
         this.drUtil = drUtil;
+        onStandby = drUtil.isStandby();
     }
 }

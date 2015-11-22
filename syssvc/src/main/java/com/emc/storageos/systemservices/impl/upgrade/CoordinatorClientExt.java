@@ -19,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.text.MessageFormat;
@@ -110,7 +111,7 @@ public class CoordinatorClientExt {
     // EX: syssvc-1, syssvc-2, syssvc-10_247_100_15
     private String mySvcId = null;
     private int _nodeCount = 0;
-    
+    private DrUtil drUtil;
     
     private DbServiceStatusChecker statusChecker = null;
 
@@ -137,6 +138,14 @@ public class CoordinatorClientExt {
         _coordinator = coordinator;
     }
 
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
+    
+    public DrUtil getDrUtil() {
+        return this.drUtil;
+    }
+    
     /**
      * Get property
      * 
@@ -1391,7 +1400,6 @@ public class CoordinatorClientExt {
      * Initialization method. On standby site, start a thread to monitor local coordinatorsvc status
      */
     public void start() {
-        DrUtil drUtil = new DrUtil(_coordinator);
         if (drUtil.isStandby()) {
             _log.info("Start monitoring local coordinatorsvc status on standby site");
             ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
@@ -1403,8 +1411,6 @@ public class CoordinatorClientExt {
      * Monitor local coordinatorsvc on standby site
      */
     private Runnable coordinatorSvcMonitor = new Runnable(){
-        private DrUtil drUtil = new DrUtil(_coordinator);
-        
         public void run() {
             String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
             if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
@@ -1515,7 +1521,8 @@ public class CoordinatorClientExt {
      */
     private boolean isZookeeperLeader(String nodeIP, int port) {
         try {
-            Socket sock = new Socket(nodeIP, port);
+            Socket sock = new Socket();
+            sock.connect(new InetSocketAddress(nodeIP, port), 10000); // 10 seconds timeout
             sock.close();
             return true;
         } catch(IOException ex) {
@@ -1549,5 +1556,25 @@ public class CoordinatorClientExt {
         }
         _log.info("Get available nodes by check {}: {}", serviceName, availableNodes);
         return availableNodes;
+    }
+    
+    public void blockUntilZookeeperIsWritableConnected(long sleepInterval) {
+        while (true) {
+            try {
+                States state = getConnectionState();
+                if (state.equals(States.CONNECTED))
+                    return;
+                
+                _log.info("ZK connection state is {}, wait for connected", state);
+            } catch (Exception e) {
+                _log.error("Can't get Zk state {}", e);
+            } 
+            
+            try {
+                Thread.sleep(sleepInterval);
+            } catch (InterruptedException e) {
+                //Ingore
+            }
+        }
     }
 }

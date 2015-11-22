@@ -29,7 +29,8 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String DR_OP_RESUME_STANDBY = "dr_resume_standby";
     public static final String DR_OP_SWITCHOVER = "dr_switchover";
     public static final String DR_OP_FAILOVER = "dr_failover";
-    public static final String NONE = "none";
+    public static final String DR_OP_CHANGE_DATA_REVISION = "dr_change_data_revision";
+    public static final String NONE = "noop";
 
     /**
      *  Action Scope represents if an action involves nodes of the entire VDC or just ones of local site.

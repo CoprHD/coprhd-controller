@@ -356,6 +356,9 @@ public class FileSystems extends ResourceController {
             listNfsAcl(fileSystem, fsMountPath, subDir);
         }
         NfsACLUpdateParams input = createNfsAclParams(formAccessControlList);
+        if (subDir != null && !"null".equals(subDir) && !subDir.isEmpty()) {
+            input.setSubDir(subDir);
+        }
         ViPRCoreClient client = BourneUtil.getViprClient();
         try {
             client.fileSystems().updateNfsACL(uri(fileSystem), input);

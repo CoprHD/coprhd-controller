@@ -20,7 +20,8 @@ public class ScaleIORestHandleFactory {
     private static final Logger log = LoggerFactory.getLogger(ScaleIORestHandleFactory.class);
     private final Map<String, ScaleIORestClient> ScaleIORestClientMap = new ConcurrentHashMap<String, ScaleIORestClient>();
     private final Object syncObject = new Object();
-    private ScaleIORestClientFactory scaleIORestClientFactory=new ScaleIORestClientFactory();
+
+    private ScaleIORestClientFactory scaleIORestClientFactory;
 
     public ScaleIORestClientFactory getScaleIORestClientFactory() {
         return scaleIORestClientFactory;
@@ -37,7 +38,7 @@ public class ScaleIORestHandleFactory {
     */
     public ScaleIORestClient getClientHandle(String systemNativeId, Registry registry) throws Exception {
 
-        ScaleIORestClient handle;
+        ScaleIORestClient handle = null;
         Map<String, List<String>> attributes;
 
         synchronized (syncObject) {
@@ -46,13 +47,13 @@ public class ScaleIORestHandleFactory {
                 attributes = registry.getDriverAttributesForKey(ScaleIOConstants.DRIVER_NAME, systemNativeId);
                 if (attributes != null) {
                     URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(attributes.get(ScaleIOConstants.IP_ADDRESS).get(0),Integer.parseInt(attributes.get(ScaleIOConstants.PORT_NUMBER).get(0))));
-                    System.out.print(baseURI.toString());
+
                     handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, attributes.get(ScaleIOConstants.USER_NAME).get(0),
                             attributes.get(ScaleIOConstants.PASSWORD).get(0), true);
                     ScaleIORestClientMap.put(systemNativeId, handle);
                 } else {
-                    //no connection Info found
-
+                    log.info("no connection INFO found in Registry");
+                    handle=null;
                 }
             }
             return handle;

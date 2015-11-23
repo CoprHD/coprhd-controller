@@ -31,15 +31,12 @@ public class CoordinatorConfigStoringHelper {
 
     private static Logger log = LoggerFactory.getLogger(CoordinatorConfigStoringHelper.class);
     private CoordinatorClient coordinator;
-    private final Map<String, InterProcessLock> nameLockMap;
 
     public CoordinatorConfigStoringHelper() {
-        nameLockMap = new HashMap<String, InterProcessLock>();
     }
 
     public CoordinatorConfigStoringHelper(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
-        nameLockMap = new HashMap<String, InterProcessLock>();
     }
 
     /**
@@ -125,12 +122,10 @@ public class CoordinatorConfigStoringHelper {
      *             if failed to acquire the lock
      */
     public synchronized InterProcessLock acquireLock(String lockName) throws Exception {
-        InterProcessLock lock = nameLockMap.get(lockName);
-        if (lock == null) {
-            lock = coordinator.getLock(lockName);
-            nameLockMap.put(lockName, lock);
-        }
+        InterProcessLock lock = coordinator.getLock(lockName);
+        log.info("Trying to acquire the lock {}", lockName);
         lock.acquire();
+        log.info("Acquired the lock {}", lockName);
         return lock;
     }
 
@@ -143,7 +138,9 @@ public class CoordinatorConfigStoringHelper {
     public void releaseLock(InterProcessLock lock) {
         try {
             if (lock != null) {
+                log.info("Releasing the lock {}", lock.toString());
                 lock.release();
+                log.info("Released the lock {}", lock.toString());
             }
         } catch (Exception e) {
             log.error("Could not release lock");

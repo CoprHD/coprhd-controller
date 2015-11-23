@@ -231,6 +231,8 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
      */
     @Override
     public KeyCertificateEntry getKeyCertificatePair() throws SecurityException {
+        log.info("Retrieving ViPR certificate");
+
         KeyCertificateEntry entryToReturn;
         InterProcessLock lock;
         try {
@@ -242,7 +244,6 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
             throw SecurityException.fatals.failedToGetKeyCertificate();
         }
         try {
-            log.info("Retrieving ViPR certificate");
             entryToReturn =
                     coordConfigStoringHelper.readConfig(KEY_CERTIFICATE_PAIR_CONFIG_KIND,
                             KEY_CERTIFICATE_PAIR_ID,
@@ -268,6 +269,7 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
                 }
                 checkCertificateDateValidity(cert);
             }
+            log.info("Retrieved ViPR certificate successfully");
         } catch (IOException | ClassNotFoundException e) {
             throw SecurityException.fatals.failedToReadKeyCertificateEntry(e);
         } finally {

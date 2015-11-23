@@ -49,7 +49,7 @@ public class ApplicationService extends TaskResourceService {
     private static final String APPLICATION_NAME = "name";
     private static final String APPLICATION_ROLES = "roles";
     private static final String EVENT_SERVICE_TYPE = "application";
-    
+
     @Override
     protected DataObject queryResource(URI id) {
         ArgValidator.checkUri(id);
@@ -57,17 +57,17 @@ public class ApplicationService extends TaskResourceService {
         ArgValidator.checkEntityNotNull(application, id, isIdEmbeddedInURL(id));
         return application;
     }
-    
+
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.APPLICATION;
     }
-    
+
     @Override
     protected URI getTenantOwner(final URI id) {
         return null;
     }
-    
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -75,6 +75,7 @@ public class ApplicationService extends TaskResourceService {
 
     /**
      * Create an application
+     * 
      * @param param Parameters for creating an application
      * @return created application
      */
@@ -97,11 +98,12 @@ public class ApplicationService extends TaskResourceService {
         _dbClient.createObject(application);
         auditOp(OperationTypeEnum.CREATE_APPLICATION, true, null, application.getId().toString(),
                 application.getLabel());
-        return DbObjectMapper.map(application);    
+        return DbObjectMapper.map(application);
     }
-    
+
     /**
-     * List an application 
+     * List an application
+     * 
      * @param id Application Id
      * @return ApplicationRestRep
      */
@@ -113,7 +115,7 @@ public class ApplicationService extends TaskResourceService {
         Application application = (Application) queryResource(id);
         return DbObjectMapper.map(application);
     }
-    
+
     /**
      * List applications.
      * 
@@ -131,7 +133,7 @@ public class ApplicationService extends TaskResourceService {
         }
         return applicationList;
     }
-    
+
     /**
      * Delete the application.
      * When an application is deleted it will move to a "marked for deletion" state.
@@ -147,20 +149,22 @@ public class ApplicationService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public Response deactivateApplication(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, Application.class, "id");
-        Application application = (Application)queryResource(id);
+        Application application = (Application) queryResource(id);
         ArgValidator.checkReference(Application.class, id, checkForDelete(application));
-        // TODO check on application volumes 
-        /*if (!application.getVolumes().isEmpty()) {
-            // application could not be deleted if it has volumes
-            throw APIException.badRequests.applicationWithVolumesCantBeDeleted(application.getLabel());
-        }*/
+        // TODO check on application volumes
+        /*
+         * if (!application.getVolumes().isEmpty()) {
+         * // application could not be deleted if it has volumes
+         * throw APIException.badRequests.applicationWithVolumesCantBeDeleted(application.getLabel());
+         * }
+         */
         _dbClient.markForDeletion(application);
 
         auditOp(OperationTypeEnum.DELETE_CONFIG, true, null, id.toString(),
                 application.getLabel());
         return Response.ok().build();
     }
-    
+
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -169,7 +173,7 @@ public class ApplicationService extends TaskResourceService {
     public ApplicationRestRep updateApplication(@PathParam("id") final URI id,
             final ApplicationUpdateParam param) {
         ArgValidator.checkFieldUriType(id, Application.class, "id");
-        Application application = (Application)queryResource(id);
+        Application application = (Application) queryResource(id);
         if (application.getInactive()) {
             throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(), "The application has been deleted");
         }
@@ -185,6 +189,6 @@ public class ApplicationService extends TaskResourceService {
         _dbClient.updateObject(application);
         auditOp(OperationTypeEnum.UPDATE_APPLICATION, true, null, application.getId().toString(),
                 application.getLabel());
-        return DbObjectMapper.map(application); 
-    } 
+        return DbObjectMapper.map(application);
+    }
 }

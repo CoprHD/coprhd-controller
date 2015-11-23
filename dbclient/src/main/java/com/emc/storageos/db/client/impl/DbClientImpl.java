@@ -373,42 +373,26 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> T queryObject(Class<T> clazz, URI id) {
-        List<URI> ids = new ArrayList<>(1);
-        ids.add(id);
-
-        List<T> objs = queryObject(clazz, ids);
-
-        if (objs.isEmpty()) {
-            return null;
-        }
-
-        return objs.get(0);
+        List<T> objs = internalQueryObject(clazz, Arrays.asList(id), false);
+        return objs.isEmpty()? null : objs.get(0);
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id) {
         return queryObject(clazz, Arrays.asList(id));
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids) {
-        return queryObject(clazz, ids, false);
+        return new QueryObjectResultList<T>(this, clazz, ids, false);
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly) {
+        return new QueryObjectResultList<T>(this, clazz, ids, activeOnly);
+    }
+    
+    protected <T extends DataObject> List<T> internalQueryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly) {
         DataObjectType doType = TypeMap.getDoType(clazz);
 
         if (doType == null) {
@@ -476,7 +460,7 @@ public class DbClientImpl implements DbClient {
                         currentIt = null;
                         getNextBatch();
                         while (!nextBatch.isEmpty()) {
-                            List<T> currBatchResults = queryObject(clazz, nextBatch, activeOnly);
+                            List<T> currBatchResults = internalQueryObject(clazz, nextBatch, activeOnly);
                             if (!currBatchResults.isEmpty()) {
                                 currentIt = currBatchResults.iterator();
                                 break;
@@ -526,18 +510,7 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> List<T> queryObjectField(Class<T> clazz, String fieldName, Collection<URI> ids) {
-        Set<String> fieldNames = new HashSet<>(1);
-        fieldNames.add(fieldName);
-        Iterator<T> iterator = queryObjectFields(clazz, fieldNames, ids).iterator();
-
-        List<T> objects = new ArrayList<T>();
-
-        while (iterator.hasNext()) {
-            T obj = iterator.next();
-            objects.add(obj);
-        }
-
-        return objects;
+        return new QueryObjectFieldResultList<T>(this, clazz, Arrays.asList(fieldName), ids, false);
     }
 
     @Override
@@ -568,6 +541,11 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T extends DataObject> Collection<T> queryObjectFields(Class<T> clazz,
+            Collection<String> fieldNames, Collection<URI> ids) {
+        return new QueryObjectFieldResultList<T>(this, clazz, fieldNames, ids, false);
+    }
+    
+    protected <T extends DataObject> Collection<T> internalQueryObjectFields(Class<T> clazz,
             Collection<String> fieldNames, Collection<URI> ids) {
         DataObjectType doType = TypeMap.getDoType(clazz);
 

@@ -61,21 +61,36 @@ public interface DbClient {
     <T extends DataObject> T queryObject(Class<T> clazz, NamedURI id);
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
+     * Queries for objects with given URI's. Deserializes into a data object of given
+     * class.
+     *
+     * @param clazz object type
+     * @param ids object id
+     * @return deserialized object list. non matching records are not returned
+     * @throws DatabaseException TODO
      */
-    @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids);
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
+     * Queries for objects with given URI's. Deserializes into a data object of given
+     * class.
+     *
+     * @param clazz object type
+     * @param ids object id
+     * @param activeOnly
+     * @return deserialized object list. non matching records are not returned
+     * @throws DatabaseException TODO
      */
-    @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly);
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
+     * Same as queryObject(Class, List<URI>). 
+     *
+     * @param clazz
+     * @param ids
+     * @return
+     * @throws DatabaseException
      */
-    @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id);
 
     /**

@@ -79,7 +79,7 @@ import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.google.common.collect.ImmutableSet;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 
 public class CoordinatorClientExt {
     private static final Logger _log = LoggerFactory.getLogger(CoordinatorClientExt.class);

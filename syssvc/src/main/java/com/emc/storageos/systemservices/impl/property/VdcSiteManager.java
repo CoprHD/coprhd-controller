@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
@@ -58,7 +58,7 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
 public class VdcSiteManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
-    private static final int VDC_RPOP_BARRIER_TIMEOUT = 5;
+    private static final int VDC_RPOP_BARRIER_TIMEOUT = 5*60; // 5 mins
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;

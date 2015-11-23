@@ -237,6 +237,14 @@ public class CoordinatorConfigStoringHelper {
     }
 
     /**
+     * Get the mutex path for local site's keystore.
+     * @return
+     */
+    public String getKeystoreLockPath() {
+        return String.format("/sites/$s/mutext/%s", coordinator.getSiteId(), DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_LOCK);
+    }
+
+    /**
      * @param coordinator the coordinator to set
      */
     public void setCoordinator(CoordinatorClient coordinator) {

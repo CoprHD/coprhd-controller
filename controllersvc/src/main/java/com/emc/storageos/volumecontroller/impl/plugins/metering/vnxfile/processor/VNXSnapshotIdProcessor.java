@@ -42,7 +42,7 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
                 boolean isFSMatch = false;
                 List<Object> snapshotList = getQueryResponse(responsePacket);
                 final String snapName = (String) keyMap.get(VNXFileConstants.SNAPSHOT_NAME);
-                final String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+                String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
                 
                 _logger.info("Snapshot name to match: {} Size of snaps found {} ", snapName, snapshotList.size());
                 Iterator<Object> snapshotItr = snapshotList.iterator();

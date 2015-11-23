@@ -403,24 +403,10 @@ public class DisasterRecoveryService {
         }
         String SiteNamesStr = siteNamesSb.toString();
 
-        if (drUtil.isStandby()) {
-            throw APIException.internalServerErrors.removeStandbyPrecheckFailed(SiteNamesStr, "Operation is allowed on primary only");
-        }
-        if (!isClusterStable()) {
-            throw APIException.internalServerErrors.removeStandbyPrecheckFailed(SiteNamesStr, "Cluster is not stable");
-        }
-
-        for (Site site : drUtil.listStandbySites()) {
-            if (siteIdStr.contains(site.getUuid())) {
-                continue;
-            }
-            int nodeCount = site.getNodeCount();
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
-            if (state != ClusterInfo.ClusterState.STABLE) {
-                log.info("Site {} is not stable {}", site.getUuid(), state);
-                throw APIException.internalServerErrors.removeStandbyPrecheckFailed(SiteNamesStr,
-                        String.format("Site %s is not stable", site.getName()));
-            }
+        try {
+            commonPrecheck(siteIdList);
+        } catch (IllegalStateException e) {
+            throw APIException.internalServerErrors.removeStandbyPrecheckFailed(SiteNamesStr, e.getMessage());
         }
 
         InterProcessLock lock = getDROperationLock();
@@ -573,25 +559,10 @@ public class DisasterRecoveryService {
             toBePausedSites.add(site);
         }
 
-        if (drUtil.isStandby()) {
-            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteIdStr, "Operation is allowed on primary only");
-        }
-        if (!isClusterStable()) {
-            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteIdStr, "Cluster is not stable");
-        }
-
-        for (Site site : drUtil.listStandbySites()) {
-            // don't check node state for sites to be or already paused.
-            if (siteIdList.contains(site.getUuid()) || site.getState().equals(SiteState.STANDBY_PAUSED)) {
-                continue;
-            }
-            int nodeCount = site.getNodeCount();
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
-            if (state != ClusterInfo.ClusterState.STABLE) {
-                log.info("Site {} is not stable {}", site.getUuid(), state);
-                throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteIdStr,
-                        String.format("Site %s is not stable", site.getName()));
-            }
+        try {
+            commonPrecheck(siteIdList);
+        } catch (IllegalStateException e) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteIdStr, e.getMessage());
         }
 
         InterProcessLock lock = getDROperationLock();
@@ -644,25 +615,10 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.operationOnlyAllowedOnPausedSite(standby.getName(), standby.getState().toString());
         }
 
-        if (drUtil.isStandby()) {
-            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(uuid, "Operation is allowed on primary only");
-        }
-        if (!isClusterStable()) {
-            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(uuid, "Cluster is not stable");
-        }
-
-        for (Site site : drUtil.listStandbySites()) {
-            // don't check node state for paused sites.
-            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
-                continue;
-            }
-            int nodeCount = site.getNodeCount();
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
-            if (state != ClusterInfo.ClusterState.STABLE) {
-                log.info("Site {} is not stable {}", site.getUuid(), state);
-                throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(uuid,
-                        String.format("Site %s is not stable", site.getName()));
-            }
+        try {
+            commonPrecheck(uuid);
+        } catch (IllegalStateException e) {
+            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(uuid, e.getMessage());
         }
 
         InterProcessLock lock = getDROperationLock();
@@ -831,6 +787,49 @@ public class DisasterRecoveryService {
                     currentSite.getName());
             throw APIException.internalServerErrors.failoverFailed(uuid, e.getMessage());
         }
+    }
+
+    /**
+     * Common precheck logic for DR operations.
+     *
+     * @param excludedSiteIds, site ids to exclude from the cluster state precheck
+     */
+    private void commonPrecheck(List<String> excludedSiteIds) {
+        if (drUtil.isStandby()) {
+            throw new IllegalStateException("Operation is allowed on primary only");
+        }
+        if (!isClusterStable()) {
+            throw new IllegalStateException("Cluster is not stable");
+        }
+
+        for (Site site : drUtil.listStandbySites()) {
+            if (excludedSiteIds.contains(site.getUuid())) {
+                continue;
+            }
+            // don't check node state for paused sites.
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                continue;
+            }
+            int nodeCount = site.getNodeCount();
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                log.error("Site {} is not stable {}", site.getUuid(), state);
+                throw new IllegalStateException(String.format("Site %s is not stable", site.getName()));
+            }
+        }
+    }
+
+    /**
+     * Wrapper for commonPrecheck that takes a single site instead of a list
+     *
+     * @param excludedSiteId, site id to be excluded from the cluster state precheck, check all if set to null.
+     */
+    private void commonPrecheck(String excludedSiteId) {
+        List<String> excludedSiteIds = new ArrayList<>();
+        if (excludedSiteId != null) {
+            excludedSiteIds.add(excludedSiteId);
+        }
+        commonPrecheck(excludedSiteIds);
     }
 
     private Site validateSiteConfig(String uuid) {

@@ -35,7 +35,7 @@ import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 /**
  * Test class for the BlockSnashotSessionMigration upgrade callback class.
  */
-public class BlockSnashotSessionMigrationTest extends DbSimpleMigrationTestBase {
+public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase {
 
     // Test constants.
     private static final String PROJECT_NAME = "Project";
@@ -51,7 +51,7 @@ public class BlockSnashotSessionMigrationTest extends DbSimpleMigrationTestBase 
     Map<String, BlockSnapshot> _linkedTargetsMap = new HashMap<String, BlockSnapshot>();
 
     // A reference to a logger.
-    private static final Logger s_logger = LoggerFactory.getLogger(BlockSnashotSessionMigrationTest.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionMigrationTest.class);
 
     /**
      * Setup method executed before test is executed.

@@ -74,7 +74,7 @@ public class KeyStoreUtil {
     public static void setSelfGeneratedCertificate(CoordinatorConfigStoringHelper coordConfigStoringHelper, Boolean selfGenerated) {
         try {
             coordConfigStoringHelper.createOrUpdateConfig(selfGenerated,
-                    coordConfigStoringHelper.getKeystoreLockPath(),
+                    DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_LOCK,
                     DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_CONFIG_KIND,
                     DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_ID,
                     DistributedKeyStoreImpl.IS_SELF_GENERATED_KEY);

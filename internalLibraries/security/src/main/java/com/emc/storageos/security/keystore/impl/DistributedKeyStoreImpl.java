@@ -236,7 +236,7 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
         KeyCertificateEntry entryToReturn;
         InterProcessLock lock;
         try {
-            lock = coordConfigStoringHelper.acquireLock(coordConfigStoringHelper.getKeystoreLockPath());
+            lock = coordConfigStoringHelper.acquireLock(DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_LOCK);
         } catch (Exception e) {
             throw SecurityException.fatals.failedToGetKeyCertificate();
         }
@@ -353,7 +353,7 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
             if (logAlert) {
                 logAlert(messageToLog, timeAmount, timeType, logLevel);
                 try {
-                    coordConfigStoringHelper.createOrUpdateConfig(today, coordConfigStoringHelper.getKeystoreLockPath(),
+                    coordConfigStoringHelper.createOrUpdateConfig(today, DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_LOCK,
                             KEY_CERTIFICATE_PAIR_CONFIG_KIND, LAST_CERTIFICATE_ALERT_ID,
                             LAST_CERTIFICATE_ALERT_KEY);
                 } catch (Exception e) {
@@ -402,14 +402,14 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
                 log.info("Setting ViPR's key and certificate chain. New certificate is: "
                         + entry.getCertificateChain()[0]);
             }
-            coordConfigStoringHelper.createOrUpdateConfig(entry, coordConfigStoringHelper.getKeystoreLockPath(),
+            coordConfigStoringHelper.createOrUpdateConfig(entry, DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_LOCK,
                     KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID,
                     KEY_CERTIFICATE_PAIR_KEY);
         } catch (Exception e) {
             throw SecurityException.fatals.failedToUpdateKeyCertificateEntry(e);
         }
         try {
-            coordConfigStoringHelper.removeConfig(coordConfigStoringHelper.getKeystoreLockPath(),
+            coordConfigStoringHelper.removeConfig(DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_LOCK,
                     KEY_CERTIFICATE_PAIR_CONFIG_KIND, LAST_CERTIFICATE_ALERT_ID);
         } catch (Exception e) {
             // don't really care if this fails

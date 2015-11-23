@@ -896,6 +896,22 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public InterProcessLock getSiteLocalLock(String name) throws CoordinatorException {
+        String sitePrefix = String.format("/sites/%s/%s", ZkPath.MUTEX.toString());
+        EnsurePath path = new EnsurePath(sitePrefix);
+        try {
+            path.ensure(_zkConnection.curator().getZookeeperClient());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw CoordinatorException.fatals.unableToGetLock(name, e);
+        } catch (Exception e) {
+            throw CoordinatorException.fatals.unableToGetLock(name, e);
+        }
+        String lockPath = ZKPaths.makePath(sitePrefix, name);
+        return new InterProcessMutex(_zkConnection.curator(), lockPath);
+    }
+
+    @Override
     public InterProcessReadWriteLock getReadWriteLock(String name) throws CoordinatorException {
         EnsurePath path = new EnsurePath(ZkPath.MUTEX.toString());
         try {

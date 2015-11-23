@@ -1,5 +1,5 @@
-@root-menu-width: 65px;
-@root-menu-icon-color: #818181;
+@root-menu-width: 80px;
+@root-menu-icon-color: #8c8e8c;
 @root-menu-font-size: 30px; 
 @root-menu-background-color: #2d2c2c;
 
@@ -19,6 +19,7 @@
 @sub-menu-background-color: #555555; 
 @sub-menu-hover-color: #fff;
 @sub-menu-hover-background-color: #888888; 
+@sub-menu-hover-selected-margin-top: -8px;
 
 #mainMenu {
 	position: fixed;
@@ -63,15 +64,15 @@
 .rootNav span {
 	font-size: @root-menu-font-size;
 	color: @root-menu-icon-color;
-	padding: 20px !important;
+	padding: 25px !important;
 
 }
 .rootNav img {
-	width: 18px;
+	width: 30px;
 }
 a.rootNav {
-	padding: 5px 0px 0px 0px;
-	margin-top: 8px;
+	padding: 10px 0px;
+	margin-top: 0px;
 	display: block;
 	opacity: 0.75; 
 	filter: alpha(opacity=75); 
@@ -196,7 +197,7 @@ a.rootNav.selected span {
 	z-index: 999;
 	width: @sub-menu-padding;
 	height: 100%;
-	margin-top: -8px;
+	margin-top: @sub-menu-hover-selected-margin-top;
 }
 .menuTree li.active a {
   background-color: @menu-item-active-background-color;
@@ -211,7 +212,7 @@ a.rootNav.selected span {
   background-color: @menu-item-active-background-color;
   left: -@sub-menu-padding;
   width: @sub-menu-padding;
-  margin-top: -8px;
+  margin-top: @sub-menu-hover-selected-margin-top;
 }
 .menuTree li.active a:hover:before {
   background-color: @menu-item-active-background-color;

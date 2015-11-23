@@ -15,6 +15,14 @@ public class PathConstants {
     public static final String CLUSTER_STATE_URL = UPGRADE_URL + "/cluster-state";
     public static final String LOGS_URL = "/logs";
     public static final String LOG_LEVELS_URL = LOGS_URL + "/log-levels";
+    
+    public static final String BACKUP_URL = "/backupset/";
+    public static final String BACKUP_CREATE_URL = BACKUP_URL + "backup/";
+    public static final String BACKUP_UPLOAD_URL = BACKUP_URL + "backup/upload";
+
+    public static final String CHECKDB_URL="/control/db";
+    public static final String CHECKDB_GET_URL = CHECKDB_URL + "/consistency";
+    public static final String CHECKDB_CANCEL_URL = CHECKDB_GET_URL + "/cancel";
 
     public static final String PASSWORD_URL = "/password";// NOSONAR ("Suppressing Sonar violation of variable")
     public static final String UPDATE_AUTH_KEY_URL = PASSWORD_URL + "/authorizedkey2";

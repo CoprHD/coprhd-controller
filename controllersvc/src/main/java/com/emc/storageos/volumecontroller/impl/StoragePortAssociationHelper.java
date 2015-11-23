@@ -247,6 +247,8 @@ public class StoragePortAssociationHelper {
                                     vNas.setAssignedVirtualArrays(new StringSet());
                                 }
                                 vNas.getAssignedVirtualArrays().addAll(varraySet);
+                                _log.info("found virtual NAS: {} and varrays: {}", vNas.getNasName(), varraySet.toString());
+
                             }
                             modifiedServers.add(vNas);
                         }
@@ -298,8 +300,8 @@ public class StoragePortAssociationHelper {
      * @param dbClient
      * @return VirtualNAS associated with StorgaePort
      */
-    private static VirtualNAS getStoragePortVirtualNAS(StoragePort sp, DbClient dbClient) {
-
+    private static List<VirtualNAS> getStoragePortVirtualNAS(StoragePort sp, DbClient dbClient) {
+        List<VirtualNAS> virtualNASList = new ArrayList<VirtualNAS>();
         URIQueryResultList vNasUriList = new URIQueryResultList();
         dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getVirtualNASContainStoragePortConstraint(sp.getId()), vNasUriList);
@@ -308,10 +310,11 @@ public class StoragePortAssociationHelper {
         while (vNasIter.hasNext()) {
             VirtualNAS vNas = dbClient.queryObject(VirtualNAS.class, vNasIter.next());
             if (vNas != null && !vNas.getInactive()) {
-                return vNas;
+                virtualNASList.add(vNas);
+                _log.info("found virtual NAS: {} for storageport: {}", vNas.getNasName(), sp.getLabel());
             }
         }
-        return null;
+        return virtualNASList;
 
     }
 
@@ -329,30 +332,30 @@ public class StoragePortAssociationHelper {
         Map<String, List<NetworkLite>> vNasNetwork = new HashMap<>();
 
         NetworkLite network;
-        VirtualNAS vNas;
+        List<VirtualNAS> vNasList = null;
         List<NetworkLite> list = null;
 
         for (StoragePort sport : sports) {
             if (TransportType.IP.name().equalsIgnoreCase(sport.getTransportType())) {
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, sport.getStorageDevice());
-                if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType())) {
+                if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType()) || DiscoveredDataObject.Type.isilon.name().equals(system.getSystemType())) {
                     network = NetworkUtil.getEndpointNetworkLite(sport.getPortNetworkId(), dbClient);
-                    vNas = getStoragePortVirtualNAS(sport, dbClient);
+                    vNasList = getStoragePortVirtualNAS(sport, dbClient);
                     if (network != null && network.getInactive() == false
                             && network.getTransportType().equals(sport.getTransportType())
-                            && vNas != null) {
-
-                        list = vNasNetwork.get(vNas.getNativeGuid());
-                        if (list == null) {
-                            list = new ArrayList<NetworkLite>();
-                            vNasNetwork.put(vNas.getNativeGuid(), list);
+                            && vNasList != null && !vNasList.isEmpty()) {
+                        for(VirtualNAS vNas : vNasList) {
+                            list = vNasNetwork.get(vNas.getNativeGuid());
+                            if (list == null) {
+                                list = new ArrayList<NetworkLite>();
+                                vNasNetwork.put(vNas.getNativeGuid(), list);
+                            }
+                            list.add(network);
                         }
-                        list.add(network);
                     }
                 }
             }
         }
         return vNasNetwork;
     }
-
 }

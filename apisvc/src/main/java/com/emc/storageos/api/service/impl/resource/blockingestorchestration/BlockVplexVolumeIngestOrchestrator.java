@@ -233,8 +233,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 String reason = "failed to find all VPLEX backend volume for UnManagedVolume "
                         + unManagedVirtualVolume.getLabel() + " with supporting device "
                         + supportingDevice + ". Did find these backend volumes, though: "
-                        + Joiner.on(", ").join(unManagedBackendVolumes) 
-                        + ".  Have all backend arrays been discovered for unmanaged volumes?";;
+                        + Joiner.on(", ").join(unManagedBackendVolumes)
+                        + ".  Have all backend arrays been discovered for unmanaged volumes?";
+                ;
                 _logger.error(reason);
                 throw IngestionException.exceptions.validationException(reason);
             }
@@ -268,7 +269,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
 
         // validate that there are no array-based backend-only volume clones.
-        // that is, if there's a clone, it should have a virtual volume in 
+        // that is, if there's a clone, it should have a virtual volume in
         // front of it, otherwise, we can't ingest it.
         if (context.getUnmanagedBackendOnlyClones().size() > 0) {
             List<String> cloneInfo = new ArrayList<String>();
@@ -276,7 +277,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 String message = cloneEntry.getKey().getLabel() + " has ";
                 List<String> clones = new ArrayList<String>();
                 for (UnManagedVolume clone : cloneEntry.getValue()) {
-                    clones.add(clone.getLabel()); 
+                    clones.add(clone.getLabel());
                 }
                 message += Joiner.on(", ").join(clones) + ". ";
                 cloneInfo.add(message);
@@ -288,21 +289,80 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             _logger.error(reason);
             throw IngestionException.exceptions.validationException(reason);
         }
-        
+
         int mirrorCount = context.getUnmanagedVplexMirrors().size();
         if (mirrorCount > 0) {
             _logger.info("{} native mirror(s) are present, validating vpool", mirrorCount);
             if (VirtualPool.vPoolSpecifiesMirrors(vpool, _dbClient)) {
                 if (mirrorCount > vpool.getMaxNativeContinuousCopies()) {
-                    StringBuilder reason = new StringBuilder("volume has more continuous copies (");
-                    reason.append(mirrorCount).append(" than vpool allows. mirrors found: ");
-                    reason.append(Joiner.on(", ").join(context.getUnmanagedVplexMirrors().keySet()));
-                    String message = reason.toString();
-                    _logger.error(message);
-                    throw IngestionException.exceptions.validationException(message);
+                    if (context.isDistributed() && mirrorCount == 2) {
+                        // there are two mirrors
+                        // we need to check that they are on different clusters
+                        List<UnManagedVolume> mirrors = new ArrayList<UnManagedVolume>();
+                        for (UnManagedVolume mirror : context.getUnmanagedVplexMirrors().keySet()) {
+                            mirrors.add(mirror);
+                        }
+                        if (mirrors.size() == 2) {
+                            String backendClusterId0 = VplexBackendIngestionContext.extractValueFromStringSet(
+                                    SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
+                                    mirrors.get(0).getVolumeInformation());
+                            String backendClusterId1 = VplexBackendIngestionContext.extractValueFromStringSet(
+                                    SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
+                                    mirrors.get(1).getVolumeInformation());
+                            if (backendClusterId0.equals(backendClusterId1)) {
+                                // the different clusters check failed
+                                StringBuilder reason = new StringBuilder("the volume's mirrors must be on separate ");
+                                reason.append(" vplex clusters. mirrors found: ");
+                                reason.append(backendClusterId0).append(": ")
+                                        .append(mirrors.get(0).getLabel()).append("; ")
+                                        .append(backendClusterId1).append(": ")
+                                        .append(mirrors.get(1).getLabel()).append(".");
+                                String message = reason.toString();
+                                _logger.error(message);
+                                throw IngestionException.exceptions.validationException(message);
+                            } else {
+                                // a high availability vpool is required
+                                VirtualPool haVpool = VirtualPool.getHAVPool(vpool, _dbClient);
+                                if (haVpool == null) {
+                                    String reason = "no high availability virtual pool is "
+                                            + "set on source virtual pool " + vpool.getLabel();
+                                    _logger.error(reason);
+                                    throw IngestionException.exceptions.validationException(reason);
+                                }
+                                // max continuous copies needs to be set to one on both source and ha vpools
+                                if (vpool.getMaxNativeContinuousCopies() == 1
+                                        && haVpool.getMaxNativeContinuousCopies() == 1) {
+                                    _logger.info("volume is distributed, has a mirror on each leg, both source and "
+                                            + "high availaiblity vpools have continuous copies value of 1, "
+                                            + "volume is ok for ingestion");
+                                } else {
+                                    StringBuilder reason = new StringBuilder("the virtual pools' continuous copy ");
+                                    reason.append("settings are incorrect for ingesting a dual distributed mirror. ");
+                                    reason.append("Source virtual pool is set to ")
+                                            .append(vpool.getMaxNativeContinuousCopies())
+                                            .append(" and target virtual pool is set to ")
+                                            .append(haVpool.getMaxNativeContinuousCopies()).append(". ");
+                                    reason.append("Mirrors found - ").append(backendClusterId0).append(": ")
+                                            .append(mirrors.get(0).getLabel()).append("; ")
+                                            .append(backendClusterId1).append(": ")
+                                            .append(mirrors.get(1).getLabel()).append(".");
+                                    String message = reason.toString();
+                                    _logger.error(message);
+                                    throw IngestionException.exceptions.validationException(message);
+                                }
+                            }
+                        }
+                    } else {
+                        StringBuilder reason = new StringBuilder("volume has more continuous copies (");
+                        reason.append(mirrorCount).append(" than vpool allows. Mirrors found: ");
+                        reason.append(Joiner.on(", ").join(context.getUnmanagedVplexMirrors().keySet()));
+                        String message = reason.toString();
+                        _logger.error(message);
+                        throw IngestionException.exceptions.validationException(message);
+                    }
                 }
             } else {
-                String reason = "vpool does not allow continuous copies, but volume has " + mirrorCount + " mirror(s)";
+                String reason = "virtual pool does not allow continuous copies, but volume has " + mirrorCount + " mirror(s)";
                 _logger.error(reason);
                 throw IngestionException.exceptions.validationException(reason);
             }
@@ -376,12 +436,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 haVpool = _dbClient.queryObject(VirtualPool.class, URI.create(haVpoolStr));
             }
         }
-        
+
         String sourceClusterId = getClusterNameForVarray(sourceVarray, vplex);
         String haClusterId = getClusterNameForVarray(haVarray, vplex);
-        _logger.info("the source cluster id is {} and the high availability cluster id is {}", 
+        _logger.info("the source cluster id is {} and the high availability cluster id is {}",
                 sourceClusterId, haClusterId);
-        
+
         for (UnManagedVolume associatedVolume : context.getUnmanagedVolumesToIngest()) {
             _logger.info("Ingestion started for vplex backend volume {}", associatedVolume.getNativeGuid());
 
@@ -397,20 +457,20 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 // determine the correct project to use with this volume:
                 // the backend volumes have the vplex backend Project, but
                 // the rest have the same Project as the virtual volume.
-                Project project = context.getUnmanagedBackendVolumes().contains(associatedVolume) ? 
+                Project project = context.getUnmanagedBackendVolumes().contains(associatedVolume) ?
                         context.getBackendProject() : context.getFrontendProject();
 
                 IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume);
 
-                VirtualArray varrayForThisVolume = sourceVarray; 
+                VirtualArray varrayForThisVolume = sourceVarray;
                 VirtualPool vpoolForThisVolume = sourceVpool;
-                
+
                 // get the backend volume cluster id
                 String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
-                        SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(), 
+                        SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
                         associatedVolume.getVolumeInformation());
                 _logger.info("backend cluster id is " + backendClusterId);
-                if (null != backendClusterId && null != haClusterId 
+                if (null != backendClusterId && null != haClusterId
                         && backendClusterId.equals(haClusterId)) {
                     _logger.info("using high availability varray " + haVarray.getLabel());
                     varrayForThisVolume = haVarray;
@@ -419,9 +479,19 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         vpoolForThisVolume = haVpool;
                     }
                 }
-                
+
+                // finally, double check for a separate mirror / continuous copies vpool
+                if (context.getUnmanagedVplexMirrors().keySet().contains(associatedVolume)
+                        && vpoolForThisVolume.getMirrorVirtualPool() != null) {
+                    _logger.info("this associated volume is a mirror and separate mirror vpool is defined");
+                    VirtualPool mirrorVpool = _dbClient.queryObject(
+                            VirtualPool.class, URI.create(vpoolForThisVolume.getMirrorVirtualPool()));
+                    _logger.info("using mirror vpool " + mirrorVpool.getLabel());
+                    vpoolForThisVolume = mirrorVpool;
+                }
+
                 validateBackendVolumeVpool(associatedVolume, vpoolForThisVolume);
-                
+
                 @SuppressWarnings("unchecked")
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache,
                         associatedSystem, associatedVolume, vpoolForThisVolume, varrayForThisVolume,
@@ -659,7 +729,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                                 context.getBackendProject().getId(), mirrorVolume.getLabel()));
 
                         // update flags on mirror volume
-                        List<DataObject> updatedObjects = 
+                        List<DataObject> updatedObjects =
                                 context.getUpdatedObjectMap().get(mirrorVolume.getNativeGuid());
                         if (updatedObjects == null) {
                             updatedObjects = new ArrayList<DataObject>();
@@ -796,18 +866,49 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupUri);
 
-            StringSet unmanagedVolumeClusters = unManagedVolume.getVolumeInformation().get(
-                    SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString());
-            // Add a ViPR CG mapping for each of the VPlex clusters the VPlex CG
-            // belongs to.
-            if (unmanagedVolumeClusters != null && !unmanagedVolumeClusters.isEmpty()) {
-                Iterator<String> unmanagedVolumeClustersItr = unmanagedVolumeClusters.iterator();
-                while (unmanagedVolumeClustersItr.hasNext()) {
-                    cg.addSystemConsistencyGroup(system.getId().toString(),
-                            BlockConsistencyGroupUtils.buildClusterCgName(unmanagedVolumeClustersItr.next(), cgName));
-                }
+            // Add a system consistency group mapping for the varray the cluster is connected to
+            try {
+                String vplexClusterName = VPlexControllerUtils.getVPlexClusterName(
+                        _dbClient, cg.getVirtualArray(), system.getId());
+                if (vplexClusterName != null) {
 
-                _dbClient.updateAndReindexObject(cg);
+                    StringSet unmanagedVolumeClusters = unManagedVolume.getVolumeInformation().get(
+                            SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString());
+                    // Add a ViPR CG mapping for each of the VPlex clusters the VPlex CG
+                    // belongs to.
+                    if (unmanagedVolumeClusters != null && !unmanagedVolumeClusters.isEmpty()) {
+                        Iterator<String> unmanagedVolumeClustersItr = unmanagedVolumeClusters.iterator();
+                        String cgCluster = null;
+                        while (unmanagedVolumeClustersItr.hasNext()) {
+                            if (vplexClusterName.equals(unmanagedVolumeClustersItr.next())) {
+                                cgCluster = vplexClusterName;
+                                break;
+                            }
+                        }
+                        if (cgCluster != null) {
+                            cg.addSystemConsistencyGroup(system.getId().toString(),
+                                    BlockConsistencyGroupUtils.buildClusterCgName(cgCluster, cgName));
+                            _dbClient.updateAndReindexObject(cg);
+                        } else {
+                            throw new Exception(
+                                    "could not determine VPLEX cluster name for consistency group virtual array "
+                                            + cg.getVirtualArray());
+                        }
+                    } else {
+                        throw new Exception(
+                                "no VPLEX cluster(s) set on unmanaged volume "
+                                        + unManagedVolume.getLabel());
+                    }
+                } else {
+                    throw new Exception(
+                            "could not determine VPLEX cluster name for virtual array "
+                                    + cg.getVirtualArray());
+                }
+            } catch (Exception ex) {
+                String message = "could not determine VPLEX cluster placement for consistency group "
+                        + cg.getLabel() + " configured on UnManagedVolume " + unManagedVolume.getLabel();
+                _logger.error(message, ex);
+                throw IngestionException.exceptions.generalVolumeException(unManagedVolume.getLabel(), message);
             }
 
             volume.setConsistencyGroup(consistencyGroupUri);
@@ -907,7 +1008,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     /**
-     * Find the VPLEX cluster name for the cluster connected 
+     * Find the VPLEX cluster name for the cluster connected
      * to a given Virtual Array.
      * 
      * @param varray the Virtual Array to check
@@ -919,7 +1020,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         if (null == varray || null == vplex) {
             return null;
         }
-        
+
         String varrayClusterId = getVarrayToClusterIdMap(vplex).get(varray.getId().toString());
         if (null == varrayClusterId) {
             varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(varray.getId(), vplex.getId(), _dbClient);
@@ -944,7 +1045,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             _logger.error(reason);
             throw IngestionException.exceptions.validationException(reason);
         }
-        
+
         return varrayClusterName;
     }
 
@@ -953,13 +1054,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * it will be ingested.
      * 
      * @param backendVolume the backend UnManagedVolume to validate
-     * @param vpool the Virtual Pool to check 
+     * @param vpool the Virtual Pool to check
      */
     private void validateBackendVolumeVpool(UnManagedVolume backendVolume, VirtualPool vpool) {
         URI storagePoolUri = backendVolume.getStoragePoolUri();
         if (!vpool.getMatchedStoragePools().contains(storagePoolUri.toString())) {
-            String reason = "vpool " + vpool.getLabel() 
-                    + " does not match the backend volume's storage pool URI " 
+            String reason = "vpool " + vpool.getLabel()
+                    + " does not match the backend volume's storage pool URI "
                     + storagePoolUri;
             _logger.error(reason);
             throw IngestionException.exceptions.validationException(reason);

@@ -11,6 +11,7 @@ import com.emc.storageos.management.backup.BackupType;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.systemservices.TestProductName;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -109,7 +110,9 @@ public class BackupSchedulerTest {
             cfg.retainedBackups.add(aliveBackupsAt20141231[i]);
         }
 
-        FakeUploadExecutor upExec = new FakeUploadExecutor(cfg, cli);
+        UploadExecutor upExec = new UploadExecutor(cfg, cli);
+        FakeUploader uploader = new FakeUploader(cfg, cli);
+        upExec.setUploader(uploader);
 
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
@@ -119,8 +122,8 @@ public class BackupSchedulerTest {
         // Verify the backups are uploaded
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
             Assert.assertTrue(String.format("Backup %s is not uploaded: %s", aliveBackupsAt20141231[i],
-                    Strings.join(",", upExec.fileMap.keySet().toArray(new String[upExec.fileMap.size()]))),
-                    upExec.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1-1.zip")
+                    Strings.join(",", uploader.fileMap.keySet().toArray(new String[uploader.fileMap.size()]))),
+                    uploader.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1-1.zip")
                     );
         }
     }
@@ -164,7 +167,9 @@ public class BackupSchedulerTest {
         cli.localBackups.add(aliveBackupsAt20141231[0]);
         cli.localBackups.add(aliveBackupsAt20141231[1]);
 
-        FakeUploadExecutor upExec = new FakeUploadExecutor(cfg, cli);
+        UploadExecutor upExec = new UploadExecutor(cfg, cli);
+        FakeUploader uploader = new FakeUploader(cfg, cli);
+        upExec.setUploader(uploader);
 
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
@@ -177,10 +182,10 @@ public class BackupSchedulerTest {
     }
 }
 
-class FakeUploadExecutor extends UploadExecutor {
+class FakeUploader extends Uploader {
     public Map<String, Long> fileMap = new HashMap<>();
 
-    public FakeUploadExecutor(SchedulerConfig cfg, BackupScheduler cli) {
+    public FakeUploader(SchedulerConfig cfg, BackupScheduler cli) {
         super(cfg, cli);
     }
 
@@ -293,6 +298,7 @@ class FakeBackupClient extends BackupScheduler {
 
 class FakeConfiguration extends SchedulerConfig {
     public Calendar currentTime;
+    public BackupUploadStatus uploadStatus = new BackupUploadStatus();
 
     public FakeConfiguration() {
         super(null, null, null);
@@ -315,6 +321,16 @@ class FakeConfiguration extends SchedulerConfig {
 
     @Override
     public void persist() {
+    }
+
+    @Override
+    public BackupUploadStatus queryBackupUploadStatus() {
+        return uploadStatus;
+    }
+
+    @Override
+    public void persistBackupUploadStatus(BackupUploadStatus status) {
+        uploadStatus.update(status.getBackupName(), status.getStatus(), status.getProgress(), status.getErrorCode());
     }
 
     @Override

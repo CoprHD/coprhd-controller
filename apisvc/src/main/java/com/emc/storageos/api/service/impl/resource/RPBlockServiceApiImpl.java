@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,6 +95,7 @@ import com.emc.storageos.volumecontroller.RPRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 /**
@@ -116,7 +118,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     private static final String VOLUME_TYPE_TARGET = "-target-";
     private static final int LOCK_WAIT_SECONDS = 60;
-
+    private static final String VOLUME_TYPE_TARGET_JOURNAL = "-target-journal-";
+    
     // Spring injected
     private RPHelper _rpHelper;
 
@@ -279,6 +282,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             URI protectionSystemURI = rpProtectionRec.getProtectionDevice();
             URI changeVpoolVolumeURI = rpProtectionRec.getVpoolChangeVolume();
+            Volume changeVpoolVolume = (changeVpoolVolumeURI == null ? null : _dbClient.queryObject(Volume.class, changeVpoolVolumeURI));
             isChangeVpool = (changeVpoolVolumeURI != null);
             isChangeVpoolForProtectedVolume = rpProtectionRec.isVpoolChangeProtectionAlreadyExists();
 
@@ -326,7 +330,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             if (!sourceJournals.isEmpty()) {
                 sourceJournal = sourceJournals.get(0); // always index 0
-
                 if (sourceJournals.size() > 1) {
                     standbyJournal = sourceJournals.get(1); // always index 1
                 }
@@ -353,14 +356,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     // So let's get ALL the source volumes in the CG and we will update them all to MetroPoint.
                     // Each source volume will be exported to the HA side of the VPLEX (for MetroPoint visibility).
                     // All source volumes will share the same secondary journal.
-                    List<Volume> allVolumesInCG = null;
+                    List<Volume> allSourceVolumesInCG = new ArrayList<Volume>();
                     if (isChangeVpoolForProtectedVolume) {
-                        allVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(consistencyGroup, _dbClient,
-                                Volume.PersonalityTypes.SOURCE);
-                        volumeCountInRec = allVolumesInCG.size();
-                        _log.info(String.format(
-                                "Upgrade to MetroPoint, we need to get all existing volumes in the CG. Number of volumes to upgrade: %d",
-                                volumeCountInRec));
+                        allSourceVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(consistencyGroup, _dbClient,
+                                Volume.PersonalityTypes.SOURCE);                                                
+                        _log.info(String.format("Change Virtual Pool Protected: %d existing source volume(s) in CG [%s](%s) are affected.",
+                                allSourceVolumesInCG.size(),
+                                consistencyGroup.getLabel(),
+                                consistencyGroup.getId()));
+                        // Force the count to the number of existing source volumes in the CG.
+                        volumeCountInRec = allSourceVolumesInCG.size();
                     }
 
                     for (int volumeCount = 0; volumeCount < volumeCountInRec; volumeCount++) {
@@ -388,9 +393,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         Volume sourceVolume = null;
                         ///////// SOURCE ///////////
                         if (!isChangeVpoolForProtectedVolume) {
-                            Volume changeVpoolVolume = null;
-                            if (isChangeVpool) {
-                                changeVpoolVolume = _dbClient.queryObject(Volume.class, changeVpoolVolumeURI);
+                            if (isChangeVpool) {                                
                                 _log.info(String.format("Change Vpool, use existing Source Volume [%s].", changeVpoolVolume.getLabel()));
                             } else {
                                 _log.info("Create RP Source Volume...");
@@ -404,12 +407,44 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                     (metroPointEnabled ? activeSourceCopyName : srcCopyName), descriptors,
                                     sourceJournal,
                                     (metroPointEnabled ? standbyJournal : null), changeVpoolVolume, isChangeVpool, isSrcAndHaSwapped);
-                        } else {
-                            _log.info("Change vpool on already protected Volume...");
-                            // Get one of the existing protected source volumes from the CG that we loaded earlier, doesn't matter which.
-                            sourceVolume = allVolumesInCG.get(volumeCount);
+                        } else {                                                        
+                            if (standbyJournal != null) {                                             
+                                _log.info("Upgrade to MetroPoint operation...");
+                                // This is a change vpool to upgrade to Metropoint, we need to update all source volumes 
+                                // in the CG to reference the newly created stand-by journal.
+                                for (Volume sourceVol : allSourceVolumesInCG) {                                
+                                    _log.info(String.format("Update the source volume [%s](%s) with new standby journal [%s](%s)",
+                                            sourceVol.getLabel(),
+                                            sourceVol.getId(),
+                                            standbyJournal.getLabel(),
+                                            standbyJournal.getId()));
+                                    sourceVol.setSecondaryRpJournalVolume(standbyJournal.getId());
+                                    _dbClient.persistObject(sourceVol);
+                                    // All RP+VPLEX Metro volumes in this CG need to have their backing volume
+                                    // references updated with the internal site names for exports.
+                                    setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
+                                            sourceVol, true, false, originalVpool.getHaVarrayConnectedToRp());
+                                    // We need to have all the existing RP+VPLEX Metro volumes from the CG 
+                                    // added to the volumeURI list so we can properly export the standby
+                                    // leg to RP for each volume. 
+                                    volumeURIs.add(sourceVol.getId());
+                                }
+                            } else {
+                                // NOTE: Upgrade to MetroPoint is (currently) the only supported Change Virtual Pool Protected
+                                // operation, so if we have a null standby journal we're in real trouble.
+                                _log.error("Error trying to upgrade to MetroPoint. Standby journal is null.");
+                                throw APIException.badRequests.rpBlockApiImplPrepareVolumeException(newVolumeLabel);
+                            }
+                                                        
+                            // There's no reason to continue past this point, we have
+                            // the existing source volumes references and we have 
+                            // the new standby journal.
+                            //
+                            // NOTE: In the future, if we decide to expand change vpool protected
+                            // to include things like adding/removing targets we can continue
+                            // past this point.
+                            break;                                                                                                                
                         }
-
                         volumeURIs.add(sourceVolume.getId());
 
                         // NOTE: This is only needed for MetroPoint and Distributed RP+VPLEX(HA as RP source),
@@ -428,7 +463,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // This value will only be used if isSrcAndHaSwapped == true.
                         setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
                                 sourceVolume, metroPointEnabled, isSrcAndHaSwapped, originalVpool.getHaVarrayConnectedToRp());
-
+                                                
                         ///////// TARGET(S) ///////////
                         List<URI> protectionTargets = new ArrayList<URI>();
 
@@ -444,7 +479,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             // Check to see if there is a change vpool of a already protected source, if so, we could potentially not need
                             // to provision this target.
                             if (isChangeVpoolForProtectedVolume) {
-                                Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, changeVpoolVolumeURI);
                                 Volume alreadyProvisionedTarget = RPHelper.findAlreadyProvisionedTargetVolume(changeVpoolVolume,
                                         targetRec.getVirtualArray(), _dbClient);
                                 if (alreadyProvisionedTarget != null) {
@@ -491,7 +525,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 // need
                                 // to provision this target. This would sit on the source recommendation, not the standby.
                                 if (isChangeVpoolForProtectedVolume) {
-                                    Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, changeVpoolVolumeURI);
                                     Volume alreadyProvisionedTarget = RPHelper.findAlreadyProvisionedTargetVolume(changeVpoolVolume,
                                             standyTargetVirtualArray.getId(), _dbClient);
                                     if (alreadyProvisionedTarget != null) {
@@ -525,7 +558,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 volumeInfoBuffer.append(String.format(NEW_LINE));
                 _log.info(volumeInfoBuffer.toString());
-
             }
         }
     }
@@ -735,16 +767,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volumeURIs.add(standbyJournal.getId());
                 volumeInfoBuffer.append(logVolumeInfo(standbyJournal));
             }
-        }
-
-        // If this is a change vpool to upgrade to Metropoint, we need to update the reference on the source volume to
-        // include the new created stand-by journal.
-        if (isChangeVpoolForProtectedVolume) {
-            Volume sourceVolume = RPHelper.getRPSourceVolume(_dbClient, sourceJournal);
-            _log.info(String.format("Change Virtual Pool Protected : update the source volume %s reference with standby journal %s",
-                    sourceVolume.getLabel(), standbyJournal.getLabel()));
-            sourceVolume.setSecondaryRpJournalVolume(standbyJournal.getId());
-            _dbClient.persistObject(sourceVolume);
         }
 
         // Add the source journals at the specified indices
@@ -1097,8 +1119,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             VolumeDescriptor desc = null;
             // Vpool Change flow, mark the production volume as already existing, so it doesn't get created
-            if (recommendation != null && (recommendation.getVpoolChangeVolume() != null) &&
-                    (recommendation.getVpoolChangeVolume().equals(volume.getId()))) {
+            if (recommendation != null && (recommendation.getVpoolChangeVolume() != null) 
+                    && Volume.PersonalityTypes.SOURCE.toString().equals(volume.getPersonality())) {
                 if (recommendation.isVpoolChangeProtectionAlreadyExists()) {
                     volumeType = VolumeDescriptor.Type.RP_EXISTING_PROTECTED_SOURCE;
                 } else {
@@ -1858,11 +1880,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     /**
-     *
      * Upgrade a local block volume to a protected RP volume
      *
      * @param volume the existing volume being protected.
      * @param newVpool the requested virtual pool
+     * @param vpoolChangeParam Param sent down by the API Service
      * @param taskId the task identifier
      * @throws InternalException
      */
@@ -1980,13 +2002,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
-        // For now we only support changing the virtual pool for a single volume at a time
-        // until CTRL-1347 and CTRL-5609 are fixed.
-        if (volumes.size() == 1) {
-            changeVolumeVirtualPool(volumes.get(0).getStorageController(), volumes.get(0), vpool, vpoolChangeParam, taskId);
-        } else {
-            throw APIException.methodNotAllowed.notSupportedWithReason(
-                    "Multiple volume change virtual pool is currently not supported for RecoverPoint. Please select one volume at a time.");
+        // We support multi-volume removal of protection, but still not 
+        // multi-volume add protection. Check the first volume in the
+        // list to see if the request is to remove protection.
+        if (volumes.get(0).checkForRp() 
+                && !VirtualPool.vPoolSpecifiesProtection(vpool)) {
+            removeProtection(volumes, vpool, taskId);
+        } else {        
+            // For now we only support changing the virtual pool for a single volume at a time
+            // until CTRL-1347 and CTRL-5609 are fixed.
+            if (volumes.size() == 1) {
+                changeVolumeVirtualPool(volumes.get(0).getStorageController(), volumes.get(0), vpool, vpoolChangeParam, taskId);
+            } else {
+                throw APIException.methodNotAllowed.notSupportedWithReason(
+                        "Multiple volume change virtual pool is currently not supported for RecoverPoint. "
+                        + "Please select one volume at a time.");
+            }
         }
     }
 
@@ -2639,9 +2670,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     @Override
-    protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI, List<URI> volumeURIs) {
+    protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI, 
+            List<URI> volumeURIs, String deletionType) {
 
-        List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs);
+        List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs, deletionType, null);
 
         List<VolumeDescriptor> filteredDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA,
@@ -2651,11 +2683,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         for (VolumeDescriptor descriptor : filteredDescriptors) {
             URI volumeURI = descriptor.getDeviceURI();
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            // Exclude inactive volumes 
             if (volume != null && !volume.getInactive()) {
                 addDescriptorsForMirrors(volumeDescriptors, volume);
             }
         }
-
+        
         return volumeDescriptors;
     }
 
@@ -2701,6 +2734,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         List<VirtualPoolChangeOperationEnum> allowedOperations = new ArrayList<VirtualPoolChangeOperationEnum>();
 
+        // Doesn't matter if this is VPLEX or not, if we have a 
+        // protected volume and we're looking to move to an unprotected 
+        // state return the RP_REMOVE_PROTECTION as the allowed operation
+        if (volume.checkForRp()
+                && VirtualPool.vPoolSpecifiesProtection(currentVpool)
+                && !VirtualPool.vPoolSpecifiesProtection(newVpool)
+                && VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
+                        _dbClient, notSuppReasonBuff)) {
+            allowedOperations.add(VirtualPoolChangeOperationEnum.RP_REMOVE_PROTECTION);
+        }
+        
         boolean vplex = RPHelper.isVPlexVolume(volume);
         // Check to see if this is a VPLEX volume
         if (vplex) {
@@ -2724,12 +2768,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // Allow the RP Protection add operation
                 allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
             }
-        } else {
-            if (VirtualPool.vPoolSpecifiesProtection(newVpool) &&
-                    VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume, currentVpool,
+        } else if (VirtualPool.vPoolSpecifiesProtection(newVpool) 
+                    && VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume, currentVpool,
                             newVpool, _dbClient, notSuppReasonBuff)) {
-                allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
-            }
+            allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);            
         }
 
         return allowedOperations;
@@ -3174,73 +3216,82 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             throw APIException.badRequests.noProtectionSystemAssociatedWithTheCG(consistencyGroup.getId().toString());
         }
 
+        // copy name to add the journal volume to
         String copyName = param.getName();
+        // rp cluster internal site name of the copy
         String internalSiteName = null;
+        // adding journal to a source copy
         boolean isSource = false;
+        // adding journal to a target copy
         boolean isTarget = false;
-        boolean isMPStandby = copyName.contains("Standby");
-        List<Volume> cgVolumes = RPHelper.getCgVolumes(consistencyGroup.getId(), _dbClient);
-        if (cgVolumes.isEmpty()) {
-            throw APIException.badRequests.noExistingVolumesInCG(consistencyGroup.getId().toString());
-        }
+        // adding journal to a metropoint standby copy
+        boolean isMPStandby = copyName.contains("Standby");        
 
-        // get the list of source and target volumes; for metropoint, source volumes include both sides of the source metro volume
-        List<Volume> sourceVolumes = new ArrayList<Volume>();
-        List<Volume> targetVolumes = new ArrayList<Volume>();
-        for (Volume cgVolume : cgVolumes) {
-            if (cgVolume.getPersonality() != null && cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
-                if (_rpHelper.isMetroPointVolume(cgVolume)) {
-                    StringSet associatedVolumes = cgVolume.getAssociatedVolumes();
-                    if (associatedVolumes != null && !associatedVolumes.isEmpty()) {
-                        for (String associatedVolumeStr : associatedVolumes) {
-                            URI associatedVolumeURI = URI.create(associatedVolumeStr);
-                            Volume associatedVolume = _dbClient.queryObject(Volume.class, associatedVolumeURI);
-                            sourceVolumes.add(associatedVolume);
-                        }
-                    }
-                } else {
-                    sourceVolumes.add(cgVolume);
-                }
-            } else if (cgVolume.getPersonality() != null && cgVolume.getPersonality().equals((Volume.PersonalityTypes.TARGET.name()))) {
-                targetVolumes.add(cgVolume);
+        // get the list of source and target volumes; for metropoint, source volumes include both sides of the source metro volume                       
+        List<Volume> sourceVolumes = RPHelper.getCgSourceVolumes(consistencyGroup.getId(), _dbClient);
+        if (sourceVolumes.isEmpty()) {
+            throw APIException.badRequests.noSourceVolumesInCG(consistencyGroup.getLabel());
+        }
+        
+        // only need one source volume to set up parameters for the operation
+        Volume firstSrc = sourceVolumes.get(0);
+        StringSet sourceInternalSiteNames = new StringSet();
+        
+        // if it's a metropoint volume we need to determine the internal site name for
+        // both the active and the standby copies
+        if (_rpHelper.isMetroPointVolume(firstSrc)) {
+            StringSet associatedVolumes = firstSrc.getAssociatedVolumes();
+            if (associatedVolumes != null && !associatedVolumes.isEmpty()) {
+                for (String associatedVolumeStr : associatedVolumes) {
+                	URI associatedVolumeURI = URI.create(associatedVolumeStr);
+                	Volume associatedVolume = _dbClient.queryObject(Volume.class, associatedVolumeURI);
+                	sourceInternalSiteNames.add(associatedVolume.getInternalSiteName());
+                	if (NullColumnValueGetter.isNotNullValue(associatedVolume.getRpCopyName())) {
+                		if (associatedVolume.getRpCopyName().equals(copyName)) {
+                			isSource = !isMPStandby;
+                			internalSiteName = associatedVolume.getInternalSiteName();
+                		}
+                	}                    	
+                }               
             }
+          // determine the internal site name for a source copy  
+        } else {        	
+        	sourceInternalSiteNames.add(firstSrc.getInternalSiteName());
+        	if (NullColumnValueGetter.isNotNullValue(firstSrc.getRpCopyName())) {
+        		if (firstSrc.getRpCopyName().equals(copyName)) {
+        			isSource = true;
+        			internalSiteName = firstSrc.getInternalSiteName();
+        		}
+        	}        		        	        	
         }
-
-        // get the internal site where we want to add the journal volume
-        for (Volume cgVolume : sourceVolumes) {
-            if (cgVolume.getRpCopyName().equals(copyName)) {
-                internalSiteName = cgVolume.getInternalSiteName();
-                isSource = !isMPStandby;
-                break;
-            }
+   
+        // determine the internal site name for a target copy
+        for(String targetURIString : firstSrc.getRpTargets()) {
+        	Volume tgtVolume = _dbClient.queryObject(Volume.class, URI.create(targetURIString));        	
+        	if (NullColumnValueGetter.isNotNullValue(tgtVolume.getRpCopyName()) && 
+        			tgtVolume.getRpCopyName().equals(copyName)) {
+            		isTarget = true;            		
+            		internalSiteName = tgtVolume.getInternalSiteName();            	
+        	}        	
         }
-
-        if (internalSiteName == null) {
-            for (Volume cgVolume : targetVolumes) {
-                if (cgVolume.getRpCopyName().equals(copyName)) {
-                    internalSiteName = cgVolume.getInternalSiteName();
-                    isTarget = true;
-                    break;
-                }
-            }
-        }
-
+                
         if (internalSiteName == null) {
             throw APIException.badRequests.unableToFindTheSpecifiedCopy(copyName);
         }
-
-        // if we're adding volumes to a taraget, we need to know if it's local or remote
+        
+        // if we're adding volumes to a target, we need to know if it's local or remote
+        String targetType = RPHelper.LOCAL;
         int copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
-        if (isTarget) {
-            for (Volume cgVolume : sourceVolumes) {
-                if (internalSiteName.equals(cgVolume.getInternalSiteName())) {
-                    copyType = RecoverPointCGCopyType.LOCAL.getCopyNumber();
-                } else {
-                    copyType = RecoverPointCGCopyType.REMOTE.getCopyNumber();
-                }
+        if (isTarget) {                                
+            if (sourceInternalSiteNames.contains(internalSiteName)) {
+                copyType = RecoverPointCGCopyType.LOCAL.getCopyNumber();
+                targetType = RPHelper.LOCAL;
+            } else {
+                copyType = RecoverPointCGCopyType.REMOTE.getCopyNumber();
+                targetType = RPHelper.REMOTE;
             }
-        }
-
+        }                     
+        
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_COPY_TYPE, copyType);
 
         RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();
@@ -3254,28 +3305,121 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
         }
 
+        String copyTypeString = RPHelper.SOURCE;
+        
         if (isSource) {
             rpProtectionRecommendation.setSourceJournalRecommendation(journalRecommendation);
         }
 
         if (isMPStandby) {
             rpProtectionRecommendation.setStandbyJournalRecommendation(journalRecommendation);
+            copyTypeString = "standby " + RPHelper.SOURCE;
         }
 
         if (isTarget) {
             List<RPRecommendation> journalRecommendations = Lists.newArrayList();
             journalRecommendations.add(journalRecommendation);
             rpProtectionRecommendation.setTargetJournalRecommendations(journalRecommendations);
+            copyTypeString = targetType + " " + RPHelper.TARGET;
         }
 
         List<Recommendation> recommendations = Lists.newArrayList();
         recommendations.add(rpProtectionRecommendation);
 
         // need to set the journal copy name to something unique
-        param.setName(copyName + "_" + task);
+        param.setName(copyName + "_" + task);        
+        
+        _log.info("Request to add journal capacity to {} copy {}", copyTypeString, copyName);
+        _log.info("Copy {} is protected by RP Site {}", copyName, internalSiteName);
 
         TaskList taskList = new TaskList();
         return this.createVolumes(param, project, journalVarray, journalVpool, recommendations, taskList, task, capabilities);
+    }
+    
+    /**
+     * Removes protection from the volume and leaves it in an unprotected state.
+     * 
+     * @param volumes the existing volume being protected.
+     * @param newVpool the requested virtual pool
+     * @param taskId the task identifier
+     * @throws InternalException
+     */
+    private void removeProtection(List<Volume> volumes, VirtualPool newVpool, String taskId) 
+            throws InternalException {                  
+        List<URI> volumeURIs = new ArrayList<URI>();            
+        for (Volume volume : volumes) {
+            _log.info(String.format("Request to remove protection from Volume [%s] (%s) and move it to Virtual Pool [%s] (%s)", 
+                    volume.getLabel(), volume.getId(), newVpool.getLabel(), newVpool.getId()));
+            volumeURIs.add(volume.getId());
+            
+            // List of bookmarks to cleanup (if any)
+            List<BlockSnapshot> rpBookmarks = new ArrayList<BlockSnapshot>();
+            // Loop through all targets and check for bookmarks and snapshots.
+            // We want to prevent the operation if any of the following conditions
+            // exist:
+            // 1. There are exported targets
+            // 2. There are exported bookmarks
+            // 3. There are local array snapshots on any of the targets
+            for (String targetId : volume.getRpTargets()) {
+                Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetId));
+                // Ensure targets are not exported
+                if (targetVolume.isVolumeExported(_dbClient, true, true)) {  
+                    String warningMessage = String.format("Target Volume [%s] (%s) is exported to Host, please "
+                            + "un-export the volume from all exports and place the order again", 
+                            targetVolume.getLabel(), targetVolume.getId());
+                    _log.warn(warningMessage);                        
+                    throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
+                }
+                
+                List<BlockSnapshot> snapshots = this.getSnapshots(targetVolume);
+                for (BlockSnapshot snapshot : snapshots) {
+                    if (TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
+                        // If there are RP bookmarks that have been exported, throw an exception to inform the
+                        // user. The user should first un-export those bookmarks.
+                        if (snapshot.isSnapshotExported(_dbClient)) { 
+                            String warningMessage = String.format("RP Bookmark/Snapshot [%s] (%s) is exported to Host, "
+                                    + "please un-export the Bookmark/Snapshot from all exports and place the order again", 
+                                    snapshot.getLabel(), snapshot.getId());
+                            _log.warn(warningMessage);
+                            throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
+                        }
+                        // Add bookmark to be cleaned up in ViPR. These
+                        // would have been automatically removed in RP when
+                        // removing protection anyway. So this is a pro-active
+                        // cleanup step.
+                        rpBookmarks.add(snapshot);
+                    } else {
+                        // There are snapshots on the targets, throw an exception to inform the
+                        // user. We do not want to auto-clean up the snapshots on the target.
+                        // The user should first clean up those snapshots.
+                        String warningMessage = String.format("Target Volume [%s] (%s) has a snapshot, please delete the "
+                                + "snapshot [%s] (%s) and place the order again", 
+                                volume.getLabel(), volume.getId(), snapshot.getLabel(), snapshot.getId());
+                        _log.warn(warningMessage);
+                        throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
+                    }
+                }                    
+            }
+            
+            // Cleanup only RP Bookmarks
+            if (!rpBookmarks.isEmpty()) {
+                for (BlockSnapshot bookmark : rpBookmarks) {                                            
+                    _log.info(String.format("Deleting RP Snapshot/Bookmark [%s] (%s)", bookmark.getLabel(), bookmark.getId()));
+                    // Generate task id
+                    final String deleteSnapshotTaskId = UUID.randomUUID().toString();
+                    // Delete the snapshot
+                    this.deleteSnapshot(bookmark, deleteSnapshotTaskId);                    
+                }
+            }
+        }
+        
+        // Get volume descriptors for all volumes to remove protection from. 
+        List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(
+                null, volumeURIs, RPHelper.REMOVE_PROTECTION, newVpool);
 
+        BlockOrchestrationController controller = getController(
+                BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        controller.deleteVolumes(volumeDescriptors, taskId);        
     }
 }

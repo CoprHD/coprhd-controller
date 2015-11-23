@@ -220,13 +220,13 @@ class FakeUploader extends Uploader {
     }
 
     @Override
-    public List<String> listFiles(String prefix) throws Exception{
+    public List<String> listFiles(String prefix) throws Exception {
         if (prefix == null) {
             return null;
         }
         List<String> fileNames = new ArrayList<>();
-        for (String key : this.fileMap.keySet()){
-            if (key.startsWith(prefix)){
+        for (String key : this.fileMap.keySet()) {
+            if (key.startsWith(prefix)) {
                 fileNames.add(key);
             }
         }

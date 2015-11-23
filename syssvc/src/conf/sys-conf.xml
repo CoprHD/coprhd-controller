@@ -242,7 +242,7 @@
         		<entry key="dr_remove_standby" value-ref="vdcDrRemoveStandbyHandler"/>
         		<entry key="dr_pause_standby" value-ref="vdcDrPauseStandbyHandler"/>
         		<entry key="dr_resume_standby" value-ref="vdcDrResumeStandbyHandler"/>
-        		<entry key="dr_swichover" value-ref="vdcDrSwitchoverHandler"/>
+        		<entry key="dr_switchover" value-ref="vdcDrSwitchoverHandler"/>
         		<entry key="dr_failover" value-ref="vdcDrFailoverHandler"/>
         		<entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
         	</map>

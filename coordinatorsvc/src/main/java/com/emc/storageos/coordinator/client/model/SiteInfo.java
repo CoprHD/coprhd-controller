@@ -6,22 +6,18 @@ package com.emc.storageos.coordinator.client.model;
 
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
-
 import com.emc.storageos.coordinator.exceptions.DecodingException;
 import com.emc.storageos.services.util.Strings;
 
 /**
  * This class stores only the hash for the vdc config for now
  * The complete vdc configuration is found in the local db
- * We are simply creating a target here for VdcSiteManager to watch.
+ * We are simply creating a target here for VdcManager to watch.
  */
 public class SiteInfo implements CoordinatorSerializable {
     public static final String CONFIG_KIND = "sitetargetconfig";
     public static final String CONFIG_ID = "global";
-
-    //public static final String UPDATE_DATA_REVISION = "update_data_revision";
-    //public static final String RECONFIG_RESTART = "reconfig_restart";
+    
     public static final String IPSEC_OP_ROTATE_KEY = "ipsec_rotate_key";
     public static final String DR_OP_ADD_STANDBY = "dr_add_standby";
     public static final String DR_OP_REMOVE_STANDBY = "dr_remove_standby";

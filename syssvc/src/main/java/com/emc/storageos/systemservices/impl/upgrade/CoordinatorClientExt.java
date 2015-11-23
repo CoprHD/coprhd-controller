@@ -1423,6 +1423,7 @@ public class CoordinatorClientExt {
                     LocalRepository localRepository = LocalRepository.getInstance();
                     localRepository.reconfigCoordinator("participant");
                     localRepository.restart("coordinatorsvc");
+                    localRepository.restart("syssvc");
                 } catch (Exception ex) {
                     _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
                 }
@@ -1430,26 +1431,30 @@ public class CoordinatorClientExt {
                 if (isActiveSiteStable()) {
                     _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
                     DistributedDoubleBarrier barrier = null;
+                    barrier = _coordinator.getDistributedDoubleBarrier(DR_SWITCH_TO_ZK_OBSERVER_BARRIER, getNodeCount());
+                    LocalRepository localRepository = LocalRepository.getInstance();
                     try {
-                        barrier = _coordinator.getDistributedDoubleBarrier(DR_SWITCH_TO_ZK_OBSERVER_BARRIER, getNodeCount());
                         boolean allEntered = barrier.enter(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+                        try {
+                            if (allEntered) {
+                                localRepository.reconfigCoordinator("observer");
+                            }
+                        } finally {
+                            try {
+                                if (barrier != null) {
+                                    _log.info("Leaving the barrier.");
+                                    barrier.leave();
+                                }
+                            } catch (Exception e) {
+                                _log.warn("Exception when leaving the barrier", e);
+                            }
+                        }
                         if (allEntered) {
-                            LocalRepository localRepository = LocalRepository.getInstance();
-                            localRepository.reconfigCoordinator("observer");
                             localRepository.reload("reset-coordinator");
                         }
                     } catch (Exception ex) {
-                        _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
-                    } finally {
-                        try {
-                            if (barrier != null) {
-                                _log.info("Leaving the barrier.");
-                                barrier.leave();
-                            }
-                        } catch (Exception e) {
-                            _log.warn("Exception when leaving the barrier", e);
-                        }
-                    }
+                        _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);
+                    } 
                 } else {
                     _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", state);
                 }

@@ -4,9 +4,7 @@
  */
 package com.emc.storageos.model.application;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -16,14 +14,12 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.RelatedResourceRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "application")
 public class ApplicationRestRep extends DataObjectRestRep{
     private String description;
     private Set<String> roles;
-    private List<RelatedResourceRep> volumes;
     
     @XmlElement
     public String getDescription() {
@@ -32,22 +28,6 @@ public class ApplicationRestRep extends DataObjectRestRep{
 
     public void setDescription(String description) {
         this.description = description;
-    }
-    
-    @XmlElementWrapper(name = "volumes")
-    /**
-     * List of volumes in the application.
-     */
-    @XmlElement(name = "volume")
-    public List<RelatedResourceRep> getVolumes() {
-        if (volumes == null) {
-            volumes = new ArrayList<RelatedResourceRep>();
-        }
-        return volumes;
-    }
-
-    public void setVolumes(List<RelatedResourceRep> volumes) {
-        this.volumes = volumes;
     }
     
     @XmlElementWrapper(name = "roles")

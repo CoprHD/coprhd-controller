@@ -32,19 +32,6 @@ public class Application extends DataObject {
         this.description = description;
         setChanged("description");
     }
-
-    @Name("volumes")
-    public StringSet getVolumes() {
-        if(volumes == null) {
-            volumes = new StringSet();
-        }
-        return volumes;
-    }
-
-    public void setVolumes(StringSet volumes) {
-        this.volumes = volumes;
-        setChanged("volumes");
-    }
     
     @Name("roles")
     public StringSet getRoles() {

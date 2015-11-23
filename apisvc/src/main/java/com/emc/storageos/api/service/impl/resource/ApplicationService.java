@@ -26,13 +26,11 @@ import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.application.ApplicationCreateParam;
 import com.emc.storageos.model.application.ApplicationList;
 import com.emc.storageos.model.application.ApplicationRestRep;
 import com.emc.storageos.model.application.ApplicationUpdateParam;
-import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -151,10 +149,11 @@ public class ApplicationService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, Application.class, "id");
         Application application = (Application)queryResource(id);
         ArgValidator.checkReference(Application.class, id, checkForDelete(application));
-        if (!application.getVolumes().isEmpty()) {
+        // TODO check on application volumes 
+        /*if (!application.getVolumes().isEmpty()) {
             // application could not be deleted if it has volumes
             throw APIException.badRequests.applicationWithVolumesCantBeDeleted(application.getLabel());
-        }
+        }*/
         _dbClient.markForDeletion(application);
 
         auditOp(OperationTypeEnum.DELETE_CONFIG, true, null, id.toString(),

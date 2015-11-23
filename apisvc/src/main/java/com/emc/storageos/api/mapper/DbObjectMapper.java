@@ -278,14 +278,6 @@ public class DbObjectMapper {
         mapDataObjectFields(from, rep);
         rep.setDescription(from.getDescription());
         rep.setRoles(from.getRoles());
-        StringSet volumes = from.getVolumes();
-        if (!volumes.isEmpty()) {
-            List<RelatedResourceRep> volumesRep = new ArrayList<RelatedResourceRep>();
-            for (String volUri : volumes) {
-                volumesRep.add(toRelatedResource(ResourceTypeEnum.VOLUME, URI.create(volUri)));
-            }
-            rep.setVolumes(volumesRep);
-        }
         return rep;
     }
 

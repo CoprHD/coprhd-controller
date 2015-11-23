@@ -129,10 +129,4 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             throw XtremIOApiException.exceptions.authenticationFailure(_base.toString());
         }
     }
-
-    public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(XtremIOObjectInfo cgVolume, String clusterName)
-			throws Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

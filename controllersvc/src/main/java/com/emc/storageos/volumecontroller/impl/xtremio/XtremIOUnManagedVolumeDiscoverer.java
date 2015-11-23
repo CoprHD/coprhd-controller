@@ -170,9 +170,10 @@ public class XtremIOUnManagedVolumeDiscoverer {
         String xioClusterName = xtremIOClient.getClusterDetails(storageSystem.getSerialNumber()).getName();
         // get the xtremio volume links and process them in batches
         List<XtremIOObjectInfo> volLinks = xtremIOClient.getXtremIOVolumeLinks(xioClusterName);
-        
+ 
+        //Get the Consistency group details 
         List<XtremIOObjectInfo> consistencyGroupVolInfo = xtremIOClient.getXtremIOConsistencyGroupVolumes(xioClusterName);
-        
+        //Get the volumes associated to the Consistency Group
         Map<String, String> volumesToCgs = getConsistencyGroupVolumeDetails(xtremIOClient, consistencyGroupVolInfo, xioClusterName);
 
         // Get the volume details
@@ -220,6 +221,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 unManagedVolume = createUnManagedVolume(unManagedVolume, unManagedVolumeNatvieGuid, volume, igUnmanagedVolumesMap,
                         storageSystem, storagePool, dbClient);
                 
+                //Verify if this volume is associated to a CG. If so, update the appropriate parameters. 
                 if (volumesToCgs.containsKey(volume.getVolInfo().get(0))) {
                 	unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());
                 	StringSet set = new StringSet();
@@ -286,12 +288,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
     private Map<String, String> getConsistencyGroupVolumeDetails(XtremIOClient xtremIOClient, List<XtremIOObjectInfo>consistencyGroupInfo, String xioClusterName) throws Exception {
     	Map<String, String> volumesToCgs = new HashMap<String, String>();
     	for (XtremIOObjectInfo cg : consistencyGroupInfo){
+    		//Retrieve details of Consistency Group
     		XtremIOConsistencyGroupVolInfo cgVol = xtremIOClient.getXtremIOConsistencyGroupInfo(cg, xioClusterName);
-
+    		//For the number of volumes that are associated to the CG, associate CGs to Volumes	
     		for (int i =0; i < (Integer.parseInt(cgVol.getContent().getNumOfVols())); i++) {
     			volumesToCgs.put((String) cgVol.getContent().getVolList().get(i).get(0), cgVol.getContent().getName());			
-    		}
-    		
+    		}   		
     	}
     	log.info("Volumes to Consistency Groups mapping: "+volumesToCgs.toString());
     	return volumesToCgs; 

@@ -7,6 +7,7 @@ package com.emc.storageos.xtremio.restapi;
 import java.util.List;
 
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroupVolInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
@@ -88,6 +89,15 @@ public interface XtremIODiscoveryClient {
      * @throws Exception
      */
     public List<XtremIOObjectInfo> getXtremIOConsistencyGroupVolumes(String clusterName) throws Exception;
+    
+    /**
+     * Get all the Consistency groups for a given cluster
+     * @param cgVolume
+     * @param clusterName
+     * @return
+     * @throws Exception
+     */
+    public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(XtremIOObjectInfo cgVolume, String clusterName) throws Exception; 
 
     /**
      * Get all the volume folder names of the given cluster. This is relevant only for version 1 REST API

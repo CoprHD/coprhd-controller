@@ -1411,8 +1411,14 @@ public class CoordinatorClientExt {
      * Monitor local coordinatorsvc on standby site
      */
     private Runnable coordinatorSvcMonitor = new Runnable(){
+        private String initZkMode; // ZK mode during syssvc startup
+        
         public void run() {
             String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
+            if (initZkMode == null) {
+                initZkMode = state;
+            }
+            
             if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
                 return; // expected situation. Standby zookeeper should be observer mode normally
             }
@@ -1423,7 +1429,10 @@ public class CoordinatorClientExt {
                     LocalRepository localRepository = LocalRepository.getInstance();
                     localRepository.reconfigCoordinator("participant");
                     localRepository.restart("coordinatorsvc");
-                    localRepository.restart("syssvc");
+                    // if zk is switched from observer mode to participant, reload syssvc 
+                    if (!DrUtil.ZOOKEEPER_MODE_READONLY.equals(initZkMode)) {
+                        localRepository.restart("syssvc");
+                    }
                 } catch (Exception ex) {
                     _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
                 }

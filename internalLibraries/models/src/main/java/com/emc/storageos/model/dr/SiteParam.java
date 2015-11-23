@@ -26,6 +26,7 @@ public class SiteParam {
     private String secretKey;
     private String state;
     private String ipsecKey;
+    private long dataRevision;
 
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -142,6 +143,15 @@ public class SiteParam {
 
     public void setNodeCount(int nodeCount) {
         this.nodeCount = nodeCount;
+    }
+
+    @XmlElement(name = "data_revision")
+    public long getDataRevision() {
+        return dataRevision;
+    }
+
+    public void setDataRevision(long dataRevision) {
+        this.dataRevision = dataRevision;
     }
 
     @Override

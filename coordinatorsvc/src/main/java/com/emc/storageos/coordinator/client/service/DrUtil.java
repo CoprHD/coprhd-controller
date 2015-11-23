@@ -180,7 +180,7 @@ public class DrUtil {
      * @param state
      * @return
      */
-    public List<Site> listSites(SiteState state) {
+    public List<Site> listSitesInState(SiteState state) {
         List<Site> result = new ArrayList<Site>();
         for(Site site : listSites()) {
             if (site.getState().equals(state)) {
@@ -197,7 +197,7 @@ public class DrUtil {
      * @return
      */
     public boolean hasSiteInState(SiteState state) {
-         return !listSites(state).isEmpty();
+         return !listSitesInState(state).isEmpty();
     }
     
     /**

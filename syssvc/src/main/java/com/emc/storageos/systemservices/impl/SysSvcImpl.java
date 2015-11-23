@@ -7,7 +7,6 @@ package com.emc.storageos.systemservices.impl;
 
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
-import com.emc.storageos.systemservices.impl.property.VdcManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -18,6 +17,7 @@ import com.emc.storageos.systemservices.impl.upgrade.ClusterAddressPoller;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.RemoteRepository;
 import com.emc.storageos.systemservices.impl.upgrade.UpgradeManager;
+import com.emc.storageos.systemservices.impl.vdc.VdcManager;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
 import com.emc.storageos.coordinator.client.service.DrUtil;

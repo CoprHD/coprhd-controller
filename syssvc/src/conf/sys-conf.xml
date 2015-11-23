@@ -224,7 +224,7 @@
         <property name="retryInterval"  value="4000" />
     </bean>
 
-    <bean id="vdcManager" class="com.emc.storageos.systemservices.impl.property.VdcManager">
+    <bean id="vdcManager" class="com.emc.storageos.systemservices.impl.vdc.VdcManager">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
@@ -247,7 +247,6 @@
         		<entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
         	</map>
         </property>
-        <property name = "vdcNoopHandler" ref="vdcNoopHandler"/>
     </bean>
 
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
@@ -443,7 +442,7 @@
         <property name="helper" ref="dbCheckerHelper"/>
     </bean>
     
-    <bean id="vdcNoopHandler" class="com.emc.storageos.systemservices.impl.property.VdcOpHandler.NoopOpHandler">
+    <bean id="vdcNoopHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.NoopOpHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
@@ -451,7 +450,7 @@
         <property name="drUtil" ref="drUtil" />
     </bean>
     
-   <bean id="vdcDrAddStandbyHandler" class="com.emc.storageos.systemservices.impl.property.VdcOpHandler.DrAddStandbyHandler">
+   <bean id="vdcDrAddStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrAddStandbyHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
@@ -459,7 +458,7 @@
         <property name="drUtil" ref="drUtil" />
     </bean>
     
-    <bean id="vdcDrChangeDataRevisionHandler" class="com.emc.storageos.systemservices.impl.property.VdcOpHandler.DrChangeDataRevisionHandler">
+    <bean id="vdcDrChangeDataRevisionHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrChangeDataRevisionHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
@@ -467,7 +466,7 @@
         <property name="drUtil" ref="drUtil" />
     </bean>
     
-   <bean id="vdcDrRemoveStandbyHandler" class="com.emc.storageos.systemservices.impl.property.VdcOpHandler.DrRemoveStandbyHandler">
+   <bean id="vdcDrRemoveStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrRemoveStandbyHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
@@ -475,7 +474,7 @@
         <property name="drUtil" ref="drUtil" />
     </bean>
     
- 	<bean id="vdcDrPauseStandbyHandler" class="com.emc.storageos.systemservices.impl.property.VdcOpHandler.DrPauseStandbyHandler">
+ 	<bean id="vdcDrPauseStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrPauseStandbyHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
@@ -483,7 +482,7 @@
         <property name="drUtil" ref="drUtil" />
     </bean>
     
-   <bean id="vdcDrResumeStandbyHandler" class="com.emc.storageos.systemservices.impl.property.VdcOpHandler.DrResumeStandbyHandler">
+   <bean id="vdcDrResumeStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrResumeStandbyHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
@@ -491,7 +490,7 @@
         <property name="drUtil" ref="drUtil" />
     </bean>
     
-    <bean id="vdcDrSwitchoverHandler" class="com.emc.storageos.systemservices.impl.property.VdcOpHandler.DrSwitchoverHandler">
+    <bean id="vdcDrSwitchoverHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrSwitchoverHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
@@ -499,7 +498,7 @@
         <property name="drUtil" ref="drUtil" />
     </bean>
     
-    <bean id="vdcDrFailoverHandler" class="com.emc.storageos.systemservices.impl.property.VdcOpHandler.DrFailoverHandler">
+    <bean id="vdcDrFailoverHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrFailoverHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>

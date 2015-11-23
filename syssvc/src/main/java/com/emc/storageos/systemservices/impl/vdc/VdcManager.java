@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.systemservices.impl.property;
+package com.emc.storageos.systemservices.impl.vdc;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -81,7 +81,6 @@ public class VdcManager extends AbstractManager {
     private DrUtil drUtil;
     private VdcConfigUtil vdcConfigUtil;
     private Map<String, VdcOpHandler> vdcOpHandlerMap;
-    private VdcOpHandler vdcNoopHandler;
     
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
@@ -97,10 +96,6 @@ public class VdcManager extends AbstractManager {
 
     public void setVdcOpHandlerMap(Map<String, VdcOpHandler> vdcOpHandlerMap) {
         this.vdcOpHandlerMap = vdcOpHandlerMap;
-    }
-
-    public void setVdcNoopHandler(VdcOpHandler vdcNoopHandler) {
-        this.vdcNoopHandler = vdcNoopHandler;
     }
 
     @Override
@@ -364,7 +359,10 @@ public class VdcManager extends AbstractManager {
      */
     private VdcOpHandler getOpHandler(String action) {
         VdcOpHandler opHandler = vdcOpHandlerMap.get(action);
-        return opHandler == null ? vdcNoopHandler : opHandler;
+        if (opHandler == null) {
+            throw new IllegalStateException(String.format("No VdcOpHandler defined for action %s" , action));
+        }
+        return opHandler;
     }
     
     
@@ -429,6 +427,7 @@ public class VdcManager extends AbstractManager {
         Exec.sudo(SHUTDOWN_TIMEOUT_MILLIS, cmd);
     }
     
+    // TODO - let's see if we can move it to VdcOpHandler later
     private void updateSiteErrors() {
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
 

@@ -3,13 +3,14 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.systemservices.impl.property;
+package com.emc.storageos.systemservices.impl.vdc;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.cassandra.io.util.FileUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +50,7 @@ public abstract class VdcOpHandler {
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 5;
     private static final int MAX_RESUME_RETRY = 5;
-    // data revision time out - 11 minutes
+    // data revision time out - 5 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
     
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
@@ -240,7 +241,7 @@ public abstract class VdcOpHandler {
                 log.info("Acquiring lock {}", LOCK_REMOVE_STANDBY); 
                 lock.acquire();
                 log.info("Acquired lock {}", LOCK_REMOVE_STANDBY); 
-                List<Site> toBeRemovedSites = drUtil.listSites(SiteState.STANDBY_REMOVING);
+                List<Site> toBeRemovedSites = drUtil.listSitesInState(SiteState.STANDBY_REMOVING);
                 try {
                         
                     for (Site site : toBeRemovedSites) {
@@ -306,7 +307,7 @@ public abstract class VdcOpHandler {
                         break;
                     }
 
-                    for (Site site : drUtil.listSites(SiteState.STANDBY_PAUSING)) {
+                    for (Site site : drUtil.listSitesInState(SiteState.STANDBY_PAUSING)) {
                         try {
                             waitForSiteUnreachable(site);
                             removeDbNodesFromGossip(site);
@@ -317,7 +318,7 @@ public abstract class VdcOpHandler {
                         }
                     }
 
-                    for (Site site : drUtil.listSites(SiteState.STANDBY_PAUSING)) {
+                    for (Site site : drUtil.listSitesInState(SiteState.STANDBY_PAUSING)) {
                         try {
                             removeDbNodesFromStrategyOptions(site);
                             // update the status to STANDBY_PAUSED
@@ -418,7 +419,7 @@ public abstract class VdcOpHandler {
                 localRepository.restart("dbsvc");
                 localRepository.restart("geodbsvc");
             }
-
+            flushVdcConfigToLocal();
         }
         
         private void waitForSchemaAgreement() {
@@ -460,20 +461,21 @@ public abstract class VdcOpHandler {
             syncFlushVdcConfigToLocal();
             try {
                 refreshCoordinatorForSwitchover(site);
+                
+                // Update site state
+                if (isOldActiveSiteForSwitchover(site)) {
+                    // old primary
+                    updateSwitchoverSiteStateOnOldPrimary(site);
+                } else if (isNewActiveSiteForSwitchover(site)) {
+                    // new primary
+                    updateSwitchoverSiteStateOnNewPrimary(site);
+                } 
+                
             } catch (Exception ex) {
                 log.warn("Unexpected error happens during refreshing coordinatorsvc for switchover", ex);
                 resetLocalVdcConfigVersion();
                 return;
             }
-            
-            // Update site state
-            if (isOldActiveSiteForSwitchover(site)) {
-                // old primary
-                updateSwitchoverSiteStateOnOldPrimary(site);
-            } else if (isNewActiveSiteForSwitchover(site)) {
-                // new primary
-                updateSwitchoverSiteStateOnNewPrimary(site);
-            } 
         }
         
         /**
@@ -488,6 +490,8 @@ public abstract class VdcOpHandler {
                 VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, switchingNodeCount, true);
                 barrier.enter();
                 try {
+                    FileUtils.delete("/data/zk/version-2/acceptedEpoch");
+                    FileUtils.delete("/data/zk/version-2/currentEpoch");
                     localRepository.reconfigProperties("coordinator");
                 } finally {
                     barrier.leave();

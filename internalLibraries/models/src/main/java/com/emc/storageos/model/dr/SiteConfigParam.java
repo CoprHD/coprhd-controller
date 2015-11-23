@@ -17,7 +17,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SiteConfigParam {
     private List<SiteParam> standbySites;
     private SiteParam primarySite;
-    private long dataRevision;
     
     @XmlElement(name = "standby_sites")
     public List<SiteParam> getStandbySites() {
@@ -39,14 +38,4 @@ public class SiteConfigParam {
     public void setPrimarySite(SiteParam site) {
         this.primarySite = site;
     }
-
-    @XmlElement(name = "data_revision")
-    public long getDataRevision() {
-        return dataRevision;
-    }
-
-    public void setDataRevision(long dataRevision) {
-        this.dataRevision = dataRevision;
-    }
-    
 }

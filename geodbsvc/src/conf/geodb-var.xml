@@ -35,8 +35,4 @@
         <property name="nodeCount" value="1"/>
         <property name="service" ref="serviceinfo"/>
     </bean>
-    
-    <bean id="drUtil" class="com.emc.storageos.coordinator.client.service.DrUtil">
-	     <constructor-arg ref="coordinator"/>
-	</bean>
 </beans>

@@ -206,14 +206,15 @@ public class DisasterRecoveryService {
             primarySite.setIpsecKey(ipsecConfig.getPreSharedKey());
             primarySite.setNodeCount(primary.getNodeCount());
             primarySite.setState(String.valueOf(SiteState.PRIMARY));
+            configParam.setPrimarySite(primarySite);            
 
-            configParam.setPrimarySite(primarySite);
-            configParam.setDataRevision(dataRevision);
-            
             List<SiteParam> standbySites = new ArrayList<>();
             for (Site standby : drUtil.listStandbySites()) {
                 SiteParam standbyParam = new SiteParam();
                 siteMapper.map(standby, standbyParam);
+                if (standby.getState().equals(SiteState.STANDBY_ADDING)) {
+                    standbyParam.setDataRevision(dataRevision);
+                }
                 standbySites.add(standbyParam);
             }
             configParam.setStandbySites(standbySites);
@@ -263,7 +264,8 @@ public class DisasterRecoveryService {
             siteMapper.map(primary, primarySite);
             primarySite.setVdcShortId(drUtil.getLocalVdcShortId());
             coordinator.persistServiceConfiguration(primarySite.toConfiguration());
-
+            
+            Long dataRevision = null;
             // Add other standby sites
             for (SiteParam standby : configParam.getStandbySites()) {
                 Site site = new Site();
@@ -272,10 +274,17 @@ public class DisasterRecoveryService {
                 site.setVdcShortId(drUtil.getLocalVdcShortId());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
                 coordinator.addSite(standby.getUuid());
+                if (standby.getState().equals(SiteState.STANDBY_ADDING)) {
+                    dataRevision = standby.getDataRevision();
+                    log.info("Set data revision to {}", dataRevision);
+                }
                 log.info("Persist standby site {} to ZK", standby.getVip());
             }
             
-            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, configParam.getDataRevision());
+            if (dataRevision == null) {
+                throw new IllegalStateException("Illegal request on standby site. No data revision in request");
+            }
+            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, dataRevision);
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);

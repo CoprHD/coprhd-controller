@@ -24,7 +24,6 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.systemservices.impl.property.VdcManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +40,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceUnavailableExceptio
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import com.emc.storageos.systemservices.impl.upgrade.*;
+import com.emc.storageos.systemservices.impl.vdc.VdcManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.upgradevoter.UpgradeVoter;

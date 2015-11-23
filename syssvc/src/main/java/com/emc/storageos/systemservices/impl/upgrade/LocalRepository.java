@@ -461,7 +461,7 @@ public class LocalRepository {
     /***
      * Update data revision property
      *
-     * @param state
+     * @param revisionTag
      * @param committed 
      * @throws LocalRepositoryException
      */

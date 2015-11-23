@@ -7,6 +7,8 @@
 					dataTable:dataTable,
 					expandable: true,
 					deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
+    #{Form.button name:'disasterRecovery.pauseButton', icon:'pause', submit:'pauseForm', data:['enabled':'selected']/}
+    #{DataTable.formAction @pause(), id:'pauseForm', table:'disasterRecovery'/}
 #{/DataTable.crudTable}
 
 <script id="inlineActions.html" type="text/ng-template">
@@ -78,7 +80,7 @@ function renderButtonBar(o,val) {
 function watchLoadStatus(datatable, itemsJson) {
     var fields = ['status','VirtualIP','name'];
     var fieldToWatch = 'status';
-    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING'];
+    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING'];
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
 }
 $(document).ready(function() {
@@ -96,6 +98,8 @@ function standbyStatusIcon(o, val) {
     var labels = {
         'PRIMARY': 'label-success',
         'STANDBY_ADDING': 'label-info',
+        'STANDBY_PAUSING': 'label-info',
+        'STANDBY_RESUMING': 'label-info',
         'STANDBY_PAUSED': 'label-success',
         'STANDBY_SYNCED': 'label-success',
         'STANDBY_ERROR':  'label-danger',
@@ -106,6 +110,8 @@ function standbyStatusIcon(o, val) {
     var icons = {
         'PRIMARY':     'glyphicon glyphicon-ok',
         'STANDBY_ADDING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_PAUSING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_RESUMING': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_PAUSED': 'glyphicon glyphicon-ok',
         'STANDBY_SYNCED': 'glyphicon glyphicon-ok',
         'STANDBY_ERROR':  'glyphicon glyphicon-remove',
@@ -119,7 +125,9 @@ function standbyStatusIcon(o, val) {
 		'STANDBY_ADDING': Messages.get("renderFunctions.disasterRecovery.status.adding"),
 		'STANDBY_SYNCING': Messages.get("renderFunctions.disasterRecovery.status.syncing"),
 		'STANDBY_SYNCED': Messages.get("renderFunctions.disasterRecovery.status.synced"),
+		'STANDBY_PAUSING': Messages.get("renderFunctions.disasterRecovery.status.pausing"),
 		'STANDBY_PAUSED': Messages.get("renderFunctions.disasterRecovery.status.paused"),
+		'STANDBY_RESUMING': Messages.get("renderFunctions.disasterRecovery.status.resuming"),
 		'STANDBY_REMOVING': Messages.get("renderFunctions.disasterRecovery.status.removing"),
 		'STANDBY_TESTING': Messages.get("renderFunctions.disasterRecovery.status.testing"),
 		'STANDBY_ERROR': Messages.get("renderFunctions.disasterRecovery.status.error")

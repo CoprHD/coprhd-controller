@@ -342,7 +342,7 @@ angular.module("portalApp").controller({
     	$scope.$watch('acl', function(newVal) {
     		var accessList = [];
     		angular.forEach($scope.acl.accesscontrols, function(obj) {
-    			if (obj.name != '') {
+    			if (obj.name != '' && (obj.name.indexOf("/") == -1)) {
     				accessList.push(obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission);
     			}
     		});
@@ -393,9 +393,20 @@ angular.module("portalApp").controller({
        }
     },
     AssociateProjectCtrl: function($scope, $http, $window, translate) {
+    	
+    	var resetModal = function() {
+    		$scope.associateForm = {};
+    		$scope.tenant = {};
+    		$scope.project = {};
+    	}
+    	
     	$scope.populateModal = function(ids) {
+    		
+    		resetModal();
     		$scope.nasIds = ids;
     		$scope.projectOptions = [];
+    		$scope.projectTenantOptions = [];
+    		
             $http.get(routes.StorageSystems_getProjectsForNas()).success(function(data) {
             	$scope.projectTenantOptions = data;
             });

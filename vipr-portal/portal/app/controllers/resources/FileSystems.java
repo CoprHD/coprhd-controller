@@ -356,6 +356,9 @@ public class FileSystems extends ResourceController {
             listNfsAcl(fileSystem, fsMountPath, subDir);
         }
         NfsACLUpdateParams input = createNfsAclParams(formAccessControlList);
+        if (subDir != null && !"null".equals(subDir) && !subDir.isEmpty()) {
+            input.setSubDir(subDir);
+        }
         ViPRCoreClient client = BourneUtil.getViprClient();
         try {
             client.fileSystems().updateNfsACL(uri(fileSystem), input);
@@ -647,7 +650,7 @@ public class FileSystems extends ResourceController {
         }
 
         if (formAccessControlList == null || "".equals(formAccessControlList)) {
-            flash.error(MessagesUtils.get("resources.filesystem.share.acl.invalid.settings"), null);
+            flash.error(MessagesUtils.get("resources.filesystem.share.acl.invalid.name"), null);
             listAcl(fileSystem, shareName);
         }
         FileCifsShareACLUpdateParams input = createCifsShareAclParams(formAccessControlList);

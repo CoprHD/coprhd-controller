@@ -116,6 +116,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final Long MAX_STORAGE_OBJECTS = 40000L;
     private static final String SYSTEM_ACCESS_ZONE_NAME = "System";
     private static final Long GB_IN_BYTES = 1073741824L;
+    private static final Long GB_IN_KB =    1048576L;
+    private static final Long MB_IN_BYTES = 1048576L;
+    private static final Long KB_IN_BYTES = 1024L;
     private static final String ONEFS_V8 = "8.0.0.0";
     private static final String ONEFS_V7_2 = "7.2.0.0";
 
@@ -338,22 +341,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         // filesystems count & Capacity
         IsilonList<IsilonSmartQuota> quotas = null;
-        Long provisioned = 0L;
+
         do {
             quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
 
             if (quotas != null && !quotas.getList().isEmpty()) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
                     if (quota.getThresholds() != null && quota.getThresholds().getHard() != null) {
-                        provisioned = provisioned + quota.getThresholds().getHard();
+                        totalProvCap = totalProvCap + quota.getThresholds().getHard();
                         totalFsCount++;
                     }
-                }
-              //sum snap cap and add to fs capacity
-                if (provisioned >= GB_IN_BYTES) {
-                    provisioned = (provisioned/GB_IN_BYTES);
-                    totalProvCap = totalProvCap + provisioned;
-                    provisioned = 0L;
                 }
                 resumeToken = quotas.getToken();
             }
@@ -380,7 +377,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     _log.info("access zone base directory path {}", baseDirPath);
                     for (IsilonSnapshot isilonSnap: snapshots.getList()) {
                         if (isilonSnap.getPath().startsWith(baseDirPath)) {
-                            provisioned = provisioned + Long.valueOf(isilonSnap.getSize());
+                            totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
                             totalFsCount ++;
                         }
                     }
@@ -399,7 +396,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         }
                         //if it not matched with any user define AZ's then it is belongs system AZ
                         if (snapSystem) {
-                            provisioned = provisioned + Long.valueOf(isilonSnap.getSize());
+                            totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
                             totalFsCount ++;
                             _log.info("System access zone base directory path: {}", accessZone.getPath());
 
@@ -407,18 +404,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     }
                 }
                 resumeToken = snapshots.getToken();
-                //sum snap cap and add to fs capacity
-                if (provisioned >= GB_IN_BYTES) {
-                    provisioned = (provisioned/GB_IN_BYTES);
-                    totalProvCap = totalProvCap + provisioned;
-                    provisioned	 = 0L;
-                }
-            }
+               }
         } while (resumeToken != null);
 
+        if (totalProvCap >= KB_IN_BYTES) {
+            totalProvCap = (totalProvCap/KB_IN_BYTES);
+        }
         _log.info("Total fs Count {} for access zone : {}", String.valueOf(totalFsCount), accessZone.getName());
         _log.info("Total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());
-
+	
         // get total exports
         int nfsExportsCount = 0;
         int cifsSharesCount = 0;
@@ -753,9 +747,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
                         newvNASList.add(virtualNAS);
                     } else {
-                        setMaxDbMetricsAz(storageSystem, virtualNAS.getMetrics());
+                    	copyUpdatedPropertiesInVNAS(storageSystem, isilonAccessZone, virtualNAS);
                         existingvNASList.add(virtualNAS);
-                        
                     }
 
                     // authenticate providers
@@ -2574,7 +2567,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         // set the max capacity in GB
         long MaxCapacity = Math.round(getClusterStorageCapacity(system));
-        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity*GB_IN_KB));
         return;
     }
 
@@ -2619,6 +2612,35 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         StringMap dbMetrics = vNas.getMetrics();
         _log.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
+        if (dbMetrics == null) {
+            dbMetrics = new StringMap();
+        }
+        // set the Limitation Metrics keys
+        setMaxDbMetricsAz(system, dbMetrics);
+        vNas.setMetrics(dbMetrics);
+        return vNas;
+    }
+    
+    /**
+     * Modify Virtual NAS for the specified Isilon cluster storage array
+     * 
+     * @param system the StorageSystem object
+     * @param isiAccessZone accessZone object
+     * @param vNas the VirtualNAS object
+     * @return VirtualNAS with updated attributes
+     */
+    private VirtualNAS copyUpdatedPropertiesInVNAS(final StorageSystem system,
+    		final IsilonAccessZone isiAccessZone, VirtualNAS vNas) {
+
+        vNas.setStorageDeviceURI(system.getId());
+        // set name
+        vNas.setNasName(isiAccessZone.getName());
+        vNas.setNativeId(isiAccessZone.getId());
+        // set base directory path
+        vNas.setBaseDirPath(isiAccessZone.getPath());
+        vNas.setNasState(VirtualNasState.LOADED.toString());
+
+        StringMap dbMetrics = vNas.getMetrics();
         if (dbMetrics == null) {
             dbMetrics = new StringMap();
         }

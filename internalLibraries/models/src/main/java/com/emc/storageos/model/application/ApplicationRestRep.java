@@ -17,10 +17,10 @@ import com.emc.storageos.model.DataObjectRestRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "application")
-public class ApplicationRestRep extends DataObjectRestRep{
+public class ApplicationRestRep extends DataObjectRestRep {
     private String description;
     private Set<String> roles;
-    
+
     @XmlElement
     public String getDescription() {
         return description;
@@ -29,10 +29,11 @@ public class ApplicationRestRep extends DataObjectRestRep{
     public void setDescription(String description) {
         this.description = description;
     }
-    
+
     @XmlElementWrapper(name = "roles")
     /**
      * Roles of the application
+     * 
      * @valid none
      */
     @XmlElement(name = "role")

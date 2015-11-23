@@ -13,11 +13,10 @@ public class Application extends DataObject {
 
     // Description of the application
     private String description;
-    // Volumes URIs in the application
-    private StringSet volumes;
+
     // The role of the application, either COPY or DR
     private StringSet roles;
-    
+
     public static enum ApplicationRole {
         COPY,
         DR
@@ -32,17 +31,17 @@ public class Application extends DataObject {
         this.description = description;
         setChanged("description");
     }
-    
+
     @Name("roles")
     public StringSet getRoles() {
         return roles;
     }
-    
+
     public void setRoles(StringSet theRoles) {
         this.roles = theRoles;
         setChanged("roles");
     }
-    
+
     /**
      * Add roles.
      * 

@@ -21,16 +21,16 @@ public class ApplicationCreateParam {
     private String name;
     private String description;
     private Set<String> roles;
-    
+
     public ApplicationCreateParam() {
     }
-    
+
     public ApplicationCreateParam(String name, String description, Set<String> roles) {
         this.name = name;
         this.description = description;
         this.roles = roles;
     }
-    
+
     /**
      * Application unique name
      * 
@@ -42,11 +42,11 @@ public class ApplicationCreateParam {
     public String getName() {
         return name;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
-    
+
     /**
      * Application description
      */
@@ -54,11 +54,11 @@ public class ApplicationCreateParam {
     public String getDescription() {
         return description;
     }
-    
+
     public void setDescription(String description) {
         this.description = description;
     }
-    
+
     @XmlElementWrapper(name = "roles", required = true)
     /**
      * The set of supported roles for the application.

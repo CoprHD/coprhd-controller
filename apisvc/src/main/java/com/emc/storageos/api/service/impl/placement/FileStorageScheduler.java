@@ -10,15 +10,18 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
@@ -27,7 +30,10 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -35,11 +41,14 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.tenant.UserMappingParam;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
@@ -59,6 +68,7 @@ public class FileStorageScheduler {
     private StorageScheduler _scheduler;
     private CustomConfigHandler customConfigHandler;
     private Map<String, String> configInfo;
+    private PermissionsHelper permissionsHelper;
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -78,6 +88,10 @@ public class FileStorageScheduler {
 
 	public void setConfigInfo(Map<String, String> configInfo) {
 		this.configInfo = configInfo;
+	}
+	
+	public void setPermissionsHelper(PermissionsHelper permissionsHelper) {
+		this.permissionsHelper = permissionsHelper;
 	}
 
 	/**
@@ -522,7 +536,12 @@ public class FileStorageScheduler {
                 		iterator.remove();
                 		invalidNasServers.add(vNAS);
                 	} 
-                } 
+                } else if(!doesVNASDomainMatchesWithProjectDomain(project, vNAS)) {
+                	_log.debug("Removing vNAS {} as its domain does not match with project's domain: {}",
+                            vNAS.getId(), vpool.getProtocols());
+                    iterator.remove();
+                    invalidNasServers.add(vNAS);
+                }
             }
         }
         if (vNASList != null) {
@@ -696,6 +715,41 @@ public class FileStorageScheduler {
             return false;
         }
         return true;
+    }
+    
+    private boolean doesVNASDomainMatchesWithProjectDomain(Project project, VirtualNAS vNAS) {
+    	
+    	if (project != null) {
+    		// Get list of domains associated with the project
+            Set<String> projectDomains = new HashSet<String>();
+            NamedURI tenantUri = project.getTenantOrg();
+            TenantOrg tenant = permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
+            if (tenant != null && tenant.getUserMappings() != null) {
+                for (AbstractChangeTrackingSet<String> userMappingSet : tenant.getUserMappings().values()) {
+                    for (String existingMapping : userMappingSet) {
+                        UserMappingParam userMap = BasePermissionsHelper.UserMapping.toParam(
+                                BasePermissionsHelper.UserMapping.fromString(existingMapping));
+                        projectDomains.add(userMap.getDomain().toUpperCase());
+                    }
+                }
+            }
+            
+            if (projectDomains != null && !projectDomains.isEmpty()) {
+            	if(vNAS.getCifsServersMap() != null && !vNAS.getCifsServersMap().isEmpty() ) {
+            		Set<Entry<String, NasCifsServer>> nasCifsServers = vNAS.getCifsServersMap().entrySet();
+            		for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
+            			NasCifsServer cifsServer = nasCifsServer.getValue();
+            			if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
+            				return true;
+            			}
+            		}
+            	}
+            } else {
+                return true;
+            }
+    	}
+    	
+    	return false;
     }
 
     /**

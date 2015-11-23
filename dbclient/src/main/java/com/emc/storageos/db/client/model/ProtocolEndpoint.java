@@ -3,7 +3,7 @@ package com.emc.storageos.db.client.model;
 import java.net.URL;
 
 
-@Cf("ProtocolEndpointType")
+@Cf("ProtocolEndpoint")
 public class ProtocolEndpoint extends DataObject{
 
     private String protocolEndpointType;

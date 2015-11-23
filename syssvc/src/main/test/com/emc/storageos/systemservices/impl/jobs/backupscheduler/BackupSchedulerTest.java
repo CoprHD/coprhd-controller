@@ -20,7 +20,15 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
 
 /**
  * Unit test class for Backup Scheduler
@@ -216,7 +224,7 @@ class FakeUploader extends Uploader {
         if (prefix == null) {
             return null;
         }
-        List<String > fileNames = new ArrayList<String>();
+        List<String> fileNames = new ArrayList<>();
         for (String key : this.fileMap.keySet()){
             if (key.startsWith(prefix)){
                 fileNames.add(key);

@@ -7,7 +7,7 @@ package com.emc.storageos.systemservices.impl;
 
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
-import com.emc.storageos.systemservices.impl.property.VdcSiteManager;
+import com.emc.storageos.systemservices.impl.property.VdcManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -45,7 +45,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private PropertyManager _propertyMgr;
 
     @Autowired
-    private VdcSiteManager _vdcMgr;
+    private VdcManager _vdcMgr;
 
     @Autowired
     private IpReconfigManager _ipreconfigMgr;

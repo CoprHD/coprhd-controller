@@ -24,7 +24,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.systemservices.impl.property.VdcSiteManager;
+import com.emc.storageos.systemservices.impl.property.VdcManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,7 +71,7 @@ public class UpgradeService {
     @Autowired
     private PropertyManager _propertyManager;
     @Autowired
-    private VdcSiteManager _vdcManager;
+    private VdcManager _vdcManager;
 
     /**
      * Callback for other components to register itself for upgrade check before upgrade process starts.

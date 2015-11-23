@@ -56,8 +56,8 @@ public abstract class VdcOpHandler {
     protected CoordinatorClientExt coordinator;
     protected LocalRepository localRepository;
     protected DrUtil drUtil;
-    private DbClient dbClient;
-    private Service service;
+    protected DbClient dbClient;
+    protected Service service;
     protected final Waiter waiter = new Waiter();
     protected PropertyInfoExt targetVdcPropInfo;
     protected SiteInfo targetSiteInfo;
@@ -72,7 +72,7 @@ public abstract class VdcOpHandler {
     /**
      * No-op - flush vdc config to local only
      */
-    public class NoopOpHandler extends VdcOpHandler{
+    public static class NoopOpHandler extends VdcOpHandler{
         public NoopOpHandler() {
         }
         
@@ -85,7 +85,7 @@ public abstract class VdcOpHandler {
     /**
      * Rotate IPSec key
      */
-    public class IPSecRotateOpHandler extends VdcOpHandler {
+    public static class IPSecRotateOpHandler extends VdcOpHandler {
         public IPSecRotateOpHandler() {
         }
         
@@ -111,7 +111,7 @@ public abstract class VdcOpHandler {
      *
      * @throws Exception
      */
-    public class DrAddStandbyHandler extends VdcOpHandler {
+    public static class DrAddStandbyHandler extends VdcOpHandler {
         public DrAddStandbyHandler() {
         }
         
@@ -125,7 +125,7 @@ public abstract class VdcOpHandler {
      * Process DR config change for add-standby on newly added site
      *   flush vdc config to disk, increase data revision and reboot. After reboot, it sync db/zk data from active sites during db/zk startup
      */
-    public class DrChangeDataRevisionHandler extends VdcOpHandler {
+    public static class DrChangeDataRevisionHandler extends VdcOpHandler {
         public DrChangeDataRevisionHandler() {
         }
         
@@ -197,7 +197,7 @@ public abstract class VdcOpHandler {
      *  
      * @throws Exception
      */
-    public class DrRemoveStandbyHandler extends VdcOpHandler {
+    public static class DrRemoveStandbyHandler extends VdcOpHandler {
         public DrRemoveStandbyHandler() {
         }
         
@@ -287,7 +287,7 @@ public abstract class VdcOpHandler {
      *  
      * @throws Exception
      */
-    public class DrPauseStandbyHandler extends VdcOpHandler {
+    public static class DrPauseStandbyHandler extends VdcOpHandler {
         
         public DrPauseStandbyHandler() {
         }
@@ -377,7 +377,7 @@ public abstract class VdcOpHandler {
      *  
      * @throws Exception
      */
-    public class DrResumeStandbyHandler extends VdcOpHandler {
+    public static class DrResumeStandbyHandler extends VdcOpHandler {
         public DrResumeStandbyHandler() {
         }
         
@@ -452,7 +452,7 @@ public abstract class VdcOpHandler {
      *  
      * @throws Exception
      */
-    public class DrSwitchoverHandler extends VdcOpHandler {
+    public static class DrSwitchoverHandler extends VdcOpHandler {
         
         public DrSwitchoverHandler() {
         }
@@ -460,30 +460,23 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
+            
+            // Reload coordinator configuration on all sites
             syncFlushVdcConfigToLocal();
             try {
-                if (isOldActiveSiteForSwitchover(site)) {
-                    // old primary
-                    refreshCoordinatorForSwitchover();
-                } else if (isNewActiveSiteForSwitchover(site)) {
-                    // new primary
-                    refreshCoordinatorForSwitchover();
-                } else {
-                    refreshCoordinator();
-                }
+                refreshCoordinatorForSwitchover(site);
             } catch (Exception ex) {
                 resetLocalVdcConfigVersion();
             }
             
+            // Update site state
             if (isOldActiveSiteForSwitchover(site)) {
                 // old primary
                 updateSwitchoverSiteStateOnOldPrimary(site);
             } else if (isNewActiveSiteForSwitchover(site)) {
                 // new primary
                 updateSwitchoverSiteStateOnNewPrimary(site);
-            } else {
-                refreshCoordinator();
-            }
+            } 
         }
         
         /**
@@ -491,17 +484,21 @@ public abstract class VdcOpHandler {
          * 
          * @throws Exception
          */
-        private void refreshCoordinatorForSwitchover() throws Exception {
-            int switchingNodeCount = getSwitchoverNodeCount();
-            log.info("Wait for barrier to reconfig/restart coordinator when switchover");
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, switchingNodeCount, true);
-            barrier.enter();
-            try {
-                localRepository.reconfigProperties("coordinator");
-            } finally {
-                barrier.leave();
+        private void refreshCoordinatorForSwitchover(Site site) throws Exception {
+            if (isOldActiveSiteForSwitchover(site) || isNewActiveSiteForSwitchover(site)) {
+                int switchingNodeCount = getSwitchoverNodeCount();
+                log.info("Wait for barrier to reconfig/restart coordinator when switchover");
+                VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, switchingNodeCount, true);
+                barrier.enter();
+                try {
+                    localRepository.reconfigProperties("coordinator");
+                } finally {
+                    barrier.leave();
+                }
+                localRepository.restart("coordinatorsvc");
+            } else {
+                refreshCoordinator();
             }
-            localRepository.restart("coordinatorsvc");
         }
         
         private void updateSwitchoverSiteStateOnNewPrimary(Site site) throws Exception {
@@ -575,7 +572,7 @@ public abstract class VdcOpHandler {
      *  
      * @throws Exception
      */
-    public class DrFailoverHandler extends VdcOpHandler {
+    public static class DrFailoverHandler extends VdcOpHandler {
         public DrFailoverHandler() {
         }
         
@@ -830,7 +827,7 @@ public abstract class VdcOpHandler {
         waiter.sleep(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
     }
     
-    private void populateStandbySiteErrorIfNecessary(Site site, InternalServerErrorException e) {
+    protected void populateStandbySiteErrorIfNecessary(Site site, InternalServerErrorException e) {
         SiteError error = new SiteError(e);
         
         log.info("Set error state for site: {}", site.getUuid());

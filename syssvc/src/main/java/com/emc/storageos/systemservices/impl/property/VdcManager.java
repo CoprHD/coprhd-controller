@@ -53,8 +53,8 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
  * 
  * Data revision change and simulatenous cluster poweroff are also managed here
  */
-public class VdcSiteManager extends AbstractManager {
-    private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
+public class VdcManager extends AbstractManager {
+    private static final Logger log = LoggerFactory.getLogger(VdcManager.class);
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
@@ -350,7 +350,7 @@ public class VdcSiteManager extends AbstractManager {
         }
 
         log.info("Step3: Setting vdc properties not rebooting for single VDC change, action = {}", action);
-        VdcOpHandler opHandler = createOpHandler(action);
+        VdcOpHandler opHandler = getOpHandler(action);
         opHandler.setTargetSiteInfo(targetSiteInfo);
         opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
         opHandler.execute();
@@ -362,7 +362,7 @@ public class VdcSiteManager extends AbstractManager {
      * @param action
      * @return
      */
-    private VdcOpHandler createOpHandler(String action) {
+    private VdcOpHandler getOpHandler(String action) {
         VdcOpHandler opHandler = vdcOpHandlerMap.get(action);
         return opHandler == null ? vdcNoopHandler : opHandler;
     }

@@ -38,7 +38,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
@@ -96,6 +95,7 @@ import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.sys.ClusterInfo;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 
 /**
  * Default coordinator client implementation
@@ -245,7 +245,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             ConfigurationImpl localVdcConfigImpl = new ConfigurationImpl();
             localVdcConfigImpl.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
             localVdcConfigImpl.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
-            localVdcConfigImpl.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, "vdc1");
+            localVdcConfigImpl.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID);
             persistServiceConfiguration(localVdcConfigImpl);
             localVdcConfig = localVdcConfigImpl;
         }
@@ -1184,9 +1184,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> T queryRuntimeState(String key, Class<T> clazz) throws CoordinatorException {
-        String sitePrefix = getSitePrefix();
-
-        String path = String.format("%s%s/%s",sitePrefix,ZkPath.STATE, key);
+        String path = String.format("%s/%s",ZkPath.STATE, key);
 
         try {
             byte[] data = _zkConnection.curator().getData().forPath(path);
@@ -1204,9 +1202,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> void persistRuntimeState(String key, T state) throws CoordinatorException {
-        String sitePrefix = getSitePrefix();
-
-        String path = String.format("%s%s/%s",sitePrefix,ZkPath.STATE, key);
+        String path = String.format("%s/%s",ZkPath.STATE, key);
 
         try {
             int lastSlash = path.lastIndexOf('/');

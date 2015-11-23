@@ -109,4 +109,8 @@ public class ViPRSystemClient {
     public Backup backup(){
     	return new Backup(client);
     }
+
+    public IPsec ipsec(){
+        return new IPsec(client);
+    }
 }

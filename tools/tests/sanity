@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr} [local|ldap] [<timeslot>] | sanzoning'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr | ipsec} [local|ldap] [<timeslot>] | sanzoning'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -130,7 +130,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr)
+    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -6315,7 +6315,7 @@ dr_basic_tests()
     projectid=$(project query $PROJECT)
     echo "Project id of $PROJECT is $projectid."
     
-    primary_site=$(dr list "$DR_SITE_A_NAME"|tail -1) || { echo "get dr primary site failed."; echo $primary_site; exit 1; }
+    primary_site=$(dr find state PRIMARY|tail -1) || { echo "get dr primary site failed."; echo $primary_site; exit 1; }
     echo "primary uuid is $primary_site"
     
     echo "---ADD STANDBY SITE---"
@@ -6466,7 +6466,7 @@ dr_multisite_tests()
     projectid=$(project query $PROJECT)
     echo "Project id of $PROJECT is $projectid."
 
-    primary_site=$(dr list "$DR_SITE_A_NAME"|tail -1) || { echo "get dr primary site failed."; echo $primary_site; exit 1; }
+    primary_site=$(dr find state PRIMARY|tail -1) || { echo "get dr primary site failed."; echo $primary_site; exit 1; }
     echo "primary uuid is $primary_site"
     
     echo "---ADD STANDBY SITE B---"
@@ -6522,6 +6522,8 @@ dr_multisite_tests()
     echo "---VERIFY sites from standby $standby_site_b---"
     dr get $standby_site_b
     dr get $primary_site
+
+    dr waitforstable 10 600
 
     echo "---ADD STANDBY SITE C---"
     BOURNE_IPADDR=$DR_SITE_A_IP
@@ -6674,20 +6676,30 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     project show $test_projectid
 
-    # delete standby
-    echo "---DELETE STANDBY $standby_site_c---"
+    echo "Power off primary site $DR_SITE_A_IP to do failover"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr delete $standby_site_c
+    dr poweroffcluster $DR_SITE_A_IP
 
-    echo "---WAIT FOR REMOVED $standby_site_c---should throw exceptions---"
-    dr waitforstate $standby_site_c STANDBY_REMOVING 30 600 -n|| echo "standby removed"
-    echo "Removing dr done"
+    echo "Sleep 300 seconds to wait standby ZK switch to participant"
+    sleep 300
 
-    # verify deleted
-    echo "---VERIFY STANDBY DELETED $standby_site_c---should throw exceptions---"
-    dr list $DR_SITE_C_NAME || echo "standby removed from site list"
-    dr get $standby_site_c || echo "standby uuid removed from primary"
+    echo "Wait for stable"
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip $DR_SITE_C_IP 10 600
+
+    echo "Failover to promote site $DR_SITE_C_NAME as primary"
+    dr failover --ip $DR_SITE_C_IP $standby_site_c
+    sleep 300
+
+    echo "Wait for stable"
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip $DR_SITE_C_IP 10 600
+
+    echo "Wait site state to be PRIAMRY after failover"
+    dr waitforstate $standby_site_c PRIMARY 30 600 --ip $DR_SITE_C_IP
 
     #disabling pipefail option to pipe exit codes
     set +o pipefail
@@ -6711,6 +6723,32 @@ vdc_common_setup()
     echo "Project id of $PROJECT is $projectid."
     
     export BOURNE_API_SYNC_TIMEOUT=5600
+}
+
+ipsec_setup()
+{
+    echo "No setup needed"
+}
+
+ipsec_tests() 
+{
+    echo "--- IPSEC Key Rotation ---"
+    ipsec keyrotate || { echo "key rotation failed."; exit 1; }
+    echo "Key Rotation done"
+
+    echo "Checking IPsec status"
+    local result=1
+    for i in {1..5}; do
+        ./ipsec check
+        [[ $? == 0 ]] && { result=0; break; }
+        sleep 5
+    done
+
+    if [[ $result == 1 ]]; then 
+        echo "ipsec is not good"
+        exit 1
+    fi
+    echo "IPsec status checking is done." 
 }
 
 sec_start_ldap_server()

@@ -57,6 +57,10 @@ public class SiteInfo implements CoordinatorSerializable {
         this(version, actionRequired, targetDataRevision, ActionScope.SITE);
     }
 
+    public SiteInfo(final long version, final String actionRequired, final ActionScope vdc) {
+        this(version, actionRequired, DEFAULT_TARGET_VERSION, ActionScope.SITE);
+    }
+
     public SiteInfo(final long version, final String actionRequired, final String targetDataRevision, final ActionScope scope) {
         this.vdcConfigVersion = version;
         this.actionRequired = actionRequired;

@@ -15,6 +15,7 @@ import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
+import com.emc.storageos.model.dr.SitePrimary;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
@@ -45,14 +46,13 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.post(ClientResponse.class, uuids, PathConstants.SITE_URL + "/remove");
     }
 
-    public SiteRestRep pauseSite(String uuid) {
-        return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/pause/");
+    public ClientResponse pauseSite(SiteIdListParam uuids) {
+        return client.post(ClientResponse.class, uuids, PathConstants.SITE_URL + "/pause/");
     }
 
     public SiteRestRep resumeSite(String uuid) {
         return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/resume/");
     }
-
 
     public ClientResponse syncSite(SiteConfigParam input) {
         return client.put(ClientResponse.class, input, PathConstants.SITE_URL);
@@ -66,6 +66,10 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.get(SiteList.class, PathConstants.SITE_URL);
     }
 
+    public SitePrimary checkPrimary() {
+        return client.get(SitePrimary.class, PathConstants.SITE_URL + "/primary");
+    }
+
     public SiteConfigRestRep getStandbyConfig() {
         return client.get(SiteConfigRestRep.class, PathConstants.SITE_URL + "/localconfig");
     }
@@ -73,17 +77,17 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     public DRNatCheckResponse checkIfBehindNat(DRNatCheckParam checkParam) {
         return client.post(DRNatCheckResponse.class, checkParam, PathConstants.SITE_URL + "/natcheck");
     }
-    
+
     public SiteErrorResponse getSiteError(String uuid) {
-        return client.get(SiteErrorResponse.class, PathConstants.SITE_URL+"/"+uuid+"/error");
+        return client.get(SiteErrorResponse.class, PathConstants.SITE_URL + "/" + uuid + "/error");
     }
-    
+
     public ClientResponse doSwitchover(String uuid) {
-        return client.post(ClientResponse.class, PathConstants.SITE_URL+"/"+uuid+"/switchover");
+        return client.post(ClientResponse.class, PathConstants.SITE_URL + "/" + uuid + "/switchover");
     }
-    
+
     public ClientResponse doFailover(String uuid) {
-        return client.post(ClientResponse.class, PathConstants.SITE_URL+"/"+uuid+"/failover");
+        return client.post(ClientResponse.class, PathConstants.SITE_URL + "/" + uuid + "/failover");
     }
 
     @Override

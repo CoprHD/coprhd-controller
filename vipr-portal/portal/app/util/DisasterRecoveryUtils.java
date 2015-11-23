@@ -12,6 +12,7 @@ import java.util.List;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
+import com.emc.storageos.model.dr.SitePrimary;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.ClientResponse;
@@ -28,6 +29,10 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().listAllSites();
     }
 
+    public static SitePrimary checkPrimary() {
+        return getViprClient().site().checkPrimary();
+    }
+
     public static SiteRestRep addStandby(SiteAddParam standbySite) {
         return getViprClient().site().createSite(standbySite);
     }
@@ -36,8 +41,8 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().deleteSite(ids);
     }
 
-    public static SiteRestRep pauseStandby(String uuid) {
-        return getViprClient().site().pauseSite(uuid);
+    public static ClientResponse pauseStandby(SiteIdListParam ids) {
+        return getViprClient().site().pauseSite(ids);
     }
 
     public static SiteRestRep resumeStandby(String uuid) {
@@ -67,6 +72,10 @@ public class DisasterRecoveryUtils {
 
     public static ClientResponse doSwitchover(String id) {
         return getViprClient().site().doSwitchover(id);
+    }
+
+    public static ClientResponse doFailover(String id) {
+        return getViprClient().site().doFailover(id);
     }
 
     public static SiteRestRep getActiveSite() {

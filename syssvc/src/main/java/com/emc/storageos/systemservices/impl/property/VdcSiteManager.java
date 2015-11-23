@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
@@ -45,6 +45,8 @@ import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
+
+
 /**
  * Manage configuration properties for multivdc and disaster recovery. It listens on
  * SiteInfo znode changes. Once getting notified, it fetch vdc config from local db
@@ -56,7 +58,7 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
 public class VdcSiteManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
-    private static final int VDC_RPOP_BARRIER_TIMEOUT = 5;
+    private static final int VDC_RPOP_BARRIER_TIMEOUT = 5*60; // 5 mins
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
@@ -422,15 +424,16 @@ public class VdcSiteManager extends AbstractManager {
      * update vdc properties from zk to disk and wait for all nodes are done via barrier
      */
     private void updateVdcPropertiesAndWaitForAll() throws Exception {
-        DistributedDoubleBarrier barrier = enterBarrier("VdcPropBarrier", VDC_RPOP_BARRIER_TIMEOUT);
-
+        VdcPropertyBarrier vdcBarrier = new VdcPropertyBarrier(targetSiteInfo, VDC_RPOP_BARRIER_TIMEOUT);
         try {
+            vdcBarrier.enter();
+
             PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
             // set the vdc_config_version to an invalid value so that it always gets retried on failure.
             vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
             localRepository.setVdcPropertyInfo(vdcProperty);
         } finally {
-            leaveBarrier(barrier);
+            vdcBarrier.leave();
         }
     }
 
@@ -444,70 +447,99 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.setVdcPropertyInfo(vdcProperty);
     }
     
-    private DistributedDoubleBarrier enterBarrier(String path, int timeout) throws Exception {
-        return enterBarrier(path, timeout, getChildrenCountOnBarrier(), false);
-    }
-
     /**
-     * Waiting for all nodes entering the VdcPropBarrier.
-     * @return
-     * @param path barrier path
-     * @param timeout timeout 
-     * @param memberQty total number of members that plan to wait on the barrier
-     * @return 
-     * @throws Exception
+     * Util class to make sure no one node applies configuration until all nodes get synced to local bootfs.
      */
-    private DistributedDoubleBarrier enterBarrier(String path, int timeout, int memberQty, boolean crossSite) throws Exception {
-        log.info("Waiting for all nodes entering path {}", path);
+    private class VdcPropertyBarrier {
 
-        String barrierPath = crossSite ? String.format("%s/%s", ZkPath.SITES, path):
-            String.format("%s/%s/%s", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId(), path);
+        DistributedDoubleBarrier barrier;
+        int timeout = 0;
 
-        log.info("Barrier path is {} with memberQty {}", barrierPath, memberQty);
-
-        // the children # should be the node # in entire VDC. before linking together, it's # in a site.
-        DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, memberQty);
-
-        boolean allEntered = barrier.enter(timeout, TimeUnit.SECONDS);
-        if (allEntered) {
-            log.info("All nodes entered {}", barrierPath);
-            return barrier;
-        } else {
-            throw new Exception(String.format("Only Part of nodes entered within %s seconds, Skip updating", timeout));
+        /**
+         * create or get a barrier
+         * @param siteInfo
+         */
+        public VdcPropertyBarrier(SiteInfo siteInfo, int timeout) {
+            this.timeout = timeout;
+            String barrierPath = getBarrierPath(siteInfo);
+            int nChildrenOnBarrier = getChildrenCountOnBarrier();
+            this.barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, nChildrenOnBarrier);
+            log.info("Created VdcPropBarrier on {} with the children number {}", barrierPath, nChildrenOnBarrier);
         }
-    }
 
-    /**
-     * Get the number of nodes should involve the barrier. It's all nodes of a site when adding standby while nodes of a VDC when rotating key.
-     * @return
-     */
-    private int getChildrenCountOnBarrier() {
-        SiteInfo.ActionScope scope = targetSiteInfo.getActionScope();
-        switch (scope) {
-            case SITE:
-                return coordinator.getNodeCount();
-            case VDC:
-                // TODO: need a method to return the # of VDC
-                throw new NotImplementedException();
-            default:
-                throw new RuntimeException("Unknown Action Scope is set in SiteInfo: " + scope);
+        public VdcPropertyBarrier(String path, int timeout, int memberQty, boolean crossSite) {
+            this.timeout = timeout;
+            String barrierPath = getBarrierPath(path, crossSite);
+            this.barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, memberQty);
+            log.info("Created VdcPropBarrier on {} with the children number {}", barrierPath, memberQty);
         }
-    }
 
-    /**
-     * Waiting for all nodes leaving the VdcPropBarrier.
-     * @param barrier
-     * @throws Exception
-     */
-    private void leaveBarrier(DistributedDoubleBarrier barrier) throws Exception {
-        // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
-        log.info("Waiting for all nodes leaving VdcPropBarrier");
+        /**
+         * Waiting for all nodes entering the VdcPropBarrier.
+         * @return
+         * @throws Exception
+         */
+        public void enter() throws Exception {
+            log.info("Waiting for all nodes entering VdcPropBarrier");
 
-        boolean allLeft = barrier.leave(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
-        if (allLeft) {
-            log.info("All nodes left VdcPropBarrier");
-        } else {
-            log.warn("Only Part of nodes left VdcPropBarrier before timeout");
+            boolean allEntered = barrier.enter(timeout, TimeUnit.SECONDS);
+            if (allEntered) {
+                log.info("All nodes entered VdcPropBarrier");
+            } else {
+                log.warn("Only Part of nodes entered within {} seconds", timeout);
+                throw new Exception("Only Part of nodes entered within timeout");
+            }
+        }
+
+        /**
+         * Waiting for all nodes leaving the VdcPropBarrier.
+         * @throws Exception
+         */
+        public void leave() throws Exception {
+            // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
+            log.info("Waiting for all nodes leaving VdcPropBarrier");
+
+            boolean allLeft = barrier.leave(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+            if (allLeft) {
+                log.info("All nodes left VdcPropBarrier");
+            } else {
+                log.warn("Only Part of nodes left VdcPropBarrier before timeout");
+            }
+        }
+
+        private String getBarrierPath(SiteInfo siteInfo) {
+            switch (siteInfo.getActionScope()) {
+                case VDC:
+                    return String.format("%s/VdcPropBarrier", ZkPath.BARRIER);
+                case SITE:
+                    return String.format("%s/%s/VdcPropBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
+                default:
+                    throw new RuntimeException("Unknown Action Scope: " + siteInfo.getActionScope());
+            }
+        }
+
+        private String getBarrierPath(String path, boolean crossSite) {
+            String barrierPath = crossSite ? String.format("%s/%s", ZkPath.SITES, path) :
+                    String.format("%s/%s/%s", ZkPath.BARRIER, coordinator.getCoordinatorClient().getSiteId(), path);
+
+            log.info("Barrier path is {}", barrierPath);
+            return barrierPath;
+        }
+
+        /**
+         * Get the number of nodes should involve the barrier. It's all nodes of a site when adding standby while nodes of a VDC when rotating key.
+         * @return
+         */
+        private int getChildrenCountOnBarrier() {
+            SiteInfo.ActionScope scope = targetSiteInfo.getActionScope();
+            switch (scope) {
+                case SITE:
+                    return coordinator.getNodeCount();
+                case VDC:
+                    return drUtil.getNodeCountWithinVdc();
+                default:
+                    throw new RuntimeException("Unknown Action Scope is set in SiteInfo: " + scope);
+            }
         }
     }
 
@@ -536,14 +568,18 @@ public class VdcSiteManager extends AbstractManager {
         // TODO: think again how to make use of the dynamic zookeeper configuration
         // The previous approach disconnects all the clients, no different than a service restart.
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-            log.info("Wait for barrier to reconfig coordinator when switchover");
-            DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-            localRepository.reconfigProperties("coordinator");
-            leaveBarrier(barrier);
+            log.info("Wait for barrier to reconfig/restart coordinator when switchover");
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+            try {
+                barrier.enter();
+                localRepository.reconfigProperties("coordinator");
+            } finally {
+                barrier.leave();
+            }
         } else {
             localRepository.reconfigProperties("coordinator");
         }
-        
+
         localRepository.restart("coordinatorsvc");
     }
 
@@ -1119,13 +1155,17 @@ public class VdcSiteManager extends AbstractManager {
 
         blockUntilZookeeperIsWritableConnected();
         
-        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-        
-        site.setState(SiteState.PRIMARY);
-        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-        
-        leaveBarrier(barrier);
-        
+        VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+        try {
+            barrier.enter();
+
+            log.info("Set state to PRIMARY");
+            site.setState(SiteState.PRIMARY);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        } finally {
+            barrier.leave();
+        }
+
         log.info("Reboot this node after switchover");
         localRepository.reboot();
     }
@@ -1135,13 +1175,17 @@ public class VdcSiteManager extends AbstractManager {
         
         blockUntilZookeeperIsWritableConnected();
 
-        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-        
-        site.setState(SiteState.STANDBY_SYNCED);
-        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-        
-        leaveBarrier(barrier);
-        
+        VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+        try {
+            barrier.enter();
+
+            log.info("Set state to SYNCED");
+            site.setState(SiteState.STANDBY_SYNCED);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        } finally {
+            barrier.leave();
+        }
+
         log.info("Reboot this node after switchover");
         localRepository.reboot();
     }
@@ -1158,12 +1202,15 @@ public class VdcSiteManager extends AbstractManager {
         blockUntilZookeeperIsWritableConnected();
         
         log.info("Wait for barrier to set site state as Primary for failover");
-        DistributedDoubleBarrier barrier = enterBarrier(Constants.FAILOVER_BARRIER, FAILOVER_BARRIER_TIMEOUT);
-        
-        site.setState(SiteState.PRIMARY);
-        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-        
-        leaveBarrier(barrier);
+        VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+        try {
+            barrier.enter();
+
+            site.setState(SiteState.PRIMARY);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        } finally {
+            barrier.leave();
+        }
         
         log.info("Reboot this node after failover");
         localRepository.reboot();

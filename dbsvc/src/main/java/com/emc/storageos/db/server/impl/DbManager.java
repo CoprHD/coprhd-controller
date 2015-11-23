@@ -85,7 +85,7 @@ public class DbManager implements DbManagerMBean {
      */
     private boolean startNodeRepair(String keySpaceName, int maxRetryTimes, boolean crossVdc, boolean noNewReapir) throws Exception {
         DbRepairRunnable runnable = new DbRepairRunnable(this.executor, this.coordinator, keySpaceName,
-                this.schemaUtil.isGeoDbsvc(), maxRetryTimes, crossVdc, noNewReapir);
+                this.schemaUtil.isGeoDbsvc(), maxRetryTimes, noNewReapir);
         // call preConfig() here to set IN_PROGRESS for db repair triggered by schedule since we use it in getDbRepairStatus.
         runnable.preConfig();
         synchronized (runnable) {

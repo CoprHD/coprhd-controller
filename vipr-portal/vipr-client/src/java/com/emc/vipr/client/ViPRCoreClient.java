@@ -10,6 +10,7 @@ import com.emc.storageos.model.tenant.TenantResponse;
 import com.emc.storageos.model.user.UserInfo;
 import com.emc.vipr.client.core.*;
 import com.emc.vipr.client.impl.RestClient;
+import com.emc.vipr.client.system.IPsec;
 
 public class ViPRCoreClient {
     protected RestClient client;
@@ -332,5 +333,9 @@ public class ViPRCoreClient {
     
     public Site site(){
         return new Site(this, client);
+    }
+
+    public IPsec ipsec() {
+        return new IPsec(client);
     }
 }

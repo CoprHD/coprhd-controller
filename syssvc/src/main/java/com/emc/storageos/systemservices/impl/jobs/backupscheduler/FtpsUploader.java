@@ -103,7 +103,10 @@ public class FtpsUploader extends Uploader {
     }
 
     @Override
-    public List<String> listFiles() throws Exception {
+    public List<String> listFiles(String prefix) throws Exception {
+        if (prefix == null) {
+            return null;
+        }
         ProcessBuilder builder = getBuilder();
         builder.command().add("-l");
         builder.command().add(this.cfg.uploadUrl);
@@ -114,7 +117,9 @@ public class FtpsUploader extends Uploader {
             processor.captureAllTextInBackground(processor.getStdErr(), errText);
 
             for (String line : processor.enumLines(processor.getStdOut())) {
-                fileList.add(line);
+                if (line.startsWith(prefix)) {
+                    fileList.add(line);
+                }
             }
 
             int exitCode = processor.join();

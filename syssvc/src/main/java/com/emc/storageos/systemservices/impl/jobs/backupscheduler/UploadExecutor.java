@@ -265,9 +265,9 @@ public class UploadExecutor {
     private void markStaleIncompletedZipFile(String toUploadedFileName) {
         String noExtendFileName = toUploadedFileName.split(ScheduledBackupTag.ZIP_FILE_SURFIX)[0];
         String toUploadFilePrefix = noExtendFileName.substring(0, noExtendFileName.length() - 2);
-        log.info("check with prefix  {}", toUploadFilePrefix);
+        log.info("Check with prefix  {}", toUploadFilePrefix);
         try {
-            List<String> ftpFiles = uploader.listFiles();
+            List<String> ftpFiles = uploader.listFiles(toUploadFilePrefix);
             for (String file : ftpFiles) {
                 if (isIncompletedFile(file, toUploadFilePrefix)) {
                     if (isFullNodeFileName(noExtendFileName) && file.equals(toUploadedFileName)) {
@@ -277,7 +277,7 @@ public class UploadExecutor {
                 }
             }
         } catch (Exception e) {
-            log.warn("Mark invalid  uploaded backup zip file failed", e);
+            log.warn("Failed to mark the ({}) previous uploaded backup zip file as invalid",toUploadedFileName, e);
         }
     }
 

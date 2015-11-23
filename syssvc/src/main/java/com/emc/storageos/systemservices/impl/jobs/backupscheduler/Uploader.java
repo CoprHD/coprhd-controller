@@ -53,19 +53,19 @@ public abstract class Uploader {
     public abstract OutputStream upload(String fileName, long offset) throws Exception;
 
     /**
-     * List files on server.
+     * List files with specific prefix on server.
      *
-     * @return List contain filenames.
+     * @param prefix files with the prefix to be listed.
+     * @return List contain file names.
      * @throws Exception
      */
-    public abstract List<String> listFiles() throws Exception;
+    public abstract List<String> listFiles(String prefix) throws Exception;
 
     /**
      * Rename specific file on server.
      *
      * @param sourceFileName to be renamed filename on server
      * @param destFileName   rename to filename on server
-     * @return null.
      * @throws Exception
      */
     public abstract void rename(String sourceFileName, String destFileName) throws Exception;

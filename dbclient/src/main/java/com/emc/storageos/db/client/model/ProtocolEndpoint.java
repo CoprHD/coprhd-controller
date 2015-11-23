@@ -59,18 +59,6 @@ public class ProtocolEndpoint extends DataObject{
         setChanged("ipAddress");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
-    @IndexByKey
-    @Name("storageSystem")
-    public URL getSystemStorage() {
-        return systemStorage;
-    }
-
-    public void setSystemStorage(URL systemStorage) {
-        this.systemStorage = systemStorage;
-        setChanged("storageSystem");
-    }
-
     @Name("serverMount")
     public String getServerMount() {
         return serverMount;
@@ -139,6 +127,18 @@ public class ProtocolEndpoint extends DataObject{
     public void setServerMinor(String serverMinor) {
         this.serverMinor = serverMinor;
         setChanged("serverMinor");
+    }
+
+    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @IndexByKey
+    @Name("storageSystem")
+    public URL getStorageSystem() {
+        return storageSystem;
+    }
+
+    public void setStorageSystem(URL storageSystem) {
+        this.storageSystem = storageSystem;
+        setChanged("storageSystem");
     }
 
     public static enum ProtocolEndpointTypeEnum{

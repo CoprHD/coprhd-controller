@@ -63,7 +63,9 @@ public class VdcSiteManager extends AbstractManager {
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 5;
-    private static final int MAX_RESUME_RETRY = 5;
+    // it takes a long time for db schema version to converge.
+    // that's why resume has a higher retry limit than pause.
+    private static final int MAX_RESUME_RETRY = 20;
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;

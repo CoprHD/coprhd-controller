@@ -211,12 +211,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     continue;
                 }
                 
-                if (volumesToCgs.containsKey(volume.getVolInfo().get(0))) {
-                	log.info("Sathish has the volume" + volume.getVolInfo().get(0));
-                } else {
-                	log.info("Sathish no use" + volume.getVolInfo().get(0));
-                }
-
                 String unManagedVolumeNatvieGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingVolume(
                         storageSystem.getNativeGuid(), volume.getVolInfo().get(0));
                 // retrieve snap info to be processed later
@@ -225,6 +219,15 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
                 unManagedVolume = createUnManagedVolume(unManagedVolume, unManagedVolumeNatvieGuid, volume, igUnmanagedVolumesMap,
                         storageSystem, storagePool, dbClient);
+                
+                if (volumesToCgs.containsKey(volume.getVolInfo().get(0))) {
+                	unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());
+                	StringSet set = new StringSet();
+                    set.add(volumesToCgs.get(volume.getVolInfo().get(0)));
+                    unManagedVolume.getVolumeInformation().put(
+                            SupportedVolumeInformation.CONSISTENCY_GROUP_NAME.toString(), set);
+                	
+                } 
 
                 if (hasSnaps) {
                     StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();

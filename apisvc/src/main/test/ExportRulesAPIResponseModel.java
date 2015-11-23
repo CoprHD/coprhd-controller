@@ -16,7 +16,7 @@ public class ExportRulesAPIResponseModel {
     /**
      * List of exportRules to be modified
      * 
-     * @valid none
+     * 
      */
     @XmlElement(name = "exportRule")
     public List<ExportRule> getExportRules() {

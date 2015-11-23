@@ -71,7 +71,7 @@ public class ExportRule {
     /**
      * Security flavor of an export e.g. sys, krb, krbp or krbi
      * 
-     * @valid none
+     * 
      */
     @XmlElement(name = "secFlavor", required = false)
     public String getSecFlavor() {
@@ -85,7 +85,7 @@ public class ExportRule {
     /**
      * Anonymous root user mapping e.g. "root", "nobody" or "anyUserName"
      * 
-     * @valid none
+     * 
      */
     @XmlElement(name = "anon", required = false)
     public String getAnon() {

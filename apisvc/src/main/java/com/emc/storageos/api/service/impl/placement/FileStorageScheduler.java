@@ -274,7 +274,7 @@ public class FileStorageScheduler {
      * 
      * @param vPool
      * @param vArrayURI virtual array URI
-     * @param poolRecommendations
+     * @param candidatePools
      * @param project
      * @return list of recommended storage ports for VNAS
      *

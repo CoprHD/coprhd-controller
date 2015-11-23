@@ -319,8 +319,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param capabilities parameters
      * @param candidatePools List of StoragePools already populated to choose from. RP+VPLEX. 
      * @param vpoolChangeVolume vpool change volume, if applicable
-     * @param vpoolChangeParam 
-     * @param protectionStoragePoolsMap pre-populated map for tgt varray to storage pools, use null if not needed
+     * @param preSelectedCandidateProtectionPoolsMap pre-populated map for tgt varray to storage pools, use null if not needed
      * @return list of Recommendation objects to satisfy the request
      */
     protected List<Recommendation> scheduleStorageSourcePoolConstraint(VirtualArray varray,
@@ -636,8 +635,8 @@ public class RecoverPointScheduler implements Scheduler {
     /** 
      * Determines the available VPLEX visible storage pools. 
      * 
-     * @param varray - Source Virtual Array
-     * @param vpool - Source Virtual Pool
+     * @param srcVarray - Source Virtual Array
+     * @param srcVpool - Source Virtual Pool
      * @param haVarray - HA Virtual Array, in case of VPLEX HA
      * @param haVpool - HA Virtual Pool, in case of VPLEX HA
      * @param capabilities - Virtual Pool capabilities
@@ -848,9 +847,7 @@ public class RecoverPointScheduler implements Scheduler {
     * @param haVpool The highly available virtual pool
     * @param capabilities The virtual pool capabilities
     * @param vplexPoolMapForSrcVarray The source virtual array, VPlex connected storage pools
-    * @param srcStorageSystem The selected VPlex source leg storage system
-    * @param isRpTarget true if the request is specific to a RecoverPoint target, false otherwise
-    * 
+    *  
     * @return A list of VPlexRecommendation instances specifying the
     *         HA recommended resource placement resources
     */
@@ -985,6 +982,7 @@ public class RecoverPointScheduler implements Scheduler {
     * @param capabilities the capability params.
     * @param candidatePrimaryPools candidate source pools to use for the primary cluster.
     * @param candidateSecondaryPools candidate source pools to use for the primary cluster.
+    * @param vpoolChangeVolume
     * @return list of Recommendation objects to satisfy the request
     */
    private List<Recommendation> createMetroPointRecommendations(VirtualArray srcVarray, List<VirtualArray> tgtVarrays, VirtualPool srcVpool,
@@ -1031,6 +1029,7 @@ public class RecoverPointScheduler implements Scheduler {
     * @param candidateActiveSourcePools the candidate primary cluster source pools.
     * @param candidateStandbySourcePools  the candidate secondary cluster source pools.
     * @param candidateProtectionPoolsMap pre-populated map for tgt varray to storage pools, use null if not needed
+    * @param project
     * @return list of Recommendation objects to satisfy the request
     */
    protected RPProtectionRecommendation createMetroPointRecommendations(VirtualArray varray,
@@ -1436,6 +1435,7 @@ public class RecoverPointScheduler implements Scheduler {
     * @param changeVpoolVolume volume that is being changed to a protected vpool
     * @param newVpool vpool requested to change to (must be protected)
     * @param protectionVarrays Varrays to protect this volume to.
+    * @param capabilities
     * @return list of Recommendation objects to satisfy the request
     */
    public List<Recommendation> scheduleStorageForVpoolChangeUnprotected(Volume changeVpoolVolume, VirtualPool newVpool,
@@ -1648,10 +1648,7 @@ public class RecoverPointScheduler implements Scheduler {
     * This function will swap src and ha varrays and src and ha vpools IF 
     * the src vpool has specified this.
     * 
-    * @param srcVarray
-    * @param srcVpool
-    * @param haVarray
-    * @param haVpool
+    * @param container
     * @param dbClient
     */
    public static SwapContainer initializeSwapContainer(SwapContainer container, DbClient dbClient) {                
@@ -1732,8 +1729,8 @@ public class RecoverPointScheduler implements Scheduler {
     *
     * @param volume volume that is being changed to a protected vpool
     * @param newVpool vpool requested to change to (must be protected)
-    * @param protectionVarrays Varrays to protect this volume to.
-    * @param vpoolChangeParam The change param for the vpool change operation
+    * @param  protectionVirtualArraysForVirtualPool Varrays to protect this volume to
+    * 
     * @return list of Recommendation objects to satisfy the request
     */
    public List<Recommendation> scheduleStorageForVpoolChangeProtected(Volume volume, VirtualPool newVpool,
@@ -2207,8 +2204,8 @@ public class RecoverPointScheduler implements Scheduler {
 	/**
 	 * Convenience method to add entries to a Map used track required capacity per storage pool.
 	 * @param storagePoolRequiredCapacity
-	 * @param key the storage pool URI
-	 * @param value 
+	 * @param storagePoolUri the storage pool URI
+	 * @param requiredCapacity 
 	 */
 	private void updateStoragePoolRequiredCapacityMap(Map<URI, Long> storagePoolRequiredCapacity, 
 	        URI storagePoolUri, long requiredCapacity) {
@@ -2492,7 +2489,7 @@ public class RecoverPointScheduler implements Scheduler {
     /**
      * Display storage pool information from recommendation
      * 
-     * @param varraySortedPoolMap Sorted Storage Pools
+     * @param  poolRecommendations Sorted Storage Pools
      */
     private void printPoolRecommendations(List<Recommendation> poolRecommendations) {    	
         StringBuffer buf = new StringBuffer(); 
@@ -3062,7 +3059,7 @@ public class RecoverPointScheduler implements Scheduler {
 	/**
 	 * Is the cluster associated with the virtual array (and its networks) configured?
 	 * 
-	 * @param sourceVarray source varray
+	 * @param varray source varray
 	 * @param candidateProtectionSystem protection system
 	 * @return
 	 */
@@ -3492,8 +3489,8 @@ public class RecoverPointScheduler implements Scheduler {
      * <li>Each RP site must have the volume capacity to create the required number of volumes.</li>
      * </ul>
      * 
-     * @param rpConfiguration
-     * @param protectionPoolMappings
+     * @param protectionSystem
+     * @param rpRec
      * @param resourceCount number of volumes being requested for creation/protection
      * @return true if recommendation can be handled by protection system
      */
@@ -3673,8 +3670,10 @@ public class RecoverPointScheduler implements Scheduler {
      
 	/**
 	 * Determines if the RP site is connected to the passed virtual array.
-	 * @param rpSiteArray the RP site 
-	 * @param virtualArray the virtual array to check for RP site connectivity
+	 * @param storageSystemURI 
+	 * @param protectionSystemURI
+         * @param siteId
+         * @param virtualArray the virtual array to check for RP site connectivity
 	 * @return
 	 */
 	public boolean isRpSiteConnectedToVarray(URI storageSystemURI, URI protectionSystemURI, String siteId, VirtualArray virtualArray) {

@@ -36,7 +36,7 @@ public class MapVirtualNas implements Function<VirtualNAS, VirtualNASRestRep> {
     /**
      * Translate <code>VirtualNAS</code> object to <code>VirtualNASRestRep</code>
      * 
-     * @param VirtualNAS
+     * @param vNas
      * @return
      */
     public VirtualNASRestRep toVirtualNasRestRep(VirtualNAS vNas) {

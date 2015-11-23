@@ -277,7 +277,7 @@ public class UploadExecutor {
                 }
             }
         } catch (Exception e) {
-            log.warn("Failed to mark the ({}) previous uploaded backup zip file as invalid",toUploadedFileName, e);
+            log.warn("Failed to mark the previous uploaded backup zip file of ({}) as invalid", toUploadedFileName, e);
         }
     }
 

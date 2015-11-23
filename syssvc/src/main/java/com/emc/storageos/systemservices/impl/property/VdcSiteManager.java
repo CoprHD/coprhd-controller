@@ -1200,7 +1200,7 @@ public class VdcSiteManager extends AbstractManager {
         blockUntilZookeeperIsWritableConnected();
         
         log.info("Wait for barrier to set site state as Primary for failover");
-        VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+        VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, FAILOVER_BARRIER_TIMEOUT, coordinator.getNodeCount(), false);
         try {
             barrier.enter();
 

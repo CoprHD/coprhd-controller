@@ -12,7 +12,7 @@ public class ProtocolEndpoint extends DataObject{
     
     private String ipAddress;
     
-    private URL systemStorage;
+    private URL storageSystem;
     
     private String serverMount;
     

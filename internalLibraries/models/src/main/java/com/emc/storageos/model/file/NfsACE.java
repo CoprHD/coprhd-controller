@@ -36,7 +36,7 @@ public class NfsACE implements Serializable {
     }
 
     public enum NfsPermission {
-        READ, WRITE, EXECUTE, FULLCONTROLL
+        READ, WRITE, EXECUTE, FULLCONTROL
     }
 
     public enum NfsACLOperationErrorType {

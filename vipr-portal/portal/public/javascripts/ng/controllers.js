@@ -440,7 +440,8 @@ angular.module("portalApp").controller({
 
     	$scope.permOpt = [{id:'read', name:translate('resources.filesystem.nfsacl.read')}, 
     	                  {id:'write', name:translate('resources.filesystem.nfsacl.write')}, 
-    	                  {id:'execute', name:translate('resources.filesystem.nfsacl.execute')}];
+    	                  {id:'execute', name:translate('resources.filesystem.nfsacl.execute')},
+    	                  {id:'fullControl', name:translate('resources.filesystem.nfsacl.fullControl')},];
     	
     	var setData = function(data) {
     		$scope.acl = data;

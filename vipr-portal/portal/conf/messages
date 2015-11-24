@@ -4003,7 +4003,9 @@ nfsAccessControlList.permissions=Permissions
 nfsAccessControlList.name=Name
 nfsAccessControlList.type=Type
 nfsAccessControlList.domain=Domain
+nfsAccessControlList.permissionType=Permissions Type
 nfs.subdirectory=Sub Directory
+
 
 
 subdir.share.name=Share Name

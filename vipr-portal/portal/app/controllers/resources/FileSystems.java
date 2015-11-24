@@ -310,6 +310,7 @@ public class FileSystems extends ResourceController {
                 String name = NfsACLForm.extractNameFromId(id);
                 String domain = NfsACLForm.extractDomainFromId(id);
                 String permissions = NfsACLForm.extractPermissionsFromId(id);
+                String permissionType = NfsACLForm.extractPermissionTypeFromId(id);
                 fileSystem = NfsACLForm.extractFileSystemFromId(id);
                 subDir = NfsACLForm.extractSubDirFromId(id);
                 fsMountPath = NfsACLForm.extractMounPathFromId(id);
@@ -317,7 +318,7 @@ public class FileSystems extends ResourceController {
                 ace.setUser(name);
                 ace.setType(type);
                 ace.setPermissions(permissions.replaceAll("/", ","));
-                ace.setPermissionType("allow");
+                ace.setPermissionType(permissionType);
                 if (domain != null && !"".equals(domain)
                         && !"null".equals(domain)) {
                     ace.setDomain(domain);

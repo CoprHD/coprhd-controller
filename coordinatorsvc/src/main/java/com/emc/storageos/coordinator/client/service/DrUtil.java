@@ -58,9 +58,9 @@ public class DrUtil {
     }
     
     /**
-     * Check if current site is primary
+     * Check if current site is acitve
      * 
-     * @return true for primary. otherwise false
+     * @return true for acitve. otherwise false
      */
     public boolean isPrimary() {
         return getPrimarySiteId().equals(coordinator.getSiteId());
@@ -76,7 +76,7 @@ public class DrUtil {
     }
     
     /**
-     * Get primary site in current vdc
+     * Get acitve site in current vdc
      * 
      * @return
      */
@@ -85,10 +85,10 @@ public class DrUtil {
     }
 
     /**
-     * Get primary site in a specific vdc
+     * Get acitve site in a specific vdc
      *
      * @param vdcShortId short id of the vdc
-     * @return uuid of the primary site
+     * @return uuid of the acitve site
      */
     public String getPrimarySiteId(String vdcShortId) {
         Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, vdcShortId);

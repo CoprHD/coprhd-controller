@@ -218,7 +218,7 @@ public class VdcManager extends AbstractManager {
                 continue;
             }
             
-            // Step5: set site error state if on primary
+            // Step5: set site error state if on acitve
             try {
                 updateSiteErrors();
             } catch (RuntimeException e) {

@@ -213,7 +213,7 @@ public abstract class VdcOpHandler {
                 log.info("Standby site - waiting for completion of db removal from active site");
                 Site localSite = drUtil.getLocalSite();
                 if (localSite.getState().equals(SiteState.STANDBY_REMOVING)) {
-                    log.info("Current standby site is removed from DR. You can power it on and promote it as primary later");
+                    log.info("Current standby site is removed from DR. You can power it on and promote it as acitve later");
                     // cleanup site error 
                     SiteError siteError = coordinator.getCoordinatorClient().getTargetInfo(localSite.getUuid(), SiteError.class);
                     if (siteError != null) {
@@ -222,9 +222,9 @@ public abstract class VdcOpHandler {
                     }
                     return;
                 } else {
-                    log.info("Waiting for completion of site removal from primary site");
+                    log.info("Waiting for completion of site removal from acitve site");
                     while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING)) {
-                        log.info("Waiting for completion of site removal from primary site");
+                        log.info("Waiting for completion of site removal from acitve site");
                         retrySleep();
                     }
                 }
@@ -287,7 +287,7 @@ public abstract class VdcOpHandler {
         }
         
         /**
-         * Update the strategy options and remove the paused site from gossip ring on the primary site.
+         * Update the strategy options and remove the paused site from gossip ring on the acitve site.
          * This should be done after the firewall has been updated to block the paused site so that it's not affected.
          */
         private void checkAndPauseOnPrimary() {
@@ -519,7 +519,7 @@ public abstract class VdcOpHandler {
         }
 
         private void updateSwitchoverSiteStateOnOldPrimary(Site site) throws Exception {
-            log.info("This is switchover primary site (old primrary)");
+            log.info("This is switchover acitve site (old acitve)");
             
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
 
@@ -620,7 +620,7 @@ public abstract class VdcOpHandler {
                 // double check site state
                 oldActiveSite = getOldActiveSiteForFailover();
                 if (oldActiveSite == null) {
-                    log.info("Old primary site has been remove by other node, no action needed.");
+                    log.info("Old acitve site has been remove by other node, no action needed.");
                     return;
                 }
 
@@ -630,7 +630,7 @@ public abstract class VdcOpHandler {
                 drUtil.removeSiteConfiguration(oldActiveSite);
             } catch (Exception e) {
                 populateStandbySiteErrorIfNecessary(drUtil.getLocalSite(), APIException.internalServerErrors.failoverReconfigFailed(e.getMessage()));
-                log.error("Failed to remove old primary in failover, {}", e);
+                log.error("Failed to remove old acitve site in failover, {}", e);
                 throw e;
             } finally {
                 if (lock != null) {
@@ -651,7 +651,7 @@ public abstract class VdcOpHandler {
         private void updateFailoverSiteState(Site site) throws Exception {
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
             
-            log.info("Wait for barrier to set site state as Primary for failover");
+            log.info("Wait for barrier to set site state as Acitve for failover");
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), true);
             barrier.enter();
             try {

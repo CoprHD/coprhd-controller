@@ -259,7 +259,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     /**
      * Check and initialize site specific section for current site. If site specific section is empty,
-     * we always assume current site is primary site
+     * we always assume current site is active site
      *
      * @throws Exception
      */

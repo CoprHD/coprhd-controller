@@ -581,7 +581,7 @@ public interface CoordinatorClient {
     public void addSite(String siteId) throws Exception;
 
     /**
-     * Update the primary site pointer in ZK
+     * Update the active site pointer in ZK
      * This should only be used by the sync site API
      */
     public void setPrimarySite(String siteId) throws Exception;

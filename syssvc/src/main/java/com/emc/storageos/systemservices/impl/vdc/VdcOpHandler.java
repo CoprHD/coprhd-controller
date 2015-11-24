@@ -285,7 +285,7 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             if (drUtil.getLocalSite().getState().equals(SiteState.STANDBY_PAUSING)) {
                 checkAndPauseOnStandby();
-                syncFlushVdcConfigToLocal();
+                flushVdcConfigToLocal();
             } else {
                 reconfigVdc();
                 checkAndPauseOnPrimary();
@@ -354,15 +354,15 @@ public abstract class VdcOpHandler {
          * Update the site state from PAUSING to PAUSED on the standby site
          */
         private void checkAndPauseOnStandby() {
-
             // wait for the firewall to be blocked from active site
             waitForSiteUnreachable(drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId()));
 
-            // wait for ZooKeeper to restart in writable mode
+            // wait for ZooKeeper to restart in writable mode, which will also restart syssvc
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
 
             Site localSite = drUtil.getLocalSite();
             localSite.setState(SiteState.STANDBY_PAUSED);
+            log.info("Updating local site state to STANDBY_PAUSED");
             coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
         }
 

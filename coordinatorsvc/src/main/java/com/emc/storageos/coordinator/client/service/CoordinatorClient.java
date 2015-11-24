@@ -195,7 +195,7 @@ public interface CoordinatorClient {
 
     /**
      * Retrieves/creates a distributed mutex
-     * 
+     *
      * @param name mutex name
      * @return mutex
      */

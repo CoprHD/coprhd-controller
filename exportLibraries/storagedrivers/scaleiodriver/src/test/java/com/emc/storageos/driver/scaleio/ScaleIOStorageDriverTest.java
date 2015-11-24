@@ -1,18 +1,18 @@
 package com.emc.storageos.driver.scaleio;
 
-import com.emc.storageos.storagedriver.DiscoveryDriver;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by shujinwu on 11/17/15.
- */
 public class ScaleIOStorageDriverTest {
+
+    public ScaleIOStorageDriver driver = new ScaleIOStorageDriver();
+    public DriverTaskImpl task;
 
     @Test
     public void testCreateVolumes() throws Exception {
@@ -136,8 +136,6 @@ public class ScaleIOStorageDriverTest {
 
     @Test
     public void testDiscoverStorageSystem() throws Exception {
-        //DiscoveryDriver discoveryDriver = new DiscoveryDriver();
-        //DriverTask task = new DriverTask();
         List<StorageSystem> storageSystems = new ArrayList<>();
         StorageSystem validStorageSystem = new StorageSystem();
         StorageSystem invalidStorageSystem = new StorageSystem();
@@ -152,8 +150,10 @@ public class ScaleIOStorageDriverTest {
         // Valid list of storage systems
         storageSystems.add(validStorageSystem);
 
-        //discoveryDriver.discoverStorageSystem(storageSystems);
-        //System.out.print(task);
+        task = (DriverTaskImpl) driver.discoverStorageSystem(storageSystems);
+
+        Assert.assertNotNull(task);
+        Assert.assertEquals(task.getStatus().toString(), "READY");
 
         invalidStorageSystem.setSystemName("TestInvalidSystem");
         invalidStorageSystem.setSystemType("scaleio");
@@ -165,26 +165,25 @@ public class ScaleIOStorageDriverTest {
         // Partially valid list of storage systems
         storageSystems.add(invalidStorageSystem);
 
-        //discoveryDriver.discoverStorageSystem(storageSystems);
-        //System.out.print(task);
+        Assert.assertNotNull(task);
+        Assert.assertEquals(task.getStatus().toString(), "READY");
 
         // Invalid list of storage systems
         storageSystems.remove(0);
 
-        //discoveryDriver.discoverStorageSystem(storageSystems);
-        // System.out.print(task);
+        Assert.assertNotNull(task);
+        Assert.assertEquals(task.getStatus().toString(), "READY");
 
         // Empty list of storage systems
         storageSystems.remove(0);
 
-        //discoveryDriver.discoverStorageSystem(storageSystems);
-        // System.out.print(task);
+        Assert.assertNotNull(task);
+        Assert.assertEquals(task.getStatus().toString(), "READY");
 
     }
 
     @Test
     public void testDiscoverStoragePools() throws Exception {
-        //DiscoveryDriver discoveryDriver = new DiscoveryDriver();
         StorageSystem validStorageSystem = new StorageSystem();
         StorageSystem invalidStorageSystem = new StorageSystem();
 
@@ -207,17 +206,23 @@ public class ScaleIOStorageDriverTest {
         StoragePool storagePool = new StoragePool();
         storagePools.add(storagePool);
 
-        //discoveryDriver.discoverStoragePools(validStorageSystem, storagePools);
-        //discoveryDriver.discoverStoragePools(invalidStorageSystem, storagePools);
+        task = (DriverTaskImpl) driver.discoverStoragePools(validStorageSystem, storagePools);
 
+        Assert.assertNotNull(task);
+        Assert.assertEquals(task.getStatus().toString(), "READY");
+
+        task = (DriverTaskImpl) driver.discoverStoragePools(invalidStorageSystem, storagePools);
+        System.out.println(task);
+
+        Assert.assertNotNull(task);
+        Assert.assertEquals(task.getStatus().toString(), "READY");
     }
 
     @Test
     public void testDiscoverStoragePorts() throws Exception {
-        //DiscoveryDriver discoveryDriver = new DiscoveryDriver();
         StorageSystem validStorageSystem = new StorageSystem();
         StorageSystem invalidStorageSystem = new StorageSystem();
-
+        List<StoragePort> storagePorts = new ArrayList<>();
 
         validStorageSystem.setSystemName("TestValidSystem");
         validStorageSystem.setSystemType("scaleio");
@@ -233,13 +238,30 @@ public class ScaleIOStorageDriverTest {
         invalidStorageSystem.setPassword("password");
         invalidStorageSystem.setIpAddress("10.193.17.99");
 
+        // Valid system, empty list
+        task = (DriverTaskImpl) driver.discoverStoragePorts(validStorageSystem, storagePorts);
 
-        List<StoragePort> storagePorts = new ArrayList<>();
-        StoragePort storagePort = new StoragePort();
-        storagePorts.add(storagePort);
+        Assert.assertNotNull(task);
+        Assert.assertEquals(task.getStatus().toString(), "READY");
 
-        //discoveryDriver.discoverStoragePools(validStorageSystem, storagePools);
-        //discoveryDriver.discoverStoragePools(invalidStorageSystem, storagePools);
+        // Valid system, invalid list
+        task = (DriverTaskImpl) driver.discoverStoragePorts(validStorageSystem, storagePorts);
+
+        Assert.assertNotNull(task);
+        Assert.assertNotEquals(task.getStatus().toString(), "READY");
+
+        // Valid system, valid list
+        task = (DriverTaskImpl) driver.discoverStoragePorts(validStorageSystem, storagePorts);
+
+        Assert.assertNotNull(task);
+        Assert.assertEquals(task.getStatus().toString(), "READY");
+
+        // Invalid system
+        task = (DriverTaskImpl) driver.discoverStoragePorts(invalidStorageSystem, storagePorts);
+
+        Assert.assertNotNull(task);
+        Assert.assertNotEquals(task.getStatus().toString(), "READY");
+
     }
 
     @Test

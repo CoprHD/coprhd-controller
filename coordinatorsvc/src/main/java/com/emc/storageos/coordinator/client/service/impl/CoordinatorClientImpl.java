@@ -882,23 +882,17 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public InterProcessLock getLock(String name) throws CoordinatorException {
-        EnsurePath path = new EnsurePath(ZkPath.MUTEX.toString());
-        try {
-            path.ensure(_zkConnection.curator().getZookeeperClient());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw CoordinatorException.fatals.unableToGetLock(name, e);
-        } catch (Exception e) {
-            throw CoordinatorException.fatals.unableToGetLock(name, e);
-        }
-        String lockPath = ZKPaths.makePath(ZkPath.MUTEX.toString(), name);
-        return new InterProcessMutex(_zkConnection.curator(), lockPath);
+        return getLock(ZkPath.MUTEX.toString(), name);
     }
 
     @Override
     public InterProcessLock getSiteLocalLock(String name) throws CoordinatorException {
         String sitePrefix = String.format("/sites/%s/%s", ZkPath.MUTEX.toString());
-        EnsurePath path = new EnsurePath(sitePrefix);
+        return getLock(sitePrefix, name);
+    }
+
+    private InterProcessLock getLock(String parentPath, String name) throws CoordinatorException {
+        EnsurePath path = new EnsurePath(parentPath);
         try {
             path.ensure(_zkConnection.curator().getZookeeperClient());
         } catch (InterruptedException e) {
@@ -907,7 +901,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         } catch (Exception e) {
             throw CoordinatorException.fatals.unableToGetLock(name, e);
         }
-        String lockPath = ZKPaths.makePath(sitePrefix, name);
+        String lockPath = ZKPaths.makePath(parentPath, name);
         return new InterProcessMutex(_zkConnection.curator(), lockPath);
     }
 

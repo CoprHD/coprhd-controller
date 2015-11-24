@@ -89,13 +89,13 @@ public class VNXeUtils {
 
     }
 
-    public static boolean ifHigherVersion(String current_version, String base_version) {
+    public static boolean isHigherVersion(String currentVersion, String baseVersion) {
         String delims = "[.]";
         boolean isHigher = false;
-        String[] current_version_tokens = current_version.split(delims);
-        String[] base_version_tokens = base_version.split(delims);
-        for (int i = 0; i < 2; i++) {
-            if ((Integer.parseInt(current_version_tokens[i])) > (Integer.parseInt(base_version_tokens[i]))) {
+        String[] currentVersionTokens = currentVersion.split(delims);
+        String[] baseVersionTokens = baseVersion.split(delims);
+        for (int index = 0; index < 2; index++) {
+            if ((Integer.parseInt(currentVersionTokens[index])) > (Integer.parseInt(baseVersionTokens[index]))) {
                 isHigher = true;
                 break;
             }

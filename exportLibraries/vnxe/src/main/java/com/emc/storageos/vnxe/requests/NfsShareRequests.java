@@ -50,7 +50,7 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
         VNXeNfsShare result = null;
         StringBuilder queryFilter = new StringBuilder(VNXeConstants.NAME_FILTER);
 
-        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
+        if (!VNXeUtils.isHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             queryFilter.append(shareName);
             queryFilter.append(VNXeConstants.AND);
             queryFilter.append(VNXeConstants.FILE_SYSTEM_FILTER);
@@ -83,7 +83,7 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
 
         StringBuilder queryFilter = new StringBuilder(VNXeConstants.NAME_FILTER);
 
-        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
+        if (!VNXeUtils.isHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             queryFilter.append(shareName);
             queryFilter.append(VNXeConstants.AND);
             queryFilter.append(VNXeConstants.SNAP_FILTER);

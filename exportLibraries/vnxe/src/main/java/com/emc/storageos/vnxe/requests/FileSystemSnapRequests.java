@@ -31,7 +31,7 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
 
     public FileSystemSnapRequests(KHClient client, String softwareVersion) {
         super(client);
-        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
+        if (!VNXeUtils.isHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             _url = URL;
         } else {
             _url = URL_V31;
@@ -88,7 +88,7 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      * @throws VNXeException
      */
     public VNXeCommandJob deleteFileSystemSnap(String snapId, String softwareVersion) throws VNXeException {
-        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
+        if (!VNXeUtils.isHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             _url = URL_INSTANCE + snapId;
         } else {
             _url = URL_INSTANCE_V31 + snapId;
@@ -109,7 +109,7 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      * @return
      */
     public VNXeFileSystemSnap getFileSystemSnap(String snapId, String softwareVersion) throws VNXeException {
-        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
+        if (!VNXeUtils.isHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             _url = URL_INSTANCE + snapId;
         } else {
             _url = URL_INSTANCE_V31 + snapId;
@@ -130,7 +130,7 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
     public VNXeCommandJob restoreFileSystemSnap(String snapId, VNXeSnapRestoreParam restoreParam, String softwareVersion)
             throws VNXeException {
         StringBuilder urlBuilder;
-        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
+        if (!VNXeUtils.isHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             urlBuilder = new StringBuilder(URL_INSTANCE);
         } else {
             urlBuilder = new StringBuilder(URL_INSTANCE_V31);

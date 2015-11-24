@@ -283,7 +283,11 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             reconfigVdc();
-            checkAndPauseOnPrimary();
+            if (drUtil.isPrimary()) {
+                checkAndPauseOnPrimary();
+            } else {
+                checkAndPauseOnStandby();
+            }
         }
         
         /**
@@ -337,6 +341,25 @@ public abstract class VdcOpHandler {
                     }
                 }
             }
+        }
+
+        /**
+         * Update the site state from PAUSING to PAUSED on the standby site
+         */
+        private void checkAndPauseOnStandby() {
+            Site localSite = drUtil.getLocalSite();
+            if (!localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
+                return;
+            }
+
+            // wait for the firewall to be blocked from active site
+            waitForSiteUnreachable(drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId()));
+
+            // wait for ZooKeeper to restart in writable mode
+            coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
+
+            localSite.setState(SiteState.STANDBY_PAUSED);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
         }
 
         private void waitForSiteUnreachable(Site site) {

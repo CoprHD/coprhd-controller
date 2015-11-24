@@ -127,7 +127,7 @@ public class CoordinatorConfigStoringHelper {
     public synchronized InterProcessLock acquireLock(String lockName) throws Exception {
         InterProcessLock lock = nameLockMap.get(lockName);
         if (lock == null) {
-            lock = coordinator.getLock(lockName);
+            lock = coordinator.getSiteLocalLock(lockName);
             nameLockMap.put(lockName, lock);
         }
         lock.acquire();

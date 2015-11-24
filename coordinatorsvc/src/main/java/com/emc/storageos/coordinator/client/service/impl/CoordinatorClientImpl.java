@@ -887,7 +887,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public InterProcessLock getSiteLocalLock(String name) throws CoordinatorException {
-        String sitePrefix = String.format("/sites/%s/%s", ZkPath.MUTEX.toString());
+        String sitePrefix = String.format("%s/%s%s", ZkPath.SITES, getSiteId(), ZkPath.MUTEX);
         return getLock(sitePrefix, name);
     }
 

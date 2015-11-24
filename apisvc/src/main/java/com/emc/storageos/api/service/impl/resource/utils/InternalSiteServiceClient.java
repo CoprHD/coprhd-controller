@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource.utils;
@@ -52,7 +52,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
     }
 
     /**
-     * Initialize a to be resumed target standby
+     * Initialize a to-be resumed target standby
      * 
      * @param configParam the sites configuration
      * @return

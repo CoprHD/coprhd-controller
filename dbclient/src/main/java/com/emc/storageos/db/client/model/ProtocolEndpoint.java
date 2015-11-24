@@ -1,6 +1,6 @@
 package com.emc.storageos.db.client.model;
 
-import java.net.URL;
+import java.net.URI;
 
 
 @Cf("ProtocolEndpoint")
@@ -12,7 +12,7 @@ public class ProtocolEndpoint extends DataObject{
     
     private String ipAddress;
     
-    private URL storageSystem;
+    private URI storageSystem;
     
     private String serverMount;
     
@@ -132,11 +132,11 @@ public class ProtocolEndpoint extends DataObject{
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @IndexByKey
     @Name("storageSystem")
-    public URL getStorageSystem() {
+    public URI getStorageSystem() {
         return storageSystem;
     }
 
-    public void setStorageSystem(URL storageSystem) {
+    public void setStorageSystem(URI storageSystem) {
         this.storageSystem = storageSystem;
         setChanged("storageSystem");
     }

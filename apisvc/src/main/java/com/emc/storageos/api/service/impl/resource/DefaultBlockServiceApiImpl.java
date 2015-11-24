@@ -10,8 +10,10 @@ import static java.text.MessageFormat.format;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,12 +25,14 @@ import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationControll
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -330,5 +334,43 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         }
 
         return toTask(snapshot, taskId, op);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addVolumesToApplication(List<Volume> volumes, Application application) {
+        Set<URI> cgs = new HashSet<URI>();
+        Set<URI> volumeURIs = new HashSet<URI>();
+        String firstVolLabel = null;
+        for (Volume volume : volumes) {
+            URI cgUri = volume.getConsistencyGroup();
+            cgs.add(cgUri);
+            volumeURIs.add(volume.getId());
+            if (firstVolLabel == null) {
+                firstVolLabel = volume.getLabel();
+            }
+        }
+        Set<URI> cgVolumeURIs = new HashSet<URI>();
+        for (URI cgURI : cgs) {
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            List<Volume> cgvolumes = getActiveCGVolumes(cg);
+            for (Volume cgvol : cgvolumes) {
+                cgVolumeURIs.add(cgvol.getId());
+            }
+        }
+        if(!cgVolumeURIs.containsAll(volumeURIs) || volumeURIs.size() != cgVolumeURIs.size()) {
+            throw APIException.badRequests.volumeCantBeAddedToApplication(firstVolLabel, 
+                    "Not all volumes in consistency group are in the to be added volume list");
+        }
+        for (Volume volume : volumes) {
+            StringSet applications = volume.getApplicationIds();
+            if (applications == null) {
+                applications = new StringSet();
+            }
+            applications.add(application.getId().toString());
+            _dbClient.updateObject(volume);
+        }
     }
 }

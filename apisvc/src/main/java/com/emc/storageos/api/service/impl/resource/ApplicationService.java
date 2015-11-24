@@ -6,10 +6,16 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
@@ -24,8 +30,16 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Application;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.application.ApplicationCreateParam;
 import com.emc.storageos.model.application.ApplicationList;
@@ -49,6 +63,23 @@ public class ApplicationService extends TaskResourceService {
     private static final String APPLICATION_NAME = "name";
     private static final String APPLICATION_ROLES = "roles";
     private static final String EVENT_SERVICE_TYPE = "application";
+    private static final Set<String> ALLOWED_SYSTEM_TYPES = new HashSet<String>(Arrays.asList(
+            DiscoveredDataObject.Type.vnxblock.name(),
+            DiscoveredDataObject.Type.vplex.name(), 
+            DiscoveredDataObject.Type.vmax.name(), 
+            DiscoveredDataObject.Type.xtremio.name(),
+            DiscoveredDataObject.Type.scaleio.name(),
+            DiscoveredDataObject.Type.rp.name(),
+            DiscoveredDataObject.Type.srdf.name(),
+            DiscoveredDataObject.Type.ibmxiv.name()));
+    private static final Set<String> BLOCK_TYPES = new HashSet<String>(Arrays.asList(
+            DiscoveredDataObject.Type.vnxblock.name(),
+            DiscoveredDataObject.Type.vmax.name(), 
+            DiscoveredDataObject.Type.xtremio.name(),
+            DiscoveredDataObject.Type.scaleio.name(),
+            DiscoveredDataObject.Type.ibmxiv.name()));
+    private static final String BLOCK = "block";
+   
 
     @Override
     protected DataObject queryResource(URI id) {
@@ -186,9 +217,101 @@ public class ApplicationService extends TaskResourceService {
         if (description != null && !description.isEmpty()) {
             application.setDescription(description);
         }
+        if (param.hasVolumesToAdd()) {
+            List<URI> addVolList = param.getAddVolumesList().getVolumes();
+            Map<URI, List<Volume>> volMap = sortAndValidateAddVolumes(addVolList, application);
+            for (Map.Entry<URI, List<Volume>> entry : volMap.entrySet()) {
+                URI system = entry.getKey();
+                List<Volume> volumes = entry.getValue();
+                Volume firstVol = volumes.get(0);
+                BlockServiceApi serviceAPI = BlockService.getBlockServiceImpl(firstVol, _dbClient);
+            }
+            
+        }
         _dbClient.updateObject(application);
         auditOp(OperationTypeEnum.UPDATE_APPLICATION, true, null, application.getId().toString(),
                 application.getLabel());
         return DbObjectMapper.map(application);
+    }
+    
+    /**
+     * Sort add volume list based on its storage system, and validate the volume list.
+     * All volumes should be the same type (block, or RP, or VPLEX, or SRDF).
+     * Every volume should be in a consistency group
+     * @param volumes
+     * @return
+     */
+    private Map<URI, List<Volume>> sortAndValidateAddVolumes(List<URI> volumes, Application application) {
+        Map<URI, List<Volume>> volMap = new HashMap<URI, List<Volume>>();
+        String addedVolType = null;
+        String firstVolLabel = null;
+        for (URI volUri : volumes) {
+            ArgValidator.checkFieldUriType(volUri, Volume.class, "id");
+            Volume volume = _dbClient.queryObject(Volume.class, volUri);
+            if (volume.getInactive()) {
+                throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(), "The volume has been deleted");
+            }
+            URI cgUri = volume.getConsistencyGroup();
+            if (NullColumnValueGetter.isNullURI(cgUri)) {
+                throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(), "The volume is not in a consistency group");
+            }
+            URI systemUri = volume.getStorageController();
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemUri);
+            String type = system.getSystemType();
+            if (!ALLOWED_SYSTEM_TYPES.contains(type)) {
+                throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(), 
+                        "The storage system type that the volume created in is not allowed ");
+            }
+            String volType = getSystemType(type);
+            if (addedVolType == null) {
+                addedVolType = volType;
+                firstVolLabel = volume.getLabel();
+            }
+            if (!volType.equals(addedVolType)) {
+                throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(), 
+                        "The volume type is not same as others");
+            }
+            List<Volume> vols = volMap.get(systemUri);
+            if (vols == null) {
+                vols = new ArrayList<Volume>();
+                volMap.put(systemUri, vols);
+            }
+            vols.add(volume);
+        }
+        // Check if the to-add volumes are the same volume type as existing volumes in the application
+        List<Volume> existingVols = getApplicationVolumes(application);
+        if (!existingVols.isEmpty()) {
+            Volume firstVol = existingVols.get(0);
+            URI systemUri = firstVol.getStorageController();
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemUri);
+            String type = system.getSystemType();
+            String existingType = getSystemType(type);
+            if (!existingType.equals(addedVolType)) {
+                throw APIException.badRequests.volumeCantBeAddedToApplication(firstVolLabel, 
+                        "The volume type is not same as existing volumes in the application");
+            }
+        }
+        return volMap;
+    }
+    
+    private String getSystemType(String type) {
+        if (BLOCK_TYPES.contains(type)) {
+            return BLOCK;
+        } else {
+            return type;
+        }
+    }
+    
+    private List<Volume> getApplicationVolumes(Application application) {
+        List<Volume> result = new ArrayList<Volume>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByApplicationId(application.getId().toString()));
+        for (Volume vol : volumes) {
+            if (!vol.getInactive()) {
+                result.add(vol);
+            }
+        }
+        return result;
     }
 }

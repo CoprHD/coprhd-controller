@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -476,4 +477,11 @@ public interface BlockServiceApi {
      */
     public void verifyAddVolumeToCG(Volume volume, BlockConsistencyGroup cg,
             List<Volume> cgVolumes, StorageSystem cgStorageSystem);
+    
+    /**
+     * Validate and add volumes to the application
+     * @param volumes The to be added volumes
+     * @param application The application that the volumes to be added to
+     */
+    public void addVolumesToApplication(List<Volume> volumes, Application application);
 }

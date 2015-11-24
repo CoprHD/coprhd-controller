@@ -2615,4 +2615,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException applicationCantBeUpdated(final String applicationName, final String reason);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeCantBeAddedToApplication(final String volumeName, final String reason);
 }

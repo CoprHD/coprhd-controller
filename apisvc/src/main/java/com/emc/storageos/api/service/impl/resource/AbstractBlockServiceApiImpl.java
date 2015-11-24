@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -1673,5 +1674,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             s_logger.info(String.format("Volume and Task Pre-creation Objects [Exec]--  Source Volume: %s, Op: %s",
                     desc.getVolumeURI(), task));
         }
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addVolumesToApplication(List<Volume> volumes, Application application) {
+        throw APIException.methodNotAllowed.notSupported();
     }
 }

@@ -244,7 +244,7 @@
         		<entry key="dr_resume_standby" value-ref="vdcDrResumeStandbyHandler"/>
         		<entry key="dr_switchover" value-ref="vdcDrSwitchoverHandler"/>
         		<entry key="dr_failover" value-ref="vdcDrFailoverHandler"/>
-                <entry key="ipsec_rotate_key " value-ref="ipsecRotateHandler"/>
+                <entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
         		<entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
         	</map>
         </property>

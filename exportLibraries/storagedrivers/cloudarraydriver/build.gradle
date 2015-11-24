@@ -1,0 +1,9 @@
+dependencies {
+    compile project(":storagedrivers"),
+            project(":errorhandling"),
+            project(":com.iwave.ext.linux"),
+            project(":serviceutils"),
+            library(slf4j),
+            library(httpclient4),
+            library(commons_lang)
+}

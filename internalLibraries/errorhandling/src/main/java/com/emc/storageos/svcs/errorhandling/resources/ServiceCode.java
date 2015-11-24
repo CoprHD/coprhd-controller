@@ -551,6 +551,9 @@ public enum ServiceCode {
     EXTERNALDEVICE_DELETE_VOLUMES_ERROR(66003),
 
 
+    // CLOUD ARRAY STORAGEDRIVER
+    CLOUD_ARRAY_API_FAILURE(67000),
+
     // ****************************
     // Old style of Service codes
     // ****************************

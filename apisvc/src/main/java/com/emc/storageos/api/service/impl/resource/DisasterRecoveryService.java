@@ -186,12 +186,14 @@ public class DisasterRecoveryService {
             for (Site site : existingSites) {
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_ADD_STANDBY);
             }
-            long dataRevision = System.currentTimeMillis();
-            drUtil.updateVdcTargetVersion(siteId, SiteInfo.NONE, dataRevision);
 
             // sync site related info with to be added standby site
-            SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey(), standbyConfig.getUuid());
+            long dataRevision = System.currentTimeMillis();
+            SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey(), standbyConfig.getUuid(), dataRevision);
             viprCoreClient.site().syncSite(configParam);
+
+            drUtil.updateVdcTargetVersion(siteId, SiteInfo.DR_OP_CHANGE_DATA_REVISION, dataRevision);
+
             auditDisasterRecoveryOps(OperationTypeEnum.ADD_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null,
                     param.getVip(), param.getName());
             return siteMapper.map(standbySite);
@@ -214,10 +216,12 @@ public class DisasterRecoveryService {
     /**
      * Prepare all sites related info for synchronizing them from master to be added or resumed standby site
      *
-     * @param ipsecKey cluster ipsec key
+     * @param ipsecKey The cluster ipsec key
+     * @param targetStandbyUUID The uuid of the target standby
+     * @param targetStandbyDataRevision The data revision of the target standby
      * @return SiteConfigParam all the sites configuration
      */
-    private SiteConfigParam prepareSiteConfigParam(String ipsecKey, String targetStandbyUUID) {
+    private SiteConfigParam prepareSiteConfigParam(String ipsecKey, String targetStandbyUUID, long targetStandbyDataRevision) {
         log.info("Preparing to sync sites info among to be added/resumed standby site...");
         Site primary = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
         SiteConfigParam configParam = new SiteConfigParam();
@@ -232,9 +236,8 @@ public class DisasterRecoveryService {
             SiteParam standbyParam = new SiteParam();
             siteMapper.map(standby, standbyParam);
             if (standby.getUuid().equals(targetStandbyUUID)) {
-                long dataRevision = System.currentTimeMillis();
-		log.info("Set data revision for site {} to {}", standby.getUuid(), dataRevision);
-                standbyParam.setDataRevision(dataRevision);
+                log.info("Set data revision for site {} to {}", standby.getUuid(), targetStandbyDataRevision);
+                standbyParam.setDataRevision(targetStandbyDataRevision);
             }
             standbySites.add(standbyParam);
             log.info("    standby site info:{}", standbyParam.toString());
@@ -302,7 +305,7 @@ public class DisasterRecoveryService {
                 site.setVdcShortId(drUtil.getLocalVdcShortId());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
                 coordinator.addSite(standby.getUuid());
-                if (standby.getState().equals(String.valueOf(SiteState.STANDBY_ADDING))) {
+                if (standby.getUuid().equals(coordinator.getSiteId())) {
                     dataRevision = standby.getDataRevision();
                     log.info("Set data revision to {}", dataRevision);
                 }
@@ -678,16 +681,19 @@ public class DisasterRecoveryService {
                         log.error("site {} has been paused for too long, we will re-init the target standby", uuid);
 
                         // init the to-be resumed standby site
-                        SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey());
+                        long dataRevision = System.currentTimeMillis();
+                        SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey(), uuid, dataRevision);
                         _internalSiteServiceClient = new InternalSiteServiceClient();
                         _internalSiteServiceClient.setCoordinatorClient(coordinator);
                         _internalSiteServiceClient.setServer(site.getVip());
                         _internalSiteServiceClient.initStandby(configParam);
+
+                        drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, dataRevision);
                     } else {
-                        drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+                        drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY);
                     }
                 } else {
-                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY);
                 }
             }
 

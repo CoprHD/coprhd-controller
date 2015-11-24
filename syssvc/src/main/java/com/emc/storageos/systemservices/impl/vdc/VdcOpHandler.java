@@ -134,7 +134,7 @@ public abstract class VdcOpHandler {
             for (Site site : sites) {
                 log.info("Disable backupscheduler for {}", site.getUuid());
                 Map<String, String> siteProps = new HashMap<String, String>();
-                siteProps.put(BackupConstants.SCHEDULER_ENABLED, "no");
+                siteProps.put(BackupConstants.SCHEDULER_ENABLED, "false");
                 coordinator.setSiteSpecificProperties(siteProps, site.getUuid());
             }
         }

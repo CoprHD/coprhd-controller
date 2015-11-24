@@ -502,7 +502,7 @@ public class CoordinatorClientExt {
 
                 if (siteProps.size() > 0) {
                     setSiteSpecificProperties(siteProps, _coordinator.getSiteId());
-                    _log.info("site scope target properties changed successfully. target properties {}", siteScopeInfo.toString());
+                    _log.info("site scope target properties changed successfully. target properties {}",siteProps.toString());
                 }
             } catch (Exception e) {
                 throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target info. " + e.getMessage());

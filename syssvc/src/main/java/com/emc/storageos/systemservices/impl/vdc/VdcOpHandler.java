@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.cassandra.io.util.FileUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -283,7 +282,8 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
-            if (drUtil.getLocalSite().getState().equals(SiteState.STANDBY_PAUSING)) {
+            SiteState localSiteState = drUtil.getLocalSite().getState();
+            if (localSiteState.equals(SiteState.STANDBY_PAUSING) || localSiteState.equals(SiteState.STANDBY_PAUSED)) {
                 checkAndPauseOnStandby();
                 flushVdcConfigToLocal();
             } else {
@@ -363,9 +363,11 @@ public abstract class VdcOpHandler {
             }
 
             Site localSite = drUtil.getLocalSite();
-            localSite.setState(SiteState.STANDBY_PAUSED);
-            log.info("Updating local site state to STANDBY_PAUSED");
-            coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+            if (localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
+                localSite.setState(SiteState.STANDBY_PAUSED);
+                log.info("Updating local site state to STANDBY_PAUSED");
+                coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+            }
         }
 
         private void waitForSiteUnreachable(Site site) {

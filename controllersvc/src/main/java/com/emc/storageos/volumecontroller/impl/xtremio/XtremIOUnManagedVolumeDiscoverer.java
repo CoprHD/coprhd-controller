@@ -155,6 +155,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
         unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();
+        Map<String, String> volumesToCgs = null;
 
         // get the storage pool associated with the xtremio system
         StoragePool storagePool = getXtremIOStoragePool(storageSystem.getId(), dbClient);
@@ -170,12 +171,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
         String xioClusterName = xtremIOClient.getClusterDetails(storageSystem.getSerialNumber()).getName();
         // get the xtremio volume links and process them in batches
         List<XtremIOObjectInfo> volLinks = xtremIOClient.getXtremIOVolumeLinks(xioClusterName);
- 
-        //Get the Consistency group details 
-        List<XtremIOObjectInfo> consistencyGroupVolInfo = xtremIOClient.getXtremIOConsistencyGroupVolumes(xioClusterName);
-        //Get the volumes associated to the Consistency Group
-        Map<String, String> volumesToCgs = getConsistencyGroupVolumeDetails(xtremIOClient, consistencyGroupVolInfo, xioClusterName);
-
+        //If the version of XtremIO is 4 or above, discover consistency group
+        boolean isXioV2 = xtremIOClient.isVersion2();
+        if(isXioV2){
+        	//Get the Consistency group details 
+        	List<XtremIOObjectInfo> consistencyGroupVolInfo = xtremIOClient.getXtremIOConsistencyGroupVolumes(xioClusterName);
+        	//Get the volumes associated to the Consistency Group
+        	volumesToCgs = getConsistencyGroupVolumeDetails(xtremIOClient, consistencyGroupVolInfo, xioClusterName);
+        }
         // Get the volume details
         List<List<XtremIOObjectInfo>> volume_partitions = Lists.partition(volLinks, Constants.DEFAULT_PARTITION_SIZE);
         for (List<XtremIOObjectInfo> partition : volume_partitions) {
@@ -222,14 +225,16 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         storageSystem, storagePool, dbClient);
                 
                 //Verify if this volume is associated to a CG. If so, update the appropriate parameters. 
-                if (volumesToCgs.containsKey(volume.getVolInfo().get(0))) {
-                	unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());
-                	StringSet set = new StringSet();
-                    set.add(volumesToCgs.get(volume.getVolInfo().get(0)));
-                    unManagedVolume.getVolumeInformation().put(
-                            SupportedVolumeInformation.CONSISTENCY_GROUP_NAME.toString(), set);
+                if (isXioV2){
+                	if (volumesToCgs.containsKey(volume.getVolInfo().get(0))) {
+                		unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());
+                		StringSet cgName = new StringSet();
+                		cgName.add(volumesToCgs.get(volume.getVolInfo().get(0)));
+                		unManagedVolume.getVolumeInformation().put(
+                				SupportedVolumeInformation.CONSISTENCY_GROUP_NAME.toString(), cgName);
                 	
-                } 
+                	} 
+                }
 
                 if (hasSnaps) {
                     StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();
@@ -284,6 +289,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
         discoverUnmanagedExportMasks(storageSystem.getId(), igUnmanagedVolumesMap, igKnownVolumesMap, xtremIOClient, xioClusterName,
                 dbClient, partitionManager);
     }
+    
+    /*
+     * Retrieve Volumes that are associated to every Consistency group and create a map. 
+     * @param xtremIOClient
+     * @param consistencyGroupInfo
+     * @param xioClusterName
+     */
 
     private Map<String, String> getConsistencyGroupVolumeDetails(XtremIOClient xtremIOClient, List<XtremIOObjectInfo>consistencyGroupInfo, String xioClusterName) throws Exception {
     	Map<String, String> volumesToCgs = new HashMap<String, String>();
@@ -298,6 +310,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
     	log.info("Volumes to Consistency Groups mapping: "+volumesToCgs.toString());
     	return volumesToCgs; 
     }
+    
     private void populateKnownVolsMap(XtremIOVolume vol, BlockObject viprObj, Map<String, StringSet> igKnownVolumesMap) {
         for (List<Object> lunMapEntries : vol.getLunMaps()) {
             @SuppressWarnings("unchecked")

@@ -5,19 +5,13 @@
 package com.emc.storageos.xtremio.restapi;
 
 import java.net.URI;
-import java.util.List;
-
 import javax.ws.rs.core.MediaType;
-
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.services.restutil.StandardRestClient;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.XtremIOAuthInfo;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroupVolInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSsInfo;
 import com.sun.jersey.api.client.Client;

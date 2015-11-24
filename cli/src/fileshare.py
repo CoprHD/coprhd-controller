@@ -1428,7 +1428,7 @@ def nfs_acl_list(args):
         res = obj.nfs_acl_list(
             args.tenant + "/" + args.project + "/" + args.name ,args.alldir, args.subdir)
         
-        if ( len(res['nfs_acl']) == 0 ):
+        if ( len(res) == 0 ):
             print " No NFSv4 ACLs for the Filesystem/Subdirectory"
         else:
             from common import TableGenerator

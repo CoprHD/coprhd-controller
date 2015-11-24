@@ -28,6 +28,7 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.db.exceptions.RetryableDatabaseException;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -424,6 +425,9 @@ public abstract class VdcOpHandler {
                     localSite.setState(SiteState.STANDBY_SYNCING);
                     coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
                 }
+            } catch (RetryableDatabaseException e) {
+                // throw the exception for retry but don't set the site state to error.
+                throw new IllegalStateException(e);
             } catch (Exception e) {
                 populateStandbySiteErrorIfNecessary(localSite,
                     APIException.internalServerErrors.resumeStandbyReconfigFailed(e.getMessage()));

@@ -496,7 +496,9 @@ public class FileStorageScheduler {
      */
     private List<VirtualNAS> getUnassignedVNASServers(URI vArrayURI,
             VirtualPool vpool, Project project,
-            List<VirtualNAS> invalidNasServers ) {
+            List<VirtualNAS> invalidNasServers) {
+    	
+    	_log.info("Get vNAS servers from the unreserved list...");
 
         List<VirtualNAS> vNASList = new ArrayList<VirtualNAS>();
 
@@ -512,33 +514,35 @@ public class FileStorageScheduler {
                     .hasNext();) {
                 VirtualNAS vNAS = iterator.next();
                 
+                _log.info("Checking vNAS - {} : {}", vNAS.getNasName(), vNAS.getId());
+                
                 if (!isVNASActive(vNAS)) {
-                    _log.debug("Removing vNAS {} as it is inactive",
-                            vNAS.getId());
+                    _log.info("Removing vNAS {} as it is inactive",
+                            vNAS.getNasName());
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 } else if (MetricsKeys.getBoolean(MetricsKeys.overLoaded,
                         vNAS.getMetrics())) {
-                    _log.debug("Removing vNAS {} as it is overloaded",
-                            vNAS.getId());
+                    _log.info("Removing vNAS {} as it is overloaded",
+                            vNAS.getNasName());
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 } else if (!vNAS.getProtocols().containsAll(
                         vpool.getProtocols())) {
-                    _log.debug("Removing vNAS {} as it does not support vpool protocols: {}",
-                            vNAS.getId(), vpool.getProtocols());
+                    _log.info("Removing vNAS {} as it does not support vpool protocols: {}",
+                            vNAS.getNasName(), vpool.getProtocols());
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 } else if (!NullColumnValueGetter.isNullURI(vNAS.getProject())) {
                 	if ( !project.getId().equals(vNAS.getProject()) ) {
-                		_log.debug("Removing vNAS {} as it is assigned to project",
-                    			vNAS.getId());
+                		_log.info("Removing vNAS {} as it is assigned to project",
+                    			vNAS.getNasName());
                 		iterator.remove();
                 		invalidNasServers.add(vNAS);
                 	} 
                 } else if(!doesVNASDomainMatchesWithProjectDomain(project, vNAS)) {
-                	_log.debug("Removing vNAS {} as its domain does not match with project's domain: {}",
-                            vNAS.getId(), vpool.getProtocols());
+                	_log.info("Removing vNAS {} as its domain does not match with project's domain: {}",
+                            vNAS.getNasName(), vpool.getProtocols());
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 }
@@ -656,28 +660,29 @@ public class FileStorageScheduler {
                 VirtualNAS virtualNAS = iterator.next();
 
                 // Remove inactive, incompatible, invisible vNAS
+                _log.info("Checking vNAS - {} : {}", virtualNAS.getNasName(), virtualNAS.getId());
 
                 if (!isVNASActive(virtualNAS)) {
-                    _log.debug("Removing vNAS {} as it is inactive", virtualNAS.getId());
+                    _log.info("Removing vNAS {} as it is inactive", virtualNAS.getNasName());
                     iterator.remove();
                     invalidNasServers.add(virtualNAS);
                     
                 } else if (!virtualNAS.getAssignedVirtualArrays().contains(
                         varrayUri.toString())) {
-                    _log.debug("Removing vNAS {} as it is not part of varray: {}",
-                            virtualNAS.getId(), varrayUri.toString());
+                    _log.info("Removing vNAS {} as it is not part of varray: {}",
+                            virtualNAS.getNasName(), varrayUri.toString());
                     iterator.remove();
                     invalidNasServers.add(virtualNAS);
                 } else if (MetricsKeys.getBoolean(MetricsKeys.overLoaded,
                         virtualNAS.getMetrics())) {
-                    _log.debug("Removing vNAS {} as it is overloaded",
-                            virtualNAS.getId());
+                    _log.info("Removing vNAS {} as it is overloaded",
+                            virtualNAS.getNasName());
                     iterator.remove();
                     invalidNasServers.add(virtualNAS);
                 } else if (!virtualNAS.getProtocols().containsAll(
                         vpool.getProtocols())) {
-                    _log.debug("Removing vNAS {} as it does not support vpool protocols: {}",
-                            virtualNAS.getId(), vpool.getProtocols());
+                    _log.info("Removing vNAS {} as it does not support vpool protocols: {}",
+                            virtualNAS.getNasName(), vpool.getProtocols());
                     iterator.remove();
                     invalidNasServers.add(virtualNAS);
                 }

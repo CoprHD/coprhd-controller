@@ -81,6 +81,7 @@ import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.google.common.collect.ImmutableSet;
 
 import org.apache.commons.lang.StringUtils;
+
 import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 
 public class CoordinatorClientExt {
@@ -1415,6 +1416,15 @@ public class CoordinatorClientExt {
         private String initZkMode; // ZK mode during syssvc startup
         
         public void run() {
+            try {
+                checkLocalZKMode();
+            } catch (Exception e) {
+                //try catch exception to make sure next scheduled run can be launched.
+                _log.error("Error occurs when monitor local zookeeper mode", e);
+            }
+        }
+
+        private void checkLocalZKMode() {
             String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
             if (initZkMode == null) {
                 initZkMode = state;

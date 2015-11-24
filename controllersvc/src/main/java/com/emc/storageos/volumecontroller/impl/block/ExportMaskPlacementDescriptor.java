@@ -245,7 +245,27 @@ public class ExportMaskPlacementDescriptor {
     public void invalidateExportMask(URI uri) {
         masks.remove(uri);
         maskExportGroupMap.remove(uri);
-        maskToVolumes.remove(uri);
+        // When an ExportMask is invalidated, any volumes that were mapped
+        // to it should be put (back) into the unplacedVolumes list, if they
+        // are not already mapped to some other ExportMask
+        Map<URI, Volume> mappedVolumes = maskToVolumes.remove(uri);
+        if (mappedVolumes != null && !mappedVolumes.isEmpty()) {
+            // For each mapped volume for this ExportMask ...
+            for (URI volumeURI : mappedVolumes.keySet()) {
+                boolean foundMapping = false;
+                // Find out if there's an mapping of this volume to another ExportMask ...
+                for (Map<URI, Volume> volumeMap :maskToVolumes.values()) {
+                    if (volumeMap.containsKey(volumeURI)) {
+                        foundMapping = true;
+                        break;
+                    }
+                }
+                // If none are found, place into the unplacedVolumes map
+                if (!foundMapping) {
+                    unplacedVolumes.put(volumeURI, mappedVolumes.get(volumeURI));
+                }
+            }
+        }
     }
 
     /**

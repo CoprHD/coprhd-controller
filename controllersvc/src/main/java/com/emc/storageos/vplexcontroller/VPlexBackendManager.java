@@ -293,6 +293,14 @@ public class VPlexBackendManager {
                 // We will leave the placement hint to whatever was determined by the suggestExportMasksForPlacement call
                 Map<URI, Volume> unplacedVolumes = placementDescriptor.getUnplacedVolumes();
                 createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, unplacedVolumes, stepId);
+            } else if (!invalidMasks.isEmpty()) {
+                _log.info("Suggested ExportMasks for reuse: {} were considered invalid by Vplex validations. Generating new ExportMasks.",
+                        invalidMasks);
+                // In this scenario, the VplexBackendOrchestrator suggested one or more masks for reuse, but VPlex validations considered
+                // it/them to be invalid. There were apparently no unplaced volumes either, so, we have another situation where
+                // ViPR would have to create new backend masks ...
+                Map<URI, Volume> volumesToPlace = placementDescriptor.getVolumesToPlace();
+                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, volumesToPlace, stepId);
             }
 
             // At this point, we have:

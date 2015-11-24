@@ -8,7 +8,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.List;
 
-import org.apache.commons.lang.StringEscapeUtils;
 
 import play.Logger;
 import util.BackupUtils;

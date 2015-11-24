@@ -136,7 +136,8 @@ public class VPlexApiExportManager {
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         VPlexStorageViewInfo storageViewInfo = null;
         try {
-            storageViewInfo = discoveryMgr.findStorageView(viewName);
+            // We need details to get the initiator list.
+            storageViewInfo = discoveryMgr.findStorageView(viewName, true);
         } catch (Exception e) {
             s_logger.error("Exception trying to find VPLEX storage view.", e);
             viewFound[0] = false;
@@ -151,7 +152,11 @@ public class VPlexApiExportManager {
             s_logger.info("Storage view {} was found on the VPLEX device.", viewName);
             viewFound[0] = true;
         }
-
+        
+        // Grab all the initiators for the storage view. We will delete the below if they aren't used elsewhere.
+        List<PortInfo> initiatorPortInfos = storageViewInfo.getInitiatorPortInfos();
+        String clusterName = storageViewInfo.getClusterId();
+        
         // Now delete it.
         ClientResponse response = null;
         try {
@@ -188,6 +193,28 @@ public class VPlexApiExportManager {
             if (response != null) {
                 response.close();
             }
+        }
+        
+        // Delete any unused initiators.
+        List<PortInfo> initiatorsToDelete = new ArrayList<PortInfo>();
+        for (PortInfo portInfo : initiatorPortInfos) {
+            List<String> singleInitiatorList = new ArrayList<String>();
+            singleInitiatorList.add(portInfo.getName());
+            List<VPlexStorageViewInfo> viewsWithInitiator = 
+                    discoveryMgr.getStorageViewsContainingInitiators(clusterName, singleInitiatorList);
+            if (viewsWithInitiator.isEmpty()) {
+                s_logger.info(String.format("Deleting initiator %s (%s) because no remaining storage views are using it.", 
+                        portInfo.getName(), portInfo.getPortWWN()));
+                initiatorsToDelete.add(portInfo);
+            } else {
+                for (VPlexStorageViewInfo viewWithInitiator : viewsWithInitiator) {
+                    s_logger.info(String.format("Initiator %s still used by StorageView %s", 
+                            portInfo.getName(), viewWithInitiator.getName()));
+                }
+            }
+        }
+        if (!initiatorsToDelete.isEmpty()) {
+                unregisterInitiators(initiatorsToDelete, clusterName);
         }
     }
 
@@ -523,13 +550,14 @@ public class VPlexApiExportManager {
      * 
      * @param initiatorPortInfo The initiator port information.
      * @param initiatorInfoList Out param contains the found initiators.
+     * @param clusterName Optional parameter specifying clusterName. If null, both clusters processed.
      * 
      * @return The cluster on which the initiators were found.
      * 
      * @throws VPlexApiException When an error occurs finding the initiators.
      */
     private VPlexClusterInfo findInitiators(List<PortInfo> initiatorPortInfo,
-            List<VPlexInitiatorInfo> initiatorInfoList) throws VPlexApiException {
+            List<VPlexInitiatorInfo> initiatorInfoList, String clusterName) throws VPlexApiException {
 
         // Loop over the clusters looking for the initiators corresponding
         // to the passed port information.
@@ -537,6 +565,9 @@ public class VPlexApiExportManager {
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+            if (clusterName != null && !clusterName.equals(clusterInfo.getName())) {
+                continue;
+            }
             initiatorInfoList.addAll(findInitiatorsOnCluster(clusterInfo.getName(),
                     initiatorPortInfo, null));
 
@@ -727,7 +758,7 @@ public class VPlexApiExportManager {
 
         return portWWN.contains(RECOVERPOINT_INITIATOR_PREFIX);
     }
-
+    
     /**
      * Unregister the passed initiators identified by the passed port
      * information.
@@ -738,10 +769,24 @@ public class VPlexApiExportManager {
      *             initiator.
      */
     void unregisterInitiators(List<PortInfo> initiatorPortInfo) throws VPlexApiException {
+        unregisterInitiators(initiatorPortInfo, null);
+    }
+
+    /**
+     * Unregister the passed initiators identified by the passed port
+     * information.
+     * 
+     * @param initiatorPortInfo The initiator information.
+     * @param clusterName If non-null, will look for initiators only on the specified cluster.
+     * 
+     * @throws VPlexApiException When an error occurs unregistering an
+     *             initiator.
+     */
+    void unregisterInitiators(List<PortInfo> initiatorPortInfo, String clusterName) throws VPlexApiException {
 
         // Find the initiators.
         List<VPlexInitiatorInfo> initiatorInfoList = new ArrayList<VPlexInitiatorInfo>();
-        findInitiators(initiatorPortInfo, initiatorInfoList);
+        findInitiators(initiatorPortInfo, initiatorInfoList, clusterName);
 
         // Make sure we found them all.
         if (initiatorInfoList.size() != initiatorPortInfo.size()) {

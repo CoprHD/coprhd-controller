@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
+import com.emc.storageos.vplex.api.clientdata.PortInfo;
+
 /**
  * Info for a VPlex Storage View.
  */
@@ -255,6 +257,18 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
             attFilters.add(att.getAttributeName());
         }
         return attFilters;
+    }
+    
+    public List<PortInfo> getInitiatorPortInfos() {
+        List<PortInfo> portInfos = new ArrayList<PortInfo>();
+        for (int i=0; i < initiatorPwwns.size(); i++) {
+            PortInfo pinfo = new PortInfo(initiatorPwwns.get(i));
+            if (i < initiators.size()) {
+                pinfo.setName(initiators.get(i));
+                portInfos.add(pinfo);
+            }
+        }
+        return portInfos;
     }
 
     /**

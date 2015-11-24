@@ -282,11 +282,12 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
-            reconfigVdc();
-            if (drUtil.isPrimary()) {
-                checkAndPauseOnPrimary();
-            } else {
+            if (drUtil.getLocalSite().getState().equals(SiteState.STANDBY_PAUSING)) {
                 checkAndPauseOnStandby();
+                syncFlushVdcConfigToLocal();
+            } else {
+                reconfigVdc();
+                checkAndPauseOnPrimary();
             }
         }
         
@@ -295,6 +296,11 @@ public abstract class VdcOpHandler {
          * This should be done after the firewall has been updated to block the paused site so that it's not affected.
          */
         private void checkAndPauseOnPrimary() {
+            // this should only be done on the active site
+            if (drUtil.isStandby()) {
+                return;
+            }
+
             InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_PAUSE_STANDBY);
             while (drUtil.hasSiteInState(SiteState.STANDBY_PAUSING)) {
                 try {
@@ -347,10 +353,6 @@ public abstract class VdcOpHandler {
          * Update the site state from PAUSING to PAUSED on the standby site
          */
         private void checkAndPauseOnStandby() {
-            Site localSite = drUtil.getLocalSite();
-            if (!localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
-                return;
-            }
 
             // wait for the firewall to be blocked from active site
             waitForSiteUnreachable(drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId()));
@@ -358,6 +360,7 @@ public abstract class VdcOpHandler {
             // wait for ZooKeeper to restart in writable mode
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
 
+            Site localSite = drUtil.getLocalSite();
             localSite.setState(SiteState.STANDBY_PAUSED);
             coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
         }

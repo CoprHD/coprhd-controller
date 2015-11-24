@@ -588,11 +588,7 @@ public class DisasterRecoveryService {
             }
             log.info("Notify all sites for reconfig");
             for (Site standbySite : drUtil.listSites()) {
-                if (standbySite.getState().equals(SiteState.STANDBY_PAUSING)) {
-                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.NONE);
-                } else {
-                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY);
-                }
+                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY);
             }
             auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, siteIdStr);
             return Response.status(Response.Status.ACCEPTED).build();

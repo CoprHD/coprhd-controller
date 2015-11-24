@@ -99,6 +99,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String UPDATE_SRDF_PAIRING_STEP_GROUP = "UPDATE_SRDF_PAIRING_STEP_GROUP";
     private static final String UPDATE_SRDF_PAIRING = "updateSRDFPairingStep";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
+    private static final String CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP = "CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP";
+    private static final String CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_DESC = "Active source/target pairs";
 
     private static final String REMOVE_ASYNC_PAIR_METHOD = "removePairFromGroup";
     private static final String DETACH_SRDF_PAIR_METHOD = "detachVolumePairStep";
@@ -237,7 +239,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         boolean volumePartOfCG = isVolumePartOfCG(sourceDescriptors, uriVolumeMap);
 
         if (!volumePartOfCG) {
-            createNonCGSRDFVolumes(workflow, waitFor, sourceDescriptors, uriVolumeMap);
+            Mode SRDFMode = getSRDFMode(sourceDescriptors, uriVolumeMap);
+            if (Mode.ACTIVE.equals(SRDFMode)) {
+                createNonCGSRDFActiveModeVolumes(workflow, waitFor, sourceDescriptors, targetDescriptors, uriVolumeMap);
+            } else {
+                createNonCGSRDFVolumes(workflow, waitFor, sourceDescriptors, uriVolumeMap);
+            }
         } else {
             createCGSRDFVolumes(workflow, waitFor, sourceDescriptors, targetDescriptors, uriVolumeMap);
         }
@@ -320,6 +327,88 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                         CREATE_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
                         system.getSystemType(), getClass(), createMethod, rollbackMethod, null);
             }
+        }
+    }
+
+    protected void createNonCGSRDFActiveModeVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> sourceDescriptors,
+            List<VolumeDescriptor> targetDescriptors, Map<URI, Volume> uriVolumeMap) {
+        RemoteDirectorGroup group = getRAGroup(targetDescriptors, uriVolumeMap);
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
+        StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, group.getRemoteStorageSystemUri());
+        // finding actual volumes from Provider
+        Set<String> volumesInRDFGroupsOnProvider = findVolumesPartOfRDFGroups(system, group);
+
+        if (group.getVolumes() == null) {
+            group.setVolumes(new StringSet());
+        }
+        /*
+         * New pairs cannot be added to an existing RA group due to SMIS issue
+         * till OPT 489689 is fixed.
+         */
+        if (!group.getVolumes().isEmpty() || !volumesInRDFGroupsOnProvider.isEmpty()) {
+            // throw Exception cannot add more active pairs
+            log.warn("RDF Group {} out of sync with Array", group.getNativeGuid());
+            List<URI> sourceURIs = VolumeDescriptor.getVolumeURIs(sourceDescriptors);
+            List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(targetDescriptors);
+            URI vpoolChangeUri = getVirtualPoolChangeVolume(sourceDescriptors);
+            // Clear source and target
+
+            for (URI sourceUri : sourceURIs) {
+                Volume sourceVolume = dbClient.queryObject(Volume.class, sourceUri);
+                if (null != sourceVolume) {
+                    log.info("Clearing source volume {}-->{}", sourceVolume.getNativeGuid(),
+                            sourceVolume.getId());
+                    if (null == vpoolChangeUri) {
+                        // clear everything if not vpool change
+                        sourceVolume.setPersonality(NullColumnValueGetter.getNullStr());
+                        sourceVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
+
+                        sourceVolume.setInactive(true);
+                        sourceVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                    }
+                    if (null != sourceVolume.getSrdfTargets()) {
+                        sourceVolume.getSrdfTargets().clear();
+                    }
+                    dbClient.updateAndReindexObject(sourceVolume);
+                }
+
+            }
+
+            for (URI targetUri : targetURIs) {
+                Volume targetVolume = dbClient.queryObject(Volume.class, targetUri);
+                if (null != targetVolume) {
+                    log.info("Clearing target volume {}-->{}", targetVolume.getNativeGuid(),
+                            targetVolume.getId());
+                    targetVolume.setPersonality(NullColumnValueGetter.getNullStr());
+                    targetVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
+                    targetVolume.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(),
+                            NullColumnValueGetter.getNullStr()));
+                    targetVolume.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
+                    targetVolume.setSrdfGroup(NullColumnValueGetter.getNullURI());
+                    targetVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                    targetVolume.setInactive(true);
+                    dbClient.updateAndReindexObject(targetVolume);
+                }
+
+            }
+            throw DeviceControllerException.exceptions.createNonCGSRDFActiveModeVolumesStepFailed(group
+                    .getNativeGuid());
+
+        }
+
+        if (volumesInRDFGroupsOnProvider.isEmpty() && SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
+            log.info("RA Group {} was empty", group.getId());
+            waitFor = createNonCGSrdfPairStepsOnEmptyGroup(sourceDescriptors, targetDescriptors, group, waitFor, workflow);
+        } else {
+            log.info("RA Group {} not empty", group.getId());
+            // TODO : add steps to be able to add more pairs to a populated RDF group dependent on OPT 489689.
+        }
+        // Generate workflow step to refresh target system after CG creation.
+        if (null != system) {
+            waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, system, null, waitFor, workflow);
+        }
+        if (null != targetSystem) {
+            addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, waitFor, workflow);
         }
     }
 
@@ -1059,6 +1148,32 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
         return true;
     }
+
+    private String createNonCGSrdfPairStepsOnEmptyGroup(List<VolumeDescriptor> sourceDescriptors,
+            List<VolumeDescriptor> targetDescriptors, RemoteDirectorGroup group,
+            String waitFor, Workflow workflow) {
+
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
+        URI vpoolChangeUri = getVirtualPoolChangeVolume(sourceDescriptors);
+        log.info("VPoolChange URI {}", vpoolChangeUri);
+        List<URI> sourceURIs = VolumeDescriptor.getVolumeURIs(sourceDescriptors);
+        List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(targetDescriptors);
+
+        /*
+         * Invoke CreateListReplica with all source/target pairings.
+         */
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs);
+        // false here because we want to rollback individual links not the entire (pre-existing) group.
+        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
+
+        String stepId = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
+                CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_DESC, waitFor, system.getId(),
+                system.getSystemType(), getClass(), createListMethod, rollbackMethod, null);
+
+        return stepId;
+
+    }
+
 
     private Method rollbackAddSyncVolumePairMethod(final URI systemURI,
             final List<URI> sourceURIs, final List<URI> targetURIs,

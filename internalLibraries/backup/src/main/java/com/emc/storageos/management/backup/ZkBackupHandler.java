@@ -98,7 +98,7 @@ public class ZkBackupHandler extends BackupHandler {
             throw BackupException.fatals.failedToParseLeaderStatus(result);
         }
         String mode = (result.split(": "))[1];
-        if (mode.equals("leader") || mode.equals("standalone")) {
+        if (mode.equals("leader") || mode.equals("standalone") || mode.equals("observer")) {
             return true;
         } else {
             log.info("Status mode is: {}", mode);

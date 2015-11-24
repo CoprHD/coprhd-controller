@@ -164,8 +164,8 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             DrUtil drUtil = _coordinator.getDrUtil();
             if (drUtil.isPrimary()) {
                 _recoveryMgr.init();
+                startSystemAudit(_dbClient);
             }
-            startSystemAudit(_dbClient);
             _svcBeacon.start();
         } else {
             throw new Exception("No app found.");

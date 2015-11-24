@@ -6,6 +6,7 @@
 package com.emc.storageos.systemservices.impl.vdc;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +29,7 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -121,7 +123,20 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
+            if (drUtil.isPrimary()) {
+                disableBackupSchedulerForStandby();
+            }
             reconfigVdc();
+        }
+        
+        private void disableBackupSchedulerForStandby() {
+            List<Site> sites = drUtil.listSitesInState(SiteState.STANDBY_ADDING);
+            for (Site site : sites) {
+                log.info("Disable backupscheduler for {}", site.getUuid());
+                Map<String, String> siteProps = new HashMap<String, String>();
+                siteProps.put(BackupConstants.SCHEDULER_ENABLED, "no");
+                coordinator.setSiteSpecificProperties(siteProps, site.getUuid());
+            }
         }
     }
 

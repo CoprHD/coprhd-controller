@@ -501,12 +501,7 @@ public class CoordinatorClientExt {
                 _log.info("target properties changed successfully. target properties {}", globalPropInfo.toString());
 
                 if (siteProps.size() > 0) {
-                    PropertyInfoExt siteScopeInfo = new PropertyInfoExt(siteProps);
-                    ConfigurationImpl siteCfg = new ConfigurationImpl();
-                    siteCfg.setId(_coordinator.getSiteId());
-                    siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
-                    siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
-                    _coordinator.persistServiceConfiguration( siteCfg);
+                    setSiteSpecificProperties(siteProps, _coordinator.getSiteId());
                     _log.info("site scope target properties changed successfully. target properties {}", siteScopeInfo.toString());
                 }
             } catch (Exception e) {
@@ -519,6 +514,21 @@ public class CoordinatorClientExt {
         }
     }
 
+    /**
+     * Set site specific properties
+     * 
+     * @param props
+     * @param siteId
+     */
+    public void setSiteSpecificProperties(Map<String, String> props, String siteId) {
+        PropertyInfoExt siteScopeInfo = new PropertyInfoExt(props);
+        ConfigurationImpl siteCfg = new ConfigurationImpl();
+        siteCfg.setId(siteId);
+        siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+        siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
+        _coordinator.persistServiceConfiguration( siteCfg);
+    }
+    
     /**
      * Get all Node Infos.
      * 

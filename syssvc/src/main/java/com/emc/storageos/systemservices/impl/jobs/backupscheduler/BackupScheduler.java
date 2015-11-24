@@ -156,12 +156,6 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     @Override
     public void run() {
-        DrUtil drUtil = new DrUtil(coordinatorClient);
-        if(drUtil.isStandby()) {
-            log.info("Skip backup scheduler on standby");
-            return;
-        }
-        
         try {
             log.info("Backup scheduler thread goes live");
 

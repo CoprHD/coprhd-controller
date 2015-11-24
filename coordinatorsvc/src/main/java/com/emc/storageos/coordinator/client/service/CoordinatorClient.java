@@ -195,15 +195,24 @@ public interface CoordinatorClient {
 
     /**
      * Retrieves/creates a distributed mutex
-     * 
+     *
      * @param name mutex name
      * @return mutex
      */
     public InterProcessLock getLock(String name) throws CoordinatorException;
 
     /**
+     * Retrieves/creates a distributed mutex for local site
+     *
+     * @param name
+     * @return
+     * @throws CoordinatorException
+     */
+    public InterProcessLock getSiteLocalLock(String name) throws CoordinatorException;
+
+    /**
      * Retrieves/creates a distributed read write lock
-     * 
+     *
      * @param name read write lock name
      * @return read write lock
      */

@@ -127,10 +127,11 @@ public class CoordinatorConfigStoringHelper {
     public synchronized InterProcessLock acquireLock(String lockName) throws Exception {
         InterProcessLock lock = nameLockMap.get(lockName);
         if (lock == null) {
-            lock = coordinator.getLock(lockName);
+            lock = coordinator.getSiteLocalLock(lockName);
             nameLockMap.put(lockName, lock);
         }
         lock.acquire();
+        log.info("Acquired the lock {}", lockName);
         return lock;
     }
 
@@ -143,7 +144,9 @@ public class CoordinatorConfigStoringHelper {
     public void releaseLock(InterProcessLock lock) {
         try {
             if (lock != null) {
+                log.info("Releasing the lock {}", lock.toString());
                 lock.release();
+                log.info("Released the lock {}", lock.toString());
             }
         } catch (Exception e) {
             log.error("Could not release lock");

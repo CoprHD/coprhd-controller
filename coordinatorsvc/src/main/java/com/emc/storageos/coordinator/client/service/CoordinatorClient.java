@@ -203,6 +203,7 @@ public interface CoordinatorClient {
 
     /**
      * Retrieves/creates a distributed mutex for local site
+     *
      * @param name
      * @return
      * @throws CoordinatorException

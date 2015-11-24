@@ -4,8 +4,13 @@
  */
 package models.datatable;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.List;
 
+import org.apache.commons.lang.StringEscapeUtils;
+
+import play.Logger;
 import util.BackupUtils;
 import util.datatable.DataTable;
 
@@ -49,7 +54,11 @@ public class BackupDataTable extends DataTable {
 		public Integer progress = 0;
 
 		public Backup(BackupSet backup) {
-			id = backup.getName().replaceAll("\"","~");
+			try {
+			    id = URLEncoder.encode(backup.getName(), "UTF-8");
+			} catch(UnsupportedEncodingException e) {
+			    Logger.error("Could not encode backup name");
+			}
 			name = backup.getName();
 			creationtime = backup.getCreateTime();
 			size = backup.getSize();

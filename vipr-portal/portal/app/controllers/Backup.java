@@ -10,6 +10,7 @@ import java.util.List;
 
 import models.datatable.BackupDataTable;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 
 import play.data.binding.As;
@@ -78,7 +79,7 @@ public class Backup extends Controller {
 
     @FlashException(keep = true, referrer = { "create" })
     public static void save(@Valid BackupForm backupForm) {
-        backupForm.validate("backupForm");
+        backupForm.validate("name");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
@@ -101,7 +102,7 @@ public class Backup extends Controller {
         if (ids != null && ids.length > 0) {
             boolean deleteExecuted = false;
             for (String backupName : ids) {
-                BackupUtils.deleteBackup(backupName.replaceAll("~", "\""));
+                BackupUtils.deleteBackup(backupName);
                 deleteExecuted = true;
             }
             if (deleteExecuted == true) {
@@ -153,9 +154,6 @@ public class Backup extends Controller {
 
         public void validate(String fieldname) {
             Validation.valid(fieldname, this);
-            if (this.name.contains("\"")) {
-                Validation.addError(fieldname +".name", "backup.name.invalid");
-            }
         }
 
         public void save() throws ViPRException {

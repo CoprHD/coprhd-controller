@@ -13,6 +13,7 @@ package com.emc.storageos.api.service.impl.resource.cinder;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.ws.rs.*;
@@ -21,10 +22,12 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.impl.resource.VirtualPoolService;
 import com.emc.storageos.cinder.model.*;
-import com.emc.storageos.db.client.model.QosSpecification;
-import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,8 +35,6 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -94,12 +95,13 @@ public class QosService extends TaskResourceService {
     	CinderQosListRestResp qosListResp= new CinderQosListRestResp();
         _log.info("START get QoS list");
 
-        List<URI> qosSpecs = _dbClient.queryByType(QosSpecification.class, true);
-        for(URI qos:qosSpecs){
-            QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class, qos);
-            if(qosSpecification != null){
-                _log.debug("Qos Specification found, id: {}", qosSpecification.getId());
-                qosListResp.getQos_specs().add(getDataFromQosSpecification(qosSpecification));
+        List<URI> qosSpecsURI = _dbClient.queryByType(QosSpecification.class, true);
+        Iterator<QosSpecification> qosIter = _dbClient.queryIterativeObjects(QosSpecification.class, qosSpecsURI);
+        while (qosIter.hasNext()) {
+            QosSpecification activeQos = qosIter.next();
+            if(activeQos != null){
+                _log.debug("Qos Specification found, id: {}", activeQos.getId());
+                qosListResp.getQos_specs().add(getDataFromQosSpecification(activeQos));
             }
         }
 
@@ -128,10 +130,15 @@ public class QosService extends TaskResourceService {
         CinderQosDetail qosDetailed = new CinderQosDetail();
         _log.info("START get QoS specs detailed");
 
-        QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class, URI.create(qos_id));
+        QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class, URIUtil.createId(QosSpecification.class, qos_id));
         if(qosSpecification != null){
-            _log.info("Fetched Qos Specification, id: {}", qosSpecification.getId());
+            _log.debug("Fetched Qos Specification, id: {}", qosSpecification.getId());
             qosDetailed.qos_spec = getDataFromQosSpecification(qosSpecification);
+            // Self link points on a Virtual Pool assigned to Qos
+            VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, qosSpecification.getVirtualPoolId());
+            if(virtualPool != null){
+                qosDetailed.setLink(DbObjectMapper.toLink(virtualPool));
+            }
         }
 
         _log.info("END get QoS specs detailed");
@@ -271,13 +278,17 @@ public class QosService extends TaskResourceService {
     private CinderQos getDataFromQosSpecification(QosSpecification qosSpecs){
         _log.debug("Fetching data from Qos Specification, id: {}", qosSpecs.getId());
         CinderQos qos = new CinderQos();
-
-        qos.id = qosSpecs.getId().toString();
+        // Trim ID to return only UUID
+        qos.id = getCinderHelper().trimId(qosSpecs.getId().toString());
         qos.consumer = qosSpecs.getConsumer();
         qos.name = qosSpecs.getName();
         qos.specs = qosSpecs.getSpecs();
 
         return qos;
+    }
+
+    protected CinderHelpers getCinderHelper() {
+        return CinderHelpers.getInstance(_dbClient , _permissionsHelper);
     }
 
     static String date(Long timeInMillis){

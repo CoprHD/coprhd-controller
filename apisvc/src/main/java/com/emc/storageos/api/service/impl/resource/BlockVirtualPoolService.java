@@ -190,6 +190,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         // Persist new QoS to the DB
         _dbClient.createObject(qosSpecification);
+        recordOperation(OperationTypeEnum.CREATE_QOS, QOS_CREATED_DESCRIPTION, qosSpecification);
 
         recordOperation(OperationTypeEnum.CREATE_VPOOL, VPOOL_CREATED_DESCRIPTION, vpool);
         return toBlockVirtualPool(_dbClient, vpool, VirtualPool.getProtectionSettings(vpool, _dbClient),

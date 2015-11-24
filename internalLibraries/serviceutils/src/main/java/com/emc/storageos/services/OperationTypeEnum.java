@@ -8,6 +8,7 @@ package com.emc.storageos.services;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.ws.rs.DELETE;
 import javax.xml.bind.annotation.XmlElement;
 
 public enum OperationTypeEnum {
@@ -37,6 +38,10 @@ public enum OperationTypeEnum {
     REASSIGN_VPOOL_ACL("VpoolUpdated", "", "operation to overwrite VirtualPool acls"),
     MODIFY_VPOOL_ACL("VpoolUpdated", "", "operation to modify VirtualPool acls"),
     ASSIGN_VPOOL_TAG("ASSIGN VPOOL TAG", "", "operation to assign a tag to a VirtualPool"),
+
+    CREATE_QOS("QosCreated", "", "Quality of Service Created"),
+    UPDATE_QOS("QosUpdated", "", "Quality of Service Updated"),
+    DELETE_QOS("QosDeleted", "", "Quality os Service Deleted"),
 
     CREATE_BLOCK_VOLUME("VolumeCreated", "VolumeCreateFailed", "Volume Create"),
     DELETE_BLOCK_VOLUME("VolumeDeleted", "VolumeDeleteFailed", "Volume Delete"),

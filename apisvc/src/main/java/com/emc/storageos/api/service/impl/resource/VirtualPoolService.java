@@ -18,6 +18,7 @@ import java.util.Set;
 
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,17 +37,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.ProvisioningType;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -91,6 +83,10 @@ public abstract class VirtualPoolService extends TaggedResource {
     protected static final String VPOOL_CREATED_DESCRIPTION = "Virtual Pool Created";
     protected static final String VPOOL_UPDATED_DESCRIPTION = "Virtual Pool Updated";
     protected static final String VPOOL_DELETED_DESCRIPTION = "Virtual Pool Deleted";
+
+    protected static final String QOS_CREATED_DESCRIPTION = "Quality of Service Created";
+    protected static final String QOS_UPDATED_DESCRIPTION = "Quality of Service Updated";
+    protected static final String QOS_DELETED_DESCRIPTION = "Quality of Service Deleted";
 
     protected static final String VPOOL_PROTOCOL_NFS = "NFS";
     protected static final String VPOOL_PROTOCOL_CIFS = "CIFS";
@@ -814,10 +810,29 @@ public abstract class VirtualPoolService extends TaggedResource {
             }
         }
 
+        QosSpecification qosSpecification = getQos(vpool);
+
+        // Remove Qos associated to this Virtual Pool and record operation
+        _dbClient.removeObject(qosSpecification);
+        recordOperation(OperationTypeEnum.DELETE_QOS, QOS_DELETED_DESCRIPTION, qosSpecification);
+
         _dbClient.markForDeletion(vpool);
 
         recordOperation(OperationTypeEnum.DELETE_VPOOL, VPOOL_DELETED_DESCRIPTION, vpool);
         return Response.ok().build();
+    }
+
+    protected QosSpecification getQos(VirtualPool vpool){
+        List<URI> qosSpecsURI = _dbClient.queryByType(QosSpecification.class, true);
+        Iterator<QosSpecification> qosIter = _dbClient.queryIterativeObjects(QosSpecification.class, qosSpecsURI);
+        while (qosIter.hasNext()) {
+            QosSpecification activeQos = qosIter.next();
+            if(activeQos != null && activeQos.getVirtualPoolId().equals(vpool.getId())){
+                _log.debug("Qos Specification {} assigned to Virtual Pool {} found", activeQos.getId(), vpool.getId());
+                return activeQos;
+            }
+        }
+        throw APIException.notFound.unableToFindEntityInURL(vpool.getId());
     }
 
     /**

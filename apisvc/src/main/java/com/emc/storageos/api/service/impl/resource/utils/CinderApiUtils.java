@@ -226,15 +226,13 @@ public class CinderApiUtils {
     public static QosSpecification getDataFromVirtualPool(VirtualPool virtualPool) {
         _log.debug("Fetching data from Virtual Pool, id: {}", virtualPool.getId());
         QosSpecification qos = new QosSpecification();
+        StringMap specs = new StringMap();
         String systems = virtualPool.getProtocols().toString();
         qos.setName("specs-" + virtualPool.getLabel());
         qos.setConsumer("back-end");
         qos.setLabel(virtualPool.getLabel());
         qos.setId(URIUtil.createId(QosSpecification.class));
-        //qos.setId(UUID.randomUUID().toString());
-        // TODO: return UUID instead of URI
         qos.setVirtualPoolId(virtualPool.getId());
-        StringMap specs = new StringMap();
         specs.put("Provisioning Type", virtualPool.getSupportedProvisioningType());
         specs.put("Protocol", systems.substring(1, systems.length() - 1));
         specs.put("Drive Type", virtualPool.getDriveType());
@@ -246,8 +244,8 @@ public class CinderApiUtils {
         specs.put("Expendable", Boolean.toString(virtualPool.getExpandable()));
         specs.put("Maximum SAN paths", Integer.toString(virtualPool.getNumPaths()));
         specs.put("Minimum SAN paths", Integer.toString(virtualPool.getMinPaths()));
+        specs.put("Maximum block mirrors", Integer.toString(virtualPool.getMaxNativeContinuousCopies()));
         specs.put("Paths per Initiator", Integer.toString(virtualPool.getPathsPerInitiator()));
-        // TODO: max mirrors
         if (virtualPool.getHighAvailability() != null) {
             specs.put("High Availability", virtualPool.getHighAvailability());
         }

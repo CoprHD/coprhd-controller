@@ -347,53 +347,18 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
          */
         if (!group.getVolumes().isEmpty() || !volumesInRDFGroupsOnProvider.isEmpty()) {
             // throw Exception cannot add more active pairs
-            log.warn("RDF Group {} out of sync with Array", group.getNativeGuid());
-            List<URI> sourceURIs = VolumeDescriptor.getVolumeURIs(sourceDescriptors);
-            List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(targetDescriptors);
-            URI vpoolChangeUri = getVirtualPoolChangeVolume(sourceDescriptors);
-            // Clear source and target
-
-            for (URI sourceUri : sourceURIs) {
-                Volume sourceVolume = dbClient.queryObject(Volume.class, sourceUri);
-                if (null != sourceVolume) {
-                    log.info("Clearing source volume {}-->{}", sourceVolume.getNativeGuid(),
-                            sourceVolume.getId());
-                    if (null == vpoolChangeUri) {
-                        // clear everything if not vpool change
-                        sourceVolume.setPersonality(NullColumnValueGetter.getNullStr());
-                        sourceVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-
-                        sourceVolume.setInactive(true);
-                        sourceVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                    }
-                    if (null != sourceVolume.getSrdfTargets()) {
-                        sourceVolume.getSrdfTargets().clear();
-                    }
-                    dbClient.updateAndReindexObject(sourceVolume);
-                }
-
-            }
-
-            for (URI targetUri : targetURIs) {
-                Volume targetVolume = dbClient.queryObject(Volume.class, targetUri);
-                if (null != targetVolume) {
-                    log.info("Clearing target volume {}-->{}", targetVolume.getNativeGuid(),
-                            targetVolume.getId());
-                    targetVolume.setPersonality(NullColumnValueGetter.getNullStr());
-                    targetVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                    targetVolume.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(),
-                            NullColumnValueGetter.getNullStr()));
-                    targetVolume.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
-                    targetVolume.setSrdfGroup(NullColumnValueGetter.getNullURI());
-                    targetVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                    targetVolume.setInactive(true);
-                    dbClient.updateAndReindexObject(targetVolume);
-                }
-
-            }
+            log.info("RDF Group {} is not empty", group.getNativeGuid());
+            clearSourceAndTargetVolumes(sourceDescriptors, targetDescriptors);
             throw DeviceControllerException.exceptions.createNonCGSRDFActiveModeVolumesStepFailed(group
                     .getNativeGuid());
 
+        }
+
+        if (volumesInRDFGroupsOnProvider.isEmpty() && !SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
+            log.info("RDF Group {} is empty and supported copy mode is {} ", group.getNativeGuid(), group.getSupportedCopyMode());
+            clearSourceAndTargetVolumes(sourceDescriptors, targetDescriptors);
+            throw DeviceControllerException.exceptions.rdfGroupInViprDBNotInSyncWithArray(group
+                    .getNativeGuid());
         }
 
         if (volumesInRDFGroupsOnProvider.isEmpty() && SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
@@ -409,6 +374,53 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
         if (null != targetSystem) {
             addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, waitFor, workflow);
+        }
+    }
+
+    private void clearSourceAndTargetVolumes(List<VolumeDescriptor> sourceDescriptors,
+            List<VolumeDescriptor> targetDescriptors) {
+        List<URI> sourceURIs = VolumeDescriptor.getVolumeURIs(sourceDescriptors);
+        List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(targetDescriptors);
+        URI vpoolChangeUri = getVirtualPoolChangeVolume(sourceDescriptors);
+        // Clear source and target
+
+        for (URI sourceUri : sourceURIs) {
+            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceUri);
+            if (null != sourceVolume) {
+                log.info("Clearing source volume {}-->{}", sourceVolume.getNativeGuid(),
+                        sourceVolume.getId());
+                if (null == vpoolChangeUri) {
+                    // clear everything if not vpool change
+                    sourceVolume.setPersonality(NullColumnValueGetter.getNullStr());
+                    sourceVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
+
+                    sourceVolume.setInactive(true);
+                    sourceVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                }
+                if (null != sourceVolume.getSrdfTargets()) {
+                    sourceVolume.getSrdfTargets().clear();
+                }
+                dbClient.updateAndReindexObject(sourceVolume);
+            }
+
+        }
+
+        for (URI targetUri : targetURIs) {
+            Volume targetVolume = dbClient.queryObject(Volume.class, targetUri);
+            if (null != targetVolume) {
+                log.info("Clearing target volume {}-->{}", targetVolume.getNativeGuid(),
+                        targetVolume.getId());
+                targetVolume.setPersonality(NullColumnValueGetter.getNullStr());
+                targetVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
+                targetVolume.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(),
+                        NullColumnValueGetter.getNullStr()));
+                targetVolume.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
+                targetVolume.setSrdfGroup(NullColumnValueGetter.getNullURI());
+                targetVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                targetVolume.setInactive(true);
+                dbClient.updateAndReindexObject(targetVolume);
+            }
+
         }
     }
 

@@ -4,10 +4,12 @@
  */
 package com.emc.storageos.management.backup;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
 import java.text.Format;
 import java.text.SimpleDateFormat;
@@ -16,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -459,7 +462,7 @@ public class BackupOps {
         }
         File infoFile = new File(targetDir, backupTag + BackupConstants.BACKUP_INFO_SUFFIX);
         try (OutputStream fos = new FileOutputStream(infoFile)) {
-            Properties properties = new Properties();
+            Properties properties = new CustomProperties();
             properties.setProperty(BackupConstants.BACKUP_INFO_VERSION, getCurrentVersion());
             properties.setProperty(BackupConstants.BACKUP_INFO_HOSTS, getHostsWithDualInetAddrs().values().toString());
             properties.store(fos, null);
@@ -887,6 +890,30 @@ public class BackupOps {
             } catch (IOException e) {
                 log.error("Failed to close JMX connector", e);
             }
+        }
+    }
+
+    static class CustomProperties extends Properties {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public void store(OutputStream out, String comments) throws IOException {
+            customStore0(new BufferedWriter(new OutputStreamWriter(out, "8859_1")),
+                    comments, true);
+        }
+        private void customStore0(BufferedWriter bw, String comments, boolean escUnicode)
+                throws IOException {
+            bw.write("#" + new Date().toString());
+            bw.newLine();
+            synchronized (this) {
+                for (Enumeration e = keys(); e.hasMoreElements();) {
+                    String key = (String) e.nextElement();
+                    String val = (String) get(key);
+                    bw.write(key + "=" + val);
+                    bw.newLine();
+                }
+            }
+            bw.flush();
         }
     }
 }

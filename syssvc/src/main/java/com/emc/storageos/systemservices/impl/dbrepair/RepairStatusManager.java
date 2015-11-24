@@ -36,8 +36,53 @@ public class RepairStatusManager {
             return mergeStatus(convertToRepairStatus(localStatus), convertToRepairStatus(geoStatus));
         } catch (Exception e) {
             log.error("Error happened when trying to fetch DB and GeoDB repari status", e);
-            throw e;
+            DbRepairStatus status = new DbRepairStatus();
+            status.setStatus(Status.UNKNOWN);
+            return status;
         }
+    }
+
+    /*
+     * Merge local db repaire status and geo db repair status
+     * */
+    private DbRepairStatus mergeStatus(DbRepairStatus localDbState, DbRepairStatus geoDbState) {
+        DbRepairStatus repairStatus = new DbRepairStatus();
+        boolean nodeRecovery = isNodeRecoveryDbRepairInProgress();
+        log.info("Query repair status of dbsvc({}) and geodbsvc({}) successfully",
+                (localDbState == null) ? localDbState : localDbState.toString(),
+                (geoDbState == null) ? geoDbState : geoDbState.toString());
+        log.info("db repair running in node recovery? {}", nodeRecovery);
+
+        if (localDbState == null && geoDbState == null) {
+            repairStatus.setStatus(DbRepairStatus.Status.NOT_STARTED);
+            return repairStatus;
+        }
+        if (localDbState != null && geoDbState != null) {
+            if (localDbState.getStatus() == Status.IN_PROGRESS && geoDbState.getStatus() == Status.IN_PROGRESS) {
+                log.info("local/geo db repair are in progress both");
+                repairStatus = getDualProgressStatus(localDbState, geoDbState);
+            } else if (localDbState.getStatus() == Status.IN_PROGRESS) {
+                log.info("local db repair is in progress");
+                repairStatus = getSingleProgressStatus(localDbState, geoDbState, nodeRecovery, false);
+            } else if (geoDbState.getStatus() == Status.IN_PROGRESS) {
+                log.info("geo db repair is in progress");
+                repairStatus = getSingleProgressStatus(geoDbState, localDbState, nodeRecovery, true);
+            } else if (localDbState.getStatus() == Status.FAILED || geoDbState.getStatus() == Status.FAILED) {
+                log.info("local or geo db repair failed");
+                repairStatus = getFailStatus(localDbState, geoDbState);
+            } else if (localDbState.getStatus() == Status.SUCCESS && geoDbState.getStatus() == Status.SUCCESS) {
+                log.info("local and geo db repair failed");
+                repairStatus = getSuccessStatus(localDbState, geoDbState);
+            }
+        }
+
+        if (localDbState == null) {
+            repairStatus = geoDbState;
+        } else if (geoDbState == null) {
+            repairStatus = localDbState;
+        }
+        log.info("Repair status is: {}", repairStatus.toString());
+        return repairStatus;
     }
 
     private DbRepairStatus convertToRepairStatus(DbRepairJobState state) {
@@ -47,7 +92,7 @@ public class RepairStatusManager {
         Date startTime = null;
         Date endTime = null;
 
-        DbRepairStatus repairState = convertLastRepairStatus(state); // need combine
+        DbRepairStatus repairState = convertLastRepairStatus(state);
         if (repairState != null) {
             progress = repairState.getProgress();
             status = repairState.getStatus();
@@ -105,49 +150,6 @@ public class RepairStatusManager {
             return recoveryStatus.getStatus() == RecoveryStatus.Status.REPAIRING;
         }
         return false;
-    }
-
-    /*
-     * Merge local db repaire status and geo db repair status
-     * */
-    private DbRepairStatus mergeStatus(DbRepairStatus localDbState, DbRepairStatus geoDbState) {
-        DbRepairStatus repairStatus = new DbRepairStatus();
-        boolean nodeRecovery = isNodeRecoveryDbRepairInProgress();
-        log.info("Query repair status of dbsvc({}) and geodbsvc({}) successfully",
-                (localDbState == null) ? localDbState : localDbState.toString(),
-                (geoDbState == null) ? geoDbState : geoDbState.toString());
-        log.info("db repair running in node recovery? {}", nodeRecovery);
-
-        if (localDbState == null && geoDbState == null) {
-            repairStatus.setStatus(DbRepairStatus.Status.NOT_STARTED);
-            return repairStatus;
-        }
-        if (localDbState != null && geoDbState != null) {
-            if (localDbState.getStatus() == Status.IN_PROGRESS && geoDbState.getStatus() == Status.IN_PROGRESS) {
-                log.info("local/geo db repair are in progress both");
-                repairStatus = getDualProgressStatus(localDbState, geoDbState);
-            } else if (localDbState.getStatus() == Status.IN_PROGRESS) {
-                log.info("local db repair is in progress");
-                repairStatus = getSingleProgressStatus(localDbState, geoDbState, nodeRecovery, false);
-            } else if (geoDbState.getStatus() == Status.IN_PROGRESS) {
-                log.info("geo db repair is in progress");
-                repairStatus = getSingleProgressStatus(geoDbState, localDbState, nodeRecovery, true);
-            } else if (localDbState.getStatus() == Status.FAILED || geoDbState.getStatus() == Status.FAILED) {
-                log.info("local or geo db repair failed");
-                repairStatus = getFailStatus(localDbState, geoDbState);
-            } else if (localDbState.getStatus() == Status.SUCCESS && geoDbState.getStatus() == Status.SUCCESS) {
-                log.info("local and geo db repair failed");
-                repairStatus = getSuccessStatus(localDbState, geoDbState);
-            }
-        }
-
-        if (localDbState == null) {
-            repairStatus = geoDbState;
-        } else if (geoDbState == null) {
-            repairStatus = localDbState;
-        }
-        log.info("Repair status is: {}", repairStatus.toString());
-        return repairStatus;
     }
 
     private DbRepairStatus getDualProgressStatus(DbRepairStatus localStatus, DbRepairStatus geoStatus) {

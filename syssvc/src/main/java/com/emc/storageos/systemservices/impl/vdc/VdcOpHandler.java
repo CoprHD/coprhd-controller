@@ -357,8 +357,10 @@ public abstract class VdcOpHandler {
             // wait for the firewall to be blocked from active site
             waitForSiteUnreachable(drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId()));
 
-            // wait for ZooKeeper to restart in writable mode, which will also restart syssvc
-            coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
+            String state = drUtil.getLocalCoordinatorMode(coordinator.getMyNodeId());
+            if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
+                coordinator.reconfigZKToWritable(true);
+            }
 
             Site localSite = drUtil.getLocalSite();
             localSite.setState(SiteState.STANDBY_PAUSED);

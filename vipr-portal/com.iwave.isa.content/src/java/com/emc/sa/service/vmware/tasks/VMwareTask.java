@@ -55,4 +55,12 @@ public class VMwareTask<T> extends ExecutionTask<T> {
         }
     }
 
+    public void cancelTaskNoException(Task task) {
+        try {
+            cancelTask(task);
+        } catch (Exception e) {
+            logError("VMwareTask.detail.cancelError", e.getMessage());
+        }
+    }
+
 }

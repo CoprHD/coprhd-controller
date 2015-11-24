@@ -1,0 +1,171 @@
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+    <script>
+        function updateHeight() {
+            var height = $("#ipsecConfig").height();
+            var diff = height - $("#ipsecStatus").height();
+            $("#ipsecStatus").height(height);
+
+            if ($("#ipsecStatusFailure")) {
+                $("#ipsecStatusFailure").height($("#ipsecStatusFailure").height() + diff);
+            }
+
+            if ($("#ipsecStatusSuccess")) {
+                $("#ipsecStatusSuccess").height($("#ipsecStatusSuccess").height() + diff);
+            }
+
+            if ($("#ipsecStatusLoading")) {
+                $("#ipsecStatusLoading").height($("#ipsecStatusLoading").height() + diff);
+            }
+        }
+
+        function startUpdating(url, contentId) {
+            var content = DynamicContent();
+            content.watchValue(contentId);
+
+            var update = function() {
+                $.get(url, function(data) {
+                    var newData = $('<div></div>').html(data);
+                    content.update(newData);
+                    updateHeight();
+                });
+            };
+            update();
+        }
+
+        $(document).ready(function() {
+            updateHeight();
+            startUpdating('@{auth.IPsec.ipsecStatus()}', '#ipsecStatusPanel');
+        });
+    </script>
+#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+    <style type="text/css">
+        .panel-margin-top {
+        margin-top: 10px;
+        }
+        .text-margin-top {
+        margin-top: 5px;
+        }
+        .text-margin-left {
+        margin-left: 5px;
+        }
+        .gi-2x {
+        font-size: 2em;
+        }
+        .panel-ipsec-status-success {
+        background-color: #5cb85c;
+        }
+        .panel-ipsec-status-failure {
+        background-color: #f0ad4e;
+        }
+        .panel-ipsec-status-text-color {
+        color: #ffffff;
+        }
+    </style>
+#{/set}
+
+<div id="ipsecStatusPanel">
+    <div class="row" id="ipsec">
+        <div class="col-sm-2">
+            <div id="ipsecStatus" class="panel panel-default">
+                <div class="panel-heading"><h3 class="panel-title">&{'ipsec.status'}</h3></div>
+                #{if ipSecStatusInfo}
+                    #{if ipSecStatusInfo.status}
+                    <div id="ipsecStatusSuccess" class="panel-body panel-ipsec-status-success" title="&{'ipsec.status.refresh'}" onclick="window.location.href = '@{auth.IPsec.ipsec()}';" style="cursor: pointer;">
+                        <div class="row panel-margin-top" align="center">
+                            <span class="glyphicon glyphicon-ok panel-ipsec-status-text-color gi-2x"> </span>
+                        </div>
+                        <div class="row panel-margin-top" align="center">
+                            <span class="text gi-2x panel-ipsec-status-text-color"> Stable</span>
+                        </div>
+                    </div>
+                    #{/if}
+                    #{if !ipSecStatusInfo.status}
+                    <div id="ipsecStatusFailure" class="panel-body panel-ipsec-status-failure" title="&{'ipsec.status.refresh'}" onclick="window.location.href = '@{auth.IPsec.ipsec()}';" style="cursor: pointer;">
+                        <div class="row panel-margin-top" align="center">
+                            <span class="gi-2x panel-ipsec-status-text-color">#{icon 'warning-sign'/}</span>
+                        </div>
+                        <div class="row panel-margin-top" align="center">
+                            <span class="text gi-2x panel-ipsec-status-text-color"> Degraded</span>
+                        </div>
+                    </div>
+                    #{/if}
+                #{/if}
+                #{if !ipSecStatusInfo}
+                    <div id="ipsecStatusLoading" class="panel-body">
+                        <div class="loadingBox">
+                            <img src="/public/img/loading-huge.gif" height="64" width="64">
+                        </div>
+                    </div>
+                #{/if}
+            </div>
+        </div>
+        <div class="col-sm-10">
+            <div id="ipsecConfig" class="panel panel-default">
+                <div class="panel-heading"><h3 class="panel-title">&{'ipsec.configuration'}</h3></div>
+                <div class="panel-body">
+                    <div class="row text-margin-left">
+                        <span class="text">&{'ipsec.configuration.keysGeneratedOn'}</span>
+                        #{if !ipSecStatusInfo}
+                            <span class="loadingBox">
+                                &nbsp;&nbsp; <img src="/public/img/loading-huge.gif" height="32" width="32">
+                            </span>
+                        #{/if}
+                        #{if ipSecStatusInfo}
+                            <span class="text" style="font-weight:bold">&nbsp;&nbsp; ${ipSecStatusInfo.configGeneratedDate }</span>
+                        #{/if}
+                    </div>
+                </div>
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <div class="row text-margin-top text-margin-left">
+                            #{Form.button name:'button.ipsec.rotate.keys', class:'primary', icon:'repeat', disabled:ipSecStatusInfo?!ipSecStatusInfo.status:true, href:@rotateIPsecKeys()/}
+                        </div>
+                        <div class="row text-margin-top text-margin-left">
+                            <span id="keyRotationDescription" class="text">&{'ipsec.key.rotation.description'}</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    #{if ipSecStatusInfo?.failureNodes}
+    <div class="row  panel-margin-top" id="ipsecFailureNodes">
+        <div class="col-sm-12">
+            <legend>&{'ipsecFailure.title'}<small>&{'ipsecFailure.description'}</small></legend>
+            <table class="table table-condensed table-striped">
+                <thead>
+                <tr>
+                    <th>&{'ipsecFailure.node'}</th>
+                    <th>&{'ipsecFailure.keysGeneratedOn'}</th>
+                    <th>&{'ipsecFailure.status'}</th>
+                </tr>
+                </thead>
+                <tbody>
+                #{list items:ipSecStatusInfo.failureNodes, as:'failureNode'}
+                <tr>
+                    <td>${failureNode.node}</td>
+                    <td>${failureNode.keysGeneratedOn}</td>
+                    <td>
+                        #{if failureNode.status == "Synching"}
+                            <span class="label label-info" title="&{'ipsec.status.refresh'}" onclick="window.location.href = '@{auth.IPsec.ipsec()}';" style="cursor: pointer;">
+                                <span class ="glyphicon glyphicon-refresh rotate"></span>
+                                <span class="label label-info">${failureNode.status} </span>
+                            </span>
+                        #{/if}
+                        #{if failureNode.status == "Unknown"}
+                        <span class="label label-warning" title="&{'ipsec.status.refresh'}" onclick="window.location.href = '@{auth.IPsec.ipsec()}';" style="cursor: pointer;">#{icon 'warning-sign'/} ${failureNode.status}</span>
+                        #{/if}
+                    </td>
+                </tr>
+                #{/list}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    #{/if}
+</div>

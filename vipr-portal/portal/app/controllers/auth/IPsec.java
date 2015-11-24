@@ -5,15 +5,26 @@
 
 package controllers.auth;
 
+import com.emc.storageos.model.ipsec.IPsecNodeState;
+import com.emc.storageos.model.ipsec.IPsecStatus;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 
 import controllers.Common;
 import controllers.util.ViprResourceController;
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import play.mvc.With;
 import util.IPsecUtils;
 import util.MessagesUtils;
+
+import java.util.ArrayList;
+import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.TimeZone;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SECURITY_ADMIN"),
@@ -24,10 +35,16 @@ public class IPsec extends ViprResourceController {
     protected static final String IPSEC_KEY_ROTATION_SUCCESS = "ipsec.key.rotation.success";
 
     public static void ipsec() {
-        IPSecForm ipSecForm = new IPSecForm();
-        render(ipSecForm);
+        render();
     }
-    public static void rotateIPsecPreSharedKeys() {
+
+    public static void ipsecStatus() {
+        IPsecStatus ipsecStatus = IPsecUtils.getIPsecStatus();
+        IPSecStatusInfo ipSecStatusInfo = new IPSecStatusInfo(ipsecStatus);
+        render(ipSecStatusInfo);
+    }
+
+    public static void rotateIPsecKeys() {
         try {
             if (StringUtils.isBlank(IPsecUtils.rotateIPsecKey())) {
                 flash.error(MessagesUtils.get(IPSEC_KEY_ROTATION_ERROR, INVALID_IPSEC_CONFIG_VERSION));
@@ -42,6 +59,65 @@ public class IPsec extends ViprResourceController {
         }
     }
 
-    public static class IPSecForm {
+    public static class IPsecFailedNodeInfo {
+        public static final String FAILED_NODE_STATE_SYNCHRONIZING = "Synching";
+        public static final String FAILED_NODE_STATE_UNKNOWN = "Unknown";
+
+        public String node;
+        public String keysGeneratedOn;
+        public String status;
+
+        public IPsecFailedNodeInfo() {
+
+        }
+
+        public IPsecFailedNodeInfo(String node, String keysGeneratedOn, String status) {
+            this.node = node;
+            this.keysGeneratedOn = keysGeneratedOn;
+            this.status = status;
+        }
+    }
+
+    public static class IPSecStatusInfo {
+        protected static final String DATE_TIME_FORMAT = "yyyy MMMMM dd hh:mm:ss:SSS aaa";
+        protected static final String UNKNOWN_DATE_TIME = "Unknown";
+
+        public Boolean status;
+        public String configGeneratedDate;
+        public List<IPsecFailedNodeInfo> failureNodes;
+
+        public IPSecStatusInfo(IPsecStatus ipsecStatus) {
+            status = ipsecStatus.getIsGood();
+            configGeneratedDate = convertToDateTime(ipsecStatus.getVersion());
+            failureNodes = new ArrayList<IPsecFailedNodeInfo>();
+            if (ipsecStatus.getNodeStatus() != null) {
+                for (IPsecNodeState ipsecNodeState : ipsecStatus.getNodeStatus()) {
+                    String status = StringUtils.isNotBlank(ipsecNodeState.getVersion()) ?
+                            IPsecFailedNodeInfo.FAILED_NODE_STATE_SYNCHRONIZING :
+                            IPsecFailedNodeInfo.FAILED_NODE_STATE_UNKNOWN;
+
+                    IPsecFailedNodeInfo ipsecFailedNodeInfo = new IPsecFailedNodeInfo(ipsecNodeState.getIp(),
+                            convertToDateTime(ipsecNodeState.getVersion()), status);
+
+                    failureNodes.add(ipsecFailedNodeInfo);
+                }
+            }
+        }
+
+        private String convertToDateTime(String configVersion) {
+            if (StringUtils.isBlank(configVersion)) {
+                return UNKNOWN_DATE_TIME;
+            }
+
+            long geTime= Long.parseLong(configVersion);
+
+            GregorianCalendar calendar = new GregorianCalendar(TimeZone.getDefault());
+            calendar.setTimeInMillis(geTime);
+
+            DateTime dateTime = new DateTime(geTime, DateTimeZone.forTimeZone(TimeZone.getDefault()));
+            DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(DATE_TIME_FORMAT);
+
+            return dateTimeFormatter.print(dateTime);
+        }
     }
 }

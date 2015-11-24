@@ -1433,11 +1433,16 @@ public class CoordinatorClientExt {
             if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
                 return; // expected situation. Standby zookeeper should be observer mode normally
             }
-            Site localSite = drUtil.getLocalSite();
-            SiteState siteState = localSite.getState();
-            if (siteState.equals(SiteState.PRIMARY_SWITCHING_OVER) || siteState.equals(SiteState.STANDBY_SWITCHING_OVER) || siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
-                _log.info("Ignore coordinator check for site state {}", siteState);
-                return;
+            
+            try {
+                Site localSite = drUtil.getLocalSite();
+                SiteState siteState = localSite.getState();
+                if (siteState.equals(SiteState.PRIMARY_SWITCHING_OVER) || siteState.equals(SiteState.STANDBY_SWITCHING_OVER) || siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
+                    _log.info("Ignore coordinator check for site state {}", siteState);
+                    return;
+                }
+            } catch (Exception e) {
+                _log.error("Failed to get local site's state", e);
             }
             
             _log.info("Local zookeeper mode {}", state);

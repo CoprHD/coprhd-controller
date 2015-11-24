@@ -10,7 +10,9 @@ public class HpuxVersion {
 
     public HpuxVersion(String version) {
         String[] versions = version.split("\\.");
-        setVersion(String.format("%s.%s", versions[1], versions[2]));
+        String last = versions[versions.length - 1];
+        String secondToLast = versions[versions.length - 2];
+        setVersion(String.format("%s.%s", secondToLast, last));
     }
 
     @Override
@@ -25,5 +27,4 @@ public class HpuxVersion {
     public void setVersion(String version) {
         this.version = version;
     }
-
 }

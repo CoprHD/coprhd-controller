@@ -9,13 +9,13 @@ public class HpuxVersion {
     private String version;
 
     public HpuxVersion(String version) {
-        setVersion(version);
+        String[] versions = version.split("\\.");
+        setVersion(String.format("%s.%s", versions[1], versions[2]));
     }
 
     @Override
     public String toString() {
-        String[] versions = version.split("\\.");
-        return String.format("%s.%s", versions[1], versions[2]);
+        return version;
     }
 
     public String getVersion() {

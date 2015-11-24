@@ -399,6 +399,8 @@ public abstract class VdcOpHandler {
                     coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
                 }
             } catch (Exception e) {
+                populateStandbySiteErrorIfNecessary(localSite,
+                    APIException.internalServerErrors.resumeStandbyReconfigFailed(e.getMessage()));
                 throw new IllegalStateException(e);
             } finally {
                 try {

@@ -26,6 +26,7 @@ public class DbRepairStatus implements Serializable {
         IN_PROGRESS,
         SUCCESS,
         FAILED,
+        UNKNOWN
     }
 
     private Status status;

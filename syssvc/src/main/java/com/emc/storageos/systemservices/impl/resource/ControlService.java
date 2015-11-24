@@ -42,6 +42,7 @@ import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
+import com.emc.storageos.systemservices.impl.dbrepair.RepairStatusManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
@@ -66,6 +67,9 @@ public class ControlService {
     @Autowired
     private RecoveryManager recoveryManager;
 
+    @Autowired
+    private RepairStatusManager repairStatusManager;
+    
     @Autowired
     private IpReconfigManager ipreconfigManager;
 
@@ -431,21 +435,7 @@ public class ControlService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public DbRepairStatus getDbRepairStatus() throws Exception {
         _log.info("Received a getting db repair status request");
-        if (_coordinator.isMyDbSvcGood(Constants.DBSVC_NAME) && _coordinator.isMyDbSvcGood(Constants.GEODBSVC_NAME)) {
-            return getDbRepairStatusFromLocalNode();
-        } else {
-            URI endpoint = _coordinator.getNodeEndpointWithGoodDbsvc();
-            _log.info("Dbsvc/Geodbsvc on current node is not started yet, swith to another syssvc endpoint " + endpoint);
-            if (endpoint == null) {
-                throw APIException.internalServerErrors.sysClientError("No valid syssvc endpoint for db repair status check");
-            }
-            try {
-                return SysClientFactory.getSysClient(endpoint)
-                        .get(SysClientFactory.URI_GET_DBREPAIR_STATUS, DbRepairStatus.class, null);
-            } catch (SysClientException e) {
-                throw APIException.internalServerErrors.sysClientError("db repair status");
-            }
-        }
+        return repairStatusManager.getDbRepairStatus();
     }
 
     /**
@@ -456,7 +446,7 @@ public class ControlService {
     @Produces({ MediaType.APPLICATION_JSON })
     public DbRepairStatus getDbRepairStatusFromLocalNode() throws Exception {
         _log.info("Check db repair status");
-        return recoveryManager.getDbRepairStatus();
+        return repairStatusManager.getDbRepairStatus();
     }
 
     /**

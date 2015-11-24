@@ -26,6 +26,7 @@ public class SiteParam {
     private String secretKey;
     private String state;
     private String ipsecKey;
+    private long creationTime;
     private long dataRevision;
 
     @XmlElement(name = "uuid")
@@ -109,7 +110,7 @@ public class SiteParam {
         this.freshInstallation = freshInstallation;
     }
 
-    @XmlElement(name = "short_id")
+    @XmlElement(name = "short_id", required = false, nillable = true)
     public String getShortId() {
         return shortId;
     }
@@ -145,6 +146,15 @@ public class SiteParam {
         this.nodeCount = nodeCount;
     }
 
+    @XmlElement(name = "creationTime")
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    public void setCreationTime(long creationTime) {
+        this.creationTime = creationTime;
+    }
+
     @XmlElement(name = "data_revision")
     public long getDataRevision() {
         return dataRevision;
@@ -161,8 +171,14 @@ public class SiteParam {
         builder.append(uuid);
         builder.append(", name=");
         builder.append(name);
+        builder.append(", shortid=");
+        builder.append(shortId);
+        builder.append(", state=");
+        builder.append(state);
         builder.append(", vip=");
         builder.append(vip);
+        builder.append(", node count=");
+        builder.append(nodeCount);
         builder.append(", hostIPv4AddressMap=");
         builder.append(hostIPv4AddressMap);
         builder.append(", hostIPv6AddressMap=");
@@ -173,6 +189,8 @@ public class SiteParam {
         builder.append(dbSchemaVersion);
         builder.append(", freshInstallation=");
         builder.append(freshInstallation);
+        builder.append(", creationTime=");
+        builder.append(creationTime);
         builder.append(", dataRevision=");
         builder.append(dataRevision);
         builder.append("]");

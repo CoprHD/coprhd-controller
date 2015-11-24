@@ -12,7 +12,6 @@
 package com.emc.storageos.api.service.impl.resource.cinder;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -23,11 +22,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
-import com.emc.storageos.api.service.impl.resource.VirtualPoolService;
 import com.emc.storageos.cinder.model.*;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.db.client.model.QosSpecification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -267,9 +265,20 @@ public class QosService extends TaskResourceService {
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Path("/{qos_id}/associations")
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public QosAssociationsRestResp getQosAssociations(@PathParam("tenant_id") String openstack_tenant_id) {
+    public QosAssociationsRestResp getQosAssociations(@PathParam("tenant_id") String openstack_tenant_id, @PathParam("qos_id") String qos_id) {
         _log.info("START get qos associations");
         QosAssociationsRestResp objQosRestResp= new QosAssociationsRestResp();
+        _log.info("START get qos associations");
+
+        URI qos_URI = URIUtil.createId(QosSpecification.class, qos_id);
+        List<URI> qosSpecs = _dbClient.queryByType(QosSpecification.class, true);
+        for (URI spec : qosSpecs) {
+            QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class,spec);
+            if (spec != null && qosSpecification.getId().equals(qos_URI)) {
+                objQosRestResp.getAssociation().add(getQosAssociation(qosSpecification));
+            }
+        }
+        _log.info("END get qos association");
         return objQosRestResp;
     }
     
@@ -289,6 +298,15 @@ public class QosService extends TaskResourceService {
 
     protected CinderHelpers getCinderHelper() {
         return CinderHelpers.getInstance(_dbClient , _permissionsHelper);
+    }
+
+    private CinderQosAssociation getQosAssociation(QosSpecification qosSpecs) {
+        _log.debug("Fetching data from Qos Specification, id: {}" + qosSpecs.getId());
+        CinderQosAssociation cinderQosAssociation = new CinderQosAssociation();
+        cinderQosAssociation.name = qosSpecs.getLabel();
+        cinderQosAssociation.id = qosSpecs.getVirtualPoolId().toString();
+        cinderQosAssociation.association_type = "volume_type";
+        return cinderQosAssociation;
     }
 
     static String date(Long timeInMillis){

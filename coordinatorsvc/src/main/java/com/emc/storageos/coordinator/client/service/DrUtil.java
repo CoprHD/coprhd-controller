@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -41,6 +42,9 @@ public class DrUtil {
     
     private CoordinatorClient coordinator;
 
+    public DrUtil() {
+    }
+    
     public DrUtil(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
@@ -169,7 +173,33 @@ public class DrUtil {
         }
         return result;
     }
+    
+    /**
+     * List sites with given state
+     * 
+     * @param state
+     * @return
+     */
+    public List<Site> listSitesInState(SiteState state) {
+        List<Site> result = new ArrayList<Site>();
+        for(Site site : listSites()) {
+            if (site.getState().equals(state)) {
+                result.add(site);
+            }
+        }
+        return result;
+    }
 
+    /**
+     * Return true if we have sites in given state
+     * 
+     * @param state
+     * @return
+     */
+    public boolean hasSiteInState(SiteState state) {
+         return !listSitesInState(state).isEmpty();
+    }
+    
     /**
      * Get the total number of nodes in all sites of a VDC
      * @return
@@ -244,26 +274,10 @@ public class DrUtil {
         log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
 
-
-    /**
-     * Update SiteInfo's action, version and data revision for specified site id
-     * @param siteId site UUID
-     * @param action action to take
-     */
-    public void updateVdcTargetVersionAndDataRevision(String siteId, String action) throws Exception {
-        int ver = 1;
-        SiteInfo siteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
-        if (siteInfo != null) {
-            if (!siteInfo.isNullTargetDataRevision()) {
-                String currentDataRevision = siteInfo.getTargetDataRevision();
-                ver = Integer.valueOf(currentDataRevision);
-            }
-        }
-        String targetDataRevision = String.valueOf(++ver);
-        siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
+    public void updateVdcTargetVersion(String siteId, String action, long dataRevision) throws Exception {
+        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action, String.valueOf(dataRevision));
         coordinator.setTargetInfo(siteId, siteInfo);
-        log.info("VDC target version updated to {}, revision {}",
-                siteInfo.getVdcConfigVersion(), targetDataRevision);
+        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
 
     /**
@@ -339,5 +353,10 @@ public class DrUtil {
             } catch (Exception ex) {}
         }
         return null;
+    }
+    
+    public void removeSiteConfiguration(Site site) {
+        coordinator.removeServiceConfiguration(site.toConfiguration());
+        log.info("Removed site {} configuration from ZK", site.getUuid());
     }
 }

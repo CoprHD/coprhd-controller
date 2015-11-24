@@ -266,6 +266,12 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_RECONFIG_FAILED)
     InternalServerErrorException pauseStandbyReconfigFailed(String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_PRECHECK_FAILED)
+    InternalServerErrorException resumeStandbyPrecheckFailed(String siteId, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_RECONFIG_FAILED)
+    InternalServerErrorException resumeStandbyReconfigFailed(String errMsg);
+
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
     public InternalServerErrorException resumeStandbyFailed(final String siteName, String errMsg);
 

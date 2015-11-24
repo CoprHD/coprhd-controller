@@ -27,6 +27,7 @@ public class SiteParam {
     private String state;
     private String ipsecKey;
     private long creationTime;
+    private long dataRevision;
 
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -154,10 +155,19 @@ public class SiteParam {
         this.creationTime = creationTime;
     }
 
+    @XmlElement(name = "data_revision")
+    public long getDataRevision() {
+        return dataRevision;
+    }
+
+    public void setDataRevision(long dataRevision) {
+        this.dataRevision = dataRevision;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("Site Param [uuid=");
+        builder.append("SiteParam [uuid=");
         builder.append(uuid);
         builder.append(", name=");
         builder.append(name);
@@ -181,6 +191,8 @@ public class SiteParam {
         builder.append(freshInstallation);
         builder.append(", creationTime=");
         builder.append(creationTime);
+        builder.append(", dataRevision=");
+        builder.append(dataRevision);
         builder.append("]");
         return builder.toString();
     }

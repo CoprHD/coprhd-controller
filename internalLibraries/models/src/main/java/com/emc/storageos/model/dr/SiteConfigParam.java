@@ -17,7 +17,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SiteConfigParam {
     private List<SiteParam> standbySites;
     private SiteParam primarySite;
-
+    
     @XmlElement(name = "standby_sites")
     public List<SiteParam> getStandbySites() {
         if (standbySites == null) {

@@ -483,54 +483,6 @@ class Fileshare(object):
         else:
             return o
 
-        # file system exports update for endpoints.
-    def filesystem_export_update(
-            self, name, security_type, permission, root_user,
-            protocol, add_endpoints, remove_endpoints, sync):
-        '''
-        Makes REST API call to export update
-        Parameters:
-            name             :name of filesystem
-            security_type    :type of security
-            permission       :Permissions
-            root_user        :root_user mapping
-            protocol         :Protocol valid values - NFS,NFSv4
-            add_endpoints    :list client end points to add
-            remove_endpoints :list client end points to remove
-            sync             :synchronous mode
-        Returns:
-            filesystem Modified result
-          '''
-
-        fileshare_uri = self.fileshare_query(name)
-        if(add_endpoints or remove_endpoints):
-            if(add_endpoints):
-                updateparam = {
-                    'add': add_endpoints
-                }
-
-            if(remove_endpoints):
-                updateparam = {
-                    'remove': remove_endpoints
-                }
-        else:
-            updateparam = {}
-
-        body = json.dumps(updateparam)
-
-        request_uri = Fileshare.URI_FILESHARE_UNEXPORTS.format(
-            fileshare_uri, protocol,
-            security_type, permission, root_user)
-
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "PUT",
-                                             request_uri, body)
-        if(not s):
-            return None
-        o = common.json_decode(s)
-        if(sync):
-            return self.check_for_sync(o, sync)
-        else:
-            return o
 
     def export_rule(self, name, operation, securityflavor, user=None, roothosts=None, readonlyhosts=None, readwritehosts=None, subDir=None):
         
@@ -1234,11 +1186,12 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
                                     metavar='<permissions>',
                                     help='Provide permissions for Acl',
                                     required=True)
-    nfs_acl_parser.add_argument('-permissiontype', '-permtype',
+    mandatory_args.add_argument('-permissiontype', '-permtype',
                                     dest='permissiontype',
                                     choices=["allow", "deny"],
                                     metavar='<permission_type>',
-                                    help='Provide permission type for Acl')
+                                    help='Provide permission type for Acl',
+                                    required=True)
     nfs_acl_parser.add_argument('-tenant', '-tn',
                                      metavar='<tenantname>',
                                      dest='tenant',
@@ -1341,7 +1294,7 @@ def nfs_acl_delete_parser(subcommand_parsers, common_parser):
         description='ViPR ACL Delete CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Delete a ACL of Filesystem')
+        help='Deletes all the ACLs which are set on a particular filesystem as well as on its sub-directories')
     mandatory_args = nfs_acl_delete_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<filesystemname>',
@@ -1673,80 +1626,6 @@ def fileshare_unexport(args):
         else:
             raise e
 
-
-def export_update_parser(subcommand_parsers, common_parser):
-    update_parser = subcommand_parsers.add_parser(
-        'update-export',
-        description='ViPR Filesystem export update CLI usage.',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='export update of filesystem')
-    mandatory_args = update_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-name', '-n',
-                                dest='name',
-                                metavar='<filesystemname>',
-                                help='name of filesystem for export update',
-                                required=True)
-    update_parser.add_argument('-tenant', '-tn',
-                               metavar='<tenantname>',
-                               dest='tenant',
-                               help='Name of tenant')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
-    mandatory_args.add_argument('-security', '-sec',
-                                metavar='<security>',
-                                dest='security',
-                                help='Security type',
-                                required=True)
-    mandatory_args.add_argument('-permission', '-pe',
-                                metavar='<permission>',
-                                dest='permission',
-                                help='file share access permissions ',
-                                required=True)
-    mandatory_args.add_argument('-rootuser', '-ru',
-                                metavar='<root_user>',
-                                dest='root_user',
-                                help='root user',
-                                required=True)
-    mandatory_args.add_argument('-protocol', '-pl',
-                                help='access protocol',
-                                choices=["NFS", "NFSv4"],
-                                dest='protocol',
-                                required=True)
-    update_parser.add_argument('-add_endpoints', '-aep',
-                               metavar="<AddEndPoints>",
-                               help='list of client endpoints to add',
-                               dest='add_endpoints',
-                               nargs='+')
-    update_parser.add_argument('-remove_endpoints', '-rep',
-                               metavar="<RemoveEndPoints>",
-                               help='list of client endpoints to remove',
-                               dest='remove_endpoints',
-                               nargs='+')
-    update_parser.add_argument('-synchronous', '-sync',
-                               dest='sync',
-                               help='Execute in synchronous mode',
-                               action='store_true')
-    update_parser.set_defaults(func=fileshare_export_update)
-
-
-def fileshare_export_update(args):
-    try:
-
-        obj = Fileshare(args.ip, args.port)
-        if(not args.tenant):
-            args.tenant = ""
-        obj.filesystem_export_update(
-            args.tenant + "/" + args.project + "/" + args.name,
-            args.security, args.permission, args.root_user, args.protocol,
-            args.add_endpoints, args.remove_endpoints, args.sync)
-
-    except SOSError as e:
-        common.format_err_msg_and_raise("update", "filesystem",
-                                        e.err_text, e.err_code)
 
 # fileshare ingest routines
 
@@ -2357,9 +2236,6 @@ def fileshare_parser(parent_subparser, common_parser):
 
     # show shares command parser
     show_shares_parser(subcommand_parsers, common_parser)
-
-    # export update command parser
-    export_update_parser(subcommand_parsers, common_parser)
 
     # export command parser
     export_parser(subcommand_parsers, common_parser)

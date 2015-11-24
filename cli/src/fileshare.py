@@ -1214,7 +1214,7 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
     nfs_acl_parser.add_argument('-type','-t',
                                     dest='type',
                                     metavar='<type>',
-                                    choices = ["user","group", "wellknown"],
+                                    choices = ["user","group"],
                                     help='Type')
     nfs_acl_parser.add_argument('-subdirectory', '-subdir',
                                     dest='subdir',

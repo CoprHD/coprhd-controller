@@ -1641,7 +1641,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : true,
-        value : "B.11.31",
+        value : "11.31",
     },
     {
         key : "compute_aix_version",

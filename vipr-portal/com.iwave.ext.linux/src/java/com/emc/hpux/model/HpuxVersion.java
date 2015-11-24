@@ -14,7 +14,8 @@ public class HpuxVersion {
 
     @Override
     public String toString() {
-        return String.format("%s", version);
+        String[] versions = version.split("\\.");
+        return String.format("%s.%s", versions[1], versions[2]);
     }
 
     public String getVersion() {
@@ -24,4 +25,5 @@ public class HpuxVersion {
     public void setVersion(String version) {
         this.version = version;
     }
+
 }

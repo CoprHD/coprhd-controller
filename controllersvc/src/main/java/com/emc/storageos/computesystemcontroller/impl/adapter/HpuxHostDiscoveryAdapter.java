@@ -49,9 +49,7 @@ public class HpuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         HpuxVersion version = getVersion(host);
         host.setOsVersion(version.toString());
 
-        // TODO fixme
-        // if (getVersionValidator().isValidHpuxVersion(version)) {
-        if (true) {
+        if (getVersionValidator().isValidHpuxVersion(version)) {
             host.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             save(host);
             super.discoverHost(host, changes);

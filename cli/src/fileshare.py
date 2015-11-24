@@ -1230,7 +1230,7 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
                                 required=True)
     mandatory_args.add_argument('-permissions', '-perms',
                                     dest='permissions',
-                                    choices=["Read", "Write", "Execute","Read,write" ,"Read,Execute","Read,Write,Execute"],
+                                    choices=["Read", "Write", "Execute","Read,write" ,"Read,Execute","Write,Execute","Read,Write,Execute"],
                                     metavar='<permissions>',
                                     help='Provide permissions for Acl',
                                     required=True)

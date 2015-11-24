@@ -39,10 +39,10 @@ import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
-import com.emc.storageos.db.server.impl.RepairStatusManager;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
+import com.emc.storageos.systemservices.impl.dbrepair.RepairStatusManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
@@ -67,7 +67,8 @@ public class ControlService {
     @Autowired
     private RecoveryManager recoveryManager;
 
-    private RepairStatusManager repairStatusManager = new RepairStatusManager();
+    @Autowired
+    private RepairStatusManager repairStatusManager;
     
     @Autowired
     private IpReconfigManager ipreconfigManager;

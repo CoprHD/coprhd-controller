@@ -2644,7 +2644,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @return The snapshots for the passed volume.
      */
     @Override
-    public List<BlockSnapshot> getSnapshots(Volume volume) {
+    public List<BlockSnapshot> getSnapshots(Volume volume) {                
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
 
         // Get all related RP volumes
@@ -2666,6 +2666,29 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         return snapshots;
+    }
+    
+    /**
+     * Get the snapshots for the passed volume only, do not retrieve any of the related snaps.
+     *
+     * @param volume A reference to a volume.
+     * @return The snapshots for the passed volume.
+     */
+    public List<BlockSnapshot> getSnapshotsForVolume(Volume volume) {
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        
+        // Get all the related local snapshots and RP bookmarks for this RP Volume
+        snapshots.addAll(super.getSnapshots(volume));
+
+        // If this is a RP+VPLEX/MetroPoint volume get any local snaps for this volume as well,
+        // we need to call out to VPLEX Api to get this information as the parent of these
+        // snaps will be the backing volume.
+        boolean vplex = RPHelper.isVPlexVolume(volume);
+        if (vplex) {
+            snapshots.addAll(vplexBlockServiceApiImpl.getSnapshots(volume));
+        }
+
+        return snapshots;        
     }
 
     @Override
@@ -3355,56 +3378,79 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             _log.info(String.format("Request to remove protection from Volume [%s] (%s) and move it to Virtual Pool [%s] (%s)",
                     volume.getLabel(), volume.getId(), newVpool.getLabel(), newVpool.getId()));
             volumeURIs.add(volume.getId());
-
-            // List of bookmarks to cleanup (if any)
+            
+            // List of RP bookmarks to cleanup (if any)
             List<BlockSnapshot> rpBookmarks = new ArrayList<BlockSnapshot>();
-            // Loop through all targets and check for bookmarks and snapshots.
+            
+            // Get all the block snapshots and RP bookmarks for the source.
+            List<BlockSnapshot> sourceSnapshots = this.getSnapshotsForVolume(volume);            
+            // Iterate through all snapshots found for the source            
+            for (BlockSnapshot sourceSnapshot : sourceSnapshots) {
+                // Check to see if this is an RP bookmark
+                if (TechnologyType.RP.name().equals(sourceSnapshot.getTechnologyType())) {
+                    // If this RP bookmark is exported, throw an exception to inform the
+                    // user. The user should first un-export this bookmark before removing
+                    // protection.
+                    if (sourceSnapshot.isSnapshotExported(_dbClient)) { 
+                        String warningMessage = String.format("RP Bookmark/Snapshot [%s](%s) is exported to Host, "
+                                + "please un-export the Bookmark/Snapshot from all exports and place the order again", 
+                                sourceSnapshot.getLabel(), sourceSnapshot.getId());
+                        _log.warn(warningMessage);
+                        throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
+                    }
+                    // Add bookmark to be cleaned up in ViPR. These
+                    // would have been automatically removed in RP when
+                    // removing protection anyway. So this is a pro-active
+                    // cleanup step.
+                    rpBookmarks.add(sourceSnapshot);
+                } else {                        
+                    // This is a block snapshot. 
+                    // Check to see if the source volume is a RP+VPLEX/MetroPoint volume.
+                    if (RPHelper.isVPlexVolume(volume)) {                   
+                        // There are block snapshots on the RP+VPLEX/MetroPoint Source, throw an exception to inform the
+                        // user. We can not remove protection from a RP+VPLEX Source when there are active block snapshots.
+                        // RP+VPLEX/MetroPoint block snapshots are actually replica group snapshots (in a CG). Since we need to 
+                        // remove the CG from the volume we can not have the replica group containing snaps in it when 
+                        // trying to remove protection.
+                        String warningMessage = String.format("RecoverPoint protected VPLEX Volume [%s](%s) has an active snapshot, please delete the "
+                                + "following snapshot and place the order again: [%s](%s)", 
+                                volume.getLabel(), volume.getId(), sourceSnapshot.getLabel(), sourceSnapshot.getId());
+                        warningMessage = warningMessage.substring(0, warningMessage.length() - 2);
+                        _log.warn(warningMessage);
+                        throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
+                    }
+                }            
+            }
+                                                
+            // Loop through all targets and check for block snapshots.
             // We want to prevent the operation if any of the following conditions
             // exist:
             // 1. There are exported targets
-            // 2. There are exported bookmarks
-            // 3. There are local array snapshots on any of the targets
+            // 2. There are local array snapshots on any of the targets
             for (String targetId : volume.getRpTargets()) {
                 Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetId));
                 // Ensure targets are not exported
-                if (targetVolume.isVolumeExported(_dbClient, true, true)) {
-                    String warningMessage = String.format("Target Volume [%s] (%s) is exported to Host, please "
-                            + "un-export the volume from all exports and place the order again",
+                if (targetVolume.isVolumeExported(_dbClient, true, true)) {  
+                    String warningMessage = String.format("Target Volume [%s](%s) is exported to Host, please "
+                            + "un-export the volume from all exports and place the order again", 
                             targetVolume.getLabel(), targetVolume.getId());
                     _log.warn(warningMessage);
                     throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
                 }
-
-                List<BlockSnapshot> snapshots = this.getSnapshots(targetVolume);
-                for (BlockSnapshot snapshot : snapshots) {
-                    if (TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
-                        // If there are RP bookmarks that have been exported, throw an exception to inform the
-                        // user. The user should first un-export those bookmarks.
-                        if (snapshot.isSnapshotExported(_dbClient)) {
-                            String warningMessage = String.format("RP Bookmark/Snapshot [%s] (%s) is exported to Host, "
-                                    + "please un-export the Bookmark/Snapshot from all exports and place the order again",
-                                    snapshot.getLabel(), snapshot.getId());
-                            _log.warn(warningMessage);
-                            throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
-                        }
-                        // Add bookmark to be cleaned up in ViPR. These
-                        // would have been automatically removed in RP when
-                        // removing protection anyway. So this is a pro-active
-                        // cleanup step.
-                        rpBookmarks.add(snapshot);
-                    } else {
-                        // There are snapshots on the targets, throw an exception to inform the
-                        // user. We do not want to auto-clean up the snapshots on the target.
-                        // The user should first clean up those snapshots.
-                        String warningMessage = String.format("Target Volume [%s] (%s) has a snapshot, please delete the "
-                                + "snapshot [%s] (%s) and place the order again",
-                                volume.getLabel(), volume.getId(), snapshot.getLabel(), snapshot.getId());
-                        _log.warn(warningMessage);
-                        throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
-                    }
-                }
+                
+                List<BlockSnapshot> targetSnapshots = this.getSnapshotsForVolume(targetVolume);
+                for (BlockSnapshot targetSnapshot : targetSnapshots) {                   
+                    // There are snapshots on the targets, throw an exception to inform the
+                    // user. We do not want to auto-clean up the snapshots on the target.
+                    // The user should first clean up those snapshots.
+                    String warningMessage = String.format("Target Volume [%s] (%s) has an active snapshot, please delete the "
+                            + "following snapshot and place the order again: [%s](%s)", 
+                            volume.getLabel(), volume.getId(), targetSnapshot.getLabel(), targetSnapshot.getId());
+                    _log.warn(warningMessage);
+                    throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
+                }                                   
             }
-
+            
             // Cleanup only RP Bookmarks
             if (!rpBookmarks.isEmpty()) {
                 for (BlockSnapshot bookmark : rpBookmarks) {
@@ -3415,9 +3461,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     this.deleteSnapshot(bookmark, deleteSnapshotTaskId);
                 }
             }
-        }
-
-        // Get volume descriptors for all volumes to remove protection from.
+        }        
+        
+        // Get volume descriptors for all volumes to remove protection from. 
         List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(
                 null, volumeURIs, RPHelper.REMOVE_PROTECTION, newVpool);
 

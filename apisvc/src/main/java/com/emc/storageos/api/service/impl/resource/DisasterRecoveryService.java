@@ -213,6 +213,7 @@ public class DisasterRecoveryService {
                 SiteParam standbyParam = new SiteParam();
                 siteMapper.map(standby, standbyParam);
                 if (standby.getState().equals(SiteState.STANDBY_ADDING)) {
+                    log.info("Set data revision for site {} to {}", standby.getUuid(), dataRevision);
                     standbyParam.setDataRevision(dataRevision);
                 }
                 standbySites.add(standbyParam);
@@ -274,7 +275,7 @@ public class DisasterRecoveryService {
                 site.setVdcShortId(drUtil.getLocalVdcShortId());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
                 coordinator.addSite(standby.getUuid());
-                if (standby.getState().equals(SiteState.STANDBY_ADDING)) {
+                if (standby.getState().equals(String.valueOf(SiteState.STANDBY_ADDING))) {
                     dataRevision = standby.getDataRevision();
                     log.info("Set data revision to {}", dataRevision);
                 }

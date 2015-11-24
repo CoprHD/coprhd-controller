@@ -157,7 +157,7 @@ public class SiteParam {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("SiteAddParam [uuid=");
+        builder.append("SiteParam [uuid=");
         builder.append(uuid);
         builder.append(", name=");
         builder.append(name);
@@ -173,6 +173,8 @@ public class SiteParam {
         builder.append(dbSchemaVersion);
         builder.append(", freshInstallation=");
         builder.append(freshInstallation);
+        builder.append(", dataRevision=");
+        builder.append(dataRevision);
         builder.append("]");
         return builder.toString();
     }

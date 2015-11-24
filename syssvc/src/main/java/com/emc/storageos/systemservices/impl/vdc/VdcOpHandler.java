@@ -49,7 +49,7 @@ public abstract class VdcOpHandler {
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 5;
-    private static final int MAX_RESUME_RETRY = 5;
+    private static final int MAX_RESUME_RETRY = 20;
     // data revision time out - 5 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
     
@@ -112,8 +112,6 @@ public abstract class VdcOpHandler {
     /**
      * Process DR config change for add-standby op on all existing sites
      *  - flush vdc config to disk, regenerate config files and reload services for ipsec, firewall, coordinator, db
-     *
-     * @throws Exception
      */
     public static class DrAddStandbyHandler extends VdcOpHandler {
         public DrAddStandbyHandler() {
@@ -198,8 +196,6 @@ public abstract class VdcOpHandler {
      *                 gossip/strategy options, reconfig/restart ipsec/firewall/coordinator
      *  - other standbys: wait for site removed from zk, reconfig/restart ipsec/firewall/coordinator 
      *  - to-be-removed standby - do nothing, go ahead to reboot
-     *  
-     * @throws Exception
      */
     public static class DrRemoveStandbyHandler extends VdcOpHandler {
         public DrRemoveStandbyHandler() {
@@ -276,8 +272,6 @@ public abstract class VdcOpHandler {
      * Process DR config change for add-standby op
      *  - All existing sites - exclude paused site from vdc config and reconfig, remove db nodes of paused site 
      *  - To-be-paused site - nothing
-     *  
-     * @throws Exception
      */
     public static class DrPauseStandbyHandler extends VdcOpHandler {
         
@@ -366,8 +360,6 @@ public abstract class VdcOpHandler {
      * Process DR config change for add-standby op
      *  - All existing sites - include resumed site to vdc config and apply the config
      *  - To-be-resumed site - rebuild db/zk data from active site and apply the config 
-     *  
-     * @throws Exception
      */
     public static class DrResumeStandbyHandler extends VdcOpHandler {
         public DrResumeStandbyHandler() {
@@ -445,8 +437,6 @@ public abstract class VdcOpHandler {
      *  - new active : flush new vdc config to disk, reconfig/reload coordinator(synchronized with old active site), 
      *                 update site state to PRIMARY
      *  - other standby - flush new vdc config to disk, reconfig/reload coordinator
-     *  
-     * @throws Exception
      */
     public static class DrSwitchoverHandler extends VdcOpHandler {
         
@@ -458,10 +448,15 @@ public abstract class VdcOpHandler {
             Site site = drUtil.getLocalSite();
             
             // Reload coordinator configuration on all sites
-            syncFlushVdcConfigToLocal();
+            flushVdcConfigToLocal();
             try {
-                refreshCoordinatorForSwitchover(site);
+                if (hasSingleNodeSite()) {
+                    log.info("Single node deployment detected. Need refresh firewall/ipsec");
+                    refreshIPsec();
+                    refreshFirewall();
+                }
                 
+                refreshCoordinatorForSwitchover(site);
                 // Update site state
                 if (isOldActiveSiteForSwitchover(site)) {
                     // old primary
@@ -474,12 +469,12 @@ public abstract class VdcOpHandler {
             } catch (Exception ex) {
                 log.warn("Unexpected error happens during refreshing coordinatorsvc for switchover", ex);
                 resetLocalVdcConfigVersion();
-                return;
             }
+            
         }
         
         /**
-         * Synchrously reconfig coordinator in old/new primary so that we could minimize unavailable window of coordinatorsvc
+         * Synchronously reconfig coordinator in old/new primary so that we could minimize unavailable window of coordinatorsvc
          * 
          * @throws Exception
          */
@@ -490,8 +485,6 @@ public abstract class VdcOpHandler {
                 VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, switchingNodeCount, true);
                 barrier.enter();
                 try {
-                    FileUtils.delete("/data/zk/version-2/acceptedEpoch");
-                    FileUtils.delete("/data/zk/version-2/currentEpoch");
                     localRepository.reconfigProperties("coordinator");
                 } finally {
                     barrier.leave();
@@ -560,6 +553,19 @@ public abstract class VdcOpHandler {
         private boolean isNewActiveSiteForSwitchover(Site site) {
             return site.getState().equals(SiteState.STANDBY_SWITCHING_OVER);
         }
+        
+        // See coordinator hack for DR in CoordinatorImpl.java. If single node
+        // ViPR is switching over, we need refresh firewall/ipsec
+        private boolean hasSingleNodeSite() {
+            for (Site site : drUtil.listSites()) {
+                if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+                    if (site.getNodeCount() == 1) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
     }
 
 
@@ -570,8 +576,6 @@ public abstract class VdcOpHandler {
      *                      exclude old active from vdc config, and set state to active
      *  - old active site - do nothing
      *  - other standby   - exclude old active from vdc config and reconfig
-     *  
-     * @throws Exception
      */
     public static class DrFailoverHandler extends VdcOpHandler {
         public DrFailoverHandler() {

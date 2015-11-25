@@ -241,6 +241,7 @@ public class DbConsistencyCheckerHelper {
      * */
     private int processBatchIndexObjects(IndexAndCf indexAndCf, boolean toConsole, int corruptRowCount,
             Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck) throws ConnectionException {
+        logMessage(String.format("process index objects in batch:%s", indexAndCf.cf.getName()), true, toConsole);
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
             Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
             OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace

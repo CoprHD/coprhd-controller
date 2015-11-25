@@ -55,6 +55,7 @@ public class SshConfigurator {
     private InterProcessLock sshLock;
 
     public void run() throws Exception {
+        log.info("Checking if need to sync SSH configuration ...");
 
         if (!PlatformUtils.isAppliance()) {
             log.info("This is not a ViPR appliance so skip ssh configuration.");
@@ -77,6 +78,7 @@ public class SshConfigurator {
 
             // Go here if regeneration required
             doRun();
+            log.info("SSH configuration is synced");
         } finally {
             coordinatorHelper.releaseLock(sshLock);
         }

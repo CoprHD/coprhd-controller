@@ -122,8 +122,8 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     public Response createConsistencyGroupSnapshot(@PathParam("tenant_id") String openstack_tenant_id,
             final ConsistencyGroupSnapshotCreateRequest param, @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header) {
         // Query Consistency Group
-        final String consistencyGroup_id = param.cgsnapshot.consistencygroup_id;
-        final BlockConsistencyGroup consistencyGroup = findConsistencyGroup(consistencyGroup_id, openstack_tenant_id);
+        final String consistencyGroupId = param.cgsnapshot.consistencygroup_id;
+        final BlockConsistencyGroup consistencyGroup = findConsistencyGroup(consistencyGroupId, openstack_tenant_id);
 
         // Ensure that the Consistency Group has been created on all of its defined
         // system types.
@@ -142,7 +142,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                     StorageSystem.class, cgStorageControllerURI);
             if ((DiscoveredDataObject.Type.vplex.name().equals(cgStorageController
                     .getSystemType())) && (!consistencyGroup.checkForType(Types.LOCAL))) {
-                CinderApiUtils.createErrorResponse(400, "cannot create snapshot for vPLEX");
+                CinderApiUtils.createErrorResponse(400, "can't create snapshot for VPLEX");
             }
         }
 

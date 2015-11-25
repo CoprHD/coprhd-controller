@@ -124,8 +124,8 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Attach one fresh install site to this primary as standby
-     * Or attach a primary site for the local standby site when it's first being added.
+     * Attach one fresh install site to this acitve site as standby
+     * Or attach a acitve site for the local standby site when it's first being added.
      * 
      * @param param site detail information
      * @return site response information
@@ -251,6 +251,7 @@ public class DisasterRecoveryService {
      * Initialize a to be added target standby
      * The current site will be demoted from primary to standby during the process
      *
+>>>>>>> FETCH_HEAD
      * @param configParam
      * @return
      */
@@ -260,7 +261,7 @@ public class DisasterRecoveryService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @ExcludeLicenseCheck
     public Response syncSites(SiteConfigParam configParam) {
-        log.info("sync sites from primary site");
+        log.info("sync sites from acitve site");
 
         return initStandby(configParam);
     }
@@ -291,7 +292,7 @@ public class DisasterRecoveryService {
             ipsecConfig.setPreSharedKey(primary.getIpsecKey());
 
             coordinator.addSite(primary.getUuid());
-            coordinator.setPrimarySite(primary.getUuid());
+            coordinator.setActiveSite(primary.getUuid());
             Site primarySite = new Site();
             siteMapper.map(primary, primarySite);
             primarySite.setVdcShortId(drUtil.getLocalVdcShortId());
@@ -324,7 +325,7 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Get all sites including standby and primary
+     * Get all sites including standby and acitve
      * 
      * @return site list contains all sites with detail information
      */
@@ -343,21 +344,19 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Check if current site is primary site
+     * Check if current site is acitve site
      * 
-     * @return SitePrimary true if current site is primary else false 
+     * @return SitePrimary true if current site is acitve else false 
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
-            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     @Path("/primary")
     public SitePrimary checkPrimary() {
         log.info("Begin to check if site Active or Standby");
         SitePrimary primarySite = new SitePrimary();
 
         try {
-            primarySite.setIsPrimary(drUtil.isPrimary());
+            primarySite.setIsPrimary(drUtil.isActiveSite());
             return primarySite;
         } catch (Exception e) {
             log.error("Can't get site is Active or Standby");
@@ -429,7 +428,7 @@ public class DisasterRecoveryService {
                 throw APIException.badRequests.siteIdNotFound();
             }
             if (site.getState().equals(SiteState.PRIMARY)) {
-                log.error("Unable to remove this site {}. It is primary", siteId);
+                log.error("Unable to remove this site {}. It is acitve", siteId);
                 throw APIException.badRequests.operationNotAllowedOnPrimarySite();
             }
             toBeRemovedSites.add(site);
@@ -591,7 +590,7 @@ public class DisasterRecoveryService {
             }
             SiteState state = site.getState();
             if (state.equals(SiteState.PRIMARY)) {
-                log.error("Unable to pause this site {}. It is primary", siteId);
+                log.error("Unable to pause this site {}. It is acitve", siteId);
                 throw APIException.badRequests.operationNotAllowedOnPrimarySite();
             }
             if (!state.equals(SiteState.STANDBY_SYNCED)) {
@@ -618,8 +617,8 @@ public class DisasterRecoveryService {
                 coordinator.persistServiceConfiguration(site.toConfiguration());
             }
             log.info("Notify all sites for reconfig");
-            for (Site standbySite : drUtil.listSites()) {
-                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY);
+            for (Site site : drUtil.listSites()) {
+                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY);
             }
             auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, siteIdStr);
             return Response.status(Response.Status.ACCEPTED).build();
@@ -693,7 +692,7 @@ public class DisasterRecoveryService {
                 }
             }
 
-            // update the local(primary) site last
+            // update the local(acitve) site last
             drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_RESUME_STANDBY);
 
             auditDisasterRecoveryOps(OperationTypeEnum.RESUME_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
@@ -746,10 +745,10 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * This API will do switchover to target new primary site according passed in site UUID. After failover, old primary site will
-     * work as normal standby site and target site will be promoted to primary. All site will update properties to trigger reconfig.
+     * This API will do switchover to target new acitve site according passed in site UUID. After failover, old acitve site will
+     * work as normal standby site and target site will be promoted to acitve. All site will update properties to trigger reconfig.
      * 
-     * @param uuid target new primary site UUID
+     * @param uuid target new acitve site UUID
      * @return return accepted response if operation is successful
      */
     @POST
@@ -771,7 +770,7 @@ public class DisasterRecoveryService {
             newPrimarySite = drUtil.getSiteFromLocalVdc(uuid);
 
             // Set new UUID as primary site ID
-            coordinator.setPrimarySite(uuid);
+            coordinator.setActiveSite(uuid);
 
             // Set old primary site's state, short id and key
             oldPrimarySite = drUtil.getSiteFromLocalVdc(oldPrimaryUUID);
@@ -781,7 +780,7 @@ public class DisasterRecoveryService {
             oldPrimarySite.setState(SiteState.PRIMARY_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(oldPrimarySite.toConfiguration());
 
-            // set new primary site to ZK
+            // set new acitve site to ZK
             newPrimarySite.setState(SiteState.STANDBY_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(newPrimarySite.toConfiguration());
 
@@ -808,10 +807,10 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * This API will do failover from standby site. This operation is only allowed when primary site is down.
-     * After failover, this standby site will be promoted to primary site.
+     * This API will do failover from standby site. This operation is only allowed when acitve site is down.
+     * After failover, this standby site will be promoted to acitve site.
      * 
-     * @param uuid target new primary site UUID
+     * @param uuid target new acitve site UUID
      * @return return accepted response if operation is successful
      */
     @POST
@@ -834,8 +833,8 @@ public class DisasterRecoveryService {
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
 
-            // set new primary uuid
-            coordinator.setPrimarySite(uuid);
+            // set new acitve uuid
+            coordinator.setActiveSite(uuid);
 
             // reconfig
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_FAILOVER);
@@ -859,7 +858,7 @@ public class DisasterRecoveryService {
      */
     private void commonPrecheck(List<String> excludedSiteIds) {
         if (drUtil.isStandby()) {
-            throw new IllegalStateException("Operation is allowed on primary only");
+            throw new IllegalStateException("Operation is allowed on acitve site only");
         }
         if (!isClusterStable()) {
             throw new IllegalStateException("Cluster is not stable");
@@ -975,7 +974,7 @@ public class DisasterRecoveryService {
         String standbyDbSchemaVersion = standby.getDbSchemaVersion();
         if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
-                    "Standby db schema version %s is not same as primary %s",
+                    "Standby db schema version %s is not same as acitve site %s",
                     standbyDbSchemaVersion, currentDbSchemaVersion));
         }
 
@@ -1008,7 +1007,7 @@ public class DisasterRecoveryService {
     }
 
     /*
-     * Internal method to check whether failover from primary to standby is allowed
+     * Internal method to check whether failover from acitve to standby is allowed
      */
     protected void precheckForSwitchover(String standbyUuid) {
         Site standby = null;
@@ -1020,7 +1019,7 @@ public class DisasterRecoveryService {
         }
 
         if (standbyUuid.equals(drUtil.getPrimarySiteId())) {
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Can't switchover to a primary site");
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Can't switchover to a acitve site");
         }
 
         if (!drUtil.isSiteUp(standbyUuid)) {
@@ -1056,8 +1055,8 @@ public class DisasterRecoveryService {
         }
 
         // show be only standby
-        if (drUtil.isPrimary()) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Failover can't be executed in primary site");
+        if (drUtil.isActiveSite()) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Failover can't be executed in acitve site");
         }
 
         // should be SYNCED
@@ -1074,14 +1073,14 @@ public class DisasterRecoveryService {
         }
 
         // this is standby site and NOT in ZK read-only or observer mode,
-        // it means primary is down and local ZK has been reconfig to participant
+        // it means acitve is down and local ZK has been reconfig to participant
         CoordinatorClientInetAddressMap addrLookupMap = coordinator.getInetAddessLookupMap();
         String myNodeId = addrLookupMap.getNodeId();
         String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);
         log.info("Local coordinator mode is {}", coordinatorMode);
         if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
-            log.info("Primary is available now, can't do failover");
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Primary is available now, can't do failover");
+            log.info("Acitve site is available now, can't do failover");
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Acitve site is available now, can't do failover");
         }
     }
 

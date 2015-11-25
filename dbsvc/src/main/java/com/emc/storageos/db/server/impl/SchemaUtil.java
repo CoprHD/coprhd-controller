@@ -391,7 +391,7 @@ public class SchemaUtil {
      * @return true to indicate keyspace strategy option is changed
      */
     private boolean checkStrategyOptionsForDROnStandby(Map<String, String> strategyOptions) {
-        // no need to add new site on primary site, since dbsvc/geodbsvc are not restarted
+        // no need to add new site on acitve site, since dbsvc/geodbsvc are not restarted
         String dcId = drUtil.getCassandraDcId(drUtil.getLocalSite());
         if (strategyOptions.containsKey(dcId)) {
             return false;
@@ -894,10 +894,10 @@ public class SchemaUtil {
         vdcConfig.setId(vdc.getShortId());
         _coordinator.persistServiceConfiguration(vdcConfig);
 
-        // insert DR primary site info to ZK
+        // insert DR acitve site info to ZK
         Site site = new Site();
         site.setUuid(_coordinator.getSiteId());
-        site.setName("Primary");
+        site.setName("Default Active Site");
         site.setVdcShortId(vdc.getShortId());
         site.setStandbyShortId("");
         site.setHostIPv4AddressMap(ipv4Addresses);

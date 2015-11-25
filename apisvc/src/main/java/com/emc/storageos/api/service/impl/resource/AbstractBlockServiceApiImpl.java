@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
+import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -207,7 +209,15 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return
      */
     protected <T extends Controller> T getController(Class<T> clazz, String hw) {
-        return _coordinator.locateService(clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        T controller;
+        try {
+            controller = _coordinator.locateService(
+                    clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        } catch (RetryableCoordinatorException rex) {
+            controller = _coordinator.locateService(
+                    clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, Constants.EXTERNALDEVICE, clazz.getSimpleName());
+        }
+        return controller;
     }
 
     // Default unsupported operations

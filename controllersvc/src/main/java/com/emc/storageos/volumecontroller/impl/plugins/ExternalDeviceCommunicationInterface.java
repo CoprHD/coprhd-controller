@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -193,6 +194,21 @@ public class ExternalDeviceCommunicationInterface extends
                         driverStorageSystem.getNativeId());
                 storageSystem.setNativeGuid(nativeGuid);
                 storageSystem.setFirmwareVersion(driverStorageSystem.getFirmwareVersion());
+
+                if (driverStorageSystem.getSupportedReplications() != null) {
+                    _log.info("Set async actions...");
+                    StringSet asyncActions = new StringSet();
+                    Set<StorageSystem.SupportedReplication> replications = driverStorageSystem.getSupportedReplications();
+                    for (StorageSystem.SupportedReplication replication : replications) {
+                        if (replication == StorageSystem.SupportedReplication.elementReplica) {
+                            asyncActions.add(com.emc.storageos.db.client.model.StorageSystem.AsyncActions.CreateElementReplica.name());
+                        } else if (replication == StorageSystem.SupportedReplication.groupReplica){
+                            asyncActions.add(com.emc.storageos.db.client.model.StorageSystem.AsyncActions.CreateGroupReplica.name());
+                        }
+                    }
+                    storageSystem.setSupportedAsynchronousActions(asyncActions);
+                }
+
                 if (driverStorageSystem.isSupportedVersion()) {
                     storageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
                     storageSystem.setReachableStatus(true);

@@ -1,6 +1,7 @@
 package com.emc.storageos.storagedriver.model;
 
 import java.util.List;
+import java.util.Set;
 
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 
@@ -50,6 +51,13 @@ public class StorageSystem extends StorageObject {
 
     public static enum SupportedProvisioningType {
         THICK, THIN, THIN_AND_THICK
+    }
+
+    // Supported replications. Type: Output.
+    public Set<SupportedReplication> supportedReplications;
+
+    public enum SupportedReplication {
+        elementReplica, groupReplica
     }
 
     private List<CapabilityInstance> capabilities;
@@ -164,6 +172,14 @@ public class StorageSystem extends StorageObject {
 
     public void setProvisioningType(SupportedProvisioningType provisioningType) {
         this.provisioningType = provisioningType;
+    }
+
+    public Set<SupportedReplication> getSupportedReplications() {
+        return supportedReplications;
+    }
+
+    public void setSupportedReplications(Set<SupportedReplication> supportedReplications) {
+        this.supportedReplications = supportedReplications;
     }
 
     public List<CapabilityInstance> getCapabilities() {

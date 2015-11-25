@@ -2763,6 +2763,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     @Override
     public void createConsistencyGroup(URI storage, URI consistencyGroup, String opId) throws ControllerException {
+
+        TaskCompleter completer = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
+
         try {
             WorkflowStepCompleter.stepExecuting(opId);
 
@@ -2772,8 +2775,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
 
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            TaskCompleter completer = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
-
             // Check if already created, if not create, if so just complete.
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
             if (!cg.created(storage)) {
@@ -2783,6 +2784,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 completer.ready(_dbClient);
             }
         } catch (Exception e) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                completer.error(_dbClient, serviceError);
             throw DeviceControllerException.exceptions.createConsistencyGroupFailed(e);
         }
     }

@@ -20,4 +20,10 @@ public interface ExternalDeviceErrors {
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_VOLUMES_ERROR)
     public ServiceError deleteVolumesFailed(String volumes, String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_SNAPSHOTS_ERROR)
+    public ServiceError createSnapshotsFailed(String snapshots, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_CONSISTENCY_GROUP_ERROR)
+    public ServiceError createConsistencyGroupFailed(String consistencyGroup, String errorMsg);
+
 }

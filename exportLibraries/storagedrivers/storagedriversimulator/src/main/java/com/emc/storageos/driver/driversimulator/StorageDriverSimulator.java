@@ -80,6 +80,12 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
         storageSystem.setFirmwareVersion("2.4-3.12");
         storageSystem.setIsSupportedVersion(true);
 
+        // Support both, element and group replicas.
+        Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
+        supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
+        supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
+        storageSystem.setSupportedReplications(supportedReplications);
+
         String taskType = "discover-storage-system";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
@@ -96,11 +102,11 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
         _log.info("Discovery of storage pools for storage system {} .", storageSystem.getNativeId());
         for (int i =0; i <= 2; i++ ) {
             StoragePool pool = new StoragePool();
-            pool.setNativeId("pool-1234577-" + i);
+            pool.setNativeId("pool-1234577-" + i + storageSystem.getNativeId());
             pool.setStorageSystemId(storageSystem.getNativeId());
             _log.info("Discovered Pool {}, storageSystem {}", pool.getNativeId(), pool.getStorageSystemId());
 
-            pool.setDeviceLabel("er-pool-1234577" + i);
+            pool.setDeviceLabel("er-pool-1234577" + i+ storageSystem.getNativeId());
             pool.setPoolName(pool.getDeviceLabel());
             Set<StoragePool.Protocols> protocols = new HashSet<>();
             protocols.add(StoragePool.Protocols.FC);
@@ -147,15 +153,15 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
         // Create ports
         for (int i =0; i <= 2; i++ ) {
             StoragePort port = new StoragePort();
-            port.setNativeId("port-1234577-" + i);
+            port.setNativeId("port-1234577-" + i+ storageSystem.getNativeId());
             port.setStorageSystemId(storageSystem.getNativeId());
             _log.info("Discovered Port {}, storageSystem {}", port.getNativeId(), port.getStorageSystemId());
 
-            port.setDeviceLabel("er-port-1234577" + i);
+            port.setDeviceLabel("er-port-1234577" + i+ storageSystem.getNativeId());
             port.setPortName(port.getDeviceLabel());
-            port.setNetworkId("er-network77");
+            port.setNetworkId("er-network77+ storageSystem.getNativeId()");
             port.setTransportType(StoragePort.TransportType.FC);
-            port.setPortNetworkId("50:FE:FE:FE:FE:FE:FE:1" + i);
+            port.setPortNetworkId("60:FE:FE:FE:FE:FE:FE:1" + i);
             port.setOperationalStatus(StoragePort.OperationalStatus.OK);
             storagePorts.add(port);
         }
@@ -204,24 +210,30 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
 
     @Override
     public DriverTask deleteVolumes(List<StorageVolume> volumes) {
-        List<String> deletedVolumes = new ArrayList<>();
 
-        for (StorageVolume volume : volumes) {
-            deletedVolumes.add(volume.getNativeId());
-        }
         String taskType = "delete-storage-volumes";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
 
         _log.info("StorageDriver: deleteVolumes information for storage system {}, volume nativeIds {} - end",
-                volumes.get(0).getStorageSystemId(), deletedVolumes.toString());
+                volumes.get(0).getStorageSystemId(), volumes.toString());
         return task;
     }
 
     @Override
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
-        return null;
+        for (VolumeSnapshot snapshot : snapshots) {
+            snapshot.setNativeId("snap-" + snapshot.getParentId() + UUID.randomUUID().toString());
+        }
+        String taskType = "create-volume-snapshot";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        _log.info("StorageDriver: createVolumeSnapshot information for storage system {}, snapshots nativeIds {} - end",
+                snapshots.get(0).getStorageSystemId(), snapshots.toString());
+        return task;
     }
 
     @Override
@@ -296,12 +308,33 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
 
     @Override
     public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-        return null;
+
+        consistencyGroup.setNativeId(consistencyGroup.getDisplayName());
+        consistencyGroup.setDeviceLabel(consistencyGroup.getDisplayName());
+        String taskType = "create-volume-cg";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        _log.info("StorageDriver: createConsistencyGroup information for storage system {}, consistencyGroup nativeId {} - end",
+                consistencyGroup.getStorageSystemId(), consistencyGroup.getNativeId());
+        return task;
     }
 
     @Override
     public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities) {
-        return null;
+        for (VolumeSnapshot snapshot : snapshots) {
+            snapshot.setNativeId("snap-" + snapshot.getParentId() + consistencyGroup.getDisplayName() + UUID.randomUUID().toString());
+        }
+        String taskType = "create-group-snapshot";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        task.setMessage("Created snapshots for consistency group " + snapshots.get(0).getConsistencyGroup());
+
+        _log.info("StorageDriver: createGroupSnapshot information for storage system {}, snapshots nativeIds {} - end",
+                snapshots.get(0).getStorageSystemId(), snapshots.toString());
+        return task;
     }
 
     @Override

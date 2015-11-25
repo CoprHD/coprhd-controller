@@ -89,4 +89,8 @@ public class StorageObject {
     public void setCustomCapabilities(CustomStorageCapabilities customCapabilities) {
         this.customCapabilities = customCapabilities;
     }
+
+    public String toString() {
+        return nativeId;
+    }
 }

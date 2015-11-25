@@ -17,7 +17,6 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -27,12 +26,12 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.hds.api.HDSApiClient;
-import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.hds.api.HDSApiVolumeManager;
 import com.emc.storageos.hds.model.LDEV;
 import com.emc.storageos.hds.model.LogicalUnit;
@@ -50,23 +49,13 @@ import com.google.common.base.Joiner;
  * Discovers all volumes from Hitachi array.
  * 
  */
-public class HDSVolumeDiscoverer {
+public class HDSVolumeDiscoverer extends AbstractDiscoverer {
 
     private static final Logger log = LoggerFactory.getLogger(HDSVolumeDiscoverer.class);
 
-    private HDSApiFactory hdsApiFactory;
-    
-    private final int BATCH_SIZE = 300;
-
-    /**
-     * @param hdsApiFactory the hdsApiFactory to set
-     */
-    public void setHdsApiFactory(HDSApiFactory hdsApiFactory) {
-        this.hdsApiFactory = hdsApiFactory;
-    }
-
-    public void discoverUnManagedVolumes(AccessProfile accessProfile, DbClient dbClient,
-            CoordinatorClient coordinator, PartitionManager partitionManager) throws Exception {
+    @Override
+    public void discover(AccessProfile accessProfile, PartitionManager partitionManager)
+            throws Exception {
 
         log.info("Started discovery of UnManagedVolumes for system {}", accessProfile.getSystemId());
         HDSApiClient hdsApiClient = hdsApiFactory.getClient(
@@ -79,27 +68,80 @@ public class HDSVolumeDiscoverer {
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
                 accessProfile.getSystemId());
         String systemObjectId = HDSUtils.getSystemObjectID(storageSystem);
-        List<LogicalUnit> luList = volumeManager.getAllLogicalUnits(systemObjectId);
-        if (null != luList && !luList.isEmpty()) {
-            log.info("Processing {} volumes received from HiCommand server.", luList.size());
-            URIQueryResultList storagePoolURIs = new URIQueryResultList();
-            dbClient.queryByConstraint(ContainmentConstraint.Factory
-                    .getStorageDeviceStoragePoolConstraint(storageSystem.getId()),
-                    storagePoolURIs);
-            HashMap<String, StoragePool> pools = new HashMap<String, StoragePool>();
-            Iterator<URI> poolsItr = storagePoolURIs.iterator();
-            while (poolsItr.hasNext()) {
-                URI storagePoolURI = poolsItr.next();
-                StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolURI);
-                pools.put(storagePool.getNativeGuid(), storagePool);
+        URIQueryResultList storagePoolURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getStorageDeviceStoragePoolConstraint(storageSystem.getId()),
+                storagePoolURIs);
+        HashMap<String, StoragePool> pools = new HashMap<String, StoragePool>();
+        Iterator<URI> poolsItr = storagePoolURIs.iterator();
+        while (poolsItr.hasNext()) {
+            URI storagePoolURI = poolsItr.next();
+            StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolURI);
+            pools.put(storagePool.getNativeGuid(), storagePool);
+        }
+        List<LogicalUnit> luList = null;
+        int startElement = 0;
+        int retryCount = 0;
+        do {
+            // If it is last attempt, just retrieve all records sothat we don't miss any records.
+            int batchSize = (retryCount == 4) ? 0 : BATCH_SIZE;
+            luList = volumeManager.getLogicalUnitsInBatch(systemObjectId, String.valueOf(startElement), String.valueOf(batchSize), "ALL");
+            if (!luList.isEmpty()) {
+                processVolumesInBatch(luList, dbClient, pools, storageSystem, newUnManagedVolumeList, updateUnManagedVolumeList,
+                        allDiscoveredUnManagedVolumes, volumeMasks, partitionManager);
+                // reset count when there are no volumes in between batches.
+                retryCount = 0;
+            } else {
+                // HDS API is not intelligent to return next batch, Hence using this retryCount,
+                // We can skip making calls to find volumes after 5 attempts.
+                log.debug("retrying {} time. No volumes found from startElement {} to {}", startElement, BATCH_SIZE);
+                retryCount++;
             }
+            startElement = startElement + BATCH_SIZE + 1;
+        } while (!luList.isEmpty() || retryCount < 5);
+
+        // Process those active unmanaged volume objects available in database but not in newly discovered items, to mark them inactive.
+        DiscoveryUtils.markInActiveUnManagedVolumes(storageSystem, allDiscoveredUnManagedVolumes, dbClient, partitionManager);
+    }
+
+    /**
+     * Process the LogicalUnits response in batches.
+     * 
+     * @TODO check the snapshots, clones & mirrors and populate its properties in UMV.
+     * 
+     * @param luList
+     * @param dbClient
+     * @param pools
+     * @param storageSystem
+     * @param newUnManagedVolumeList
+     * @param updateUnManagedVolumeList
+     * @param allDiscoveredUnManagedVolumes
+     * @param partitionManager
+     */
+    private void processVolumesInBatch(List<LogicalUnit> luList, DbClient dbClient, HashMap<String, StoragePool> pools,
+            StorageSystem storageSystem, List<UnManagedVolume> newUnManagedVolumeList, List<UnManagedVolume> updateUnManagedVolumeList,
+            Set<URI> allDiscoveredUnManagedVolumes, Map<String, Set<UnManagedExportMask>> volumeMasks, PartitionManager partitionManager) {
+        try {
+            log.info("Processing {} volumes received from HiCommand server.", luList.size());
+
             for (LogicalUnit logicalUnit : luList) {
+                if (logicalUnit.getCommandDeviceEx() != 0) {
+                    log.info("Logical Unit {} is a command device. Hence ignoring....", logicalUnit.getObjectID());
+                    continue;
+                }
+
+                if (isLogicalUnitReplica(logicalUnit)) {
+                    log.info("Logical Unit {} is a replica. Hence ignoring....", logicalUnit.getObjectID());
+                }
+
                 log.info("Processing LogicalUnit: {}", logicalUnit.getObjectID());
                 UnManagedVolume unManagedVolume = null;
+
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), String.valueOf(logicalUnit.getDevNum()));
-                if (null != DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid)) {
+                if (null == DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid)) {
                     log.info("Skipping volume {} as it is already managed by ViPR", managedVolumeNativeGuid);
+                    continue;
                 }
 
                 String unManagedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingVolume(
@@ -127,16 +169,43 @@ public class HDSVolumeDiscoverer {
                 performUnManagedVolumesBookKeepting(newUnManagedVolumeList,
                         updateUnManagedVolumeList, partitionManager, dbClient,
                         Constants.DEFAULT_PARTITION_SIZE);
+                // Perform this only for exported volumes.
+                if (logicalUnit.getPath() == 1) {
+                    updateVolumeMaskInformation(unManagedVolumeNativeGuid, volumeMasks);
+                }
 
             }
             performUnManagedVolumesBookKeepting(newUnManagedVolumeList,
                     updateUnManagedVolumeList, partitionManager, dbClient, 0);
-
-            // Process those active unmanaged volume objects available in database but not in newly discovered items, to mark them inactive.
-            DiscoveryUtils.markInActiveUnManagedVolumes(storageSystem, allDiscoveredUnManagedVolumes, dbClient, partitionManager);
-        } else {
-            log.info("No volumes retured by HiCommand Server for system {}", storageSystem.getId());
+        } catch (Exception ex) {
+            // catch exception and process next batch of volumes.
+            log.error("Exception occurred while processing unmanaged volume discovery", ex);
         }
+
+    }
+
+    /**
+     * Initialize the UnManagedExportMasks for each UnManagedVolume object.
+     * 
+     * @param umvNativeGuid
+     * @param volumeMasks
+     */
+    private void updateVolumeMaskInformation(String umvNativeGuid, Map<String, Set<UnManagedExportMask>> volumeMasks) {
+        Set<UnManagedExportMask> masks = volumeMasks.get(umvNativeGuid);
+        if (null == masks) {
+            masks = new HashSet<UnManagedExportMask>();
+        }
+        volumeMasks.put(umvNativeGuid, masks);
+    }
+
+    /**
+     * Verifies whether the LogicalUnit is a replica or not.
+     * 
+     * @param logicalUnit
+     * @return
+     */
+    private boolean isLogicalUnitReplica(LogicalUnit logicalUnit) {
+        return (HDSUtils.isSnapshot(logicalUnit) || HDSUtils.isCloneOrMirror(logicalUnit) || HDSUtils.isRemoteReplica(logicalUnit));
     }
 
     private void performUnManagedVolumesBookKeepting(
@@ -314,7 +383,6 @@ public class HDSVolumeDiscoverer {
                 Iterator<LDEV> ldevItr = logicalUnit.getLdevList().iterator();
                 if (ldevItr.hasNext()) {
                     LDEV ldev = ldevItr.next();
-                    URIQueryResultList tieringPolicyList = new URIQueryResultList();
                     if (-1 != ldev.getTierLevel()) {
                         tieringPolicyName = HitachiTieringPolicy.getType(String.valueOf(ldev.getTierLevel()))
                                 .replaceAll(HDSConstants.UNDERSCORE_OPERATOR, HDSConstants.SLASH_OPERATOR);

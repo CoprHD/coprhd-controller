@@ -127,6 +127,8 @@ public interface HDSConstants {
     String RESTORE_THIN_IMAGE_PAIR_OP = "restoreThinImagePair";
     String DELETE_THIN_IMAGE_PAIR_OP = "deleteThinImagePair";
     String REFRESH_HOST_OP = "refreshHost";
+    String GET_LOGICALUNITS_IN_BATCH_OP = "getLogicalUnitsInBatch";
+    String GET_HSDS_IN_BATCH_OP = "getHSDsInBatch";
 
     String LU_FORMAT_TARGET = "LogicalUnitFormat";
     String LOGICALUNIT_LIST = "LogicalUnit_List";
@@ -198,4 +200,13 @@ public interface HDSConstants {
     String SATA_DRIVE_VALUE = "1";
     String SAS_DRIVE_VALUE = "4";
     String SSD_DRIVE_VALUE = "5";
+
+    String PVOL = "P-VOL";
+    String SVOL = "S-VOL";
+    String VVOL = "V-VOL";
+    String POOL = "POOL";
+    String SPVOL = "SP-VOL";
+    String JNLVOL = "JNL-VOL";
+    String MFJNL = "MF-JNL";
+
 }

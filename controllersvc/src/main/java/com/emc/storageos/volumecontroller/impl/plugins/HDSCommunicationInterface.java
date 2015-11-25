@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.plugins;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -51,6 +52,8 @@ import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.hds.HDSConstants;
@@ -76,6 +79,7 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.hds.HDSCollectionException;
+import com.emc.storageos.volumecontroller.impl.hds.discovery.HDSUnManagedExportMasksDiscoverer;
 import com.emc.storageos.volumecontroller.impl.hds.discovery.HDSVolumeDiscoverer;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor;
@@ -101,9 +105,15 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
     private static final String COMMA_SEPERATOR = "\\.";
 
+    private static final String UNMANAGED_VOLUMES = "Unmanaged volume";
+
+    private static final int BATCH_SIZE = 100;
+
     private HDSApiFactory hdsApiFactory;
 
     private HDSVolumeDiscoverer volumeDiscoverer;
+
+    private HDSUnManagedExportMasksDiscoverer exportDiscoverer;
 
     private WBEMClient wbemClient = null;
 
@@ -236,9 +246,6 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             String model = array.getDisplayArrayType();
             String objectID = array.getObjectID();
             String serialNumber = objectID.split(COMMA_SEPERATOR)[2];
-            String arrayFamily = array.getArrayFamily();
-
-            // @TODO Add a model based check for HDS arrays if required.
 
             StorageSystemViewObject systemVO = null;
             String nativeGuid = NativeGUIDGenerator.generateNativeGuid(systemType,
@@ -268,7 +275,23 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
                                 .toString()))) {
-            discoverUnManagedVolumes(accessProfile);
+            Map<String, Set<UnManagedExportMask>> volumeToUems = new HashMap<String, Set<UnManagedExportMask>>();
+            boolean umvDiscoveryStatus = false;
+            if (null != this.volumeDiscoverer) {
+                this.volumeDiscoverer.setDbClient(_dbClient);
+                this.volumeDiscoverer.setVolumeMasks(volumeToUems);
+                umvDiscoveryStatus = discoverUnManagedVolumes(accessProfile);
+            }
+            if (umvDiscoveryStatus && null != this.exportDiscoverer) {
+                this.exportDiscoverer.setDbClient(_dbClient);
+                this.exportDiscoverer.setVolumeMasks(volumeToUems);
+                discoverUnManagedExportMasks(accessProfile);
+            }
+
+            if (null != volumeToUems && !volumeToUems.isEmpty()) {
+                processUnManagedVolumesAndItsMasks(volumeToUems);
+            }
+
         } else {
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());
 
@@ -325,6 +348,56 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 }
             }
             _logger.info("Discovery Ended for system {}", accessProfile.getSystemId());
+        }
+    }
+
+    /**
+     * Process the UnManagedVolume & set its corresponding UnManagedExportMasks in it.
+     * 
+     * @param volumeToUems
+     */
+    private void processUnManagedVolumesAndItsMasks(Map<String, Set<UnManagedExportMask>> volumeToUems) {
+        List<UnManagedVolume> umvsToUpdate = new ArrayList<UnManagedVolume>();
+        for (Map.Entry<String, Set<UnManagedExportMask>> entry : volumeToUems.entrySet()) {
+            String unManagedVolumeNativeGuid = entry.getKey();
+            Set<UnManagedExportMask> masks = entry.getValue();
+            UnManagedVolume umv = null;
+            URIQueryResultList unManagedVolumesList = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeInfoNativeIdConstraint(unManagedVolumeNativeGuid),
+                    unManagedVolumesList);
+            if (unManagedVolumesList.iterator().hasNext()) {
+                umv = _dbClient.queryObject(UnManagedVolume.class, unManagedVolumesList.iterator().next());
+            }
+            if (!masks.isEmpty() && null != umv) {
+                for (UnManagedExportMask mask : masks) {
+                    umv.getUnmanagedExportMasks().add(mask.getId().toString());
+                }
+                umvsToUpdate.add(umv);
+            }
+            if (umvsToUpdate.size() > BATCH_SIZE) {
+                _partitionManager.updateAndReIndexInBatches(umvsToUpdate, BATCH_SIZE, _dbClient, UNMANAGED_VOLUMES);
+                umvsToUpdate.clear();
+            }
+        }
+        if (umvsToUpdate.size() > 0) {
+            _partitionManager.updateAndReIndexInBatches(umvsToUpdate, BATCH_SIZE, _dbClient, UNMANAGED_VOLUMES);
+            umvsToUpdate.clear();
+        }
+
+    }
+
+    /**
+     * Discover the Host Groups exist on the array.
+     * 
+     * @param accessProfile
+     */
+    private void discoverUnManagedExportMasks(AccessProfile accessProfile) {
+        try {
+            exportDiscoverer.discover(accessProfile, _partitionManager);
+        } catch (Exception e) {
+
+        } finally {
+            // @TODO update discovery status here.
         }
     }
 
@@ -423,22 +496,16 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
      * 
      * @param accessProfile
      */
-    private void discoverUnManagedVolumes(AccessProfile accessProfile) {
+    private boolean discoverUnManagedVolumes(AccessProfile accessProfile) {
         StorageSystem storageSystem = null;
         String detailedStatusMessage = null;
+        boolean umvDiscoveryStatus = true;
         try {
             storageSystem = _dbClient.queryObject(StorageSystem.class,
                     accessProfile.getSystemId());
-            if (null == storageSystem) {
-                return;
-            }
-            volumeDiscoverer.discoverUnManagedVolumes(accessProfile, _dbClient,
-                    _coordinator, _partitionManager);
-            storageSystem
-                    .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS
-                            .toString());
-            _dbClient.persistObject(storageSystem);
-
+            storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
+            _dbClient.updateObject(storageSystem);
+            volumeDiscoverer.discover(accessProfile, _partitionManager);
         } catch (Exception e) {
             if (storageSystem != null) {
                 cleanupDiscovery(storageSystem);
@@ -447,22 +514,13 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     "Discovery of unmanaged volumes failed for system %s because %s",
                     storageSystem.getId().toString(), e.getLocalizedMessage());
             _logger.error(detailedStatusMessage, e);
-            throw new HDSCollectionException(detailedStatusMessage);
-        } finally {
-            if (storageSystem != null) {
-                try {
-                    // set detailed message
-                    storageSystem
-                            .setLastDiscoveryStatusMessage(detailedStatusMessage);
-                    _dbClient.persistObject(storageSystem);
-                } catch (Exception ex) {
-                    _logger.error(
-                            String.format(
-                                    "Error while updating unmanaged volume discovery status for system %s",
-                                    storageSystem.getId()), ex);
-                }
-            }
+            storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString());
+            // set detailed message
+            storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
+            _dbClient.updateObject(storageSystem);
+            umvDiscoveryStatus = false;
         }
+        return umvDiscoveryStatus;
     }
 
     /**

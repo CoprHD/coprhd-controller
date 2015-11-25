@@ -389,12 +389,12 @@ public class DiscoveryUtils {
             portsToRunNetworkConnectivity.addAll(notVisiblePorts);
         }
     }
-    
+
     /**
-     * checkVirtualNasNotVisible - verifies that all existing virtual nas servers on 
+     * checkVirtualNasNotVisible - verifies that all existing virtual nas servers on
      * given storage system are discovered or not.
      * If any of the existing virtual nas server is not discovered,
-     * Change the discovered status as not visible. 
+     * Change the discovered status as not visible.
      * 
      * @param discoveredVNasServers
      * @param dbClient
@@ -402,11 +402,11 @@ public class DiscoveryUtils {
      * @return
      * @throws IOException
      */
-    
+
     public static List<VirtualNAS> checkVirtualNasNotVisible(List<VirtualNAS> discoveredVNasServers,
             DbClient dbClient, URI storageSystemId) {
         List<VirtualNAS> modifiedVNas = new ArrayList<VirtualNAS>();
-        
+
         // Get the vnas servers previousy discovered
         URIQueryResultList vNasURIs = new URIQueryResultList();
         dbClient.queryByConstraint(
@@ -416,12 +416,12 @@ public class DiscoveryUtils {
 
         List<URI> existingVNasURI = new ArrayList<URI>();
         while (vNasIter.hasNext()) {
-        	existingVNasURI.add(vNasIter.next());
+            existingVNasURI.add(vNasIter.next());
         }
 
         List<URI> discoveredVNasURI = new ArrayList<URI>();
         for (VirtualNAS vNas : discoveredVNasServers) {
-        	discoveredVNasURI.add(vNas.getId());
+            discoveredVNasURI.add(vNas.getId());
         }
 
         Set<URI> vNasDiff = Sets.difference(new HashSet<URI>(existingVNasURI), new HashSet<URI>(discoveredVNasURI));
@@ -429,19 +429,19 @@ public class DiscoveryUtils {
         if (!vNasDiff.isEmpty()) {
             Iterator<VirtualNAS> vNasIt = dbClient.queryIterativeObjects(VirtualNAS.class, vNasDiff, true);
             while (vNasIt.hasNext()) {
-            	VirtualNAS vnas = vNasIt.next();
-            	modifiedVNas.add(vnas);
+                VirtualNAS vnas = vNasIt.next();
+                modifiedVNas.add(vnas);
                 _log.info("Setting discovery status of vnas {} as NOTVISIBLE", vnas.getNasName());
                 vnas.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
                 // Set the nas state to UNKNOWN!!!
                 vnas.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
-                
+
             }
         }
 
-        //Persist the change!!!
-        if(!modifiedVNas.isEmpty()) {
-        	dbClient.persistObject(modifiedVNas);
+        // Persist the change!!!
+        if (!modifiedVNas.isEmpty()) {
+            dbClient.persistObject(modifiedVNas);
         }
         return modifiedVNas;
     }

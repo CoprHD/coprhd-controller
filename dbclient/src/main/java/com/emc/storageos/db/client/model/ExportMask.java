@@ -423,6 +423,10 @@ public class ExportMask extends DataObject {
         _existingInitiators = existingInitiators;
     }
 
+    public boolean hasAnyExistingInitiators() {
+        return (_existingInitiators != null && !_existingInitiators.isEmpty());
+    }
+
     public void addToUserCreatedInitiators(Initiator initiator) {
         if (checkForNull(initiator)) {
             return;
@@ -923,6 +927,21 @@ public class ExportMask extends DataObject {
         int userVolumes = (_userAddedVolumes != null) ? _userAddedVolumes.size() : 0;
         int existingVolumes = (_existingVolumes != null) ? _existingVolumes.size() : 0;
         return userVolumes + existingVolumes;
+    }
+
+    /**
+     * Returns the HLU for the specified Volume/BlockObject
+     *
+     * @param volumeURI [IN] - BlockObject URI for which to look up the HLU
+     * @return String representing the volume HLU or ExportGroup.LUN_UNASSIGNED_DECIMAL_STR
+     */
+    public String returnVolumeHLU(URI volumeURI) {
+        String hlu = ExportGroup.LUN_UNASSIGNED_DECIMAL_STR;
+        if (_volumes != null) {
+            String temp = _volumes.get(volumeURI.toString());
+            hlu = (temp != null) ? temp : ExportGroup.LUN_UNASSIGNED_DECIMAL_STR;
+        }
+        return hlu;
     }
 
     @Override

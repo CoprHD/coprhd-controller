@@ -6,23 +6,28 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
+import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockExportController;
+import com.google.common.base.Joiner;
 
 /**
  * Background thread that runs the placement, scheduling, and controller dispatching of an export group update
@@ -55,10 +60,36 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
     public void run() {
         _log.info("Starting scheduling for export group update thread...");
         try {
-            Map<URI, Integer> newVolumesMap = exportGroupService.getUpdatedVolumesMap(exportUpdateParam, exportGroup);
+            Map<URI, Integer> newVolumesMap = exportGroupService.getUpdatedVolumesMap(
+                                                            exportUpdateParam, exportGroup);
             Map<URI, Map<URI, Integer>> storageMap = exportGroupService.computeAndValidateVolumes(newVolumesMap, exportGroup,
                     exportUpdateParam);
             _log.info("Updated volumes belong to storage systems: {}", Joiner.on(',').join(storageMap.keySet()));
+            
+            // Convert the storageMap to a list of added and removed Block Objects
+            newVolumesMap.clear();
+            for (Map.Entry<URI, Map<URI, Integer>> entry : storageMap.entrySet()) {
+                newVolumesMap.putAll(entry.getValue());
+            }
+            Map<URI, Integer> addedBlockObjectsMap = new HashMap<URI, Integer>();
+            Map<URI, Integer> removedBlockObjectsMap = new HashMap<URI, Integer>();
+            ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroup, addedBlockObjectsMap, removedBlockObjectsMap);
+            _log.info("Added volumes: {}", Joiner.on(',').join(addedBlockObjectsMap.keySet()));
+            _log.info("Removed volumes: {}", Joiner.on(',').join(removedBlockObjectsMap.keySet()));
+            
+            // If ExportPathParameter block is present, and volumes are added, capture ExportPathParameters arguments.
+            // This looks weird, but isn't. We use the added volumes from ExportCreateParam instead of addedBlockObjectsMap
+            // because the user may want to change the parameters for volumes that are already exported. In this way,
+            // the same volume can have different parameters to different hosts.
+            Map<URI, Integer> addedVolumeParams = exportGroupService.getChangedVolumes(exportUpdateParam, true);
+            ExportPathParams exportPathParam = null;
+            if (exportUpdateParam.getExportPathParameters() != null && !addedVolumeParams.keySet().isEmpty()) {
+                exportPathParam = exportGroupService.validateAndCreateExportPathParam(
+                        exportUpdateParam.getExportPathParameters(), exportGroup, addedVolumeParams.keySet());
+                exportGroupService.addBlockObjectsToPathParamMap(addedVolumeParams.keySet(), exportPathParam.getId(), exportGroup);
+            }
+            // Remove the block objects being deleted from any existing path parameters.
+            exportGroupService.removeBlockObjectsFromPathParamMap(removedBlockObjectsMap.keySet(), exportGroup);
 
             // Validate updated entries
             List<URI> newInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
@@ -68,11 +99,15 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
                     newHosts, newInitiators);
             _log.info("All clients were successfully validated");
             dbClient.persistObject(exportGroup);
+            if (exportPathParam != null) {
+                dbClient.createObject(exportPathParam);
+            }
 
             // push it to storage devices
             BlockExportController exportController = exportGroupService.getExportController();
             _log.info("Submitting export group update request.");
-            exportController.exportGroupUpdate(exportGroup.getId(), newVolumesMap, newClusters, newHosts, newInitiators, task);
+            exportController.exportGroupUpdate(exportGroup.getId(), addedBlockObjectsMap, removedBlockObjectsMap,
+                    newClusters, newHosts, newInitiators, task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(), (ServiceCoded) ex);

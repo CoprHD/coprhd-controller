@@ -6,6 +6,7 @@ package controllers.arrays;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+import static controllers.Common.flashException;
 
 import java.net.URI;
 import java.util.Collections;
@@ -72,6 +73,27 @@ public class FileVirtualPools extends ViprResourceController {
         }
         else {
             list();
+        }
+    }
+
+    private static void throwFlashException(FileVirtualPoolForm vpool, ViPRException e) {
+        flashException(e);
+        setErrorReferrer(vpool);
+    }
+
+    private static void setErrorReferrer(FileVirtualPoolForm vpool) {
+        // Only flash vpool parameters to reduce amount stored in flash scope
+        for (String param : params.all().keySet()) {
+            if (param.startsWith("vpool.")) {
+                params.flash(param);
+            }
+        }
+        Validation.keep();
+        if (vpool.isNew()) {
+            create();
+        }
+        else {
+            edit(vpool.id);
         }
     }
 
@@ -153,9 +175,13 @@ public class FileVirtualPools extends ViprResourceController {
             Common.handleError();
         }
 
-        FileVirtualPoolRestRep result = vpool.save();
-        flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
-        backToReferrer();
+        try {
+            FileVirtualPoolRestRep result = vpool.save();
+            flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
+            backToReferrer();
+        } catch (ViPRException e) {
+            throwFlashException(vpool, e);
+        }
     }
 
     /**
@@ -222,7 +248,7 @@ public class FileVirtualPools extends ViprResourceController {
     private static void addStaticOptions() {
         renderArgs.put("provisioningTypeOptions",
                 ProvisioningTypes.options(ProvisioningTypes.THICK, ProvisioningTypes.THIN));
-        renderArgs.put("protocolOptions", FileProtocols.options(FileProtocols.CIFS, FileProtocols.NFS));
+        renderArgs.put("protocolOptions", FileProtocols.options(FileProtocols.CIFS, FileProtocols.NFS, FileProtocols.NFSV4));
         renderArgs.put("systemTypeOptions",
                 StorageSystemTypes.options(
                         StorageSystemTypes.NONE,

@@ -76,6 +76,8 @@ public class NetworkScheduler {
 
     private DbClient _dbClient;
     private static final String LSAN = "LSAN_";
+    private static final int ZONE_NAME_LENGTH = 64;
+    private static final int BROCADE_ZONE_NAME_IVR_LENGTH = 59;
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -143,12 +145,31 @@ public class NetworkScheduler {
             dataSource.addProperty(CustomConfigConstants.ARRAY_SERIAL_NUMBER,
                     getVPlexClusterSerialNumber(port));
         }
+        String resolvedZoneName = customConfigHandler.resolve(
+                CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
+        validateZoneNameLength(resolvedZoneName, lsanZone, systemType);
         String zoneName = customConfigHandler.getComputedCustomConfigValue(
                 CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
         if (lsanZone && DiscoveredDataObject.Type.brocade.name().equals(systemType)) {
             zoneName = LSAN + zoneName;
         }
         fabricInfo.setZoneName(zoneName);
+    }
+
+    /**
+     * Validates if zone name length is within the allowed character limit on switches.
+     */
+    private void validateZoneNameLength(String zoneName, boolean isIvrZone, String systemType) {
+        // Checks for a different length for IVR zones as it should start with "LSAN" for brocade which is appended to zone name later
+        if(isIvrZone && DiscoveredDataObject.Type.brocade.name().equals(systemType)) {
+            if(zoneName.length() > BROCADE_ZONE_NAME_IVR_LENGTH) {
+                throw NetworkDeviceControllerException.exceptions.nameZoneLongerThanAllowed(zoneName, BROCADE_ZONE_NAME_IVR_LENGTH);
+            }
+        } else {
+            if(zoneName.length() > ZONE_NAME_LENGTH) {
+                throw NetworkDeviceControllerException.exceptions.nameZoneLongerThanAllowed(zoneName, ZONE_NAME_LENGTH);
+            }
+        }
     }
 
     /**
@@ -425,25 +446,6 @@ public class NetworkScheduler {
             return false;
         }
         return NetworkUtil.areNetworkSystemDiscovered(dbClient);
-    }
-
-    /**
-     * Returns true if zoning is required for a volume.
-     * 
-     * @param volURI
-     * @return
-     * @throws DeviceControllerException
-     * @throws IOException
-     */
-    private boolean isZoningRequired(URI volURI) throws DeviceControllerException {
-        // Check that zoning is enabled
-        URI nhURI = getNeighborhoodURIForVolume(volURI);
-        VirtualArray nh = _dbClient.queryObject(VirtualArray.class, nhURI);
-        Volume volume = _dbClient.queryObject(Volume.class, volURI);
-        if (nh == null) {
-            throw DeviceControllerException.exceptions.virtualArrayNotFoundForVolume(volume.getLabel());
-        }
-        return isZoningRequired(_dbClient, nh);
     }
 
     /**
@@ -1172,7 +1174,7 @@ public class NetworkScheduler {
                 if (ref.getInactive() == false) {
                     // Here is an apparent live reference; look up the volume and make
                     // sure it's still active too.
-                    Volume vol = _dbClient.queryObject(Volume.class, ref.getVolumeUri());
+                    BlockObject vol = BlockObject.fetch(_dbClient, ref.getVolumeUri());
                     ExportGroup group = _dbClient.queryObject(ExportGroup.class, ref.getGroupUri());
                     if (vol != null && vol.getInactive() == false && group != null && group.getInactive() == false) {
                         live = true;

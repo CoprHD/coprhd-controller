@@ -176,7 +176,7 @@ public class PasswordService {
             _logger.error("The client IP is blocked for too many invalid login attempts: " + clientIP);
             throw APIException.unauthorized.
                     exceedingErrorLoginLimit(_invLoginManager.getMaxAuthnLoginAttemtsCount(),
-                            _invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins());
+                            _invLoginManager.getTimeLeftToUnblock(clientIP));
         }
 
         if (StringUtils.isEmpty(passwordUpdate.getOldPassword())) {

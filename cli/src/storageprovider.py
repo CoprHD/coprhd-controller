@@ -336,9 +336,11 @@ def storageprovider_update(args):
         passwd = common.get_password("storage provider")
 
     try:
+        
         if (not args.usessl):
             args.usessl = False
-
+            
+        secondary_password = None
         if (args.secondary_username and len(args.secondary_username) > 0):
             secondary_password = common.get_password("secondary password")
 

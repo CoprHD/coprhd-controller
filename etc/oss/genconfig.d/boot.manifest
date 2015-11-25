@@ -1,0 +1,13 @@
+security
+ssl
+api
+auth
+controller
+coordinator
+db
+dbclient
+geo
+geodb
+nginx
+portal
+syssvc

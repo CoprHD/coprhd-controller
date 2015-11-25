@@ -26,7 +26,7 @@ public class VPlexApiConsistencyGroupManager {
     private static Logger s_logger = LoggerFactory.getLogger(VPlexApiConsistencyGroupManager.class);
 
     // A reference to the API client.
-    private VPlexApiClient _vplexApiClient;
+    private final VPlexApiClient _vplexApiClient;
 
     /**
      * Package protected constructor.
@@ -487,6 +487,10 @@ public class VPlexApiConsistencyGroupManager {
                         break;
                     }
                 }
+
+                if (virtualVolumeInfo != null) {
+                    break;
+                }
             }
 
             if (virtualVolumeInfo == null) {
@@ -601,7 +605,13 @@ public class VPlexApiConsistencyGroupManager {
         List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
         VPlexConsistencyGroupInfo cgInfo = discoveryMgr.findConsistencyGroup(cgName,
                 clusterInfoList, false);
-        deleteConsistencyGroup(cgInfo);
+        // COP-17138 If the consistency group still has virtual volumes in the VPLEX, don't delete it in the VPLEX
+        discoveryMgr.updateConsistencyGroupInfo(cgInfo);
+        if (cgInfo.getVirtualVolumes().isEmpty()) {
+            deleteConsistencyGroup(cgInfo);
+        } else {
+            s_logger.info("The consistency group {} still has virtual volumes in VPLEX, not deleting it in the VPLEX", cgName);
+        }
     }
 
     /**

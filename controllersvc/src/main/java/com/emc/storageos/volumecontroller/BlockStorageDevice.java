@@ -509,7 +509,7 @@ public interface BlockStorageDevice {
             Boolean createInactive, TaskCompleter taskCompleter);
 
     /**
-     * Create a clone for a consisstency group.
+     * Create a clone for a consistency group.
      * 
      * @param storageSystem
      * @param cloneVolumes
@@ -852,4 +852,52 @@ public interface BlockStorageDevice {
      */
     public void doResyncGroupClone(StorageSystem storageDevice, List<URI> clone,
             TaskCompleter completer) throws Exception;
+
+    /**
+     * Create list replica.
+     *
+     * @param storage the storage system
+     * @param replicaList the replicas
+     * @param createInactive
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doCreateListReplica(StorageSystem storage, List<URI> replicaList, Boolean createInactive, TaskCompleter taskCompleter)
+            throws Exception;
+
+    /**
+     * Detach list replica.
+     *
+     * @param storage the storage system
+     * @param replicaList the replicas
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doDetachListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws Exception;
+
+    /*
+     * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs
+     *
+     * @param storage the storage system
+     * @param exportMask the ExportMask that represents the masking component of the array
+     *
+     * @return The BlockObject URI to HLU mapping for the ExportMask
+     */
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
+    
+    /**
+     * Untags one or more volumes on the same storage system.
+     * 
+     * @param storageSystem
+     *            Storage system on which the operation is performed.
+     * @param opId
+     *            The unique operation id.
+     * @param volumes
+     *            The volumes to be untagged.
+     * @param taskCompleter
+     *            The completer invoked when the operation completes.
+     * @throws DeviceControllerException
+     */
+    public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
 }

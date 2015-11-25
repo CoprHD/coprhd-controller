@@ -6,7 +6,6 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -15,6 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +34,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -44,7 +43,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupUpdateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -95,7 +93,6 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             cgURI = volume.getConsistencyGroup();
         }
 
-
         List<VolumeDescriptor> nonSrdfVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA }, null);
 
@@ -134,17 +131,19 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     Volume existingTargetVolume = null;
                     // get target
                     StringSet targets = existingSourceVolume.getSrdfTargets();
-                    for (String target : targets) {
-                        if (NullColumnValueGetter.isNotNullValue(target)) {
-                            existingTargetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
-                            targetVolumeCGURI = existingTargetVolume.getConsistencyGroup();
-                            break;
+                    if (targets != null) {
+                        for (String target : targets) {
+                            if (NullColumnValueGetter.isNotNullValue(target)) {
+                                existingTargetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
+                                targetVolumeCGURI = existingTargetVolume.getConsistencyGroup();
+                                break;
+                            }
                         }
-                    } 
+                    }
                     break;
                 }
             }
-            
+
             waitFor = createReplicaIfCGHasReplica(workflow, waitFor,
                     srdfTargetVolumeDescriptors, targetVolumeCGURI);
 
@@ -162,7 +161,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      * @param cgURI
      * @return
      */
-	private String createReplicaIfCGHasReplica(Workflow workflow,
+    private String createReplicaIfCGHasReplica(Workflow workflow,
             String waitFor, List<VolumeDescriptor> volumeDescriptors, URI cgURI) {
         log.info("CG URI {}", cgURI);
         if (volumeDescriptors != null && !volumeDescriptors.isEmpty()) {
@@ -193,7 +192,6 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             }
         }
 
-
         return waitFor;
     }
 
@@ -202,7 +200,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      * 2. add all snpshots to an existing replication group.
      */
     private String createSnapshotSteps(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
-                                       List<Volume> volumeList, URI cgURI) {
+            List<Volume> volumeList, URI cgURI) {
         log.info("START create snapshot steps");
         List<URI> sourceList = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
         List<Volume> volumes = _dbClient.queryObject(Volume.class, sourceList);
@@ -247,9 +245,9 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
     private String addSnapshotsToReplicationGroupStep(final Workflow workflow, String waitFor,
-                                                      StorageSystem storageSystem,
-                                                      List<Volume> volumes,
-                                                      String repGroupName, URI cgURI) {
+            StorageSystem storageSystem,
+            List<Volume> volumes,
+            String repGroupName, URI cgURI) {
         log.info("START create snapshot step");
         URI storage = storageSystem.getId();
         List<URI> snapshotList = new ArrayList<>();
@@ -257,15 +255,14 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             BlockSnapshot snapshot = prepareSnapshot(volume, repGroupName);
             URI snapshotId = snapshot.getId();
             snapshotList.add(snapshotId);
-
-            Workflow.Method createMethod = new Workflow.Method(
-                    BlockDeviceController.CREATE_SINGLE_SNAPSHOT_METHOD, storage, snapshotList, false, false);
-            workflow.createStep(BlockDeviceController.CREATE_SNAPSHOTS_STEP_GROUP,
-                    "Create snapshot", waitFor, storage, storageSystem.getSystemType(),
-                    _blockDeviceController.getClass(),
-                    createMethod, _blockDeviceController.rollbackMethodNullMethod(), null);
         }
-        waitFor = BlockDeviceController.CREATE_SNAPSHOTS_STEP_GROUP;
+
+        Workflow.Method createMethod = new Workflow.Method(
+                BlockDeviceController.CREATE_LIST_SNAPSHOT_METHOD, storage, snapshotList, false, false);
+        waitFor = workflow.createStep(BlockDeviceController.CREATE_SNAPSHOTS_STEP_GROUP,
+                "Create list snapshot", waitFor, storage, storageSystem.getSystemType(),
+                _blockDeviceController.getClass(),
+                createMethod, _blockDeviceController.rollbackMethodNullMethod(), null);
 
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
@@ -285,12 +282,11 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         List<URI> cloneList = new ArrayList<URI>();
         for (Volume volume : volumes) {
             Volume clone = prepareClone(volume, repGroupName);
-            URI cloneId = clone.getId();
-            cloneList.add(cloneId);
-            // TODO - use CreateListReplica to create clones of all volumes in one call
-            waitFor = _blockDeviceController.createSingleCloneStep(workflow, storage, storageSystem, volume, cloneId, waitFor);
+            cloneList.add(clone.getId());
         }
 
+        // create clone
+        waitFor = _blockDeviceController.createListCloneStep(workflow, storageSystem, cloneList, waitFor);
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),
@@ -312,14 +308,21 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setSourceNativeId(volume.getNativeId());
         snapshot.setParent(new NamedURI(volume.getId(), volume.getLabel()));
         snapshot.setLabel(volume.getLabel() + "_" + repGroupName);
+        snapshot.setReplicationGroupInstance(repGroupName);
         snapshot.setStorageController(volume.getStorageController());
         snapshot.setVirtualArray(volume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());
         snapshot.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
-        snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
-                volume.getLabel(), SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
+        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, _dbClient);
+        if (null != existingSnapSnapSetLabel) {
+            snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
+        } else {
+            log.warn("Not able to find any snapshots with group {}", repGroupName);
+            snapshot.setSnapsetLabel(repGroupName);
+        }
 
+        snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
         _dbClient.createObject(snapshot);
 
         return snapshot;
@@ -341,6 +344,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         clone.setThinlyProvisioned(volume.getThinlyProvisioned());
         clone.setOpStatus(new OpStatusMap());
         clone.setAssociatedSourceVolume(volume.getId());
+        clone.setReplicationGroupInstance(repGroupName);
 
         StringSet fullCopies = volume.getFullCopies();
         if (fullCopies == null) {
@@ -390,11 +394,9 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             BlockMirror mirror = createMirror(volume, volume.getVirtualPool(), volume.getPool(), mirrorLabel);
             URI mirrorId = mirror.getId();
             mirrorList.add(mirrorId);
-            // TODO - use CreateListReplica to create mirrors of all volumes in one call
-            waitFor = _blockDeviceController.addStepsForCreateMirrors(workflow, waitFor, storage, 
-                    volume.getId(), Arrays.asList(mirrorId), false);
         }
 
+        waitFor = _blockDeviceController.createListMirrorStep(workflow, waitFor, storageSystem, mirrorList);
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),
@@ -434,7 +436,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         createdMirror.setTenant(new NamedURI(volume.getTenant().getURI(), createdMirror.getLabel()));
         createdMirror.setPool(recommendedPoolURI);
         createdMirror.setVirtualPool(vPoolURI);
-        createdMirror.setSyncState(BlockMirror.SynchronizationState.UNKNOWN.toString());
+        createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());
         createdMirror.setSyncType(BlockMirror.MIRROR_SYNC_TYPE);
         createdMirror.setThinlyProvisioned(volume.getThinlyProvisioned());
         _dbClient.createObject(createdMirror);
@@ -477,7 +479,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      */
     public boolean addToReplicationGroup(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList,
             String opId)
-                    throws ControllerException {
+            throws ControllerException {
         WorkflowStepCompleter.stepExecuting(opId);
         TaskCompleter taskCompleter = null;
         try {
@@ -664,7 +666,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     /*
      * Detach all clones of the to be deleted volumes in a CG
      */
-    private String detachCloneSteps(final Workflow workflow, String waitFor, Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {
+    private String
+            detachCloneSteps(final Workflow workflow, String waitFor, Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {
         log.info("START detach clone steps");
         Set<String> repGroupNames = ControllerUtils.getCloneReplicationGroupNames(volumes, _dbClient);
         if (repGroupNames.isEmpty()) {
@@ -680,7 +683,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 waitFor = removeClonesFromReplicationGroupStep(workflow, waitFor, storageSystem, cgURI, cloneList, repGroupName);
             }
 
-            waitFor = _blockDeviceController.detachCloneStep(workflow, waitFor, storage, storageSystem, cloneList, isRemoveAll);
+            waitFor = _blockDeviceController.detachCloneStep(workflow, waitFor, storageSystem, cloneList, isRemoveAll);
         }
 
         return waitFor;
@@ -715,8 +718,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
     private String removeSnapshotsFromReplicationGroupStep(final Workflow workflow, String waitFor,
-                                                           StorageSystem storageSystem,
-                                                           URI cgURI, List<URI> snapshots, String repGroupName) {
+            StorageSystem storageSystem,
+            URI cgURI, List<URI> snapshots, String repGroupName) {
         log.info("START remove snapshot from CG steps");
         URI storage = storageSystem.getId();
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
@@ -826,7 +829,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      */
     public boolean removeFromReplicationGroup(URI storage, URI consistencyGroup, String repGroupName, List<URI> addVolumesList,
             String opId)
-                    throws ControllerException {
+            throws ControllerException {
         TaskCompleter taskCompleter = null;
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);

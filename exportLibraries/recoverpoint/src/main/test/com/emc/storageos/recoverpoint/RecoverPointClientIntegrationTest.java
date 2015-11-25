@@ -263,13 +263,13 @@ public class RecoverPointClientIntegrationTest {
             for (RPSite rpSite : returnList) {
                 boolean foundError = false;
                 logger.info("Testing RecoverPoint Get Site WWNs");
-                Map<String, String> WWNs = null;
+                Map<String, Map<String, String>> WWNs = null;
                 WWNs = rpClient.getInitiatorWWNs(rpSite.getInternalSiteName());
                 if (WWNs == null || WWNs.size() < 1) {
                     foundError = true;
                     fail("No WWNs were returned");
                 }
-                if (!foundError) {
+                if (!foundError) {                	
                     logger.info("TestRecoverPointServiceGetSiteWWNs PASSED.  Found " + WWNs.size() + " Initiator WWNs");
                 }
             }

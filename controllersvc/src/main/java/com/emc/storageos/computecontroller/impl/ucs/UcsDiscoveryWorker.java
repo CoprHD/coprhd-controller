@@ -21,6 +21,8 @@ import java.util.Set;
 
 import javax.xml.bind.JAXBElement;
 
+import org.apache.commons.lang.StringUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1721,6 +1723,9 @@ public class UcsDiscoveryWorker {
              * the VSAN will only be available via the pinned port(s)
              */
             if (vsanId.equals("1") && unpinnedVsans.get(fcPIo.getSwitchId()) != null) {
+                StringSet vsanStringSet = new StringSet();
+                vsanStringSet.add(vsanId);
+                cfup.setVsans(vsanStringSet);
                 cfup.addVsans(unpinnedVsans.get(fcPIo.getSwitchId()));
             }
             else {
@@ -1826,6 +1831,9 @@ public class UcsDiscoveryWorker {
          * If not found, the uplink port channel needs to be removed.
          */
         if (vsanId.equals("1") && unpinnedVsans.get(pc.getSwitchId()) != null) {
+            StringSet vsanStringSet = new StringSet();
+            vsanStringSet.add(vsanId);
+            cfup.setVsans(vsanStringSet);
             cfup.addVsans(unpinnedVsans.get(pc.getSwitchId()));
         }
         else {
@@ -1846,7 +1854,8 @@ public class UcsDiscoveryWorker {
          * '24:' + hex(portchannelId) + ':' + WWN seed
          */
         String wwn = seedWwn.substring(6, seedWwn.length());
-        return "24:" + Long.toHexString(parseNumber(portChannelId).longValue()).toUpperCase() + ":" + wwn;
+        String portChannelIdHex = Long.toHexString(parseNumber(portChannelId).longValue()).toUpperCase();
+        return "24:" + StringUtils.leftPad(portChannelIdHex, 2, '0') + ":" + wwn;  // COP-17862 (add leading 0)
     }
 
     /**
@@ -1873,15 +1882,12 @@ public class UcsDiscoveryWorker {
 
         for (SwFcSanEp swInterfaces : fcInterfaceMap.values()) {
             Set<String> vsanSet = switchWiseVsan.get(swInterfaces.getSwitchId());
-
-            if (vsanList == null) {
+            if (vsanSet == null) {
                 continue;
             }
 
             if (vsanSet.contains(swInterfaces.getPortVsanId())) {
-                vsanList.remove(swInterfaces.getPortVsanId());
-                // vasnList contains swVsan and this code tries to remove the String element which is not correct
-
+                vsanSet.remove(swInterfaces.getPortVsanId());
             }
         }
         return switchWiseVsan;

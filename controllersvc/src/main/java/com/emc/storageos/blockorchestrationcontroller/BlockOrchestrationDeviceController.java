@@ -71,7 +71,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    CREATE_VOLUMES_WF_NAME, true, taskId);
+                    CREATE_VOLUMES_WF_NAME, false, taskId);
             String waitFor = null;    // the wait for key returned by previous call
 
             s_logger.info("Generating steps for create Volume");
@@ -162,14 +162,14 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // Next, call the BlockDeviceController to add its methods.
             waitFor = _blockDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
-
+          
             // Call the VPlexDeviceController to add its post-delete methods.
             waitFor = _vplexDeviceController.addStepsForPostDeleteVolumes(
                     workflow, waitFor, volumes, taskId, completer);
 
             // Last, call the RPDeviceController to add its post-delete methods.
             waitFor = _rpDeviceController.addStepsForPostDeleteVolumes(
-                    workflow, waitFor, volumes, taskId, completer);
+                    workflow, waitFor, volumes, taskId, completer, _blockDeviceController);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter

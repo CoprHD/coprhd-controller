@@ -471,7 +471,7 @@ class VirtualPool(object):
     def vpool_create(self, name, description, vpooltype, protocols,
                      varrays, provisiontype, rp, rp_policy,
                      systemtype, raidlevel, fastpolicy, drivetype, expandable,
-                     usematchedpools, max_snapshots ,maxretention, max_mirrors, vpoolmirror,
+                     usematchedpools, max_snapshots ,maxretention, longtermretention, max_mirrors, vpoolmirror,
                      multivolconsistency, autotierpolicynames,
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
@@ -529,6 +529,9 @@ class VirtualPool(object):
                 parms['use_matched_pools'] = "true"
             else:
                 parms['use_matched_pools'] = "false"
+        
+        if(longtermretention == "true" and vpooltype == "file"):
+            parms['long_term_retention'] = longtermretention
                 
         if(vpooltype == 'object'):       
         
@@ -677,7 +680,7 @@ class VirtualPool(object):
                 parms['protection'] = block_vpool_protection_param
 
         body = json.dumps(parms)
-        print body 
+        
         try:
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port, "POST",
@@ -698,7 +701,7 @@ class VirtualPool(object):
     def vpool_update(
             self, name, label, description, vpooltype, systemtype, drivetype,
             protocol_add, protocol_remove, varray_add, varray_remove,
-            use_matched_pools, max_snapshots, max_mirrors, multivolconsistency,
+            use_matched_pools, max_snapshots, max_mirrors, longtermretention, multivolconsistency,
             expandable, autotierpolicynames, ha, fastpolicy, minpaths,
             maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
@@ -853,6 +856,9 @@ class VirtualPool(object):
                 parms['use_matched_pools'] = "true"
             else:
                 parms['use_matched_pools'] = "false"
+        
+        if(longtermretention == "true" and vpooltype == "file"):
+            parms["long_term_retention"] = longtermretention
 
         if(expandable):
             vpool = self.vpool_show_uri(vpooltype, vpooluri)
@@ -1003,14 +1009,19 @@ def create_parser(subcommand_parsers, common_parser):
                                help='Maximum retention period',
                                metavar='<max_retention>',
                                dest='maxretention')
+    create_parser.add_argument('-longtermretention', '-ltrtn',
+                               help='Lomg term retention',
+                               metavar='<long_term_retention>',
+                               dest='longtermretention' ,
+                               choices= VirtualPool.BOOL_TYPE_LIST)
     
     create_parser.add_argument(
         '-maxcontinuouscopies', '-mcc',
         help='Maximum number of native continuous copies',
-        metavar='<max_continous_copies>',
+        metavar='<max_continuous_copies>',
         dest='maxcontinuouscopies')
     create_parser.add_argument('-continuouscopiesvpool', '-ccv',
-                               help='vpool for continous copies',
+                               help='vpool for continuous copies',
                                metavar='<continuouscopies_vpool>',
                                dest='continuouscopiesvpool')
     create_parser.add_argument('-ha',
@@ -1168,6 +1179,7 @@ def vpool_create(args):
                                args.usematchedpools,
                                args.max_snapshots,
                                args.maxretention ,
+                               args.longtermretention ,
                                args.maxcontinuouscopies,
                                args.continuouscopiesvpool,
                                args.multivolconsistency,
@@ -1255,6 +1267,11 @@ def update_parser(subcommand_parsers, common_parser):
                                help='Max number of native continuous copies',
                                metavar='<maxcontinuouscopies>',
                                dest='maxcontinuouscopies')
+    update_parser.add_argument('-longtermretention', '-ltrtn',
+                               help='Long term retention',
+                               metavar='<long_term_retention>',
+                               dest='longtermretention' ,
+                               choices=VirtualPool.BOOL_TYPE_LIST)
     update_parser.add_argument('-type', '-t',
                                help='Type of the VPool (default:file)',
                                default='file',
@@ -1386,6 +1403,7 @@ def vpool_update(args):
            args.usematchedpools is not None or
            args.max_snapshots is not None or
            args.maxcontinuouscopies is not None or
+           args.longtermretention is not None or 
            args.multivolconsistency is not None or
            args.expandable is not None or
            args.autotierpolicynames is not None or
@@ -1414,6 +1432,7 @@ def vpool_update(args):
                              args.usematchedpools,
                              args.max_snapshots,
                              args.maxcontinuouscopies,
+                             args.longtermretention,
                              args.multivolconsistency,
                              args.expandable,
                              args.autotierpolicynames,

@@ -13,6 +13,8 @@ import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
 @Cf("Project")
 @DbKeyspace(Keyspaces.GLOBAL)
 public class Project extends DataObjectWithACLs {
+
+    private static final String EXPECTED_GEO_VERSION_FOR_ASSIGN_VNAS_SUPPORT = "2.4";
     private NamedURI _tenantOrg;
     private String _owner;
     private Long _quotaGB;
@@ -63,6 +65,7 @@ public class Project extends DataObjectWithACLs {
     /**
      * @return the assignedVNasServers
      */
+    @AllowedGeoVersion(version = EXPECTED_GEO_VERSION_FOR_ASSIGN_VNAS_SUPPORT)
     @Name("assigned_vnas_servers")
     public StringSet getAssignedVNasServers() {
         if (assignedVNasServers == null) {

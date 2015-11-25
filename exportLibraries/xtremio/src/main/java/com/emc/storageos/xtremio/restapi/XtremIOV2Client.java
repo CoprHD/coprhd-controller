@@ -526,7 +526,6 @@ public class XtremIOV2Client extends XtremIOClient {
         refreshParam.setClusterId(clusterName);
         // If no-backup is false, then a snapshot of snapshot to refresh is created.
         // We don't support ingestion of such snaps. So mark it as true
-        refreshParam.setNoBackup(Boolean.TRUE.toString());
         refreshParam.setFromConsistencyGroupId(cgName);
         refreshParam.setToSnapshotSetId(snapshotName);
 
@@ -598,7 +597,7 @@ public class XtremIOV2Client extends XtremIOClient {
 
             return tags.getContent();
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            log.warn(e.getMessage(), e);
         }
         log.info("Tag not available on Array with name : {}",
                 tagName);

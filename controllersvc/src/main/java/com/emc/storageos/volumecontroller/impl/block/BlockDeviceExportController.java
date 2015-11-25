@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,7 @@ import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
@@ -352,7 +354,9 @@ public class BlockDeviceExportController implements BlockExportController {
     }
 
     @Override
-    public void exportGroupUpdate(URI export, Map<URI, Integer> updatedBlockObjectMap,
+    public void exportGroupUpdate(URI export, 
+            Map<URI, Integer> addedBlockObjectMap, 
+            Map<URI, Integer> removedBlockObjectMap,
             List<URI> updatedClusters, List<URI> updatedHosts,
             List<URI> updatedInitiators, String opId)
             throws ControllerException {
@@ -373,7 +377,8 @@ public class BlockDeviceExportController implements BlockExportController {
             StringSetUtil.removeDuplicates(updatedHosts);
             StringSetUtil.removeDuplicates(updatedInitiators);
 
-            computeDiffs(export, updatedBlockObjectMap, updatedInitiators,
+            computeDiffs(export, 
+                    addedBlockObjectMap, removedBlockObjectMap, updatedInitiators,
                     addedStorageToBlockObjects, removedStorageToBlockObjects,
                     addedInitiators, removedInitiators, addedHosts, removedHosts,
                     addedClusters, removedClusters);
@@ -445,8 +450,10 @@ public class BlockDeviceExportController implements BlockExportController {
      * to be added and removed.
      * 
      * @param expoUri the export group URI
-     * @param newBlockObjects the updated map of block objects that reflect what
-     *            needs to be added and removed from the current volumes map
+     * @param addedBlockObjectsFromRequest : the map of block objects that were requested to be
+     *            added. (Passed separately to avoid concurrency problem). 
+     * @param removedBlockObjectsFromRequest : the map of block objects that wee reqested
+     *              to be removed.
      * @param newInitiators the updated list of initiators that reflect what needs
      *            to be added and removed from the current list of initiators
      * @param addedBlockObjects a map to be filled with storage-system-to-added-volumed
@@ -458,7 +465,9 @@ public class BlockDeviceExportController implements BlockExportController {
      * @param addedClusters list of clusters to add
      * @param removedClusters list of cluster to remove
      */
-    private void computeDiffs(URI expoUri, Map<URI, Integer> newBlockObjects,
+    private void computeDiffs(URI expoUri, 
+            Map<URI, Integer> addedBlockObjectsFromRequest,
+            Map<URI, Integer> removedBlockObjectsFromRequest,
             List<URI> newInitiators,
             Map<BlockObjectControllerKey, Map<URI, Integer>> addedBlockObjects,
             Map<BlockObjectControllerKey, Map<URI, Integer>> removedBlockObjects,
@@ -468,59 +477,67 @@ public class BlockDeviceExportController implements BlockExportController {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, expoUri);
         Map<URI, Integer> existingMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
         List<URI> existingInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-
-        if (exportGroup.getVolumes() != null) {
-            _log.info("Existing export group volumes: " + Joiner.on(',').join(exportGroup.getVolumes().keySet()));
-        }
-
+        
         BlockObjectControllerKey controllerKey = null;
 
+        // If there are existing volumes, make sure their controller is represented in the
+        // addedBlockObjects and removedBlockObjects maps, even if nothing was added / or removed.
+        // This is necessary because the addBlockObjects.keyset() is used by the caller to iterate
+        // over the controllers needed for the workflow.
+        if (exportGroup.getVolumes() != null) {
+            _log.info("Existing export group volumes: " + Joiner.on(',').join(exportGroup.getVolumes().keySet()));
+            Map<URI, Integer> existingBlockObjectMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
+            for (Map.Entry<URI, Integer> existingBlockObjectEntry : existingBlockObjectMap.entrySet()) {
+                BlockObject bo = BlockObject.fetch(_dbClient, existingBlockObjectEntry.getKey());
+                URI storageControllerUri = getExportStorageController(bo);
+                controllerKey = new BlockObjectControllerKey();
+                controllerKey.setStorageControllerUri(bo.getStorageController());
+                if (!storageControllerUri.equals(bo.getStorageController())) {
+                    controllerKey.setProtectionControllerUri(storageControllerUri);
+                }
+                Log.info("Existing block object {} in storage {}", bo.getId(), controllerKey.getController());
+                // add an entry in each map for the storage system if not already exists
+                getOrAddStorageMap(controllerKey, addedBlockObjects);
+                getOrAddStorageMap(controllerKey, removedBlockObjects);
+            }
+        }
+
         // compute a map of storage-system-to-volumes for volumes to be added
-        for (URI uri : newBlockObjects.keySet()) {
+        for (URI uri : addedBlockObjectsFromRequest.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, uri);
-
             URI storageControllerUri = getExportStorageController(bo);
-
+            
             controllerKey = new BlockObjectControllerKey();
             controllerKey.setStorageControllerUri(bo.getStorageController());
-
             if (!storageControllerUri.equals(bo.getStorageController())) {
                 controllerKey.setProtectionControllerUri(storageControllerUri);
             }
-
             // add an entry in each map for the storage system if not already exists
-            getOrAddStorageMap(controllerKey, addedBlockObjects);
+            getOrAddStorageMap(controllerKey, addedBlockObjects).put(uri, addedBlockObjectsFromRequest.get(uri));
             getOrAddStorageMap(controllerKey, removedBlockObjects);
-            if (exportGroup.getVolumes() == null ||
-                    !exportGroup.getVolumes().keySet().contains(uri.toString())) {
-                addedBlockObjects.get(controllerKey).put(uri, newBlockObjects.get(uri));
-                _log.info("Block object {} to add to storage: {}", bo.getId(), controllerKey);
-            } else {
-                existingMap.remove(uri);
+            
+            _log.info("Block object {} to add to storage: {}",  bo.getId(), controllerKey.getController());
+        }
+        
+        for (URI uri : removedBlockObjectsFromRequest.keySet()) {
+            if (existingMap.containsKey(uri)) {
+                BlockObject bo = BlockObject.fetch(_dbClient, uri);
+                URI storageControllerUri = getExportStorageController(bo);
+
+                controllerKey = new BlockObjectControllerKey();
+                controllerKey.setStorageControllerUri(bo.getStorageController());
+                if (!storageControllerUri.equals(bo.getStorageController())) {
+                    controllerKey.setProtectionControllerUri(storageControllerUri);
+                }
+                
+                // add an empty map for the added blocks so that the two maps have the same keyset
+                getOrAddStorageMap(controllerKey,  addedBlockObjects);
+                getOrAddStorageMap(controllerKey,  removedBlockObjects).put(uri, existingMap.get(uri));
+                
+                _log.info("Block object {} to remove from storage: {}", bo.getId(), controllerKey.getController());
             }
         }
-        // compute a map of storage-system-to-volumes for volumes to be removed
-        for (URI uri : existingMap.keySet()) {
-            _log.info("Existing map: " + uri + " processing");
-            BlockObject bo = BlockObject.fetch(_dbClient, uri);
-
-            URI storageControllerUri = getExportStorageController(bo);
-
-            controllerKey = new BlockObjectControllerKey();
-            controllerKey.setStorageControllerUri(bo.getStorageController());
-
-            if (!storageControllerUri.equals(bo.getStorageController())) {
-                controllerKey.setProtectionControllerUri(storageControllerUri);
-            }
-
-            // add an empty map for the added blocks so that the two maps have the same keyset
-            getOrAddStorageMap(controllerKey,
-                    addedBlockObjects);
-            getOrAddStorageMap(controllerKey,
-                    removedBlockObjects).put(uri, existingMap.get(uri));
-            _log.info("Block object {} to remove from storage: {}",
-                    new Object[] { bo.getId(), controllerKey });
-        }
+        
         // compute the list of initiators to be added and removed
         for (URI uri : newInitiators) {
             if (exportGroup.getInitiators() == null ||
@@ -688,12 +705,33 @@ public class BlockDeviceExportController implements BlockExportController {
             // Read volume from database, update the Vpool to the new completer, and create task completer.
             volume = _dbClient.queryObject(Volume.class, volumeURI);
             URI oldVpoolURI = volume.getVirtualPool();
+            List<URI> rollbackList = new ArrayList<URI>();
+            List<Volume>updatedVolumes = new ArrayList<Volume>();
+            rollbackList.add(volumeURI);
+            // Check if it is a VPlex volume, and get backend volumes
+            Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+            if (backendSrc != null) {
+                // Change the back end volume's vpool too
+                backendSrc.setVirtualPool(newVpoolURI);
+                rollbackList.add(backendSrc.getId());
+                updatedVolumes.add(backendSrc);
+                // VPlex volume, check if it is distributed
+                Volume backendHa = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient, false);
+                if (backendHa != null && backendHa.getVirtualPool() != null &&
+                        backendHa.getVirtualPool().toString().equals(oldVpoolURI.toString())) {
+                    backendHa.setVirtualPool(newVpoolURI);
+                    rollbackList.add(backendHa.getId());
+                    updatedVolumes.add(backendHa);
+                }
+                
+            }
             // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool in event of error.
-            taskCompleter = new VolumeVpoolChangeTaskCompleter(volumeURI, oldVpoolURI, opId);
+            taskCompleter = new VolumeVpoolChangeTaskCompleter(rollbackList, oldVpoolURI, opId);
             volume.setVirtualPool(newVpoolURI);
+            updatedVolumes.add(volume);
             _log.info(String.format("Changing VirtualPool PathParams for volume %s (%s) from %s to %s",
                     volume.getLabel(), volume.getId(), oldVpoolURI, newVpoolURI));
-            _dbClient.updateAndReindexObject(volume);
+            _dbClient.updateAndReindexObject(updatedVolumes);
         } catch (Exception ex) {
             _log.error("Unexpected exception reading volume or generating taskCompleter: ", ex);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
@@ -755,6 +793,7 @@ public class BlockDeviceExportController implements BlockExportController {
         VolumeVpoolAutoTieringPolicyChangeTaskCompleter taskCompleter = null;
         URI oldVpoolURI = null;
         List<Volume> volumes = new ArrayList<Volume>();
+        List<Volume> vplexBackendVolumes = new ArrayList<Volume>();
 
         try {
             // Read volume from database, update the vPool to the new vPool
@@ -771,8 +810,39 @@ public class BlockDeviceExportController implements BlockExportController {
                         volume.getLabel(), volume.getId(), oldVpoolURI, newVpoolURI));
                 oldVolToPolicyMap.put(volume.getId(), volume.getAutoTieringPolicyUri());
                 updateAutoTieringPolicyUriInVolume(volume, newVpool);
-                _dbClient.updateAndReindexObject(volume);
+
+                // Check if it is a VPlex volume, and get backend volumes
+                Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+                if (backendSrc != null) {
+                    // Change the back end volume's vPool too
+                    backendSrc.setVirtualPool(newVpoolURI);
+                    vplexBackendVolumes.add(backendSrc);
+                    _log.info(String.format(
+                            "Changing VirtualPool Auto-tiering Policy for VPLEX backend source volume %s (%s) from %s to %s",
+                            backendSrc.getLabel(), backendSrc.getId(), oldVpoolURI, newVpoolURI));
+                    oldVolToPolicyMap.put(backendSrc.getId(), backendSrc.getAutoTieringPolicyUri());
+                    updateAutoTieringPolicyUriInVolume(backendSrc, newVpool);
+
+                    // VPlex volume, check if it is distributed
+                    Volume backendHa = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient, false);
+                    if (backendHa != null) {
+                        VirtualPool newHAVpool = VirtualPool.getHAVPool(newVpool, _dbClient);
+                        if (newHAVpool == null) { // it may not be set
+                            newHAVpool = newVpool;
+                        }
+                        backendHa.setVirtualPool(newHAVpool.getId());
+                        vplexBackendVolumes.add(backendHa);
+                        _log.info(String.format(
+                                "Changing VirtualPool Auto-tiering Policy for VPLEX backend distributed volume %s (%s) from %s to %s",
+                                backendHa.getLabel(), backendHa.getId(), oldVpoolURI, newHAVpool.getId()));
+                        oldVolToPolicyMap.put(backendHa.getId(), backendHa.getAutoTieringPolicyUri());
+                        updateAutoTieringPolicyUriInVolume(backendHa, newHAVpool);
+                    }
+                }
             }
+            _dbClient.updateObject(volumes);
+            _dbClient.updateObject(vplexBackendVolumes);
+
             // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool
             // and old auto tiering policy in event of error.
             // Assume all volumes belong to the same vPool. This should be take care by BlockService API.
@@ -800,8 +870,11 @@ public class BlockDeviceExportController implements BlockExportController {
              * Create workflow step for each storage system.
              */
 
+            // Use backend volumes list if it is VPLEX volume
+            List<Volume> volumesToUse = !vplexBackendVolumes.isEmpty() ? vplexBackendVolumes : volumes;
+
             // move applicable volumes from all volumes list to a separate list.
-            Map<URI, List<URI>> systemToVolumeMap = getVolumesToModify(volumes);
+            Map<URI, List<URI>> systemToVolumeMap = getVolumesToModify(volumesToUse);
 
             String stepId = null;
             for (URI systemURI : systemToVolumeMap.keySet()) {
@@ -814,7 +887,7 @@ public class BlockDeviceExportController implements BlockExportController {
             Map<URI, List<URI>> storageToNotExportedVolumesMap = new HashMap<URI, List<URI>>();
             Map<URI, List<URI>> exportMaskToVolumeMap = new HashMap<URI, List<URI>>();
             Map<URI, URI> maskToGroupURIMap = new HashMap<URI, URI>();
-            for (Volume volume : volumes) {
+            for (Volume volume : volumesToUse) {
                 // Locate all the ExportMasks containing the given volume
                 Map<ExportMask, ExportGroup> maskToGroupMap = ExportUtils
                         .getExportMasks(volume, _dbClient);
@@ -840,14 +913,32 @@ public class BlockDeviceExportController implements BlockExportController {
                 }
             }
 
+            VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
+            VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolURI);
             for (URI exportMaskURI : exportMaskToVolumeMap.keySet()) {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                List<URI> exportMaskVolumes = exportMaskToVolumeMap.get(exportMaskURI);
+                URI exportMaskNewVpool = newVpoolURI;
+                URI exportMaskOldVpool = oldVpoolURI;
+                Volume vol = _dbClient.queryObject(Volume.class, exportMaskVolumes.get(0));
+                // For VPLEX backend distributed volumes, send in HA vPool
+                // all volumes are already updated with respective new vPool
+                if (Volume.checkForVplexBackEndVolume(_dbClient, vol)
+                        && !newVpoolURI.equals(vol.getVirtualPool())) {
+                    // backend distributed volume; HA vPool set in Vplex vPool
+                    exportMaskNewVpool = vol.getVirtualPool();
+                    VirtualPool oldHAVpool = VirtualPool.getHAVPool(oldVpool, _dbClient);
+                    if (oldHAVpool == null) { // it may not be set
+                        oldHAVpool = oldVpool;
+                    }
+                    exportMaskOldVpool = oldHAVpool.getId();
+                }
                 stepId = _wfUtils.generateExportChangePolicyAndLimits(workflow,
                         "updateAutoTieringPolicy", stepId,
                         exportMask.getStorageDevice(), exportMaskURI,
                         maskToGroupURIMap.get(exportMaskURI),
-                        exportMaskToVolumeMap.get(exportMaskURI), newVpoolURI,
-                        oldVpoolURI);
+                        exportMaskVolumes, exportMaskNewVpool,
+                        exportMaskOldVpool);
             }
 
             for (URI storageURI : storageToNotExportedVolumesMap.keySet()) {

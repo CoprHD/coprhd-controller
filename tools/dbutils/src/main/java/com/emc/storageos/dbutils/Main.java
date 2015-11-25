@@ -30,6 +30,7 @@ public class Main {
         LIST,
         QUERY,
         DELETE,
+        SHOW_DEPENDENCY,
         COUNT,
         GET_RECORDS,
         GLOBALLOCK,
@@ -40,6 +41,7 @@ public class Main {
         GEOBLACKLIST,
         CHECK_DB,
         REPAIR_DB,
+        REBUILD_INDEX,
     };
 
     private static final String TYPE_EVENTS = "events";
@@ -84,8 +86,10 @@ public class Main {
                 Command.LIST.name().toLowerCase(), TYPE_EVENTS, TYPE_STATS, TYPE_AUDITS);
         System.out.printf("\t%s [-force] <Column Family Name> <id/-file file_path>%n", Command.DELETE.name().toLowerCase());
         System.out
-                .printf("\t\t%s\t<file_path>\tEvery single line in this file is an object id, multiple object ids should be separated to different line.%n",
+                .printf("\t\t%s <file_path>\tEvery single line in this file is an object id, multiple object ids should be separated to different line.%n",
                         DELETE_FILE);
+        System.out.printf("\t%s <Column Family Name> [id]%n", Command.SHOW_DEPENDENCY.name().toLowerCase());
+        System.out.printf("\t\t%s\t\t Print out the exact dependency references for this specific id if exist.%n", "id");
         System.out.printf("\t%s [%s] <Column Family Name>%n",
                 Command.COUNT.name().toLowerCase(), INACTIVE);
         System.out.printf("\t\t%s\t Count including inactive object ids.%n", INACTIVE);
@@ -109,7 +113,7 @@ public class Main {
                 Command.RECOVER_VDC_CONFIG.name().toLowerCase(), RECOVER_DUMP, RECOVER_LOAD);
         System.out.printf("\t%s [%s] [%s] Geodb blacklist.%n",
                 Command.GEOBLACKLIST.name().toLowerCase(), "-reset|set", "<vdc short id>");
-        System.out.printf("\t%s Check correctness for URI and serialize in db%n",
+        System.out.printf("\t%s\tCheck data consistency of the whole database%n",
                 Command.CHECK_DB.name().toLowerCase());
         System.out.printf("\t%s -db|-geodb [-new] [-crossVdc]%n",
                 Command.REPAIR_DB.name().toLowerCase());
@@ -117,7 +121,10 @@ public class Main {
                 Command.REPAIR_DB.name().toLowerCase(), STORAGEOS_USER);
         System.out.printf("\t -bypassMigrationCheck%n");
         System.out
-                .printf("\t\tNote: it's used with other commands together only when migration fail, dbutils still work even migration fail if you pass this option");
+                .printf("\t\tNote: it's used with other commands together only when migration fail, dbutils still work even migration fail if you pass this option%n");
+        System.out.printf("\t%s <file_path>%n",
+                Command.REBUILD_INDEX.name().toLowerCase());
+        System.out.printf("\t\t Note: use the genereated file to rebuild the index%n");
     }
 
     /**
@@ -210,6 +217,10 @@ public class Main {
                     _client.init();
                     handler = new DeleteHandler(args);
                     break;
+                case SHOW_DEPENDENCY:
+                    _client.init();
+                    handler = new DependencyHandler(args);
+                    break;
                 case COUNT:
                     _client.init();
                     handler = new CountHandler(args);
@@ -244,7 +255,11 @@ public class Main {
                     break;
                 case CHECK_DB:
                     _client.init();
-                    handler = new CheckDBHandler();
+                    handler = new CheckDBHandler(args);
+                    break;
+                case REBUILD_INDEX:
+                    _client.init();
+                    handler = new RebuildIndexHandler(args);
                     break;
                 default:
                     throw new IllegalArgumentException("Invalid command ");

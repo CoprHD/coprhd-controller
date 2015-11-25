@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements upload protocol using FTPS
  */
-public class FtpsUploader extends UploadExecutor {
+public class FtpsUploader extends Uploader {
     private static final Logger log = LoggerFactory.getLogger(FtpsUploader.class);
 
     private final static String CONTENT_LENGTH_HEADER = "Content-Length:";
@@ -27,10 +27,10 @@ public class FtpsUploader extends UploadExecutor {
         super(cfg, cli);
     }
 
-    private ProcessBuilder getBuilder(boolean withProgress) {
+    private ProcessBuilder getBuilder() {
         boolean isExplicit = startsWithIgnoreCase(this.cfg.uploadUrl, FTPS_URL_PREFIX);
 
-        ProcessBuilder builder = new ProcessBuilder("curl", withProgress ? "-#k" : "-sSk", "-u", String.format("%s:%s",
+        ProcessBuilder builder = new ProcessBuilder("curl", "-sSk", "-u", String.format("%s:%s",
                 this.cfg.uploadUserName, this.cfg.getUploadPassword()));
         if (!isExplicit) {
             builder.command().add("--ftp-ssl");
@@ -49,7 +49,7 @@ public class FtpsUploader extends UploadExecutor {
 
     @Override
     public Long getFileSize(String fileName) throws Exception {
-        ProcessBuilder builder = getBuilder(false);
+        ProcessBuilder builder = getBuilder();
 
         builder.command().add("-I");
         builder.command().add(this.cfg.uploadUrl + fileName);
@@ -78,7 +78,7 @@ public class FtpsUploader extends UploadExecutor {
 
     @Override
     public OutputStream upload(String fileName, long offset) throws Exception {
-        ProcessBuilder builder = getBuilder(true);
+        ProcessBuilder builder = getBuilder();
 
         // We should send a "REST offset" command, but the earliest stage we can --quote it is before PASV/EPSV
         // (then "TYPE I", "STOR ..."), which does not comply to RFC959 that saying REST should be sent

@@ -53,46 +53,67 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public BiosCommandResult doCreateBucket(StorageSystem storageObj, ObjectDeviceInputOutput args)
+    public BiosCommandResult doCreateBucket(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput args, String taskId)
             throws ControllerException {
-
-        _log.info("ECSObjectStorageDevice:doCreateBucket start");
-
+        ECSApi ecsApi = getAPI(storageObj);
+        BiosCommandResult result = null;
+        String bktNativeId = null, currentOwner=null;
         try {
-            ECSApi ecsApi = getAPI(storageObj);
-            String bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool(),
-                    args.getRetentionPeriod(), args.getBlkSizeHQ(), args.getNotSizeSQ(), args.getOwner());
-            args.setBktNativeId(bktNativeId);
+            _log.info("Initiated for Bucket creation. Name : {} Namespace : {}", args.getName(), args.getNamespace());
+            bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool());
+            ecsApi.updateBucketRetention(args.getName(), args.getNamespace(), args.getRetentionPeriod());
+            ecsApi.updateBucketQuota(args.getName(), args.getNamespace(), args.getNotSizeSQ(), args.getBlkSizeHQ());
+            currentOwner = ecsApi.getBucketOwner(args.getName(), args.getNamespace());
             
-            _log.info("ECSObjectStorageDevice:doCreateBucket end");
-            return BiosCommandResult.createSuccessfulResult();
+            //ECS throws error if we try to set new owner which is same as current owner
+            //This would lead to confusion as if there is an error
+            if (!currentOwner.equals(args.getOwner())) {
+            	ecsApi.updateBucketOwner(args.getName(), args.getNamespace(), args.getOwner());
+            }
+            _log.info("Successfully created Bucket. Name : {} Namespace : {}", args.getName(), args.getNamespace());
+            bucket.setNativeId(bktNativeId);
+            completeTask(bucket.getId(), taskId, "Successfully created Bucket.");
+            result = BiosCommandResult.createSuccessfulResult();
         } catch (ECSException e) {
-            _log.error("ECSObjectStorageDevice:doCreateBucket failed. ECSException", e);
-            return BiosCommandResult.createErrorResult(e);
+            _log.error("ECSObjectStorageDevice:doCreateBucket failed. Trying to cleanup at source as well.", e);
+            bucket.setInactive(true);
+            if (null != bktNativeId) {
+                try {
+                    ecsApi.deleteBucket(args.getName(), args.getNamespace());
+                } catch (Exception del) {
+                    _log.error("Could not clean up orphan bucket : {} Storage : {} from ECS, Please remove manully",
+                            bucket.getLabel(), bucket.getStorageDevice());
+                }
+            }
+            completeTask(bucket.getId(), taskId, e);
+            result = BiosCommandResult.createErrorResult(e);
         }
+        _dbClient.persistObject(bucket);
+        return result;
     }
 
     @Override
-    public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota, Integer retention, String taskId) {
+    public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota,
+            Integer retention,
+            String taskId) {
         // Update Quota
+        ECSApi objectAPI = getAPI(storageObj);
         try {
-            ECSApi objectAPI = getAPI(storageObj);
-            objectAPI.updateBucketQuota(bucket.getLabel(), bucket.getNamespace(), softQuota, hardQuota);
+            objectAPI.updateBucketQuota(bucket.getName(), bucket.getNamespace(), softQuota, hardQuota);
             bucket.setHardQuota(hardQuota);
             bucket.setSoftQuota(softQuota);
         } catch (ECSException e) {
-            _log.error("Quota Update for Bucket : {} failed.", bucket.getLabel(), e);
+            _log.error("Quota Update for Bucket : {} failed.", bucket.getName(), e);
             completeTask(bucket.getId(), taskId, e);
             return BiosCommandResult.createErrorResult(e);
         }
 
         // Update Retention
         try {
-            ECSApi objectAPI = getAPI(storageObj);
-            objectAPI.updateBucketRetention(bucket.getLabel(), bucket.getNamespace(), retention);
+            objectAPI.updateBucketRetention(bucket.getName(), bucket.getNamespace(), retention);
             bucket.setRetention(retention);
         } catch (ECSException e) {
-            _log.error("Retention Update for Bucket : {} failed.", bucket.getLabel(), e);
+            _log.error("Retention Update for Bucket : {} failed.", bucket.getName(), e);
             completeTask(bucket.getId(), taskId, e);
             return BiosCommandResult.createErrorResult(e);
         }
@@ -107,13 +128,13 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         BiosCommandResult result;
         try {
             ECSApi objectAPI = getAPI(storageObj);
-            objectAPI.deleteBucket(bucket.getLabel());
+            objectAPI.deleteBucket(bucket.getName(), bucket.getNamespace());
             bucket.setInactive(true);
             _dbClient.persistObject(bucket);
             result = BiosCommandResult.createSuccessfulResult();
             completeTask(bucket.getId(), taskId, "Bucket deleted successfully!");
         } catch (ECSException e) {
-            _log.error("Delete Bucket : {} failed.", bucket.getLabel(), e);
+            _log.error("Delete Bucket : {} failed.", bucket.getName(), e);
             result = BiosCommandResult.createErrorResult(e);
             completeTask(bucket.getId(), taskId, e);
         }
@@ -135,12 +156,12 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         }
         return objectAPI;
     }
-    
+
     private void completeTask(final URI bucketID, final String taskID, ECSException error) {
         BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
         completer.error(_dbClient, error);
     }
-    
+
     private void completeTask(final URI bucketID, final String taskID, final String message) {
         BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
         completer.statusReady(_dbClient, message);

@@ -10,13 +10,18 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.ProtectionMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
+import static com.google.common.collect.Collections2.transform;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -74,6 +79,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -153,7 +159,6 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.volumecontroller.placement.ExportPathParams;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.google.common.base.Joiner;
@@ -193,8 +198,8 @@ public class BlockService extends TaskResourceService {
         CHANGE_COPY_MODE("change-copy-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE),
         UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
-        private String op;
-        private ResourceOperationTypeEnum resourceType;
+        private final String op;
+        private final ResourceOperationTypeEnum resourceType;
 
         ProtectionOp(String op, ResourceOperationTypeEnum resourceType) {
             this.op = op;
@@ -562,10 +567,10 @@ public class BlockService extends TaskResourceService {
      * This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id
      * 
      * @prereq Create full copy as inactive
-     *
+     * 
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
-     *
+     * 
      * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy
      *        URI id
      * 
@@ -588,10 +593,10 @@ public class BlockService extends TaskResourceService {
      * This method is deprecated. Use /block/full-copies/{id}/check-progress instead with {id} representing full copy URI id
      * 
      * @prereq none
-     *
+     * 
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
-     *
+     * 
      * @brief Show full copy synchronization progress
      * 
      * @return VolumeRestRep
@@ -614,10 +619,10 @@ public class BlockService extends TaskResourceService {
      * 
      * @prereq Create full copy as inactive
      * @prereq Activate full copy
-     *
+     * 
      * @param id the URN of a ViPR Source volume
      * @param id the URN of Full copy volume
-     *
+     * 
      * @brief Detach full copy
      * 
      * @return TaskResourceRep
@@ -868,7 +873,7 @@ public class BlockService extends TaskResourceService {
                             if ((!VirtualPool.vPoolSpecifiesMetroPoint(requestedVpool) &&
                                     VirtualPool.vPoolSpecifiesMetroPoint(existingVpool)) ||
                                     (VirtualPool.vPoolSpecifiesMetroPoint(requestedVpool) &&
-                                            !VirtualPool.vPoolSpecifiesMetroPoint(existingVpool))) {
+                                    !VirtualPool.vPoolSpecifiesMetroPoint(existingVpool))) {
                                 throw APIException.badRequests.cannotMixMetroPointAndNonMetroPointVolumes(consistencyGroup.getLabel());
                             }
                         }
@@ -1078,7 +1083,7 @@ public class BlockService extends TaskResourceService {
      */
     public static BlockServiceApi getBlockServiceImpl(Volume volume, DbClient dbClient) {
         // RP volumes may not be in an RP CoS (like after failover), so look to the volume properties
-        if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())
+        if (!isNullURI(volume.getProtectionController())
                 && volume.checkForRp()) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
         }
@@ -1156,13 +1161,6 @@ public class BlockService extends TaskResourceService {
         // Get the volume.
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         Volume volume = queryVolumeResource(id);
-
-        // Check if the volume is on VMAX V3 which doesn't support expansion yet
-        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-        if (storage.checkIfVmax3()) {
-            _log.error("Volume expansion is not supported for VMAX V3 array {}", storage.getSerialNumber());
-            throw APIException.badRequests.unsupportedVolumeExpansion();
-        }
 
         // Verify that the volume is 'expandable'
         VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
@@ -1418,7 +1416,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Request to cancel a prior test failover of the protection link associated with the param.copyID.
-     *
+     * 
      * NOTE: This is an asynchronous operation.
      * 
      * If volume is srdf protected, then its a no-op
@@ -1794,7 +1792,7 @@ public class BlockService extends TaskResourceService {
     public TaskResourceRep deleteVolume(@PathParam("id") URI id,
             @DefaultValue("false") @QueryParam("force") boolean force,
             @DefaultValue("FULL") @QueryParam("type") String type)
-                    throws InternalException {
+            throws InternalException {
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         Volume volume = queryVolumeResource(id);
 
@@ -1808,7 +1806,7 @@ public class BlockService extends TaskResourceService {
         }
 
         BlockServiceApi blockServiceApi = getBlockServiceImpl(volume);
-        
+
         /**
          * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
          * Hence we don't require reference check for vmax.
@@ -1851,7 +1849,7 @@ public class BlockService extends TaskResourceService {
             _dbClient.persistObject(volume);
         } else {
             URI systemURI = null;
-            if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())) {
+            if (!isNullURI(volume.getProtectionController())) {
                 systemURI = volume.getProtectionController();
             } else {
                 systemURI = volume.getStorageController();
@@ -1869,13 +1867,11 @@ public class BlockService extends TaskResourceService {
                     _log.error("Delete error", e);
                 }
 
-                volume = _dbClient.queryObject(Volume.class, volume.getId());
-
                 Volume vol = _dbClient.queryObject(Volume.class, volume.getId());
                 op = vol.getOpStatus().get(task);
                 op.error(e);
                 vol.getOpStatus().updateTaskStatus(task, op);
-                _dbClient.persistObject(volume);
+                _dbClient.persistObject(vol);
                 throw e;
             }
 
@@ -1977,7 +1973,13 @@ public class BlockService extends TaskResourceService {
             ArgValidator.checkEntity(volume, volumeURI, isIdEmbeddedInURL(volumeURI));
             BlockServiceApi blockServiceApi = getBlockServiceImpl(volume);
 
-            ArgValidator.checkReference(Volume.class, volumeURI, blockServiceApi.checkForDelete(volume));
+            /**
+             * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
+             * Hence we don't require reference check for vmax.
+             */
+            if (!BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+                ArgValidator.checkReference(Volume.class, volumeURI, blockServiceApi.checkForDelete(volume));
+            }
 
             // For a volume that is a full copy or is the source volume for
             // full copies deleting the volume may not be allowed.
@@ -1998,7 +2000,7 @@ public class BlockService extends TaskResourceService {
             if (forceDeactivate || (!Strings.isNullOrEmpty(volume.getNativeId()) && !volume.getInactive())) {
 
                 URI systemURI = null;
-                if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())) {
+                if (!isNullURI(volume.getProtectionController())) {
                     systemURI = volume.getProtectionController();
                 } else {
                     systemURI = volume.getStorageController();
@@ -2066,7 +2068,7 @@ public class BlockService extends TaskResourceService {
                     volumeTask.setMessage(e.getMessage());
                     _dbClient.updateTaskOpStatus(Volume.class, volumeTask
                             .getResource().getId(), task, new Operation(
-                                    Operation.Status.error.name(), e.getMessage()));
+                            Operation.Status.error.name(), e.getMessage()));
                 }
             }
         }
@@ -2784,7 +2786,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkEntity(volume, id, true);
         ArgValidator.checkEntity(copyVolume, copyID, true);
 
-        if (NullColumnValueGetter.isNullURI(volume.getProtectionController())) {
+        if (isNullURI(volume.getProtectionController())) {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
                     "Attempt to do protection link management on unprotected volume: {0}",
                     new Object[] { volume.getWWN() });
@@ -2977,6 +2979,8 @@ public class BlockService extends TaskResourceService {
         verifyVirtualPoolChangeSupportedForVolumeAndVirtualPool(volume, vpool);
         _log.info("VirtualPool change is supported for requested volume and VirtualPool");
 
+        verifyAllVolumesInCGRequirement(Arrays.asList(volume), vpool);
+
         // verify quota
         if (!CapacityUtils.validateVirtualPoolQuota(_dbClient, vpool, volume.getProvisionedCapacity())) {
             throw APIException.badRequests.insufficientQuotaForVirtualPool(vpool.getLabel(), "volume");
@@ -3142,6 +3146,7 @@ public class BlockService extends TaskResourceService {
             totalProvisionedCapacity += volume.getProvisionedCapacity()
                     .longValue();
         }
+        verifyAllVolumesInCGRequirement(volumes, vPool);
 
         // verify target vPool quota
         if (!CapacityUtils.validateVirtualPoolQuota(_dbClient, vPool,
@@ -3210,7 +3215,7 @@ public class BlockService extends TaskResourceService {
                 volumeTask.setMessage(errorMsg);
                 _dbClient.updateTaskOpStatus(Volume.class, volumeTask
                         .getResource().getId(), taskId, new Operation(
-                                Operation.Status.error.name(), errorMsg));
+                        Operation.Status.error.name(), errorMsg));
             }
             throw e;
         }
@@ -3523,7 +3528,7 @@ public class BlockService extends TaskResourceService {
             // CG and only the volumes in the CG are passed.
             URI cgURI = volume.getConsistencyGroup();
             if ((cg == null) && (!foundVolumeNotInCG)) {
-                if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                if (!isNullURI(cgURI)) {
                     cg = _permissionsHelper.getObjectById(cgURI, BlockConsistencyGroup.class);
                     _log.info("All volumes should be in CG {}:{}", cgURI, cg.getLabel());
                     cgVolumes.addAll(blockServiceAPI.getActiveCGVolumes(cg));
@@ -3531,8 +3536,8 @@ public class BlockService extends TaskResourceService {
                     _log.info("No volumes should be in CGs");
                     foundVolumeNotInCG = true;
                 }
-            } else if (((cg != null) && (NullColumnValueGetter.isNullURI(cgURI))) ||
-                    ((foundVolumeNotInCG) && (!NullColumnValueGetter.isNullURI(cgURI)))) {
+            } else if (((cg != null) && (isNullURI(cgURI))) ||
+                    ((foundVolumeNotInCG) && (!isNullURI(cgURI)))) {
                 // A volume was in a CG, so all volumes must be in a CG.
                 if (cg != null) {
                     // Volumes should all be in the CG and this one is not.
@@ -3718,11 +3723,11 @@ public class BlockService extends TaskResourceService {
      * @brief List data of volume resources
      * @return list of representations.
      */
+    @Override
     @POST
     @Path("/bulk")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Override
     public VolumeBulkRep getBulkResources(BulkIdParam param) {
         return (VolumeBulkRep) super.getBulkResources(param);
     }
@@ -3808,7 +3813,18 @@ public class BlockService extends TaskResourceService {
                         new Object[] { newVpool.getId() });
             } else {
                 notSuppReasonBuff.setLength(0);
-                if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
+                // Check to see if this is a RP protected VPLEX volume and
+                // if the request is trying to remove RP protection.
+                if (volume.checkForRp()
+                        && VirtualPool.vPoolSpecifiesProtection(currentVpool)
+                        && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+                    notSuppReasonBuff.setLength(0);
+                    if (!VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
+                            _dbClient, notSuppReasonBuff)) {
+                        throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                                notSuppReasonBuff.toString());
+                    }
+                } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
                     notSuppReasonBuff.setLength(0);
 
                     // If the current vpool also has Protection and High Availability, check to see if we can change the
@@ -3817,7 +3833,7 @@ public class BlockService extends TaskResourceService {
                     if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)) {
                         if (!VirtualPoolChangeAnalyzer.isSupportedRPChangeProtectionVirtualPoolChange(volume, currentVpool, newVpool,
                                 _dbClient, notSuppReasonBuff)) {
-                            _log.info("RP Change Protection VirtualPool change for volume is not supported: {}",
+                            _log.warn("RP Change Protection VirtualPool change for volume is not supported: {}",
                                     notSuppReasonBuff.toString());
                             throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                                     notSuppReasonBuff.toString());
@@ -3826,7 +3842,7 @@ public class BlockService extends TaskResourceService {
                     // Otherwise, check to see if we're trying to protect a VPLEX volume.
                     else if (!VirtualPoolChangeAnalyzer.isSupportedRPVPlexVolumeVirtualPoolChange(volume, currentVpool, newVpool,
                             _dbClient, notSuppReasonBuff)) {
-                        _log.info("RP+VPLEX VirtualPool change for volume is not supported: {}",
+                        _log.warn("RP+VPLEX VirtualPool change for volume is not supported: {}",
                                 notSuppReasonBuff.toString());
                         throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                                 notSuppReasonBuff.toString());
@@ -3839,9 +3855,13 @@ public class BlockService extends TaskResourceService {
                             .getSupportedVPlexVolumeVirtualPoolChangeOperation(volume,
                                     currentVpool, newVpool, _dbClient, notSuppReasonBuff);
                     if (vplexVpoolChangeOperation == null) {
-                        _log.info("VPlex volume VirtualPool change not supported {}", notSuppReasonBuff.toString());
+                        _log.warn("VPlex volume VirtualPool change not supported {}", notSuppReasonBuff.toString());
                         throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                                 notSuppReasonBuff.toString());
+                    } else if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, volume)) {
+                        // We will not allow virtual pool change for a VPLEX volume that was
+                        // created using the target volume of a block snapshot.
+                        throw APIException.badRequests.vpoolChangeNotAllowedVolumeIsExposedSnapshot(volume.getId().toString());
                     } else if (vplexVpoolChangeOperation == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION) {
                         // Determine if source side will be migrated.
                         boolean migrateSourceVolume = VirtualPoolChangeAnalyzer
@@ -3933,16 +3953,16 @@ public class BlockService extends TaskResourceService {
             if (VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
                 // VNX/VMAX import to VPLEX cases
                 notSuppReasonBuff.setLength(0);
-                if (!VirtualPoolChangeAnalyzer.isVPlexImport(currentVpool, newVpool, notSuppReasonBuff)
+                if (!VirtualPoolChangeAnalyzer.isVPlexImport(volume, currentVpool, newVpool, notSuppReasonBuff)
                         || (!VirtualPoolChangeAnalyzer.doesVplexVpoolContainVolumeStoragePool(volume, newVpool, notSuppReasonBuff))) {
-                    _log.info("VNX/VMAX cos change for volume is not supported: {}",
+                    _log.warn("VNX/VMAX cos change for volume is not supported: {}",
                             notSuppReasonBuff.toString());
                     throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                             notSuppReasonBuff.toString());
                 }
                 if (volume.isVolumeExported(_dbClient)) {
                     throw APIException.badRequests.cannotImportExportedVolumeToVplex(volume.getId());
-                } else if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                } else if (!isNullURI(volume.getConsistencyGroup())) {
                     throw APIException.badRequests.cannotImportConsistencyGroupVolumeToVplex(volume.getId());
                 } else if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
                     // The backend would have a full copy, but the VPLEX volume would not.
@@ -3953,7 +3973,7 @@ public class BlockService extends TaskResourceService {
                 notSuppReasonBuff.setLength(0);
                 if (!VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume, currentVpool, newVpool, _dbClient,
                         notSuppReasonBuff)) {
-                    _log.info("VNX/VMAX VirtualPool change for volume is not supported: {}",
+                    _log.warn("VirtualPool change to Add RP Protection for volume is not supported: {}",
                             notSuppReasonBuff.toString());
                     throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                             notSuppReasonBuff.toString());
@@ -3961,12 +3981,20 @@ public class BlockService extends TaskResourceService {
                     // Full copies not supported for RP protected volumes.
                     throw APIException.badRequests.volumeForRPVpoolChangeHasFullCopies(volume.getLabel());
                 }
+            } else if (VirtualPool.vPoolSpecifiesProtection(currentVpool)
+                    && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+                notSuppReasonBuff.setLength(0);
+                if (!VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
+                        _dbClient, notSuppReasonBuff)) {
+                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                            notSuppReasonBuff.toString());
+                }
             } else if (VirtualPool.vPoolSpecifiesSRDF(newVpool)) {
                 // VMAX import to SRDF cases (currently one)
                 notSuppReasonBuff.setLength(0);
                 if (!VirtualPoolChangeAnalyzer.isSupportedSRDFVolumeVirtualPoolChange(volume, currentVpool, newVpool, _dbClient,
                         notSuppReasonBuff)) {
-                    _log.info("VMAX VirtualPool change for volume is not supported: {}",
+                    _log.warn("VMAX VirtualPool change for volume is not supported: {}",
                             notSuppReasonBuff.toString());
                     throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                             notSuppReasonBuff.toString());
@@ -3987,7 +4015,7 @@ public class BlockService extends TaskResourceService {
                 notSuppReasonBuff.setLength(0);
                 if (!VirtualPoolChangeAnalyzer.isSupportedAddMirrorsVirtualPoolChange(volume, currentVpool, newVpool,
                         _dbClient, notSuppReasonBuff)) {
-                    _log.info("VirtualPool change to add continuous copies for volume {} is not supported: {}",
+                    _log.warn("VirtualPool change to add continuous copies for volume {} is not supported: {}",
                             volume.getId(), notSuppReasonBuff.toString());
                     throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                             notSuppReasonBuff.toString());
@@ -4055,16 +4083,20 @@ public class BlockService extends TaskResourceService {
      *         the VirtualPool change for the volume.
      */
     private BlockServiceApi getBlockServiceImplForVirtualPoolChange(Volume volume, VirtualPool vpool) {
-        URI protectionSystemURI = NullColumnValueGetter.isNullURI(volume.getProtectionController()) ? null : volume
+        URI protectionSystemURI = isNullURI(volume.getProtectionController()) ? null : volume
                 .getProtectionController();
         URI storageSystemURI = volume.getStorageController();
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
         String systemType = storageSystem.getSystemType();
 
-        if (protectionSystemURI != null || VirtualPool.vPoolSpecifiesProtection(vpool)) {
+        if (protectionSystemURI != null
+                || VirtualPool.vPoolSpecifiesProtection(vpool)
+                || (volume.checkForRp() && !VirtualPool.vPoolSpecifiesProtection(vpool))) {
             // Assume RP for now if the volume is associated with an
             // RP controller regardless of the VirtualPool change.
             // Also if the volume is unprotected currently and the vpool specifies protection.
+            // Or if the volume is protected by RP and we're looking to move to a vpool without
+            // protection.
             _log.info("Returning RP block service implementation.");
             return _blockServiceApis.get(DiscoveredDataObject.Type.rp.name());
         } else {
@@ -4582,14 +4614,14 @@ public class BlockService extends TaskResourceService {
                 VplexMirror mirror = _dbClient.queryObject(VplexMirror.class, URI.create(mirrorURI));
                 if (!mirror.getInactive() &&
                         ((count > 1 && mirror.getLabel().matches("^" + name + "\\-\\d+$")) ||
-                                (count == 1 && name.equals(mirror.getLabel())))) {
+                        (count == 1 && name.equals(mirror.getLabel())))) {
                     dupList.add(mirror.getLabel());
                 }
             } else {
                 BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(mirrorURI));
                 if (null != mirror && !mirror.getInactive() &&
                         ((count > 1 && mirror.getLabel().matches("^" + name + "\\-\\d+$")) ||
-                                (count == 1 && name.equals(mirror.getLabel())))) {
+                        (count == 1 && name.equals(mirror.getLabel())))) {
                     dupList.add(mirror.getLabel());
                 }
             }
@@ -4948,7 +4980,7 @@ public class BlockService extends TaskResourceService {
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,
             VirtualArray varray) {
         URI storageSystemUri = consistencyGroup.getStorageController();
-        if (NullColumnValueGetter.isNullURI(storageSystemUri)) {
+        if (isNullURI(storageSystemUri)) {
             return;
         }
         URIQueryResultList storagePortURIs = new URIQueryResultList();
@@ -5015,7 +5047,7 @@ public class BlockService extends TaskResourceService {
         return result;
     }
 
-    private boolean isSuspendCopyRequest(String op, Copy copy) {
+    protected static boolean isSuspendCopyRequest(String op, Copy copy) {
         return ProtectionOp.PAUSE.getRestOp().equalsIgnoreCase(op) &&
                 (parseBoolean(copy.getSync()) == false);
     }
@@ -5043,9 +5075,9 @@ public class BlockService extends TaskResourceService {
      * This is because, BlockService implements Volume and
      * Mirror (BlockMirror and VplexMirror) resources. To query the
      * respective objects from DB, we should use the right class type.
-     *
+     * 
      * @param uriStr the uri to determine the right resource class type.
-     *
+     * 
      * @return returns the correct resource type of the resource.
      */
     public static Class<? extends DataObject> getBlockServiceResourceClass(String uriStr) {
@@ -5056,5 +5088,54 @@ public class BlockService extends TaskResourceService {
             blockResourceClass = VplexMirror.class;
         }
         return blockResourceClass;
+    }
+
+    /**
+     * Given a list of volumes, verify that any consistency groups associated with its volumes
+     * are fully specified, i.e. the list contains all the members of a consistency group.
+     * 
+     * @param volumes
+     * @param targetVPool
+     */
+    private void verifyAllVolumesInCGRequirement(List<Volume> volumes, VirtualPool targetVPool) {
+        StringBuilder errorMsg = new StringBuilder();
+        boolean failure = false;
+        Collection<URI> volIds = transform(volumes, fctnDataObjectToID());
+        Map<URI, Volume> cgId2Volume = new HashMap<>();
+
+        try {
+            // Build map of consistency groups to a single group member representative
+            for (Volume volume : volumes) {
+                URI cgId = volume.getConsistencyGroup();
+                if (!isNullURI(cgId) && !cgId2Volume.containsKey(cgId)) {
+                    cgId2Volume.put(cgId, volume);
+                }
+            }
+
+            // Verify that all consistency groups are fully specified
+            for (Map.Entry<URI, Volume> entry : cgId2Volume.entrySet()) {
+                // Currently, we only care about verifying CG's when adding SRDF protection
+                if (!isAddingSRDFProtection(entry.getValue(), targetVPool)) {
+                    continue;
+                }
+
+                List<URI> memberIds = _dbClient.queryByConstraint(getVolumesByConsistencyGroup(entry.getKey()));
+
+                memberIds.removeAll(volIds);
+                if (!memberIds.isEmpty()) {
+                    failure = true;
+                    errorMsg.append(entry.getValue().getLabel())
+                            .append(" is missing other consistency group members.\n");
+                }
+            }
+        } finally {
+            if (failure) {
+                throw APIException.badRequests.cannotAddSRDFProtectionToPartialCG(errorMsg.toString());
+            }
+        }
+    }
+
+    private boolean isAddingSRDFProtection(Volume v, VirtualPool targetVPool) {
+        return v.getSrdfTargets() == null && VirtualPool.vPoolSpecifiesSRDF(targetVPool);
     }
 }

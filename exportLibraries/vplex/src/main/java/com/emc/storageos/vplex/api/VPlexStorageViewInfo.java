@@ -114,7 +114,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
     public List<String> getVirtualVolumes() {
         return virtualVolumes;
     }
-
+    
     /**
      * Setter for the virtual volume for the storage view.
      * Comma separated list.
@@ -123,9 +123,18 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
      */
     public void setVirtualVolumes(List<String> strVals) {
         virtualVolumes.clear();
+        virtualVolumes.addAll(strVals);
+        refreshMaps();
+    }
+    
+    /**
+     * Refreshes the virtualVolumeWWNMap and virtualVolumeHLUMap
+     * based on the data in the virtualVolumes collection. This is
+     * required because the GSON parser bypasses accessor methods.
+     */
+    public void refreshMaps() {
         virtualVolumeWWNMap.clear();
         virtualVolumeHLUMap.clear();
-        virtualVolumes.addAll(strVals);
         for (String volumeInfoStr : virtualVolumes) {
             StringTokenizer tokenizer = new StringTokenizer(volumeInfoStr, ",");
             String hluStr = tokenizer.nextToken();

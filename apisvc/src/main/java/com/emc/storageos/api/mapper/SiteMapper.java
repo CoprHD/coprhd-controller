@@ -43,6 +43,7 @@ public class SiteMapper {
         to.setShortId(from.getStandbyShortId());
         to.setState(from.getState().toString());
         to.setNodeCount(from.getNodeCount());
+        to.setCreationTime(from.getCreationTime());
     }
 
     public void map(SiteParam from, Site to) {
@@ -54,6 +55,7 @@ public class SiteMapper {
         to.setStandbyShortId(from.getShortId());
         to.setState(SiteState.valueOf(from.getState()));
         to.setNodeCount(from.getNodeCount());
+        to.setCreationTime(from.getCreationTime());
     }
 
 }

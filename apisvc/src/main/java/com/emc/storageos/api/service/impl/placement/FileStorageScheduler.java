@@ -722,6 +722,16 @@ public class FileStorageScheduler {
         return true;
     }
     
+	/**
+	 * Checks if the if the domain of the virtual NAS matches with domain of the
+	 * project
+	 * 
+	 * @param project the Project object
+	 * @param vNAS the VirtualNAS object
+	 * @return true if the domain of the virtual NAS matches with domain of the
+	 *         project or the project does not have domains configured, false
+	 *         otherwise
+	 */
     private boolean doesVNASDomainMatchesWithProjectDomain(Project project, VirtualNAS vNAS) {
     	
     	if (project != null) {

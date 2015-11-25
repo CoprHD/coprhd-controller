@@ -25,7 +25,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
  * 
  * The VDC/Site configurations are stored in ZK as follows:
  * /config/disasterRecoverySites/<vdc_short_id>/<site_uuid>     has all the VDC/site configurations
- * /config/disasterRecoveryPrimary/<vdc_short_id>               specifies which site is the primary in each VDC
+ * /config/disasterRecoveryActive/<vdc_short_id>               specifies which site is the acitve in each VDC
  * /config/geoLocalVDC/global                                   specifies the local VDC in the geo federation
  */
 public class VdcConfigUtil {

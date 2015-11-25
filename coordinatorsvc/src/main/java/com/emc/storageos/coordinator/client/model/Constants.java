@@ -126,7 +126,7 @@ public interface Constants {
     public static final String CATALOG_CONFIG = "catalog";
     public static final String CATALOG_ACL_CHANGE = "acl_change";
     
-    public static final String CONFIG_DR_PRIMARY_KIND = "disasterRecoveryPrimary";
+    public static final String CONFIG_DR_PRIMARY_KIND = "disasterRecoveryActive";
     public static final String CONFIG_DR_PRIMARY_ID = "global";
     public static final String CONFIG_DR_PRIMARY_SITEID = "siteId";
 

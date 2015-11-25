@@ -493,7 +493,7 @@ public class TestCoordinator extends CoordinatorClientImpl {
     }
 
     @Override
-    public void setPrimarySite(String siteId) {
+    public void setActiveSite(String siteId) {
         throw new UnsupportedOperationException();
     }
 

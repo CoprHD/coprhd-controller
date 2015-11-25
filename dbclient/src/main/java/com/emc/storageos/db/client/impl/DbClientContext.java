@@ -404,7 +404,6 @@ public class DbClientContext {
                 log.info("schema version to sync to: {}", targetSchemaVersion);
             }
             versions = getSchemaVersions();
-            log.info("schema versions:{}", versions);
 
             if (versions.size() == 1) {
                 if (targetSchemaVersion != null && !versions.containsKey(targetSchemaVersion)) {

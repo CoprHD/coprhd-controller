@@ -9,12 +9,7 @@ import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.ws.rs.core.Response;
 
@@ -216,7 +211,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
 
         ArgValidator.checkFieldValueWithExpected(!VirtualPool.ProvisioningType.NONE.name()
-                .equalsIgnoreCase(param.getProvisionType()), VPOOL_PROVISIONING_TYPE, param.getProvisionType(),
+                        .equalsIgnoreCase(param.getProvisionType()), VPOOL_PROVISIONING_TYPE, param.getProvisionType(),
                 VirtualPool.ProvisioningType.Thick, VirtualPool.ProvisioningType.Thin);
 
         if (null != param.getProtocolChanges()) {
@@ -1068,41 +1063,69 @@ public abstract class VirtualPoolService extends TaggedResource {
 
         _log.info("opType: {} detail: {}", opType.toString(), evType + ':' + evDesc);
 
-        VirtualPool vpool = (VirtualPool) extParam[0];
+        if(extParam[0].getClass().equals(VirtualPool.class)) {
+            VirtualPool vpool = (VirtualPool) extParam[0];
 
-        recordVirtualPoolEvent(evType, evDesc, vpool.getId());
+            recordVirtualPoolEvent(evType, evDesc, vpool.getId());
 
-        StringBuilder protocols = new StringBuilder();
-        if (vpool.getProtocols() != null) {
-            for (String proto : vpool.getProtocols()) {
-                protocols.append(" ");
-                protocols.append(proto);
+            StringBuilder protocols = new StringBuilder();
+            if (vpool.getProtocols() != null) {
+                for (String proto : vpool.getProtocols()) {
+                    protocols.append(" ");
+                    protocols.append(proto);
+                }
             }
-        }
-        StringBuilder neighborhoods = new StringBuilder();
-        if (vpool.getVirtualArrays() != null) {
-            for (String neighborhood : vpool.getVirtualArrays()) {
-                neighborhoods.append(" ");
-                neighborhoods.append(neighborhood);
+            StringBuilder neighborhoods = new StringBuilder();
+            if (vpool.getVirtualArrays() != null) {
+                for (String neighborhood : vpool.getVirtualArrays()) {
+                    neighborhoods.append(" ");
+                    neighborhoods.append(neighborhood);
+                }
             }
-        }
 
-        switch (opType) {
-            case CREATE_VPOOL:
-                auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType(), protocols.toString(),
-                        neighborhoods.toString(), vpool.getSupportedProvisioningType(),
-                        vpool.getAutoTierPolicyName(), vpool.getDriveType(), vpool.getHighAvailability());
-                break;
-            case UPDATE_VPOOL:
-                auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType(), protocols.toString(),
-                        neighborhoods.toString(), vpool.getSupportedProvisioningType(), vpool.getAutoTierPolicyName(),
-                        vpool.getDriveType());
-                break;
-            case DELETE_VPOOL:
-                auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType());
-                break;
-            default:
-                _log.error("unrecognized vpool operation type");
+            switch (opType) {
+                case CREATE_VPOOL:
+                    auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType(), protocols.toString(),
+                            neighborhoods.toString(), vpool.getSupportedProvisioningType(),
+                            vpool.getAutoTierPolicyName(), vpool.getDriveType(), vpool.getHighAvailability());
+                    break;
+                case UPDATE_VPOOL:
+                    auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType(), protocols.toString(),
+                            neighborhoods.toString(), vpool.getSupportedProvisioningType(), vpool.getAutoTierPolicyName(),
+                            vpool.getDriveType());
+                    break;
+                case DELETE_VPOOL:
+                    auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType());
+                    break;
+                default:
+                    _log.error("unrecognized vpool operation type");
+            }
+        }else{
+            QosSpecification qosSpecification = (QosSpecification) extParam[0];
+
+            StringBuilder specs = new StringBuilder();
+            if(qosSpecification.getSpecs() != null){
+                for(Map.Entry<String, String> entry : qosSpecification.getSpecs().entrySet()){
+                    specs.append(" ");
+                    specs.append(entry.getKey()).append(":").append(entry.getValue());
+                }
+            }
+
+            switch (opType) {
+                case CREATE_QOS:
+                    auditOp(opType, true, null, qosSpecification.getId().toString(), qosSpecification.getLabel(),
+                            qosSpecification.getConsumer(), specs.toString());
+                    break;
+                case UPDATE_QOS:
+                    auditOp(opType, true, null, qosSpecification.getId().toString(), qosSpecification.getLabel(),
+                            qosSpecification.getConsumer(), specs.toString());
+                    break;
+                case DELETE_QOS:
+                    auditOp(opType, true, null, qosSpecification.getId().toString(), qosSpecification.getLabel());
+                    break;
+                default:
+                    _log.error("unrecognized qos operation type");
+            }
         }
     }
 

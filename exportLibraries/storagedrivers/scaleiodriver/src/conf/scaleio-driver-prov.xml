@@ -5,7 +5,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="scaleIORestHandleFactory"
-          class="com.emc.storageos.driver.scaleio.ScaleIORestHandleFactory">
+          class="com.emc.storageos.driver.scaleio.ScaleIORestHandleFactory" depends-on="scaleIORestClientFactory" >
         <property name="scaleIORestClientFactory" ref="scaleIORestClientFactory"/>
     </bean>
     <bean id="scaleIORestClientFactory"

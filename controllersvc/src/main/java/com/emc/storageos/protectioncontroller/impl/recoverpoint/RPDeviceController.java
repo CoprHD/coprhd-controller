@@ -153,7 +153,7 @@ import com.google.common.base.Joiner;
 public class RPDeviceController implements RPController, BlockOrchestrationInterface, MaskingOrchestrator {
 
     private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
-	private static final String RPA = "-rpa-";
+    private static final String RPA = "-rpa-";
     // RecoverPoint consistency group name prefix
     private static final String CG_NAME_PREFIX = "ViPR-";
     private static final String VIPR_SNAPSHOT_PREFIX = "ViPR-snapshot-";
@@ -1298,31 +1298,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
 
             // Convert to initiator object
-
             for (String rpaId : rpaWWNs.keySet()) {
                 for (Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
-                    Initiator initiator = new Initiator();
-                    initiator.addInternalFlags(Flag.RECOVERPOINT);
-                    // Remove all non alpha-numeric characters, excluding "_", from the hostname
-                    String rpClusterName = rpSiteName.replaceAll(ALPHA_NUMERICS, "");
-                    _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
-                    initiator.setClusterName(rpClusterName);
-                    initiator.setProtocol("FC");
-                    initiator.setIsManualCreation(false);
-
-                    // Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
-                    // A child RP IG will be created containing all the RPA IGs
-                    String hostName = rpClusterName + RPA + rpaId;
-                    hostName = hostName.replaceAll(ALPHA_NUMERICS, "");
-                    _log.info(String.format("Setting RP initiator host name : %s", hostName));
-                    initiator.setHostName(hostName);
-
-                    _log.info(String.format("Setting Initiator port WWN : %s, nodeWWN : %s", rpaWWN.getKey(), rpaWWN.getValue()));
-                    initiator.setInitiatorPort(rpaWWN.getKey());
-                    initiator.setInitiatorNode(rpaWWN.getValue());
-
-                    // Either get the existing initiator or create a new if needed
-                    initiator = getOrCreateNewInitiator(initiator);
+                    Initiator initiator = ExportUtils.getInitiator(rpaWWN.getKey(), _dbClient);
                     if (!rpSiteInitiators.containsKey(rpSiteName)) {
                         rpSiteInitiators.put(rpSiteName, new ArrayList<Initiator>());
                     }
@@ -2066,7 +2044,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 List<RecoverPointVolumeProtectionInfo> replicationSetsToRemove = new ArrayList<RecoverPointVolumeProtectionInfo>();
                 List<String> removeVolumeIDs = new ArrayList<String>();
                 for (Volume volume : volumes) {
-                    _log.info(String.format("Volume [%s] (%s) needs to have it's replication set removed from RP", 
+                    _log.info(String.format("Volume [%s] (%s) needs to have its replication set removed from RP", 
                             volume.getLabel(), volume.getId()));                                       
                     // Delete the replication set if there are more volumes (other replication sets).
                     // If there are no other replications sets we will simply delete the CG instead.
@@ -5529,7 +5507,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     if (rpRelatedVol.getVirtualPool().equals(oldVpool.getId())) {
                         rpRelatedVol.setVirtualPool(newVpool.getId());
                         _dbClient.updateObject(rpRelatedVol);
-                        _log.info(String.format("Volume [%s] has had it's virtual pool updated to [%s].", rpRelatedVol.getLabel(),
+                        _log.info(String.format("Volume [%s] has had its virtual pool updated to [%s].", rpRelatedVol.getLabel(),
                                 newVpool.getLabel()));
                     }
                 }

@@ -1807,7 +1807,7 @@ public class RPHelper {
      * @return a journal name unique within the site
      */
     public String createJournalVolumeName(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
-        String journalPrefix = new StringBuilder(varray.getLabel()).append(VOL_DELIMITER).append(consistencyGroup.getLabel())
+        String journalPrefix = new StringBuilder(consistencyGroup.getLabel()).append(VOL_DELIMITER).append(varray.getLabel())
                 .append(VOL_DELIMITER)
                 .append(JOURNAL).toString();
         List<Volume> existingJournals = getJournalVolumesForSite(varray, consistencyGroup);

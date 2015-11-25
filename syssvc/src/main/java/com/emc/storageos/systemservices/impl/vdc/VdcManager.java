@@ -431,7 +431,7 @@ public class VdcManager extends AbstractManager {
     private void updateSiteErrors() {
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
 
-        if (!drUtil.isPrimary()) {
+        if (!drUtil.isActiveSite()) {
             log.info("Step5: current site is a standby, nothing to do");
             return;
         }

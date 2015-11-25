@@ -896,7 +896,7 @@ public class SchemaUtil {
         // insert DR acitve site info to ZK
         Site site = new Site();
         site.setUuid(_coordinator.getSiteId());
-        site.setName("Active");
+        site.setName("Default Active Site");
         site.setVdcShortId(vdc.getShortId());
         site.setStandbyShortId("");
         site.setHostIPv4AddressMap(ipv4Addresses);

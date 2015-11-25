@@ -214,11 +214,6 @@ public class DisasterRecoveryService {
     }
 
     /**
-<<<<<<< HEAD
-     * Sync all the site information from the acitve site to the new standby
-     * The current site will be demoted from acitve to standby during the process
-     * 
-=======
      * Prepare all sites related info for synchronizing them from master to be added or resumed standby site
      *
      * @param ipsecKey The cluster ipsec key
@@ -297,7 +292,7 @@ public class DisasterRecoveryService {
             ipsecConfig.setPreSharedKey(primary.getIpsecKey());
 
             coordinator.addSite(primary.getUuid());
-            coordinator.setPrimarySite(primary.getUuid());
+            coordinator.setActiveSite(primary.getUuid());
             Site primarySite = new Site();
             siteMapper.map(primary, primarySite);
             primarySite.setVdcShortId(drUtil.getLocalVdcShortId());
@@ -363,7 +358,7 @@ public class DisasterRecoveryService {
         SitePrimary primarySite = new SitePrimary();
 
         try {
-            primarySite.setIsPrimary(drUtil.isPrimary());
+            primarySite.setIsPrimary(drUtil.isActiveSite());
             return primarySite;
         } catch (Exception e) {
             log.error("Can't get site is Active or Standby");
@@ -781,7 +776,7 @@ public class DisasterRecoveryService {
             newPrimarySite = drUtil.getSiteFromLocalVdc(uuid);
 
             // Set new UUID as primary site ID
-            coordinator.setPrimarySite(uuid);
+            coordinator.setActiveSite(uuid);
 
             // Set old primary site's state, short id and key
             oldPrimarySite = drUtil.getSiteFromLocalVdc(oldPrimaryUUID);
@@ -845,7 +840,7 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
 
             // set new acitve uuid
-            coordinator.setPrimarySite(uuid);
+            coordinator.setActiveSite(uuid);
 
             // reconfig
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_FAILOVER);
@@ -1066,7 +1061,7 @@ public class DisasterRecoveryService {
         }
 
         // show be only standby
-        if (drUtil.isPrimary()) {
+        if (drUtil.isActiveSite()) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Failover can't be executed in acitve site");
         }
 

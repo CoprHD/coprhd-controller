@@ -62,7 +62,7 @@ public class DrUtil {
      * 
      * @return true for acitve. otherwise false
      */
-    public boolean isPrimary() {
+    public boolean isActiveSite() {
         return getPrimarySiteId().equals(coordinator.getSiteId());
     }
     
@@ -72,7 +72,7 @@ public class DrUtil {
      * @return true for standby site. otherwise false
      */
     public boolean isStandby() {
-        return !isPrimary();
+        return !isActiveSite();
     }
     
     /**

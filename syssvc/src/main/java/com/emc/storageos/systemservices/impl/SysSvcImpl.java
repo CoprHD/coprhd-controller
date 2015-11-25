@@ -162,7 +162,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startIpReconfigManager();
             
             DrUtil drUtil = _coordinator.getDrUtil();
-            if (drUtil.isPrimary()) {
+            if (drUtil.isActiveSite()) {
                 _recoveryMgr.init();
             }
             startSystemAudit(_dbClient);

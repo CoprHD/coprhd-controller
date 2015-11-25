@@ -207,7 +207,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private void createSiteSpecificSection() throws Exception {
         addSite(siteId);
-        setPrimarySite(siteId);
+        setActiveSite(siteId);
     }
 
     @Override
@@ -237,7 +237,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public void setPrimarySite(String siteId) throws Exception {
+    public void setActiveSite(String siteId) throws Exception {
         Configuration localVdcConfig = queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
                 Constants.CONFIG_GEO_LOCAL_VDC_ID);
         if (localVdcConfig == null) {

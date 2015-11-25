@@ -107,7 +107,7 @@ public class SeedProviderImpl implements SeedProvider {
         client.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
         client.start();
         DrUtil drUtil = new DrUtil(client);
-        isDrActiveSite = drUtil.isPrimary();
+        isDrActiveSite = drUtil.isActiveSite();
         
         _client = client;
     }

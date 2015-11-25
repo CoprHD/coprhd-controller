@@ -238,6 +238,7 @@ RECOVERY_CORRUPTED_NODE_IP=
 SHORTENED_HOST=`hostname`
 : ${TENANT=$SHORTENED_HOST}
 : ${PROJECT=sanity}
+: ${SRDF_PROJECT=dontuseme}
 
 SVCUSER=svcuser
 
@@ -802,6 +803,8 @@ project_setup()
 
     project show $PROJECT &> /dev/null && return $?
     project create $PROJECT --tenant $TENANT 
+    project show $SRDF_PROJECT &> /dev/null && return $?
+    project create $SRDF_PROJECT --tenant $TENANT
     if [ "$EXTRA_PARAM" = "search" ] ; then
         project search $(echo $PROJECT | head -c 2)
         project tag "$PROJECT" $TAG
@@ -1014,11 +1017,8 @@ xtremio_setup()
 {
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-    storageprovider show $XTREMIO  &> /dev/null && return $?
-    echo "Starting storageprovider create"
-    storageprovider create $XTREMIO $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD xtremio 
-    storagedevice discover_all
-    storagedevice list
+    discoveredsystem show $XTREMIO_NATIVEGUID &> /dev/null && return $?
+    discoveredsystem create $XTREMIO xtremio $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO_SN
 
     project_setup
 
@@ -1148,7 +1148,7 @@ srdf_setup_once()
 { 
     login_nd_configure_smtp_nd_add_licenses
     tenant_setup
-    run blockconsistencygroup create $PROJECT $CONSISTENCY_GROUP_SRDF
+    run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
@@ -1285,7 +1285,7 @@ srdf_cos_change_meta()
 {
    # Create non-protected meta volume, then move it to a cos that has protection
    srdfvolumeccmeta="${SRDF_VOLUME}-coschangemeta"
-   run volume create ${srdfvolumeccmeta} $PROJECT $NH $COS_VMAXBLOCK_SRDF_TARGET 300GB
+   run volume create ${srdfvolumeccmeta} $SRDF_PROJECT $NH $COS_VMAXBLOCK_SRDF_TARGET 300GB
    echo "Created volume, now sleeping..."
    sleep 60
    echo "Changing cos..."
@@ -1293,7 +1293,7 @@ srdf_cos_change_meta()
    echo "Changed cos"
    sleep 60
    echo "Deleting volume"
-   run volume delete $PROJECT/${srdfvolumeccmeta} --wait
+   run volume delete $SRDF_PROJECT/${srdfvolumeccmeta} --wait
 }
 
 
@@ -1301,12 +1301,12 @@ srdf_cos_change_meta()
 srdf_basic_sync_test()
 {
    srdfvolume="${SRDF_VOLUME}_sync"
-   run volume create ${srdfvolume}1 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB
    sleep 300
    #run volume create ${srdfvolume}2 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB --consistencygroup $CONSISTENCY_GROUP_SRDF
    #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB --count 2
    #run volume delete $PROJECT/${srdfvolume}2 --wait
-   run volume delete $PROJECT/${srdfvolume}1 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-2 --wait
 }
@@ -1314,14 +1314,14 @@ srdf_basic_sync_test()
 srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
-   run volume create ${srdfvolume}1 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
-   run volume create ${srdfvolume}2 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
    echo "Created 2 volumes... now going to sleep..."
    sleep 60
    echo "Deleting volumes..."
    #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --count 2
-   run volume delete $PROJECT/${srdfvolume}2 --wait
-   run volume delete $PROJECT/${srdfvolume}1 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-2 --wait
 }

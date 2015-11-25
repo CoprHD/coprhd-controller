@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePool.CopyTypes;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -920,7 +921,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             StoragePool storagePool;
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
-
+            boolean syncServiceEnabled = isilonApi.isSyncIQEnabled(storageSystem.getFirmwareVersion());
+            
             List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
             for (IsilonStoragePool isilonPool : isilonStoragePools) {
                 // Check if this storage pool was already discovered
@@ -972,6 +974,18 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     storagePool.getProtocols().add(NFSv4);
                 } else {
                     storagePool.getProtocols().remove(NFSv4);
+                }
+                
+                // Add the Copy type ASYNC, if the Isilon is enabled with SyncIQ service!!
+                StringSet copyTypesSupported = new StringSet();
+                copyTypesSupported.add(CopyTypes.ASYNC.name());
+                if (syncServiceEnabled) {
+                    storagePool.setSupportedCopyTypes(copyTypesSupported);
+                } else {
+                	if (storagePool.getSupportedCopyTypes() != null && 
+                			!storagePool.getSupportedCopyTypes().isEmpty() ){
+                		storagePool.getSupportedCopyTypes().clear();
+                	}
                 }
 
                 // scale capacity size

@@ -1,5 +1,6 @@
 package com.emc.storageos.driver.scaleio;
 
+import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -11,6 +12,11 @@ import org.apache.commons.lang.mutable.MutableInt;
 import java.util.List;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver {
+
+    private ScaleIORestHandleFactory handleFactory;
+    public void setHandleFactory(ScaleIORestHandleFactory handleFactory) {
+        this.handleFactory = handleFactory;
+    }
 
     @Override
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
@@ -29,6 +35,17 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
     @Override
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
+
+      //  DriverTask task=new DriverTaskImpl();
+        for(int i=0; i< snapshots.size();i++){
+            try {
+                ScaleIORestClient client = handleFactory.getClientHandle(snapshots.get(i).getStorageSystemId(),this.driverRegistry);
+                System.out.print("hello~~~~~~"+client.getSystemId());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         return null;
     }
 

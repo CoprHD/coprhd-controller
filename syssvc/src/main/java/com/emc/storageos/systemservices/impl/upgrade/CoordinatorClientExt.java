@@ -530,6 +530,15 @@ public class CoordinatorClientExt {
     }
     
     /**
+     * Get site specific properties
+     *
+     * @param siteId
+     */
+    public PropertyInfoExt getSiteSpecificProperties(String siteId) {
+        return _coordinator.getTargetInfo(PropertyInfoExt.class, siteId, PropertyInfoExt.TARGET_PROPERTY);
+    }
+    
+    /**
      * Get all Node Infos.
      * 
      * @param clazz

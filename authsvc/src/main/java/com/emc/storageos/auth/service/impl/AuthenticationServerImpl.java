@@ -85,7 +85,7 @@ public class AuthenticationServerImpl extends AbstractSecuredWebServer {
         initValidator();
         initViPRSSLSocketFactory();
         _svcBeacon.start();
-        if (_drUtil.isPrimary()) {
+        if (_drUtil.isActiveSite()) {
             _invalidLoginManager.init();
         }
     }
@@ -94,7 +94,7 @@ public class AuthenticationServerImpl extends AbstractSecuredWebServer {
         _server.stop();
         _dbClient.stop();
         _authManager.shutdown();
-        if (_drUtil.isPrimary()) {
+        if (_drUtil.isActiveSite()) {
             _invalidLoginManager.shutdown();
         }
     }

@@ -396,7 +396,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
         @Override
         public ContainerRequest filter(ContainerRequest request) {
             // allow all request on active site
-            if (drUtil.isPrimary()) {
+            if (drUtil.isActiveSite()) {
                 return request;
             }
             String path = request.getPath();

@@ -6371,6 +6371,12 @@ dr_basic_tests()
     dr get $standby_site
     dr get $primary_site
 
+    # wait for stanby site to be stable so able to pause it
+    echo "---WAIT FOR $standby_site TO STABLELIZE---"
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip $DR_SITE_B_IP 10 600
+
     # pause standby
     echo "---PAUSE SITE $standby_site---"
     BOURNE_IPADDR=$DR_SITE_A_IP

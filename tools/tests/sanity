@@ -6385,6 +6385,7 @@ dr_basic_tests()
     echo "---VERIFY sites from standby $standby_site---"
     dr get $standby_site
     dr get $primary_site
+    dr checkstandby $DR_SITE_A_IP
 
     # wait for both sites stable so able to pause standby
     wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP

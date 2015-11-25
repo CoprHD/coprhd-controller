@@ -32,6 +32,7 @@ import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
+import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageJob.JobStatus;
 import com.emc.storageos.db.client.model.ComputeImageServer;
@@ -636,6 +637,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                 + "/");
         ci.setImageName(osMetadata.fullName());
         ci.setImageType(osMetadata.getImageType());
+        ci.setComputeImageStatus(ComputeImageStatus.AVAILABLE.toString());
 
         dbClient.updateObject(ci);
         String ciURIString = ci.getId().toString();

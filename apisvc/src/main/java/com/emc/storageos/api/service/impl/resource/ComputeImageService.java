@@ -179,7 +179,7 @@ public class ComputeImageService extends TaskResourceService {
             return doImportImage(ci);
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-            _dbClient.persistObject(ci);
+            _dbClient.updateObject(ci);
             throw e;
         }
     }
@@ -258,7 +258,7 @@ public class ComputeImageService extends TaskResourceService {
             }
         }
 
-        _dbClient.persistObject(ci);
+        _dbClient.updateObject(ci);
 
         auditOp(OperationTypeEnum.UPDATE_COMPUTE_IMAGE, true, null,
                 ci.getId().toString(), ci.getImageUrl());
@@ -462,7 +462,7 @@ public class ComputeImageService extends TaskResourceService {
             }
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-            _dbClient.persistObject(ci);
+            _dbClient.updateObject(ci);
             throw e;
         }
     }
@@ -482,8 +482,13 @@ public class ComputeImageService extends TaskResourceService {
                             ci.getId().toString())) {
                 imageServer.getFailedComputeImages().remove(
                         ci.getId().toString());
-                _dbClient.persistObject(imageServer);
+            } else if (imageServer.getComputeImages() != null
+                    && imageServer.getComputeImages().contains(
+                            ci.getId().toString())) {
+                imageServer.getComputeImages().remove(
+                        ci.getId().toString());
             }
+            _dbClient.updateObject(imageServer);
         }
     }
 

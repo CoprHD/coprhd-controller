@@ -6,6 +6,7 @@ package com.emc.storageos.api.mapper;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,7 @@ import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -25,6 +27,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.TenantResource;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -37,6 +40,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TypedRelatedResourceRep;
+import com.emc.storageos.model.application.ApplicationRestRep;
 import com.emc.storageos.model.customconfig.CustomConfigRestRep;
 import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
@@ -259,6 +263,22 @@ public class DbObjectMapper {
         to.setRegistered(from.getRegistered());
         to.setSystemDefault(from.getSystemDefault());
         return to;
+    }
+    
+    /**
+     * Map an application to ApplicationRestRep
+     * @param from application
+     * @return ApplicationRestRep
+     */
+    public static ApplicationRestRep map(Application from) {
+        if ( from == null) {
+            return null;
+        }
+        ApplicationRestRep rep = new ApplicationRestRep();
+        mapDataObjectFields(from, rep);
+        rep.setDescription(from.getDescription());
+        rep.setRoles(from.getRoles());
+        return rep;
     }
 
 }

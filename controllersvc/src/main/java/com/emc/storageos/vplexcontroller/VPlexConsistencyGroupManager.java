@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
@@ -480,7 +481,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 // removed, the maps should contains the same key set so it doesn't matter
                 // which is used.
                 Map<URI, List<URI>> localAddVolumesMap = getLocalVolumesForUpdate(addVolumesList);
-                Map<URI, List<URI>> localRemoveVolumesMap = getLocalVolumesForUpdate(removeVolumesList);
+                Map<URI, List<URI>> localRemoveVolumesMap = getLocalVolumesForRemove(removeVolumesList);
                 Set<URI> localSystems = localAddVolumesMap.keySet();
                 if (localSystems.isEmpty()) {
                     localSystems = localRemoveVolumesMap.keySet();
@@ -713,5 +714,40 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             result = true;
         }
         return result;
+    }
+    
+    
+    /**
+     * Create a map of the backend volumes that need to remove from backend CG.
+     * Called during a consistency group update so that the corresponding backend 
+     * consistency groups can be updated.
+     * 
+     * @param vplexVolumes A list of VPLEX volumes.
+     * 
+     * @return A map of the backend volumes for the passed VPLEX volumes key'd
+     *         by the backend systems.
+     */
+    private Map<URI, List<URI>> getLocalVolumesForRemove(List<URI> vplexVolumes) {
+        Map<URI, List<URI>> localVolumesMap = new HashMap<URI, List<URI>>();
+        if ((vplexVolumes != null) && (!vplexVolumes.isEmpty())) {
+            for (URI vplexVolumeURI : vplexVolumes) {
+                Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
+                StringSet associatedVolumes = vplexVolume.getAssociatedVolumes();
+                for (String assocVolumeId : associatedVolumes) {
+                    URI assocVolumeURI = URI.create(assocVolumeId);
+                    Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
+                    if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) { 
+                        // The backend volume is in a backend CG
+                        URI assocSystemURI = assocVolume.getStorageController();
+                        if (!localVolumesMap.containsKey(assocSystemURI)) {
+                            List<URI> systemVolumes = new ArrayList<URI>();
+                            localVolumesMap.put(assocSystemURI, systemVolumes);
+                        }
+                        localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
+                    }
+                }
+            }
+        }
+        return localVolumesMap;
     }
 }

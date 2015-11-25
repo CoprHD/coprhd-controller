@@ -58,6 +58,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
 import static com.emc.storageos.model.ResourceTypeEnum.BUCKET;
 import static com.emc.storageos.model.ResourceTypeEnum.OBJECT_VPOOL;
+import static com.emc.storageos.model.ResourceTypeEnum.APPLICATION;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -65,6 +66,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -182,6 +184,7 @@ public class ResourceTypeMapping {
         classMapping.put(USER_GROUP, UserGroup.class);
         classMapping.put(VIRTUAL_NAS, VirtualNAS.class);
         classMapping.put(COMPUTE_IMAGESERVER, ComputeImageServer.class);
+        classMapping.put(APPLICATION, Application.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

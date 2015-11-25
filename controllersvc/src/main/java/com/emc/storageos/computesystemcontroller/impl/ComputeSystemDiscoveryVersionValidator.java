@@ -89,7 +89,7 @@ public class ComputeSystemDiscoveryVersionValidator {
     }
 
     public HpuxVersion getHpuxMinimumVersion(boolean forceLookup) {
-        if (forceLookup || aixVersion == null) {
+        if (forceLookup || hpuxVersion == null) {
             String versionProp = this.getSysProperty(HPUX_MIN_PROP);
             if (isValidVersionNumber(versionProp)) {
                 hpuxVersion = new HpuxVersion(versionProp);

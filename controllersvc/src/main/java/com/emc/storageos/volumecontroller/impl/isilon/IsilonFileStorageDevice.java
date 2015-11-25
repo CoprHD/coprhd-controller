@@ -2094,11 +2094,15 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             }
 
             if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_WRITE)) {
-                accessRights.add(IsilonNFSACL.AccessRights.std_write_dac.toString());
+                accessRights.add(IsilonNFSACL.AccessRights.dir_gen_write.toString());
             }
 
             if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE)) {
                 accessRights.add(IsilonNFSACL.AccessRights.dir_gen_execute.toString());
+            }
+
+            if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_FULLCONTROL)) {
+                accessRights.add(IsilonNFSACL.AccessRights.dir_gen_all.toString());
             }
         }
         return accessRights;

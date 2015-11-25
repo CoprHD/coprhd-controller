@@ -113,7 +113,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
         client.start();
         
         DrUtil drUtil = new DrUtil(client);
-        isDrActiveSite = drUtil.isPrimary();
+        isDrActiveSite = drUtil.isActiveSite();
         
         coordinator = client;
     }

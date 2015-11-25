@@ -218,7 +218,7 @@ public class VdcManager extends AbstractManager {
                 continue;
             }
             
-            // Step5: set site error state if on primary
+            // Step5: set site error state if on acitve
             try {
                 updateSiteErrors();
             } catch (RuntimeException e) {
@@ -431,7 +431,7 @@ public class VdcManager extends AbstractManager {
     private void updateSiteErrors() {
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
 
-        if (!drUtil.isPrimary()) {
+        if (!drUtil.isActiveSite()) {
             log.info("Step5: current site is a standby, nothing to do");
             return;
         }

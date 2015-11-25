@@ -596,7 +596,7 @@ public class DisasterRecoveryServiceTest {
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         drService.doSwitchover(standbySite2.getUuid());
         
-        verify(coordinator, times(1)).setPrimarySite(standbySite2.getUuid());
+        verify(coordinator, times(1)).setActiveSite(standbySite2.getUuid());
         verify(coordinator, times(2)).persistServiceConfiguration(any(Configuration.class));
     }
     
@@ -638,7 +638,7 @@ public class DisasterRecoveryServiceTest {
         // show be only standby
         try {
             standbySite1.setState(SiteState.STANDBY_SYNCED);
-            doReturn(true).when(drUtil).isPrimary();
+            doReturn(true).when(drUtil).isActiveSite();
             drService.precheckForFailover();
             fail();
         } catch (InternalServerErrorException e) {
@@ -647,7 +647,7 @@ public class DisasterRecoveryServiceTest {
         
         // should be stable
         try {
-            doReturn(false).when(drUtil).isPrimary();
+            doReturn(false).when(drUtil).isActiveSite();
             doReturn(ClusterInfo.ClusterState.DEGRADED).when(coordinator).getControlNodesState(standbySite1.getUuid(), 1);
             drService.precheckForFailover();
             fail();

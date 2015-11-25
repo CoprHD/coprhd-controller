@@ -1017,8 +1017,11 @@ xtremio_setup()
 {
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-    discoveredsystem show $XTREMIO_NATIVEGUID &> /dev/null && return $?
-    discoveredsystem create $XTREMIO xtremio $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO_SN
+    storageprovider show $XTREMIO  &> /dev/null && return $?
+    echo "Starting storageprovider create"
+    storageprovider create $XTREMIO $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD xtremio 
+    storagedevice discover_all
+    storagedevice list
 
     project_setup
 

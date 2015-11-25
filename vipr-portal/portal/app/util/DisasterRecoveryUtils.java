@@ -88,4 +88,9 @@ public class DisasterRecoveryUtils {
         return null;
     }
 
+    public static boolean isPrimarySite() {
+        SitePrimary siteCheck = checkPrimary();
+        return siteCheck.getIsPrimary();
+    }
+
 }

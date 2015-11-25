@@ -60,9 +60,12 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
                                 if(fsId.equalsIgnoreCase(point.getCheckpointOf())){
                                 	keyMap.put(VNXFileConstants.SNAPSHOT_ID, id);
                                     keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
-                                    keyMap.put(VNXFileConstants.FAULT_DESC, "Snapshot Already Exists in the backend");
                                     isFSMatch = true;
                                     break;
+                                }
+                                else{
+                                	keyMap.put(VNXFileConstants.FAULT_DESC, "Snapshot Already Exists in the backend");
+                                	keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_FAILURE);
                                 }
                             }
                         }

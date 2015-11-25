@@ -42,7 +42,7 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
                 boolean isFSMatch = false;
                 List<Object> snapshotList = getQueryResponse(responsePacket);
                 final String snapName = (String) keyMap.get(VNXFileConstants.SNAPSHOT_NAME);
-                String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+                final String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
                 
                 _logger.info("Snapshot name to match: {} Size of snaps found {} ", snapName, snapshotList.size());
                 Iterator<Object> snapshotItr = snapshotList.iterator();
@@ -60,13 +60,14 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
                                 if(fsId.equalsIgnoreCase(point.getCheckpointOf())){
                                 	keyMap.put(VNXFileConstants.SNAPSHOT_ID, id);
                                     keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
+                                    keyMap.put(VNXFileConstants.FAULT_DESC, "Snapshot Already Exists in the backend");
                                     isFSMatch = true;
                                     break;
                                 }
                             }
                         }
-                        if(!isSnapshotFound && !isFSMatch){
-                        	_logger.error("Snapshot creation failed due to: snapshot already exists");
+                        if(isSnapshotFound && !isFSMatch){
+                        	_logger.error("Snapshot creation failed due to: Snapshot already exists");
                         }
                         if (!isSnapshotFound)
                         {

@@ -1842,9 +1842,30 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             throws ControllerException {
         TaskCompleter completer = null;
         try {
+            boolean isListReplicaFlow = false;
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
-            getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
+            BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshotList.get(0));
+
+            /**
+             * VPLEX/RP CG volumes may not be having back end Array Group.
+             * In this case we should create element replica using createListReplica.
+             * We should not use createGroup replica as backend cg will not be available in this case.
+             */
+            if (snapshotObj != null && !NullColumnValueGetter.isNullURI(snapshotObj.getConsistencyGroup())) {
+                BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
+                        snapshotObj.getConsistencyGroup());
+                if (!ControllerUtils.checkCGCreatedOnBackEndArray(consistencyGroup, storageObj.getId(), _dbClient)) {
+                    isListReplicaFlow = true;
+                }
+            }
+            if (!isListReplicaFlow) {
+                completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
+                getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
+            } else {
+                // List Replica
+                createListSnapshot(storage, snapshotList, createInactive, readOnly, opId);
+            }
+
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -2149,8 +2170,29 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 completer = new BlockMirrorCreateCompleter(mirrorList.get(0), opId);
                 getDevice(storageObj.getSystemType()).doCreateMirror(storageObj, mirrorList.get(0), createInactive, completer);
             } else {
-                completer = new BlockMirrorCreateCompleter(mirrorList, opId);
-                getDevice(storageObj.getSystemType()).doCreateGroupMirrors(storageObj, mirrorList, createInactive, completer);
+
+                boolean isListReplicaFlow = false;
+                BlockMirror mirrorObj = _dbClient.queryObject(BlockMirror.class, mirrorList.get(0));
+
+                /**
+                 * VPLEX/RP CG volumes may not be having back end Array Group.
+                 * In this case we should create element replica using createListReplica.
+                 * We should not use createGroup replica as backend cg will not be available in this case.
+                 */
+                if (mirrorObj != null && !NullColumnValueGetter.isNullURI(mirrorObj.getConsistencyGroup())) {
+                    BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
+                            mirrorObj.getConsistencyGroup());
+                    if (!ControllerUtils.checkCGCreatedOnBackEndArray(consistencyGroup, storageObj.getId(), _dbClient)) {
+                        isListReplicaFlow = true;
+                    }
+                }
+                if (!isListReplicaFlow) {
+                    completer = new BlockMirrorCreateCompleter(mirrorList, opId);
+                    getDevice(storageObj.getSystemType()).doCreateGroupMirrors(storageObj, mirrorList, createInactive, completer);
+                } else {
+                    // List Replica
+                    createListMirror(storage, mirrorList, createInactive, opId);
+                }
             }
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -3056,8 +3098,30 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             TaskCompleter taskCompleter = new CloneCreateCompleter(fullCopyVolumes, taskId);
             WorkflowStepCompleter.stepExecuting(taskId);
             if (isCG) {
-                getDevice(storageSystem.getSystemType()).doCreateGroupClone(storageSystem, fullCopyVolumes,
-                        createInactive, taskCompleter);
+                boolean isListReplicaFlow = false;
+                StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+                Volume cloneObj = _dbClient.queryObject(Volume.class, fullCopyVolumes.get(0));
+
+                /**
+                 * VPLEX/RP CG volumes may not be having back end Array Group.
+                 * In this case we should create element replica using createListReplica.
+                 * We should not use createGroup replica as backend cg will not be available in this case.
+                 */
+                if (cloneObj != null && !NullColumnValueGetter.isNullURI(cloneObj.getConsistencyGroup())) {
+                    BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
+                            cloneObj.getConsistencyGroup());
+                    if (!ControllerUtils.checkCGCreatedOnBackEndArray(consistencyGroup, storageObj.getId(), _dbClient)) {
+                        isListReplicaFlow = true;
+                    }
+                }
+                if (!isListReplicaFlow) {
+                    getDevice(storageSystem.getSystemType()).doCreateGroupClone(storageSystem, fullCopyVolumes,
+                            createInactive, taskCompleter);
+                } else {
+                    // List Replica
+                    createListClone(storage, fullCopyVolumes, createInactive, taskId);
+                }
+
             } else {
                 getDevice(storageSystem.getSystemType()).doCreateClone(storageSystem, sourceVolume, fullCopyVolumes.get(0),
                         createInactive, taskCompleter);

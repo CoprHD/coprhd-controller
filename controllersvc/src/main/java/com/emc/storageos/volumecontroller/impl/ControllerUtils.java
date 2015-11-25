@@ -1264,4 +1264,17 @@ public class ControllerUtils {
         }
         return error;
     }
+
+    public static boolean checkCGCreatedOnBackEndArray(BlockConsistencyGroup consistencyGroup, URI storageSystemURI, DbClient dbClient) {
+        boolean status = false;
+
+        if (consistencyGroup != null && storageSystemURI != null && consistencyGroup.getSystemConsistencyGroups() != null) {
+            StringSet systemCGs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemURI.toString());
+            if (systemCGs != null && systemCGs.iterator().hasNext()) {
+                status = true;
+            }
+        }
+
+        return status;
+    }
 }

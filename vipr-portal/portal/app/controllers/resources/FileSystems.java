@@ -174,7 +174,7 @@ public class FileSystems extends ResourceController {
         renderArgs.put("fileSystemSubDirAndPath", fileSystemId + "~~~" + subDir
                 + "~~~" + fsMountPath);
         renderArgs.put("permissionOptions", StringOption.options(new String[] {
-                "read", "write", "execute" }));
+                "read", "write", "execute", "fullControl" }));
         ViPRCoreClient client = BourneUtil.getViprClient();
         NfsACLForm nfsACL = new NfsACLForm();
         FileShareRestRep restRep = client.fileSystems().get(uri(fileSystemId));
@@ -244,7 +244,7 @@ public class FileSystems extends ResourceController {
         nfsACL.permissions = new HashSet<String>(Arrays.asList(strPerm));
         nfsACL.permissionType = permissionType;
         renderArgs.put("permissionOptions", StringOption.options(new String[] {
-                "read", "write", "execute" }));
+                "read", "write", "execute", "fullControl" }));
         renderArgs.put("permissionTypeOptions", StringOption.options(new String[] {
                 "allow", "deny" }));
         renderArgs.put("fileSystemId", uri(fileSystem));

@@ -94,8 +94,25 @@ def dr_failover_over(args):
     bourne.dr_failover(args.uuid)
 
 def poweroff_cluster(args):
-	SysMgr.poweroff_cluster(args)
+    SysMgr.poweroff_cluster(args)
 
+def dr_check_standby(args):
+    bourne.connect(args.ip)
+    # check if API exception is thrown on standby for POST 
+    uri="/tenants/%s/projects" % bourne.tenant_getid()
+    errcode=1013
+    message="Disallowed operation on standby site. Please redirect your request to active site %s." % args.activeSiteVip
+    bourne.api_check_error("POST", uri, 403, errcode, message)
+    print "PASS. Successfully catch API exception for POST %s" % uri
+    try:
+       bourne.api_check_error("GET", uri, 403, errcode, message)
+    except Exception as ex:
+       if "Unexpected HTTP" not in ex.message:
+            raise ex
+       else:
+            print "PASS. No API exception for GET %s" % uri
+   
+    
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -169,6 +186,10 @@ drfindsite = argparse.ArgumentParser(parents = [parser], conflict_handler='resol
 drfindsite.add_argument('key', help = 'key to search sites for')
 drfindsite.add_argument('value', help = 'value to find in site key')
 
+#check standby mode
+drcheckstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drcheckstandby.add_argument('activeSiteVip', help = 'Vip for active site')
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -216,5 +237,8 @@ elif (cmd == "poweroffcluster"):
 elif (cmd == "find"):
     args = drfindsite.parse_args()
     dr_find_site(args)
+elif (cmd == "checkstandby"):
+    args = drcheckstandby.parse_args()
+    dr_check_standby(args)
 else:
     parser.print_help()

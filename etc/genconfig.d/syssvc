@@ -21,11 +21,6 @@ _get_metadata_props() {
     _get_props node_count
 }
 
-_gen_template_node_name() {
-    case ${_GENCONFIG_node_id} in 'standalone') sed -i -e "s/\${node_name}/${_GENCONFIG_node_name}/g" $1 ; _genconfig_done ; esac
-    _gen_template "${@}"
-}
-
-_genconfig_exec _gen_template_node_name   /opt/storageos/conf/backup-var.xml          $(_get_backup_props)
-_genconfig_exec _gen_template_node_name   /opt/storageos/conf/sys-var.xml             $(_get_sys_props)
+_genconfig_exec _gen_template   /opt/storageos/conf/backup-var.xml          $(_get_backup_props)
+_genconfig_exec _gen_template   /opt/storageos/conf/sys-var.xml             $(_get_sys_props)
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/sys-metadata-var.xml    $(_get_metadata_props)

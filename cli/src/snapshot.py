@@ -69,7 +69,9 @@ class Snapshot(object):
     URI_CONSISTENCY_GROUP_TAG = URI_CONSISTENCY_GROUP + '/{0}/tags'
     URI_SNAPSHOT_RESYNC = '/{0}/snapshots/{1}/resynchronize'
     
-    URI_VPLEX_SNAPSHOT_IMPORT = '/block/snapshots/{0}/create-vplex-volume'
+    URI_VPLEX_SNAPSHOT_IMPORT = '/block/snapshots/{0}/expose'
+    
+    URI_CIFS_ACL = URI_FILE_SNAPSHOTS + '/shares/{1}/acl'
     
 
     SHARES = 'filesystems'
@@ -1043,6 +1045,81 @@ class Snapshot(object):
                     add,
                     remove)
             )
+            
+    # update acl for given snapshot's cifs    
+    def cifs_snapshot_acl(self, tenant, project, snapshotname, sharename, operation, resourceUri, user=None, permission=None, domain=None, group=None): 
+        snapshotUri = self.snapshot_query(
+            Snapshot.FILE,
+            Snapshot.SHARES,
+            resourceUri,
+            snapshotname)
+        
+        cifs_acl_param = dict()
+        cifs_acl_param['share_name'] = sharename
+        if(permission):
+            cifs_acl_param['permission'] = permission
+        if(user):
+            cifs_acl_param['user'] = user
+        if(domain):
+            cifs_acl_param['domain'] = domain
+        if(group):
+            cifs_acl_param['group'] = group
+
+        acl_cifs_request = {'acl':[cifs_acl_param]}
+
+        if("add"== operation):
+            request = {'add': acl_cifs_request}
+        elif("delete" == operation):
+            request = {'delete' : acl_cifs_request}
+        else:
+            request = {'modify' : acl_cifs_request}
+    
+        body = json.dumps(request)
+        
+        (s, h) = common.service_json_request(
+                    self.__ipAddr, self.__port, 
+                    "PUT", 
+                    Snapshot.URI_CIFS_ACL.format(snapshotUri, sharename) , body)
+        o = common.json_decode(s)
+        return o
+    
+    # Deletes a snapshot share's acl given a snapshot share name
+    def delete_acl(self, snapshotname, snapshotsharename, resourceUri):
+        '''
+        Deletes a snapshot share's acl based on  snapshot's share name
+        Parameters:
+            snapshotsharename: name of snapshot share
+        
+        '''
+        
+        snapshotUri = self.snapshot_query(
+            Snapshot.FILE,
+            Snapshot.SHARES,
+            resourceUri,
+            snapshotname)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "DELETE",
+            Snapshot.URI_CIFS_ACL.format(snapshotUri, snapshotsharename),
+            None)
+        return 
+    
+    def list_acl(self, snapshotname, snapshotsharename, resourceUri):
+        '''
+        Lists the acl for a snapshot's share given the share name:
+            snapshotsharename: name of snapshot share
+        '''
+        snapshotUri = self.snapshot_query(
+            Snapshot.FILE,
+            Snapshot.SHARES,
+            resourceUri,
+            snapshotname)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "GET",
+            Snapshot.URI_CIFS_ACL.format(snapshotUri, snapshotsharename),
+            None)
+        o = common.json_decode(s)
+        return o          
+    
 
         
 
@@ -2700,6 +2777,217 @@ def snapshot_tag(args):
                 "snapshot",
                 e.err_text,
                 e.err_code)
+            
+
+# cifs snapshot acl update parser
+def set_acl_parser(subcommand_parsers, common_parser):
+    set_acl_parser = subcommand_parsers.add_parser(
+        'share-acl',
+        description='ViPR Snapshot share ACL CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Add/Delete ACLs rules for cifs share of snapshot')
+    mandatory_args = set_acl_parser.add_argument_group(
+        'mandatory arguments')
+    mandatory_args.add_argument('-fsname', '-fsn',
+                                dest='filesystemName',
+                                metavar='<filesystemname>',
+                                help='Name of filesystem of which the snapshot is taken',
+                                required=True)
+    mandatory_args.add_argument('-sname', '-sn',
+                                dest='snapshotname',
+                                metavar='<snapshotname>',
+                                help='Name of Snapshot',
+                                required=True)
+    mandatory_args.add_argument('-share', '-sh',
+                                dest='share',
+                                help='Name of SMB share',
+                                required=True)
+    mandatory_args.add_argument('-operation', '-op',
+                                choices=["add", "delete"],
+                                dest='operation',
+                                metavar='<acloperation>',
+                                help='snapshot cifs acl operation',
+                                required=True)
+    set_acl_parser.add_argument('-permission', '-perm',
+                                    dest='permission',
+                                    choices=["Read"],
+                                    metavar='<permission>',
+                                    help='Provide permission for Acl. Only read is allowed')
+    set_acl_parser.add_argument('-tenant', '-tn',
+                                     metavar='<tenantname>',
+                                     dest='tenant',
+                                     help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    set_acl_parser.add_argument('-user', '-u',
+                                    dest='user',
+                                    metavar='<user>',
+                                    help='User')
+    set_acl_parser.add_argument('-domain','-dom',
+                                    dest='domain',
+                                    metavar='<domain>',
+                                    help='Domain')
+    set_acl_parser.add_argument('-group', '-grp',
+                                    dest='group',
+                                    metavar='<group>',
+                                    help='Group')                    
+    
+    set_acl_parser.set_defaults(func=acl_set)
+
+def acl_set(args):
+    obj = Snapshot(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        if(not args.user and not args.permission):
+            raise SOSError(SOSError.CMD_LINE_ERR, "Anonymous user should be provided to add/update/delete acl rule")
+        if(args.user and args.group):
+            raise SOSError(SOSError.CMD_LINE_ERR, "User and Group cannot be specified together")    
+        
+        resourceUri = obj.storageResource_query(
+            Snapshot.FILE,
+            args.filesystemName,
+            None,
+            None,
+            args.project,
+            args.tenant)
+        res = obj.cifs_snapshot_acl(args.tenant, args.project, 
+                           args.snapshotname, 
+                           args.share,
+                           args.operation,
+                           resourceUri,
+                           args.user, 
+                           args.permission,
+                           args.domain,
+                           args.group)
+
+
+    except SOSError as e:
+                
+        common.format_err_msg_and_raise("modify-acl", "snapshot",
+                                        e.err_text, e.err_code)
+
+
+def acl_delete_parser(subcommand_parsers, common_parser):
+    acl_delete_parser = subcommand_parsers.add_parser(
+        'delete-acl',
+        description='ViPR ACL Delete CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Delete a ACL of a snapshot share')
+    mandatory_args = acl_delete_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-fsname', '-fsn',
+                                metavar='<filesystemname>',
+                                dest='filesystemname',
+                                help='Name of Filesystem of which the snapshot is taken',
+                                required=True)
+    mandatory_args.add_argument('-sname', '-sn',
+                                metavar='<snapshotname>',
+                                dest='snapshotname',
+                                help='Name of Snapshot',
+                                required=True)
+    acl_delete_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-share', '-sh',
+                               help='Name of SMB share',
+                               dest='share',
+                               required=True)
+    
+ 
+    acl_delete_parser.set_defaults(func=fileshare_acl_delete)
+
+
+def fileshare_acl_delete(args):
+    if(not args.tenant):
+        args.tenant = ""
+    obj = Snapshot(args.ip, args.port)
+    resourceUri = obj.storageResource_query(
+            Snapshot.FILE,
+            args.filesystemname,
+            None,
+            None,
+            args.project,
+            args.tenant)
+    try:
+        obj.delete_acl(args.snapshotname,
+            args.share, resourceUri)
+    except SOSError as e:
+        common.format_err_msg_and_raise("delete-acl", "snapshot",
+                                        e.err_text, e.err_code)
+        
+        
+# routine to list the acls of a share .
+
+def acl_list_parser(subcommand_parsers, common_parser):
+    acl_list_parser = subcommand_parsers.add_parser(
+        'list-acl',
+        description='ViPR ACL List CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='LIST ACL of share')
+    mandatory_args = acl_list_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-fsname', '-fsn',
+                                metavar='<filesystemname>',
+                                dest='filesystemname',
+                                help='Name of Filesystem of which the snapshot is taken',
+                                required=True)
+    mandatory_args.add_argument('-sname', '-sn',
+                                metavar='<snapshotname>',
+                                dest='snapshotname',
+                                help='Name of Snapshot',
+                                required=True)
+    acl_list_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-share', '-sh',
+                               help='Name of SMB share',
+                               dest='share',
+                               required=True)
+    
+ 
+    acl_list_parser.set_defaults(func=fileshare_acl_list)
+
+
+def fileshare_acl_list(args):
+    if(not args.tenant):
+        args.tenant = ""
+    obj = Snapshot(args.ip, args.port)
+    resourceUri = obj.storageResource_query(
+            Snapshot.FILE,
+            args.filesystemname,
+            None,
+            None,
+            args.project,
+            args.tenant)
+    try:
+        res = obj.list_acl(args.snapshotname,
+            args.share, resourceUri)
+        if ( len(res) == 0):
+            print " No ACLs for the share"
+        else:
+            from common import TableGenerator
+            TableGenerator(res['acl'], ['errorType','snapshot_id','permission','share_name','user','group']).printTable() 
+        
+    except SOSError as e:
+        common.format_err_msg_and_raise("list-acl", "snapshot",
+                                        e.err_text, e.err_code)
 
 
 
@@ -2767,3 +3055,12 @@ def snapshot_parser(parent_subparser, common_parser):
     
     #vplex import parser
     import_to_vplex_parser(subcommand_parsers, common_parser)
+    
+    #ACL snapshot modify command parser 
+    set_acl_parser(subcommand_parsers, common_parser)
+    
+     #ACL snapshot list command parser 
+    acl_list_parser(subcommand_parsers, common_parser)
+    
+    #ACL snapshot delete command parser
+    acl_delete_parser(subcommand_parsers, common_parser)

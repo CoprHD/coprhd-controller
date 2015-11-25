@@ -460,6 +460,9 @@ public class SchemaUtil {
      * Check keyspace strategy options for an existing keyspace and update if necessary
      */
     private void checkStrategyOptions() throws ConnectionException {
+        //wait for schema versions to converge first
+        clientContext.waitForSchemaAgreement(null);
+
         KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
         Map<String, String> strategyOptions = kd.getStrategyOptions();
         _log.info("Current strategyOptions={}", strategyOptions);
@@ -469,8 +472,6 @@ public class SchemaUtil {
         changed |= checkStrategyOptionsForGeo(strategyOptions);
 
         if (changed) {
-            // log current schema versions for debug purpose
-            clientContext.getSchemaVersions();
             _log.info("strategyOptions changed to {}", strategyOptions);
             clientContext.setCassandraStrategyOptions(strategyOptions, true);
         }
@@ -583,7 +584,7 @@ public class SchemaUtil {
         }
 
         if (latestSchemaVersion != null) {
-            clientContext.waitForSchemaChange(latestSchemaVersion);
+            clientContext.waitForSchemaAgreement(latestSchemaVersion);
         }
     }
 
@@ -1206,7 +1207,7 @@ public class SchemaUtil {
                 if (cfd != null) {
             	    _log.info("drop cf {} from db", cfName);
             	    String schemaVersion = dropColumnFamily(cfName, context);
-                    clientContext.waitForSchemaChange(schemaVersion);
+                    clientContext.waitForSchemaAgreement(schemaVersion);
                 }
             }
         } catch (Exception e){

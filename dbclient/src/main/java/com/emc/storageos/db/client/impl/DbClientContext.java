@@ -34,13 +34,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 public class DbClientContext {
 
@@ -346,7 +341,7 @@ public class DbClientContext {
             }
     
             if (wait) {
-                waitForSchemaChange(schemaVersion);
+                waitForSchemaAgreement(schemaVersion);
             }
         } catch (ConnectionException ex) {
             log.error("Fail to update strategy option", ex);
@@ -398,17 +393,26 @@ public class DbClientContext {
     /**
      * Waits for schema change to propagate through cluster
      *
-     * @param schemaVersion version we are waiting for
+     * @param targetSchemaVersion version we are waiting for, if null returns as soon as schema versions converge.
      * @throws InterruptedException
      */
-    public void waitForSchemaChange(String schemaVersion) {
+    public void waitForSchemaAgreement(String targetSchemaVersion) {
         long start = System.currentTimeMillis();
+        Map<String, List<String>> versions = null;
         while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
-            log.info("schema version to sync to: {}", schemaVersion);
-            Map<String, List<String>> versions = getSchemaVersions();
+            if (targetSchemaVersion != null) {
+                log.info("schema version to sync to: {}", targetSchemaVersion);
+            }
+            versions = getSchemaVersions();
+            log.info("schema versions:{}", versions);
 
-            if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
-                log.info("schema version sync to: {} done", schemaVersion);
+            if (versions.size() == 1) {
+                if (targetSchemaVersion != null && !versions.containsKey(targetSchemaVersion)) {
+                    log.warn("Unable to converge to target version. Schema versions:{}, target version:{}",
+                            versions, targetSchemaVersion);
+                    return;
+                }
+                log.info("schema versions converged");
                 return;
             }
 
@@ -417,7 +421,7 @@ public class DbClientContext {
                 Thread.sleep(SCHEMA_RETRY_SLEEP_MILLIS);
             } catch (InterruptedException ex) {}
         }
-        log.warn("Unable to sync schema version {}", schemaVersion);
+        log.warn("Unable to converge schema versions: {}", versions);
     }
 
     /**

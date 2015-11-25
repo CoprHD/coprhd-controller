@@ -125,8 +125,9 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             if (drUtil.isActiveSite()) {
-                log.info("Acquiring lock to update default properties of standby");
+                log.info("Acquiring lock {} to update default properties of standby", LOCK_ADD_STANDBY);
                 InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_ADD_STANDBY);
+                lock.acquire();
                 log.info("Acquired lock successfully");
                 try {
                     disableBackupSchedulerForStandby();

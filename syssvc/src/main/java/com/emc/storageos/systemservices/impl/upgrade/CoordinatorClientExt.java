@@ -1423,27 +1423,24 @@ public class CoordinatorClientExt {
             if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
                 return; // expected situation. Standby zookeeper should be observer mode normally
             }
-            Site localSite = drUtil.getLocalSite();
-            SiteState siteState = localSite.getState();
-            if (siteState.equals(SiteState.PRIMARY_SWITCHING_OVER) || siteState.equals(SiteState.STANDBY_SWITCHING_OVER) || siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
-                _log.info("Ignore coordinator check for site state {}", siteState);
-                return;
+
+            try {
+                Site localSite = drUtil.getLocalSite();
+                SiteState siteState = localSite.getState();
+                if (siteState.equals(SiteState.PRIMARY_SWITCHING_OVER)
+                        || siteState.equals(SiteState.STANDBY_SWITCHING_OVER)
+                        || siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
+                    _log.info("Ignore coordinator check for site state {}", siteState);
+                    return;
+                }
+            } catch (Exception e) {
+                _log.warn("failed to get local site state", e);
             }
             
             _log.info("Local zookeeper mode {}", state);
             if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
-                _log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
-                try {
-                    LocalRepository localRepository = LocalRepository.getInstance();
-                    localRepository.reconfigCoordinator("participant");
-                    localRepository.restart("coordinatorsvc");
-                    // if zk is switched from observer mode to participant, reload syssvc 
-                    if (!DrUtil.ZOOKEEPER_MODE_READONLY.equals(initZkMode)) {
-                        localRepository.restart("syssvc");
-                    }
-                } catch (Exception ex) {
-                    _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
-                }
+                // if zk is switched from observer mode to participant, reload syssvc
+                reconfigZKToWritable(!DrUtil.ZOOKEEPER_MODE_READONLY.equals(initZkMode));
             } else {
                 if (isActiveSiteStable()) {
                     _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
@@ -1453,7 +1450,7 @@ public class CoordinatorClientExt {
                 }
             }
         }
-        
+
         /**
          * Reconnect to zookeeper in active site. 
          */
@@ -1556,6 +1553,25 @@ public class CoordinatorClientExt {
             return false;
         }
     };
+
+    /**
+     * reconfigure ZooKeeper to participant mode within the local site
+     *
+     * @param reloadSyssvc if syssvc needs to be reloaded
+     */
+    public void reconfigZKToWritable(boolean reloadSyssvc) {
+        _log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
+        try {
+            LocalRepository localRepository = LocalRepository.getInstance();
+            localRepository.reconfigCoordinator("participant");
+            localRepository.restart("coordinatorsvc");
+            if (reloadSyssvc) {
+                localRepository.restart("syssvc");
+            }
+        } catch (Exception ex) {
+            _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
+        }
+    }
     
     /**
       * Get current ZK connection state

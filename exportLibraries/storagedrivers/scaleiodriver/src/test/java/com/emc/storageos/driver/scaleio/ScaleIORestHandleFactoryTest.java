@@ -6,21 +6,34 @@ package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
-import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClientFactory;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.impl.InMemoryRegistryImpl;
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@RunWith(value = SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = {"file:/Users/shujinwu/dev-coprhd/coprhd-controller/exportLibraries/storagedrivers/scaleiodriver/src/conf/scaleio-driver-prov.xml"})
 public class ScaleIORestHandleFactoryTest {
-    private static Logger log = LoggerFactory.getLogger(ScaleIORestHandleFactoryTest.class);
-    private ScaleIORestHandleFactory handleFactory=new ScaleIORestHandleFactory();
+
+
+   private static Logger log = LoggerFactory.getLogger(ScaleIORestHandleFactoryTest.class);
+    @Autowired
+    private ScaleIORestHandleFactory handleFactory;
     private static Registry registry = new InMemoryRegistryImpl();
-    private static ScaleIORestClient restClient;
     String SYS_NATIVE_ID="5a01234257c7cc9c";
+
+
+    public void setHandleFactory(ScaleIORestHandleFactory handleFactory) {
+        this.handleFactory = handleFactory;
+    }
+
 
     @org.junit.Before
     public void setUp() throws Exception {
@@ -36,20 +49,15 @@ public class ScaleIORestHandleFactoryTest {
         list=new ArrayList<>();
         list.add("Scaleio123");
         registry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,SYS_NATIVE_ID,ScaleIOConstants.PASSWORD,list);
-        ScaleIORestClientFactory factory = new ScaleIORestClientFactory();
-        factory.setMaxConnections(100);
-        factory.setMaxConnectionsPerHost(100);
-        factory.setNeedCertificateManager(false);
-        factory.setSocketConnectionTimeoutMs(3600000);
-        factory.setConnectionTimeoutMs(3600000);
-        factory.init();
-        handleFactory.setScaleIORestClientFactory(factory);
+
 
     }
 
     @org.junit.Test
     public void testGetClientHandle() throws Exception {
+
         ScaleIORestClient client=handleFactory.getClientHandle(SYS_NATIVE_ID,registry);
+
         if(client==null){
             System.out.print("no rest client returned!");
         }else{
@@ -57,4 +65,6 @@ public class ScaleIORestHandleFactoryTest {
 
         }
     }
+
+
 }

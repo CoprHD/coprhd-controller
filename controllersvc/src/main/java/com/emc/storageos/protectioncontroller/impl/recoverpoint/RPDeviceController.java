@@ -110,6 +110,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkLite;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -135,7 +136,9 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RPCGExportCom
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RPCGExportDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RPCGExportOrchestrationCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RPCGProtectionTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RPCGVolumeVpoolChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.TaskLockingCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.plugins.RPStatisticsHelper;
@@ -219,6 +222,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_BOOKMARK_CREATE = "createBookmark";
     private static final String METHOD_CREATE_BOOKMARK_STEP = "createBookmarkStep";
     private static final String METHOD_ROLLBACK_CREATE_BOOKMARK_STEP = "createBookmarkRollbackStep";
+
+    private static final String STEP_UPDATE_CG_POLICY = "udpateConsistencyGroupPolicy";
+    private static final String METHOD_UPDATE_CG_POLICY_STEP = "udpateConsistencyGroupPolicyStep";
 
     private static final String STEP_CREATE_BLOCK_SNAPSHOT = "createBlockSnapshot";
 
@@ -2354,24 +2360,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportgroupID The export group
-     *
+     * 
      * @param snapshots snapshot list
-     *
+     * 
      * @param initatorURIs initiators to send to the block controller
-     *
+     * 
      * @param token The task object
      */
     @Override
@@ -2555,19 +2561,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportgroupID The export group
-     *
+     * 
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2680,15 +2686,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     *
+     * 
      * @param workflow Workflow
-     *
+     * 
      * @param waitFor waitFor step id
-     *
+     * 
      * @param snapshots list of snapshot to disable
-     *
+     * 
      * @param rpSystem RP system
-     *
+     * 
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -2856,24 +2862,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportGroupID The export group
-     *
+     * 
      * @param snapshot RP snapshot
-     *
+     * 
      * @param lun HLU
-     *
+     * 
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -3595,42 +3601,158 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     @Override
-    public void updateConsistencyGroupPolicy(URI protectionDevice, URI cgUri, String copyMode, String task) throws InternalException {
-        _log.info(String.format("Request to update consistency group policy for CG %s", cgUri));
-        RPCGProtectionTaskCompleter taskCompleter = null;
+    public void updateConsistencyGroupPolicy(URI protectionDevice, URI consistencyGroup, List<URI> volumeURIs,
+            URI newVpoolURI, String task) throws InternalException {
+        _log.info(String.format("Request to update consistency group policy for volumes %s through virtual pool change to %s", volumeURIs,
+                newVpoolURI));
+        RPCGVolumeVpoolChangeTaskCompleter taskCompleter = null;
+        URI oldVpoolURI = null;
+        List<Volume> volumes = new ArrayList<Volume>();
+        List<Volume> vplexBackendVolumes = new ArrayList<Volume>();
         try {
-            ProtectionSystem rpSystem = getRPSystem(protectionDevice);
-            taskCompleter = new RPCGProtectionTaskCompleter(cgUri, BlockConsistencyGroup.class, task);
+            // Get all CG source volumes. The entire CG policy is being updated so we
+            // need to capture the existing vpools for all the source volumes before
+            // changing them.
+            List<Volume> cgVolumes = RPHelper.getCgSourceVolumes(consistencyGroup, _dbClient);
+
+            VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class,
+                    newVpoolURI);
+            Map<URI, URI> oldVpools = new HashMap<URI, URI>();
+
+            for (Volume volume : cgVolumes) {
+                // Save the old virtual pool
+                oldVpoolURI = volume.getVirtualPool();
+                oldVpools.put(volume.getId(), oldVpoolURI);
+
+                // Update to the new virtual pool
+                volume.setVirtualPool(newVpoolURI);
+                volumes.add(volume);
+
+                // Check if it is a VPlex volume, and get backend volumes
+                Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+                if (backendSrc != null) {
+                    // Change the back end volume's vPool too
+                    backendSrc.setVirtualPool(newVpoolURI);
+                    vplexBackendVolumes.add(backendSrc);
+                    _log.info(String.format(
+                            "Changing VirtualPool for VPLEX backend source volume %s (%s) from %s to %s",
+                            backendSrc.getLabel(), backendSrc.getId(), oldVpoolURI, newVpoolURI));
+
+                    // VPlex volume, check if it is distributed
+                    Volume backendHa = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient, false);
+                    if (backendHa != null) {
+                        VirtualPool newHAVpool = VirtualPool.getHAVPool(newVpool, _dbClient);
+                        if (newHAVpool == null) { // it may not be set
+                            newHAVpool = newVpool;
+                        }
+                        backendHa.setVirtualPool(newHAVpool.getId());
+                        vplexBackendVolumes.add(backendHa);
+                    }
+                }
+            }
+
+            _dbClient.updateObject(volumes);
+            _dbClient.updateObject(vplexBackendVolumes);
+
+            // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool
+            taskCompleter = new RPCGVolumeVpoolChangeTaskCompleter(volumeURIs, oldVpools, task);
+        } catch (Exception ex) {
+            _log.error("Unexpected exception reading volume or generating taskCompleter: ", ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            // TODO: Manually rollback to the old vpools for each volume
+            VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volumeURIs, task);
+            completer.error(_dbClient, serviceError);
+        }
+
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(this, "updateReplicationMode", false, task);
+
+            ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, protectionDevice);
+
+            if (!volumes.isEmpty()) {
+                VirtualPool newVirtualPool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
+                // Add workflow step
+                addUpdateConsistencyGroupPolicyStep(workflow, protectionSystem, consistencyGroup,
+                        newVirtualPool.getRpCopyMode(), taskCompleter);
+            }
+            if (!workflow.getAllStepStatus().isEmpty()) {
+                _log.info(
+                        "The updateAutoTieringPolicy workflow has {} step(s). Starting the workflow.",
+                        workflow.getAllStepStatus().size());
+                workflow.executePlan(taskCompleter,
+                        "Updated the consistency group policy successfully.");
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
+        } catch (Exception ex) {
+            _log.error("Unexpected exception: ", ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            taskCompleter.error(_dbClient, serviceError);
+        }
+    }
+
+    /**
+     * Add workflow step for updating consistency group policy.
+     *
+     * @param workflow Workflow
+     * @param protectionSystem Protection System
+     * @param cgUri the consistency group URI
+     * @param copyMode the requested copy mode (SYNCHRONOUS or ASYNCHRONOUS)
+     * @return the step identifier
+     */
+    public String addUpdateConsistencyGroupPolicyStep(Workflow workflow, ProtectionSystem protectionSystem, URI cgUri, String copyMode,
+            RPCGVolumeVpoolChangeTaskCompleter taskCompleter)
+            throws InternalException {
+
+        String stepId = workflow.createStepId();
+        Workflow.Method updateCgPolicyMethod = new Workflow.Method(METHOD_UPDATE_CG_POLICY_STEP, protectionSystem,
+                cgUri, copyMode, taskCompleter);
+
+        workflow.createStep(STEP_UPDATE_CG_POLICY,
+                String.format("Create subtask to update replication mode for CG %s to %s: ", cgUri, copyMode),
+                null, protectionSystem.getId(), protectionSystem.getSystemType(), this.getClass(),
+                updateCgPolicyMethod, rollbackMethodNullMethod(), stepId);
+
+        _log.info(
+                String.format("Added update consistency group replication mode step [%s] in workflow", stepId));
+
+        return STEP_UPDATE_CG_POLICY;
+    }
+
+    public boolean udpateConsistencyGroupPolicyStep(ProtectionSystem protectionSystem, URI cgUri, String copyMode,
+            VolumeVpoolChangeTaskCompleter taskCompleter, String stepId) {
+        try {
+            _log.info(String.format("Updating consistency group policy for CG %s.", cgUri));
+
+            WorkflowStepCompleter.stepExecuting(stepId);
 
             // Lock the CG or fail
             lockCG(taskCompleter);
 
-            RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
+            RecoverPointClient rp = RPHelper.getRecoverPointClient(protectionSystem);
 
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
             CGPolicyParams policyParams = new CGPolicyParams(copyMode);
             UpdateCGPolicyParams updateParams = new UpdateCGPolicyParams(
-                    cg.getCgNameOnStorageSystem(protectionDevice), policyParams);
-
-            taskCompleter.setOperationTypeEnum(OperationTypeEnum.START_RP_LINK);
+                    cg.getCgNameOnStorageSystem(protectionSystem.getId()), policyParams);
             rp.updateConsistencyGroupPolicy(updateParams);
-            taskCompleter.ready(_dbClient, _locker);
+
+            // Update the workflow state.
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
             _log.error("Operation failed with Exception: ", e);
-            if (taskCompleter != null) {
-                taskCompleter.error(_dbClient, _locker, e);
-            }
+            return stepFailed(stepId, (ServiceCoded) e, "udpateConsistencyGroupPolicyStep");
         } catch (Exception e) {
             _log.error("Operation failed with Exception: ", e);
-            if (taskCompleter != null) {
-                taskCompleter.error(_dbClient, _locker, DeviceControllerException.errors.jobFailed(e));
-            }
+            return stepFailed(stepId, e, "udpateConsistencyGroupPolicyStep");
         }
+
+        return true;
     }
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -4034,7 +4156,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */

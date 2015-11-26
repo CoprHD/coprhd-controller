@@ -10,6 +10,9 @@ public class HpuxVersion {
 
     public HpuxVersion(String version) {
         String[] versions = version.split("\\.");
+        if (versions.length < 3) {
+            throw new IllegalArgumentException(version);
+        }
         String last = versions[versions.length - 1];
         String secondToLast = versions[versions.length - 2];
         setVersion(String.format("%s.%s", secondToLast, last));

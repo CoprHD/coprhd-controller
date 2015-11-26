@@ -433,7 +433,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if(port !=null && neighborhood !=null){
                 	
                 	if(StorageSystem.Type.isilon.equals(system.getSystemType())) {
-                		sPort = getIsilonStoragePort(port, nasUri, _dbClient);
+                	
+                		sPort = getIsilonStoragePort(port, nasUri, _dbClient,neighborhood.getId());
+                		
                 	}else{
             		sPort = compareAndSelectPortURIForUMFS(system, port,
 							neighborhood);
@@ -731,17 +733,31 @@ public class UnManagedFilesystemService extends TaggedResource {
      * @return
      */
     
-    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, DbClient dbClient){
+    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, DbClient dbClient,URI virtualArray){
     	StoragePort sp= null;
     	
     	VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
     	
+    	List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray);
+    	StringSet virtualArrayPortsSet = new StringSet();
+    	    	
     	StringSet storagePorts=virtualNAS.getStoragePorts();
     	
-    	if(storagePorts.contains(umfsStoragePort.getId())){
+    	for(URI a : virtualArrayPorts){
+    		virtualArrayPortsSet.add(a.toString());
+    	}
+    	
+    	StringSet commonPorts =null;
+    	
+    	if(virtualArrayPorts!=null && storagePorts!= null){
+    		commonPorts = new StringSet(storagePorts);
+    		commonPorts.retainAll(virtualArrayPortsSet);
+    	}
+    	
+    	if(commonPorts.contains(umfsStoragePort.getId())){
     		sp = umfsStoragePort;
     	}else{
-    		List<String> tempList = new ArrayList<String>(storagePorts);
+    		List<String> tempList = new ArrayList<String>(commonPorts);
     		Collections.shuffle(tempList);
     		sp = dbClient.queryObject(StoragePort.class, URI.create(tempList.get(0)));
     	}
@@ -907,7 +923,7 @@ public class UnManagedFilesystemService extends TaggedResource {
         } else {
             matchedPorts = returnAllPortsforStgArrayAndVArray(system, storagePortsForVArray);
         }
-
+        
         if (matchedPorts != null && !matchedPorts.isEmpty()) {
         	// Shuffle Storageports and return the first one.
                 Collections.shuffle(matchedPorts);

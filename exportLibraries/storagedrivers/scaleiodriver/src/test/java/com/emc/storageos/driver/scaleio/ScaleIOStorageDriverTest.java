@@ -13,6 +13,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -24,10 +27,12 @@ import java.util.List;
  */
 
 @RunWith(value = SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"file:/Users/shujinwu/dev-coprhd/coprhd-controller/exportLibraries/storagedrivers/scaleiodriver/src/conf/scaleio-driver-prov.xml"})
+@ContextConfiguration(locations = {"/scaleio-driver-prov.xml"})
 public class ScaleIOStorageDriverTest {
-
+    private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriverTest.class);
     private ScaleIOStorageDriver driver;
+    @Autowired
+    private ScaleIORestHandleFactory handleFactory;
     private DriverTask task;
     private final String SYS_NATIVE_ID="5a01234257c7cc9c";
 
@@ -47,8 +52,9 @@ public class ScaleIOStorageDriverTest {
         list.add("Scaleio123");
         registry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,SYS_NATIVE_ID,ScaleIOConstants.PASSWORD,list);
         driver=new ScaleIOStorageDriver();
-        driver.setDriverRegistry(registry);
 
+        driver.setHandleFactory(handleFactory);
+        driver.setDriverRegistry(registry);
     }
 
     @Test

@@ -78,7 +78,6 @@ import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.varray.VirtualArrayConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
-import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -984,33 +983,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 volumeURIs.add(volume.getId());
             }
             exportController.updatePolicyAndLimits(volumeURIs, newVirtualPool.getId(), taskId);
-            return true;
-        }
-
-        if (VirtualPoolChangeAnalyzer
-                .isSupportedReplicationModeChange(volumes.get(0), volumeVirtualPool,
-                        newVirtualPool, _dbClient, notSuppReasonBuff)) {
-            Map<URI, Set<URI>> cgURIs = new HashMap<URI, Set<URI>>();
-
-            for (Volume volume : volumes) {
-                if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())
-                        && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-                    if (cgURIs.get(volume.getProtectionController()) == null) {
-                        cgURIs.put(volume.getProtectionController(), new HashSet<URI>());
-                    }
-
-                    cgURIs.get(volume.getProtectionController()).add(volume.getConsistencyGroup());
-                }
-            }
-
-            RPController controller = getController(RPController.class, "rp");
-
-            for (Map.Entry<URI, Set<URI>> entry : cgURIs.entrySet()) {
-                for (URI cgUri : entry.getValue()) {
-                    controller.updateConsistencyGroupPolicy(entry.getKey(), cgUri, newVirtualPool.getRpCopyMode(), taskId);
-                }
-            }
-
             return true;
         }
 

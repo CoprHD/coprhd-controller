@@ -37,10 +37,8 @@ public class DbConsistencyService {
     private JobProducer jobProducer;
 
     /**
-     * trigger db consistency check
-     * 
-     * @brief trigger db consistency check
-     * @param None
+     * Trigger db consistency check
+     * @return boolean to indicate if start db consistency check successfully or not
      */
     @POST
     @Path("consistency")
@@ -58,10 +56,8 @@ public class DbConsistencyService {
     }
 
     /**
-     * get the status of db consistency check
-     * 
-     * @brief get the status of db consistency check
-     * @param None
+     * Get the status of db consistency check
+     * @return DbConsistencyStatusRestRep the status of db consistency check
      */
     @GET
     @Path("consistency")
@@ -74,10 +70,8 @@ public class DbConsistencyService {
     }
     
     /**
-     * cancel db consistency check if it's in progress
-     * 
-     * @brief cancel db consistency check if it's in progress
-     * @param None
+     * Cancel db consistency check if it's in progress
+     * @return boolean to indicate if db consistency check cancelled or not
      */
     @POST
     @Path("consistency/cancel")
@@ -112,7 +106,6 @@ public class DbConsistencyService {
     private DbConsistencyStatus getStatusFromZk() {
         return this.coordinator.queryRuntimeState(Constants.DB_CONSISTENCY_STATUS,  DbConsistencyStatus.class);
     }
-    
     
     private void enqueueDbConsistencyJob() {
         DbConsistencyJob job = new DbConsistencyJob();

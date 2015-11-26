@@ -22,13 +22,11 @@ import java.util.List;
 @ContextConfiguration(locations = {"file:/Users/shujinwu/dev-coprhd/coprhd-controller/exportLibraries/storagedrivers/scaleiodriver/src/conf/scaleio-driver-prov.xml"})
 public class ScaleIORestHandleFactoryTest {
 
-
    private static Logger log = LoggerFactory.getLogger(ScaleIORestHandleFactoryTest.class);
     @Autowired
     private ScaleIORestHandleFactory handleFactory;
     private static Registry registry = new InMemoryRegistryImpl();
     String SYS_NATIVE_ID="5a01234257c7cc9c";
-
 
     public void setHandleFactory(ScaleIORestHandleFactory handleFactory) {
         this.handleFactory = handleFactory;
@@ -49,7 +47,6 @@ public class ScaleIORestHandleFactoryTest {
         list=new ArrayList<>();
         list.add("Scaleio123");
         registry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,SYS_NATIVE_ID,ScaleIOConstants.PASSWORD,list);
-
 
     }
 

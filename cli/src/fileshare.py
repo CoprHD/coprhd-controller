@@ -582,14 +582,16 @@ class Fileshare(object):
     
     def nfs_acl_list(self, name, alldir, subdir):
         '''
-        Deletes a fileshare based on fileshare name
+        List the acl's of a fileshare based on fileshare name
         Parameters:
             name: name of fileshare
+            alldir : list the acls for all the directories
+            subdir : list the acl's of a particular subdirectory
             
         '''
         uri_nfs_qp = Fileshare.URI_NFS_ACL
         if(alldir == True):
-            uri_nfs_qp = Fileshare.URI_NFS_ACL + '?' + "allDir=true"
+            uri_nfs_qp = Fileshare.URI_NFS_ACL + '?' + "allDirs=true"
         if(subdir is not None):
             uri_nfs_qp = Fileshare.URI_NFS_ACL + '?' + "subDir=" + subdir
         fileshare_uri = self.fileshare_query(name)
@@ -1414,7 +1416,7 @@ def nfs_acl_list_parser(subcommand_parsers, common_parser):
     nfs_acl_list_parser.add_argument('-alldirectories', '-alldir',
                                     dest='alldir',
                                     action = 'store_true',
-                                    help='Enable All Directories')        
+                                    help='List All Directories')        
     
     nfs_acl_list_parser.set_defaults(func=nfs_acl_list)
 
@@ -1432,7 +1434,7 @@ def nfs_acl_list(args):
             print " No NFSv4 ACLs for the Filesystem/Subdirectory"
         else:
             from common import TableGenerator
-            TableGenerator(res['nfs_acl'][0]['ace'], ['domain','user','permissions','permission_type','type']).printTable() 
+            TableGenerator(res['nfs_acl'], ['domain','user','permissions','permission_type','type']).printTable() 
         
     except SOSError as e:
         common.format_err_msg_and_raise("list-nfs-acl", "filesystem",
@@ -1635,7 +1637,7 @@ def unmanaged_parser(subcommand_parsers, common_parser):
         'unmanaged',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Unmanaged volume operations')
+        help='Unmanaged filesystem operations')
     subcommand_parsers = unmanaged_parser.add_subparsers(
         help='Use one of the commands')
 
@@ -1644,7 +1646,7 @@ def unmanaged_parser(subcommand_parsers, common_parser):
         'ingest',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='ingest unmanaged fileshares into ViPR')
+        help='ingest unmanaged filesystems into ViPR')
     mandatory_args = ingest_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-vpool', '-vp',
                                 metavar='<vpool>',
@@ -1672,11 +1674,11 @@ def unmanaged_parser(subcommand_parsers, common_parser):
                                 nargs='+',
                                 required=True)
 
-    # show unmanaged volume
+    # show unmanaged filesystem
     umshow_parser = subcommand_parsers.add_parser('show',
                                                   parents=[common_parser],
                                                   conflict_handler='resolve',
-                                                  help='Show unmanaged volume')
+                                                  help='Show unmanaged filesystem')
     mandatory_args = umshow_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-filesystem', '-fs',
                                 metavar='<filesystem>',

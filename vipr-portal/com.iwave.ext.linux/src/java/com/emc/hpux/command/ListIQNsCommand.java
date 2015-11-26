@@ -14,7 +14,7 @@ import com.google.common.collect.Sets;
 
 public class ListIQNsCommand extends HpuxResultsCommand<Set<String>> {
 
-    private static Pattern IQN_PATTERN = Pattern.compile("Initiator Name            : (.+)");
+    private static Pattern IQN_PATTERN = Pattern.compile("Initiator Name\\s+:\\s+(.+)");
 
     public ListIQNsCommand() {
         StringBuilder sb = new StringBuilder();

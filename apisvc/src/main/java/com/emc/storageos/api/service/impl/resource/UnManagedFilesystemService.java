@@ -431,8 +431,13 @@ public class UnManagedFilesystemService extends TaggedResource {
                 StoragePort sPort = null;
 
                 if(port !=null && neighborhood !=null){
+                	
+                	if(StorageSystem.Type.isilon.equals(system.getSystemType())) {
+                		sPort = getIsilonStoragePort(port, nasUri, _dbClient);
+                	}else{
             		sPort = compareAndSelectPortURIForUMFS(system, port,
 							neighborhood);
+                	}
                 }
 				
                 if (unManagedFileSystem.getHasExports()) {
@@ -715,6 +720,33 @@ public class UnManagedFilesystemService extends TaggedResource {
         }
         return isIngestValid;
     }
+    
+    /**
+     * Get UMFS's Storage Port in Isilon Storage Array
+     * Will return UMFS's storage port if its part of VitualNAS's storage port list
+     * else will return another storage port available in the VirtualNAS's port list
+     * @param umfsStoragePort
+     * @param nasUri
+     * @param dbClient
+     * @return
+     */
+    
+    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, DbClient dbClient){
+    	StoragePort sp= null;
+    	
+    	VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+    	
+    	StringSet storagePorts=virtualNAS.getStoragePorts();
+    	
+    	if(storagePorts.contains(umfsStoragePort.getId())){
+    		sp = umfsStoragePort;
+    	}else{
+    		List<String> tempList = new ArrayList<String>(storagePorts);
+    		Collections.shuffle(tempList);
+    		sp = dbClient.queryObject(StoragePort.class, URI.create(tempList.get(0)));
+    	}
+    	return sp;
+    }
 
 
     @Override
@@ -877,13 +909,9 @@ public class UnManagedFilesystemService extends TaggedResource {
         }
 
         if (matchedPorts != null && !matchedPorts.isEmpty()) {
-        	if(StorageSystem.Type.isilon.equals(system.getSystemType()) && matchedPorts.contains(currentUMFSPort.getId())){
-        		sPort = currentUMFSPort;
-        	}else{
-                // Shuffle Storageports and return the first one.
+        	// Shuffle Storageports and return the first one.
                 Collections.shuffle(matchedPorts);
                 sPort = _dbClient.queryObject(StoragePort.class, matchedPorts.get(0));
-        	}
         }
         return sPort;
     }

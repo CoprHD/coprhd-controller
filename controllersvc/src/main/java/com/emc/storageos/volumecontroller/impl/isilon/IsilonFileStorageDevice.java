@@ -1414,11 +1414,12 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                         if (newExportRule.getSecFlavor().equals(
                                 existingRule.getSecFlavor())) {
                             // Handle modify Rules, remove old and add new
-                            _log.info("Deleting existing Export Rule {}", existingRule);
+                            /*_log.info("Deleting existing Export Rule {}", existingRule);
                             exportsToRemove.add(existingRule);
                             _log.info("Add new Export Rule {}", newExportRule);
-                            exportsToAdd.add(newExportRule);
-                            removeRedundantExportRule(existingRule, newExportRule);
+                            exportsToAdd.add(newExportRule); */
+                            removeRedundantHosts(existingRule, newExportRule);
+                        	exportsToModify.add(newExportRule);
 
                         }
                     }
@@ -1467,6 +1468,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         }
 
         // no separate modify is required it getting handled by add and delete export call
+        processIsiExport(isi, args, exportsToModify);
 
         for (ExportRule existingRule : exportsToRemove) {
             _log.info("Remove Export rule : {}", existingRule.toString());
@@ -1485,7 +1487,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
     }
 
-    private void removeRedundantExportRule(ExportRule ruleRemove, ExportRule ruleAdd) {
+    private void removeRedundantHosts(ExportRule ruleRemove, ExportRule ruleAdd) {
 
     	ruleAdd.setDeviceExportId(ruleRemove.getDeviceExportId());
     	// remove duplicate readonly host

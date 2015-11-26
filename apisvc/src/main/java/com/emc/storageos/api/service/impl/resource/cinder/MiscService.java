@@ -83,6 +83,7 @@ public class MiscService extends TaskResourceService {
      *     
      * @prereq none
      * @param tenant_id the URN of the tenant 
+     * @brief Get Limits
      * @return limits	
      */
     @GET
@@ -149,7 +150,8 @@ public class MiscService extends TaskResourceService {
      * Get extensions
      *     
      * @prereq none
-     * @param tenant_id the URN of the tenant 
+     * @param tenant_id the URN of the tenant
+     * @brief Get extensions
      * @return extensions	
      */
     @GET
@@ -221,6 +223,7 @@ public class MiscService extends TaskResourceService {
      *     
      * @prereq none
      * @param tenant_id the URN of the tenant 
+     * @brief Get availability zones 
      * @return availability zones
      */
     

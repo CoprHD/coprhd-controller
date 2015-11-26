@@ -501,13 +501,8 @@ public class CoordinatorClientExt {
                 _log.info("target properties changed successfully. target properties {}", globalPropInfo.toString());
 
                 if (siteProps.size() > 0) {
-                    PropertyInfoExt siteScopeInfo = new PropertyInfoExt(siteProps);
-                    ConfigurationImpl siteCfg = new ConfigurationImpl();
-                    siteCfg.setId(_coordinator.getSiteId());
-                    siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
-                    siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
-                    _coordinator.persistServiceConfiguration( siteCfg);
-                    _log.info("site scope target properties changed successfully. target properties {}", siteScopeInfo.toString());
+                    setSiteSpecificProperties(siteProps, _coordinator.getSiteId());
+                    _log.info("site scope target properties changed successfully. target properties {}",siteProps.toString());
                 }
             } catch (Exception e) {
                 throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target info. " + e.getMessage());
@@ -519,6 +514,30 @@ public class CoordinatorClientExt {
         }
     }
 
+    /**
+     * Set site specific properties
+     * 
+     * @param props
+     * @param siteId
+     */
+    public void setSiteSpecificProperties(Map<String, String> props, String siteId) {
+        PropertyInfoExt siteScopeInfo = new PropertyInfoExt(props);
+        ConfigurationImpl siteCfg = new ConfigurationImpl();
+        siteCfg.setId(siteId);
+        siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+        siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
+        _coordinator.persistServiceConfiguration( siteCfg);
+    }
+    
+    /**
+     * Get site specific properties
+     *
+     * @param siteId
+     */
+    public PropertyInfoExt getSiteSpecificProperties(String siteId) {
+        return _coordinator.getTargetInfo(PropertyInfoExt.class, siteId, PropertyInfoExt.TARGET_PROPERTY);
+    }
+    
     /**
      * Get all Node Infos.
      * 

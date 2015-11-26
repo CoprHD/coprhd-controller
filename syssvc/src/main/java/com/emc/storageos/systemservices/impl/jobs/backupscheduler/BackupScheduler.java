@@ -78,6 +78,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     @Autowired
     private Service serviceinfo;
+    
+    @Autowired
+    private DrUtil drUtil;
 
     private SchedulerConfig cfg;
     private BackupExecutor backupExec;
@@ -156,12 +159,6 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     @Override
     public void run() {
-        DrUtil drUtil = new DrUtil(coordinatorClient);
-        if(drUtil.isStandby()) {
-            log.info("Skip backup scheduler on standby");
-            return;
-        }
-        
         try {
             log.info("Backup scheduler thread goes live");
 
@@ -266,7 +263,11 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             }
         }
 
-        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount);
+        String drSiteName = drUtil.getLocalSite().getName();
+        // Remove all non alphanumeric characters
+        drSiteName = drSiteName.replaceAll("^[^a-zA-Z0-9\\s]+|[^a-zA-Z0-9\\s]+$", "");
+        
+        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteName);
     }
 
     public List<String> getDescParams(final String tag) {

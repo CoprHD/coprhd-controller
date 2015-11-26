@@ -6,7 +6,9 @@
 package com.emc.storageos.systemservices.impl.vdc;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -26,6 +28,7 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -58,6 +61,7 @@ public abstract class VdcOpHandler {
     private static final String LOCK_FAILOVER_REMOVE_OLD_PRIMARY="drFailoverRemoveOldPrimaryLock";
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
     private static final String LOCK_RESUME_STANDBY="drResumeStandbyLock";
+    private static final String LOCK_ADD_STANDBY="drAddStandbyLock";
     
     protected CoordinatorClientExt coordinator;
     protected LocalRepository localRepository;
@@ -119,7 +123,33 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
+            if (drUtil.isActiveSite()) {
+                log.info("Acquiring lock {} to update default properties of standby", LOCK_ADD_STANDBY);
+                InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_ADD_STANDBY);
+                lock.acquire();
+                log.info("Acquired lock successfully");
+                try {
+                    disableBackupSchedulerForStandby();
+                } finally {
+                    lock.release();
+                    log.info("Released lock for {}", LOCK_ADD_STANDBY);
+                }
+            }
             reconfigVdc();
+        }
+        
+        private void disableBackupSchedulerForStandby() {
+            List<Site> sites = drUtil.listSitesInState(SiteState.STANDBY_ADDING);
+            for (Site site : sites) {
+                String siteId = site.getUuid();
+                PropertyInfoExt sitePropInfo = coordinator.getSiteSpecificProperties(siteId);
+                if (sitePropInfo == null) {
+                    log.info("Disable backupscheduler for {}", site.getUuid());
+                    Map<String, String> siteProps = new HashMap<String, String>();
+                    siteProps.put(BackupConstants.SCHEDULER_ENABLED, "false");
+                    coordinator.setSiteSpecificProperties(siteProps, siteId);
+                }
+            }
         }
     }
 

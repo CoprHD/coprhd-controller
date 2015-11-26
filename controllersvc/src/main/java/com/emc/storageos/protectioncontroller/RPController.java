@@ -28,17 +28,18 @@ public interface RPController extends ProtectionController {
     public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String op, String task) throws InternalException;
 
     /**
-     * Perform protection operation
+     * Update consistency group policy.
      *
      * @param protectionDevice RP protection system URI
-     * @param id volume or consistency group ID
-     * @param copyID id of protection volume
-     * @param op operation to perform
+     * @param consistencyGroup RP consistency group URI
+     * @param volumeURIs the volume URIs corresponding to the CG being updated
+     * @param newVpoolURI id of the new virtual pool
      * @param task task object
      *
      * @throws InternalException
      */
-    public void updateConsistencyGroupPolicy(URI protectionDevice, URI cgUri, String copyMode, String task) throws InternalException;
+    public void updateConsistencyGroupPolicy(URI protectionDevice, URI consistencyGroup, List<URI> volumeURIs, URI newVpoolURI,
+            String task) throws InternalException;
 
     /**
      * Create a snapshot or snapshots of a volume or volumes.

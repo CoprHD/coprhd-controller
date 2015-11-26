@@ -79,8 +79,10 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     }
 
     @Override
-    public void updateConsistencyGroupPolicy(URI protectionDevice, URI cgUri, String copyMode, String task) throws InternalException {
-        execFS("updateConsistencyGroupPolicy", protectionDevice, cgUri, copyMode, task);
+    public void
+            updateConsistencyGroupPolicy(URI protectionDevice, URI consistencyGroup, List<URI> volumeURIs, URI newVpoolURI, String task)
+                    throws InternalException {
+        execFS("updateConsistencyGroupPolicy", protectionDevice, consistencyGroup, volumeURIs, newVpoolURI, task);
     }
 
     @Override

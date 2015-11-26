@@ -146,7 +146,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
             }
             result = vnxComm.createFileSystem(storage,
                     args.getFsName(),
-                    args.getPoolName(),           // This will be used for CLI create FS
+                    args.getPoolName(), // This will be used for CLI create FS
                     "1",
                     fsSize,
                     args.getThinProvision(),
@@ -299,7 +299,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-            throws ControllerException {
+                    throws ControllerException {
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -725,12 +725,12 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
             VNXFileExport fileExport = new VNXFileExport(clients,
                     portName,
                     path,
-                    "",                // no security type
+                    "", // no security type
                     smbFileShare.getPermission(),
-                    "",                // root user mapping n/a for CIFS
+                    "", // root user mapping n/a for CIFS
                     VNXFileSshApi.VNX_CIFS,
-                    "",          // Port information is never used for for CIFS or NFS exports.
-                    "",           // SUB DIR
+                    "", // Port information is never used for for CIFS or NFS exports.
+                    "", // SUB DIR
                     ""); // Comments -- TODO
 
             fileExport.setExportName(smbFileShare.getName());
@@ -840,7 +840,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
         if (result.isCommandSuccess()) {
             cmdResult = BiosCommandResult.createSuccessfulResult();
         } else {
-            cmdResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToDeleteFileShare("Unable to perform snapshot operation"));
+            cmdResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToDeleteFileShare(result.getMessage()));
         }
         return cmdResult;
     }
@@ -901,7 +901,8 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
         if (result.isCommandSuccess()) {
             cmdResult = BiosCommandResult.createSuccessfulResult();
         } else {
-            cmdResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToCreateFileSnapshot(result.getMessage()));
+            cmdResult = BiosCommandResult
+                    .createErrorResult(DeviceControllerErrors.vnx.unableToCreateFileSnapshot("Unable to perform snapshot operation"));
         }
         return cmdResult;
     }
@@ -949,7 +950,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-            throws ControllerException {
+                    throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";

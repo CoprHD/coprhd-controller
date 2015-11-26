@@ -37,7 +37,7 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
                 Status status = responsePacket.getPacketFault();
                 processErrorStatus(status, keyMap);
             } else {
-            	
+
                 boolean isSnapshotFound = false;
                 boolean isFSMatch = false;
                 List<Object> snapshotList = getQueryResponse(responsePacket);
@@ -57,22 +57,20 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
                                 _logger.info("Found matching snapshot: {}", id);
                                 isSnapshotFound = true;
                                 _logger.info("Checking if FS matches: {}", fsId);
-                                if(fsId.equalsIgnoreCase(point.getCheckpointOf())){
-                                	keyMap.put(VNXFileConstants.SNAPSHOT_ID, id);
+                                if (fsId.equalsIgnoreCase(point.getCheckpointOf())) {
+                                    keyMap.put(VNXFileConstants.SNAPSHOT_ID, id);
                                     keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                                     isFSMatch = true;
                                     break;
+                                } else {
+                                    keyMap.put(VNXFileConstants.SNAPSHOT_ALREADY_EXISTS, true);
                                 }
-                                else{
-                                	keyMap.put(VNXFileConstants.SNAPSHOT_ALREADYEXISTS, true);
-                                }                                	
                             }
                         }
-                        if(isSnapshotFound && !isFSMatch){
-                        	_logger.error("Snapshot creation failed due to: Snapshot already exists");
+                        if (isSnapshotFound && !isFSMatch) {
+                            _logger.error("Snapshot creation failed due to: Snapshot already exists");
                         }
-                        if (!isSnapshotFound)
-                        {
+                        if (!isSnapshotFound) {
                             _logger.error("Error in getting the snapshot information.");
                         }
                     } else {

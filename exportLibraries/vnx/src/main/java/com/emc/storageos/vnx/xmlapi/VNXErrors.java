@@ -13,8 +13,10 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  * This interface holds all the methods used to create {@link ServiceError}s
  * related to VNX Devices
  * <p/>
- * Remember to add the English message associated to the method in VNXErrors.properties and use the annotation {@link DeclareServiceCode} to
- * set the service code associated to this error condition. You may need to create a new service code if there is no an existing one
+ * Remember to add the English message associated to the method in VNXErrors.properties and use the annotation
+ * {@link DeclareServiceCode} to
+ * set the service code associated to this error condition. You may need to create a new service code if there is no an
+ * existing one
  * suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -24,12 +26,10 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public interface VNXErrors {
 
     @DeclareServiceCode(ServiceCode.VNX_ERROR)
-    public ServiceError
-            copyGroupSnapshotsToTargetSettingsInstanceNull(String snapLabel, String snapURI);
+    public ServiceError copyGroupSnapshotsToTargetSettingsInstanceNull(String snapLabel, String snapURI);
 
     @DeclareServiceCode(ServiceCode.VNX_ERROR)
-    public ServiceError
-            copySnapshotToTargetSettingsInstanceNull(String snapLabel, String snapURI);
+    public ServiceError copySnapshotToTargetSettingsInstanceNull(String snapLabel, String snapURI);
 
     @DeclareServiceCode(ServiceCode.VNX_ERROR)
     public ServiceError copyGroupSnapshotsToTargetException(Throwable t);
@@ -78,8 +78,8 @@ public interface VNXErrors {
 
     @DeclareServiceCode(ServiceCode.VNXFILE_SNAPSHOT_ERROR)
     public ServiceError unableToDeleteFileSnapshot(String error);
-    
-    @DeclareServiceCode(ServiceCode.VNXFILE_SNAPSHOT_ALREADYEXISTS_ERROR)
+
+    @DeclareServiceCode(ServiceCode.VNXFILE_SNAPSHOT_ALREADY_EXISTS_ERROR)
     public ServiceError alreadyExistsFileSnapshot(String error);
 
     @DeclareServiceCode(ServiceCode.VNX_ERROR)

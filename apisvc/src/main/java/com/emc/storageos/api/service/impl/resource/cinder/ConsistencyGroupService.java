@@ -200,7 +200,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
      * @param param pojo class to bind request
      * @param isV1Call cinder V1 api
      * @param header HTTP header
-     * @brief Create Consistency group
+     * @brief delete Consistency group
      * @return Response
      */
     @POST

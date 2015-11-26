@@ -1,15 +1,9 @@
 package com.emc.storageos.cinder.model;
 
-import java.util.Map;
-
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
-
-import com.emc.storageos.model.RestLinkRep;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 
 @XmlRootElement(name="availability")
 public class CinderAvailabiltyZone {	
@@ -18,7 +12,6 @@ public class CinderAvailabiltyZone {
     	public CinderAvailabiltyZone.state zoneState = new CinderAvailabiltyZone.state();
     	
 	@XmlAccessorType(XmlAccessType.FIELD)
-	@XmlType(name = "")
     	public class state{
     		public boolean available;    		
     	}

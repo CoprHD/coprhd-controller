@@ -6301,6 +6301,21 @@ dr_setup()
 
 }
 
+# method to wait for all sites that are given as arguments to be stable
+# each one wait 600 seconds and check every 10 seconds
+wait_for_site_stable()
+{
+    local old_bourn_ipaddr=BOURNE_IPADDR
+    for ip in "$@"
+    do
+        echo "Waiting for $ip to be stable ..."
+        BOURNE_IPADDR=$ip
+        security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+        dr waitforstable --ip $ip 10 600
+    done
+    BOURNE_IPADDR=$old_bourn_ipaddr
+}
+
 dr_tests()
 {
     if [ -z "$DR_SITE_C_IP" ]; then
@@ -6370,6 +6385,10 @@ dr_basic_tests()
     echo "---VERIFY sites from standby $standby_site---"
     dr get $standby_site
     dr get $primary_site
+    dr checkstandby $DR_SITE_A_IP
+
+    # wait for both sites stable so able to pause standby
+    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP
 
     # pause standby
     echo "---PAUSE SITE $standby_site---"
@@ -6590,6 +6609,8 @@ dr_multisite_tests()
     dr get $standby_site_c
     dr get $primary_site
 
+    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP $DR_SITE_C_IP
+
     # pause standby b
     echo "---PAUSE SITE $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_A_IP
@@ -6602,6 +6623,8 @@ dr_multisite_tests()
     echo "---WAIT FOR PAUSE $standby_site_b---"
     dr waitforstate $standby_site_b STANDBY_PAUSED 30 1200
     echo "Pausing dr done"
+
+    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP $DR_SITE_C_IP
 
     # pause standby c
     echo "---PAUSE SITE $standby_site_c---"

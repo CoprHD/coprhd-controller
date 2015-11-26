@@ -364,8 +364,6 @@ public class DisasterRecoveryService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
-            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     @Path("/primary")
     public SitePrimary checkPrimary() {
         log.info("Begin to check if site Active or Standby");
@@ -633,12 +631,8 @@ public class DisasterRecoveryService {
                 coordinator.persistServiceConfiguration(site.toConfiguration());
             }
             log.info("Notify all sites for reconfig");
-            for (Site standbySite : drUtil.listSites()) {
-                if (standbySite.getState().equals(SiteState.STANDBY_PAUSING)) {
-                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.NONE);
-                } else {
-                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY);
-                }
+            for (Site site : drUtil.listSites()) {
+                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY);
             }
             auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, siteIdStr);
             return Response.status(Response.Status.ACCEPTED).build();

@@ -6,11 +6,11 @@
 package com.emc.storageos.systemservices.impl.vdc;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.cassandra.io.util.FileUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +28,8 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.management.backup.BackupConstants;
+import com.emc.storageos.db.exceptions.RetryableDatabaseException;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -61,6 +63,7 @@ public abstract class VdcOpHandler {
     private static final String LOCK_FAILOVER_REMOVE_OLD_PRIMARY="drFailoverRemoveOldPrimaryLock";
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
     private static final String LOCK_RESUME_STANDBY="drResumeStandbyLock";
+    private static final String LOCK_ADD_STANDBY="drAddStandbyLock";
     
     protected CoordinatorClientExt coordinator;
     protected LocalRepository localRepository;
@@ -122,7 +125,33 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
+            if (drUtil.isActiveSite()) {
+                log.info("Acquiring lock {} to update default properties of standby", LOCK_ADD_STANDBY);
+                InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_ADD_STANDBY);
+                lock.acquire();
+                log.info("Acquired lock successfully");
+                try {
+                    disableBackupSchedulerForStandby();
+                } finally {
+                    lock.release();
+                    log.info("Released lock for {}", LOCK_ADD_STANDBY);
+                }
+            }
             reconfigVdc();
+        }
+        
+        private void disableBackupSchedulerForStandby() {
+            List<Site> sites = drUtil.listSitesInState(SiteState.STANDBY_ADDING);
+            for (Site site : sites) {
+                String siteId = site.getUuid();
+                PropertyInfoExt sitePropInfo = coordinator.getSiteSpecificProperties(siteId);
+                if (sitePropInfo == null) {
+                    log.info("Disable backupscheduler for {}", site.getUuid());
+                    Map<String, String> siteProps = new HashMap<String, String>();
+                    siteProps.put(BackupConstants.SCHEDULER_ENABLED, "false");
+                    coordinator.setSiteSpecificProperties(siteProps, siteId);
+                }
+            }
         }
     }
 
@@ -283,8 +312,14 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
-            reconfigVdc();
-            checkAndPauseOnPrimary();
+            SiteState localSiteState = drUtil.getLocalSite().getState();
+            if (localSiteState.equals(SiteState.STANDBY_PAUSING) || localSiteState.equals(SiteState.STANDBY_PAUSED)) {
+                checkAndPauseOnStandby();
+                flushVdcConfigToLocal();
+            } else {
+                reconfigVdc();
+                checkAndPauseOnPrimary();
+            }
         }
         
         /**
@@ -292,6 +327,11 @@ public abstract class VdcOpHandler {
          * This should be done after the firewall has been updated to block the paused site so that it's not affected.
          */
         private void checkAndPauseOnPrimary() {
+            // this should only be done on the active site
+            if (drUtil.isStandby()) {
+                return;
+            }
+
             InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_PAUSE_STANDBY);
             while (drUtil.hasSiteInState(SiteState.STANDBY_PAUSING)) {
                 try {
@@ -337,6 +377,26 @@ public abstract class VdcOpHandler {
                         log.error("Failed to release lock {}", LOCK_PAUSE_STANDBY);
                     }
                 }
+            }
+        }
+
+        /**
+         * Update the site state from PAUSING to PAUSED on the standby site
+         */
+        private void checkAndPauseOnStandby() {
+            // wait for the firewall to be blocked from active site
+            waitForSiteUnreachable(drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId()));
+
+            String state = drUtil.getLocalCoordinatorMode(coordinator.getMyNodeId());
+            if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
+                coordinator.reconfigZKToWritable(true);
+            }
+
+            Site localSite = drUtil.getLocalSite();
+            if (localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
+                localSite.setState(SiteState.STANDBY_PAUSED);
+                log.info("Updating local site state to STANDBY_PAUSED");
+                coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
             }
         }
 
@@ -399,6 +459,9 @@ public abstract class VdcOpHandler {
                     localSite.setState(SiteState.STANDBY_SYNCING);
                     coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
                 }
+            } catch (RetryableDatabaseException e) {
+                // throw the exception for retry but don't set the site state to error.
+                throw new IllegalStateException(e);
             } catch (Exception e) {
                 populateStandbySiteErrorIfNecessary(localSite,
                     APIException.internalServerErrors.resumeStandbyReconfigFailed(e.getMessage()));

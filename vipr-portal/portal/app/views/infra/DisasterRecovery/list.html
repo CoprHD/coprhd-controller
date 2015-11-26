@@ -97,40 +97,52 @@ function standbyStatusIcon(o, val) {
     }
     var labels = {
         'PRIMARY': 'label-success',
+        'PRIMARY_SWITCHING_OVER': 'label-danger',
+        'PRIMARY_FAILING_OVER': 'label-danger',
         'STANDBY_ADDING': 'label-info',
-        'STANDBY_PAUSING': 'label-info',
-        'STANDBY_RESUMING': 'label-info',
-        'STANDBY_PAUSED': 'label-success',
+        'STANDBY_SYNCING' : 'label-info',
         'STANDBY_SYNCED': 'label-success',
-        'STANDBY_ERROR':  'label-danger',
-        'STANDBY_REMOVING': 'label-info',
+        'STANDBY_PAUSING': 'label-info',
+        'STANDBY_PAUSED': 'label-success',
         'STANDBY_TESTING' : 'label-info',
-        'STANDBY_SYNCING' : 'label-info'
+        'STANDBY_SWITCHING_OVER': 'label-danger',
+        'STANDBY_FAILING_OVER': 'label-danger',
+        'STANDBY_REMOVING': 'label-danger',
+        'STANDBY_RESUMING': 'label-info',
+        'STANDBY_ERROR':  'label-danger'
     }
     var icons = {
-        'PRIMARY':     'glyphicon glyphicon-ok',
+        'PRIMARY': 'glyphicon glyphicon-ok',
+        'PRIMARY_SWITCHING_OVER': 'glyphicon glyphicon-refresh rotate',
+        'PRIMARY_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_ADDING': 'glyphicon glyphicon-refresh rotate',
-        'STANDBY_PAUSING': 'glyphicon glyphicon-refresh rotate',
-        'STANDBY_RESUMING': 'glyphicon glyphicon-refresh rotate',
-        'STANDBY_PAUSED': 'glyphicon glyphicon-ok',
+        'STANDBY_SYNCING' : 'glyphicon glyphicon-refresh rotate',
         'STANDBY_SYNCED': 'glyphicon glyphicon-ok',
-        'STANDBY_ERROR':  'glyphicon glyphicon-remove',
-        'STANDBY_REMOVING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_PAUSING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_PAUSED': 'glyphicon glyphicon-ok',
         'STANDBY_TESTING' : 'glyphicon glyphicon-refresh rotate',
-        'STANDBY_SYNCING' : 'glyphicon glyphicon-refresh rotate'
+        'STANDBY_SWITCHING_OVER': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_REMOVING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_RESUMING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_ERROR':  'glyphicon glyphicon-remove'
     }
 
 	var messages = {
-		'PRIMARY': Messages.get("renderFunctions.disasterRecovery.status.primary"),
-		'STANDBY_ADDING': Messages.get("renderFunctions.disasterRecovery.status.adding"),
-		'STANDBY_SYNCING': Messages.get("renderFunctions.disasterRecovery.status.syncing"),
-		'STANDBY_SYNCED': Messages.get("renderFunctions.disasterRecovery.status.synced"),
-		'STANDBY_PAUSING': Messages.get("renderFunctions.disasterRecovery.status.pausing"),
-		'STANDBY_PAUSED': Messages.get("renderFunctions.disasterRecovery.status.paused"),
-		'STANDBY_RESUMING': Messages.get("renderFunctions.disasterRecovery.status.resuming"),
-		'STANDBY_REMOVING': Messages.get("renderFunctions.disasterRecovery.status.removing"),
-		'STANDBY_TESTING': Messages.get("renderFunctions.disasterRecovery.status.testing"),
-		'STANDBY_ERROR': Messages.get("renderFunctions.disasterRecovery.status.error")
+            'PRIMARY': Messages.get("renderFunctions.disasterRecovery.status.primary"),
+            'PRIMARY_SWITCHING_OVER': Messages.get("renderFunctions.disasterRecovery.status.primary.switchingover"),
+            'PRIMARY_FAILING_OVER': Messages.get("renderFunctions.disasterRecovery.status.primary.failingover"),
+            'STANDBY_ADDING': Messages.get("renderFunctions.disasterRecovery.status.standby.adding"),
+            'STANDBY_SYNCING' : Messages.get("renderFunctions.disasterRecovery.status.standby.syncing"),
+            'STANDBY_SYNCED': Messages.get("renderFunctions.disasterRecovery.status.standby.synced"),
+            'STANDBY_PAUSING': Messages.get("renderFunctions.disasterRecovery.status.standby.pausing"),
+            'STANDBY_PAUSED': Messages.get("renderFunctions.disasterRecovery.status.standby.paused"),
+            'STANDBY_TESTING' : Messages.get("renderFunctions.disasterRecovery.status.standby.testing"),
+            'STANDBY_SWITCHING_OVER': Messages.get("renderFunctions.disasterRecovery.status.standby.switchingover"),
+            'STANDBY_FAILING_OVER': Messages.get("renderFunctions.disasterRecovery.status.standby.failingover"),
+            'STANDBY_REMOVING': Messages.get("renderFunctions.disasterRecovery.status.standby.removing"),
+            'STANDBY_RESUMING': Messages.get("renderFunctions.disasterRecovery.status.standby.resuming"),
+            'STANDBY_ERROR':  Messages.get("renderFunctions.disasterRecovery.status.standby.error")
 	};
 
     var label = defaultValue(labels[o.aData.status], 'label-default');

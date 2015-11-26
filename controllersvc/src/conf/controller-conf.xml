@@ -19,6 +19,7 @@
     <import resource="classpath:controller-hds-prov.xml"/>
     <import resource="classpath:controller-scaleio-prov.xml"/>
     <import resource="classpath:controller-xtremio-prov.xml"/>
+    <import resource="classpath:controller-ecs-prov.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
 
     <bean id="blockscheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
@@ -593,16 +594,6 @@
 	</property>  
 	<property name="dbClient" ref="dbclient"/>
     </bean>
-
-	<bean id="ecsapifactory" class="com.emc.storageos.ecs.api.ECSApiFactory"
-		init-method="init" destroy-method="shutdown" />
-
-	<bean id="ecsDevice"
-		class="com.emc.storageos.volumecontroller.impl.ecs.ECSObjectStorageDevice">
-		<property name="ECSApiFactory" ref="ecsapifactory">
-		</property>
-		<property name="dbClient" ref="dbclient" />
-	</bean>
 	
     <bean id="datadomainfactory" class="com.emc.storageos.datadomain.restapi.DataDomainClientFactory"
           init-method="init" destroy-method="shutdown">

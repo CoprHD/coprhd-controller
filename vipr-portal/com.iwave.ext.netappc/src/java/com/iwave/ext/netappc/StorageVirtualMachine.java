@@ -12,15 +12,15 @@ import netapp.manage.NaServer;
 
 import org.apache.log4j.Logger;
 
-import com.iwave.ext.netappc.NetAppCException;
-
 public class StorageVirtualMachine {
-    private Logger log = Logger.getLogger(getClass());
+    private final Logger log = Logger.getLogger(getClass());
 
     private String name = "";
     private NaServer server = null;
     private static final String DATA_SVM = "data";
     private static final String FIBRE_CHANNEL_CONNECTIONS = "fcp";
+    private static final String IP_CIFS_CONNECTIONS = "cifs";
+    private static final String IP_NFS_CONNECTIONS = "nfs";
 
     public StorageVirtualMachine(NaServer server, String name) {
         this.name = name;
@@ -54,12 +54,14 @@ public class StorageVirtualMachine {
                             svmInfo.setUuid(svm.getChildContent("uuid"));
                             svmInfo.setRootVolume(svm.getChildContent("root-volume"));
                             svms.add(svmInfo);
+                            log.info("Found Data SVM : {}" + name);
                         }
                     }
                 }
                 if (tag != null && !tag.isEmpty()) {
                     svmElem = new NaElement("vserver-get-iter");
-                    svmResult.addNewChild("tag", tag);
+                    svmElem.addNewChild("tag", tag);
+                    log.info("Updating the tag value as there are one or more svms available");
                 }
             } while (tag != null && !tag.isEmpty());
         } catch (Exception e) {
@@ -79,17 +81,21 @@ public class StorageVirtualMachine {
                         List<SVMNetInfo> netInfo = new ArrayList<SVMNetInfo>();
                         for (NaElement vsnet : (List<NaElement>) intfResult.getChildren()) {
                             NaElement dataProtocols = vsnet.getChildByName("data-protocols");
-                            boolean invalid = false;
+                            boolean valid = false;
                             if (dataProtocols != null) {
                                 for (NaElement dataProtocol : (List<NaElement>) dataProtocols.getChildren()) {
                                     if (dataProtocol != null) {
-                                        if (dataProtocol.getContent().equalsIgnoreCase(FIBRE_CHANNEL_CONNECTIONS)) {
-                                            invalid = true;
+                                        String protocolValue = dataProtocol.getContent();
+                                        // select only those port which support CIFS or NFS
+                                        if (protocolValue.equalsIgnoreCase(IP_CIFS_CONNECTIONS) || protocolValue
+                                                .equalsIgnoreCase(IP_NFS_CONNECTIONS)) {
+                                            valid = true;
+                                            break;
                                         }
                                     }
                                 }
                             }
-                            if (!invalid) {
+                            if (valid) {
                                 if (svmInfo.getName().equalsIgnoreCase(vsnet.getChildContent("vserver"))) {
                                     SVMNetInfo svmNetInfo = new SVMNetInfo();
                                     svmNetInfo.setIpAddress(vsnet.getChildContent("address"));
@@ -97,16 +103,22 @@ public class StorageVirtualMachine {
                                     svmNetInfo.setNetMask(vsnet.getChildContent("netmask"));
                                     svmNetInfo.setRole(vsnet.getChildContent("role"));
                                     netInfo.add(svmNetInfo);
+                                    log.info("Found vserver network interface: {}" + svmNetInfo.getNetInterface());
                                 }
                             }
                         }
 
-                        svmInfo.setInterfaces(netInfo);
+                        if (svmInfo.getInterfaces() == null) {
+                            List<SVMNetInfo> interfaces = new ArrayList<SVMNetInfo>();
+                            svmInfo.setInterfaces(interfaces);
+                        }
+                        svmInfo.getInterfaces().addAll(netInfo);
                     }
                 }
                 if (tag != null && !tag.isEmpty()) {
                     intfElem = new NaElement("net-interface-get-iter");
-                    intfResult.addNewChild("tag", tag);
+                    intfElem.addNewChild("tag", tag);
+                    log.info("Updating the tag value as there are one or more network interfaces available");
                 }
             } while (tag != null && !tag.isEmpty());
         } catch (Exception e) {

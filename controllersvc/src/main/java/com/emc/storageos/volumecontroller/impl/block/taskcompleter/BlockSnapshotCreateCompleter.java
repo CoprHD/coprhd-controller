@@ -41,8 +41,9 @@ public class BlockSnapshotCreateCompleter extends BlockSnapshotTaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            for (URI thisOne : _snapshotURIs) {
-                BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, thisOne);
+            List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, _snapshotURIs);
+
+            for (BlockSnapshot snapshot : snapshots) {
                 Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
                 // For VPLEX volume snaps, the snap parent is not the VPLEX volume,
                 // but instead the backend volume that is natively snapped. We need
@@ -57,23 +58,21 @@ public class BlockSnapshotCreateCompleter extends BlockSnapshotTaskCompleter {
                 }
                 switch (status) {
                     case error:
-                        setErrorOnDataObject(dbClient, BlockSnapshot.class, thisOne, coded);
+                        setErrorOnDataObject(dbClient, BlockSnapshot.class, snapshot, coded);
                         setErrorOnDataObject(dbClient, Volume.class, volume, coded);
                         snapshot.setInactive(true);
                         dbClient.persistObject(snapshot);
                         break;
                     default:
-                        setReadyOnDataObject(dbClient, BlockSnapshot.class, thisOne);
+                        setReadyOnDataObject(dbClient, BlockSnapshot.class, snapshot);
                         setReadyOnDataObject(dbClient, Volume.class, volume);
                 }
 
                 recordBlockSnapshotOperation(dbClient, OperationTypeEnum.CREATE_VOLUME_SNAPSHOT, status,
                         eventMessage(status, volume, snapshot), snapshot, volume);
             }
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the step to complete.
-                updateWorkflowStatus(status, coded);
-            }
+
+            super.complete(dbClient, status, coded);
             _log.info("Done SnapshotCreate {}, with Status: {}", getOpId(), status.name());
         } catch (Exception e) {
             _log.error("Failed updating status. SnapshotCreate {}, for task " + getOpId(), getId(), e);

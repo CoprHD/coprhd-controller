@@ -146,8 +146,7 @@ public class VPlexApiMigrationManager {
             if (VPlexApiConstants.MIGRATION_PAUSED.equals(migrationStatus)) {
                 // Skip those already paused.
                 continue;
-            }
-            else if (!VPlexApiConstants.MIGRATION_INPROGRESS.equals(migrationInfo.getStatus())) {
+            } else if (!VPlexApiConstants.MIGRATION_INPROGRESS.equals(migrationInfo.getStatus())) {
                 // TBD maybe queued as well? Not sure if you can pause a queued migration?
                 throw VPlexApiException.exceptions
                         .cantPauseMigrationNotInProgress(migrationInfo.getName());
@@ -227,8 +226,7 @@ public class VPlexApiMigrationManager {
             if (VPlexApiConstants.MIGRATION_INPROGRESS.equals(migrationStatus)) {
                 // Skip those in progress.
                 continue;
-            }
-            else if (!VPlexApiConstants.MIGRATION_PAUSED.equals(migrationStatus)) {
+            } else if (!VPlexApiConstants.MIGRATION_PAUSED.equals(migrationStatus)) {
                 throw VPlexApiException.exceptions
                         .cantResumeMigrationNotPaused(migrationInfo.getName());
             }
@@ -570,15 +568,22 @@ public class VPlexApiMigrationManager {
         // Find the requested migrations. An exception will be thrown if
         // they are not all found.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-        List<VPlexMigrationInfo> migrationInfoList = discoveryMgr
-                .findMigrations(migrationNames);
-
+        List<VPlexMigrationInfo> migrationInfoList = null;
+        try {
+            migrationInfoList = discoveryMgr.findMigrations(migrationNames);
+        } catch (VPlexApiException vae) {
+            // migrations might have deleted from VPLEX, then we just need to delete them from ViPR DB.
+            s_logger.info("No migration found in the VPLEX", vae);
+            return;
+        }
+        
         // Verify that the migrations are in a state in which they can be removed.
         StringBuilder migrationArgBuilder = new StringBuilder();
         for (VPlexMigrationInfo migrationInfo : migrationInfoList) {
             String migrationStatus = migrationInfo.getStatus();
             if ((!VPlexApiConstants.MIGRATION_COMMITTED.equals(migrationStatus)) &&
-                    (!VPlexApiConstants.MIGRATION_CANCELED.equals(migrationStatus))) {
+                    (!VPlexApiConstants.MIGRATION_CANCELED.equals(migrationStatus)) &&
+                    (!VPlexApiConstants.MIGRATION_ERROR.equals(migrationStatus))) {
                 throw VPlexApiException.exceptions
                         .cantRemoveMigrationInvalidState(migrationInfo.getName());
             }
@@ -788,8 +793,8 @@ public class VPlexApiMigrationManager {
      *             volume.
      */
     private VPlexMigrationInfo migrateLocalVirtualVolumeDevice(String migrationName,
-            VPlexVirtualVolumeInfo virtualVolumeInfo, Map<VolumeInfo,
-            VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow, String transferSize)
+            VPlexVirtualVolumeInfo virtualVolumeInfo, Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow,
+            String transferSize)
             throws VPlexApiException {
 
         // Find the local device.
@@ -1172,6 +1177,13 @@ public class VPlexApiMigrationManager {
                 // Strip the extent prefix and suffix from the
                 // migration source.
                 String migrationSrcName = migrationInfo.getSource();
+                if (!migrationSrcName.startsWith(VPlexApiConstants.EXTENT_PREFIX)
+                        && !migrationSrcName.endsWith(VPlexApiConstants.EXTENT_SUFFIX)) {
+                    // This is mostly going to be the case ingestion case with non-default names.
+                    s_logger.info("Migration source {} does not follow the default naming convention hence the volume name"
+                            + " will not be updated.", migrationSrcName);
+                    return;
+                }
                 String srcVolumeName = migrationSrcName.substring(
                         VPlexApiConstants.EXTENT_PREFIX.length(),
                         migrationSrcName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
@@ -1224,11 +1236,17 @@ public class VPlexApiMigrationManager {
                 // Now update the distributed device after the virtual volume
                 // name has been updated if the virtual volume is a distributed
                 // virtual volume.
-                if (virtualVolumeName.startsWith(VPlexApiConstants.DIST_DEVICE_PREFIX)) {
+                if (virtualVolumeName.startsWith(VPlexApiConstants.DIST_DEVICE_PREFIX)
+                        && virtualVolumeName.endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
                     String distDeviceName = virtualVolumeName.substring(0,
                             virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
                     VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
                             .findDistributedDevice(distDeviceName);
+                    if (distDeviceInfo == null) {
+                        s_logger.info("Could not find distributed device {} for the virtual volume {}, hence distributed "
+                                + "device name will not be updated. ", distDeviceName, virtualVolumeName);
+                        return;
+                    }
                     String updatedDistDeviceName = distDeviceName.replace(srcVolumeName,
                             tgtVolumeName);
                     distDeviceInfo = _vplexApiClient.getVirtualVolumeManager()
@@ -1238,9 +1256,8 @@ public class VPlexApiMigrationManager {
                     // components, i.e., the local device names.
                     String srcDeviceName = VPlexApiConstants.DEVICE_PREFIX + srcVolumeName;
                     String tgtDeviceName = VPlexApiConstants.DEVICE_PREFIX + tgtVolumeName;
-                    List<VPlexDistributedDeviceComponentInfo> componentList =
-                            _vplexApiClient.getVirtualVolumeManager()
-                                    .getDistributedDeviceComponents(distDeviceInfo.getName());
+                    List<VPlexDistributedDeviceComponentInfo> componentList = _vplexApiClient.getVirtualVolumeManager()
+                            .getDistributedDeviceComponents(distDeviceInfo.getName());
                     for (VPlexResourceInfo component : componentList) {
                         if (component.getName().equals(srcDeviceName)) {
                             _vplexApiClient.getVirtualVolumeManager()
@@ -1250,15 +1267,22 @@ public class VPlexApiMigrationManager {
 
                 } else {
                     // Update the local device name.
-                    String deviceName = virtualVolumeName.substring(0, virtualVolumeName
-                            .indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
-                    s_logger.info("Updating device {} to reflect new volume {}",
-                            deviceName, tgtVolumeName);
-                    VPlexDeviceInfo deviceInfo = discoveryMgr.findLocalDevice(deviceName);
-                    String updatedDeviceName = deviceName.replace(srcVolumeName,
-                            tgtVolumeName);
-                    _vplexApiClient.getVirtualVolumeManager()
-                            .renameVPlexResource(deviceInfo, updatedDeviceName);
+                    if (virtualVolumeName.endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
+                        String deviceName = virtualVolumeName.substring(0, virtualVolumeName
+                                .indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+                        s_logger.info("Updating device {} to reflect new volume {}",
+                                deviceName, tgtVolumeName);
+                        VPlexDeviceInfo deviceInfo = discoveryMgr.findLocalDevice(deviceName);
+                        if (deviceInfo == null) {
+                            s_logger.info("Could not find local device {} for the virtual volume {}, hence "
+                                    + "device name will not be updated. ", deviceName, virtualVolumeName);
+                            return;
+                        }
+                        String updatedDeviceName = deviceName.replace(srcVolumeName,
+                                tgtVolumeName);
+                        _vplexApiClient.getVirtualVolumeManager()
+                                .renameVPlexResource(deviceInfo, updatedDeviceName);
+                    }
 
                 }
             }

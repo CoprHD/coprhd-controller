@@ -249,6 +249,12 @@ public class MetaVolumeUtils {
 
         MetaVolumeRecommendation recommendation = new MetaVolumeRecommendation();
 
+        if (storageSystem.checkIfVmax3()) {
+            recommendation.setCreateMetaVolumes(false);
+            _log.info(String.format("Volume Expand Recommendation (VMAX3): Use meta volumes: %s", recommendation.isCreateMetaVolumes()));
+            return recommendation;
+        }
+
         if (storageSystem.getSystemType().equals(StorageSystem.Type.xtremio.name())) {
             recommendation.setCreateMetaVolumes(false);
             _log.info(String.format("Volume Expand Recommendation: Use meta volumes: %s", recommendation.isCreateMetaVolumes()));

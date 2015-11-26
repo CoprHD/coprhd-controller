@@ -5,11 +5,14 @@
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +27,7 @@ import com.emc.storageos.api.mapper.BlockMapper;
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -98,7 +102,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             // a full copy for each volume in the CG.
             Volume fcSourceVolume = (Volume) fcSourceObj;
             URI cgURI = fcSourceVolume.getConsistencyGroup();
-            if (!NullColumnValueGetter.isNullURI(cgURI)) {
+            if (!isNullURI(cgURI)) {
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                 fcSourceObjList.addAll(getActiveCGVolumes(cg));
             } else {
@@ -117,7 +121,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             Volume fullCopyVolume) {
         Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
         URI cgURI = fcSourceObj.getConsistencyGroup();
-        if ((!NullColumnValueGetter.isNullURI(cgURI))
+        if ((!isNullURI(cgURI))
                 && (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient))) {
             // If the full copy is not detached and the source is
             // in a CG, then the full copy is treated as a set and
@@ -170,7 +174,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         if (!fcSourceObjList.isEmpty()) {
             BlockObject fcSourceObj = fcSourceObjList.get(0);
             URI cgURI = fcSourceObj.getConsistencyGroup();
-            if (!NullColumnValueGetter.isNullURI(cgURI)) {
+            if (!isNullURI(cgURI)) {
                 URI fcSourceURI = fcSourceObj.getId();
                 if (URIUtil.isType(fcSourceURI, Volume.class)) {
                     verifyCGVolumeRequestCount(count);
@@ -359,6 +363,10 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 taskList.addTask(task);
             }
         }
+
+        addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+
         return taskList;
     }
 
@@ -395,6 +403,36 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         VolumeRestRep volumeRestRep = BlockMapper.map(_dbClient, fullCopyVolume);
         volumeRestRep.getProtection().getFullCopyRep().setPercentSynced(result);
         return volumeRestRep;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean volumeCanBeDeleted(Volume volume) {
+        /**
+         * Delete volume api call will delete all its related replicas for VMAX using SMI 8.0.3.
+         * Hence vmax using 8.0.3 can be delete even if volume has replicas.
+         */
+        if (volume.isInCG() && BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+            return true;
+        }
+
+        boolean volumeCanBeDeleted = true;
+
+        // Verify that a volume that is a full copy is detached.
+        if ((BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) &&
+                (!BlockFullCopyUtils.isFullCopyDetached(volume, _dbClient))) {
+            volumeCanBeDeleted = false;
+        }
+
+        // Verify that a volume that is a full copy source is detached
+        // from those full copies.
+        if ((volumeCanBeDeleted) && (BlockFullCopyUtils.isVolumeFullCopySource(volume, _dbClient))) {
+            volumeCanBeDeleted = BlockFullCopyUtils.volumeDetachedFromFullCopies(volume, _dbClient);
+        }
+
+        return volumeCanBeDeleted;
     }
 
     /**
@@ -564,5 +602,35 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     protected void verifyCGSnapshotRequest() {
         // We don't support creating full copies of snapshots in consistency groups.
         throw APIException.badRequests.fullCopyNotSupportedForConsistencyGroup();
+    }
+
+    /**
+     * Creates tasks against consistency groups associated with a request and adds them to the given task list.
+     *
+     * @param objects
+     * @param taskList
+     * @param taskId
+     * @param operationTypeEnum
+     * @param <T>
+     */
+    protected <T extends BlockObject> void addConsistencyGroupTasks(List<T> objects, TaskList taskList, String taskId,
+                                                                  ResourceOperationTypeEnum operationTypeEnum) {
+        Set<URI> consistencyGroups = new HashSet<>();
+        for (T object : objects) {
+            if (!isNullURI(object.getConsistencyGroup())) {
+                consistencyGroups.add(object.getConsistencyGroup());
+            }
+        }
+
+        if (consistencyGroups.isEmpty()) {
+            return;
+        }
+
+        List<BlockConsistencyGroup> groups = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroups);
+        for (BlockConsistencyGroup group : groups) {
+            Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
+                    operationTypeEnum);
+            taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
+        }
     }
 }

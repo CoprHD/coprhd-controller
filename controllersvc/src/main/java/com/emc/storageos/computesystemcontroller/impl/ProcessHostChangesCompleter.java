@@ -62,6 +62,10 @@ public class ProcessHostChangesCompleter extends TaskCompleter {
                     _logger.info("do not delete provisioned host {} - disassociate it from vcenter", host.getLabel());
                     host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
                     dbClient.persistObject(host);
+                } else if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+                    _logger.info("do not delete host with boot volume {} - disassociate it from vcenter", host.getLabel());
+                    host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
+                    dbClient.persistObject(host);
                 } else {
                     ComputeSystemHelper.doDeactivateHost(dbClient, host);
                     _logger.info("Deactivating Host: " + host.getId());

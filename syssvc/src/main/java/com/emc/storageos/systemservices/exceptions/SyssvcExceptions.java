@@ -44,4 +44,7 @@ public interface SyssvcExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DATANODE_FAILCONNECT_CONTROLLER)
     public FailConnectControllerException failConnectControllerError(final String parameter);
+
+    @DeclareServiceCode(ServiceCode.SYS_INTERNAL_SERVICE_NAME_NOT_FOUND)
+    public SyssvcInternalException serviceNameNotFoundException(final String parameter);
 }

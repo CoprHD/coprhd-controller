@@ -86,6 +86,7 @@ public class BucketService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "object";
     private static final String SLASH = "/";
     private static final String UNDER_SCORE = "_";
+    private static final String SPECIAL_CHAR_REGEX = "[^\\dA-Za-z\\_]";
 
     private BucketScheduler _bucketScheduler;
     private NameGenerator _nameGenerator;
@@ -154,7 +155,6 @@ public class BucketService extends TaskResourceService {
 
         // Check for all mandatory field
         ArgValidator.checkFieldNotNull(param.getLabel(), "name");
-        ArgValidator.checkFieldNotNull(param.getOwner(), "owner");
 
         Project project = _permissionsHelper.getObjectById(id, Project.class);
         ArgValidator.checkEntity(project, id, isIdEmbeddedInURL(id));
@@ -165,21 +165,9 @@ public class BucketService extends TaskResourceService {
         if (null == namespace || namespace.isEmpty()) {
             throw APIException.badRequests.objNoNamespaceForTenant(tenant.getId());
         }
-        StringBuilder bucketName = new StringBuilder();
-        StringBuilder bucketPath = new StringBuilder();
-        bucketName.append(namespace).append(UNDER_SCORE).append(project.getLabel()).append(UNDER_SCORE).append(param.getLabel());
-        bucketPath.append(namespace).append(SLASH).append(project.getLabel()).append(SLASH).append(param.getLabel());
-
-        // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
-        // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
-        final String convertedName = bucketName.toString().replaceAll("[^\\dA-Za-z\\_]", "");
-        _log.info("Original name {} and converted name {}", bucketName, convertedName);
-        // There could be bucket with same name created with different projects/namespaces. Updating name to match this scenario.
-        param.setLabel(convertedName);
-        param.setPath(bucketPath.toString());
-
-        // Check if there already exist a bucket with same name.
-        checkForDuplicateName(param.getLabel(), Bucket.class, null, null, _dbClient);
+        
+        // Check if there already exist a bucket with same name in a Project.
+        checkForDuplicateName(param.getLabel().replaceAll(SPECIAL_CHAR_REGEX, ""), Bucket.class, id, "project", _dbClient);
 
         return initiateBucketCreation(param, project, tenant, null);
     }
@@ -243,7 +231,7 @@ public class BucketService extends TaskResourceService {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
         controller.createBucket(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), bucket.getId(),
-                bucket.getLabel(), bucket.getNamespace(), bucket.getRetention(), bucket.getHardQuota(),
+                bucket.getName(), bucket.getNamespace(), bucket.getRetention(), bucket.getHardQuota(),
                 bucket.getSoftQuota(), bucket.getOwner(), task);
 
         auditOp(OperationTypeEnum.CREATE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
@@ -361,12 +349,11 @@ public class BucketService extends TaskResourceService {
         StoragePool pool = null;
         Bucket bucket = new Bucket();
         bucket.setId(URIUtil.createId(Bucket.class));
-        bucket.setLabel(param.getLabel());
-        bucket.setPath(param.getPath());
+        bucket.setLabel(param.getLabel().replaceAll(SPECIAL_CHAR_REGEX, ""));
         bucket.setHardQuota(SizeUtil.translateSize(param.getHardQuota()));
         bucket.setSoftQuota(SizeUtil.translateSize(param.getSoftQuota()));
         bucket.setRetention(Integer.valueOf(param.getRetention()));
-        bucket.setOwner(param.getOwner());
+        bucket.setOwner(getOwner(param.getOwner()));
         bucket.setNamespace(tenantOrg.getNamespace());
         bucket.setVirtualPool(param.getVpool());
         if (project != null) {
@@ -386,6 +373,15 @@ public class BucketService extends TaskResourceService {
         bucket.setStorageDevice(placement.getSourceStorageSystem());
         bucket.setPool(placement.getSourceStoragePool());
         bucket.setOpStatus(new OpStatusMap());
+
+        // Bucket name to be used at Storage System
+        String bucketName = project.getLabel() + UNDER_SCORE + param.getLabel();
+        bucket.setName(bucketName.replaceAll(SPECIAL_CHAR_REGEX, ""));
+
+        // Update Bucket path
+        StringBuilder bucketPath = new StringBuilder();
+        bucketPath.append(tenantOrg.getNamespace()).append(SLASH).append(project.getLabel()).append(SLASH).append(param.getLabel());
+        bucket.setPath(bucketPath.toString());
 
         if (flags != null) {
             bucket.addInternalFlags(flags);
@@ -487,6 +483,15 @@ public class BucketService extends TaskResourceService {
         return resRepList;
     }
 
+    private String getOwner(String orgOwner) {
+        String owner = orgOwner;
+        if (null == orgOwner || orgOwner.isEmpty()) {
+            StorageOSUser user = getUserFromContext();
+            owner = user.getName();
+        }
+        return owner;
+    }
+
     /**
      * Get object specific permissions filter
      * 
@@ -496,7 +501,7 @@ public class BucketService extends TaskResourceService {
             PermissionsHelper permissionsHelper) {
         return new ProjOwnedResRepFilter(user, permissionsHelper, Bucket.class);
     }
-    
+
     /**
      * Hard Quota should be more than SoftQuota
      * 

@@ -793,6 +793,7 @@ public class BlockDeviceExportController implements BlockExportController {
         VolumeVpoolAutoTieringPolicyChangeTaskCompleter taskCompleter = null;
         URI oldVpoolURI = null;
         List<Volume> volumes = new ArrayList<Volume>();
+        List<Volume> vplexBackendVolumes = new ArrayList<Volume>();
 
         try {
             // Read volume from database, update the vPool to the new vPool
@@ -809,8 +810,39 @@ public class BlockDeviceExportController implements BlockExportController {
                         volume.getLabel(), volume.getId(), oldVpoolURI, newVpoolURI));
                 oldVolToPolicyMap.put(volume.getId(), volume.getAutoTieringPolicyUri());
                 updateAutoTieringPolicyUriInVolume(volume, newVpool);
-                _dbClient.updateAndReindexObject(volume);
+
+                // Check if it is a VPlex volume, and get backend volumes
+                Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+                if (backendSrc != null) {
+                    // Change the back end volume's vPool too
+                    backendSrc.setVirtualPool(newVpoolURI);
+                    vplexBackendVolumes.add(backendSrc);
+                    _log.info(String.format(
+                            "Changing VirtualPool Auto-tiering Policy for VPLEX backend source volume %s (%s) from %s to %s",
+                            backendSrc.getLabel(), backendSrc.getId(), oldVpoolURI, newVpoolURI));
+                    oldVolToPolicyMap.put(backendSrc.getId(), backendSrc.getAutoTieringPolicyUri());
+                    updateAutoTieringPolicyUriInVolume(backendSrc, newVpool);
+
+                    // VPlex volume, check if it is distributed
+                    Volume backendHa = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient, false);
+                    if (backendHa != null) {
+                        VirtualPool newHAVpool = VirtualPool.getHAVPool(newVpool, _dbClient);
+                        if (newHAVpool == null) { // it may not be set
+                            newHAVpool = newVpool;
+                        }
+                        backendHa.setVirtualPool(newHAVpool.getId());
+                        vplexBackendVolumes.add(backendHa);
+                        _log.info(String.format(
+                                "Changing VirtualPool Auto-tiering Policy for VPLEX backend distributed volume %s (%s) from %s to %s",
+                                backendHa.getLabel(), backendHa.getId(), oldVpoolURI, newHAVpool.getId()));
+                        oldVolToPolicyMap.put(backendHa.getId(), backendHa.getAutoTieringPolicyUri());
+                        updateAutoTieringPolicyUriInVolume(backendHa, newHAVpool);
+                    }
+                }
             }
+            _dbClient.updateObject(volumes);
+            _dbClient.updateObject(vplexBackendVolumes);
+
             // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool
             // and old auto tiering policy in event of error.
             // Assume all volumes belong to the same vPool. This should be take care by BlockService API.
@@ -838,8 +870,11 @@ public class BlockDeviceExportController implements BlockExportController {
              * Create workflow step for each storage system.
              */
 
+            // Use backend volumes list if it is VPLEX volume
+            List<Volume> volumesToUse = !vplexBackendVolumes.isEmpty() ? vplexBackendVolumes : volumes;
+
             // move applicable volumes from all volumes list to a separate list.
-            Map<URI, List<URI>> systemToVolumeMap = getVolumesToModify(volumes);
+            Map<URI, List<URI>> systemToVolumeMap = getVolumesToModify(volumesToUse);
 
             String stepId = null;
             for (URI systemURI : systemToVolumeMap.keySet()) {
@@ -852,7 +887,7 @@ public class BlockDeviceExportController implements BlockExportController {
             Map<URI, List<URI>> storageToNotExportedVolumesMap = new HashMap<URI, List<URI>>();
             Map<URI, List<URI>> exportMaskToVolumeMap = new HashMap<URI, List<URI>>();
             Map<URI, URI> maskToGroupURIMap = new HashMap<URI, URI>();
-            for (Volume volume : volumes) {
+            for (Volume volume : volumesToUse) {
                 // Locate all the ExportMasks containing the given volume
                 Map<ExportMask, ExportGroup> maskToGroupMap = ExportUtils
                         .getExportMasks(volume, _dbClient);
@@ -878,14 +913,32 @@ public class BlockDeviceExportController implements BlockExportController {
                 }
             }
 
+            VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
+            VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolURI);
             for (URI exportMaskURI : exportMaskToVolumeMap.keySet()) {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                List<URI> exportMaskVolumes = exportMaskToVolumeMap.get(exportMaskURI);
+                URI exportMaskNewVpool = newVpoolURI;
+                URI exportMaskOldVpool = oldVpoolURI;
+                Volume vol = _dbClient.queryObject(Volume.class, exportMaskVolumes.get(0));
+                // For VPLEX backend distributed volumes, send in HA vPool
+                // all volumes are already updated with respective new vPool
+                if (Volume.checkForVplexBackEndVolume(_dbClient, vol)
+                        && !newVpoolURI.equals(vol.getVirtualPool())) {
+                    // backend distributed volume; HA vPool set in Vplex vPool
+                    exportMaskNewVpool = vol.getVirtualPool();
+                    VirtualPool oldHAVpool = VirtualPool.getHAVPool(oldVpool, _dbClient);
+                    if (oldHAVpool == null) { // it may not be set
+                        oldHAVpool = oldVpool;
+                    }
+                    exportMaskOldVpool = oldHAVpool.getId();
+                }
                 stepId = _wfUtils.generateExportChangePolicyAndLimits(workflow,
                         "updateAutoTieringPolicy", stepId,
                         exportMask.getStorageDevice(), exportMaskURI,
                         maskToGroupURIMap.get(exportMaskURI),
-                        exportMaskToVolumeMap.get(exportMaskURI), newVpoolURI,
-                        oldVpoolURI);
+                        exportMaskVolumes, exportMaskNewVpool,
+                        exportMaskOldVpool);
             }
 
             for (URI storageURI : storageToNotExportedVolumesMap.keySet()) {

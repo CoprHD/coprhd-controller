@@ -1228,6 +1228,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             if (existingNas != null) {
                 existingNas.setProtocols(protocols);
                 existingNas.setCifsServersMap(cifsServersMap);
+                existingNas.setNasState(vdm.getState());
+                existingNas.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                 PhysicalNAS parentNas = findPhysicalNasByNativeId(system, vdm.getMoverId());
                 if (parentNas != null) {
                     existingNas.setParentNasUri(parentNas.getId());
@@ -1243,16 +1245,22 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
         }
 
+        List<VirtualNAS> discoveredVNasServers = new ArrayList<VirtualNAS>();
         // Persist the NAS servers!!!
         if (existingNasServers != null && !existingNasServers.isEmpty()) {
             _logger.info("discoverVdmPortGroups - modified VirtualNAS servers size {}", existingNasServers.size());
             _dbClient.persistObject(existingNasServers);
+            discoveredVNasServers.addAll(existingNasServers);
         }
 
         if (newNasServers != null && !newNasServers.isEmpty()) {
             _logger.info("discoverVdmPortGroups - new VirtualNAS servers size {}", newNasServers.size());
             _dbClient.createObject(newNasServers);
+            discoveredVNasServers.addAll(newNasServers);
         }
+        
+        // Verify the existing vnas servers!!!
+        DiscoveryUtils.checkVirtualNasNotVisible(discoveredVNasServers, _dbClient, system.getId());
 
         _logger.info("Vdm Port group discovery for storage system {} complete.", system.getId());
         for (StorageHADomain newDomain : newPortGroups) {
@@ -2009,7 +2017,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                 associateCifsExportWithFS(vnxufs, expPath, fsExportInfo,
                                         storagePort);
                                 vnxufs.setHasShares(true);
-
+                                vnxufs.putFileSystemCharacterstics(
+                                        UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                                        .toString(), TRUE);
+                                
                                 _logger.debug("Export map for VNX UMFS {} = {}",
                                         vnxufs.getLabel(), vnxufs.getUnManagedSmbShareMap());
 
@@ -2053,17 +2064,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                             }
                         }
 
-                        if (noOfShares == 0 && !vnxufs.getHasExports()) {
-                            _logger.info("FileSystem "
-                                    + fsMountPath
-                                    + " does not have valid ViPR shares, hence this filesystem cannot be brought into ViPR DB");
-                            vnxufs.setHasShares(false);
-                            vnxufs.putFileSystemCharacterstics(
-                                    UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_INGESTABLE.toString(), FALSE);
-                            vnxufs.putFileSystemCharacterstics(
-                                    UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString(), FALSE);
-                            vnxufs.setInactive(true);
-                            unManagedExportBatch.add(vnxufs);
+                        if (noOfShares == 0) {
+                            _logger.info("FileSystem {} does not have shares ", vnxufs.getLabel());
                         }
                     }
 
@@ -2407,6 +2409,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                                 }
                                             }
                                             vnxufs.setHasExports(true);
+                                            vnxufs.putFileSystemCharacterstics(
+                                                    UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                                                    .toString(), TRUE);
+                                            
                                             // Set the correct storage port
                                             if (null != storagePort) {
                                                 StringSet storagePorts = new StringSet();
@@ -2447,9 +2453,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                         }
                         _logger.info("No of exports found for path {} = {} ", fsMountPath, noOfExports);
 
-                        if (noOfExports == 0 || inValidExports) {
-                            _logger.info("FileSystem " + fsMountPath + " does not have valid ViPR exports ");
+                        if (noOfExports == 0 ) {
+                            _logger.info("FileSystem {} does not have any exports ", vnxufs.getLabel());
                             vnxufs.setHasExports(false);
+                        }
+                        // Don't consider the unmanaged file systems with invalid exports!!!
+                        if (inValidExports) {
+                        	_logger.info("Ignoring unmanaged file system {}, due to invalid exports", vnxufs.getLabel());
+                        	vnxufs.setInactive(true);
                         }
                         
                         //set the  vNAS uri in umfs
@@ -3349,6 +3360,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             unManagedFileSystem.setNativeGuid(unManagedFileSystemNativeGuid);
             unManagedFileSystem.setStorageSystemUri(system.getId());
             unManagedFileSystem.setStoragePoolUri(pool.getId());
+            unManagedFileSystem.setHasExports(false);
+            unManagedFileSystem.setHasShares(false);
         }
 
         Map<String, StringSet> unManagedFileSystemInformation = new HashMap<String, StringSet>();
@@ -3372,7 +3385,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(), TRUE);
+                        .toString(), FALSE);
 
         if (null != system) {
             StringSet systemTypes = new StringSet();

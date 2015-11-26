@@ -25,6 +25,16 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NasCifsServer;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,14 +49,7 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.NasCifsServer;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
@@ -877,10 +880,13 @@ public class ProjectService extends TaggedResource {
             }
             project.setAssignedVNasServers(validVNasServers);
             _dbClient.persistObject(project);
-            _log.info("Successfully assigned the virtual NAS Servers to project : {} ", project.getLabel());
-        } else {
+            _log.info("Successfully assigned {} virtual NAS Servers to project : {} ",
+            		validVNasServers.size(), project.getLabel());
+        }
+        // Report error, if there are any invalid vnas servers found!!!
+        if (errorMsg != null && errorMsg.length() > 0) {
             _log.error("Failed to assigned the virtual NAS Servers to project due to {} ", errorMsg.toString());
-            throw APIException.badRequests.failedToAssignVNasToProject(errorMsg.toString());
+            throw APIException.badRequests.oneOrMorevNasServersNotAssociatedToProject();
         }
         return Response.ok().build();
     }
@@ -898,6 +904,7 @@ public class ProjectService extends TaggedResource {
     public StringSet validateVNasServers(Project project, VirtualNasParam param, StringBuilder errorMsg) {
         Set<String> vNasIds = param.getVnasServers();
         StringSet validNas = new StringSet();
+        
         if (vNasIds != null && !vNasIds.isEmpty() && project != null) {
 
             // Get list of domains associated with the project
@@ -918,54 +925,82 @@ public class ProjectService extends TaggedResource {
                 URI vnasURI = URI.create(id);
                 VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
                 ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
-
+                
                 // Validate the VNAS is assigned to project!!!
                 if (!vnas.isNotAssignedToProject()) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is associated to project " + project.getLabel());
-                    _log.info(errorMsg.toString());
-                    return null;
+                    _log.error(errorMsg.toString());
+                    continue;
                 }
-
+                
+                // Validate the VNAS is in Discovery state -VISIBLE!!!
+                if (!DiscoveryStatus.VISIBLE.name().equals(vnas.getDiscoveryStatus())) {
+                    errorMsg.append(" vNas " + vnas.getNasName() + " is not in Discovery-VISIBLE state ");
+                    _log.error(errorMsg.toString());
+                    continue;
+                }
+                
                 // Validate the VNAS state should be in loaded state !!!
                 if (!vnas.getVNasState().equalsIgnoreCase(VirtualNasState.LOADED.getNasState())) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is not in Loaded state");
-                    _log.info(errorMsg.toString());
-                    return null;
+                    _log.error(errorMsg.toString());
+                    continue;
                 }
 
                 // Get list of domains associated with a VNAS server and validate with project's domain
                 boolean domainMatched = false;
                 if (projectDomains != null && !projectDomains.isEmpty()) {
-                    Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
-                    for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
-                        NasCifsServer cifsServer = nasCifsServer.getValue();
-                        if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
-                            domainMatched = true;
-                            break;
-                        }
-                    }
+                	if( vnas.getCifsServersMap() != null && !vnas.getCifsServersMap().isEmpty() ) {
+                		Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
+                		for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
+                			NasCifsServer cifsServer = nasCifsServer.getValue();
+                			if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
+                				domainMatched = true;
+                				break;
+                			}
+                		}
+                	}
                 } else {
                     domainMatched = true;
                 }
                 if (!domainMatched) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " domain is not matched with project domain");
-                    _log.info(errorMsg.toString());
-                    return null;
+                    _log.error(errorMsg.toString());
+                    continue;
                 }
 
                 // Get list of file systems and associated project of VNAS server and validate with Project
                 URIQueryResultList fsList = new URIQueryResultList();
                 boolean projectMatched = true;
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vnas.getStorageDeviceURI());
                 for (String storagePort : vnas.getStoragePorts()) {
                     _dbClient.queryByConstraint(
                             ContainmentConstraint.Factory.getStoragePortFileshareConstraint(URI.create(storagePort)), fsList);
                     Iterator<URI> fsItr = fsList.iterator();
                     while (fsItr.hasNext()) {
                         FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
-                        if (fileShare != null && !fileShare.getInactive() &&
-                                !fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
-                            projectMatched = false;
-                            break;
+                        if (fileShare != null && !fileShare.getInactive()) {
+                            //if fs contain vNAS uri, then compare uri of vNAS assgined to project
+                            if (fileShare.getVirtualNAS() != null && 0 == fileShare.getVirtualNAS().compareTo(vnas.getId())) {                                
+                                _log.debug("Validation of assigned vNAS URI: {} and file system path : {} ",
+                                                                                fileShare.getVirtualNAS(), fileShare.getPath());
+                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
+                                    projectMatched = false;
+				                    break;
+                                }
+                            } else { //for isilon, if fs don't have vNAS uri, compare fspath with base path of AZ
+                                if (storageSystem.getSystemType().equals(StorageSystem.Type.isilon.name())) {
+                                    if (fileShare.getPath().startsWith(vnas.getBaseDirPath() + "/") == false) {
+                                        continue;
+                                    }
+                                }
+                                _log.debug("Validation of assigned vNAS base path {} and file path : {} ",
+                                                                    vnas.getBaseDirPath(), fileShare.getPath());
+                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
+                                    projectMatched = false;
+                                    break;
+                                }
+                            }
                         }
                     }
                     if (!projectMatched) {
@@ -974,8 +1009,8 @@ public class ProjectService extends TaggedResource {
                 }
                 if (!projectMatched) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " has file systems belongs to other project");
-                    _log.info(errorMsg.toString());
-                    return null;
+                    _log.error(errorMsg.toString());
+                    continue;
                 }
 
                 validNas.add(id);

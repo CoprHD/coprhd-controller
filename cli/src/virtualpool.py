@@ -1018,10 +1018,10 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument(
         '-maxcontinuouscopies', '-mcc',
         help='Maximum number of native continuous copies',
-        metavar='<max_continous_copies>',
+        metavar='<max_continuous_copies>',
         dest='maxcontinuouscopies')
     create_parser.add_argument('-continuouscopiesvpool', '-ccv',
-                               help='vpool for continous copies',
+                               help='vpool for continuous copies',
                                metavar='<continuouscopies_vpool>',
                                dest='continuouscopiesvpool')
     create_parser.add_argument('-ha',

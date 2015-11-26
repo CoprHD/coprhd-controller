@@ -112,7 +112,7 @@ public class SRDFOperations implements SmisConstants {
 
     public enum Mode {
         SYNCHRONOUS(2), ASYNCHRONOUS(3), ADAPTIVECOPY(32768);
-        ;
+
         int mode;
 
         Mode(final int mode) {
@@ -392,7 +392,7 @@ public class SRDFOperations implements SmisConstants {
             performDetach(system, target, isGrouprollback, new TaskCompleter() {
                 @Override
                 protected void complete(DbClient dbClient,
-                                        Operation.Status status, ServiceCoded coded)
+                        Operation.Status status, ServiceCoded coded)
                         throws DeviceControllerException {
                     // ignore
                 }
@@ -547,7 +547,7 @@ public class SRDFOperations implements SmisConstants {
             final int MAX_ATTEMPTS = 12;
             final int DELAY_TIME_IN_MS = 5000;
             do {
-                log.info("Attempt {}/{}...", attempts+1, MAX_ATTEMPTS);
+                log.info("Attempt {}/{}...", attempts + 1, MAX_ATTEMPTS);
                 // Get all remote mirror relationships from provider
                 List<CIMObjectPath> repPaths = helper.getReplicationRelationships(system,
                         REMOTE_LOCALITY_VALUE, MIRROR_VALUE,
@@ -742,8 +742,8 @@ public class SRDFOperations implements SmisConstants {
             }
 
             CIMArgument[] inArgs = helper.getCreateListReplicaInputArguments(system,
-                    sourcePaths.toArray(new CIMObjectPath[]{}),
-                    targetPaths.toArray(new CIMObjectPath[]{}),
+                    sourcePaths.toArray(new CIMObjectPath[] {}),
+                    targetPaths.toArray(new CIMObjectPath[] {}),
                     modeValue, repCollectionPath, replicationSettingDataInstance);
             CIMArgument[] outArgs = new CIMArgument[5];
 
@@ -1433,6 +1433,7 @@ public class SRDFOperations implements SmisConstants {
     public void startSRDFLink(final StorageSystem targetSystem, final Volume targetVolume,
             final TaskCompleter completer) {
         try {
+            boolean isLinkEstablished = false;
             NamedURI sourceVolumeNamedUri = targetVolume.getSrdfParent();
             if (NullColumnValueGetter.isNullNamedURI(sourceVolumeNamedUri)) {
                 throw DeviceControllerException.exceptions.resumeVolumeOperationFailed(
@@ -1464,6 +1465,7 @@ public class SRDFOperations implements SmisConstants {
                     log.info("No valid synchronization found, hence re-establishing link");
                     createSRDFVolumePair(systemWithCg, sourceVolUri, targetVolume.getId(), completer);
                 } else {
+                    isLinkEstablished = true;
                     log.info("Link already established..");
                 }
             } else {
@@ -1496,10 +1498,13 @@ public class SRDFOperations implements SmisConstants {
                     }
                     createSRDFMirror(systemWithCg, srcVolumes, targetVolumes, storSyncAvailable, completer);
                 } else {
+                    isLinkEstablished = true;
                     log.info("Link already established..");
                 }
             }
-            completer.ready(dbClient);
+            if (isLinkEstablished) {
+                completer.ready(dbClient);
+            }
         } catch (Exception e) {
             log.error("Failed to start SRDF link {}", targetVolume.getSrdfParent().getURI(), e);
             ServiceError error = SmisException.errors.jobFailed(e.getMessage());
@@ -1635,16 +1640,17 @@ public class SRDFOperations implements SmisConstants {
 
     private CIMObjectPath getGroupSyncObject(final StorageSystem system, final Volume source,
             final String sourceGpName, final String tgtGpName) {
+
+        CIMObjectPath result = null;
         CloseableIterator<CIMObjectPath> iterator = null;
+
         try {
-            CIMObjectPath srcGroupPath = getDeviceGroup(system, system, source, sourceGpName,
-                    tgtGpName);
-            if (srcGroupPath == null) {
-                throw new IllegalStateException("Expected to find a sync instance for source");
-            }
-            iterator = helper.getReference(system, srcGroupPath, SE_GROUP_SYNCHRONIZED_RG_RG, null);
-            if (iterator.hasNext()) {
-                return iterator.next();
+            CIMObjectPath srcGroupPath = getDeviceGroup(system, system, source, sourceGpName, tgtGpName);
+            if (srcGroupPath != null) {
+                iterator = helper.getReference(system, srcGroupPath, SE_GROUP_SYNCHRONIZED_RG_RG, null);
+                if (iterator.hasNext()) {
+                    result = iterator.next();
+                }
             }
         } catch (Exception e) {
             log.debug("Failed to acquire group synchronization instance", e);
@@ -1653,7 +1659,12 @@ public class SRDFOperations implements SmisConstants {
                 iterator.close();
             }
         }
-        return null;
+
+        if (result == null) {
+            log.warn(String.format("Failed to get GroupSynchronized object for Src:%s, Tgt:%s from System:%s",
+                    sourceGpName, tgtGpName, system.getId()));
+        }
+        return result;
     }
 
     private CIMObjectPath getGroupSyncObjectForPairRemoval(final StorageSystem system, final StorageSystem forProvider,

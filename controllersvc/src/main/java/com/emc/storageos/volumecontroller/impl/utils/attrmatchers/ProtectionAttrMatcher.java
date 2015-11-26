@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -36,35 +37,72 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
 
     @Override
     public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap) {
-
-        // Check if VPlex MetroPoint has been enabled.
-        Boolean metroPointEnabled = (Boolean) attributeMap.get(Attributes.metropoint.toString());
-
-        // If MetroPoint is enabled, we still want to execute the protection attribute matcher.
-        if (metroPointEnabled == null || !metroPointEnabled) {
-            // First we need to check is if we have a RP+VPLEX setup where the user has chosen to use
-            // the Highly Available varray as the RP Source. If so, we can ignore this Protection matching.
-            String haRP = (String) attributeMap.get(Attributes.high_availability_rp.toString());
-
-            if (NullColumnValueGetter.isNotNullValue(haRP)) {
-                _logger.info("Using Highly Available Virtual Array as the RP Source, disregarding protection matching.");
-                return allPools;
-            }
-        }
-
         StringMap rpMap = (StringMap) attributeMap.get(Attributes.recoverpoint_map.name());
         _logger.info("Pools matching protection attributes Started {}, {} :", rpMap,
                 Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
+        
+        // If protection is not specified, we can return all remaining pools.
+        if (rpMap == null || rpMap.isEmpty()) {
+            _logger.info("No protection specified, return all remaining pools.");
+            return allPools;
+        }
 
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         Iterator<StoragePool> poolIterator = allPools.iterator();
+        
+        // Check if MetroPoint has been enabled.
+        Boolean metroPointEnabled = (Boolean) attributeMap.get(Attributes.metropoint.toString());        
+        boolean isRPVPlex = NullColumnValueGetter.isNotNullValue(
+                (String) attributeMap.get(Attributes.high_availability_type.toString()));
+        
+        // Flag to indicate if this is an RP+VPLEX setup with HA as the Source.
+        boolean haAsRPSource = false;
+        
+        if (isRPVPlex && (metroPointEnabled == null || !metroPointEnabled)) {
+            _logger.info("Not a MetroPoint Virtual Pool");
+            String haVarrayForRPSource = (String) attributeMap.get(Attributes.high_availability_rp.toString());
+            haAsRPSource = NullColumnValueGetter.isNotNullValue(haVarrayForRPSource);
+            if (haAsRPSource) {         
+                _logger.info("Virtual Pool indicates to use HA as the RP Source");
+                // Get HA Virtual Pool                                                
+                String haVpoolId = (String) attributeMap.get(Attributes.high_availability_vpool
+                        .toString());
+                
+                List<StoragePool> haVpoolPoolList = new ArrayList<StoragePool>();
+                if (haVpoolId != null) {                    
+                    VirtualPool haVpool = _objectCache.queryObject(VirtualPool.class, URI.create(haVpoolId));                    
+                    haVpoolPoolList = VirtualPool.getValidStoragePools(haVpool, _objectCache.getDbClient(), true);
+                    _logger.info(String.format("HA Virtual Pool exists [%s](%s), consider Storage Pools from it.", 
+                            haVpool.getLabel(), haVpool.getId()));
+                    
+                } else {
+                    _logger.info("No HA Virtual Pool exists, consider Storage Pools from main Virtual Pool.");
+                    haVpoolPoolList.addAll(allPools);
+                }
+                                
+                List<StoragePool> filterPools = new ArrayList<StoragePool>();
+                _logger.info(String.format("Remove Storage Pools that are not tagged with Virtual Array (%s).", 
+                        haVarrayForRPSource));
+                for (StoragePool haPool : haVpoolPoolList) {
+                    if (haPool.getTaggedVirtualArrays() != null 
+                            && !haPool.getTaggedVirtualArrays().contains(haVarrayForRPSource)) {                            
+                        filterPools.add(haPool);
+                    }
+                }
+                haVpoolPoolList.removeAll(filterPools);
+                poolIterator = haVpoolPoolList.iterator();
+                
+                _logger.info("HA Storage Pools to consider: {}", 
+                        Joiner.on("\t").join(getNativeGuidFromPools(haVpoolPoolList)));                                
+            }
+        }
 
         boolean validProtectionSystems = false;
 
         while (poolIterator.hasNext()) {
             StoragePool storagePool = poolIterator.next();
             _logger.info(String.format("Checking storage pool [%s]", storagePool.getLabel()));
-
+            
             // If there is a mirror attribute, and the the pool doesn't fit mirror capabilities,
             // then the pool is not allowed.
             if (!checkMirrorProtectionValidPool(storagePool, attributeMap)) {
@@ -72,18 +110,7 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
                         "and the the pool doesn't fit mirror capabilities. Disregard pool.", storagePool.getLabel()));
                 continue;
             }
-
-            // If protection is not specified, we can allow this pool.
-            if (rpMap == null || rpMap.isEmpty()) {
-                _logger.info(String.format("Storage pool [%s] allowed.", storagePool.getLabel()));
-                matchedPools.add(storagePool);
-                continue;
-            }
-
-            // We already know that Protection has been specified, now check to see if VPLEX has been specified
-            boolean isRPVPlex = NullColumnValueGetter.isNotNullValue(
-                    (String) attributeMap.get(Attributes.high_availability_type.toString()));
-
+            
             // Get the RP systems for this pool.
             Set<ProtectionSystem> protectionSystems = ConnectivityUtil.getProtectionSystemsForStoragePool(_objectCache.getDbClient(),
                     storagePool, null, isRPVPlex);
@@ -99,113 +126,117 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
 
             // Scan each RP system and see if the pool is valid, given the target/copy attributes
             for (ProtectionSystem ps : protectionSystems) {
-                // If there were no virtual arrays associated with this RP system, then the pool
+                // If there are no virtual arrays associated with this RP system, then the pool
                 // is not allowed
                 if (ps.getVirtualArrays() == null || ps.getVirtualArrays().isEmpty()) {
                     _logger.warn(String.format("Protection System [%s] has no associated virtual arrays. " +
-                            "Can not use storage pool [%s]. Please run Protection System discovery.", ps.getLabel(), storagePool.getLabel()));
+                            "Can not use storage pool [%s]. Please run Protection System discovery.", ps.getLabel(),
+                            storagePool.getLabel()));
                     continue;
                 }
 
-                // Make sure the virtual arrays in the virtual pool definition are in the list
+                Map<String, Boolean> validStoragePoolForProtection = new HashMap<String, Boolean>();
+                
+                // Make sure the target virtual arrays defined are in the list
                 // of virtual arrays for this RP system. If not, move on.
-                for (String vArray : rpMap.keySet()) {
+                for (String targetVarrayId : rpMap.keySet()) {
+                    // Assume false to start
+                    validStoragePoolForProtection.put(targetVarrayId, Boolean.FALSE);
+                    
                     // If the virtual array associated with this storage pool can't be seen by this RP system,
                     // then this pool is not allowed
-                    if (!ps.getVirtualArrays().contains(vArray)) {
-                        _logger.info(String.format("Virtual array [%s] of Storage Pool [%s] can't be seen by Protection System [%s]. " +
-                                "Disregard storage pool.", vArray, storagePool.getLabel(), ps.getLabel()));
+                    if (!ps.getVirtualArrays().contains(targetVarrayId)) {
+                        _logger.info(String.format("Virtual array [%s] of Storage Pool [%s](%s) can't be seen by Protection System [%s](%s). " +
+                                "Disregard storage pool.", targetVarrayId, storagePool.getLabel(), storagePool.getId(), ps.getLabel(), ps.getId()));
                         continue;
                     }
-
-                    String vpoolId = rpMap.get(vArray);
-                    URI vpoolURI = null;
-
-                    if (vpoolId != null && !vpoolId.isEmpty()) {
-                        vpoolURI = URI.create(vpoolId);
-                    }
-
-                    // If the virtual pool was not specified for this target virtual array, then it's the pool
+                    
+                    // If the virtual pool was not specified for this target virtual array, then use the virtual pool
                     // we're in right now. We already know that our target virtual array is in this RP system's
                     // domain, so we'll say yes to this pool.
-                    if (vpoolURI == null) {
+                    String targetVpoolId = rpMap.get(targetVarrayId);
+                    if (NullColumnValueGetter.isNullValue(targetVpoolId)) {
                         _logger.info(String.format("No target virtual pool defined. Using source virtual pool. " +
-                                "Storage pool [%s] allowed.", storagePool.getLabel()));
-                        matchedPools.add(storagePool);
+                                "Storage pool [%s](%s) allowed.", storagePool.getLabel(), storagePool.getId()));                        
+                        validStoragePoolForProtection.put(targetVarrayId, Boolean.TRUE);
                         break;
                     }
 
-                    // If we can find pools that match the target virtual pool in the target virtual array that
-                    // is already recognized as visible to the RP system, then this pool is accepted.
-                    VirtualPool targetVpool = _objectCache.queryObject(VirtualPool.class, vpoolURI);
+                    VirtualPool targetVpool = _objectCache.queryObject(VirtualPool.class, URI.create(targetVpoolId));
                     List<StoragePool> targetPoolList = VirtualPool.getValidStoragePools(targetVpool, _objectCache.getDbClient(), true);
-
                     boolean targetVpoolSpecifiesVPlex = VirtualPool.vPoolSpecifiesHighAvailability(targetVpool);
-
-                    _logger.info(String.format("Check the storage pools from target virtual pool [%s] to find a " +
-                            "match for storage pool [%s]", targetVpool.getLabel(), storagePool.getLabel()));
-                    if (vpoolHasStoragePoolMatchingVarray(vArray, targetPoolList, targetVpoolSpecifiesVPlex)) {
-                        _logger.info(String.format("Target virtual pool [%s] has a matched storage pool with virtual array [%s]. " +
-                                "Storage pool [%s] allowed.", targetVpool.getLabel(), vArray, storagePool.getLabel()));
-                        matchedPools.add(storagePool);
+                    
+                    // Check the target virtual pool for all valid storage pools. But only consider
+                    // storage pools for the target virtual array in question.
+                    // 
+                    // We want to ensure that at least one target storage pool is connected to the same 
+                    // Protection System as the source/candidate storage pool. If so, we have a match. 
+                    for (StoragePool tgtPool : targetPoolList) {
+                        // Only consider target storage pools for the target varray in question
+                        if (tgtPool.getTaggedVirtualArrays() != null 
+                                && tgtPool.getTaggedVirtualArrays().contains(targetVarrayId)) {
+                            _logger.info(String.format("Checking target storage pool [%s](%s)...", tgtPool.getLabel(), tgtPool.getId() ));                            
+                            // Get the RP systems for this target pool                           
+                            Set<ProtectionSystem> targetProtectionSystems = ConnectivityUtil.getProtectionSystemsForStoragePool(_objectCache.getDbClient(),
+                                    tgtPool, URI.create(targetVarrayId), targetVpoolSpecifiesVPlex);
+                            // Check to see if the protection systems line up between the source storage pool
+                            // and at least one target storage pool.
+                            boolean matchFound = false;
+                            for (ProtectionSystem targetProtectionSystem : targetProtectionSystems) {
+                                if (targetProtectionSystem != null 
+                                        && targetProtectionSystem.getId().equals(ps.getId())) {
+                                    _logger.info(String.format("Target storage pool [%s](%s) is connected to same "
+                                            + "Protection system [%s](%s) as source storage pool [%s](%s). "
+                                            + "Storage pool allowed.", 
+                                            tgtPool.getLabel(), tgtPool.getId(), ps.getLabel(), ps.getId(),
+                                            storagePool.getLabel(), storagePool.getId()));
+                                    validStoragePoolForProtection.put(targetVarrayId, Boolean.TRUE);
+                                    matchFound = true;
+                                    break;
+                                } 
+                            }
+                            if (matchFound) {
+                                // No need to loop through all the target pools, 
+                                // we found at least one match.
+                                break;
+                            }
+                        }
+                    }                                        
+                }
+                                
+                // Iterate through the results of valid storage pools, if there are any false entries for this
+                // storage pool, we can not consider it.
+                boolean matchedPool = true;
+                for (Boolean validStoragePool : validStoragePoolForProtection.values()) {
+                    if (!validStoragePool) {
+                        matchedPool = false;
                         break;
                     }
-
-                    _logger.info(String.format("No match for Storage pool [%s] for virtual array [%s].", storagePool.getLabel(), vArray));
+                }
+                if (matchedPool) {
+                    matchedPools.add(storagePool);
+                } else {
+                    _logger.info(String.format("Storage Pool [%s](%s) is not valid for protection.",                             
+                            storagePool.getLabel(), storagePool.getId()));
                 }
             }
         }
 
         if (!validProtectionSystems) {
-            _logger.info("No valid protection system could be found for storage pools.  Please check data protection systems to ensure they are not inactive or invalid.");
+            _logger.warn("No valid protection system could be found for storage pools. "
+                    + "Please check data protection systems to ensure they are not inactive or invalid.");
         }
 
-        _logger.info("Pools matching protection attributes Ended. " +
+        if (haAsRPSource) {
+            if (!matchedPools.isEmpty()) {
+                // If we found at least 1 matched pool using HA as the RP Source, return all pools.
+                matchedPools = allPools;
+            }            
+        }
+        
+        _logger.info("Pools matching protection attributes ended. " +
                 "Matched pools are: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;
-    }
-
-    /**
-     * Determine if the varray with the passed id has a storage pool that
-     * satisfies the RP Vpool.
-     *
-     * @param varrayId The id of a varray.
-     * @param tgtVpoolPoolList The pool list for the Target Vpool.
-     * @param isRPVPlex Flag indicate whether this is an RP+VPLEX request or not
-     *
-     * @return true if the varray has a storage pool that matches the HA
-     *         VPool, false otherwise.
-     */
-    private boolean vpoolHasStoragePoolMatchingVarray(String varrayId,
-            List<StoragePool> tgtVpoolPoolList, boolean isRPVPlex) {
-        _logger.info(String.format("Checking storage pools from the target virtual pool."));
-        for (StoragePool tgtStoragePool : tgtVpoolPoolList) {
-            // If this is an RP+VPLEX/MetroPoint request we need to check connectivity to the
-            // VPLEX for the target storage pools as well.
-            if (isRPVPlex) {
-                _logger.info(String.format("RP+VPLEX/MetroPoint request, first need to check the " +
-                        "target storage pool [%s] is valid.", tgtStoragePool.getLabel()));
-                if (!validRPVPlexStoragePool(tgtStoragePool)) {
-                    _logger.info(String.format("Target storage pool [%s] is NOT valid for " +
-                            "RP+VPLEX/MetroPoint request.", tgtStoragePool.getLabel()));
-                    return false;
-                }
-                _logger.info(String.format("Target storage pool [%s] is valid for " +
-                        "RP+VPLEX/MetroPoint request.", tgtStoragePool.getLabel()));
-            }
-
-            _logger.info(String.format("Checking if tagged virtual arrays from target " +
-                    "storage pool [%s] contains virtual array [%s].", tgtStoragePool.getLabel(), varrayId));
-            StringSet poolVarrays = tgtStoragePool.getTaggedVirtualArrays();
-            if (poolVarrays != null && poolVarrays.contains(varrayId)) {
-                _logger.info(String.format("Virtual array [%s] found in tagged virtual arrays " +
-                        "of target pool..", varrayId));
-                return true;
-            }
-            _logger.info(String.format("Virtual array [%s] NOT found in tagged virtual arrays " +
-                    "of target pool.", varrayId));
-        }
-        return false;
     }
 
     /**
@@ -272,9 +303,8 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
      */
     private boolean validRPVPlexStoragePool(StoragePool storagePool) {
         // Get the VPLEXs connected to this pool
-        List<String> vplexSystemsForPool =
-                VPlexHighAvailabilityMatcher.getVPlexStorageSystemsForStorageSystem(_objectCache.getDbClient(),
-                        storagePool.getStorageDevice(), null);
+        List<String> vplexSystemsForPool = VPlexHighAvailabilityMatcher.getVPlexStorageSystemsForStorageSystem(_objectCache.getDbClient(),
+                storagePool.getStorageDevice(), null);
 
         // The Storage Pool needs to have a VPLEX connected to it to be valid, and that's
         // all we really care about at this point.

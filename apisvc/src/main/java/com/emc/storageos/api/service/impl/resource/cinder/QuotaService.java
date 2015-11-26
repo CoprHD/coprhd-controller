@@ -83,7 +83,7 @@ public class QuotaService extends TaskResourceService {
      *
      * @param tenant_id the URN of the tenant asking for quotas 
      * @param target_tenant_id 
-     * @brief 
+     * @brief Get the summary list of all Quotas
      * @return Quota details of target_tenant_id
      */
     @GET    

@@ -114,6 +114,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
      *            cinder V1 api
      * @param header
      *            HTTP header
+     * @brief Create Consistency Group Snapshot
      * @return Response
      */
     @POST
@@ -246,6 +247,8 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
      *            Cinder V1 api
      * @param header
      *            HTTP Header
+     * @brief 
+     *      Get Consistency Group Snapshot info
      * @return Response
      */
     @GET
@@ -331,6 +334,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
      *            openstack V1 call
      * @param header
      *            Http Headers
+     * @brief Get Detail Info for Consistency group snapshots
      * @return Response
      */
     @GET
@@ -368,6 +372,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
      *            openstack tenant id
      * @param consistencyGroupSnapshot_id
      *            consistency group snapshot id
+     * @brief Delete a consistency group snapshot
      * @param isV1Call
      *            Cinder V1 call
      * @param header

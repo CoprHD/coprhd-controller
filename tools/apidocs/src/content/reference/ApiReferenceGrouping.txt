@@ -104,6 +104,7 @@ com.emc.storageos.api.service.impl.resource.cinder.TypeService
 com.emc.storageos.api.service.impl.resource.cinder.ExtensionService
 com.emc.storageos.api.service.impl.resource.cinder.QosService
 com.emc.storageos.api.service.impl.resource.cinder.ConsistencyGroupService
+com.emc.storageos.api.service.impl.resource.cinder.MiscService
 
 =Other Services
 com.emc.storageos.api.service.impl.resource.AuditService

@@ -84,6 +84,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
      * @param consistencyGroup_id Consistency group id
      * @param isV1Call openstack cinder V1 call
      * @param header HTTP header
+     * @brief Get Consistency Group Info
      * @return Response 
      */
     @GET
@@ -106,6 +107,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
      * This function handles Get request for all consistency group list
      * @param openstack_tenant_id Openstack tenant id 
      * @param header HTTP header
+     * @brief get detail consistency group info
      * @return Response
      */
     @GET
@@ -136,6 +138,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
      * @param param pojo class to bind request
      * @param isV1Call cinder V1 api
      * @param header HTTP header
+     * @brief Create Consistency group
      * @return Response
      */
     @POST
@@ -197,6 +200,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
      * @param param pojo class to bind request
      * @param isV1Call cinder V1 api
      * @param header HTTP header
+     * @brief Create Consistency group
      * @return Response
      */
     @POST

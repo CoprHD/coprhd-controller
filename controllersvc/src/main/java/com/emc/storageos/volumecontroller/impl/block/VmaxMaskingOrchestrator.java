@@ -1454,7 +1454,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                     // Exact fit case, no FAST policy (or for case of VMAX3, the MV is associated to the Optimized SLO)
                                     if (volumePolicyName == null && (policy.localTierPolicy == null ||
                                             (isVMAX3 && policy.localTierPolicy.contains(Constants.OPTIMIZED_SLO)))) {
-                                        _log.info("Pre-existing Mask Matched rule 1B: volume and mask do not have FAST policy");
+                                        _log.info("Pre-existing Mask Matched rule 1B: volume and mask do not have FAST policy " +
+                                                "(or for a VMAX3 mask, it is associated to the 'Optimized' SLO)");
                                         match = true;
                                     }
 

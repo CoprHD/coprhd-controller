@@ -78,6 +78,9 @@ public interface VNXErrors {
 
     @DeclareServiceCode(ServiceCode.VNXFILE_SNAPSHOT_ERROR)
     public ServiceError unableToDeleteFileSnapshot(String error);
+    
+    @DeclareServiceCode(ServiceCode.VNXFILE_SNAPSHOT_ALREADYEXISTS_ERROR)
+    public ServiceError alreadyExistsFileSnapshot(String error);
 
     @DeclareServiceCode(ServiceCode.VNX_ERROR)
     public ServiceError operationNotSupported();

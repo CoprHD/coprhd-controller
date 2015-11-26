@@ -840,7 +840,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
         if (result.isCommandSuccess()) {
             cmdResult = BiosCommandResult.createSuccessfulResult();
         } else {
-            cmdResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToDeleteFileShare(result.getMessage()));
+            cmdResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToDeleteFileShare("Unable to perform snapshot operation"));
         }
         return cmdResult;
     }

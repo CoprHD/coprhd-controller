@@ -43,7 +43,7 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
                 List<Object> snapshotList = getQueryResponse(responsePacket);
                 final String snapName = (String) keyMap.get(VNXFileConstants.SNAPSHOT_NAME);
                 final String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
-                
+                keyMap.put(VNXFileConstants.SNAPSHOT_ALREADYEXISTS, false);
                 _logger.info("Snapshot name to match: {} Size of snaps found {} ", snapName, snapshotList.size());
                 Iterator<Object> snapshotItr = snapshotList.iterator();
                 if (snapshotItr.hasNext()) {
@@ -63,6 +63,9 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
                                     isFSMatch = true;
                                     break;
                                 }
+                                else{
+                                	keyMap.put(VNXFileConstants.SNAPSHOT_ALREADYEXISTS, true);
+                                }                                	
                             }
                         }
                         if(isSnapshotFound && !isFSMatch){

@@ -977,7 +977,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             return false;
         }
 
-        // First, check that AUTO_TIER_POLICY_NAME changed.
+        // First, check that RP_COPY_MODE changed.
         String[] included = new String[] { RP_COPY_MODE };
         if (analyzeChanges(currentVpool, newVpool, included, null, null).isEmpty()) {
             notSuppReasonBuff.append("Did not change RP_COPY_MODE");

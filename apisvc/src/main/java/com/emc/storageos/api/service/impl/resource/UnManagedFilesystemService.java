@@ -429,19 +429,11 @@ public class UnManagedFilesystemService extends TaggedResource {
                         unManagedFileSystem.getHasExports());
                 
                 StoragePort sPort = null;
-                /**
-                 * if Storage system type is Isilon assign UMFS's storage port 
-                 * instead of randomly assigning storage port
-                 * 
-                 */
-				if (StorageSystem.Type.isilon.equals(systemType)) {
-					sPort=port;
-				} else {
-					if (port != null && neighborhood != null) {
-						sPort = compareAndSelectPortURIForUMFS(system, port,
-								neighborhood);
-					}
-				}
+
+                if(port !=null && neighborhood !=null){
+            		sPort = compareAndSelectPortURIForUMFS(system, port,
+							neighborhood);
+                }
 				
                 if (unManagedFileSystem.getHasExports()) {
                     _logger.info("Storage Port Found {}", sPort);
@@ -885,11 +877,14 @@ public class UnManagedFilesystemService extends TaggedResource {
         }
 
         if (matchedPorts != null && !matchedPorts.isEmpty()) {
-            // Shuffle Storageports and return the first one.
-            Collections.shuffle(matchedPorts);
-            sPort = _dbClient.queryObject(StoragePort.class, matchedPorts.get(0));
+        	if(StorageSystem.Type.isilon.equals(system.getSystemType()) && matchedPorts.contains(currentUMFSPort.getId())){
+        		sPort = currentUMFSPort;
+        	}else{
+                // Shuffle Storageports and return the first one.
+                Collections.shuffle(matchedPorts);
+                sPort = _dbClient.queryObject(StoragePort.class, matchedPorts.get(0));
+        	}
         }
-
         return sPort;
     }
 

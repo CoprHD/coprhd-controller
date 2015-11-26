@@ -1419,6 +1419,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                             _log.info("Add new Export Rule {}", newExportRule);
                             exportsToAdd.add(newExportRule); 
                             removeRedundantHosts(existingRule, newExportRule); */
+                        	newExportRule.setDeviceExportId(existingRule.getDeviceExportId());
                         	exportsToModify.add(newExportRule);
 
                         }

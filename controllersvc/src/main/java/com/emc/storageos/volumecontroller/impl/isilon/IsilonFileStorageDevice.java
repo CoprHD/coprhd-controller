@@ -1463,7 +1463,6 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             _log.info("Modify Export rule : {}", existingRule.toString());
         }
 
-        // no separate modify is required it getting handled by add and delete export call
         processIsiExport(isi, args, exportsToModify);
 
         for (ExportRule existingRule : exportsToRemove) {
@@ -2110,6 +2109,12 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         return zoneName;
     }
     
+    /**
+     * Set the clients to isilon export based on type
+     * @param type one of "rw", "root" or "ro"
+     * @param hosts the clients to be set
+     * @param isilonExport
+     */
     private void setExportRuleHostsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {
     	switch(type) {
     	case "root":

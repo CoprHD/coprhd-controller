@@ -8,13 +8,12 @@ import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import org.apache.commons.lang.mutable.MutableInt;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
-    @Autowired
+
     private ScaleIORestHandleFactory handleFactory;
     public void setHandleFactory(ScaleIORestHandleFactory handleFactory) {
         this.handleFactory = handleFactory;

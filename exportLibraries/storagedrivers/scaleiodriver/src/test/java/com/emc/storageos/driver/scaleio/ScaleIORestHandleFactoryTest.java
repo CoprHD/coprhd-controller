@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(value = SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"file:/Users/shujinwu/dev-coprhd/coprhd-controller/exportLibraries/storagedrivers/scaleiodriver/src/conf/scaleio-driver-prov.xml"})
+@ContextConfiguration(locations = {"/scaleio-driver-prov.xml"})
 public class ScaleIORestHandleFactoryTest {
 
    private static Logger log = LoggerFactory.getLogger(ScaleIORestHandleFactoryTest.class);

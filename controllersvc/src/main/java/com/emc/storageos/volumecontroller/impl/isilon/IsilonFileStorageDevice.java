@@ -1418,7 +1418,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                             exportsToRemove.add(existingRule);
                             _log.info("Add new Export Rule {}", newExportRule);
                             exportsToAdd.add(newExportRule);
-                            RemoveRedundantExportRule(existingRule, newExportRule);
+                            removeRedundantExportRule(existingRule, newExportRule);
 
                         }
                     }
@@ -1485,9 +1485,10 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
     }
 
-    private void RemoveRedundantExportRule(ExportRule ruleRemove, ExportRule ruleAdd) {
+    private void removeRedundantExportRule(ExportRule ruleRemove, ExportRule ruleAdd) {
 
-        // remove duplicate readonly host
+    	ruleAdd.setDeviceExportId(ruleRemove.getDeviceExportId());
+    	// remove duplicate readonly host
         Set<String> rootHostsRemove = ruleRemove.getRootHosts();
         Set<String> rootHostsAdd = ruleAdd.getRootHosts();
 
@@ -1569,17 +1570,22 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             }
 
             String isilonExportId = exportRule.getDeviceExportId();
-
+            String zoneName = getZoneName(args.getvNAS());
             if (isilonExportId != null) {
                 // The Export Rule already exists on the array so modify it
-                _log.info("Export {} {} exists on the device so modify it", isilonExportId, exportRule);
+                _log.info("Export rule exists on the device so modify it: {}", exportRule);
                 modifyRules.add(exportRule);
             } else {
                 // Create the Export
                 List<String> allClients = new ArrayList<>();
-                _log.info("Export doesnt {} exists on the device so create it", exportRule);
+                _log.info("Export rule does not exist on the device so create it: {}", exportRule);
                 IsilonExport newIsilonExport = setIsilonExport(exportRule);
-                String expId = isi.createExport(newIsilonExport);
+                String expId = null;
+                if (zoneName != null) {
+                	expId = isi.createExport(newIsilonExport, zoneName);
+                } else {
+                	expId = isi.createExport(newIsilonExport);
+                }
                 exportRule.setDeviceExportId(expId);
             }
 
@@ -1794,7 +1800,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             if (isilonExportId != null) {
                 // The Export Rule already exists on the array so modify it
-                _log.info("Export {} {} exists on the device so remove it", isilonExportId, exportRule);
+                _log.info("Export rule exists on the device so remove it: {}", exportRule);
                 String zoneName = getZoneName(args.getvNAS());
                 if (zoneName != null) {
                     isi.deleteExport(isilonExportId, zoneName);

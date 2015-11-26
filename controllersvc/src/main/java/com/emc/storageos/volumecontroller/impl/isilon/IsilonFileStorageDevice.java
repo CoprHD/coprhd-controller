@@ -1413,12 +1413,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                     for (ExportRule newExportRule : exportModify) {
                         if (newExportRule.getSecFlavor().equals(
                                 existingRule.getSecFlavor())) {
-                            // Handle modify Rules, remove old and add new
-                            /*_log.info("Deleting existing Export Rule {}", existingRule);
-                            exportsToRemove.add(existingRule);
-                            _log.info("Add new Export Rule {}", newExportRule);
-                            exportsToAdd.add(newExportRule); 
-                            removeRedundantHosts(existingRule, newExportRule); */
+
                         	newExportRule.setDeviceExportId(existingRule.getDeviceExportId());
                         	exportsToModify.add(newExportRule);
 
@@ -1485,56 +1480,6 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
         BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
         return result;
-
-    }
-
-    private void removeRedundantHosts(ExportRule ruleRemove, ExportRule ruleAdd) {
-
-    	ruleAdd.setDeviceExportId(ruleRemove.getDeviceExportId());
-    	// remove duplicate readonly host
-        Set<String> rootHostsRemove = ruleRemove.getRootHosts();
-        Set<String> rootHostsAdd = ruleAdd.getRootHosts();
-
-        if (rootHostsRemove != null && !rootHostsRemove.isEmpty() && rootHostsAdd != null && !rootHostsAdd.isEmpty()) {
-            for (String rHostRemmove : rootHostsRemove) {
-                if (rootHostsAdd.contains(rHostRemmove)) {
-
-                    rootHostsAdd.remove(rHostRemmove);
-                    rootHostsRemove.remove(rHostRemmove);
-                }
-
-            }
-        }
-
-        // remove duplicate read only host
-        Set<String> readHostsRemove = ruleRemove.getReadOnlyHosts();
-        Set<String> readHostsAdd = ruleAdd.getReadOnlyHosts();
-
-        if (readHostsRemove != null && !readHostsRemove.isEmpty() && readHostsAdd != null && !readHostsAdd.isEmpty()) {
-            for (String rHostRemmove : readHostsRemove) {
-                if (readHostsAdd.contains(rHostRemmove)) {
-
-                    readHostsAdd.remove(rHostRemmove);
-                    readHostsRemove.remove(rHostRemmove);
-                }
-
-            }
-        }
-
-        // remove duplicate read and write host
-        Set<String> readWriteHostsRemove = ruleRemove.getReadWriteHosts();
-        Set<String> readWriteHostsAdd = ruleAdd.getReadOnlyHosts();
-
-        if (readWriteHostsRemove != null && !readWriteHostsRemove.isEmpty() && readWriteHostsAdd != null && !readWriteHostsAdd.isEmpty()) {
-            for (String rHostRemmove : readWriteHostsRemove) {
-                if (readWriteHostsAdd.contains(rHostRemmove)) {
-
-                    readWriteHostsAdd.remove(rHostRemmove);
-                    readWriteHostsRemove.remove(rHostRemmove);
-                }
-
-            }
-        }
 
     }
 

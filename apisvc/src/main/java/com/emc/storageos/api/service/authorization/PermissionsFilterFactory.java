@@ -401,7 +401,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
             }
             String path = request.getPath();
             // allow all requests for DR
-            if (path.startsWith("/site")) {
+            if (path.startsWith("site")) {
                 return request;
             }
             String method = request.getMethod();

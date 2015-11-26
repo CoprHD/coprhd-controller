@@ -3,10 +3,12 @@ package com.emc.storageos.systemservices.impl.util;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.db.server.impl.DbRepairRunnable;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
+import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Arrays;
 import java.util.Calendar;
@@ -14,22 +16,21 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Utility class for  node DB repair status combination
+ * Class for handle node DB repair status combination
  */
-public class DbRepairUtil {
-    private static final Logger log = LoggerFactory.getLogger(DbRepairUtil.class);
+public class DbRepairHandler {
+    private static final Logger log = LoggerFactory.getLogger(DbRepairHandler.class);
 
     private List<String> serviceNames = Arrays.asList(Constants.DBSVC_NAME, Constants.GEODBSVC_NAME);
-    private RecoveryStatus recoveryStatus;
 
-    public void setNodeRecovery(RecoveryStatus _recoveryStatus) {
-        recoveryStatus = _recoveryStatus;
-    }
+    @Autowired
+    private RecoveryManager recoveryManager;
 
-    public DbRepairUtil() {
+    public DbRepairHandler() {
     }
 
     private boolean isNodeRecoveryDbRepairInProgress() {
+        RecoveryStatus recoveryStatus = recoveryManager.queryNodeRecoveryStatus();
         if (recoveryStatus != null && recoveryStatus.getStatus() != null) {
             return recoveryStatus.getStatus() == RecoveryStatus.Status.REPAIRING;
         }
@@ -88,7 +89,7 @@ public class DbRepairUtil {
                 log.info("local or geo db repair failed");
                 repairStatus = getFailStatus(localDbState, geoDbState);
             } else if (localDbState.getStatus() == DbRepairStatus.Status.SUCCESS && geoDbState.getStatus() == DbRepairStatus.Status.SUCCESS) {
-                log.info("local and geo db repair failed");
+                log.info("local and geo db repair success");
                 repairStatus = getSuccessStatus(localDbState, geoDbState);
             }
         }

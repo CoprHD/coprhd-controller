@@ -68,7 +68,7 @@
 
     <bean id="recoveryManager" class="com.emc.storageos.systemservices.impl.recovery.RecoveryManager"/>
 
-    <bean id="dbRepairUtil" class="com.emc.storageos.systemservices.impl.util.DbRepairUtil"/>
+    <bean id="dbRepairUtil" class="com.emc.storageos.systemservices.impl.util.DbRepairHandler"/>
 
     <bean id="dbDowntimeTracker" class="com.emc.storageos.systemservices.impl.healthmonitor.DbDowntimeTracker"/>
 

@@ -2512,4 +2512,11 @@ public class VNXeStorageDevice extends VNXeOperations
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported());
     }
+    
+    @Override
+    public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        // If this operation is unsupported by default it's not necessarily an error
+        return;
+    }
 }

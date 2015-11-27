@@ -730,7 +730,7 @@ public class UnManagedFilesystemService extends TaggedResource {
      * @param umfsStoragePort
      * @param nasUri
      * @param dbClient
-     * @return
+     * @return StoragePort   
      */
     
     private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, DbClient dbClient,URI virtualArray){
@@ -754,13 +754,14 @@ public class UnManagedFilesystemService extends TaggedResource {
     		commonPorts.retainAll(virtualArrayPortsSet);
     	}
     	
-    	if(commonPorts.contains(umfsStoragePort.getId())){
-    		sp = umfsStoragePort;
-    	}else{
-    		List<String> tempList = new ArrayList<String>(commonPorts);
-    		Collections.shuffle(tempList);
-    		sp = dbClient.queryObject(StoragePort.class, URI.create(tempList.get(0)));
-    	}
+		if (commonPorts.contains(umfsStoragePort.getId())) {
+			sp = umfsStoragePort;
+		} else {
+			List<String> tempList = new ArrayList<String>(commonPorts);
+			Collections.shuffle(tempList);
+			sp = dbClient.queryObject(StoragePort.class,
+					URI.create(tempList.get(0)));
+		}
     	return sp;
     }
 
@@ -923,11 +924,10 @@ public class UnManagedFilesystemService extends TaggedResource {
         } else {
             matchedPorts = returnAllPortsforStgArrayAndVArray(system, storagePortsForVArray);
         }
-        
-        if (matchedPorts != null && !matchedPorts.isEmpty()) {
-        	// Shuffle Storageports and return the first one.
-                Collections.shuffle(matchedPorts);
-                sPort = _dbClient.queryObject(StoragePort.class, matchedPorts.get(0));
+		if (matchedPorts != null && !matchedPorts.isEmpty()) {
+			// Shuffle Storageports and return the first one.
+			Collections.shuffle(matchedPorts);
+			sPort = _dbClient.queryObject(StoragePort.class, matchedPorts.get(0));
         }
         return sPort;
     }

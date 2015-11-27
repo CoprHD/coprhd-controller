@@ -901,8 +901,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
         if (result.isCommandSuccess()) {
             cmdResult = BiosCommandResult.createSuccessfulResult();
         } else {
-            cmdResult = BiosCommandResult
-                    .createErrorResult(DeviceControllerErrors.vnx.unableToCreateFileSnapshot("Unable to perform snapshot operation"));
+            cmdResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToCreateFileSnapshot(result.getMessage()));
         }
         return cmdResult;
     }

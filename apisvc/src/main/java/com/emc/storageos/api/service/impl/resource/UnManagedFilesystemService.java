@@ -743,8 +743,8 @@ public class UnManagedFilesystemService extends TaggedResource {
     	    	
     	StringSet storagePorts=virtualNAS.getStoragePorts();
     	
-    	for(URI a : virtualArrayPorts){
-    		virtualArrayPortsSet.add(a.toString());
+    	for(URI tempVarrayPort : virtualArrayPorts){
+    		virtualArrayPortsSet.add(tempVarrayPort.toString());
     	}
     	
     	StringSet commonPorts =null;

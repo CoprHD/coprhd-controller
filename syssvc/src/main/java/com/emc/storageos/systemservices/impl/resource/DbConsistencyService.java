@@ -23,8 +23,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
-import com.emc.storageos.systemservices.impl.jobs.producer.DbConsistencyJobProducer;
-
+import com.emc.storageos.systemservices.impl.jobs.common.JobProducer;
 
 
 /**
@@ -35,8 +34,12 @@ import com.emc.storageos.systemservices.impl.jobs.producer.DbConsistencyJobProdu
 public class DbConsistencyService {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyService.class);
     private CoordinatorClient coordinator;
-    private DbConsistencyJobProducer jobProducer;
+    private JobProducer jobProducer;
 
+    /**
+     * Trigger db consistency check
+     * @return boolean to indicate if start db consistency check successfully or not
+     */
     @POST
     @Path("consistency")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -52,6 +55,10 @@ public class DbConsistencyService {
         return Response.ok().build();
     }
 
+    /**
+     * Get the status of db consistency check
+     * @return DbConsistencyStatusRestRep the status of db consistency check
+     */
     @GET
     @Path("consistency")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -62,6 +69,10 @@ public class DbConsistencyService {
         return toStatusRestRep(status);
     }
     
+    /**
+     * Cancel db consistency check if it's in progress
+     * @return boolean to indicate if db consistency check cancelled or not
+     */
     @POST
     @Path("consistency/cancel")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -96,7 +107,6 @@ public class DbConsistencyService {
         return this.coordinator.queryRuntimeState(Constants.DB_CONSISTENCY_STATUS,  DbConsistencyStatus.class);
     }
     
-    
     private void enqueueDbConsistencyJob() {
         DbConsistencyJob job = new DbConsistencyJob();
         job.setStatus(DbConsistencyStatusRestRep.Status.NOT_STARTED);
@@ -119,12 +129,12 @@ public class DbConsistencyService {
     }
 
 
-    public DbConsistencyJobProducer getJobProducer() {
+    public JobProducer getJobProducer() {
         return jobProducer;
     }
 
 
-    public void setJobProducer(DbConsistencyJobProducer jobProducer) {
+    public void setJobProducer(JobProducer jobProducer) {
         this.jobProducer = jobProducer;
     }
 }

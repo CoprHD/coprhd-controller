@@ -11,6 +11,7 @@ import com.emc.storageos.management.backup.BackupType;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.systemservices.TestProductName;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -217,6 +218,26 @@ class FakeUploader extends Uploader {
             }
         };
     }
+
+    @Override
+    public List<String> listFiles(String prefix) throws Exception {
+        if (prefix == null) {
+            return null;
+        }
+        List<String> fileNames = new ArrayList<>();
+        for (String key : this.fileMap.keySet()) {
+            if (key.startsWith(prefix)) {
+                fileNames.add(key);
+            }
+        }
+       return fileNames;
+    }
+
+    @Override
+    public void rename(String sourceFileName,String destFileName) {
+        this.fileMap.put(destFileName,this.fileMap.get(sourceFileName));
+        this.fileMap.remove(sourceFileName);
+    }
 }
 
 class FakeBackupClient extends BackupScheduler {
@@ -297,6 +318,7 @@ class FakeBackupClient extends BackupScheduler {
 
 class FakeConfiguration extends SchedulerConfig {
     public Calendar currentTime;
+    public BackupUploadStatus uploadStatus = new BackupUploadStatus();
 
     public FakeConfiguration() {
         super(null, null, null);
@@ -319,6 +341,16 @@ class FakeConfiguration extends SchedulerConfig {
 
     @Override
     public void persist() {
+    }
+
+    @Override
+    public BackupUploadStatus queryBackupUploadStatus() {
+        return uploadStatus;
+    }
+
+    @Override
+    public void persistBackupUploadStatus(BackupUploadStatus status) {
+        uploadStatus.update(status.getBackupName(), status.getStatus(), status.getProgress(), status.getErrorCode());
     }
 
     @Override

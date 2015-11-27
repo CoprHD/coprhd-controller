@@ -1136,15 +1136,14 @@ public class SmisCommandHelper implements SmisConstants {
                     _cimArgument.uint32(CP_EMC_NUMBER_OF_DEVICES, count),
                     _cimArgument.uint64(CP_SIZE, capacity),
                     _cimArgument.reference(CP_IN_POOL, poolPath),
-                    _cimArgument.referenceArray(CP_EMC_COLLECTIONS,
-                            new CIMObjectPath[] { volumeGroupPath }) };
+                    _cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)) };
         }
         return new CIMArgument[] {
                 _cimArgument.uint16(CP_ELEMENT_TYPE, STORAGE_VOLUME_VALUE),
                 _cimArgument.uint32(CP_EMC_NUMBER_OF_DEVICES, count),
                 _cimArgument.uint64(CP_SIZE, capacity),
                 _cimArgument.reference(CP_IN_POOL, poolPath),
-                _cimArgument.referenceArray(CP_EMC_COLLECTIONS, new CIMObjectPath[] { volumeGroupPath }) };
+                _cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)) };
     }
 
     public CIMArgument[] getCreateVolumesBasedOnVolumeGroupInputArguments80(
@@ -1161,8 +1160,7 @@ public class SmisCommandHelper implements SmisConstants {
                 toMultiElementArray(count, new UnsignedInteger64(Long.toString(capacity)))));
         list.add(_cimArgument.referenceArray(CP_IN_POOL,
                 toMultiElementArray(count, poolPath)));
-        list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS,
-                new CIMObjectPath[] { volumeGroupPath }));
+        list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)));
 
         if (label != null) {
             list.add(_cimArgument.stringArray(CP_ELEMENT_NAMES,
@@ -2285,12 +2283,17 @@ public class SmisCommandHelper implements SmisConstants {
     public void doApplyRecoverPointTag(final StorageSystem storageSystem,
             Volume volume, boolean flag) throws Exception {
         // Set/Unset the RP tag (if applicable)
-        if (volume.checkForRp() && storageSystem.getSystemType() != null
+        if (volume != null && storageSystem != null && volume.checkForRp() && storageSystem.getSystemType() != null
                 && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
             List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
             volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));
 
+            _log.info(String.format("Volume [%s](%s) will be %s for RP", 
+                    volume.getLabel(), volume.getId(),
+                    (flag ? "tagged" : "untagged")));
             setRecoverPointTag(storageSystem, volumePathList, flag);
+        } else {
+            _log.info(String.format("Volume [%s](%s) is not valid for RP tagging operation", volume.getLabel(), volume.getId()));
         }
     }
 

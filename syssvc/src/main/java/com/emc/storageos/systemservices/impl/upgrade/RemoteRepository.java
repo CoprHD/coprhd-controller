@@ -518,9 +518,10 @@ public class RemoteRepository {
             if (null != nameNode) {
                 String fileName = nameNode.getNodeValue();
                 if (fileName.endsWith(SOFTWARE_IMAGE_SUFFIX)) {
+                    String fileVersion = fileName.replace(SOFTWARE_IMAGE_SUFFIX,"");
                     Node urlNode = element.getAttributeNode("URL");
                     String fileUrl = urlNode.getNodeValue();
-                    versions.put(new SoftwareVersion(fileName), new URL(fileUrl));
+                    versions.put(new SoftwareVersion(fileVersion), new URL(fileUrl));
                 }
             }
         }
@@ -1056,9 +1057,10 @@ public class RemoteRepository {
             if (null != nameNode) {
                 String fileName = nameNode.getNodeValue();
                 if (fileName.endsWith(SOFTWARE_IMAGE_SUFFIX)) {
+                    String fileVersion = fileName.replace(SOFTWARE_IMAGE_SUFFIX,"");
                     Node catalogInfoNode = element.getAttributeNode("CatalogInfo");
                     String catalogInfo = catalogInfoNode.getNodeValue();
-                    SoftwareVersion tempVersion = new SoftwareVersion(fileName);
+                    SoftwareVersion tempVersion = new SoftwareVersion(fileVersion);
                     List<SoftwareVersion> tempList = new ArrayList<SoftwareVersion>();
                     if (!catalogInfo.equals("")) {
                         String upgradeFromInfoRaw = null;
@@ -1196,7 +1198,8 @@ public class RemoteRepository {
             if (null != nameNode) {
                 String fileName = nameNode.getNodeValue();
                 if (fileName.endsWith(SOFTWARE_IMAGE_SUFFIX)) {
-                    if (new SoftwareVersion(fileName).equals(version)) {
+                    String fileVersion = fileName.replace(SOFTWARE_IMAGE_SUFFIX,"");
+                    if (new SoftwareVersion(fileVersion).equals(version)) {
                         // Only find the node for image file of that particular version
                         Node catalogInfoNode = element.getAttributeNode("CatalogInfo");
                         String catalogInfo = catalogInfoNode.getNodeValue();
@@ -1333,7 +1336,8 @@ public class RemoteRepository {
             if (null != nameNode) {
                 String fileName = nameNode.getNodeValue();
                 if (fileName.endsWith(SOFTWARE_IMAGE_SUFFIX)) {
-                    SoftwareVersion tempVersion = new SoftwareVersion(fileName);
+                    String fileVersion = fileName.replace(SOFTWARE_IMAGE_SUFFIX,"");
+                    SoftwareVersion tempVersion = new SoftwareVersion(fileVersion);
                     if (newVersionList.contains(tempVersion)) {
                         Node catalogInfoNode = element.getAttributeNode("CatalogInfo");
                         String catalogInfo = catalogInfoNode.getNodeValue();

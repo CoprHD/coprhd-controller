@@ -469,8 +469,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("volumeExport")
     @AssetDependencies("exportedBlockVolume")
     public List<AssetOption> getExportsForExportedVolume(AssetOptionsContext ctx, URI volumeId) {
+        final ViPRCoreClient client = api(ctx);
         Set<NamedRelatedResourceRep> exports = getUniqueExportsForVolume(ctx, volumeId);
-        return createBaseResourceOptions(api(ctx).blockExports().getByRefs(exports));
+        return createExportWithVarrayOptions(client, client.blockExports().getByRefs(exports));
     }
 
     /**
@@ -498,6 +499,32 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             relatedRestReps.add(export.getExport());
         }
         return relatedRestReps;
+    }
+    
+    protected static List<AssetOption> createExportWithVarrayOptions(ViPRCoreClient client,
+            Collection<? extends ExportGroupRestRep> exportObjects) {
+        List<URI> varrayIds = getExportVirtualArrayIds(exportObjects);
+        Map<URI, VirtualArrayRestRep> varrayNames = getVirutalArrayNames(client, varrayIds);
+        List<AssetOption> options = Lists.newArrayList();
+        for (ExportGroupRestRep export : exportObjects) {
+            options.add(createExportWithVarrayOption(export, varrayNames));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    protected static AssetOption createExportWithVarrayOption(ExportGroupRestRep export, Map<URI, VirtualArrayRestRep> varrayNames) {
+        String varrayName = varrayNames.get(export.getVirtualArray().getId()).getName();
+        String label = getMessage("block.unexport.export", export.getName(), varrayName);
+        return new AssetOption(export.getId(), label);
+    }
+    
+    private static List<URI> getExportVirtualArrayIds(Collection<? extends ExportGroupRestRep> exportObjects) {
+        List<URI> varrayIds = Lists.newArrayList();
+        for (ExportGroupRestRep export : exportObjects) {
+            varrayIds.add(export.getVirtualArray().getId());
+        }
+        return varrayIds;
     }
 
     @Asset("unassignedBlockVolume")

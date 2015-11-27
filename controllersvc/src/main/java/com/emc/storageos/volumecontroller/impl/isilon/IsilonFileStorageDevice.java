@@ -2116,27 +2116,21 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
      * @param isilonExport
      */
     private void setExportRuleHostsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {
+    	
+    	ArrayList<String> clients = new ArrayList<String>();
+    	if(hosts != null && !hosts.isEmpty()) {
+    		clients.addAll(hosts);
+    	}
+    	
     	switch(type) {
     	case "root":
-    		if(hosts == null || hosts.isEmpty()) {
-        		isilonExport.setRootClients(new ArrayList<String>());
-        	} else {
-        		isilonExport.setRootClients(new ArrayList<String>(hosts));
-        	}
+        	isilonExport.setRootClients(clients);
     		break;
     	case "rw":
-    		if(hosts == null || hosts.isEmpty()) {
-        		isilonExport.setReadWriteClients(new ArrayList<String>());
-        	} else {
-        		isilonExport.setReadWriteClients(new ArrayList<String>(hosts));
-        	}
+    		isilonExport.setReadWriteClients(clients);
     		break;
     	case "ro":
-    		if(hosts == null || hosts.isEmpty()) {
-        		isilonExport.setReadOnlyClients(new ArrayList<String>());
-        	} else {
-        		isilonExport.setReadOnlyClients(new ArrayList<String>(hosts));
-        	}
+    		isilonExport.setReadOnlyClients(clients);
     		break;
     	}
     }

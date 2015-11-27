@@ -17,14 +17,12 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.ecs.api.ECSApi;
@@ -34,11 +32,9 @@ import com.emc.storageos.ecs.api.ECSStoragePool;
 import com.emc.storageos.ecs.api.ECSStoragePort;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
-import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.ecs.ECSCollectionException;
-import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 /**
  * Class for ECS discovery object storage device
@@ -76,6 +72,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
     /**
      * Get storage pool and storage ports
      */
+    @SuppressWarnings("deprecation")
     @Override
     public void discover(AccessProfile accessProfile)
             throws BaseCollectionException {
@@ -131,7 +128,6 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 storagePool = null;
                 String storagePoolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem, ecsPool.getId(), NativeGUIDGenerator.POOL);
-                @SuppressWarnings("deprecation")
                 List<URI> poolURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
                         getStoragePoolByNativeGuidConstraint(storagePoolNativeGuid));
 
@@ -199,7 +195,6 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                         storageSystem, ecsPort.getIpAddress(),
                         NativeGUIDGenerator.PORT);
                 // Check if storage port was already discovered
-                @SuppressWarnings("deprecation")
                 List<URI> portURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
                         getStoragePortByNativeGuidConstraint(portNativeGuid));
                 for (URI portUri : portURIs) {
@@ -295,6 +290,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
      *
      * @param system  the system that failed discovery.
      */
+    @SuppressWarnings("deprecation")
     private void cleanupDiscovery(StorageSystem system) {
         try {
             system.setReachableStatus(false);

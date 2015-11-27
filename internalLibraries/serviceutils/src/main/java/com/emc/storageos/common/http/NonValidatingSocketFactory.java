@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.isilon.restapi;
+package com.emc.storageos.common.http;
 
 import org.apache.commons.httpclient.ConnectTimeoutException;
 import org.apache.commons.httpclient.params.HttpConnectionParams;
@@ -19,7 +19,7 @@ import java.security.cert.X509Certificate;
 /**
  * Non validating socket factory for use with Isilon REST client
  */
-class NonValidatingSocketFactory implements ProtocolSocketFactory {
+public class NonValidatingSocketFactory implements ProtocolSocketFactory {
     private SSLContext _sslContext;
 
     /**

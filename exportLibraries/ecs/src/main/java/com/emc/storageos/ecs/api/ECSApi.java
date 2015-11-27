@@ -8,7 +8,9 @@ package com.emc.storageos.ecs.api;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -18,6 +20,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.common.http.RESTClient;
 import com.sun.jersey.api.client.ClientResponse;
 
 /**
@@ -44,6 +47,10 @@ public class ECSApi {
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
+    private String username;
+
+    private String password;
+
     /**
      * Constructor for using http connections
      * 
@@ -54,6 +61,13 @@ public class ECSApi {
         _client = client;
     }
 
+    public ECSApi(URI endpoint, RESTClient restClient, String username, String password) {
+        _baseUrl = endpoint;
+        _client = restClient;
+        this.username = username;
+        this.password = password;
+    }
+    
     /**
      * Close client resources
      */
@@ -71,7 +85,7 @@ public class ECSApi {
         List<String> authTokenList = null;
         ClientResponse clientResp = null;
 
-        clientResp = _client.get(_baseUrl.resolve(URI_LOGIN));
+        clientResp = _client.get(_baseUrl.resolve(URI_LOGIN), username, password);
         if (clientResp.getStatus() != 200) {
             throw ECSException.exceptions.unableToConnect(_baseUrl, clientResp.getStatus());
         }
@@ -93,12 +107,16 @@ public class ECSApi {
      */
     public boolean isSystemAdmin() throws ECSException {
         ClientResponse clientResp = null;
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/json");
+        headers.put("X-SDS-AUTH-TOKEN", authToken);
 
-        clientResp = _client.get_json(_baseUrl.resolve(URI_WHOAMI), authToken);
+        clientResp = _client.get(_baseUrl.resolve(URI_WHOAMI), headers, username, password);
         if (clientResp.getStatus() != 200) {
             if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
                 getAuthToken();
-                clientResp = _client.get_xml(_baseUrl.resolve(URI_WHOAMI), authToken);
+                headers.put("Content-Type", "application/xml");
+                clientResp = _client.get(_baseUrl.resolve(URI_WHOAMI), headers, username, password);
             }
 
             if (clientResp.getStatus() != 200) {
@@ -123,12 +141,16 @@ public class ECSApi {
     public List<ECSStoragePool> getStoragePools() throws ECSException {
         _log.info("ECSApi:getStoragePools enter");
         ClientResponse clientResp = null;
-
-        clientResp = _client.get_json(_baseUrl.resolve(URI_STORAGE_POOL), authToken);
+        
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/json");
+        headers.put("X-SDS-AUTH-TOKEN", authToken);
+        
+        clientResp = _client.get(_baseUrl.resolve(URI_STORAGE_POOL), headers, username, password);
         if (clientResp.getStatus() != 200) {
             if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
                 getAuthToken();
-                clientResp = _client.get_json(_baseUrl.resolve(URI_STORAGE_POOL), authToken);
+                clientResp = _client.get(_baseUrl.resolve(URI_STORAGE_POOL), headers, username, password);
             }
 
             if (clientResp.getStatus() != 200) {
@@ -170,11 +192,11 @@ public class ECSApi {
                     ecsVarray = ECS_VARRAY_BASE + vArrayId + ".json";
                     uriEcsVarray = URI.create(ecsVarray);
 
-                    clientRespVarray = _client.get_json(_baseUrl.resolve(uriEcsVarray), authToken);
+                    clientRespVarray = _client.get(_baseUrl.resolve(uriEcsVarray), headers, username, password);
                     if (clientRespVarray.getStatus() != 200) {
                         if (clientRespVarray.getStatus() == 401 || clientRespVarray.getStatus() == 302) {
                             getAuthToken();
-                            clientRespVarray = _client.get_json(_baseUrl.resolve(uriEcsVarray), authToken);
+                            clientRespVarray = _client.get(_baseUrl.resolve(uriEcsVarray), headers, username, password);
                         }
 
                         if (clientRespVarray.getStatus() != 200) {
@@ -392,62 +414,77 @@ public class ECSApi {
             }
         }
     }
-    
+
     /**
      * Get current owner of the bucket
      * 
-     * @param bucketName 	Name of the bucket
-     * @return				Owner of bucket
+     * @param bucketName Name of the bucket
+     * @return Owner of bucket
      * @throws ECSException If error occurs
      */
     public String getBucketOwner(String bucketName, String namespace) throws ECSException {
-    	ClientResponse clientResp = null;
-    	String owner = null;
+        ClientResponse clientResp = null;
+        String owner = null;
 
-    	final String path = MessageFormat.format(URI_BUCKET_INFO, bucketName, namespace);
-    	try {
-    		clientResp = get(path);
-    		if (clientResp != null && clientResp.getStatus() == 200) {
-    			owner = getFieldValue(clientResp, "owner");
-    		}
-    	} catch (Exception e) {
-    		_log.error("Error occured while getting owner of bucket : {}", bucketName, e);
-    	} finally {
-    		if (clientResp == null) {
-    			throw ECSException.exceptions.getBucketOwnerFailed(bucketName, "no response");
-    		} else if (clientResp.getStatus() != 200) {
-    			String resp = getResponseDetails(clientResp);
-    			closeResponse(clientResp);
-    			throw ECSException.exceptions.getBucketOwnerFailed(bucketName, resp);
-    		}
-    		closeResponse(clientResp);
-    		return owner;
-    	}
+        final String path = MessageFormat.format(URI_BUCKET_INFO, bucketName, namespace);
+        try {
+            clientResp = get(path);
+            if (clientResp != null && clientResp.getStatus() == 200) {
+                owner = getFieldValue(clientResp, "owner");
+            }
+        } catch (Exception e) {
+            _log.error("Error occured while getting owner of bucket : {}", bucketName, e);
+        } finally {
+            if (clientResp == null) {
+                throw ECSException.exceptions.getBucketOwnerFailed(bucketName, "no response");
+            } else if (clientResp.getStatus() != 200) {
+                String resp = getResponseDetails(clientResp);
+                closeResponse(clientResp);
+                throw ECSException.exceptions.getBucketOwnerFailed(bucketName, resp);
+            }
+            closeResponse(clientResp);
+        }
+        return owner;
     }
-    
+
     private ClientResponse get(final String uri) {
-        ClientResponse clientResp = _client.get_json(_baseUrl.resolve(uri), authToken);
+        Map<String, String> headers = new HashMap<>();
+        
+        headers.put("Content-Type", "application/json");
+        headers.put("X-SDS-AUTH-TOKEN", authToken);
+        
+        ClientResponse clientResp = _client.get(_baseUrl.resolve(uri), headers, username, password);
         if (clientResp != null && clientResp.getStatus() == 401) {
             getAuthToken();
-            clientResp = _client.get_json(_baseUrl.resolve(uri), authToken);
+            clientResp = _client.get(_baseUrl.resolve(uri), headers, username, password);
         }
         return clientResp;
     }
-    
+
     private ClientResponse post(final String uri, final String body) {
-        ClientResponse clientResp = _client.post_json(_baseUrl.resolve(uri), authToken, body);
+        Map<String, String> headers = new HashMap<>();
+        
+        headers.put("Content-Type", "application/json");
+        headers.put("X-SDS-AUTH-TOKEN", authToken);
+        
+        ClientResponse clientResp = _client.post(_baseUrl.resolve(uri), headers, body, username, password);
         if (clientResp.getStatus() == 401) {
             getAuthToken();
-            clientResp = _client.post_json(_baseUrl.resolve(uri), authToken, body);
+            clientResp = _client.post(_baseUrl.resolve(uri), headers, body, username, password);
         }
         return clientResp;
     }
 
     private ClientResponse put(final String uri, final String body) {
-        ClientResponse clientResp = _client.put_json(_baseUrl.resolve(uri), authToken, body);
+        Map<String, String> headers = new HashMap<>();
+        
+        headers.put("Content-Type", "application/json");
+        headers.put("X-SDS-AUTH-TOKEN", authToken);
+        
+        ClientResponse clientResp = _client.put(_baseUrl.resolve(uri), headers, body, username, password);
         if (clientResp.getStatus() == 401) {
             getAuthToken();
-            clientResp = _client.put_json(_baseUrl.resolve(uri), authToken, body);
+            clientResp = _client.put(_baseUrl.resolve(uri), headers, body, username, password);
         }
         return clientResp;
     }
@@ -472,12 +509,12 @@ public class ECSApi {
         }
         return detailedResponse;
     }
-    
+
     private String getFieldValue(ClientResponse clientResp, String field) {
         String value = null;
         try {
             JSONObject jObj = clientResp.getEntity(JSONObject.class);
-            value = jObj.getString(field); 
+            value = jObj.getString(field);
         } catch (Exception e) {
             _log.error("Unable to get field value: %s", field);
         }

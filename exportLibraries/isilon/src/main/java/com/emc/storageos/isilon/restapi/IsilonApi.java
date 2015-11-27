@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.MultivaluedMap;
 
@@ -21,6 +22,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.common.http.RESTClient;
 import com.emc.storageos.isilon.restapi.IsilonOneFS8Event.Events;
 import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
@@ -42,6 +44,7 @@ public class IsilonApi {
     private final RESTClient _client;
 
     private static final URI URI_IFS = URI.create("/namespace/");
+    @SuppressWarnings("unused")
     private static final URI URI_ALIAS = URI.create("/platform/1/protocols/nfs/aliases/");
     private static final URI URI_NFS_EXPORTS = URI.create("/platform/1/protocols/nfs/exports/");
     private static final URI URI_SMB_SHARES = URI.create("/platform/1/protocols/smb/shares/");
@@ -63,6 +66,10 @@ public class IsilonApi {
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
+
+    private String username;
+
+    private String password;
 
     /**
      * Class representing Isilon list API return value
@@ -105,14 +112,16 @@ public class IsilonApi {
         }
     }
 
-    /**
-     * Constructor for using http connections
-     * 
-     * @throws IsilonException
-     */
-    public IsilonApi(URI endpoint, RESTClient client) {
+    public IsilonApi(URI endpoint, RESTClient restClient) {
         _baseUrl = endpoint;
-        _client = client;
+        _client = restClient;
+    }
+
+    public IsilonApi(URI endpoint, RESTClient restClient, String username, String password) {
+        _baseUrl = endpoint;
+        _client = restClient;
+        this.username = username;
+        this.password = password;
     }
 
     /**
@@ -130,7 +139,7 @@ public class IsilonApi {
      */
     public IsilonClusterInfo getClusterInfo() throws IsilonException {
         ClientResponse clientResp = null;
-        clientResp = _client.get(_baseUrl.resolve(URI_CLUSTER));
+        clientResp = _client.get(_baseUrl.resolve(URI_CLUSTER), username, password);
         if (clientResp.getStatus() != 200) {
             throw IsilonException.exceptions.unableToConnect(_baseUrl);
         }
@@ -165,7 +174,7 @@ public class IsilonApi {
     public IsilonClusterConfig getClusterConfig() throws IsilonException {
         ClientResponse clientResp = null;
         try {
-            clientResp = _client.get(_baseUrl.resolve(URI_CLUSTER_CONFIG));
+            clientResp = _client.get(_baseUrl.resolve(URI_CLUSTER_CONFIG), username, password);
             if (clientResp.getStatus() != 200) {
                 throw IsilonException.exceptions.unableToGetIsilonClusterConfig(clientResp.getStatus());
             }
@@ -199,7 +208,7 @@ public class IsilonApi {
         try {
             IsilonList<String> ret = new IsilonList<String>();
             String query = (resumeToken == null) ? "?type=container" : "?type=container&resume=" + resumeToken;
-            clientResp = _client.get(_baseUrl.resolve(URI_IFS.resolve(fspath + query)));
+            clientResp = _client.get(_baseUrl.resolve(URI_IFS.resolve(fspath + query)), username, password);
 
             if (clientResp.getStatus() != 200) {
                 processErrorResponse("list", "directories", clientResp.getStatus(),
@@ -242,7 +251,7 @@ public class IsilonApi {
         ClientResponse resp = null;
         try {
             sLogger.debug("IsilonApi existsDir {} - start", fspath);
-            resp = _client.head(_baseUrl.resolve(URI_IFS.resolve(fspath)));
+            resp = _client.head(_baseUrl.resolve(URI_IFS.resolve(fspath)), username, password);
             sLogger.debug("IsilonApi existsDir {} - complete", fspath);
             if (resp.getStatus() != 200) {
                 return false;
@@ -291,12 +300,17 @@ public class IsilonApi {
             }
 
             MultivaluedMap<String, String> queryParams = null;
+            Map<String, String> headers = new HashMap<>();
+            
+            headers.put("x-isi-ifs-target-type", "container");
+            headers.put("x-isi-ifs-access-control", "0755");
+            
             if (recursive) {
                 queryParams = new MultivaluedMapImpl();
                 queryParams.add("recursive", "1");
             }
             sLogger.debug("IsilonApi createDir {} - start", fspath);
-            resp = _client.put(_baseUrl.resolve(URI_IFS.resolve(fspath)), queryParams, "");
+            resp = _client.put(_baseUrl.resolve(URI_IFS.resolve(fspath)), queryParams, headers,"", username, password);
             sLogger.debug("IsilonApi createDir {} - complete", fspath);
             if (resp.getStatus() != 200) {
                 processErrorResponse("create directory", fspath, resp.getStatus(),
@@ -339,7 +353,7 @@ public class IsilonApi {
         ClientResponse resp = null;
         try {
             resp = _client.delete(_baseUrl.resolve(URI_IFS.resolve(fspath
-                    + (recursive ? "?recursive=1" : ""))));
+                    + (recursive ? "?recursive=1" : ""))), username, password);
             if (resp.getStatus() != 200 && resp.getStatus() != 204 && resp.getStatus() != 404) {
                 processErrorResponse("delete", "directory: " + fspath, resp.getStatus(),
                         resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);
@@ -373,7 +387,7 @@ public class IsilonApi {
                 // we have a resume token, add it to the url
                 getUrl = getUrl.resolve("?resume=" + resumeToken);
             }
-            resp = _client.get(getUrl);
+            resp = _client.get(getUrl, username, password);
             JSONObject obj = resp.getEntity(JSONObject.class);
             IsilonList<T> ret = new IsilonList<T>();
             if (resp.getStatus() == 200) {
@@ -434,7 +448,10 @@ public class IsilonApi {
         try {
             String body = new Gson().toJson(obj);
             String id = null;
-            resp = _client.post(url, body);
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Content-Type", "application/json");
+            
+            resp = _client.post(url, headers, body, username, password);
             if (resp.hasEntity()) {
                 JSONObject jObj = resp.getEntity(JSONObject.class);
                 // JSONObject jObj = checkStatusAndParseObject(resp, "create " +
@@ -474,7 +491,7 @@ public class IsilonApi {
     private void delete(URI url, String id, String key) throws IsilonException {
         ClientResponse resp = null;
         try {
-            resp = _client.delete(url.resolve(id));
+            resp = _client.delete(url.resolve(id), username, password);
             if (resp.getStatus() != 200 && resp.getStatus() != 204 && resp.getStatus() != 404) {
                 processErrorResponse("delete", key + ": " + id, resp.getStatus(),
                         resp.hasEntity() ? resp.getEntity(JSONObject.class) : null);
@@ -508,7 +525,7 @@ public class IsilonApi {
         ClientResponse resp = null;
         try {
             T returnInstance = null;
-            resp = _client.get(url.resolve(id));
+            resp = _client.get(url.resolve(id), username, password);
 
             if (resp.hasEntity()) {
                 JSONObject jObj = resp.getEntity(JSONObject.class);
@@ -554,7 +571,12 @@ public class IsilonApi {
         ClientResponse resp = null;
         try {
             String body = new Gson().toJson(obj);
-            resp = _client.put(url.resolve(id), null, body);
+            Map<String, String> headers = new HashMap<>();
+
+            headers.put("x-isi-ifs-target-type", "container");
+            headers.put("x-isi-ifs-access-control", "0755");
+
+            resp = _client.put(url.resolve(id), headers, body, username, password);
             if (resp.getStatus() != 204) {
                 // error
                 if (resp.hasEntity()) {
@@ -591,7 +613,12 @@ public class IsilonApi {
         ClientResponse resp = null;
         try {
             String body = new Gson().toJson(obj);
-            resp = _client.put(url.resolve(id), null, body);
+            Map<String, String> headers = new HashMap<>();
+            
+            headers.put("x-isi-ifs-target-type", "container");
+            headers.put("x-isi-ifs-access-control", "0755");
+            
+            resp = _client.put(url.resolve(id), headers, body, username, password);
             if (resp.getStatus() != 200) {
                 // error
                 if (resp.hasEntity()) {
@@ -697,7 +724,7 @@ public class IsilonApi {
     public void modifyExport(String id, IsilonExport exp) throws IsilonException {
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
-    
+
     /**
      * Modify export in access zone
      * 
@@ -706,7 +733,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
     }
 
@@ -729,7 +756,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonExport getExport(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         return get(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "exports", IsilonExport.class);
     }
 
@@ -742,7 +769,7 @@ public class IsilonApi {
     public void deleteExport(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export");
     }
-    
+
     /**
      * Delete export in access zone
      * 
@@ -750,7 +777,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteExport(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export");
     }
 
@@ -1034,7 +1061,7 @@ public class IsilonApi {
     public void modifyShare(String id, IsilonSMBShare s) throws IsilonException {
         modify(_baseUrl.resolve(URI_SMB_SHARES), id, "share", s);
     }
-    
+
     /**
      * Modify SMB share in access zone
      * 
@@ -1043,7 +1070,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyShare(String id, String zoneName, IsilonSMBShare s) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         modify(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share", s);
     }
 
@@ -1067,7 +1094,7 @@ public class IsilonApi {
      */
     public IsilonSMBShare getShare(String id, String zoneName) throws IsilonException {
 
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         return get(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "shares", IsilonSMBShare.class);
     }
 
@@ -1080,7 +1107,7 @@ public class IsilonApi {
     public void deleteShare(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_SMB_SHARES), id, "share");
     }
-    
+
     /**
      * Delete SMB share in access zone
      * 
@@ -1088,7 +1115,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteShare(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         delete(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share");
     }
 
@@ -1142,7 +1169,7 @@ public class IsilonApi {
     public IsilonSmartConnectInfo getSmartConnectInfo() throws IsilonException {
         ClientResponse clientResp = null;
         try {
-            clientResp = _client.get(_baseUrl.resolve(URI_STORAGE_PORTS));
+            clientResp = _client.get(_baseUrl.resolve(URI_STORAGE_PORTS), username, password);
             if (clientResp.getStatus() != 200) {
                 throw IsilonException.exceptions.getStorageConnectionInfoFailedOnIsilonArray(clientResp.getStatus());
             }
@@ -1162,10 +1189,11 @@ public class IsilonApi {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public IsilonSmartConnectInfoV2 getSmartConnectInfoV2() throws IsilonException {
         ClientResponse clientResp = null;
         try {
-            clientResp = _client.get(_baseUrl.resolve(URI_STORAGE_PORTS));
+            clientResp = _client.get(_baseUrl.resolve(URI_STORAGE_PORTS), username, password);
             if (clientResp.getStatus() != 200) {
                 sLogger.debug("Response: Exception :" + clientResp.toString());
                 throw new IsilonException(clientResp.getStatus() + "");
@@ -1322,7 +1350,7 @@ public class IsilonApi {
         ClientResponse clientResp = null;
         try {
             clientResp = _client.get(_baseUrl.resolve(URI_STATS.resolve(String.format(
-                    "current?key=%1$s&devid=0", key))));
+                    "current?key=%1$s&devid=0", key))), username, password);
             if (clientResp.getStatus() != 200) {
                 throw IsilonException.exceptions.getCurrentStatisticsFailedOnIsilonArray(clientResp.getStatus());
             }
@@ -1331,7 +1359,7 @@ public class IsilonApi {
             JSONObject obj = resp.getJSONObject(key);
 
             HashMap<String, IsilonStats.StatValueCurrent<T>> retMap = new HashMap<String, IsilonStats.StatValueCurrent<T>>();
-            Iterator it = obj.keys();
+            Iterator<?> it = obj.keys();
             while (it.hasNext()) {
                 String entryKey = it.next().toString();
                 JSONObject entryObj = obj.getJSONObject(entryKey);
@@ -1379,7 +1407,7 @@ public class IsilonApi {
         ClientResponse clientResp = null;
         try {
             clientResp = _client.get(_baseUrl.resolve(URI_STATS.resolve(String.format(
-                    "history?key=%1$s&devid=0&begin=%2$s", key, begin))));
+                    "history?key=%1$s&devid=0&begin=%2$s", key, begin))), username, password);
             if (clientResp.getStatus() != 200) {
                 throw IsilonException.exceptions.getStatisticsHistoryFailedOnIsilonArray(clientResp.getStatus());
             }
@@ -1387,7 +1415,7 @@ public class IsilonApi {
             JSONObject resp = clientResp.getEntity(JSONObject.class);
             JSONObject obj = resp.getJSONObject(key);
             HashMap<String, IsilonStats.StatValueHistory<T>> retMap = new HashMap<String, IsilonStats.StatValueHistory<T>>();
-            Iterator it = obj.keys();
+            Iterator<?> it = obj.keys();
             while (it.hasNext()) {
                 String entryKey = it.next().toString();
                 JSONObject entryObj = obj.getJSONObject(entryKey);
@@ -1441,7 +1469,7 @@ public class IsilonApi {
         ArrayList<IsilonStats.Protocol> statProtocols = new ArrayList<IsilonStats.Protocol>();
         ClientResponse clientResp = null;
         try {
-            clientResp = _client.get(_baseUrl.resolve(URI_STATS.resolve("protocols")));
+            clientResp = _client.get(_baseUrl.resolve(URI_STATS.resolve("protocols")), username, password);
             if (clientResp.getStatus() != 200) {
                 throw IsilonException.exceptions.getStatisticsProtocolFailedOnIsilonArray(clientResp.getStatus());
             }
@@ -1508,9 +1536,9 @@ public class IsilonApi {
 
             // Check if ISILON ONEFS version is 8.0 and more to get NFSV4 details
             if (firmwareVersion.startsWith("8")) {
-                resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS_ONEFS8));
+                resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS_ONEFS8), username, password);
             } else {
-                resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS));
+                resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS), username, password);
             }
             sLogger.debug("IsilonApi check nfsV4 support retrieve global status - complete");
 
@@ -1531,13 +1559,13 @@ public class IsilonApi {
         }
         return isNfsv4Enabled;
     }
-    
+
     private String getURIWithZoneName(String id, String zoneName) {
         StringBuffer buffer = new StringBuffer(id);
         buffer.append("?zone=");
         String accesszoneName = zoneName.replace(" ", "%20");
         buffer.append(accesszoneName);
-    	return buffer.toString();
+        return buffer.toString();
     }
 
 }

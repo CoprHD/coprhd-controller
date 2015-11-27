@@ -36,7 +36,7 @@ public class IsilonApiTest {
             _factory = new IsilonApiFactory();
         }
         _factory.init();
-        _client = _factory.getRESTClient(URI.create(uri), userName, password);    // 7.0 BETA 3
+        _client = _factory.getRESTClient(URI.create(uri));    // 7.0 BETA 3
     }
 
     @Test
@@ -211,7 +211,7 @@ public class IsilonApiTest {
 
         // existsDir - negative
         try {
-            IsilonApi clientError = _factory.getRESTClient(URI.create("https://10.0.0.0:8080"), "root", "sos");
+            IsilonApi clientError = _factory.getRESTClient(URI.create("https://10.0.0.0:8080"));
             clientError.existsDir(_test_path);  // expected to throw
             Assert.assertTrue("Attempt to use dummy client succeeded.", false);
         } catch (Exception ex) {

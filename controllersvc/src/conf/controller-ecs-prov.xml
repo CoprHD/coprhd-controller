@@ -4,51 +4,17 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
+	<import resource="classpath:controller-common-http.xml" />
+
 	<bean id="ecsDevice"
 		class="com.emc.storageos.volumecontroller.impl.ecs.ECSObjectStorageDevice">
-		<property name="ECSApiFactory" ref="ecsapifactory">
-		</property>
+		<property name="ECSApiFactory" ref="ecsapifactory" />
 		<property name="dbClient" ref="dbclient" />
 	</bean>
 
 	<bean id="ecsapifactory" class="com.emc.storageos.ecs.api.ECSApiFactory"
 		init-method="init">
-		<property name="clientHandler" ref="ecsHttpClientHandler" />
-	</bean>
-
-	<bean name="ecsHttpClientHandler" class="com.sun.jersey.client.apache.ApacheHttpClientHandler">
-		<constructor-arg ref="ecsHttpClient" />
-	</bean>
-
-	<bean name="ecsHttpClient" class="org.apache.commons.httpclient.HttpClient">
-		<constructor-arg ref="ecsHttpConnManager" />
-	</bean>
-
-	<bean name="ecsHttpConnManager"
-		class="org.apache.commons.httpclient.MultiThreadedHttpConnectionManager"
-		destroy-method="shutdown">
-		<property name="params" ref="ecsHttpConnParams" />
-	</bean>
-
-	<bean name="ecsHttpConnParams"
-		class="org.apache.commons.httpclient.params.HttpConnectionManagerParams">
-		<property name="defaultMaxConnectionsPerHost" value="100" />
-		<property name="maxTotalConnections" value="300" />
-		<property name="tcpNoDelay" value="true" />
-		<property name="connectionTimeout" value="30000" />
-		<property name="soTimeout" value="3600000" />
-	</bean>
-
-	<bean
-		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-		<property name="targetObject" ref="ecsHttpConnParams" />
-		<property name="targetMethod" value="setParameter" />
-		<property name="arguments">
-			<list>
-				<value>http.method.retry-handler</value>
-				<bean class="com.emc.storageos.ecs.http.ECSHttpRetryMethodhandler" />
-			</list>
-		</property>
+		<property name="restClient" ref="controllerRestClient" />
 	</bean>
 
 </beans>

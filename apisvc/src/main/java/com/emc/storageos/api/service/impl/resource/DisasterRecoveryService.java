@@ -8,6 +8,7 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+
 import javax.crypto.SecretKey;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -15,6 +16,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.api.service.impl.resource.utils.InternalSiteServiceClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -57,6 +59,7 @@ import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -135,7 +138,8 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public SiteRestRep addStandby(SiteAddParam param) {
-        log.info("Retrieving standby site config from: {}", param.getVip());
+        long startTime = System.currentTimeMillis();
+        log.info("Retrieving standby site config from: {}, current time: {}", param.getVip(), startTime);
 
         List<Site> existingSites = drUtil.listStandbySites();
 
@@ -180,6 +184,7 @@ public class DisasterRecoveryService {
             log.info("Persist standby site to ZK {}", shortId);
             // coordinator.setTargetInfo(standbySite);
             coordinator.persistServiceConfiguration(standbySite.toConfiguration());
+            log.info(String.format("HYPERV_DETECT: site %s state to STANDBY_ADDING at %s", standbySite.getUuid(), new Date()));
 
             // wake up syssvc to regenerate configurations
             drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_ADD_STANDBY);
@@ -196,6 +201,8 @@ public class DisasterRecoveryService {
 
             auditDisasterRecoveryOps(OperationTypeEnum.ADD_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null,
                     param.getVip(), param.getName());
+            long endTime = System.currentTimeMillis();
+            PlatformUtils.logTimeInterval(log, "add_rest_api", startTime, endTime);
             return siteMapper.map(standbySite);
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
@@ -262,8 +269,11 @@ public class DisasterRecoveryService {
     @ExcludeLicenseCheck
     public Response syncSites(SiteConfigParam configParam) {
         log.info("sync sites from acitve site");
-
-        return initStandby(configParam);
+        long start = System.currentTimeMillis();
+        Response r = initStandby(configParam);
+        long end = System.currentTimeMillis();
+        PlatformUtils.logTimeInterval(log, "syn_standby_rest", start, end);
+        return r;
     }
 
     /**

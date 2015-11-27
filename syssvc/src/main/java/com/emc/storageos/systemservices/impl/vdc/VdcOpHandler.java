@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.db.exceptions.RetryableDatabaseException;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
+import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -75,8 +76,13 @@ public abstract class VdcOpHandler {
     
     public VdcOpHandler() {
     }
-    
-    public abstract void execute() throws Exception;
+    public void execute() throws Exception {
+        long startTime = System.currentTimeMillis();
+        innerExecute();
+        long endTime = System.currentTimeMillis();
+        PlatformUtils.logTimeInterval(log, "reconfig_VdcOpHandler", startTime, endTime);
+    }
+    public abstract void innerExecute() throws Exception;
     
     /**
      * No-op - flush vdc config to local only
@@ -86,7 +92,7 @@ public abstract class VdcOpHandler {
         }
         
         @Override
-        public void execute() {
+        public void innerExecute() {
             flushVdcConfigToLocal();
         }
     }
@@ -103,7 +109,7 @@ public abstract class VdcOpHandler {
          * @throws Exception
          */
         @Override
-        public void execute() throws Exception {
+        public void innerExecute() throws Exception {
             syncFlushVdcConfigToLocal();
             try {
                 refreshIPsec();
@@ -123,7 +129,7 @@ public abstract class VdcOpHandler {
         }
         
         @Override
-        public void execute() throws Exception {
+        public void innerExecute() throws Exception {
             if (drUtil.isActiveSite()) {
                 log.info("Acquiring lock {} to update default properties of standby", LOCK_ADD_STANDBY);
                 InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_ADD_STANDBY);
@@ -163,7 +169,7 @@ public abstract class VdcOpHandler {
         }
         
         @Override
-        public void execute() throws Exception {
+        public void innerExecute() throws Exception {
             flushVdcConfigToLocal();
             checkDataRevision();
         }
@@ -208,6 +214,7 @@ public abstract class VdcOpHandler {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
                         log.info("Step3: Reach phase 2 agreement for data revision change");
                         localRepository.setDataRevision(targetDataRevision, true);
+                        log.info(String.format("%s: new added standby prepare to restart", PlatformUtils.hypervTag));
                         localRepository.reboot();
                     } else {
                         log.info("Step3: Failed to reach phase 2 agreement. Rollback revision change");
@@ -233,7 +240,7 @@ public abstract class VdcOpHandler {
         }
         
         @Override
-        public void execute() throws Exception {
+        public void innerExecute() throws Exception {
             log.info("Processing standby removal");
             if (drUtil.isActiveSite()) {
                 log.info("Active site - start removing db nodes from gossip and strategy options");
@@ -310,7 +317,7 @@ public abstract class VdcOpHandler {
         }
         
         @Override
-        public void execute() throws Exception {
+        public void innerExecute() throws Exception {
             SiteState localSiteState = drUtil.getLocalSite().getState();
             if (localSiteState.equals(SiteState.STANDBY_PAUSING) || localSiteState.equals(SiteState.STANDBY_PAUSED)) {
                 checkAndPauseOnStandby();
@@ -428,7 +435,7 @@ public abstract class VdcOpHandler {
         }
         
         @Override
-        public void execute() throws Exception {
+        public void innerExecute() throws Exception {
             Site localSite = drUtil.getLocalSite();
             if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
                 // on resuming site, add db nodes back in strategy options and rebuild data
@@ -511,7 +518,7 @@ public abstract class VdcOpHandler {
         }
         
         @Override
-        public void execute() throws Exception {
+        public void innerExecute() throws Exception {
             Site site = drUtil.getLocalSite();
             
             // Reload coordinator configuration on all sites
@@ -649,7 +656,7 @@ public abstract class VdcOpHandler {
         }
         
         @Override
-        public void execute() throws Exception {
+        public void innerExecute() throws Exception {
             Site site = drUtil.getLocalSite();
             if (isNewActiveSiteForFailover(site)) {
                 removeDbNodesOfOldActiveSite();

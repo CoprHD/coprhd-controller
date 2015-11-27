@@ -32,10 +32,12 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
+
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +81,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.password.PasswordUtils;
+import com.emc.storageos.services.util.PlatformUtils;
 
 /**
  * Utility class for initializing DB schema from model classes
@@ -354,6 +357,7 @@ public class SchemaUtil {
 
         if (currentSite.getState().equals(SiteState.STANDBY_ADDING) ||
             currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+            _log.info(String.format("%s: convert from adding to syncing", PlatformUtils.hypervTag));
             currentSite.setState(SiteState.STANDBY_SYNCING);
             _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
         }

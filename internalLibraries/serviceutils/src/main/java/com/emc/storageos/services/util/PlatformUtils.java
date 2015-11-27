@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,8 @@ public class PlatformUtils {
 
     private static volatile Boolean isVMwareVapp;
     private static volatile Boolean isAppliance;
+    
+    public static final String hypervTag = "HYPERV_DETECT";
 
     /*
      * Get local configuration by reading ovfenv partition and detecting real h/w
@@ -73,6 +76,14 @@ public class PlatformUtils {
 
         log.info("Local found config: {}", conf.toString());
         return conf;
+    }
+
+    public static void logTimeInterval(Logger log, String tag, long start, long end) {
+        long interval = end - start;
+        long minutes = interval / (60 * 1000);
+        long seconds = (interval % (60 * 1000)) / 1000;
+        String intervalStr = new StringBuilder().append(minutes).append(" minutes ").append(seconds).append(" seconds").toString();
+        log.info(String.format("%s: %s, start: %s, end: %s, consumed: %s", hypervTag, tag, new Date(start), new Date(end), intervalStr));
     }
 
     public static int diskHasViprPartitions(String disk) {

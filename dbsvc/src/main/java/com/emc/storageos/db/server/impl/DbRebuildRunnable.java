@@ -19,6 +19,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.common.DbConfigConstants;
+import com.emc.storageos.services.util.PlatformUtils;
 
 /**
  * Thread to rebuild the local db node if the local site is in STANDBY_SYNCING state.
@@ -80,10 +81,17 @@ public class DbRebuildRunnable implements Runnable {
         dbconfig.setConfig(DbConfigConstants.LAST_DATA_SYNC_TIME, String.valueOf(currentSyncTime));
         coordinator.persistServiceConfiguration(dbconfig);
 
+        if (dbRebuildComplete(Constants.DBSVC_NAME)) {
+            log.info(String.format("%s: local db has finished syncing",PlatformUtils.hypervTag));
+        }
+        if (dbRebuildComplete(Constants.GEODBSVC_NAME)) {
+            log.info(String.format("%s: geo db has finished syncing",PlatformUtils.hypervTag));
+        }
         if (dbRebuildComplete(Constants.DBSVC_NAME) && dbRebuildComplete(Constants.GEODBSVC_NAME)) {
             log.info("all db rebuild finish, updating site state to STANDBY_SYNCED");
             localSite.setState(SiteState.STANDBY_SYNCED);
             coordinator.persistServiceConfiguration(localSite.toConfiguration());
+            log.info(String.format("%s: new added standby has been become synced",PlatformUtils.hypervTag));
         }
         isRunning = false;
     }

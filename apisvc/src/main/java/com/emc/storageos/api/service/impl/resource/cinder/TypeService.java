@@ -34,6 +34,8 @@ import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.cinder.model.VolumeType;
+import com.emc.storageos.cinder.model.VolumeTypeEncryption;
+import com.emc.storageos.cinder.model.VolumeTypeEncryptionResponse;
 import com.emc.storageos.cinder.model.VolumeTypesRestResp;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -44,7 +46,6 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @Path("/v2/{tenant_id}/types")
 @DefaultPermissions( readRoles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR},
@@ -135,6 +136,35 @@ public class TypeService extends TaskResourceService {
         return CinderApiUtils.getCinderResponse(volType, header, true);
     }
     
+    /**
+     * Gets encryption information about a specified volume type
+     *     
+     *
+     * @prereq none
+     *
+     * @param tenant_id the URN of the tenant 
+     * @param volume_type_id the URN of the volume type 
+     *
+     * @brief Show volume type
+     * @return Volume type details
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Path("/{volume_type_id}/encryption")
+    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    public Response getVolumeTypeEncryption(@PathParam("tenant_id") URI openstacktenant_id, 
+            @PathParam("volume_type_id") URI volume_type_id, @Context HttpHeaders header) {
+        _log.debug("START get volume type encryption {}", volume_type_id);
+        
+        //TODO - Actual implementation needs to be added
+        VolumeTypeEncryptionResponse encryptionRes = new VolumeTypeEncryptionResponse();
+        VolumeTypeEncryption volType = new VolumeTypeEncryption();
+        encryptionRes.setEncryption(volType);
+        
+        _log.debug("END get volume type encryption {}", volume_type_id);
+        return CinderApiUtils.getCinderResponse(encryptionRes, header, true);
+    }
+    
     
     
     /**
@@ -159,6 +189,8 @@ public class TypeService extends TaskResourceService {
 
         throw new UnsupportedOperationException();
     }
+    
+    
     
     /**
      * Type is a zone level resource

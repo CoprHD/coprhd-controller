@@ -18,15 +18,15 @@ import java.util.List;
 /**
  * Class for handle node DB repair status combination
  */
-public class DbRepairHandler {
-    private static final Logger log = LoggerFactory.getLogger(DbRepairHandler.class);
+public class DbRepairStatusHandler {
+    private static final Logger log = LoggerFactory.getLogger(DbRepairStatusHandler.class);
 
     private List<String> serviceNames = Arrays.asList(Constants.DBSVC_NAME, Constants.GEODBSVC_NAME);
 
     @Autowired
     private RecoveryManager recoveryManager;
 
-    public DbRepairHandler() {
+    public DbRepairStatusHandler() {
     }
 
     private boolean isNodeRecoveryDbRepairInProgress() {

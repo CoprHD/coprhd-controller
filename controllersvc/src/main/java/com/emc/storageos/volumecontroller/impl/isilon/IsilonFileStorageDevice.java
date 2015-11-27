@@ -1628,8 +1628,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                             isilonExport.setRootClients(new ArrayList<String>(existingRootClients));
                             isilonExport.setReadWriteClients(new ArrayList<String>(existingRWClients));
                         } else {
-                        	setExportRuleHostsIntoIsilonExport("root", exportRule.getRootHosts(), isilonExport);
-                        	setExportRuleHostsIntoIsilonExport("rw", exportRule.getReadWriteHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("root", exportRule.getRootHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("rw", exportRule.getReadWriteHosts(), isilonExport);
                         }
                         isilonExport.setReadOnlyClients(new ArrayList<String>(roClients));
                     }
@@ -1658,8 +1658,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                             isilonExport.setRootClients(new ArrayList<String>(existingRootClients));
                             isilonExport.setReadOnlyClients(new ArrayList<String>(existingROClients));
                         } else {
-                        	setExportRuleHostsIntoIsilonExport("root", exportRule.getRootHosts(), isilonExport);
-                        	setExportRuleHostsIntoIsilonExport("ro", exportRule.getReadOnlyHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("root", exportRule.getRootHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("ro", exportRule.getReadOnlyHosts(), isilonExport);
                         }
                         isilonExport.setReadWriteClients(new ArrayList<String>(rwClients));
                     }
@@ -1686,8 +1686,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                             isilonExport.setReadWriteClients(new ArrayList<String>(existingRWClients));
                             isilonExport.setReadOnlyClients(new ArrayList<String>(existingROClients));
                         } else {
-                        	setExportRuleHostsIntoIsilonExport("ro", exportRule.getReadOnlyHosts(), isilonExport);
-                        	setExportRuleHostsIntoIsilonExport("rw", exportRule.getReadWriteHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("ro", exportRule.getReadOnlyHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("rw", exportRule.getReadWriteHosts(), isilonExport);
                         }
                         isilonExport.setRootClients(new ArrayList<String>(rootClients));
                     }
@@ -2115,7 +2115,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
      * @param hosts the clients to be set
      * @param isilonExport
      */
-    private void setExportRuleHostsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {
+    private void setClientsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {
     	
     	ArrayList<String> clients = new ArrayList<String>();
     	if(hosts != null && !hosts.isEmpty()) {

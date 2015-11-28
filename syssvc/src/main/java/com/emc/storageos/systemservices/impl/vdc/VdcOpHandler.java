@@ -47,6 +47,7 @@ public abstract class VdcOpHandler {
     
     private static final int VDC_RPOP_BARRIER_TIMEOUT = 5*60; // 5 mins
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
+    private static final int FAILOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 15;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 5;
@@ -588,9 +589,10 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             if (isNewActiveSiteForFailover(site)) {
-                removeDbNodesOfOldActiveSite();
                 reconfigVdc();
-                updateFailoverSiteState(site);
+                coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
+                removeDbNodesOfOldActiveSite();
+                waitForAllNodesAndReboot(site);
             } else {
                 reconfigVdc();
             }
@@ -647,18 +649,12 @@ public abstract class VdcOpHandler {
             return null;
         }
         
-        private void updateFailoverSiteState(Site site) throws Exception {
+        private void waitForAllNodesAndReboot(Site site) throws Exception {
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
             
-            log.info("Wait for barrier to set site state as Acitve for failover");
+            log.info("Wait for barrier to reboot cluster");
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), true);
             barrier.enter();
-            try {
-                site.setState(SiteState.PRIMARY);
-                coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-            } finally {
-                barrier.leave();
-            }
             
             log.info("Reboot this node after failover");
             localRepository.reboot();

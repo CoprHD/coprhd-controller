@@ -333,6 +333,7 @@ public class DbClientContext {
             update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
             update.setStrategyOptions(strategyOptions);
 
+            waitForSchemaAgreement(null);
             String schemaVersion;
             if (kd != null) {
                 schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();

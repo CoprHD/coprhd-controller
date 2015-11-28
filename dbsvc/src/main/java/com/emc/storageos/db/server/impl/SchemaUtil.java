@@ -5,6 +5,7 @@
 
 package com.emc.storageos.db.server.impl;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
@@ -15,6 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.crypto.SecretKey;
 
@@ -32,6 +34,10 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
+import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.locator.IEndpointSnitch;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -52,6 +58,7 @@ import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -460,8 +467,17 @@ public class SchemaUtil {
      * Check keyspace strategy options for an existing keyspace and update if necessary
      */
     private void checkStrategyOptions() throws ConnectionException {
-        //wait for schema versions to converge first
-        clientContext.waitForSchemaAgreement(null);
+        try {
+            Site localSite = drUtil.getLocalSite();
+            if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+                String localDcId = drUtil.getCassandraDcId(localSite);
+                removeUnreachableNodesFromDc(localDcId);
+
+                clientContext.waitForSchemaAgreement(null);
+            }
+        } catch (RetryableCoordinatorException e) {
+            _log.warn("local site not initialized. Moving on");
+        }
 
         KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
         Map<String, String> strategyOptions = kd.getStrategyOptions();
@@ -474,6 +490,23 @@ public class SchemaUtil {
         if (changed) {
             _log.info("strategyOptions changed to {}", strategyOptions);
             clientContext.setCassandraStrategyOptions(strategyOptions, true);
+        }
+    }
+
+    private void removeUnreachableNodesFromDc(String dcName) {
+        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
+        for (InetAddress nodeIp : unreachableNodes) {
+            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+            String dc = snitch.getDatacenter(nodeIp);
+            if (dc.equals(dcName)) {
+                Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
+                String guid = hostIdMap.get(nodeIp.getHostAddress());
+                _log.warn("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
+                Gossiper.instance.convict(nodeIp, 0);
+                StorageService.instance.removeNode(guid);
+            } else {
+                _log.warn("Unavailable node {} belongs to data center {} ", nodeIp, dc);
+            }
         }
     }
 

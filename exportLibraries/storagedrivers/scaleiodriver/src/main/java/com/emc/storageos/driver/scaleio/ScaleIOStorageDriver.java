@@ -42,6 +42,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
             try {
                 ScaleIORestClient client = handleFactory.getClientHandle(snapshots.get(i).getStorageSystemId(),this.driverRegistry);
                 String sttr= client.getSystemId();
+                System.out.print(sttr);
             } catch (Exception e) {
                 e.printStackTrace();
             }

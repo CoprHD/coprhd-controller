@@ -58,7 +58,7 @@ public class ScaleIORestHandleFactoryTest {
         if(client==null){
             System.out.print("no rest client returned!");
         }else{
-            System.out.print(client.getSystemId());
+            System.out.print("---------"+client.getSystemId()+"-------------");
 
         }
     }

@@ -2626,4 +2626,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vpoolChangeNotAllowedInvalidVolumeList();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vpoolChangeNotAllowedCGsMustBeTheSame();
 }

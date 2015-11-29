@@ -299,12 +299,14 @@ public abstract class AbstractSecuredWebServer {
         }
         if (_dbClient != null) {
             if (startDbClientInBackground) {
+                _log.info("starting dbclient in background");
                 new Thread() {
                     public void run() {
                         _dbClient.start();
                     }
                 }.start();
             } else {
+                _log.info("starting dbclient");
                 _dbClient.start();
             }
         }

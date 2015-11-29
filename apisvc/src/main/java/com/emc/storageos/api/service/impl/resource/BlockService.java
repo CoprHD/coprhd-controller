@@ -99,7 +99,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -142,6 +141,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.protectioncontroller.ProtectionController;
 import com.emc.storageos.protectioncontroller.RPController;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -3243,29 +3243,37 @@ public class BlockService extends TaskResourceService {
     private List<? extends DataObject> getTaskAssociatedResources(Volume volume, VirtualPool vpool) {
         List<? extends DataObject> associatedResources = null;
 
-        // For an upgrade to MetroPoint (moving from RP+VPLEX vpool to MetroPoint vpool), even though the user
-        // would have chosen 1 volume to update but we need to update ALL the RSets/volumes in the CG.
-        // We can't just update one RSet/volume.
         VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-        if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
-                && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
-            _log.info("VirtualPool change for to upgrade to MetroPoint.");
-            BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+
+        // If RP protection has been specified, we want to further determine what type of virtual pool
+        // change has been made.
+        if (VirtualPool.vPoolSpecifiesProtection(currentVpool) && VirtualPool.vPoolSpecifiesProtection(vpool)
+                && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
             // Get all RP Source volumes in the CG
-            List<Volume> allRPSourceVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(consistencyGroup, _dbClient,
-                    Volume.PersonalityTypes.SOURCE);
+            List<Volume> allRPSourceVolumesInCG = RPHelper.getCgSourceVolumes(volume.getConsistencyGroup(), _dbClient);
             // Remove the volume in question from the associated list, don't want a double entry because the
             // volume passed in will already be counted as an associated resource for the Task.
-            Volume toRemove = null;
-            for (Volume rpSourceVol : allRPSourceVolumesInCG) {
-                if (rpSourceVol.getId().equals(volume.getId())) {
-                    toRemove = rpSourceVol;
-                    break;
-                }
+            allRPSourceVolumesInCG.remove(volume.getId());
+
+            if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
+                    && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
+                // For an upgrade to MetroPoint (moving from RP+VPLEX vpool to MetroPoint vpool), even though the user
+                // would have chosen 1 volume to update but we need to update ALL the RSets/volumes in the CG.
+                // We can't just update one RSet/volume.
+                _log.info("VirtualPool change for to upgrade to MetroPoint.");
+                return allRPSourceVolumesInCG;
             }
-            allRPSourceVolumesInCG.remove(toRemove);
-            // Use this list as the associated resources affected by the upgrade to MetroPoint
-            associatedResources = allRPSourceVolumesInCG;
+
+            // Determine if the copy mode setting has changed. For this type of change, all source volumes
+            // in the consistency group are affected.
+            String currentCopyMode = currentVpool.getRpCopyMode() == null ? "" : currentVpool.getRpCopyMode();
+            String newCopyMode = vpool.getRpCopyMode() == null ? "" : vpool.getRpCopyMode();
+
+            if (!newCopyMode.equals(currentCopyMode)) {
+                // The copy mode setting has changed.
+                _log.info(String.format("VirtualPool change to update copy from %s to %s.", currentCopyMode, newCopyMode));
+                return allRPSourceVolumesInCG;
+            }
         }
 
         return associatedResources;
@@ -4978,9 +4986,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     *
+     * 
      * @param consistencyGroup
-     *
+     * 
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,

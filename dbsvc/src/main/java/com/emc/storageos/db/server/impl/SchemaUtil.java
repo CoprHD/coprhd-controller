@@ -472,6 +472,8 @@ public class SchemaUtil {
             if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
                 String localDcId = drUtil.getCassandraDcId(localSite);
                 removeUnreachableNodesFromDc(localDcId);
+
+                clientContext.waitForSchemaAgreement(null);
             }
         } catch (RetryableCoordinatorException e) {
             _log.warn("local site not initialized. Moving on");

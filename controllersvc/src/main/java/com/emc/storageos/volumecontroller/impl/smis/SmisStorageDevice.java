@@ -2644,4 +2644,35 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         return false;
     }
 
+    @Override
+    public void refreshVolumeProperties(URI systemURI, List<URI> volumeURIs) throws Exception {
+
+        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, systemURI);
+        for (URI volumeURI : volumeURIs) {
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            CIMObjectPath volumePath = _cimPath.getVolumePath(storage, volume.getNativeId());
+            CIMInstance volumeInstance = _helper.getInstance(storage, volumePath, false, false, null);
+            if (volumeInstance != null && volume != null) {
+                String wwn = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME);
+                // _log.info(String.format("Updating volume %s %s wwn from %s to %s ", volume.getLabel(), volume.getId(), volume.getWWN(),
+                // wwn.toUpperCase()));
+                volume.setWWN(wwn.toUpperCase());
+                String accessState = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_ACCESS);
+                String[] statusDescriptions = CIMPropertyFactory.getPropertyArray(volumeInstance,
+                        SmisConstants.CP_STATUS_DESCRIPTIONS);
+                List<String> statusDescriptionList = Arrays.asList(statusDescriptions);
+                // If this volume is managed by RP, RP owns the volume access field.
+                if (!volume.checkForRp()) {
+                    String newAccessState = SmisUtils.generateAccessState(accessState, statusDescriptionList);
+                    // _log.info(String.format(
+                    // "Updating volume %s %s access state from %s to %s ", volume.getLabel(), volume.getId().toString(),
+                    // volume.getAccessState(), newAccessState));
+                    volume.setAccessState(newAccessState);
+                }
+                _dbClient.updateObject(volume);
+            }
+        }
+
+    }
+
 }

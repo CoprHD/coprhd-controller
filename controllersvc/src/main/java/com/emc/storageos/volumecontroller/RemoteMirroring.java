@@ -229,6 +229,15 @@ public interface RemoteMirroring {
     void refreshStorageSystem(URI systemURI, List<URI> volumeURIsToCheck);
 
     /**
+     * Refresh the volume properties
+     * 
+     * @param systemURI reference to storage system
+     * @param volumeURIs List of volume URIs
+     * @throws Exception
+     */
+    void refreshVolumeProperties(URI systemURI, List<URI> volumeURIs) throws Exception;
+
+    /**
      * Change SRDF Copy Mode.
      *
      * @param system

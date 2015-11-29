@@ -101,6 +101,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
     private static final String CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP = "CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP";
     private static final String CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_DESC = "Active source/target pairs";
+    private static final String REFRESH_VOLUME_PROPERTIES_STEP = "REFRESH_VOLUME_PROPERTIES_STEP";
+    private static final String REFRESH_VOLUME_PROPERTIES_STEP_DESC = "Refresh volume properties";
 
     private static final String REMOVE_ASYNC_PAIR_METHOD = "removePairFromGroup";
     private static final String DETACH_SRDF_PAIR_METHOD = "detachVolumePairStep";
@@ -117,6 +119,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String CHANGE_SRDF_TO_NONSRDF_STEP_DESC = "Converting SRDF Devices to Non Srdf devices";
     private static final String CONVERT_TO_NONSRDF_DEVICES_METHOD = "convertToNonSrdfDevicesMethodStep";
     private static final String CREATE_LIST_REPLICAS_METHOD = "createListReplicas";
+    private static final String UPDATE_VOLUME_PROEPERTIES_METHOD = "updateVolumeProperties";
 
     private WorkflowService workflowService;
     private DbClient dbClient;
@@ -373,8 +376,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, system, null, waitFor, workflow);
         }
         if (null != targetSystem) {
-            addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, waitFor, workflow);
+            waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, waitFor, workflow);
         }
+
+        // Refresh target volume properties
+        refreshVolumeProperties(targetDescriptors, targetSystem, waitFor, workflow);
     }
 
     private void clearSourceAndTargetVolumes(List<VolumeDescriptor> sourceDescriptors,
@@ -1133,6 +1139,28 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
+    private Workflow.Method updateVolumePropertiesMethod(List<URI> volumeURIs, URI systemURI) {
+        return new Workflow.Method(UPDATE_VOLUME_PROEPERTIES_METHOD, volumeURIs, systemURI);
+    }
+
+    public boolean updateVolumeProperties(List<URI> volumeURIs, URI systemURI, String opId) {
+        log.info("Update volume properties...");
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            getRemoteMirrorDevice().refreshVolumeProperties(systemURI, volumeURIs);
+            log.info("Volumes: {}", Joiner.on(',').join(volumeURIs));
+            log.info("OpId: {}", opId);
+            WorkflowStepCompleter.stepSucceded(opId);
+        } catch (Exception e) {
+            log.warn("Failed to update properties for volumes {} " + volumeURIs);
+            log.error("Failed to update properties for volumes: {} " + e);
+            // We don't want to fail the workflow if we fail to update volume properties this is going to be the best effort.
+            WorkflowStepCompleter.stepSucceded(opId);
+            return true;
+        }
+        return true;
+    }
+
     private Workflow.Method createSRDFVolumePairMethod(final URI systemURI,
             final URI sourceURI, final URI targetURI, final URI vpoolChangeUri) {
         return new Workflow.Method(CREATE_SRDF_VOLUME_PAIR, systemURI, sourceURI, targetURI, vpoolChangeUri);
@@ -1186,6 +1214,21 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
     }
 
+    private String refreshVolumeProperties(List<VolumeDescriptor> volumeDescriptors, StorageSystem system,
+            String waitFor, Workflow workflow) {
+
+        List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+
+        Method updateVolumePropertiesMethod = updateVolumePropertiesMethod(targetURIs, system.getId());
+        // false here because we want to rollback individual links not the entire (pre-existing) group.
+        Method rollbackMethod = rollbackMethodNullMethod();
+
+        String stepId = workflow.createStep(REFRESH_VOLUME_PROPERTIES_STEP,
+                REFRESH_VOLUME_PROPERTIES_STEP_DESC, waitFor, system.getId(),
+                system.getSystemType(), getClass(), updateVolumePropertiesMethod, rollbackMethod, null);
+
+        return stepId;
+    }
 
     private Method rollbackAddSyncVolumePairMethod(final URI systemURI,
             final List<URI> sourceURIs, final List<URI> targetURIs,

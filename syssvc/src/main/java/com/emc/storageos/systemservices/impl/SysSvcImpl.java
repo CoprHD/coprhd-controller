@@ -145,6 +145,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     @Override
     public void start() throws Exception {
         if (_app != null) {
+            setStartDbClientInBackground(true);
             initServer();
             initSysClientFactory();
             _server.start();

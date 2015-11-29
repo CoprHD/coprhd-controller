@@ -77,6 +77,7 @@ public abstract class AbstractSecuredWebServer {
     private Integer minQueueThreads;
     private Integer maxQueueThreads;
     private Integer maxQueued;
+    private boolean startDbClientInBackground;
 
     public void setUnsecuredConnector(SelectChannelConnector unsecuredConnector) {
         _unsecuredConnector = unsecuredConnector;
@@ -164,6 +165,10 @@ public abstract class AbstractSecuredWebServer {
 
     public void setMaxQueued(Integer maxQueued) {
         this.maxQueued = maxQueued;
+    }
+
+    public void setStartDbClientInBackground(boolean startDbClientInBackground) {
+        this.startDbClientInBackground = startDbClientInBackground;
     }
 
     public Server getServer() {
@@ -293,7 +298,15 @@ public abstract class AbstractSecuredWebServer {
             config.setPropertiesAndFeatures(props);
         }
         if (_dbClient != null) {
-            _dbClient.start();
+            if (startDbClientInBackground) {
+                new Thread() {
+                    public void run() {
+                        _dbClient.start();
+                    }
+                }.start();
+            } else {
+                _dbClient.start();
+            }
         }
     }
 }

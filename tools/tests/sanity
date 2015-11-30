@@ -2501,11 +2501,16 @@ recoverpoint_ingest_test()
 	RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY3}
     fi
 
+    rpsnap=rpsnap_for_validation-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     if [ "${vpool}" = "rp_cdp" ]; then
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
+	# Make sure you fail to create an RP bookmark because you're not fully ingested yet
+	fail blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} ${rpsnap}1 --type rp
+	# Make sure you fail to create an array snapshot because you're not fully ingested yet
+	fail blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_TGT} ${rpsnap}2
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
     elif [ "${vpool}" = "rp_crr" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"

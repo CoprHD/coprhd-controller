@@ -245,7 +245,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         if (param.getSize() != null) {
             Long quotaSize = SizeUtil.translateSize(param.getSize());
             if (quotaSize > 0) {
-                ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), " Bytes", "size");
+                ArgValidator.checkFieldMaximum(SizeUtil.translateSize(quotaSize, "GB"), SizeUtil.translateSize(fs.getCapacity(), "GB")," GB", "size");
                 quotaDir.setSize(quotaSize);
             }
         }

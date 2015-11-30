@@ -5,6 +5,9 @@
 
 package com.emc.storageos.geo.service.impl.util;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -30,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 //import org.apache.cassandra.cli.CliMain;
 //import org.apache.cassandra.cli.CliOptions;
+import com.emc.storageos.services.util.Exec;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
@@ -1029,54 +1033,26 @@ public class VdcConfigHelper {
     }
 
     private void setCassandraStrategyOptions(Map<String, String> options, boolean wait)
-            throws CharacterCodingException, TException, NoSuchFieldException, IllegalAccessException, InstantiationException,
-            InterruptedException, ConnectionException, ClassNotFoundException {
-        /*
-        TODO: Cassandra-cli is removed in CASSANDRA-7920, for below codes are only used by vdc operations, so comment them first.
+            throws InterruptedException, ConnectionException, ClassNotFoundException, IOException {
+        int port = InternalDbClient.DbJmxClient.DEFAULTTHRIFTPORT;
+
+        /* change the strategy option with cqlsh command:
+         * cqlsh localhost 9260 -f /tmp/command-file
+         * /tmp/command-file contains CQL command like this:
+         * alter keyspace "GeoStorageOS" with replication = { 'class': 'NetworkTopologyStrategy', 'vdc1':3, 'vdc2':3,... }
          */
-        /*int port = InternalDbClient.DbJmxClient.DEFAULTTHRIFTPORT;
+        File cmdFile = generateUpdateStrategyCmdFile(options);
+        String[] command = {"/opt/storageos/bin/cqlsh", "localhost", Integer.toString(port), "-f", cmdFile.getPath()};
+        Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, command);
+        log.info("The strategy options have been updated");
 
-        log.info("The dbclient encrypted={}", dbClient.isGeoDbClientEncrypted());
-
-        if (dbClient.isGeoDbClientEncrypted()) {
-            CliOptions cliOptions = new CliOptions();
-            List<String> args = new ArrayList<String>();
-
-            args.add("-h");
-            args.add(LOCAL_HOST);
-
-            args.add("-p");
-            args.add(Integer.toString(port));
-
-            args.add("-ts");
-            DbClientContext ctx = dbClient.getGeoContext();
-            String geoDBTrustStoreFile = ctx.getTrustStoreFile();
-            String trustStorePassword = ctx.getTrustStorePassword();
-            args.add(geoDBTrustStoreFile);
-
-            args.add("-tspw");
-            args.add(trustStorePassword);
-
-            args.add("-tf");
-            args.add(DbConfigConstants.SSLTransportFactoryName);
-
-            String[] cmdArgs = args.toArray(new String[0]);
-
-            cliOptions.processArgs(CliMain.sessionState, cmdArgs);
-        }
-
-        CliMain.connect(LOCAL_HOST, port);
-
-        String useGeoKeySpaceCmd = "use " + DbClientContext.GEO_KEYSPACE_NAME + ";";
-        CliMain.processStatement(useGeoKeySpaceCmd);
-
-        String command = genUpdateStrategyOptionCmd(options);
-        CliMain.processStatement(command);
-        CliMain.disconnect();
+        cmdFile.delete();
 
         if (wait) {
             waitForStrategyOptionsSynced();
-        }*/
+        }
+
+        log.info("Done");
     }
 
     private void waitForStrategyOptionsSynced() throws InterruptedException, ConnectionException {
@@ -1084,6 +1060,7 @@ public class VdcConfigHelper {
         while (System.currentTimeMillis() - start < SchemaUtil.MAX_SCHEMA_WAIT_MS) {
             Map<String, List<String>> versions = dbClient.getGeoSchemaVersions();
 
+            log.info("schema versions:{}", versions);
             if (versions.size() == 2) {
                 break;
             }
@@ -1093,22 +1070,33 @@ public class VdcConfigHelper {
         }
     }
 
+    private File generateUpdateStrategyCmdFile(Map<String, String> strategyOptions) throws IOException {
+        File cmdFile = File.createTempFile("updateStrategy-", ".tmp");
+        try ( BufferedWriter bw = new BufferedWriter(new FileWriter(cmdFile))) {
+             String cmd = genUpdateStrategyOptionCmd(strategyOptions);
+             bw.write(cmd);
+        }
+
+        return cmdFile;
+    }
+
     private String genUpdateStrategyOptionCmd(Map<String, String> strategyOptions) {
         // prepare update command
         Set<Map.Entry<String, String>> options = strategyOptions.entrySet();
-        StringBuilder updateKeySpaceCmd = new StringBuilder("update keyspace ");
+        StringBuilder updateKeySpaceCmd = new StringBuilder("alter keyspace \"");
         updateKeySpaceCmd.append(DbClientContext.GEO_KEYSPACE_NAME);
-        updateKeySpaceCmd.append(" with strategy_options={");
+        updateKeySpaceCmd.append("\"with replication = { 'class': 'NetworkTopologyStrategy',");
         boolean isFirst = true;
         for (Map.Entry<String, String> option : options) {
             if (isFirst) {
                 isFirst = false;
-            } else {
+            }else {
                 updateKeySpaceCmd.append(",");
             }
 
+            updateKeySpaceCmd.append("'");
             updateKeySpaceCmd.append(option.getKey());
-            updateKeySpaceCmd.append(":");
+            updateKeySpaceCmd.append("':");
             updateKeySpaceCmd.append(option.getValue());
         }
         updateKeySpaceCmd.append("};");

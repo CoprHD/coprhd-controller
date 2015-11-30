@@ -263,7 +263,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
         Map<String, String> deviceNameCache = new HashMap<String, String>();
         Map<String, String> fabricsByIds = getFabricIdsMap(client);
         Map<String, String> logicalToPhysicalSwitchMap =
-                logicalToPhysicalSwitchMap = getLogicalToPhysicalSwitcheMap(client);
+                getLogicalToPhysicalSwitcheMap(client);
 
         if (discoverEndpointsByFabric) {
             portConnections = getFCEndpointsByFabric(client, routedConnections, fabricsByIds, deviceNameCache,
@@ -507,11 +507,11 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                 }
             }
         }
-        //Get the Physcial Swtich Name for the Logical Switch
-        String physicalSwtichName = logicalToPhysicalSwitchMap.get(switchName);
-        _log.info("Switch Name : {} Physical SwitchName {}", switchName, physicalSwtichName);
-        if(physicalSwtichName != null ) {
-            switchName = physicalSwtichName;
+        //Get the Physcial Switch Name for the Logical Switch
+        String physicalSwitchName = logicalToPhysicalSwitchMap.get(switchName);
+        _log.info("Switch Name : {} Physical SwitchName {}", switchName, physicalSwitchName);
+        if(physicalSwitchName != null ) {
+            switchName = physicalSwitchName;
         }
         FCEndpoint conn = new FCEndpoint();
         conn.setFabricId(fabricName);
@@ -561,7 +561,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                 _log.debug(ins.toString());
                 aliasPath = cimStringProperty(ins, _ManagedElement);
                 memberPath = cimStringProperty(ins, _SettingData);
-                wwn = formatWWN(getPropertyValueFromString(memberPath,SmisConstants.CP_NSNAME));
+                wwn = formatWWN(getPropertyValueFromString(memberPath, SmisConstants.CP_NSNAME));
                 ep = fabricEps.get(wwn);
                 if (ep != null) {
                     ep.setRemotePortAlias(getPropertyValueFromString(aliasPath, SmisConstants.CP_NSNAME));
@@ -2036,32 +2036,31 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
      * @throws WBEMException
      */
     public HashMap<String, String> getLogicalToPhysicalSwitcheMap(WBEMClient client) throws WBEMException {
-        HashMap<String, String> switchMap  = new HashMap();
+        HashMap<String, String> switchMap  = new HashMap<>();
         CIMObjectPath path = new CIMObjectPath(null, null, null, _namespace, _Brocade_SwitchPCS, null);
 
         CloseableIterator<CIMInstance> it = null;
         try {
-            it = client.enumerateInstances(path,
-                    false, true, true, null);
+            it = client.enumerateInstances(path, false, true, true, null);
 
             while (it.hasNext()) {
                 CIMInstance ins = it.next();
-                String parent = cimStringProperty(ins, _Parent);
-                String child = cimStringProperty(ins, _Child);
-                _log.debug("Brocade Switch: Parent :  {} - Child : {} )", parent, child);
+                String parentName = cimStringProperty(ins, _Parent);
+                String childName = cimStringProperty(ins, _Child);
+                _log.debug("Brocade Switch: Parent :  {} - Child : {} )", parentName, childName);
 
                 CIMProperty[] props = ins.getProperties();
                 for(int i=0; i < props.length; i++) {
                     _log.debug("Switch property : " + props[i].getName() + ": value : " + props[i].getValue());
                 }
 
-                CIMInstance parentObject = client.getInstance(new CIMObjectPath(parent), true, true, null);
-                CIMInstance childObject = client.getInstance(new CIMObjectPath(child), true, true, null);
+                CIMInstance parentObject = client.getInstance(new CIMObjectPath(parentName), true, true, null);
+                CIMInstance childObject = client.getInstance(new CIMObjectPath(childName), true, true, null);
 
-                parent = cimStringProperty(parentObject, _element_name);
-                child = cimStringProperty(childObject, _element_name);
-                switchMap.put(child, parent);
-                _log.info("Brocade Switch: Logical Switch : " + child + " In (" + parent + ")");
+                parentName = cimStringProperty(parentObject, _element_name);
+                childName = cimStringProperty(childObject, _element_name);
+                switchMap.put(childName, parentName);
+                _log.info("Brocade Switch: Logical Switch : " + childName + " In (" + parentName + ")");
             }
         } finally {
             if (it != null) {
@@ -2071,37 +2070,4 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
         return switchMap;
     }
 
-    /**
-     * get Physical swiches
-     * @param client an instance of WBEMClient
-     * @return a collection of phyciscal switch names
-     * @throws WBEMException
-     */
-    public List<String> getPhysicalSwitches(WBEMClient client) throws WBEMException {
-        List<String> arrays = new ArrayList<String>();
-        CIMObjectPath path = new CIMObjectPath(null, null, null, _namespace, _Brocade_PhysicalSwitch, null);
-
-        CloseableIterator<CIMInstance> it = null;
-        try {
-            it = client.enumerateInstances(path,
-                    false, true, true, null);
-
-            while (it.hasNext()) {
-                CIMInstance ins = it.next();
-                CIMProperty[] props = ins.getProperties();
-                String name = cimStringProperty(ins, _name);
-                String elementName = cimStringProperty(ins, _element_name);
-                _log.info("Brocade Physical Switch: " + name + " (" + elementName + ")");
-                for(int i=0; i < props.length; i++) {
-                    _log.debug("Physical switch props : {} : value : {} ", props[i].getName(), props[i].getValue());
-                }
-                arrays.add(name);
-            }
-        } finally {
-            if (it != null) {
-                it.close();
-            }
-        }
-        return arrays;
-    }
 }

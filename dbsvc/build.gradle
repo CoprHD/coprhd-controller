@@ -19,12 +19,6 @@ scripts {
        sourceSets.test.runtimeClasspath = files(p) + sourceSets.test.runtimeClasspath
     }
 
-    cassandraCli {
-        scriptName = "cassandra-cli"
-        mainClass = "org.apache.cassandra.cli.CliMain"
-        maxMemory = "256m"
-        service = false
-    }
     nodetool {
         mainClass = "org.apache.cassandra.tools.NodeTool"
         jvmArgs += " -Dstorage-config=${project.installDir}/conf"

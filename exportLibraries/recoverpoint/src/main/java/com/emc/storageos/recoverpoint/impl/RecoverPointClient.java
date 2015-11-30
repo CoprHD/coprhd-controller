@@ -449,6 +449,8 @@ public class RecoverPointClient {
             List<ConsistencyGroupUID> allCgs = functionalAPI.getAllConsistencyGroups();
             for (ConsistencyGroupUID cg : allCgs) {
                 ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
+                ConsistencyGroupState state = functionalAPI.getGroupState(cg);
+                
                 logger.info("Processing CG found on RecoverPoint system: " + settings.getName());
 
                 // First storage attributes about the top-level CG
@@ -508,10 +510,22 @@ public class RecoverPointClient {
                             copySettings.getCopyUID().getGlobalCopyUID().getCopyUID();
                     copyUIDToNameMap.put(copyID,  copySettings.getName());
                     
+                    for (ConsistencyGroupCopyState copyState : state.getGroupCopiesStates()) {
+                        if (!RecoverPointUtils.cgCopyEqual(copySettings.getCopyUID(), copyState.getCopyUID())) {
+                            continue;
+                        }
+                     
+                        // Get the access image and enabled information
+                        copy.setAccessState(copyState.getStorageAccessState().toString());
+                        copy.setAccessedImage(copyState.getAccessedImage() != null ? copyState.getAccessedImage().getDescription() : null);
+                        copy.setEnabled(copyState.isEnabled());
+                    }
+                    
                     // Set ID fields (these are immutable no matter if things are renamed)
                     copy.setCgId(copySettings.getCopyUID().getGroupUID().getId());
                     copy.setClusterId(copySettings.getCopyUID().getGlobalCopyUID().getClusterUID().getId());
                     copy.setCopyId(copySettings.getCopyUID().getGlobalCopyUID().getCopyUID());
+
                     
                     if (ConsistencyGroupCopyRole.ACTIVE.equals(copySettings.getRoleInfo().getRole()) ||
                             ConsistencyGroupCopyRole.TEMPORARY_ACTIVE.equals(copySettings.getRoleInfo().getRole())) {
@@ -1375,7 +1389,7 @@ public class RecoverPointClient {
 
                         if (rescanTries <= 0) {
                             for (RPSite rpSite : allSites) {
-                                logger.error(String.format("Could not find voume %s on any RP site", volumeParam.getWwn()));
+                                logger.error(String.format("Could not find volume %s on any RP site", volumeParam.getWwn()));
                                 ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                                     logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(),
@@ -1969,7 +1983,7 @@ public class RecoverPointClient {
 
                 // Make sure the CG copy is stopped
                 RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-                imageManager.waitForCGLinkState(functionalAPI, cgUID, PipeState.UNKNOWN);
+                imageManager.waitForCGCopyLinkState(functionalAPI, cgCopyUID, PipeState.UNKNOWN);
                 logger.info("Protection disabled on CG copy " + cgCopyName + " on CG " + cgName);
             }
         } catch (FunctionalAPIActionFailedException_Exception e) {

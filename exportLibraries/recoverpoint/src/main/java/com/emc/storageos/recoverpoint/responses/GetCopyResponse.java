@@ -13,6 +13,9 @@ public class GetCopyResponse implements Serializable {
     private String name;
     private List<GetVolumeResponse> journals;
     private boolean production;
+    private String accessState; // LOGGED_ACCESS, NO_ACCESS, etc
+    private boolean enabled;
+    private String accessedImage; 
     
     // Every copy has three identifiers, and you need all three to be unique across all CG's copies
     private long cgId;       // The ID of the CG it belongs to
@@ -47,21 +50,6 @@ public class GetCopyResponse implements Serializable {
         this.production = production;
     }
 
-    @Override
-    public String toString() {
-        StringBuffer sb = new StringBuffer();
-        sb.append("\nCopy: " + name);
-        sb.append("\nProduction: " + production);
-        sb.append("\nCGID: " + cgId + ", Cluster ID: " + String.format("0x%x", clusterId) + ", Copy ID: " + copyId);
-        if (journals != null) {
-            sb.append("\nJournals:");
-            for (GetVolumeResponse volume : journals) {
-                sb.append(volume.toString());
-            }
-        }
-        return sb.toString();
-    }
-
     public long getCgId() {
         return cgId;
     }
@@ -85,4 +73,48 @@ public class GetCopyResponse implements Serializable {
     public void setCopyId(long copyId) {
         this.copyId = copyId;
     }
+    public String getAccessState() {
+        return accessState;
+    }
+
+    public void setAccessState(String accessState) {
+        this.accessState = accessState;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public String getAccessedImage() {
+        return accessedImage;
+    }
+
+    public void setAccessedImage(String accessedImage) {
+        this.accessedImage = accessedImage;
+    }
+
+    @Override
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
+        sb.append("\nCopy: " + name);
+        sb.append("\nProduction: " + production);
+        sb.append("\nEnabled: " + enabled);
+        sb.append("\nAccess State: " + accessState);
+        if (accessedImage != null) {
+            sb.append(", Accessed Image: " + accessedImage);
+        }
+        sb.append("\nCGID: " + cgId + ", Cluster ID: " + String.format("0x%x", clusterId) + ", Copy ID: " + copyId);
+        if (journals != null) {
+            sb.append("\nJournals:");
+            for (GetVolumeResponse volume : journals) {
+                sb.append(volume.toString());
+            }
+        }
+        return sb.toString();
+    }
+
 }

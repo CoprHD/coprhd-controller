@@ -329,7 +329,7 @@ public class VMwareSupport {
      * @param datastore
      *            the datastore.
      */
-    public void deleteVmfsDatastore(Collection<VolumeRestRep> volumes, URI hostOrClusterId, final Datastore datastore) {
+    public void deleteVmfsDatastore(Collection<VolumeRestRep> volumes, URI hostOrClusterId, final Datastore datastore, boolean detachLuns) {
         List<HostSystem> hosts = getHostsForDatastore(datastore);
         if (hosts.isEmpty()) {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
@@ -349,13 +349,15 @@ public class VMwareSupport {
 
         execute(new DeleteDatastore(hosts.get(0), datastore));
 
-        executeOnHosts(hosts, new HostSystemCallback() {
-            @Override
-            public void exec(HostSystem host) {
-                List<HostScsiDisk> disks = hostDisks.get(host);
-                detachLuns(host, disks);
-            }
-        });
+        if (detachLuns) {
+            executeOnHosts(hosts, new HostSystemCallback() {
+                @Override
+                public void exec(HostSystem host) {
+                    List<HostScsiDisk> disks = hostDisks.get(host);
+                    detachLuns(host, disks);
+                }
+            });
+        }
         removeVmfsDatastoreTag(volumes, hostOrClusterId);
     }
 

@@ -3050,12 +3050,15 @@ isilon_setup()
 driversystem_setup()
 {
     echo "driversystem setup"
-    discoveredsystem create driverManagedSystem driversystem  10.246.55.66 8080 root password
+    #discoveredsystem create driverManagedSystem driversystem  10.246.55.66 8080 root password
 }
 
 driversystem_tests()
 {
    echo "driversystem tests"
+   PROJECT=erProject
+   vol=erVolTest006-1
+   run blocksnapshot create $PROJECT/${vol} erSnap001
 }
 #
 # add ECS storage device and storage pool

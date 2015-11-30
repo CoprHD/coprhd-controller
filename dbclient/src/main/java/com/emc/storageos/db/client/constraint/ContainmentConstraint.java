@@ -645,7 +645,6 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(fs, UnManagedNFSShareACL.class, field);
         }
 
-
         public static ContainmentConstraint getFileExportRulesConstraintByFileIndex(URI fsIndex) {
             DataObjectType doType = TypeMap.getDoType(FileExportRule.class);
             ColumnField field = doType.getColumnField("fsExportIndex");

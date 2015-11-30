@@ -588,7 +588,6 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
 
-
         public static AlternateIdConstraint getVolumesByAssociatedId(String volumeId) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("associatedVolumes"), volumeId);

@@ -16,12 +16,11 @@ import com.emc.storageos.db.client.model.Snapshot;
 
 @Cf("UnManagedNFSShareACL")
 public class UnManagedNFSShareACL extends FileACL {
-	
-	private String nativeGuid;
+
+    private String nativeGuid;
     protected URI fileSystemId;
     protected URI snapshotId;
 
-		
     @Name("nativeGuid")
     @AlternateId("fileShareNativeGuidTable")
     public String getNativeGuid() {
@@ -32,7 +31,7 @@ public class UnManagedNFSShareACL extends FileACL {
         this.nativeGuid = nativeGuid;
         setChanged("nativeGuid");
     }
-	
+
     @RelationIndex(cf = "RelationIndex", type = Snapshot.class)
     @Name("snapshotId")
     public URI getSnapshotId() {

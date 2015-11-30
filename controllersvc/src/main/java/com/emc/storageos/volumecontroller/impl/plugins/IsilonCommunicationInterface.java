@@ -357,9 +357,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         totalFsCount++;
                     }
                 }
-              //sum snap cap and add to fs capacity
+                // sum snap cap and add to fs capacity
                 if (provisioned > GB_IN_BYTES) {
-                    provisioned = (provisioned/GB_IN_BYTES);
+                    provisioned = (provisioned / GB_IN_BYTES);
                     totalProvCap = totalProvCap + provisioned;
                     provisioned = 0L;
                 }
@@ -795,7 +795,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     if (isNfsV4Enabled) {
                         protocolSet.add(NFSv4);
                     }
-                    
                     physicalNAS = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                     if (physicalNAS == null) {
                         physicalNAS = createPhysicalNas(storageSystem, isilonAccessZone);
@@ -1209,8 +1208,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             HashMap<String, HashSet<Integer>> expMap = discoverAllExports(storageSystem, isilonAccessZones);
             List<UnManagedNFSShareACL> unManagedNfsShareACLList = new ArrayList<UnManagedNFSShareACL>();
             List<UnManagedNFSShareACL> oldunManagedNfsShareACLList = new ArrayList<UnManagedNFSShareACL>();
-            
-            
 
             UnManagedExportVerificationUtility validationUtility = new UnManagedExportVerificationUtility(
                     _dbClient);
@@ -1256,31 +1253,30 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 fsUnManagedFsNativeGuid, storageSystem, storagePool, nasServer, fs);
                         List<UnManagedNFSShareACL> tempUnManagedNfsShareACL = new ArrayList<UnManagedNFSShareACL>();
                         UnManagedNFSShareACL existingNfsACL = null;
+                        getUnmanagedNfsShareACL(unManagedFs, tempUnManagedNfsShareACL, storagePort, fs, isilonApi);
 
-                        getUnmanagedNfsShareACL(unManagedFs, tempUnManagedNfsShareACL, storagePort ,fs, isilonApi);
-
-                        if(tempUnManagedNfsShareACL!=null && !tempUnManagedNfsShareACL.isEmpty()){
-                        	unManagedFs.setHasNFSAcl(true);
+                        if (tempUnManagedNfsShareACL != null && !tempUnManagedNfsShareACL.isEmpty()) {
+                            unManagedFs.setHasNFSAcl(true);
                         }
-                        for(UnManagedNFSShareACL unManagedNFSACL : tempUnManagedNfsShareACL){
-                        	_log.info("Unmanaged File share acls : {}", unManagedNFSACL);
-                        	String fsShareNativeId = unManagedNFSACL.getFileSystemNfsACLIndex();
-                        	_log.info("UMFS Share ACL index {}", fsShareNativeId);
-                        	String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
-                        			.generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
-                        	_log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
-                        	// set native guid, so each entry unique
-                        	unManagedNFSACL.setNativeGuid(fsUnManagedFileShareNativeGuid);
-                        	// Check whether the NFS share ACL was present in ViPR DB.
-                        	existingNfsACL=checkUnManagedFsNfssACLExistsInDB(_dbClient, unManagedNFSACL.getNativeGuid());
-                        	if (existingNfsACL == null) {
-                        		unManagedNfsShareACLList.add(unManagedNFSACL);
-                        	} else {
-                        		unManagedNfsShareACLList.add(unManagedNFSACL);
-                        		// delete the existing acl
-                        		existingNfsACL.setInactive(true);
-                        		oldunManagedNfsShareACLList.add(existingNfsACL);
-                        	}
+                        for (UnManagedNFSShareACL unManagedNFSACL : tempUnManagedNfsShareACL) {
+                            _log.info("Unmanaged File share acls : {}", unManagedNFSACL);
+                            String fsShareNativeId = unManagedNFSACL.getFileSystemNfsACLIndex();
+                            _log.info("UMFS Share ACL index {}", fsShareNativeId);
+                            String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
+                                    .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
+                            _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
+                            // set native guid, so each entry unique
+                            unManagedNFSACL.setNativeGuid(fsUnManagedFileShareNativeGuid);
+                            // Check whether the NFS share ACL was present in ViPR DB.
+                            existingNfsACL = checkUnManagedFsNfssACLExistsInDB(_dbClient, unManagedNFSACL.getNativeGuid());
+                            if (existingNfsACL == null) {
+                                unManagedNfsShareACLList.add(unManagedNFSACL);
+                            } else {
+                                unManagedNfsShareACLList.add(unManagedNFSACL);
+                                // delete the existing acl
+                                existingNfsACL.setInactive(true);
+                                oldunManagedNfsShareACLList.add(existingNfsACL);
+                            }
                         }
                         
                         // get umcifs & ACLs for given filesystem
@@ -1356,9 +1352,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 _dbClient.persistObject(unManagedFs);
                                 continue;
                             }
-                            
-                            
-                            
                             List<UnManagedFileExportRule> validExportRules = getUnManagedFSExportRules(unManagedFs, expIdMap, storagePort,
                                     fs.getPath(), nasServer.getNasName(), isilonApi);
                             _log.info("Number of exports discovered for file system {} is {}", unManagedFs.getId(), validExportRules.size());
@@ -1458,7 +1451,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 unManagedCifsShareACLList.clear();
             }
             
-         // save NFS ACLs in db
+            // save NFS ACLs in db
             if (!unManagedNfsShareACLList.isEmpty()) {
                 _log.info("Saving Number of UnManagedNfsShareACL(s) {}", unManagedNfsShareACLList.size());
                 _dbClient.createObject(unManagedNfsShareACLList);
@@ -1861,6 +1854,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     
     /**
      * get UnManaged NFS Shares and their ACLs
+     * 
      * @param unManagedFileSystem
      * @param unManagedNfsACLList
      * @param storagePort
@@ -1870,41 +1864,40 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private void getUnmanagedNfsShareACL(UnManagedFileSystem unManagedFileSystem,
             List<UnManagedNFSShareACL> unManagedNfsACLList,
             StoragePort storagePort,
-            FileShare fs,  IsilonApi isilonApi) {
+            FileShare fs, IsilonApi isilonApi) {
 
-		_log.info(
-				"getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start",
-				fs.getName());
-		IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(fs.getPath());
+        _log.info(
+                "getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start",
+                fs.getName());
+        IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(fs.getPath());
 
-		for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
+        for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
 
-			UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
+            UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
 
+            unmanagedNFSAcl.setFileSystemPath(fs.getPath());
 
-			unmanagedNFSAcl.setFileSystemPath(fs.getPath());
-			
-			String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+            String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
 
-			if (tempUname.length > 1) {
-				unmanagedNFSAcl.setDomain(tempUname[0]);
-				unmanagedNFSAcl.setUser(tempUname[1]);
-			} else {
-				unmanagedNFSAcl.setUser(tempUname[0]);
-			}
-			
-			unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
-			unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
-			unmanagedNFSAcl.setPermissions(StringUtils.join(
-					getIsilonAccessList(tempAcl.getAccessrights()), ","));
-			
-			unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
-			unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+            if (tempUname.length > 1) {
+                unmanagedNFSAcl.setDomain(tempUname[0]);
+                unmanagedNFSAcl.setUser(tempUname[1]);
+            } else {
+                unmanagedNFSAcl.setUser(tempUname[0]);
+            }
 
-			unManagedNfsACLList.add(unmanagedNFSAcl);
+            unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+            unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+            unmanagedNFSAcl.setPermissions(StringUtils.join(
+                    getIsilonAccessList(tempAcl.getAccessrights()), ","));
 
-		}
-	}
+            unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+            unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+
+            unManagedNfsACLList.add(unmanagedNFSAcl);
+
+        }
+    }
 
     @Override
     public void scan(AccessProfile arg0) throws BaseCollectionException {
@@ -2656,6 +2649,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     
     /**
      * convert Isilon's access permissions key set to ViPR's NFS permission set
+     * 
      * @param permissions
      * @return
      */
@@ -2677,8 +2671,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return accessRights;
 
-    }
-    
+    }    
 
     /**
      * set the Max limits for static db metrics
@@ -2898,11 +2891,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 system, nativeId,
                 NativeGUIDGenerator.PORT);
         // Check if storage port was already discovered
-	    URIQueryResultList resultSetList = new URIQueryResultList();
-	    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-	            getStoragePortByNativeGuidConstraint(portNativeGuid), resultSetList);
+        URIQueryResultList resultSetList = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                getStoragePortByNativeGuidConstraint(portNativeGuid), resultSetList);
         StoragePort port = null;
-	    for (URI portUri : resultSetList) {
+        for (URI portUri : resultSetList) {
             port = _dbClient.queryObject(StoragePort.class, portUri);
             if (port != null) {
                 if (port.getStorageDevice().equals(system.getId()) && !port.getInactive()) {

@@ -503,8 +503,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                     }
                 }
                 
-                if(unManagedFileSystem.getHasNFSAcl()){
-                	
+                if (unManagedFileSystem.getHasNFSAcl()) {
+
                     List<UnManagedNFSShareACL> nfsACLs = queryDBNfsShares(unManagedFileSystem);
                     if (nfsACLs != null && !nfsACLs.isEmpty()) {
                         for (UnManagedNFSShareACL umNfsAcl : nfsACLs) {
@@ -518,7 +518,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                             inActiveUnManagedShareNfs.add(umNfsAcl);
                         }
                     }
-                	
+
                 }
 
                 if (!unManagedFileSystem.getHasShares() && !unManagedFileSystem.getHasExports()) {
@@ -597,19 +597,19 @@ public class UnManagedFilesystemService extends TaggedResource {
             _dbClient.persistObject(inActiveUnManagedExportRules);
 
             _dbClient.persistObject(unManagedFileSystems);
-            
+
             // Step 8.1 : Update NFS Acls in DB & Add new ACLs
             if (fsNfsShareAcls != null && !fsNfsShareAcls.isEmpty()) {
-                 _logger.info("Saving {} NFS ACLs to DB", fsNfsShareAcls.size());            	
+                _logger.info("Saving {} NFS ACLs to DB", fsNfsShareAcls.size());
                 _dbClient.createObject(fsNfsShareAcls);
             }
-			// Step 9.1 : Update the same in DB & clean ingested
-			// UnManagedNFSShareACLs
-			if (inActiveUnManagedShareNfs != null
-					&& !inActiveUnManagedShareNfs.isEmpty()) {
-				_logger.info("Saving {} UnManagedNFS ACLs to DB",inActiveUnManagedShareNfs.size());
-				_dbClient.updateObject(inActiveUnManagedShareNfs);
-			}
+            // Step 9.1 : Update the same in DB & clean ingested
+            // UnManagedNFSShareACLs
+            if (inActiveUnManagedShareNfs != null
+                    && !inActiveUnManagedShareNfs.isEmpty()) {
+                _logger.info("Saving {} UnManagedNFS ACLs to DB", inActiveUnManagedShareNfs.size());
+                _dbClient.updateObject(inActiveUnManagedShareNfs);
+            }
 
             // record the events after they have been created
             for (FileShare filesystem : filesystems) {
@@ -684,18 +684,19 @@ public class UnManagedFilesystemService extends TaggedResource {
         return new ArrayList<UnManagedCifsShareACL>();
     }
     
-	/**
-	 * Query DB for UnManaged FileSystem's NFS ACL
-	 * @param fs
-	 * @return
-	 */
+    /**
+     * Query DB for UnManaged FileSystem's NFS ACL
+     * 
+     * @param fs
+     * @return List<UnManagedNFSShareACLs
+     */
     private List<UnManagedNFSShareACL> queryDBNfsShares(UnManagedFileSystem fs)
     {
         _logger.info("Querying All Nfs Share ACLs Using FsId {}", fs.getId());
         try {
             ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getUnManagedNfsShareAclsConstraint(fs.getId());
             List<UnManagedNFSShareACL> nfsShareACLList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-            		UnManagedNFSShareACL.class, containmentConstraint);
+                    UnManagedNFSShareACL.class, containmentConstraint);
             return nfsShareACLList;
         } catch (Exception e) {
             _logger.error("Error while querying {}", e);

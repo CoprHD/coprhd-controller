@@ -267,6 +267,10 @@ public class FileStorageScheduler {
 					StoragePort storagePort =  iterator.next();
 					List<VirtualNAS> vNASList = StoragePortAssociationHelper.getStoragePortVirtualNAS(storagePort, _dbClient);
 					if (vNASList != null && !vNASList.isEmpty()) {
+						/* Remove the associated port. Because during file system placement,
+						 * storage port will already be assigned to FS. In that case, this block won't
+						 * be executed.  
+						 */
 						_log.info("Removing port {} as it is assigned to a vNAS.", storagePort.getNativeGuid());
 						iterator.remove();
 					}

@@ -5,45 +5,59 @@
 
 package com.emc.storageos.datadomain.restapi;
 
-import com.emc.storageos.datadomain.restapi.model.*;
-import com.emc.storageos.services.util.EnvConfig;
+import java.net.URI;
 
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.net.URI;
+import com.emc.storageos.common.http.RestAPIFactory;
+import com.emc.storageos.datadomain.restapi.model.DDExportInfo;
+import com.emc.storageos.datadomain.restapi.model.DDExportInfoDetail;
+import com.emc.storageos.datadomain.restapi.model.DDExportList;
+import com.emc.storageos.datadomain.restapi.model.DDMCInfoDetail;
+import com.emc.storageos.datadomain.restapi.model.DDMTreeInfo;
+import com.emc.storageos.datadomain.restapi.model.DDMTreeInfoDetail;
+import com.emc.storageos.datadomain.restapi.model.DDMTreeList;
+import com.emc.storageos.datadomain.restapi.model.DDNetworkDetails;
+import com.emc.storageos.datadomain.restapi.model.DDNetworkInfo;
+import com.emc.storageos.datadomain.restapi.model.DDNetworkList;
+import com.emc.storageos.datadomain.restapi.model.DDServiceStatus;
+import com.emc.storageos.datadomain.restapi.model.DDShareInfo;
+import com.emc.storageos.datadomain.restapi.model.DDShareInfoDetail;
+import com.emc.storageos.datadomain.restapi.model.DDSystem;
+import com.emc.storageos.datadomain.restapi.model.DDSystemInfo;
+import com.emc.storageos.datadomain.restapi.model.DDSystemList;
+import com.emc.storageos.services.util.EnvConfig;
 
 /*
  * Test client for DataDomainRESTClient
  */
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations="classpath:controller-conf.xml")
 public class DataDomainApiTest {
     private static final Logger _log = LoggerFactory.getLogger(DataDomainApiTest.class);
-    private static DataDomainClient _client;
-    private static DataDomainClientFactory _factory = new DataDomainClientFactory();
-
-    private static final int DEFAULT_MAX_CONN = 300;
-    private static final int DEFAULT_MAX_CONN_PER_HOST = 100;
-    private static final int DEFAULT_CONN_TIMEOUT = 1000 * 30;
-    private static final int DEFAULT_SOCKET_CONN_TIMEOUT = 1000 * 60 * 60;
-
+    
     private static final String ddURI = EnvConfig.get("sanity", "datadomain.uri");
+    
     private static final String user = EnvConfig.get("sanity", "datadomain.username");
+    
     private static final String password = EnvConfig.get("sanity", "datadomain.password");
+    
+    private DataDomainClient _client;
+    
+    @Autowired
+    private RestAPIFactory<DataDomainClient> datadomainfactory;
 
-    @BeforeClass
-    public static synchronized void setup() throws Exception {
-        _factory = new DataDomainClientFactory();
-        _factory.setConnectionTimeoutMs(DEFAULT_CONN_TIMEOUT);
-        _factory.setMaxConnections(DEFAULT_MAX_CONN);
-        _factory.setMaxConnectionsPerHost(DEFAULT_MAX_CONN_PER_HOST);
-        _factory.setSocketConnectionTimeoutMs(DEFAULT_SOCKET_CONN_TIMEOUT);
-        _factory.setNeedCertificateManager(true);
-        // _factory.setNeedCertificateManager(false);
-        _factory.init();
-        _client = (DataDomainClient) _factory.getRESTClient(URI.create(ddURI), user, password);
+    @Before
+    public synchronized void setup() throws Exception {
+        _client = (DataDomainClient) datadomainfactory.getRESTClient(URI.create(ddURI), user, password);
     }
 
     @Test
@@ -251,6 +265,14 @@ public class DataDomainApiTest {
 
         Assert.assertEquals(newSize, mtree.logicalCapacity.getTotal());
 
+    }
+
+    public RestAPIFactory<DataDomainClient> getDatadomainfactory() {
+        return datadomainfactory;
+    }
+
+    public void setDatadomainfactory(RestAPIFactory<DataDomainClient> datadomainfactory) {
+        this.datadomainfactory = datadomainfactory;
     }
 
 }

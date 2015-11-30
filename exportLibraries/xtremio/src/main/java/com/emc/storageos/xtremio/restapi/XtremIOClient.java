@@ -5,6 +5,8 @@
 package com.emc.storageos.xtremio.restapi;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.ws.rs.core.MediaType;
 
@@ -12,40 +14,35 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.services.restutil.StandardRestClient;
+import com.emc.storageos.common.http.RestClientItf;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.XtremIOAuthInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSsInfo;
-import com.sun.jersey.api.client.Client;
+import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
 
-public abstract class XtremIOClient extends StandardRestClient implements XtremIODiscoveryClient, XtremIOProvisioningClient {
+public abstract class XtremIOClient implements XtremIODiscoveryClient, XtremIOProvisioningClient {
 
     private static Logger log = LoggerFactory.getLogger(XtremIOClient.class);
 
-    /**
-     * Constructor
-     * 
-     * @param client
-     *            A reference to a Jersey Apache HTTP client.
-     * @param username
-     *            The user to be authenticated.
-     * @param password
-     *            The user password for authentication.
-     */
-    public XtremIOClient(URI baseURI, String username, String password, Client client) {
-        _client = client;
-        _base = baseURI;
-        _username = username;
-        _password = password;
-        _authToken = "";
-    }
-
-    @Override
-    protected WebResource.Builder setResourceHeaders(WebResource resource) {
-        return resource.header(XtremIOConstants.AUTH_TOKEN, _authToken);
+    protected RestClientItf client;
+    
+    private URI uri;
+    
+    private String username;
+    
+    private String password;
+    
+    protected String _authToken;
+    
+    public XtremIOClient(URI baseURI, String username, String password, RestClientItf client) {
+        this.client = client;
+        this.uri = baseURI;
+        this.username = username;
+        this.password = password;
+        authenticate();
     }
 
     /**
@@ -55,12 +52,21 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
      */
     public boolean isVersion2() {
         boolean isV2 = false;
+        Map<String, String> headers = getAuthHeader();
         try {
-            ClientResponse response = get(XtremIOConstants.XTREMIO_V2_XMS_URI);
+            ClientResponse response = client.get(XtremIOConstants.XTREMIO_V2_XMS_URI, headers);
+            if(authenticationFailed(response)) {
+                authenticate();
+                response = client.get(XtremIOConstants.XTREMIO_V2_XMS_URI, headers);
+            }
             XtremIOXMSsInfo xmssInfo = getResponseObject(XtremIOXMSsInfo.class, response);
             for (XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
                 URI xmsURI = URI.create(xmsInfo.getHref().concat(XtremIOConstants.XTREMIO_XMS_FILTER_STR));
-                response = get(xmsURI);
+                response = client.get(xmsURI, headers);
+                if(authenticationFailed(response)) {
+                    authenticate();
+                    response = client.get(xmsURI, headers);
+                }
                 log.debug("Got response {} for url {}.", response.getClientResponseStatus(), xmsURI);
                 if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
                     isV2 = false;
@@ -76,7 +82,18 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
         return isV2;
     }
 
-    @Override
+    protected Map<String, String> getAuthHeader() {
+        Map<String, String> headers = new HashMap<>();
+        headers.put(XtremIOConstants.AUTH_TOKEN_HEADER, _authToken);
+        return headers;
+    }
+    
+    protected Map<String, String> getAuthAndJsonHeader() {
+        Map<String, String> headers = getAuthHeader();
+        headers.put("Content-Type", "application/json");
+        return headers;
+    }
+
     protected int checkResponse(URI uri, ClientResponse response) throws XtremIOApiException {
         ClientResponse.Status status = response.getClientResponseStatus();
         int errorCode = status.getStatusCode();
@@ -104,26 +121,45 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
         }
     }
 
-    @Override
     protected void authenticate() throws XtremIOApiException {
         try {
             XtremIOAuthInfo authInfo = new XtremIOAuthInfo();
-            authInfo.setPassword(_password);
-            authInfo.setUsername(_username);
+            authInfo.setPassword(password);
+            authInfo.setUsername(username);
+            
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Content-Type", MediaType.APPLICATION_JSON);
 
             String body = getJsonForEntity(authInfo);
 
-            URI requestURI = _base.resolve(URI.create(XtremIOConstants.XTREMIO_BASE_STR));
-            ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON)
-                    .post(ClientResponse.class, body);
+            URI requestURI = uri.resolve(URI.create(XtremIOConstants.XTREMIO_BASE_STR));
+            ClientResponse response = client.post(requestURI, headers, body);
+            if(authenticationFailed(response)) {
+                authenticate();
+                response = client.post(requestURI, headers, body);
+            }
 
             if (response.getClientResponseStatus() != ClientResponse.Status.OK
                     && response.getClientResponseStatus() != ClientResponse.Status.CREATED) {
-                throw XtremIOApiException.exceptions.authenticationFailure(_base.toString());
+                throw XtremIOApiException.exceptions.authenticationFailure(uri.toString());
             }
             _authToken = response.getHeaders().getFirst(XtremIOConstants.AUTH_TOKEN_HEADER);
         } catch (Exception e) {
-            throw XtremIOApiException.exceptions.authenticationFailure(_base.toString());
+            throw XtremIOApiException.exceptions.authenticationFailure(uri.toString());
         }
+    }
+    
+    protected <T> String getJsonForEntity(T model) throws Exception {
+        return new Gson().toJson(model);
+    }
+    
+    protected <T> T getResponseObject(Class<T> clazz, ClientResponse response) throws Exception {
+        JSONObject resp = response.getEntity(JSONObject.class);
+        T respObject = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()), clazz);
+        return respObject;
+    }
+    
+    protected boolean authenticationFailed(ClientResponse response) {
+        return response.getClientResponseStatus() == com.sun.jersey.api.client.ClientResponse.Status.UNAUTHORIZED;
     }
 }

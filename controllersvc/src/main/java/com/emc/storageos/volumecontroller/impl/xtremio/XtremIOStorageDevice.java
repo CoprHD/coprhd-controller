@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -35,6 +34,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -49,9 +49,10 @@ import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
-import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
+import com.emc.storageos.xtremio.restapi.XtremIOV1ClientFactory;
+import com.emc.storageos.xtremio.restapi.XtremIOV2ClientFactory;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 
@@ -59,7 +60,10 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     private static final Logger _log = LoggerFactory.getLogger(XtremIOStorageDevice.class);
 
-    XtremIOClientFactory xtremioRestClientFactory;
+    private XtremIOV1ClientFactory xtremIOV1ClientFactory;
+    
+    private XtremIOV2ClientFactory xtremIOV2ClientFactory;
+    
     DbClient dbClient;
 
     @Autowired
@@ -68,21 +72,17 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     private CustomConfigHandler customConfigHandler;
 
     private XtremIOExportOperations xtremioExportOperationHelper;
+    
     private XtremIOSnapshotOperations snapshotOperations;
+    
     private NameGenerator _nameGenerator;
-
-    private static final String noOpOnThisStorageArrayString = "No operation to perform on this storage array...";
-
+    
     public void setXtremioExportOperationHelper(XtremIOExportOperations xtremioExportOperationHelper) {
         this.xtremioExportOperationHelper = xtremioExportOperationHelper;
     }
 
     public void setSnapshotOperations(XtremIOSnapshotOperations snapshotOperations) {
         this.snapshotOperations = snapshotOperations;
-    }
-
-    public void setXtremioRestClientFactory(XtremIOClientFactory xtremioRestClientFactory) {
-        this.xtremioRestClientFactory = xtremioRestClientFactory;
     }
 
     public void setDbClient(DbClient dbClient) {
@@ -93,6 +93,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         _nameGenerator = nameGenerator;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void doCreateVolumes(StorageSystem storage, StoragePool storagePool, String opId,
             List<Volume> volumes, VirtualPoolCapabilityValuesWrapper capabilities,
@@ -100,7 +101,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         Map<String, String> failedVolumes = new HashMap<String, String>();
         XtremIOClient client = null;
         try {
-            client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            client = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory, storage);
             BlockConsistencyGroup cgObj = null;
             boolean isCG = false;
             Volume vol = volumes.get(0);
@@ -223,12 +224,13 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void doExpandVolume(StorageSystem storage, StoragePool pool, Volume volume,
             Long sizeInBytes, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("Expand Volume..... Started");
         try {
-            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory, storage);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             Long sizeInGB = new Long(sizeInBytes / (1024 * 1024 * 1024));
             // XtremIO Rest API supports only expansion in GBs.
@@ -255,13 +257,14 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void doDeleteVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
             TaskCompleter completer) throws DeviceControllerException {
 
         Map<String, String> failedVolumes = new HashMap<String, String>();
         try {
-            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storageSystem, xtremioRestClientFactory);
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory, storageSystem);
             String clusterName = client.getClusterDetails(storageSystem.getSerialNumber()).getName();
 
             URI projectUri = volumes.get(0).getProject().getURI();
@@ -463,13 +466,14 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} doExportRemoveInitiators END ...", storage.getSerialNumber());
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("SnapShot Creation..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
         Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
-        XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+        XtremIOClient client = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory, storage);
         if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
                 && null != sourceVolume
                 && !sourceVolume.checkForRp()) {
@@ -483,13 +487,14 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         _log.info("SnapShot Creation..... End");
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("SnapShot Deletion..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
         Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
-        XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+        XtremIOClient client = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory, storage);
         if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
                 && null != sourceVolume
                 && !sourceVolume.checkForRp()) {
@@ -500,13 +505,14 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         _log.info("SnapShot Deletion..... End");
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("SnapShot Restore..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
         Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
-        XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+        XtremIOClient client = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory, storage);
         if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
                 && null != sourceVolume
                 && !sourceVolume.checkForRp()) {
@@ -517,13 +523,14 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         _log.info("SnapShot Restore..... End");
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("SnapShot resync..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
         Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
-        XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+        XtremIOClient client = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory, storage);
         if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
                 && null != sourceVolume
                 && !sourceVolume.checkForRp()) {
@@ -541,7 +548,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         try {
             // Check if the consistency group exists
             BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
-            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory, storage);
             // We still need throw exception for standard CG.
             if (!client.isVersion2() && consistencyGroup.isProtectedCG()) {
                 StringSet cgTypes = consistencyGroup.getTypes();
@@ -577,7 +584,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doCreateConsistencyGroup START ...", storage.getSerialNumber());
         try {
-            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory, storage);
             BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             boolean isXioV2 = client.isVersion2();
             if (!isXioV2 && consistencyGroup.isProtectedCG()) {
@@ -605,6 +612,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void doAddToConsistencyGroup(StorageSystem storage,
             URI consistencyGroupId, List<URI> blockObjects,
@@ -613,7 +621,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
         try {
             // Check if the consistency group exists
-            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory, storage);
             if (!client.isVersion2()) {
                 _log.info("Nothing to add to consistency group {}", consistencyGroup.getLabel());
                 taskCompleter.ready(dbClient);
@@ -668,6 +676,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void doRemoveFromConsistencyGroup(StorageSystem storage,
             URI consistencyGroupId, List<URI> blockObjects,
@@ -677,7 +686,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 consistencyGroupId);
         try {
             // Check if the consistency group exists
-            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory, storage);
             if (!client.isVersion2()) {
                 _log.info("Nothing to remove from consistency group {}", consistencyGroup.getLabel());
                 taskCompleter.ready(dbClient);
@@ -747,5 +756,21 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             sourceVolume = dbClient.queryObject(Volume.class, sourceVolURI);
         }
         return sourceVolume;
+    }
+
+    public XtremIOV1ClientFactory getXtremIOV1ClientFactory() {
+        return xtremIOV1ClientFactory;
+    }
+
+    public void setXtremIOV1ClientFactory(XtremIOV1ClientFactory xtremIOV1ClientFactory) {
+        this.xtremIOV1ClientFactory = xtremIOV1ClientFactory;
+    }
+
+    public XtremIOV2ClientFactory getXtremIOV2ClientFactory() {
+        return xtremIOV2ClientFactory;
+    }
+
+    public void setXtremIOV2ClientFactory(XtremIOV2ClientFactory xtremIOV2ClientFactory) {
+        this.xtremIOV2ClientFactory = xtremIOV2ClientFactory;
     }
 }

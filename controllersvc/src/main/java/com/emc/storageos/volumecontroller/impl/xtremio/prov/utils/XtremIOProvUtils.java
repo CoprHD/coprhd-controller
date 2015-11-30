@@ -13,14 +13,18 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.common.http.RestAPIFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
-import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
+import com.emc.storageos.xtremio.restapi.XtremIOV1Client;
+import com.emc.storageos.xtremio.restapi.XtremIOV1ClientFactory;
+import com.emc.storageos.xtremio.restapi.XtremIOV2Client;
+import com.emc.storageos.xtremio.restapi.XtremIOV2ClientFactory;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
@@ -332,24 +336,6 @@ public class XtremIOProvUtils {
     }
 
     /**
-     * Get the XtremIO client for making requests to the system based
-     * on the passed profile.
-     * 
-     * @param accessProfile A reference to the access profile.
-     * @param xtremioRestClientFactory xtremioclientFactory.
-     * 
-     * @return A reference to the xtremio client.
-     */
-    public static XtremIOClient getXtremIOClient(StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
-        xtremioRestClientFactory.setModel(system.getFirmwareVersion());
-        XtremIOClient client = (XtremIOClient) xtremioRestClientFactory
-                .getRESTClient(
-                        URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
-                                system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword(), true);
-        return client;
-    }
-
-    /**
      * Refresh the XIO Providers & its client connections.
      * 
      * @param xioProviderList the XIO provider list
@@ -357,7 +343,8 @@ public class XtremIOProvUtils {
      * @return the list of active providers
      */
     public static List<URI> refreshXtremeIOConnections(final List<StorageProvider> xioProviderList,
-            DbClient dbClient, XtremIOClientFactory xtremioRestClientFactory) {
+            DbClient dbClient, RestAPIFactory<XtremIOV1Client> xtremioV1RestClientFactory, 
+            RestAPIFactory<XtremIOV2Client> xtremioV2RestClientFactory) {
         List<URI> activeProviders = new ArrayList<URI>();
         for (StorageProvider provider : xioProviderList) {
             boolean isConnectionLive = false;
@@ -366,22 +353,19 @@ public class XtremIOProvUtils {
                 continue;
             }
             try {
-                xtremioRestClientFactory.setModel(provider.getVersionString());
-                XtremIOClient clientFromCache = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
+                /*xtremioRestClientFactory.setModel(provider.getVersionString());*/
+                XtremIOClient clientFromCache = null;
+                /*XtremIOClient clientFromCache = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                         URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
-                                provider.getPortNumber())), provider.getUserName(), provider.getPassword(), true);
+                                provider.getPortNumber())), provider.getUserName(), provider.getPassword(), true);*/
+                clientFromCache = getXtremIOClientForProvider(xtremioV1RestClientFactory, xtremioV2RestClientFactory, provider);
                 if (null != clientFromCache && null != clientFromCache.getXtremIOXMSVersion()) {
                     isConnectionLive = true;
                 } else {
                     _log.debug("Connection from cache is not valid trying with new credentials {}", provider.getProviderID());
-                    // remove the existing client connection
-                    xtremioRestClientFactory.removeRESTClient(
-                            URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
-                                    provider.getPortNumber())), provider.getUserName(), provider.getPassword());
                     // Initialize with the new provider credentials.
-                    XtremIOClient newXIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
-                            URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
-                                    provider.getPortNumber())), provider.getUserName(), provider.getPassword(), true);
+                    XtremIOClient newXIOClient = null;
+                    newXIOClient = getXtremIOClientForProvider(xtremioV1RestClientFactory, xtremioV2RestClientFactory, provider);
                     if (null != newXIOClient.getXtremIOXMSVersion()) {
                         isConnectionLive = true;
                     }
@@ -405,6 +389,38 @@ public class XtremIOProvUtils {
             }
         }
         return activeProviders;
+    }
+
+    public static XtremIOClient getXtremIOClientForSystem(XtremIOV1ClientFactory xtremIOV1ClientFactory,
+            XtremIOV2ClientFactory xtremIOV2ClientFactory, StorageSystem system) {
+        XtremIOClient client = null;
+        if (system.getFirmwareVersion() != null && Integer.valueOf(system.getFirmwareVersion().split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION) {
+            client = (XtremIOClient) xtremIOV1ClientFactory
+                    .getRESTClient(
+                            URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
+                                    system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword());
+        } else {
+            client = (XtremIOClient) xtremIOV2ClientFactory
+                    .getRESTClient(
+                            URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
+                                    system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword());
+        }
+        return client;
+    }
+    
+    private static XtremIOClient getXtremIOClientForProvider(RestAPIFactory<XtremIOV1Client> xtremioV1RestClientFactory,
+            RestAPIFactory<XtremIOV2Client> xtremioV2RestClientFactory, StorageProvider provider) {
+        XtremIOClient clientFromCache;
+        if (provider.getVersionString() != null && Integer.valueOf(provider.getVersionString().split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION) {
+            clientFromCache = (XtremIOClient) xtremioV2RestClientFactory.getRESTClient(
+                    URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
+                            provider.getPortNumber())), provider.getUserName(), provider.getPassword());
+            } else {
+                clientFromCache = (XtremIOClient) xtremioV1RestClientFactory.getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
+                                provider.getPortNumber())), provider.getUserName(), provider.getPassword());
+            }
+        return clientFromCache;
     }
 
     public static boolean is4xXtremIOModel(String model) {

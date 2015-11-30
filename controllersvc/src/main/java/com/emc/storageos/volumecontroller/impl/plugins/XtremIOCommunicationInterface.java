@@ -13,6 +13,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.common.http.RestAPIFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -38,8 +39,9 @@ import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.xtremio.XtremIOUnManagedVolumeDiscoverer;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
-import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
+import com.emc.storageos.xtremio.restapi.XtremIOV1Client;
+import com.emc.storageos.xtremio.restapi.XtremIOV2Client;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
@@ -50,17 +52,22 @@ public class XtremIOCommunicationInterface extends
 
     private static final Logger _logger = LoggerFactory
             .getLogger(XtremIOCommunicationInterface.class);
+
     private static final String UP = "up";
+
     private static final String NEW = "new";
+
     private static final String EXISTING = "existing";
 
-    private XtremIOClientFactory xtremioRestClientFactory = null;
-    private XtremIOUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
+    private static final String DOT_OPERATOR = "\\.";
 
-    public void setXtremioRestClientFactory(
-            XtremIOClientFactory xtremioRestClientFactory) {
-        this.xtremioRestClientFactory = xtremioRestClientFactory;
-    }
+    private static final Integer XIO_MIN_4X_VERSION = 4;
+
+    private RestAPIFactory<XtremIOV1Client> xtremioV1RestClientFactory;
+
+    private RestAPIFactory<XtremIOV2Client> xtremioV2RestClientFactory;
+
+    private XtremIOUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
 
     public void setUnManagedVolumeDiscoverer(XtremIOUnManagedVolumeDiscoverer unManagedVolumeDiscoverer) {
         this.unManagedVolumeDiscoverer = unManagedVolumeDiscoverer;
@@ -81,15 +88,21 @@ public class XtremIOCommunicationInterface extends
                 accessProfile.getSystemId());
         XtremIOClient xtremIOClient = null;
         try {
-            xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getXtremIOV1Client(
-                    URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
-                    accessProfile.getUserName(), accessProfile.getPassword(), true);
+            if (provider.getVersionString() != null
+                    && Integer.valueOf(provider.getVersionString().split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION) {
+                xtremIOClient = (XtremIOClient) xtremioV2RestClientFactory.getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
+                        accessProfile.getUserName(), accessProfile.getPassword());
+            } else {
+                xtremIOClient = (XtremIOClient) xtremioV1RestClientFactory.getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
+                        accessProfile.getUserName(), accessProfile.getPassword());
+            }
             String xmsVersion = xtremIOClient.getXtremIOXMSVersion();
             String minimumSupportedVersion = VersionChecker
                     .getMinimumSupportedVersion(StorageSystem.Type.xtremio).replace("-", ".");
-            String compatibility = (VersionChecker.verifyVersionDetails(minimumSupportedVersion, xmsVersion) < 0) ?
-                    StorageSystem.CompatibilityStatus.INCOMPATIBLE.name() :
-                    StorageSystem.CompatibilityStatus.COMPATIBLE.name();
+            String compatibility = (VersionChecker.verifyVersionDetails(minimumSupportedVersion, xmsVersion) < 0)
+                    ? StorageSystem.CompatibilityStatus.INCOMPATIBLE.name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
             provider.setCompatibilityStatus(compatibility);
             provider.setVersionString(xmsVersion);
 
@@ -119,7 +132,6 @@ public class XtremIOCommunicationInterface extends
         } finally {
             provider.setConnectionStatus(cxnStatus.name());
             _dbClient.persistObject(provider);
-            xtremIOClient.close();
             _logger.info("Completed scan of XtremIO StorageProvider. IP={}", accessProfile.getIpAddress());
         }
     }
@@ -133,10 +145,23 @@ public class XtremIOCommunicationInterface extends
             discoverUnManagedVolumes(accessProfile);
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
-            xtremioRestClientFactory.setModel(storageSystem.getFirmwareVersion());
-            XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
-                    URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
-                    accessProfile.getUserName(), accessProfile.getPassword(), true);
+            /*
+             * xtremioRestClientFactory.setModel(storageSystem.getFirmwareVersion());
+             * XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
+             * URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
+             * accessProfile.getUserName(), accessProfile.getPassword(), true);
+             */
+            XtremIOClient xtremIOClient = null;
+            if (storageSystem.getFirmwareVersion() != null
+                    && Integer.valueOf(storageSystem.getFirmwareVersion().split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION) {
+                xtremIOClient = xtremioV2RestClientFactory.getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
+                        accessProfile.getUserName(), accessProfile.getPassword());
+            } else {
+                xtremIOClient = xtremioV1RestClientFactory.getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
+                        accessProfile.getUserName(), accessProfile.getPassword());
+            }
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());
             discoverXtremIOSystem(xtremIOClient, storageSystem);
         }
@@ -218,7 +243,7 @@ public class XtremIOCommunicationInterface extends
             _logger.info("Minimum Supported Version {}", minimumSupported);
             String compatibility = (VersionChecker.verifyVersionDetails(minimumSupported,
                     system.getVersion()) < 0) ? StorageSystem.CompatibilityStatus.INCOMPATIBLE
-                    .name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
+                            .name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
             systemInDB.setCompatibilityStatus(compatibility);
             systemInDB.setReachableStatus(true);
             _dbClient.persistObject(systemInDB);
@@ -420,5 +445,21 @@ public class XtremIOCommunicationInterface extends
         } else {
             return OperationalStatus.NOT_OK;
         }
+    }
+
+    public RestAPIFactory<XtremIOV1Client> getXtremioV1RestClientFactory() {
+        return xtremioV1RestClientFactory;
+    }
+
+    public void setXtremioV1RestClientFactory(RestAPIFactory<XtremIOV1Client> xtremioV1RestClientFactory) {
+        this.xtremioV1RestClientFactory = xtremioV1RestClientFactory;
+    }
+
+    public RestAPIFactory<XtremIOV2Client> getXtremioV2RestClientFactory() {
+        return xtremioV2RestClientFactory;
+    }
+
+    public void setXtremioV2RestClientFactory(RestAPIFactory<XtremIOV2Client> xtremioV2RestClientFactory) {
+        this.xtremioV2RestClientFactory = xtremioV2RestClientFactory;
     }
 }

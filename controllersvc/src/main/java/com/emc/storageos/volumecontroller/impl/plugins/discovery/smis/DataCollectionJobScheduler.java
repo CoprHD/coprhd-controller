@@ -19,6 +19,7 @@ import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.common.http.RestAPIFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
@@ -50,7 +51,8 @@ import com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOStorageDevice;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
-import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
+import com.emc.storageos.xtremio.restapi.XtremIOV1Client;
+import com.emc.storageos.xtremio.restapi.XtremIOV2Client;
 
 /**
  * Consumer for Discovery Jobs added to Queue.
@@ -85,7 +87,8 @@ public class DataCollectionJobScheduler {
     private LeaderSelector discoverySchedulingSelector;
     private HDSApiFactory hdsApiFactory;
     private DataDomainClientFactory ddClientFactory;
-    private XtremIOClientFactory xioClientFactory;
+    private RestAPIFactory<XtremIOV1Client> xioV1ClientFactory;
+    private RestAPIFactory<XtremIOV2Client> xioV2ClientFactory;
     private PortMetricsProcessor _portMetricsProcessor;
     private LeaderSelector computePortMetricsSelector;
 
@@ -820,7 +823,7 @@ public class DataCollectionJobScheduler {
         activeProviderURIs.addAll(XtremIOProvUtils.refreshXtremeIOConnections(
                 CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                         _dbClient, StorageProvider.InterfaceType.xtremio.name()),
-                _dbClient, xioClientFactory));
+                _dbClient, xioV1ClientFactory, xioV2ClientFactory));
 
         activeProviderURIs.addAll(ScaleIOStorageDevice.getInstance().refreshConnectionStatusForAllSIOProviders());
 
@@ -835,9 +838,6 @@ public class DataCollectionJobScheduler {
         this.ddClientFactory = ddClientFactory;
     }
 
-    public void setXtremIOFactory(XtremIOClientFactory xioClientFactory) {
-        this.xioClientFactory = xioClientFactory;
-    }
 
     /**
      * Sets portMetricsProcess via Spring injection
@@ -846,5 +846,13 @@ public class DataCollectionJobScheduler {
      */
     public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {
         _portMetricsProcessor = portMetricsProcessor;
+    }
+
+    public void setXioV1ClientFactory(RestAPIFactory<XtremIOV1Client> xioV1ClientFactory) {
+        this.xioV1ClientFactory = xioV1ClientFactory;
+    }
+
+    public void setXioV2ClientFactory(RestAPIFactory<XtremIOV2Client> xioV2ClientFactory) {
+        this.xioV2ClientFactory = xioV2ClientFactory;
     }
 }

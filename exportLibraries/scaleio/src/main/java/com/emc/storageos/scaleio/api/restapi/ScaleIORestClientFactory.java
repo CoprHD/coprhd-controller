@@ -7,16 +7,20 @@ package com.emc.storageos.scaleio.api.restapi;
 
 import java.net.URI;
 
-import com.emc.storageos.services.restutil.RestClientFactory;
-import com.emc.storageos.services.restutil.RestClientItf;
-import com.sun.jersey.api.client.Client;
+import com.emc.storageos.common.http.RestAPIFactory;
 
-public class ScaleIORestClientFactory extends RestClientFactory {
+public class ScaleIORestClientFactory extends RestAPIFactory<ScaleIORestClient> {
 
     @Override
-    protected RestClientItf createNewRestClient(URI endpoint, String username,
-            String password, Client client) {
-        return new ScaleIORestClient(endpoint, username, password, client);
+    public ScaleIORestClient getRESTClient(URI endpoint) {
+        return null;
     }
+
+    @Override
+    public ScaleIORestClient getRESTClient(URI endpoint, String username, String password) {
+        return new ScaleIORestClient(endpoint, username, password, getRestClient());
+    }
+
+
 
 }

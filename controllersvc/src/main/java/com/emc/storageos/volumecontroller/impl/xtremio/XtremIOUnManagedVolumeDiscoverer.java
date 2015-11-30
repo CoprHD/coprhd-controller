@@ -50,8 +50,9 @@ import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
-import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
+import com.emc.storageos.xtremio.restapi.XtremIOV1ClientFactory;
+import com.emc.storageos.xtremio.restapi.XtremIOV2ClientFactory;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
@@ -65,19 +66,22 @@ public class XtremIOUnManagedVolumeDiscoverer {
     private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
 
     List<UnManagedVolume> unManagedVolumesToCreate = null;
+
     List<UnManagedVolume> unManagedVolumesToUpdate = null;
+
     Set<URI> allCurrentUnManagedVolumeUris = new HashSet<URI>();
 
     private List<UnManagedExportMask> unManagedExportMasksToCreate = null;
+
     private List<UnManagedExportMask> unManagedExportMasksToUpdate = null;
+
+    private XtremIOV1ClientFactory xtremIOV1ClientFactory;
+
+    private XtremIOV2ClientFactory xtremIOV2ClientFactory;
+
     private final Set<URI> allCurrentUnManagedExportMaskUris = new HashSet<URI>();
 
-    private XtremIOClientFactory xtremioRestClientFactory;
     private NetworkDeviceController networkDeviceController;
-
-    public void setXtremioRestClientFactory(XtremIOClientFactory xtremioRestClientFactory) {
-        this.xtremioRestClientFactory = xtremioRestClientFactory;
-    }
 
     public void setNetworkDeviceController(
             NetworkDeviceController networkDeviceController) {
@@ -150,7 +154,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
         log.info("Started discovery of UnManagedVolumes for system {}", accessProfile.getSystemId());
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
                 accessProfile.getSystemId());
-        XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(storageSystem, xtremioRestClientFactory);
+        XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClientForSystem(xtremIOV1ClientFactory, xtremIOV2ClientFactory,
+                storageSystem);
 
         unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
         unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();
@@ -223,8 +228,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
                             Boolean.TRUE.toString());
                     StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
-                    if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString()))
-                    {
+                    if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString())) {
                         log.debug("Snaps :" + Joiner.on("\t").join(discoveredSnaps));
                         if (null != discoveredSnaps && discoveredSnaps.isEmpty()) {
                             // replace with empty string set doesn't work, hence added explicit code to remove all
@@ -340,7 +344,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
     private void discoverUnmanagedExportMasks(URI systemId, Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap,
             Map<String, StringSet> igKnownVolumesMap, XtremIOClient xtremIOClient, String xioClusterName,
             DbClient dbClient, PartitionManager partitionManager)
-            throws Exception {
+                    throws Exception {
         unManagedExportMasksToCreate = new ArrayList<UnManagedExportMask>();
         unManagedExportMasksToUpdate = new ArrayList<UnManagedExportMask>();
 
@@ -679,5 +683,21 @@ public class XtremIOUnManagedVolumeDiscoverer {
         }
 
         return unManagedVolume;
+    }
+
+    public XtremIOV1ClientFactory getXtremIOV1ClientFactory() {
+        return xtremIOV1ClientFactory;
+    }
+
+    public void setXtremIOV1ClientFactory(XtremIOV1ClientFactory xtremIOV1ClientFactory) {
+        this.xtremIOV1ClientFactory = xtremIOV1ClientFactory;
+    }
+
+    public XtremIOV2ClientFactory getXtremIOV2ClientFactory() {
+        return xtremIOV2ClientFactory;
+    }
+
+    public void setXtremIOV2ClientFactory(XtremIOV2ClientFactory xtremIOV2ClientFactory) {
+        this.xtremIOV2ClientFactory = xtremIOV2ClientFactory;
     }
 }

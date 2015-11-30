@@ -266,6 +266,12 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_RECONFIG_FAILED)
     InternalServerErrorException pauseStandbyReconfigFailed(String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_PRECHECK_FAILED)
+    InternalServerErrorException resumeStandbyPrecheckFailed(String siteId, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_RECONFIG_FAILED)
+    InternalServerErrorException resumeStandbyReconfigFailed(String errMsg);
+
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
     public InternalServerErrorException resumeStandbyFailed(final String siteName, String errMsg);
 
@@ -300,10 +306,10 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException unexpectedErrorExportGroupPlacement(Exception ex);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED)
-    public InternalServerErrorException failoverFailed(String standbyId, String errMsg);
+    public InternalServerErrorException failoverFailed(String siteName, String errMsg);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_PRECHECK_FAILED)
-    public InternalServerErrorException failoverPrecheckFailed(final String siteId, String errMsg);
+    public InternalServerErrorException failoverPrecheckFailed(final String siteName, String errMsg);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_RECONFIG_FAIL)
     public InternalServerErrorException failoverReconfigFailed(String errMsg);

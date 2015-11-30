@@ -22,8 +22,8 @@ public class ZkBackupHandlerTest extends BackupTestBase {
     }
 
     @Test
-    public void testCheckLeader() throws IOException {
-        Assert.assertTrue(zkBackupHandler.isLeader());
+    public void testCheckEligibleForBackup() throws IOException {
+        Assert.assertTrue(zkBackupHandler.isEligibleForBackup());
     }
 
     @Test

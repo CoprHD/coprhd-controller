@@ -16,6 +16,7 @@
         <property name="service" ref="serviceinfo" />
         <property name="nodeCount" value="1" />
         <property name="statusChecker" ref="statusChecker"/>
+        <property name="drUtil" ref="drUtil"/>
     </bean>
     
     <import resource="classpath:dbclient-conf.xml"/>

@@ -7,7 +7,6 @@ package com.emc.storageos.systemservices.impl;
 
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
-import com.emc.storageos.systemservices.impl.property.VdcSiteManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -18,6 +17,7 @@ import com.emc.storageos.systemservices.impl.upgrade.ClusterAddressPoller;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.RemoteRepository;
 import com.emc.storageos.systemservices.impl.upgrade.UpgradeManager;
+import com.emc.storageos.systemservices.impl.vdc.VdcManager;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -45,7 +45,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private PropertyManager _propertyMgr;
 
     @Autowired
-    private VdcSiteManager _vdcMgr;
+    private VdcManager _vdcMgr;
 
     @Autowired
     private IpReconfigManager _ipreconfigMgr;
@@ -161,11 +161,11 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startVdcManager();
             startIpReconfigManager();
             
-            DrUtil drUtil = new DrUtil(_coordinator.getCoordinatorClient());
-            if (drUtil.isPrimary()) {
+            DrUtil drUtil = _coordinator.getDrUtil();
+            if (drUtil.isActiveSite()) {
                 _recoveryMgr.init();
+                startSystemAudit(_dbClient);
             }
-            startSystemAudit(_dbClient);
             _svcBeacon.start();
         } else {
             throw new Exception("No app found.");

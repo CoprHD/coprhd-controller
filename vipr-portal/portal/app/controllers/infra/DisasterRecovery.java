@@ -118,7 +118,7 @@ public class DisasterRecovery extends ViprResourceController {
         if (result != null) {
             // Check Switchover or Failover
             SitePrimary currentSite = DisasterRecoveryUtils.checkPrimary();
-            if(currentSite.getIsPrimary() == true) {
+            if (currentSite.getIsPrimary() == true) {
                 DisasterRecoveryUtils.doSwitchover(id);
             }
             else {
@@ -203,6 +203,10 @@ public class DisasterRecovery extends ViprResourceController {
     public static void itemsJson(@As(",") String[] ids) {
         List<String> uuids = Arrays.asList(ids);
         itemsJson(uuids);
+    }
+
+    public static boolean isPrimarySite() {
+        return DisasterRecoveryUtils.isPrimarySite();
     }
 
     private static void itemsJson(List<String> uuids) {

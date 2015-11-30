@@ -45,9 +45,9 @@ import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
-import com.emc.storageos.systemservices.impl.property.VdcSiteManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import com.emc.storageos.systemservices.impl.vdc.VdcManager;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
 
 /**
@@ -77,7 +77,7 @@ public class ControlService {
     private final static String FORCE = "1";
 
     @Autowired
-    private VdcSiteManager vdcManager;
+    private VdcManager vdcManager;
     
     @Context
     protected SecurityContext sc;

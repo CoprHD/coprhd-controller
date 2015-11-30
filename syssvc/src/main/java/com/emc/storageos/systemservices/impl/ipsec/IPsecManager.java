@@ -33,6 +33,8 @@ public class IPsecManager {
     IPsecConfig ipsecConfig;
 
     CoordinatorClient coordinator;
+    
+    @Autowired
     DrUtil drUtil;
 
     /**
@@ -152,9 +154,9 @@ public class IPsecManager {
 
             SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
             if (currentSiteInfo != null) {
-                siteInfo = new SiteInfo(vdcConfigVersion, SiteInfo.RECONFIG_IPSEC, currentSiteInfo.getTargetDataRevision(), SiteInfo.ActionScope.VDC);
+                siteInfo = new SiteInfo(vdcConfigVersion, SiteInfo.IPSEC_OP_ROTATE_KEY, currentSiteInfo.getTargetDataRevision(), SiteInfo.ActionScope.VDC);
             } else {
-                siteInfo = new SiteInfo(vdcConfigVersion, SiteInfo.RECONFIG_IPSEC, SiteInfo.ActionScope.VDC);
+                siteInfo = new SiteInfo(vdcConfigVersion, SiteInfo.IPSEC_OP_ROTATE_KEY, SiteInfo.ActionScope.VDC);
             }
             coordinator.setTargetInfo(siteId, siteInfo);
             log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
@@ -177,6 +179,5 @@ public class IPsecManager {
      */
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
-        drUtil = new DrUtil(this.coordinator);
     }
 }

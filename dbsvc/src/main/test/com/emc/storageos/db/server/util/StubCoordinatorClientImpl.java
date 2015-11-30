@@ -442,7 +442,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     }
 
     @Override
-    public void setPrimarySite(String siteId) {
+    public void setActiveSite(String siteId) {
         throw new UnsupportedOperationException();
     }
     

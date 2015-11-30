@@ -136,8 +136,6 @@ public class SchemaUtil {
      */
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
-        drUtil = new DrUtil(coordinator);
-        onStandby = drUtil.isStandby();
     }
 
     /**
@@ -354,7 +352,8 @@ public class SchemaUtil {
     public void rebuildDataOnStandby() {
         Site currentSite = drUtil.getLocalSite();
 
-        if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+        if (currentSite.getState().equals(SiteState.STANDBY_ADDING) ||
+            currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
             currentSite.setState(SiteState.STANDBY_SYNCING);
             _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
         }
@@ -386,21 +385,20 @@ public class SchemaUtil {
     }
 
     /**
-     * Add new standby site into the db/geodb strategy options on each new standby site
+     * Put to be added or resumed standby site into the db/geodb strategy options on each new standby site
      *
      * @param strategyOptions
      * @return true to indicate keyspace strategy option is changed
      */
     private boolean checkStrategyOptionsForDROnStandby(Map<String, String> strategyOptions) {
-        // no need to add new site on primary site, since dbsvc/geodbsvc are not restarted
+        // no need to add new site on acitve site, since dbsvc/geodbsvc are not restarted
         String dcId = drUtil.getCassandraDcId(drUtil.getLocalSite());
         if (strategyOptions.containsKey(dcId)) {
             return false;
         }
 
         Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
-                localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
             // don't add back the paused site
             _log.info("local standby site has been paused and removed from strategy options. Do nothing");
             return false;
@@ -895,10 +893,10 @@ public class SchemaUtil {
         vdcConfig.setId(vdc.getShortId());
         _coordinator.persistServiceConfiguration(vdcConfig);
 
-        // insert DR primary site info to ZK
+        // insert DR acitve site info to ZK
         Site site = new Site();
         site.setUuid(_coordinator.getSiteId());
-        site.setName("Primary");
+        site.setName("Default Active Site");
         site.setVdcShortId(vdc.getShortId());
         site.setStandbyShortId("");
         site.setHostIPv4AddressMap(ipv4Addresses);
@@ -1224,5 +1222,6 @@ public class SchemaUtil {
 
     public void setDrUtil(DrUtil drUtil) {
         this.drUtil = drUtil;
+        onStandby = drUtil.isStandby();
     }
 }

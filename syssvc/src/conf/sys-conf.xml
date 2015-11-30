@@ -224,7 +224,7 @@
         <property name="retryInterval"  value="4000" />
     </bean>
 
-    <bean id="vdcManager" class="com.emc.storageos.systemservices.impl.property.VdcSiteManager">
+    <bean id="vdcManager" class="com.emc.storageos.systemservices.impl.vdc.VdcManager">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
@@ -233,8 +233,21 @@
         <property name="powerOffStateProbeInterval" value="3000" />
         <property name="loopInterval"  value="600000" />
         <property name="retryInterval"  value="4000" />
-        <property name="service" ref="serviceinfo" />
         <property name="ipsecConfig" ref="ipsecConfig" />
+        <property name="drUtil" ref="drUtil" />
+        <property name="vdcOpHandlerMap">
+        	<map>
+        		<entry key="noop" value-ref="vdcNoopHandler"/>
+        		<entry key="dr_add_standby" value-ref="vdcDrAddStandbyHandler"/>
+        		<entry key="dr_remove_standby" value-ref="vdcDrRemoveStandbyHandler"/>
+        		<entry key="dr_pause_standby" value-ref="vdcDrPauseStandbyHandler"/>
+        		<entry key="dr_resume_standby" value-ref="vdcDrResumeStandbyHandler"/>
+        		<entry key="dr_switchover" value-ref="vdcDrSwitchoverHandler"/>
+        		<entry key="dr_failover" value-ref="vdcDrFailoverHandler"/>
+                <entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
+        		<entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
+        	</map>
+        </property>
     </bean>
 
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
@@ -428,5 +441,77 @@
         <property name="coordinator" ref="coordinator" />
         <property name="toConsole" value="false" />
         <property name="helper" ref="dbCheckerHelper"/>
+    </bean>
+    
+    <bean id="vdcNoopHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.NoopOpHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+   <bean id="vdcDrAddStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrAddStandbyHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+    <bean id="vdcDrChangeDataRevisionHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrChangeDataRevisionHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+   <bean id="vdcDrRemoveStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrRemoveStandbyHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+ 	<bean id="vdcDrPauseStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrPauseStandbyHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+   <bean id="vdcDrResumeStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrResumeStandbyHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+    <bean id="vdcDrSwitchoverHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrSwitchoverHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+    <bean id="vdcDrFailoverHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrFailoverHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+
+    <bean id="ipsecRotateHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPSecRotateOpHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
     </bean>
 </beans>

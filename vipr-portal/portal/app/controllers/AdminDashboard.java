@@ -79,9 +79,10 @@ public class AdminDashboard extends Controller {
         render(dbstatus);
     }
 
-    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"),
+        @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void disasterRecovery() {
-        List <SiteRestRep> drsites = DisasterRecoveryUtils.getAllSites().getSites();
+        List<SiteRestRep> drsites = DisasterRecoveryUtils.getAllSites().getSites();
         render(drsites);
     }
 
@@ -104,10 +105,12 @@ public class AdminDashboard extends Controller {
         // Last updated must be set after evaluating promises
         renderArgs.put("storageArrayCountLastUpdated", AdminDashboardUtils.getStorageArrayCountLastUpdated());
         render();
+
     }
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void virtualAssets() {
+
         Map<String, Promise<?>> promises = Maps.newHashMap();
         promises.put("virtualStorageArrayCount", AdminDashboardUtils.virutalStorageArrayCount());
         if (LicenseUtils.isControllerLicensed()) {
@@ -121,6 +124,7 @@ public class AdminDashboard extends Controller {
         // Last updated must be set after evaluating promises
         renderArgs.put("virtualStorageArrayCountLastUpdated", AdminDashboardUtils.getVirtualStorageArrayCountLastUpdated());
         render();
+
     }
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })

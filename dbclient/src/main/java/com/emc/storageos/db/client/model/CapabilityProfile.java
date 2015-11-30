@@ -2,8 +2,8 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
-@Cf("StorageContainerProfile")
-public class StorageContainerProfile extends DiscoveredDataObject{
+@Cf("CapabilityProfile")
+public class CapabilityProfile extends DiscoveredDataObject{
 
     private String storageProfileId;
     

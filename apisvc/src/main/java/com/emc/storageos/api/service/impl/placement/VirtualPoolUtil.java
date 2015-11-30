@@ -45,7 +45,6 @@ import com.emc.storageos.model.vpool.FileVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolParam;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.RaidLevelChanges;
-import com.emc.storageos.model.vpool.StorageContainerRequestParam;
 import com.emc.storageos.model.vpool.VirtualPoolHighAvailabilityParam;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.collect.Sets;
@@ -661,10 +660,4 @@ public class VirtualPoolUtil {
         return (null != policy && sysTypeSet.contains(VirtualPool.SystemType.hds.toString()) && (driveType == null));
     }
 
-    @SuppressWarnings("unchecked")
-    public static void validateStorageContainerCreateParams(StorageContainerRequestParam param, DbClient dbClient) throws DatabaseException {
-        // Starts object VirtualPool validation chain using objectNameValidator.
-        objectTypeValidator.validateVirtualPoolCreateParam(param, dbClient);
-
-    }
 }

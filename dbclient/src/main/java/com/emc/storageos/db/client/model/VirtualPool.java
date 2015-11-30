@@ -111,8 +111,6 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Boolean autoCrossConnectExport = false;
     // Max retention for a Virtual Pool
     private Integer maxRetention;
-    //protocol endpoint type per storage container
-    private String protocolEndPointType;
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
@@ -327,7 +325,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     // names to be used in type field
     public static enum Type {
-        block, file, object, storageContainer;
+        block, file, object;
         private static final Type[] vpoolTypeValues = values();
 
         public static Type lookup(final String name) {
@@ -1335,13 +1333,4 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         setChanged("maxRetention");
     }
     
-	@Name("protocolEndPointType")
-	public String getProtocolEndPointType() {
-		return protocolEndPointType;
-	}
-
-	public void setProtocolEndPointType(String protocolEndPointType) {
-		this.protocolEndPointType = protocolEndPointType;
-		setChanged("protocolEndPointType");
-	}
 }

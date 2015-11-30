@@ -74,7 +74,8 @@ public enum ResourceTypeEnum {
     SYS_EVENT("sysevent", ""),
     USER_GROUP("user_group", "/vdc/admin/user-groups"),
     VIRTUAL_NAS("vnas-servers", "/vdc/vnas-servers"),
-    COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers");
+    COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers"),
+    STORAGE_CONTAINER("storage_container", "/vasa/storagecontainer");
     private final String type;
     private final String service;
 

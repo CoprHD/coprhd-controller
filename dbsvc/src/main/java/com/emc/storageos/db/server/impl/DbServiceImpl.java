@@ -651,7 +651,7 @@ public class DbServiceImpl implements DbService {
         InterProcessLock lock = null;
         while (true) {
             try {
-                lock = _coordinator.getLock(name);
+                lock = _coordinator.getSiteLocalLock(name);
                 lock.acquire();
                 break; // got lock
             } catch (Exception e) {

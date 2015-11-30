@@ -9,6 +9,9 @@ import org.apache.cassandra.service.ActiveRepairService;
 import org.apache.cassandra.service.StorageServiceMBean;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
+import org.apache.cassandra.utils.progress.ProgressEvent;
+import org.apache.cassandra.utils.progress.ProgressEventType;
+import org.apache.cassandra.utils.progress.jmx.JMXNotificationProgressListener;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,11 +30,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledFuture;
 
+
 /**
  * Class handles running repair job and listening for messages related modeled
- * after org.apache.cassandra.tools.NodeProbe.RepairRunner
+ * after org.apache.cassandra.tools.RepairRunner
  */
-public class RepairJobRunner implements NotificationListener, AutoCloseable {
+public class RepairJobRunner extends JMXNotificationProgressListener implements AutoCloseable {
 
     public static interface ProgressNotificationListener {
         public void onStartToken(String token, int progress);
@@ -316,33 +320,40 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
         return this._startTimeInMillis;
     }
 
-    /**
-     * Handle DB repair request notification from Cassandra JMX bean
+    /*
+     * TODO: 1. CASSANDRA-8901, notification mechanism of dbRepair is changed, add the following methods(the implementation should be
+     * refine).
+     * 2. svcProxy.forceRepairRangeAsync api is deprecated.
      */
-    public void handleNotification(Notification notification, Object handback) {
-        if ("repair".equals(notification.getType())) {
-            int[] status = (int[]) notification.getUserData();
-            if (status.length == 2) {
-                String message = String.format("Repair notification [%s] %s",
-                        format.format(notification.getTimeStamp()),
-                        notification.getMessage());
-                _log.info(message);
-                // repair status is int array with [0] = cmd number, [1] =
-                // status
-                if (status[1] == ActiveRepairService.Status.SESSION_FAILED
-                        .ordinal()) {
-                    _success = false;
-                } else if (status[1] == ActiveRepairService.Status.FINISHED
-                        .ordinal()) {
+    @Override
+    public boolean isInterestedIn(String tag) {
+        return tag.startsWith("repair:");
+    }
 
-                    if (_aborted) {
-                        _success = false;
-                    }
-                }
-            } else {
-                _log.error("Unexpected notification: status.length {}", status.length);
-            }
-        }
+    @Override
+    public void progress(String tag, ProgressEvent event) {
+        _log.info("Repair progress, tag: {}, event: {}, {}.", tag, event.getType(), event.getMessage());
+    }
+
+    @Override
+    public void handleNotificationLost(long timestamp, String message)
+    {
+        _log.info("Repair notification lost {}, {}", message, timestamp);
+        _success = false;
+    }
+
+    @Override
+    public void handleConnectionClosed(long timestamp, String message)
+    {
+        _log.info("Repair notification closed {}, {}", message, timestamp);
+        _success = false;
+    }
+
+    @Override
+    public void handleConnectionFailed(long timestamp, String message)
+    {
+        _log.info("Repair notification failed {}, {}", message, timestamp);
+        _success = false;
     }
 
     @Override

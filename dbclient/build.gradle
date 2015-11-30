@@ -1,7 +1,6 @@
 dependencies {
     compile library(apache_cassandra),
             library(commons_io),
-            library(jna),
             library(javassist),
             project(":jmx"),
             project(":models"),

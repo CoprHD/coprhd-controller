@@ -28,8 +28,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.cassandra.cli.CliMain;
-import org.apache.cassandra.cli.CliOptions;
+//import org.apache.cassandra.cli.CliMain;
+//import org.apache.cassandra.cli.CliOptions;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
@@ -1031,7 +1031,10 @@ public class VdcConfigHelper {
     private void setCassandraStrategyOptions(Map<String, String> options, boolean wait)
             throws CharacterCodingException, TException, NoSuchFieldException, IllegalAccessException, InstantiationException,
             InterruptedException, ConnectionException, ClassNotFoundException {
-        int port = InternalDbClient.DbJmxClient.DEFAULTTHRIFTPORT;
+        /*
+        TODO: Cassandra-cli is removed in CASSANDRA-7920, for below codes are only used by vdc operations, so comment them first.
+         */
+        /*int port = InternalDbClient.DbJmxClient.DEFAULTTHRIFTPORT;
 
         log.info("The dbclient encrypted={}", dbClient.isGeoDbClientEncrypted());
 
@@ -1073,7 +1076,7 @@ public class VdcConfigHelper {
 
         if (wait) {
             waitForStrategyOptionsSynced();
-        }
+        }*/
     }
 
     private void waitForStrategyOptionsSynced() throws InterruptedException, ConnectionException {

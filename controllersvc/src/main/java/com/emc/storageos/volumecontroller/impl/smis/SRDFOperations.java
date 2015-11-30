@@ -819,6 +819,21 @@ public class SRDFOperations implements SmisConstants {
         }
     }
 
+    /**
+     * Refresh storage system
+     * 
+     * @param storageSystemURI reference to storage system.
+     */
+    public void refreshStorageSystem(final URI storageSystemURI) {
+        StorageSystem system = null;
+        try {
+            system = utils.getStorageSystem(storageSystemURI);
+            callEMCRefresh(helper, system);
+        } catch (Exception ex) {
+            log.error("SMI-S error while refreshing storage system {}", storageSystemURI, ex);
+        }
+    }
+
     private CIMInstance getInstance(final CIMObjectPath path, final StorageSystem sourceSystem) {
         try {
             return helper.checkExists(sourceSystem, path, false, false);
@@ -1530,6 +1545,13 @@ public class SRDFOperations implements SmisConstants {
 
             ctxFactory.build(SRDFOperation.SUSPEND, target).perform();
             ctxFactory.build(SRDFOperation.DELETE_GROUP_PAIRS, target).perform();
+            if (target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString())) {
+                // If Active SRDF copy mode then refresh storage system and update volume properties
+                // as target volume wwn changes after stop
+                ArrayList<URI> volumeURIs = new ArrayList<URI>(Arrays.asList(target.getId()));
+                refreshStorageSystem(system.getId());
+                refreshVolumeProperties(system.getId(), volumeURIs);
+            }
 
             if (target.hasConsistencyGroup()) {
                 StorageSystem provider = findProviderWithGroup(target);
@@ -2129,6 +2151,43 @@ public class SRDFOperations implements SmisConstants {
             targetObj.setConsistencyGroup(newConsistencyGroup.getId());
         }
         dbClient.persistObject(targetVolumes);
+    }
+
+    /**
+     * Refresh the volume properties
+     * 
+     * @param systemURI reference to storage system
+     * @param volumeURIs List of volume URIs
+     * @throws Exception
+     */
+    public void refreshVolumeProperties(URI systemURI, List<URI> volumeURIs) throws Exception {
+
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, systemURI);
+        for (URI volumeURI : volumeURIs) {
+            Volume volume = dbClient.queryObject(Volume.class, volumeURI);
+            CIMObjectPath volumePath = cimPath.getVolumePath(storage, volume.getNativeId());
+            CIMInstance volumeInstance = helper.getInstance(storage, volumePath, false, false, null);
+            if (volumeInstance != null && volume != null) {
+                String wwn = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME);
+                // _log.info(String.format("Updating volume %s %s wwn from %s to %s ", volume.getLabel(), volume.getId(), volume.getWWN(),
+                // wwn.toUpperCase()));
+                volume.setWWN(wwn.toUpperCase());
+                String accessState = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_ACCESS);
+                String[] statusDescriptions = CIMPropertyFactory.getPropertyArray(volumeInstance,
+                        SmisConstants.CP_STATUS_DESCRIPTIONS);
+                List<String> statusDescriptionList = Arrays.asList(statusDescriptions);
+                // If this volume is managed by RP, RP owns the volume access field.
+                if (!volume.checkForRp()) {
+                    String newAccessState = SmisUtils.generateAccessState(accessState, statusDescriptionList);
+                    // _log.info(String.format(
+                    // "Updating volume %s %s access state from %s to %s ", volume.getLabel(), volume.getId().toString(),
+                    // volume.getAccessState(), newAccessState));
+                    volume.setAccessState(newAccessState);
+                }
+                dbClient.updateObject(volume);
+            }
+        }
+
     }
 
 }

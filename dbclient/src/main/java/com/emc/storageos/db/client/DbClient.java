@@ -61,8 +61,8 @@ public interface DbClient {
     <T extends DataObject> T queryObject(Class<T> clazz, NamedURI id);
 
     /**
-     * Queries for objects with given URI's. Deserializes into a data object of given
-     * class.
+     * Queries for objects with given URI's, Deserializes into a data object of given
+     * class and doesn't include inactive data object; on-demand('lazy') load to save memory
      *
      * @param clazz object type
      * @param ids object id
@@ -73,7 +73,7 @@ public interface DbClient {
 
     /**
      * Queries for objects with given URI's. Deserializes into a data object of given
-     * class.
+     * class; on-demand('lazy') load to save memory
      *
      * @param clazz object type
      * @param ids object id

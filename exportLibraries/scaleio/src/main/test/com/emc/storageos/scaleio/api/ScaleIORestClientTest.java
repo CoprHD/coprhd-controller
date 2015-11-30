@@ -10,8 +10,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.BeforeClass;
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;
@@ -20,6 +24,8 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.services.util.EnvConfig;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations="classpath:controller-conf.xml")
 public class ScaleIORestClientTest {
     private static Logger log = LoggerFactory.getLogger(ScaleIORestClientTest.class);
     private static ScaleIORestClient restClient;
@@ -29,17 +35,14 @@ public class ScaleIORestClientTest {
     private static final String PASSWORD = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.password");
     private static int PORT = 443;
 
+    @Autowired
+    private ScaleIORestClientFactory scaleIORestClientFactory;
+    
     @BeforeClass
     static public void setUp() {
         ScaleIORestClientFactory factory = new ScaleIORestClientFactory();
-        factory.setMaxConnections(100);
-        factory.setMaxConnectionsPerHost(100);
-        factory.setNeedCertificateManager(false);
-        factory.setSocketConnectionTimeoutMs(3600000);
-        factory.setConnectionTimeoutMs(3600000);
-        factory.init();
         String endpoint = ScaleIOConstants.getAPIBaseURI(HOST, PORT);
-        restClient = (ScaleIORestClient) factory.getRESTClient(URI.create(endpoint), USER, PASSWORD, true);
+        restClient = (ScaleIORestClient) factory.getRESTClient(URI.create(endpoint), USER, PASSWORD);
 
     }
 
@@ -185,5 +188,13 @@ public class ScaleIORestClientTest {
         } catch (Exception e) {
             log.error("Exception: ", e);
         }
+    }
+
+    public ScaleIORestClientFactory getScaleIORestClientFactory() {
+        return scaleIORestClientFactory;
+    }
+
+    public void setScaleIORestClientFactory(ScaleIORestClientFactory scaleIORestClientFactory) {
+        this.scaleIORestClientFactory = scaleIORestClientFactory;
     }
 }

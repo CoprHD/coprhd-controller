@@ -21,6 +21,4 @@ public class ScaleIORestClientFactory extends RestAPIFactory<ScaleIORestClient> 
         return new ScaleIORestClient(endpoint, username, password, getRestClient());
     }
 
-
-
 }

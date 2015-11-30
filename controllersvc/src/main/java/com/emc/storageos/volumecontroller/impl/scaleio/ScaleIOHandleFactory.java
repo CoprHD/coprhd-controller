@@ -5,6 +5,8 @@
 
 package com.emc.storageos.volumecontroller.impl.scaleio;
 
+import java.net.URI;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -13,17 +15,9 @@ import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;
-import com.google.common.base.Strings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class ScaleIOHandleFactory {
-    private static final Logger log = LoggerFactory.getLogger(ScaleIOHandleFactory.class);
-    private final Map<String, ScaleIORestClient> ScaleIORestClientMap = new ConcurrentHashMap<String, ScaleIORestClient>();
+
     private final Object syncObject = new Object();
 
     private DbClient dbClient;
@@ -53,8 +47,6 @@ public class ScaleIOHandleFactory {
             if (provider == null) {
                 throw ScaleIOException.exceptions.noActiveStorageProvider(storageSystem.getNativeGuid());
             }
-            String providerId = provider.getProviderID();
-            handle = ScaleIORestClientMap.get(providerId);
             handle = getHandle(handle, provider);
         }
         return handle;
@@ -63,8 +55,6 @@ public class ScaleIOHandleFactory {
     public ScaleIORestClient getClientHandle(StorageProvider provider) throws Exception {
         ScaleIORestClient handle = null;
         synchronized (syncObject) {
-            String providerId = provider.getProviderID();
-            handle = ScaleIORestClientMap.get(providerId);
             handle = getHandle(handle, provider);
         }
         return handle;
@@ -75,21 +65,8 @@ public class ScaleIOHandleFactory {
             if (handle == null) {
                 URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(provider.getIPAddress(), provider.getPortNumber()));
                 handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, provider.getUserName(),
-                        provider.getPassword(), true);
-                ScaleIORestClient client = (ScaleIORestClient) handle;
-                ScaleIORestClientMap.put(provider.getProviderID(), client);
+                        provider.getPassword());
             }
-            ScaleIORestClient client = (ScaleIORestClient) handle;
-            if (!Strings.isNullOrEmpty(provider.getUserName())) {
-                client.setUsername(provider.getUserName());
-            }
-            if (!Strings.isNullOrEmpty(provider.getPassword())) {
-                client.setPassword(provider.getPassword());
-            }
-        } else {
-            log.info("The storage provider interface type is not supported: {} ", provider.getInterfaceType());
-            // not supported
-            handle = null;
         }
         return handle;
     }

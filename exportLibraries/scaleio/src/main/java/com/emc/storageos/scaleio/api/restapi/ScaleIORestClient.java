@@ -11,23 +11,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.MediaType;
-
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.common.http.RestClientItf;
 import com.emc.storageos.scaleio.ScaleIOException;
-import com.emc.storageos.services.restutil.StandardRestClient;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.WebResource.Builder;
-import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
-import com.sun.jersey.api.client.filter.LoggingFilter;
-
 import com.emc.storageos.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.scaleio.api.restapi.request.ScaleIOCreateVolume;
 import com.emc.storageos.scaleio.api.restapi.request.ScaleIOMapVolumeToSDC;
@@ -40,24 +31,35 @@ import com.emc.storageos.scaleio.api.restapi.request.ScaleIOUnmapVolumeToSDC;
 import com.emc.storageos.scaleio.api.restapi.request.ScaleIOUnmapVolumeToScsiInitiator;
 import com.emc.storageos.scaleio.api.restapi.request.ScaleIOVolumeList;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOProtectionDomain;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDC;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSnapshotVolumeResponse;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOStoragePool;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
-
+import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.WebResource.Builder;
 
 /**
  * This class implements methods for calling ScaleIO REST API to do operations.
  */
 
-public class ScaleIORestClient extends StandardRestClient {
+public class ScaleIORestClient {
 
     private static Logger log = LoggerFactory.getLogger(ScaleIORestClient.class);
 
+    private RestClientItf client;
+    
+    private URI baseURI;
+    
+    private String username;
+    
+    private String password;
+    
     /**
      * Constructor
      * 
@@ -67,20 +69,11 @@ public class ScaleIORestClient extends StandardRestClient {
      * @param username The MDM usernam.
      * @param password The MDM user password.
      */
-    public ScaleIORestClient(URI baseURI, String username, String password, Client client) {
-        _client = client;
-        _base = baseURI;
-        _username = username;
-        _password = password;
-        _authToken = "";
-    }
-
-    public void setUsername(String username) {
-        _username = username;
-    }
-
-    public void setPassword(String password) {
-        _password = password;
+    public ScaleIORestClient(URI baseURI, String username, String password, RestClientItf client) {
+        this.client = client;
+        this.baseURI = baseURI;
+        this.username = username;
+        this.password = password;
     }
 
     public String init() throws Exception {
@@ -94,7 +87,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @throws JSONException
      */
     public List<ScaleIOSDC> queryAllSDC() throws JSONException {
-        ClientResponse response = get(URI.create(ScaleIOConstants.GET_SDC_URI));
+        ClientResponse response = client.get(baseURI.resolve(URI.create(ScaleIOConstants.GET_SDC_URI)), username, password);
         return getResponseObjects(ScaleIOSDC.class, response);
 
     }
@@ -107,7 +100,8 @@ public class ScaleIORestClient extends StandardRestClient {
      */
     public List<ScaleIOSDS> queryAllSDS() throws Exception {
         log.info("Discoverying all SDS.");
-        ClientResponse response = get(URI.create(ScaleIOConstants.GET_SDS_URI));
+        
+        ClientResponse response = client.get(baseURI.resolve(URI.create(ScaleIOConstants.GET_SDS_URI)), username, password);
         return getResponseObjects(ScaleIOSDS.class, response);
     }
 
@@ -119,7 +113,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @throws Exception
      */
     public ScaleIOStoragePool queryStoragePool(String poolId) throws Exception {
-        ClientResponse response = get(URI.create(ScaleIOConstants.getStoragePoolStatsURI(poolId)));
+        ClientResponse response = client.get(baseURI.resolve(URI.create(ScaleIOConstants.getStoragePoolStatsURI(poolId))), username, password);
         ScaleIOStoragePool pool = getResponseObject(ScaleIOStoragePool.class, response);
         ScaleIOStoragePool poolStats = getStoragePoolStats(poolId);
         pool.setCapacityAvailableForVolumeAllocationInKb(poolStats.getCapacityAvailableForVolumeAllocationInKb());
@@ -145,7 +139,7 @@ public class ScaleIORestClient extends StandardRestClient {
         volume.setStoragePoolId(storagePoolId);
         volume.setName(volumeName);
         volume.setProtectionDomainId(protectionDomainId);
-        ClientResponse response = post(URI.create(ScaleIOConstants.VOLUMES_URI), getJsonForEntity(volume));
+        ClientResponse response = client.post(baseURI.resolve(URI.create(ScaleIOConstants.VOLUMES_URI)), getJsonForEntity(volume), username, password);
         ScaleIOVolume createdVol = getResponseObject(ScaleIOVolume.class, response);
         return queryVolume(createdVol.getId());
     }
@@ -175,7 +169,7 @@ public class ScaleIORestClient extends StandardRestClient {
         } else {
             volume.setVolumeType(ScaleIOConstants.THICK_PROVISIONED);
         }
-        ClientResponse response = post(URI.create(ScaleIOConstants.VOLUMES_URI), getJsonForEntity(volume));
+        ClientResponse response = client.post(baseURI.resolve(URI.create(ScaleIOConstants.VOLUMES_URI)), getJsonForEntity(volume), username, password);
         ScaleIOVolume createdVol = getResponseObject(ScaleIOVolume.class, response);
         return queryVolume(createdVol.getId());
     }
@@ -189,7 +183,7 @@ public class ScaleIORestClient extends StandardRestClient {
     public void removeVolume(String volumeId) throws Exception {
         String uri = ScaleIOConstants.getRemoveVolumeURI(volumeId);
         ScaleIORemoveVolume removeParm = new ScaleIORemoveVolume();
-        post(URI.create(uri), getJsonForEntity(removeParm));
+        client.post(baseURI.resolve(URI.create(uri)), getJsonForEntity(removeParm), username, password);
 
     }
 
@@ -204,7 +198,7 @@ public class ScaleIORestClient extends StandardRestClient {
         String uri = ScaleIOConstants.getModifyVolumeSizeURI(volumeId);
         ScaleIOModifyVolumeSize modifyParm = new ScaleIOModifyVolumeSize();
         modifyParm.setSizeInGB(newSizeGB);
-        post(URI.create(uri), getJsonForEntity(modifyParm));
+        client.post(baseURI.resolve(URI.create(uri)), getJsonForEntity(modifyParm), username, password);
         return queryVolume(volumeId);
     }
 
@@ -221,7 +215,7 @@ public class ScaleIORestClient extends StandardRestClient {
         String uri = ScaleIOConstants.getSnapshotVolumesURI(systemId);
         ScaleIOSnapshotVolumes spVol = new ScaleIOSnapshotVolumes();
         spVol.addSnapshot(volId, snapshotName);
-        ClientResponse response = post(URI.create(uri), getJsonForEntity(spVol));
+        ClientResponse response = client.post(baseURI.resolve(URI.create(uri)), getJsonForEntity(spVol), username, password);
         return getResponseObject(ScaleIOSnapshotVolumeResponse.class, response);
     }
 
@@ -239,7 +233,7 @@ public class ScaleIORestClient extends StandardRestClient {
         for (Map.Entry<String, String> entry : id2snapshot.entrySet()) {
             spVol.addSnapshot(entry.getKey(), entry.getValue());
         }
-        ClientResponse response = post(URI.create(uri), getJsonForEntity(spVol));
+        ClientResponse response = client.post(baseURI.resolve(URI.create(uri)), getJsonForEntity(spVol), username, password);
         return getResponseObject(ScaleIOSnapshotVolumeResponse.class, response);
     }
 
@@ -256,7 +250,7 @@ public class ScaleIORestClient extends StandardRestClient {
         ScaleIOMapVolumeToSDC mapParm = new ScaleIOMapVolumeToSDC();
         mapParm.setSdcId(sdcId);
         mapParm.setAllowMultipleMappings("TRUE");
-        post(URI.create(uri), getJsonForEntity(mapParm));
+        client.post(baseURI.resolve(URI.create(uri)), getJsonForEntity(mapParm), username, password);
     }
 
     /**
@@ -271,7 +265,7 @@ public class ScaleIORestClient extends StandardRestClient {
         ScaleIOUnmapVolumeToSDC unmapParm = new ScaleIOUnmapVolumeToSDC();
         unmapParm.setSdcId(sdcId);
         unmapParm.setIgnoreScsiInitiators("TRUE");
-        post(URI.create(uri), getJsonForEntity(unmapParm));
+        client.post(baseURI.resolve(URI.create(uri)), getJsonForEntity(unmapParm), username, password);
     }
 
     /**
@@ -286,7 +280,7 @@ public class ScaleIORestClient extends StandardRestClient {
         String uri = ScaleIOConstants.getRemoveConsistencyGroupSnapshotsURI(systemId);
         ScaleIORemoveConsistencyGroupSnapshots parm = new ScaleIORemoveConsistencyGroupSnapshots();
         parm.setSnapGroupId(consistencyGroupId);
-        post(URI.create(uri), getJsonForEntity(parm));
+        client.post(baseURI.resolve(URI.create(uri)), getJsonForEntity(parm), username, password);
     }
 
     /**
@@ -299,7 +293,7 @@ public class ScaleIORestClient extends StandardRestClient {
         log.info("Discovery all SCSI Initiators");
         List<ScaleIOScsiInitiator> scsiInits = Collections.emptyList();
         try {
-            ClientResponse response = get(URI.create(ScaleIOConstants.GET_SCSI_INITIATOR_URI));
+            ClientResponse response = client.get(baseURI.resolve(URI.create(ScaleIOConstants.GET_SCSI_INITIATOR_URI)), username, password);
             scsiInits = getResponseObjects(ScaleIOScsiInitiator.class, response);
         } catch (Exception e) {
             // 1.32 and later does not support get ScsiInitiators
@@ -322,7 +316,7 @@ public class ScaleIORestClient extends StandardRestClient {
         ScaleIOMapVolumeToScsiInitiator mapParm = new ScaleIOMapVolumeToScsiInitiator();
         mapParm.setScsiInitiatorId(initiatorId);
         mapParm.setAllowMultipleMapp("TRUE");
-        post(URI.create(uri), getJsonForEntity(mapParm));
+        client.post(baseURI.resolve(URI.create(uri)), getJsonForEntity(mapParm), username, password);
     }
 
     /**
@@ -336,7 +330,7 @@ public class ScaleIORestClient extends StandardRestClient {
         String uri = ScaleIOConstants.getUnmapVolumeToScsiInitiatorURI(volumeId);
         ScaleIOUnmapVolumeToScsiInitiator unmapParm = new ScaleIOUnmapVolumeToScsiInitiator();
         unmapParm.setScsiInitiatorId(initiatorId);
-        post(URI.create(uri), getJsonForEntity(unmapParm));
+        client.post(baseURI.resolve(URI.create(uri)), getJsonForEntity(unmapParm), username, password);
     }
 
     /**
@@ -355,37 +349,10 @@ public class ScaleIORestClient extends StandardRestClient {
         return result;
     }
 
-    @Override
     protected Builder setResourceHeaders(WebResource resource) {
         return resource.getRequestBuilder();
     }
 
-    @Override
-    protected void authenticate() {
-        log.info("Authenticating");
-
-        _client.removeAllFilters();
-        _client.addFilter(new HTTPBasicAuthFilter(_username, _password));
-        if (log.isDebugEnabled()) {
-            _client.addFilter(new LoggingFilter(System.out));
-        }
-        URI requestURI = _base.resolve(URI.create(ScaleIOConstants.API_LOGIN));
-        ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON)
-                .get(ClientResponse.class);
-
-        if (response.getClientResponseStatus() != ClientResponse.Status.OK
-                && response.getClientResponseStatus() != ClientResponse.Status.CREATED) {
-            throw ScaleIOException.exceptions.authenticationFailure(_base.toString());
-        }
-        _authToken = response.getEntity(String.class).replace("\"", "");
-        _client.removeAllFilters();
-        _client.addFilter(new HTTPBasicAuthFilter(_username, _authToken));
-        if (log.isDebugEnabled()) {
-            _client.addFilter(new LoggingFilter(System.out));
-        }
-    }
-
-    @Override
     protected int checkResponse(URI uri, ClientResponse response) {
         ClientResponse.Status status = response.getClientResponseStatus();
         int errorCode = status.getStatusCode();
@@ -432,7 +399,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @throws Exception
      */
     public ScaleIOSystem getSystem() throws Exception {
-        ClientResponse response = get(URI.create(ScaleIOConstants.GET_SYSTEMS_URI));
+        ClientResponse response = client.get(baseURI.resolve(URI.create(ScaleIOConstants.GET_SYSTEMS_URI)), username, password);
         List<ScaleIOSystem> systemsInfo = getResponseObjects(ScaleIOSystem.class, response);
         return systemsInfo.get(0);
     }
@@ -444,7 +411,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @throws JSONException
      */
     public List<ScaleIOProtectionDomain> getProtectionDomains() throws JSONException {
-        ClientResponse response = get(URI.create(ScaleIOConstants.GET_PROTECTION_DOMAIN_URI));
+        ClientResponse response = client.get(baseURI.resolve(URI.create(ScaleIOConstants.GET_PROTECTION_DOMAIN_URI)), username, password);
         return getResponseObjects(ScaleIOProtectionDomain.class, response);
     }
 
@@ -456,7 +423,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @throws JSONException
      */
     public List<ScaleIOStoragePool> getProtectionDomainStoragePools(String pdId) throws Exception {
-        ClientResponse response = get(URI.create(ScaleIOConstants.getProtectionDomainStoragePoolURI(pdId)));
+        ClientResponse response = client.get(baseURI.resolve(URI.create(ScaleIOConstants.getProtectionDomainStoragePoolURI(pdId))), username, password);
         List<ScaleIOStoragePool> pools = getResponseObjects(ScaleIOStoragePool.class, response);
         for (ScaleIOStoragePool pool : pools) {
             ScaleIOStoragePool poolResult = getStoragePoolStats(pool.getId());
@@ -474,7 +441,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @throws Exception
      */
     public ScaleIOStoragePool getStoragePoolStats(String poolId) throws Exception {
-        ClientResponse response = get(URI.create(ScaleIOConstants.getStoragePoolStatsURI(poolId)));
+        ClientResponse response = client.get(URI.create(ScaleIOConstants.getStoragePoolStatsURI(poolId)), username, password);
         ScaleIOStoragePool pool = getResponseObject(ScaleIOStoragePool.class, response);
         pool.setId(poolId);
         return pool;
@@ -487,7 +454,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @throws Exception
      */
     public String getSystemId() throws Exception {
-        ClientResponse response = get(URI.create(ScaleIOConstants.GET_SYSTEMS_URI));
+        ClientResponse response = client.get(URI.create(ScaleIOConstants.GET_SYSTEMS_URI), username, password);
         List<ScaleIOSystem> systemsInfo = getResponseObjects(ScaleIOSystem.class, response);
         return systemsInfo.get(0).getId();
     }
@@ -500,7 +467,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @throws Exception
      */
     public ScaleIOVolume queryVolume(String volId) throws Exception {
-        ClientResponse response = get(URI.create(ScaleIOConstants.getVolumeURI(volId)));
+        ClientResponse response = client.get(URI.create(ScaleIOConstants.getVolumeURI(volId)), username, password);
         return getResponseObject(ScaleIOVolume.class, response);
     }
 
@@ -515,7 +482,7 @@ public class ScaleIORestClient extends StandardRestClient {
         Map<String, String> result = new HashMap<String, String>();
         ScaleIOVolumeList parm = new ScaleIOVolumeList();
         parm.setIds(volumeIds);
-        ClientResponse response = post(URI.create(ScaleIOConstants.GET_VOLUMES_BYIDS_URI), getJsonForEntity(parm));
+        ClientResponse response = client.post(URI.create(ScaleIOConstants.GET_VOLUMES_BYIDS_URI), getJsonForEntity(parm), username, password);
         List<ScaleIOVolume> volumes = getResponseObjects(ScaleIOVolume.class, response);
         for (ScaleIOVolume volume : volumes) {
             result.put(volume.getName(), volume.getId());
@@ -534,11 +501,21 @@ public class ScaleIORestClient extends StandardRestClient {
         Map<String, ScaleIOVolume> result = new HashMap<String, ScaleIOVolume>();
         ScaleIOVolumeList parm = new ScaleIOVolumeList();
         parm.setIds(volumeIds);
-        ClientResponse response = post(URI.create(ScaleIOConstants.GET_VOLUMES_BYIDS_URI), getJsonForEntity(parm));
+        ClientResponse response = client.post(URI.create(ScaleIOConstants.GET_VOLUMES_BYIDS_URI), getJsonForEntity(parm), username, password);
         List<ScaleIOVolume> volumes = getResponseObjects(ScaleIOVolume.class, response);
         for (ScaleIOVolume volume : volumes) {
             result.put(volume.getName(), volume);
         }
         return result;
+    }
+    
+    private <T> T getResponseObject(Class<T> clazz, ClientResponse response) throws Exception {
+        JSONObject resp = response.getEntity(JSONObject.class);
+        T respObject = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()), clazz);
+        return respObject;
+    }
+    
+    private <T> String getJsonForEntity(T model) throws Exception {
+        return new Gson().toJson(model);
     }
 }

@@ -73,8 +73,27 @@
   border-top-right-radius: 0;
   border-top-left-radius: 0;
   background-color: @well-bg;
-  border: 1px solid @well-border;
-  border-top: 0;
+  border-top: 1px solid @well-border;
+  border-bottom: 1px solid @well-border;
+}
+
+.breadcrumb > li > a {
+	color: #3a9bdd;
+	font-size: 13px;
+	font-weight:bold;
+	text-decoration: none
+}
+
+.breadcrumb > .active {
+	color: #949494;
+	font-size: 13px;
+	font-weight:bold;
+}
+
+.breadcrumb > li + li:before {
+  font-weight: bold;
+  color: #555555;
+  font-size: 14px;
 }
 
 /* Support for collapsable panels */

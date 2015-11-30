@@ -471,8 +471,14 @@ public class SchemaUtil {
             Site localSite = drUtil.getLocalSite();
             if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
                 String localDcId = drUtil.getCassandraDcId(localSite);
+                // There is a chance that some of the nodes in the current site has been added to gossip before
+                // the restart, in which case they must be removed again before a schema agreement can be reached.
+                // The reason is that all the other nodes in the current site are now being blocked by the schema
+                // lock and are definitely unreachable.
                 removeUnreachableNodesFromDc(localDcId);
 
+                // Wait for schema agreement before checking the strategy options, since the strategy options from
+                // the local site might be older than the active site and shouldn't be used any more.
                 clientContext.waitForSchemaAgreement(null);
             }
         } catch (RetryableCoordinatorException e) {

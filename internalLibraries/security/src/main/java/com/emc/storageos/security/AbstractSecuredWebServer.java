@@ -298,6 +298,8 @@ public abstract class AbstractSecuredWebServer {
             config.setPropertiesAndFeatures(props);
         }
         if (_dbClient != null) {
+            // in some cases, like syssvc, we don't want the service to be blocked by dbsvc startup.
+            // Otherwise there could be a dependency loop between services.
             if (startDbClientInBackground) {
                 _log.info("starting dbclient in background");
                 new Thread() {

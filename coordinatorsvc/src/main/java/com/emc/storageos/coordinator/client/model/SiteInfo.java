@@ -6,24 +6,27 @@ package com.emc.storageos.coordinator.client.model;
 
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
-
 import com.emc.storageos.coordinator.exceptions.DecodingException;
 import com.emc.storageos.services.util.Strings;
 
 /**
  * This class stores only the hash for the vdc config for now
  * The complete vdc configuration is found in the local db
- * We are simply creating a target here for VdcSiteManager to watch.
+ * We are simply creating a target here for VdcManager to watch.
  */
 public class SiteInfo implements CoordinatorSerializable {
     public static final String CONFIG_KIND = "sitetargetconfig";
     public static final String CONFIG_ID = "global";
-
-    public static final String UPDATE_DATA_REVISION = "update_data_revision";
-    public static final String RECONFIG_RESTART = "reconfig_restart";
-    public static final String RECONFIG_IPSEC = "reconfig_ipsec";
-    public static final String NONE = "none";
+    
+    public static final String IPSEC_OP_ROTATE_KEY = "ipsec_rotate_key";
+    public static final String DR_OP_ADD_STANDBY = "dr_add_standby";
+    public static final String DR_OP_REMOVE_STANDBY = "dr_remove_standby";
+    public static final String DR_OP_PAUSE_STANDBY = "dr_pause_standby";
+    public static final String DR_OP_RESUME_STANDBY = "dr_resume_standby";
+    public static final String DR_OP_SWITCHOVER = "dr_switchover";
+    public static final String DR_OP_FAILOVER = "dr_failover";
+    public static final String DR_OP_CHANGE_DATA_REVISION = "dr_change_data_revision";
+    public static final String NONE = "noop";
 
     /**
      *  Action Scope represents if an action involves nodes of the entire VDC or just ones of local site.
@@ -55,6 +58,10 @@ public class SiteInfo implements CoordinatorSerializable {
 
     public SiteInfo(final long version, final String actionRequired, final String targetDataRevision) {
         this(version, actionRequired, targetDataRevision, ActionScope.SITE);
+    }
+
+    public SiteInfo(final long version, final String actionRequired, final ActionScope vdc) {
+        this(version, actionRequired, DEFAULT_TARGET_VERSION, ActionScope.SITE);
     }
 
     public SiteInfo(final long version, final String actionRequired, final String targetDataRevision, final ActionScope scope) {

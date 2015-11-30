@@ -9,12 +9,10 @@ package com.emc.storageos.coordinator.client.model;
  * The state of site, used to track state transaction during disaster recovery.
  **/
 public enum SiteState {
-
     /**
-     * Primary site. Eligible for all provisioning operations
+     * Active site. Eligible for all provisioning operations
      */
-    PRIMARY
-    {
+    PRIMARY {
         @Override
         public boolean isDROperationOngoing() {
             return false;
@@ -22,10 +20,9 @@ public enum SiteState {
     },
 
     /**
-     * Primary site is doing planned failover
+     * Active site is doing planned failover
      */
-    PRIMARY_SWITCHING_OVER
-    {
+    PRIMARY_SWITCHING_OVER {
         @Override
         public boolean isDROperationOngoing() {
             return true;
@@ -33,7 +30,7 @@ public enum SiteState {
     },
 
     /**
-     * Primary site is doing failover
+     * Active site is doing failover
      */
     PRIMARY_FAILING_OVER {
         @Override
@@ -45,8 +42,7 @@ public enum SiteState {
     /**
      *  Standby site. Adding site
      */
-    STANDBY_ADDING
-    {
+    STANDBY_ADDING {
         @Override
         public boolean isDROperationOngoing() {
             return true;
@@ -56,8 +52,7 @@ public enum SiteState {
     /**
      *  Standby site. Syncing from an active one
      */
-    STANDBY_SYNCING
-    {
+    STANDBY_SYNCING {
         @Override
         public boolean isDROperationOngoing() {
             return true;
@@ -67,8 +62,7 @@ public enum SiteState {
     /**
      *  Standby site. Synced with active one
      */
-    STANDBY_SYNCED
-    {
+    STANDBY_SYNCED {
         @Override
         public boolean isDROperationOngoing() {
             return false;
@@ -76,10 +70,19 @@ public enum SiteState {
     },
 
     /**
+     *  Standby site. Replication is being paused
+     */
+    STANDBY_PAUSING {
+        @Override
+        public boolean isDROperationOngoing() {
+            return true;
+        }
+    },
+
+    /**
      *  Standby site. Replication is paused
      */
-    STANDBY_PAUSED
-    {
+    STANDBY_PAUSED {
         @Override
         public boolean isDROperationOngoing() {
             return false;
@@ -89,8 +92,7 @@ public enum SiteState {
     /**
      *  Standby site. Run DR testing
      */
-    STANDBY_TESTING
-    {
+    STANDBY_TESTING {
         @Override
         public boolean isDROperationOngoing() {
             return false;
@@ -100,8 +102,7 @@ public enum SiteState {
     /**
      *  Standby site is doing planned failover
      */
-    STANDBY_SWITCHING_OVER
-    {
+    STANDBY_SWITCHING_OVER {
         @Override
         public boolean isDROperationOngoing() {
             return true;
@@ -121,8 +122,7 @@ public enum SiteState {
     /**
      *  Standby site. Removing
      */
-    STANDBY_REMOVING
-    {
+    STANDBY_REMOVING {
         @Override
         public boolean isDROperationOngoing() {
             return true;
@@ -132,8 +132,7 @@ public enum SiteState {
     /**
      *  Standby site. Resuming
      */
-    STANDBY_RESUMING
-    {
+    STANDBY_RESUMING {
         @Override
         public boolean isDROperationOngoing() {
             return true;
@@ -143,8 +142,7 @@ public enum SiteState {
     /**
      *  Unrecoverable error for this standby site
      */
-    STANDBY_ERROR
-    {
+    STANDBY_ERROR {
         @Override
         public boolean isDROperationOngoing() {
             return false;

@@ -27,7 +27,7 @@ public class ScheduledBackupTag {
 
     private static final String DATE_PATTERN = "yyyyMMddHHmmss";
     private static final String BACKUP_TAG_TEMPLATE = "%s-%d-%s";
-    private static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s-%s-%s%s";
+    private static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s-%s-%s-%s%s";
     private static final String SCHEDULED_BACKUP_TAG_REGEX_PATTERN = "^%s-(\\w+|\\.)*\\d+-\\d+-\\d{%d}$";
     private static final ThreadLocal<SimpleDateFormat> dateFormat = new ThreadLocal<SimpleDateFormat>() {
         @Override
@@ -104,7 +104,7 @@ public class ScheduledBackupTag {
         }
     }
 
-    public static String toZipFileName(String tag, int totalNodes, int backupNodes) {
-        return String.format(UPLOAD_ZIP_FILENAME_FORMAT, tag, totalNodes, backupNodes, ZIP_FILE_SURFIX);
+    public static String toZipFileName(String tag, int totalNodes, int backupNodes, String siteName) {
+        return String.format(UPLOAD_ZIP_FILENAME_FORMAT, tag, totalNodes, backupNodes, siteName, ZIP_FILE_SURFIX);
     }
 }

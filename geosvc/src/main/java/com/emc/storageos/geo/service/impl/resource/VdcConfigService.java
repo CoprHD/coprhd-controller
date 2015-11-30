@@ -7,10 +7,7 @@ package com.emc.storageos.geo.service.impl.resource;
 
 import java.net.InetAddress;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -23,6 +20,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +59,9 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.google.common.net.InetAddresses;
 
+import static com.emc.storageos.coordinator.client.model.Constants.IPSEC_KEY;
+import static com.emc.storageos.coordinator.client.model.Constants.VDC_CONFIG_VERSION;
+
 @Path(GeoServiceClient.VDCCONFIG_URI)
 public class VdcConfigService {
     private static final Logger log = LoggerFactory.getLogger(VdcConfigService.class);
@@ -81,6 +84,11 @@ public class VdcConfigService {
     private Service service;
     
     private SysUtils sysUtils;
+
+    private IPsecConfig ipsecConfig;
+    public void setIpsecConfig(IPsecConfig ipsecConfig) {
+        this.ipsecConfig = ipsecConfig;
+    }
 
     public void setService(Service service) {
         this.service = service;
@@ -672,6 +680,23 @@ public class VdcConfigService {
     @Path("/stablecheck")
     public String checkVdcStable() {
         return String.valueOf(isClusterStable());
+    }
+
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/ipsec-properties")
+    public PropertyInfoRestRep getIpsecProperties() throws Exception {
+        log.info("getting ipsec properties.");
+        Map<String, String> ipsecProps = new HashMap();
+        ipsecProps.put(IPSEC_KEY, ipsecConfig.getPreSharedKey());
+
+        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
+        String vdcConfigVersion = String.valueOf(siteInfo.getVdcConfigVersion());
+        ipsecProps.put(VDC_CONFIG_VERSION, vdcConfigVersion);
+        log.info("ipsec key: " + ipsecConfig.getPreSharedKey()
+                + ", vdc config version: " + vdcConfigVersion);
+
+        return new PropertyInfoRestRep(ipsecProps);
     }
 
     @POST

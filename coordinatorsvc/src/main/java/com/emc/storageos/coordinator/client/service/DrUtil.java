@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -41,6 +42,9 @@ public class DrUtil {
     
     private CoordinatorClient coordinator;
 
+    public DrUtil() {
+    }
+    
     public DrUtil(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
@@ -54,11 +58,11 @@ public class DrUtil {
     }
     
     /**
-     * Check if current site is primary
+     * Check if current site is acitve
      * 
-     * @return true for primary. otherwise false
+     * @return true for acitve. otherwise false
      */
-    public boolean isPrimary() {
+    public boolean isActiveSite() {
         return getPrimarySiteId().equals(coordinator.getSiteId());
     }
     
@@ -68,11 +72,11 @@ public class DrUtil {
      * @return true for standby site. otherwise false
      */
     public boolean isStandby() {
-        return !isPrimary();
+        return !isActiveSite();
     }
     
     /**
-     * Get primary site in current vdc
+     * Get acitve site in current vdc
      * 
      * @return
      */
@@ -81,13 +85,18 @@ public class DrUtil {
     }
 
     /**
-     * Get primary site in a specific vdc
+     * Get acitve site in a specific vdc
      *
      * @param vdcShortId short id of the vdc
-     * @return uuid of the primary site
+     * @return uuid of the acitve site
      */
     public String getPrimarySiteId(String vdcShortId) {
         Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, vdcShortId);
+        if (config == null && vdcShortId.equals(getLocalVdcShortId())) {
+            // active site config may not be initialized yet. Assume it is active site now
+            log.info("Cannot load active site config for vdc {}. Use current site as the active one", vdcShortId);
+            return coordinator.getSiteId();
+        }
         return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
     }
 
@@ -166,6 +175,44 @@ public class DrUtil {
     }
     
     /**
+     * List sites with given state
+     * 
+     * @param state
+     * @return
+     */
+    public List<Site> listSitesInState(SiteState state) {
+        List<Site> result = new ArrayList<Site>();
+        for(Site site : listSites()) {
+            if (site.getState().equals(state)) {
+                result.add(site);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Return true if we have sites in given state
+     * 
+     * @param state
+     * @return
+     */
+    public boolean hasSiteInState(SiteState state) {
+         return !listSitesInState(state).isEmpty();
+    }
+    
+    /**
+     * Get the total number of nodes in all sites of a VDC
+     * @return
+     */
+    public int getNodeCountWithinVdc() {
+        int vdcNodeCount = 0;
+        for (Site site : listSites()) {
+            vdcNodeCount += site.getNodeCount();
+        }
+        return vdcNodeCount;
+    }
+    
+    /**
      * Get number of running services in given site
      * 
      * @return number to indicate servers 
@@ -227,6 +274,12 @@ public class DrUtil {
         log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
 
+    public void updateVdcTargetVersion(String siteId, String action, long dataRevision) throws Exception {
+        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action, String.valueOf(dataRevision));
+        coordinator.setTargetInfo(siteId, siteInfo);
+        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
+    }
+
     /**
      * Check if a specific site is the local site
      * @param site
@@ -260,6 +313,9 @@ public class DrUtil {
     public String getLocalVdcShortId() {
         Configuration localVdc = coordinator.queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
                 Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        if (localVdc == null) {
+            return Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID; // return default vdc1 in case of localVdc is not initialized yet
+        }
         return localVdc.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
     }
     
@@ -297,5 +353,10 @@ public class DrUtil {
             } catch (Exception ex) {}
         }
         return null;
+    }
+    
+    public void removeSiteConfiguration(Site site) {
+        coordinator.removeServiceConfiguration(site.toConfiguration());
+        log.info("Removed site {} configuration from ZK", site.getUuid());
     }
 }

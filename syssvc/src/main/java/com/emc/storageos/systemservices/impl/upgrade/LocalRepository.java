@@ -83,6 +83,8 @@ public class LocalRepository {
     private static final String _SYSTOOL_IS_APPLIANCE = "--is-appliance";
     private static final String _SYSTOOL_RECONFIG_COORDINATOR = "--reconfig-coordinator";
 
+    private static final String _IPSECTOOL_CMD="/etc/ipsectool";
+
     // inject value from spring config.
     private String cmdZkutils;
 
@@ -459,7 +461,7 @@ public class LocalRepository {
     /***
      * Update data revision property
      *
-     * @param state
+     * @param revisionTag
      * @param committed 
      * @throws LocalRepositoryException
      */
@@ -508,6 +510,56 @@ public class LocalRepository {
         }
         return SiteInfo.DEFAULT_TARGET_VERSION;
     }
+
+    /**
+     * check ipsec connections between local machine and other nodes in vipr
+     *
+     * @return ips don't have ipsec connection with local machine
+     * @throws LocalRepositoryException
+     */
+    public String[] checkIpsecConnection() throws LocalRepositoryException {
+        final String prefix = "checkIpsecConnection(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_CONNECTION };
+        String[] ips = exec(prefix, cmd);
+
+        _log.debug(prefix + "ips without ipsec connection: ", Strings.repr(ips));
+        return ips;
+    }
+
+    /**
+     * get ipsec properties from specified node
+     *
+     * @param ip
+     * @return map of ipsec related properties: VDC_CONFIG_VERSION and IPSEC_KEY
+     */
+    public Map<String, String> getIpsecProperties(String ip) throws LocalRepositoryException {
+        final String prefix = "getIpsecPropertiesFromRemoteNode(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_GET_PROPS, ip };
+        String[] props = exec(prefix, cmd);
+
+        _log.debug(prefix + "properties={}", Strings.repr(props));
+        return PropertyInfoUtil.splitKeyValue(props);
+    }
+
+    /**
+     * write given ipsec key to local file system.
+     *
+     * @param ipsecKey
+     * @throws LocalRepositoryException
+     */
+    public void syncIpsecKeyToLocal(String ipsecKey) throws LocalRepositoryException {
+        final String prefix = "syncIpsecKeyToLocal(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_SYNC_KEY, ipsecKey };
+        exec(prefix, cmd);
+        _log.info(prefix + "Success!");
+    }
+
 
     /**
      * Common method checking exec execution failure

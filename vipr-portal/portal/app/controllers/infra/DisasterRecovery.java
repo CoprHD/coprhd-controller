@@ -26,6 +26,7 @@ import util.validation.HostNameOrIpAddress;
 
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteIdListParam;
+import com.emc.storageos.model.dr.SitePrimary;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.ClientResponse;
@@ -65,12 +66,22 @@ public class DisasterRecovery extends ViprResourceController {
         render(dataTable);
     }
 
-    public static void pause(String id) {
-        SiteRestRep result = DisasterRecoveryUtils.getSite(id);
-        if (result != null) {
-            SiteRestRep sitepause = DisasterRecoveryUtils.pauseStandby(id);
-            flash.success(MessagesUtils.get(PAUSED_SUCCESS, sitepause.getName()));
+    @FlashException("list")
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    public static void pause(@As(",") String[] ids) {
+        List<String> uuids = Arrays.asList(ids);
+        for (String uuid : uuids) {
+            if (!DisasterRecoveryUtils.hasStandbySite(uuid)) {
+                flash.error(MessagesUtils.get(UNKNOWN, uuid));
+                list();
+            }
+
         }
+
+        SiteIdListParam param = new SiteIdListParam();
+        param.getIds().addAll(uuids);
+        DisasterRecoveryUtils.pauseStandby(param);
+        flash.success(MessagesUtils.get(PAUSED_SUCCESS));
         list();
     }
 
@@ -105,8 +116,14 @@ public class DisasterRecovery extends ViprResourceController {
 
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
-            ClientResponse failoversite = DisasterRecoveryUtils.doSwitchover(id);
-            // flash.success(MessagesUtils.get(SWITCHOVER_SUCCESS, result.getName()));
+            // Check Switchover or Failover
+            SitePrimary currentSite = DisasterRecoveryUtils.checkPrimary();
+            if (currentSite.getIsPrimary() == true) {
+                DisasterRecoveryUtils.doSwitchover(id);
+            }
+            else {
+                DisasterRecoveryUtils.doFailover(id);
+            }
             standby_name = result.getName();
             standby_vip = result.getVip();
         }
@@ -186,6 +203,10 @@ public class DisasterRecovery extends ViprResourceController {
     public static void itemsJson(@As(",") String[] ids) {
         List<String> uuids = Arrays.asList(ids);
         itemsJson(uuids);
+    }
+
+    public static boolean isPrimarySite() {
+        return DisasterRecoveryUtils.isPrimarySite();
     }
 
     private static void itemsJson(List<String> uuids) {

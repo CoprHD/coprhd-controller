@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -38,6 +39,8 @@ public class SeedProviderImpl implements SeedProvider {
     private String _id;
     private CoordinatorClientImpl _client;
     private List<String> extraSeeds = new ArrayList<>();
+    private boolean isDrActiveSite;
+    
     /**
      * This constructor's argument is from cassandral's yaml configuration. Here is an example
      * seed_provider:
@@ -103,9 +106,19 @@ public class SeedProviderImpl implements SeedProvider {
         }
         client.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
         client.start();
+        DrUtil drUtil = new DrUtil(client);
+        isDrActiveSite = drUtil.isActiveSite();
+        
         _client = client;
     }
 
+    /**
+     *  We select seeds based on the following rules -
+     *  For DR standby sites, use all nodes in active site as seeds
+     *  For DR active site, use local nodes as seeds. The rule to select local seed is
+     *    - first boot node(AUTOBOOT = false) uses itself as seed nodes so that it could boot and initialize schema
+     *    - subsquent node(AUTOBOOT = true) uses other successfully booted(JOINED = true) nodes as seeds
+     */
     @Override
     public List<InetAddress> getSeeds() {
         try {
@@ -113,42 +126,45 @@ public class SeedProviderImpl implements SeedProvider {
             List<Configuration> configs = _client.queryAllConfiguration(Constants.DB_CONFIG);
             List<InetAddress> seeds = new ArrayList<>();
 
-            // Add extra seeds
+            // Add extra seeds - seeds from remote sites
             for (String seed : extraSeeds) {
                 if (StringUtils.isNotEmpty(seed)) {
                     seeds.add(InetAddress.getByName(seed));
                 }
             }
-            
-            for (int i = 0; i < configs.size(); i++) {
-                Configuration config = configs.get(i);
-                // Bypasses item of "global" and folders of "version", just check db configurations.
-                if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID)) {
-                    continue;
-                }
-                String nodeIndex = config.getId().split("-")[1];
-                String nodeId = config.getConfig(DbConfigConstants.NODE_ID);
-                if (nodeId == null) {
-                    // suppose that they are existing znodes from a previous version
-                    // set the NODE_ID config, id is like db-x
-                    nodeId = "vipr" + nodeIndex;
-                    config.setConfig(DbConfigConstants.NODE_ID, nodeId);
-                    config.removeConfig(DbConfigConstants.DB_IP);
-                    _client.persistServiceConfiguration(config);
-                }
-                if (!Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT)) ||
-                        (!config.getId().equals(_id) && Boolean.parseBoolean(config.getConfig(DbConfigConstants.JOINED)))) {
-                    // all non autobootstrap nodes + other nodes are used as seeds
-                    InetAddress ip = null;
-                    if (nodeMap != null) {
-                        String ipAddress = nodeMap.getConnectableInternalAddress(nodeId);
-                        _logger.debug("ip[" + i + "]: " + ipAddress);
-                        ip = InetAddress.getByName(ipAddress);
-                    } else {
-                        ip = InetAddress.getByName(nodeId);
+            // On DR standby site, only use seeds from active site. On active site
+            // we use local seeds
+            if (isDrActiveSite) {
+                for (int i = 0; i < configs.size(); i++) {
+                    Configuration config = configs.get(i);
+                    // Bypasses item of "global" and folders of "version", just check db configurations.
+                    if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID)) {
+                        continue;
                     }
-                    seeds.add(ip);
-                    _logger.info("Seed {}", ip);
+                    String nodeIndex = config.getId().split("-")[1];
+                    String nodeId = config.getConfig(DbConfigConstants.NODE_ID);
+                    if (nodeId == null) {
+                        // suppose that they are existing znodes from a previous version
+                        // set the NODE_ID config, id is like db-x
+                        nodeId = "vipr" + nodeIndex;
+                        config.setConfig(DbConfigConstants.NODE_ID, nodeId);
+                        config.removeConfig(DbConfigConstants.DB_IP);
+                        _client.persistServiceConfiguration(config);
+                    }
+                    if (!Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT)) ||
+                            (!config.getId().equals(_id) && Boolean.parseBoolean(config.getConfig(DbConfigConstants.JOINED)))) {
+                        // all non autobootstrap nodes + other nodes are used as seeds
+                        InetAddress ip = null;
+                        if (nodeMap != null) {
+                            String ipAddress = nodeMap.getConnectableInternalAddress(nodeId);
+                            _logger.debug("ip[" + i + "]: " + ipAddress);
+                            ip = InetAddress.getByName(ipAddress);
+                        } else {
+                            ip = InetAddress.getByName(nodeId);
+                        }
+                        seeds.add(ip);
+                        _logger.info("Seed {}", ip);
+                    }
                 }
             }
 

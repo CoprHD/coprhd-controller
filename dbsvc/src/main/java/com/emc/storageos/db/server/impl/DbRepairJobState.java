@@ -35,17 +35,12 @@ public class DbRepairJobState implements CoordinatorSerializable {
     public DbRepairJobState() {
     }
 
-    public DbRepairJobState(String clusterDigest, boolean crossVdc) {
+    public DbRepairJobState(String clusterDigest) {
         this.currentRetry = 0;
         this.currentProgress = 0;
         this.currentDigest = clusterDigest;
         this.currentStartTime = System.currentTimeMillis();
         this.currentUpdateTime = System.currentTimeMillis();
-        this.currentCrossVdc = crossVdc;
-    }
-
-    public DbRepairJobState(String infoStr) throws FatalCoordinatorException {
-        this.decodeFromString(infoStr);
     }
 
     @Override
@@ -146,10 +141,12 @@ public class DbRepairJobState implements CoordinatorSerializable {
         this.currentRetry = currentRetry;
     }
 
+    @Deprecated
     public Boolean getCurrentCrossVdc() {
         return currentCrossVdc;
     }
 
+    @Deprecated
     public void setCurrentCrossVdc(Boolean currentCrossVdc) {
         this.currentCrossVdc = currentCrossVdc;
     }
@@ -178,9 +175,9 @@ public class DbRepairJobState implements CoordinatorSerializable {
 
     // See if we can resume: there's is something to resume, and the retry time is not reaching limit, and is in compatible config
     @JsonIgnore
-    public boolean canResume(String clusterDigest, int maxRetryTimes, boolean crossVdc) {
+    public boolean canResume(String clusterDigest, int maxRetryTimes) {
         return this.currentToken != null && this.currentRetry < maxRetryTimes
-                && this.currentDigest.equals(clusterDigest) && (this.currentCrossVdc == crossVdc);
+                && this.currentDigest.equals(clusterDigest);
     }
 
     @JsonIgnore
@@ -216,7 +213,6 @@ public class DbRepairJobState implements CoordinatorSerializable {
         this.lastSuccessDigest = this.getCurrentDigest();
         this.lastSuccessStartTime = this.getCurrentStartTime();
         this.lastSuccessEndTime = System.currentTimeMillis();
-        this.lastCrossVdc = this.getCurrentCrossVdc();
         cleanCurrentFields();
         return true;
     }
@@ -251,12 +247,11 @@ public class DbRepairJobState implements CoordinatorSerializable {
     }
 
     @JsonIgnore
-    public void inProgress(String clusterDigest, boolean crossVdc) {
+    public void inProgress(String clusterDigest) {
         this.currentRetry = 0;
         this.currentProgress = 0;
         this.currentDigest = clusterDigest;
         this.currentStartTime = System.currentTimeMillis();
         this.currentUpdateTime = System.currentTimeMillis();
-        this.currentCrossVdc = crossVdc;
     }
 }

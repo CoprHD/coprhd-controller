@@ -54,6 +54,7 @@
     <bean id="auditLogManager"
         class="com.emc.storageos.security.audit.AuditLogManager">
       <property name="dbClient" ref="dbclient"/>
+      <property name="coordinator" ref="coordinator" />
     </bean>
         
     <bean id="blockstoragescheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
@@ -611,6 +612,8 @@
                     <property name="apiSignatureGenerator" ref="keyGenerator"/>
                     <property name="sysUtils" ref="sysUtils" />
                     <property name="ipsecConfig" ref="ipsecConfig" />
+                    <property name="dbCommonInfo" ref="dbcommoninfo"/>
+                    <property name="drUtil" ref="drUtil" />
                 </bean>
             </set>
         </property>

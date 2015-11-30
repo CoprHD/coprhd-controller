@@ -21,28 +21,46 @@
 							<td>${site.vip}</td>
 							<td>
 								#{if site.state == "PRIMARY"}
-									<span class="label-success"><span class="glyphicon glyphicon-ok"></span></span><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>
+									<span class="glyphicon glyphicon-ok" style="color:#00FF00"></span><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>
+								#{/if}
+								#{if site.state == "PRIMARY_SWITCHING_OVER"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.primary.switchingover'}</span>
+								#{/if}
+								#{if site.state == "PRIMARY_FAILING_OVER"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.primary.failingover'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_ADDING"}
-									<span class="label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.adding'}</span>
-								#{/if}
-								#{if site.state == "STANDBY_PAUSED"}
-									<span class="label-success"><span class="glyphicon glyphicon-ok"></span></span><span> &{'renderFunctions.disasterRecovery.status.paused'}</span>
-								#{/if}
-								#{if site.state == "STANDBY_SYNCED"}
-									<span class="label-success"><span class="glyphicon glyphicon-ok"></span></span><span> &{'renderFunctions.disasterRecovery.status.synced'}</span>
-								#{/if}
-								#{if site.state == "STANDBY_ERROR"}
-									<span class="label-danger"><span class="glyphicon glyphicon-remove"></span></span><span> &{'renderFunctions.disasterRecovery.status.error'}</span>
-								#{/if}
-								#{if site.state == "STANDBY_REMOVING"}
-									<span class="label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.removing'}</span>
-								#{/if}
-								#{if site.state == "STANDBY_TESTING"}
-									<span class="label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.testing'}</span>
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.adding'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_SYNCING"}
-									<span class="label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.syncing'}</span>
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.syncing'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_SYNCED"}
+									<span class="glyphicon glyphicon-ok" style="color:#00FF00" ></span><span> &{'renderFunctions.disasterRecovery.status.standby.synced'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_PAUSING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.pausing'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_PAUSED"}
+									<span class="glyphicon glyphicon-ok" style="color:#00FF00"></span><span> &{'renderFunctions.disasterRecovery.status.standby.paused'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_TESTING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.testing'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_SWITCHING_OVER"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.standby.switchingover'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_FAILING_OVER"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.standby.failingover'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_REMOVING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.standby.removing'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_RESUMING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.resuming'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_ERROR"}
+									<span class="glyphicon glyphicon-remove" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.standby.error'}</span>
 								#{/if}
 							</td>
 						</tr>

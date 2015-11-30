@@ -59,7 +59,15 @@ public interface DbManagerMBean {
 
     @ManagedOperation(description = "Adjust number of tokens for this node to expected value in this software version, if it's not done already.")
     boolean adjustNumTokens() throws InterruptedException;
-    
+
+    /**
+     * Check if all nodes in a specified data center are unreachable
+     *
+     * @param dcName
+     */
+    @ManagedOperation(description = "Check if all ndoes in a data center are unreachable")
+    boolean isDataCenterUnreachable(String dcName);
+
     /**
      * Remove nodes in a specified data center
      * 

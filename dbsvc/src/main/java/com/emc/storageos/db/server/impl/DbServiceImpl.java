@@ -556,7 +556,6 @@ public class DbServiceImpl implements DbService {
 
         InterProcessLock lock = null;
         Configuration config = null;
-        boolean schemaInited = false;
 
         try {
             // we use this lock to discourage more than one node bootstrapping / joining at the same time
@@ -625,21 +624,23 @@ public class DbServiceImpl implements DbService {
 
         _dbClient.start();
 
+        if (_schemaUtil.isStandby()) {
+            _schemaUtil.rebuildDataOnStandby();
+        }
+        
         // Setup the vdc information, so that login enabled before migration
         if (!isGeoDbsvc()) {
             _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
         }
-
+        
         if (_handler.run()) {
             // Setup the bootstrap info root tenant, if root tenant migrated from local db, then skip it
             if (isGeoDbsvc()) {
                 _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
             }
 
-            if (!_schemaUtil.isOnStandby()) {
-                // Start dbsvc background tasks
-                startBackgroundTasks();
-            }
+            startBackgroundTasks();
+            
             _log.info("DB service started");
         } else {
             _log.error("DB migration failed. Skipping starting background tasks.");
@@ -650,7 +651,7 @@ public class DbServiceImpl implements DbService {
         InterProcessLock lock = null;
         while (true) {
             try {
-                lock = _coordinator.getLock(name);
+                lock = _coordinator.getSiteLocalLock(name);
                 lock.acquire();
                 break; // got lock
             } catch (Exception e) {
@@ -808,19 +809,20 @@ public class DbServiceImpl implements DbService {
      * Kick off background jobs
      */
     private void startBackgroundTasks() {
-        if (!disableScheduledDbRepair) {
-            startBackgroundNodeRepairTask();
+        if (!_schemaUtil.isStandby()) {
+            if (!disableScheduledDbRepair) {
+                startBackgroundNodeRepairTask();
+            }
+    
+            if (_gcExecutor != null) {
+                _gcExecutor.setDbServiceId(_serviceInfo.getId());
+                _gcExecutor.start();
+            }
+    
+            if (_taskScrubber != null) {
+                _taskScrubber.start();
+            }
         }
-
-        if (_gcExecutor != null) {
-            _gcExecutor.setDbServiceId(_serviceInfo.getId());
-            _gcExecutor.start();
-        }
-
-        if (_taskScrubber != null) {
-            _taskScrubber.start();
-        }
-
         startBackgroundDetectorTask();
     }
 

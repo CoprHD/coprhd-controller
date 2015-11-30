@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -196,15 +195,24 @@ public interface CoordinatorClient {
 
     /**
      * Retrieves/creates a distributed mutex
-     * 
+     *
      * @param name mutex name
      * @return mutex
      */
     public InterProcessLock getLock(String name) throws CoordinatorException;
 
     /**
+     * Retrieves/creates a distributed mutex for local site
+     *
+     * @param name
+     * @return
+     * @throws CoordinatorException
+     */
+    public InterProcessLock getSiteLocalLock(String name) throws CoordinatorException;
+
+    /**
      * Retrieves/creates a distributed read write lock
-     * 
+     *
      * @param name read write lock name
      * @return read write lock
      */
@@ -582,10 +590,10 @@ public interface CoordinatorClient {
     public void addSite(String siteId) throws Exception;
 
     /**
-     * Update the primary site pointer in ZK
+     * Update the active site pointer in ZK
      * This should only be used by the sync site API
      */
-    public void setPrimarySite(String siteId) throws Exception;
+    public void setActiveSite(String siteId) throws Exception;
     
     /**
      * Create a Curator recipe - double barrier 

@@ -138,6 +138,7 @@ nav.sites=Sites
 nav.userGroups=User Groups
 nav.object.buckets=Buckets
 nav.disasterRecovery=Disaster Recovery
+nav.ipsec=IPsec
 # Override messages in the Secure plugin
 secure.title=
 secure.username=Username:
@@ -855,7 +856,7 @@ disasterRecovery.pauseButton=Pause
 disasterRecovery.resumeButton=Resume
 disasterRecovery.FailoverButton=Failover
 disasterRecovery.save.success=Added standby: '%s'
-disasterRecovery.pause.success=Pause request initiated for site: '%s'
+disasterRecovery.pause.success=Pause request initiated...
 disasterRecovery.resume.success=Resume request initiated for site: '%s'
 disasterRecovery.test.success=Test Mode request initiated for site: '%s'
 disasterRecovery.save.error=Failed to add standby '%s'
@@ -1246,6 +1247,13 @@ keystore.certs.both.error=When updating the Keystore both the Private Key and Ce
 keystore.task.description=Error Message
 keystore.task.message=Error Details
 keystore.task.code=Error Code
+
+ipsec.title=IPsec
+ipsec.description=Enables a secured communication between nodes in a ViPR cluster and between ViPR clusters and uses Pre-Shared Keys to secure the communication.
+ipsec.key.rotation.label=Rotate Pre-Shared keys
+ipsec.key.rotation.description=Generates a new set of Pre-Shared keys. The IPsec communication will be momentarily stopped while restarting the IPsec service.
+ipsec.key.rotation.error=Failed To rotate the IPsec Pre-Shared Keys. '%s'.
+ipsec.key.rotation.success=Successfully rotated the IPsec Pre-Shared Keys.
 
 disk.name=Name
 disk.status=Status
@@ -3515,6 +3523,7 @@ button.actions=Actions
 button.associate=Associate Project
 button.dissociate=Dissociate Project
 button.failover=Failover
+button.ipsec.rotate.keys=Rotate IPsec Keys
 selectOne.chooseOption=-- Please Choose --
 
 common.yes=Yes
@@ -3983,13 +3992,19 @@ renderFunctions.recovery.error.helpMsg=Please contact EMC support
 renderFunctions.manage=Manage
 
 renderFunctions.disasterRecovery.status.primary=Active
-renderFunctions.disasterRecovery.status.adding=Adding Standby
-renderFunctions.disasterRecovery.status.syncing=Syncing Standby
-renderFunctions.disasterRecovery.status.synced=Standby Synched
-renderFunctions.disasterRecovery.status.paused=Standby Paused
-renderFunctions.disasterRecovery.status.testing=Test Mode
-renderFunctions.disasterRecovery.status.removing=Deleting Standby
-renderFunctions.disasterRecovery.status.error=Error
+renderFunctions.disasterRecovery.status.primary.switchingover=Primary Switching Over
+renderFunctions.disasterRecovery.status.primary.failingover=Primary Failing Over
+renderFunctions.disasterRecovery.status.standby.adding=Adding Standby
+renderFunctions.disasterRecovery.status.standby.syncing=Syncing Standby
+renderFunctions.disasterRecovery.status.standby.synced=Standby Synced
+renderFunctions.disasterRecovery.status.standby.pausing=Pausing Standby
+renderFunctions.disasterRecovery.status.standby.paused=Standby Paused
+renderFunctions.disasterRecovery.status.standby.testing=Standby Testing
+renderFunctions.disasterRecovery.status.standby.switchingover=Standby Switching Over
+renderFunctions.disasterRecovery.status.standby.failingover=Standby Failing Over
+renderFunctions.disasterRecovery.status.standby.removing=Deleting Standby
+renderFunctions.disasterRecovery.status.standby.resuming=Resuming Standby
+renderFunctions.disasterRecovery.status.standby.error=Standby Error
 renderFunctions.disasterRecovery.status.unknown=Unknown
 
 templates.knob.label=%s of %s

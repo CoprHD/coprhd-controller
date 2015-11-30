@@ -1152,7 +1152,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonNFSACL getNFSACL(String path) throws IsilonException {
-        return get(_baseUrl.resolve(URI_IFS), path, "ACL", IsilonNFSACL.class);
+        String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
+        return getObj(_baseUrl.resolve(URI_IFS),aclUrl,IsilonNFSACL.class);
     }
 
     /**

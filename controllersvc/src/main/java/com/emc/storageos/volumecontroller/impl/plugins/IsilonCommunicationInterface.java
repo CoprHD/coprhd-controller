@@ -1245,7 +1245,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                         URI.create(nasServer.getStoragePorts().iterator().next()));
                             }
                         } else {
-                            _log.info("fs path {} and vnas server not found", fs.getPath(), nasServer.toString());
+                            _log.info("fs path {} and vnas server not found", fs.getPath());
                         }
 
                         boolean alreadyExist = unManagedFs == null ? false : true;

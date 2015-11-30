@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.TenantsService;
 import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
@@ -92,7 +93,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(
+    public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, 
             List<URI> systemCache, List<URI> poolCache, StorageSystem system,
             UnManagedVolume unManagedVolume, VirtualPool vPool, VirtualArray virtualArray,
             Project project, TenantOrg tenant, List<UnManagedVolume> unManagedVolumesToBeDeleted,
@@ -146,7 +147,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 validateContext(vPool, tenant, context);
 
-                ingestBackendVolumes(system, systemCache, poolCache, vPool,
+                ingestBackendVolumes(requestContext, system, systemCache, poolCache, vPool,
                         virtualArray, tenant, unManagedVolumesToBeDeleted,
                         taskStatusMap, context, vplexIngestionMethod);
 
@@ -165,7 +166,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
         try {
             _logger.info("Ingesting VPLEX virtual volume {}", unManagedVolume.getLabel());
-            T virtualVolume = super.ingestBlockObjects(
+            T virtualVolume = super.ingestBlockObjects(requestContext, 
                     systemCache, poolCache, system, unManagedVolume,
                     vPool, virtualArray, project, tenant, unManagedVolumesToBeDeleted,
                     createdObjectMap, updatedObjectMap, unManagedVolumeExported,
@@ -415,7 +416,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private void ingestBackendVolumes(StorageSystem vplex, List<URI> systemCache,
+    private void ingestBackendVolumes(IngestionRequestContext requestContext, 
+            StorageSystem vplex, List<URI> systemCache,
             List<URI> poolCache, VirtualPool sourceVpool,
             VirtualArray sourceVarray, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
@@ -493,11 +495,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 validateBackendVolumeVpool(associatedVolume, vpoolForThisVolume);
 
                 @SuppressWarnings("unchecked")
-                BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache,
-                        associatedSystem, associatedVolume, vpoolForThisVolume, varrayForThisVolume,
-                        project, tenant, unManagedVolumesToBeDeleted, context.getCreatedObjectMap(),
-                        context.getUpdatedObjectMap(), true,
-                        VolumeIngestionUtil.getBlockObjectClass(associatedVolume), taskStatusMap, vplexIngestionMethod);
+                BlockObject blockObject = ingestStrategy.ingestBlockObjects(requestContext, 
+                        VolumeIngestionUtil.getBlockObjectClass(associatedVolume));
 
                 if (null == blockObject) {
                     // an exception should have been thrown by a lower layer in

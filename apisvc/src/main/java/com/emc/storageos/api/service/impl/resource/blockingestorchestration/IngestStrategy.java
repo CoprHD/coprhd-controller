@@ -11,6 +11,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
@@ -36,15 +38,24 @@ public class IngestStrategy {
         this.ingestResourceOrchestrator = ingestResourceOrchestrator;
     }
 
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
-            UnManagedVolume unManagedVolume,
-            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
-            List<UnManagedVolume> unManagedVolumesToBeDeleted,
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
-            Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) {
-        return ingestResourceOrchestrator.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray,
-                project, tenant, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz,
-                taskStatusMap, vplexIngestionMethod);
+    public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz) {
+
+        return ingestResourceOrchestrator.ingestBlockObjects(requestContext, 
+                requestContext.getSystemCache(), 
+                requestContext.getPoolCache(), 
+                requestContext.getStorageSystem(), 
+                requestContext.getCurrentUnmanagedVolume(), 
+                requestContext.getVpool(), 
+                requestContext.getVirtualArray(),
+                requestContext.getProject(), 
+                requestContext.getTenant(), 
+                requestContext.getUnManagedVolumesSuccessfullyProcessed(), 
+                requestContext.getCreatedObjectMap(), 
+                requestContext.getUpdatedObjectMap(), 
+                requestContext.getVolumeContext().isVolumeExported(), 
+                clazz,
+                requestContext.getTaskStatusMap(), 
+                requestContext.getVplexIngestionMethod());
+
     }
 }

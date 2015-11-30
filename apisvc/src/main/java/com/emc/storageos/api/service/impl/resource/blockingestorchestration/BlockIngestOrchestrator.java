@@ -20,6 +20,7 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.StoragePoolService;
 import com.emc.storageos.api.service.impl.resource.StorageSystemService;
 import com.emc.storageos.api.service.impl.resource.UnManagedVolumeService;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
@@ -87,7 +88,8 @@ public abstract class BlockIngestOrchestrator {
      * @param clazz
      * @return BlockObject
      */
-    protected abstract <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
+    protected abstract <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, 
+            List<URI> systemCache, List<URI> poolCache, StorageSystem system,
             UnManagedVolume unManagedVolume,
             VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed,

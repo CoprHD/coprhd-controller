@@ -33,6 +33,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategy;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -211,7 +212,6 @@ public class UnManagedVolumeService extends TaskResourceService {
         TaskList taskList = new TaskList();
         List<UnManagedVolume> unManagedVolumes = new ArrayList<UnManagedVolume>();
         Map<String, String> taskMap = new HashMap<String, String>();
-        Map<String, StringBuffer> taskStatusMap = new HashMap<String, StringBuffer>();
         try {
             // Get and validate the project.
             Project project = _permissionsHelper.getObjectById(param.getProject(),
@@ -234,18 +234,17 @@ public class UnManagedVolumeService extends TaskResourceService {
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
             CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, unManagedVolumesCapacity, "volume");
             _logger.info("UnManagedVolume provisioning quota validation successful for {}", unManagedVolumesCapacity);
-            Map<String, BlockObject> createdObjectMap = new HashMap<String, BlockObject>();
-            Map<String, List<DataObject>> updatedObjectMap = new HashMap<String, List<DataObject>>();
-            Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
-            List<URI> full_pools = new ArrayList<URI>();
-            List<URI> full_systems = new ArrayList<URI>();
 
-            Map<String, StorageSystem> systemCache = new HashMap<String, StorageSystem>();
-            for (URI unManagedVolumeUri : param.getUnManagedVolumes()) {
+            IngestionRequestContext requestContext = new IngestionRequestContext(
+                    _dbClient, param.getUnManagedVolumes(), vpool, 
+                    varray, project, tenant, param.getVplexIngestionMethod());
+            
+            while (requestContext.hasNext()) {
 
-                UnManagedVolume unManagedVolume = _dbClient.queryObject(UnManagedVolume.class, unManagedVolumeUri);
+                UnManagedVolume unManagedVolume = requestContext.next();
                 if (null == unManagedVolume) {
-                    _logger.info("No unManagedVolume {} found in db. continuing with others", unManagedVolumeUri);
+                    _logger.info("No Unmanaged Volume with URI {} found in database. Continuing...", 
+                            requestContext.getCurrentUnManagedVolumeUri());
                     continue;
                 }
                 String taskId = UUID.randomUUID().toString();
@@ -255,40 +254,36 @@ public class UnManagedVolumeService extends TaskResourceService {
                 try {
                     _logger.info("Ingestion started for unmanagedvolume {}", unManagedVolume.getNativeGuid());
                     List<URI> volList = new ArrayList<URI>();
-                    volList.add(unManagedVolumeUri);
+                    volList.add(requestContext.getCurrentUnManagedVolumeUri());
                     VolumeIngestionUtil.checkIngestionRequestValidForUnManagedVolumes(volList, vpool, _dbClient);
 
-                    URI storageSystemUri = unManagedVolume.getStorageSystemUri();
-                    StorageSystem system = systemCache.get(storageSystemUri.toString());
-                    if (null == system) {
-                        system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
-                        systemCache.put(storageSystemUri.toString(), system);
-                    }
-
                     IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, false);
-                    // TODO try to find put ways to reduce parameters.
+
                     @SuppressWarnings("unchecked")
-                    BlockObject blockObject = ingestStrategy.ingestBlockObjects(full_systems, full_pools, system, unManagedVolume, vpool,
-                            varray,
-                            project, tenant, unManagedVolumes, createdObjectMap, updatedObjectMap, false,
-                            VolumeIngestionUtil.getBlockObjectClass(unManagedVolume), taskStatusMap, param.getVplexIngestionMethod());
+                    BlockObject blockObject = ingestStrategy.ingestBlockObjects(requestContext, 
+                            VolumeIngestionUtil.getBlockObjectClass(unManagedVolume));
+
                     _logger.info("Ingestion ended for unmanagedvolume {}", unManagedVolume.getNativeGuid());
                     if (null == blockObject) {
                         throw IngestionException.exceptions.generalVolumeException(
                                 unManagedVolume.getLabel(), "check the logs for more details");
                     }
 
-                    createdObjectMap.put(blockObject.getNativeGuid(), blockObject);
-                    processedUnManagedVolumeMap.put(unManagedVolume.getNativeGuid(), unManagedVolume);
+                    requestContext.getCreatedObjectMap().put(blockObject.getNativeGuid(), blockObject);
+                    requestContext.getProcessedUnManagedVolumeMap().put(
+                            unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
+                    requestContext.getVolumeContext().commit();
 
                 } catch (APIException ex) {
                     _logger.error("APIException occurred", ex);
-                    _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
+                    _dbClient.error(UnManagedVolume.class, requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
+                    requestContext.getVolumeContext().rollback();
                 } catch (Exception ex) {
                     _logger.error("Exception occurred", ex);
-                    _dbClient.error(UnManagedVolume.class, unManagedVolumeUri,
+                    _dbClient.error(UnManagedVolume.class, requestContext.getCurrentUnManagedVolumeUri(),
                             taskId, IngestionException.exceptions.generalVolumeException(
                                     unManagedVolume.getLabel(), ex.getLocalizedMessage()));
+                    requestContext.getVolumeContext().rollback();
                 }
 
                 TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
@@ -297,8 +292,9 @@ public class UnManagedVolumeService extends TaskResourceService {
             }
 
             // update the task status
-            for (String unManagedVolumeGUID : processedUnManagedVolumeMap.keySet()) {
-                UnManagedVolume unManagedVolume = processedUnManagedVolumeMap.get(unManagedVolumeGUID);
+            for (String unManagedVolumeGUID : requestContext.getProcessedUnManagedVolumeMap().keySet()) {
+                UnManagedVolume unManagedVolume = 
+                        requestContext.getProcessedUnManagedVolumeMap().get(unManagedVolumeGUID).getUnmanagedVolume();
                 String taskId = taskMap.get(unManagedVolume.getId().toString());
                 String taskMessage = "";
                 boolean ingestedSuccessfully = false;
@@ -307,7 +303,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                     taskMessage = INGESTION_SUCCESSFUL_MSG;
                 } else {
                     // check in the created objects for corresponding block object without any internal flags set
-                    BlockObject createdObject = createdObjectMap.get(unManagedVolumeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
+                    BlockObject createdObject = requestContext.getCreatedObjectMap().get(unManagedVolumeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                             VolumeIngestionUtil.VOLUME));
                     if (!createdObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) || 
                         // If this is an ingested RP volume in an uningested protection set, the ingest is successful.
@@ -316,7 +312,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                         taskMessage = INGESTION_SUCCESSFUL_MSG;
                     } else {
                         ingestedSuccessfully = false;
-                        StringBuffer taskStatus = taskStatusMap.get(unManagedVolume.getNativeGuid());
+                        StringBuffer taskStatus = requestContext.getTaskStatusMap().get(unManagedVolume.getNativeGuid());
                         if (taskStatus == null) {
                             // No task status found. Put in a default message.
                             taskMessage = String.format("Not all the parent/replicas of unmanaged volume %s have been ingested",
@@ -335,17 +331,17 @@ public class UnManagedVolumeService extends TaskResourceService {
                             IngestionException.exceptions.unmanagedVolumeIsNotVisible(unManagedVolume.getLabel(), taskMessage));
                 }
                 // Update the related objects if any after ingestion
-                List<DataObject> updatedObjects = updatedObjectMap.get(unManagedVolumeGUID);
+                List<DataObject> updatedObjects = requestContext.getUpdatedObjectMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateAndReindexObject(updatedObjects);
                 }
             }
 
-            _dbClient.createObject(createdObjectMap.values());
+            _dbClient.createObject(requestContext.getCreatedObjectMap().values());
             _dbClient.persistObject(unManagedVolumes);
 
             // record the events after they have been persisted
-            for (BlockObject volume : createdObjectMap.values()) {
+            for (BlockObject volume : requestContext.getCreatedObjectMap().values()) {
                 recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
                         Status.ready, volume.getId());
             }

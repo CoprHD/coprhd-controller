@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
@@ -120,7 +121,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     }
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system, UnManagedVolume unManagedVolume, 
+    public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, 
+            List<URI> systemCache, List<URI> poolCache, StorageSystem system, UnManagedVolume unManagedVolume, 
             VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant, List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed, 
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, Class<T> clazz, 
             Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
@@ -131,7 +133,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.unManagedProtectionSetNotFound(unManagedVolume.getNativeGuid());
         }
 
-        Volume volume = (Volume)ingestBlockObjectsInternal(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
+        Volume volume = (Volume)ingestBlockObjectsInternal(requestContext, systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
                 unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap,
                 vplexIngestionMethod);
         
@@ -170,7 +172,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * @param vplexIngestionMethod vplex ingestion method
      * @return Volume of a managed RP volume
      */
-    private <T extends BlockObject> T ingestBlockObjectsInternal(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
+    private <T extends BlockObject> T ingestBlockObjectsInternal(IngestionRequestContext requestContext, 
+            List<URI> systemCache, List<URI> poolCache, StorageSystem system,
             UnManagedVolume unManagedVolume, VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed, Map<String, BlockObject> createdObjectMap,
             Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, Class<T> clazz,
@@ -198,7 +201,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         
         Volume volume = (Volume)blockObject;
         // Perform RP-specific volume ingestion
-        volume = performRPVolumeIngestion(project, virtualArray, vPool, system, unManagedVolume, systemCache, poolCache, tenant,
+        volume = performRPVolumeIngestion(requestContext, project, virtualArray, vPool, system, unManagedVolume, systemCache, poolCache, tenant,
                 unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, taskStatusMap, vplexIngestionMethod,
                 volume);
         
@@ -244,7 +247,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * 
      * @param umpset unmanaged protection set.
      */
-    private void performAutoIngestOnRemainingVolumes(UnManagedProtectionSet umpset, List<URI> systemCache, List<URI> poolCache, Project project, 
+    private void performAutoIngestOnRemainingVolumes(IngestionRequestContext context, 
+            UnManagedProtectionSet umpset, List<URI> systemCache, List<URI> poolCache, Project project, 
             TenantOrg tenant, List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed, 
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, 
             Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) {
@@ -419,7 +423,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                     // Other arguments we deduced in the code immediately above.
                     // Finally others we need to figure out, just like the ingest service did.
                     StorageSystem system = _dbClient.queryObject(StorageSystem.class, umv.getStorageSystemUri());
-                    ingestBlockObjectsInternal(systemCache, poolCache, system, umv, vpool, varray, project, 
+                    ingestBlockObjectsInternal(context, systemCache, poolCache, system, umv, vpool, varray, project, 
                             tenant, unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported, 
                             Volume.class, taskStatusMap, vplexIngestionMethod);
                     // If the service or factories put in business logic AFTER calling ingestBlockObjects,
@@ -456,7 +460,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * @return volume that is ingested
      */
     @SuppressWarnings("unchecked")
-    private Volume performRPVolumeIngestion(Project project, VirtualArray virtualArray, VirtualPool vPool, StorageSystem system,
+    private Volume performRPVolumeIngestion(IngestionRequestContext requestContext, 
+            Project project, VirtualArray virtualArray, VirtualPool vPool, StorageSystem system,
             UnManagedVolume unManagedVolume, List<URI> systemCache, List<URI> poolCache, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed, Map<String, BlockObject> createdObjectMap,
             Map<String, List<DataObject>> updatedObjectMap, Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod,
@@ -473,9 +478,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
             // We need to ingest the volume w/o the context of RP.  (So, ingest a VMAX if it's VMAX, VPLEX if it's VPLEX, etc)
             IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, true);
-            volume = (Volume)ingestStrategy.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray,
-                    project, tenant, unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, true /* force true exported field */,
-                    VolumeIngestionUtil.getBlockObjectClass(unManagedVolume), taskStatusMap, vplexIngestionMethod);
+            volume = (Volume)ingestStrategy.ingestBlockObjects(requestContext, VolumeIngestionUtil.getBlockObjectClass(unManagedVolume));
             _logger.info("Ingestion ended for unmanagedvolume {}", unManagedVolume.getNativeGuid());
             if (null == volume) {
                 throw IngestionException.exceptions.generalVolumeException(

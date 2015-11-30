@@ -12,6 +12,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -66,7 +67,8 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
     }
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
+    public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, 
+            List<URI> systemCache, List<URI> poolCache, StorageSystem system,
             UnManagedVolume unManagedVolume,
             VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed,
@@ -85,7 +87,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
         }
 
         if (null == blockObject) {
-            blockObject = super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
+            blockObject = super.ingestBlockObjects(requestContext, systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
                     unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz,
                     taskStatusMap, vplexIngestionMethod);
 

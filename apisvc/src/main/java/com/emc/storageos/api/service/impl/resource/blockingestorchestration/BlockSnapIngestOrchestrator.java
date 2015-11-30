@@ -11,6 +11,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
@@ -33,7 +34,8 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
     private static final Logger _logger = LoggerFactory.getLogger(BlockSnapIngestOrchestrator.class);
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
+    public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, 
+            List<URI> systemCache, List<URI> poolCache, StorageSystem system,
             UnManagedVolume unManagedVolume,
             VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,

@@ -69,7 +69,7 @@ public class DbCheckerFileWriter {
     }
 
     private static BufferedWriter getWriter(String name) throws IOException {
-        WriteType type = WriteType.getFileByType(name);
+        WriteType type = WriteType.getByType(name);
         BufferedWriter writer = writers.get(type.filename);
         if (writer == null) {
             writer = init(type.filename, type.usage);
@@ -97,13 +97,17 @@ public class DbCheckerFileWriter {
     }
 
     public static void close() {
-        try {
-            for (Writer writer : writers.values()) {
-                writer.close();
+        for (Writer writer : writers.values()) {
+            try {
+                if (writer != null) {
+                    writer.close();
+                }
+            } catch (IOException e) {
+                log.error("Exception happens when closing file, e=", e);
             }
-        } catch (IOException e) {
-            log.error("Exception happens when closing file, e=", e);
         }
+
+
     }
 
     public static String getGeneratedFileNames() {
@@ -142,7 +146,7 @@ public class DbCheckerFileWriter {
             this.usage = usage;
         }
         
-        public static WriteType getFileByType(String type) {
+        public static WriteType getByType(String type) {
             for (WriteType writeType : values()) {
                 if (writeType.type.equals(type)) {
                     return writeType;

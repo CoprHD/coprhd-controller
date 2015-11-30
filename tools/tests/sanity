@@ -6305,7 +6305,7 @@ dr_setup()
 # each one wait 600 seconds and check every 10 seconds
 wait_for_site_stable()
 {
-    local old_bourn_ipaddr=BOURNE_IPADDR
+    local old_bourne_ipaddr=$BOURNE_IPADDR
     for ip in "$@"
     do
         echo "Waiting for $ip to be stable ..."
@@ -6313,7 +6313,7 @@ wait_for_site_stable()
         security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
         dr waitforstable --ip $ip 10 600
     done
-    BOURNE_IPADDR=$old_bourn_ipaddr
+    BOURNE_IPADDR=$old_bourne_ipaddr
 }
 
 dr_tests()
@@ -6370,8 +6370,8 @@ dr_basic_tests()
     dr waitforstate $standby_site STANDBY_SYNCED 30 1200
     echo "Syncing dr done"
 
-    echo "---WAIT 30s FOR $standby_site TO BOOTSTRAP---"
-    sleep 30
+    echo "---WAIT 1m FOR $standby_site TO BOOTSTRAP---"
+    sleep 60
 
     # login to standby with auth
     echo "---VERIFY PROJECT SYNCED $standby_site---"
@@ -6385,6 +6385,7 @@ dr_basic_tests()
     echo "---VERIFY sites from standby $standby_site---"
     dr get $standby_site
     dr get $primary_site
+    dr checkstandby $DR_SITE_A_IP
 
     # wait for both sites stable so able to pause standby
     wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP
@@ -6524,8 +6525,8 @@ dr_multisite_tests()
     dr waitforstate $standby_site_b STANDBY_SYNCED 30 600
     echo "Syncing dr done"
 
-    echo "---WAIT 30s FOR $standby_site_b TO BOOTSTRAP---"
-    sleep 30
+    echo "---WAIT 1m FOR $standby_site_b TO BOOTSTRAP---"
+    sleep 60
 
     # login to standby with auth
     echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site_b---"
@@ -6581,6 +6582,9 @@ dr_multisite_tests()
     echo "---WAIT FOR SYNC $standby_site_c---"
     dr waitforstate $standby_site_c STANDBY_SYNCED 30 600
     echo "Syncing dr done"
+
+    echo "---WAIT 1m FOR $standby_site_c TO BOOTSTRAP---"
+    sleep 60
 
     # login to standby with auth
     echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site_c---"

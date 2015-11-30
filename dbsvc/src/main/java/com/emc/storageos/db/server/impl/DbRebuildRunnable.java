@@ -28,7 +28,6 @@ public class DbRebuildRunnable implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(DbRebuildRunnable.class);
 
     private CoordinatorClient coordinator;
-    private String sourceDc;
     private int nodeCount;
     private Service service;
 
@@ -36,10 +35,6 @@ public class DbRebuildRunnable implements Runnable {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
-    }
-
-    public void setSourceDc(String sourceDc) {
-        this.sourceDc = sourceDc;
     }
 
     public void setNodeCount(int nodeCount) {
@@ -70,6 +65,9 @@ public class DbRebuildRunnable implements Runnable {
             log.info("last data sync time is later than the target site info update, nothing to do");
             return;
         }
+        
+        Site primarySite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
+        String sourceDc = drUtil.getCassandraDcId(primarySite);
 
         log.info("starting db rebuild from source dc {}", sourceDc);
         isRunning = true;

@@ -773,7 +773,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
         if (servicePaths.isEmpty()) {
             throw CoordinatorException.retryables.cannotLocateService(String.format("%1$s/%2$s",
-                    getServicePath(), serviceRoot));
+                    getServicePath(siteId), serviceRoot));
         }
         // poor man's load balancing
         Collections.shuffle(servicePaths);

@@ -249,11 +249,6 @@ public class DbConsistencyCheckerHelper {
         int corruptRowCount = 0;
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
             Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
-            if (objCf == null) {
-                logMessage(String.format("object cf is null"),true, toConsole);
-                continue;
-            }
-            logMessage(String.format("objectcf %s", objCf.getName()),true, toConsole);
 
             OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace
                     .prepareQuery(objCf).getRowSlice(objKeysIdxEntryMap.keySet())

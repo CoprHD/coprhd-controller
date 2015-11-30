@@ -1413,12 +1413,9 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                     for (ExportRule newExportRule : exportModify) {
                         if (newExportRule.getSecFlavor().equals(
                                 existingRule.getSecFlavor())) {
-                            // Handle modify Rules, remove old and add new
-                            _log.info("Deleting existing Export Rule {}", existingRule);
-                            exportsToRemove.add(existingRule);
-                            _log.info("Add new Export Rule {}", newExportRule);
-                            exportsToAdd.add(newExportRule);
-                            RemoveRedundantExportRule(existingRule, newExportRule);
+
+                        	newExportRule.setDeviceExportId(existingRule.getDeviceExportId());
+                        	exportsToModify.add(newExportRule);
 
                         }
                     }
@@ -1466,7 +1463,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             _log.info("Modify Export rule : {}", existingRule.toString());
         }
 
-        // no separate modify is required it getting handled by add and delete export call
+        processIsiExport(isi, args, exportsToModify);
 
         for (ExportRule existingRule : exportsToRemove) {
             _log.info("Remove Export rule : {}", existingRule.toString());
@@ -1482,55 +1479,6 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
         BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
         return result;
-
-    }
-
-    private void RemoveRedundantExportRule(ExportRule ruleRemove, ExportRule ruleAdd) {
-
-        // remove duplicate readonly host
-        Set<String> rootHostsRemove = ruleRemove.getRootHosts();
-        Set<String> rootHostsAdd = ruleAdd.getRootHosts();
-
-        if (rootHostsRemove != null && !rootHostsRemove.isEmpty() && rootHostsAdd != null && !rootHostsAdd.isEmpty()) {
-            for (String rHostRemmove : rootHostsRemove) {
-                if (rootHostsAdd.contains(rHostRemmove)) {
-
-                    rootHostsAdd.remove(rHostRemmove);
-                    rootHostsRemove.remove(rHostRemmove);
-                }
-
-            }
-        }
-
-        // remove duplicate read only host
-        Set<String> readHostsRemove = ruleRemove.getReadOnlyHosts();
-        Set<String> readHostsAdd = ruleAdd.getReadOnlyHosts();
-
-        if (readHostsRemove != null && !readHostsRemove.isEmpty() && readHostsAdd != null && !readHostsAdd.isEmpty()) {
-            for (String rHostRemmove : readHostsRemove) {
-                if (readHostsAdd.contains(rHostRemmove)) {
-
-                    readHostsAdd.remove(rHostRemmove);
-                    readHostsRemove.remove(rHostRemmove);
-                }
-
-            }
-        }
-
-        // remove duplicate read and write host
-        Set<String> readWriteHostsRemove = ruleRemove.getReadWriteHosts();
-        Set<String> readWriteHostsAdd = ruleAdd.getReadOnlyHosts();
-
-        if (readWriteHostsRemove != null && !readWriteHostsRemove.isEmpty() && readWriteHostsAdd != null && !readWriteHostsAdd.isEmpty()) {
-            for (String rHostRemmove : readWriteHostsRemove) {
-                if (readWriteHostsAdd.contains(rHostRemmove)) {
-
-                    readWriteHostsAdd.remove(rHostRemmove);
-                    readWriteHostsRemove.remove(rHostRemmove);
-                }
-
-            }
-        }
 
     }
 
@@ -1569,17 +1517,22 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             }
 
             String isilonExportId = exportRule.getDeviceExportId();
-
+            String zoneName = getZoneName(args.getvNAS());
             if (isilonExportId != null) {
                 // The Export Rule already exists on the array so modify it
-                _log.info("Export {} {} exists on the device so modify it", isilonExportId, exportRule);
+                _log.info("Export rule exists on the device so modify it: {}", exportRule);
                 modifyRules.add(exportRule);
             } else {
                 // Create the Export
                 List<String> allClients = new ArrayList<>();
-                _log.info("Export doesnt {} exists on the device so create it", exportRule);
+                _log.info("Export rule does not exist on the device so create it: {}", exportRule);
                 IsilonExport newIsilonExport = setIsilonExport(exportRule);
-                String expId = isi.createExport(newIsilonExport);
+                String expId = null;
+                if (zoneName != null) {
+                	expId = isi.createExport(newIsilonExport, zoneName);
+                } else {
+                	expId = isi.createExport(newIsilonExport);
+                }
                 exportRule.setDeviceExportId(expId);
             }
 
@@ -1674,6 +1627,9 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                             existingRootClients.removeAll(commonHosts);
                             isilonExport.setRootClients(new ArrayList<String>(existingRootClients));
                             isilonExport.setReadWriteClients(new ArrayList<String>(existingRWClients));
+                        } else {
+                        	setClientsIntoIsilonExport("root", exportRule.getRootHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("rw", exportRule.getReadWriteHosts(), isilonExport);
                         }
                         isilonExport.setReadOnlyClients(new ArrayList<String>(roClients));
                     }
@@ -1701,6 +1657,9 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                             existingRootClients.removeAll(commonHosts);
                             isilonExport.setRootClients(new ArrayList<String>(existingRootClients));
                             isilonExport.setReadOnlyClients(new ArrayList<String>(existingROClients));
+                        } else {
+                        	setClientsIntoIsilonExport("root", exportRule.getRootHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("ro", exportRule.getReadOnlyHosts(), isilonExport);
                         }
                         isilonExport.setReadWriteClients(new ArrayList<String>(rwClients));
                     }
@@ -1726,6 +1685,9 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                             existingRWClients.removeAll(commonHosts);
                             isilonExport.setReadWriteClients(new ArrayList<String>(existingRWClients));
                             isilonExport.setReadOnlyClients(new ArrayList<String>(existingROClients));
+                        } else {
+                        	setClientsIntoIsilonExport("ro", exportRule.getReadOnlyHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("rw", exportRule.getReadWriteHosts(), isilonExport);
                         }
                         isilonExport.setRootClients(new ArrayList<String>(rootClients));
                     }
@@ -1794,7 +1756,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             if (isilonExportId != null) {
                 // The Export Rule already exists on the array so modify it
-                _log.info("Export {} {} exists on the device so remove it", isilonExportId, exportRule);
+                _log.info("Export rule exists on the device so remove it: {}", exportRule);
                 String zoneName = getZoneName(args.getvNAS());
                 if (zoneName != null) {
                     isi.deleteExport(isilonExportId, zoneName);
@@ -2145,5 +2107,31 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             zoneName = vNAS.getNasName();
         }
         return zoneName;
+    }
+    
+    /**
+     * Set the clients to isilon export based on type
+     * @param type one of "rw", "root" or "ro"
+     * @param hosts the clients to be set
+     * @param isilonExport
+     */
+    private void setClientsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {
+    	
+    	ArrayList<String> clients = new ArrayList<String>();
+    	if(hosts != null && !hosts.isEmpty()) {
+    		clients.addAll(hosts);
+    	}
+    	
+    	switch(type) {
+    	case "root":
+        	isilonExport.setRootClients(clients);
+    		break;
+    	case "rw":
+    		isilonExport.setReadWriteClients(clients);
+    		break;
+    	case "ro":
+    		isilonExport.setReadOnlyClients(clients);
+    		break;
+    	}
     }
 }

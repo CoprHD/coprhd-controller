@@ -7,39 +7,53 @@ package com.emc.storageos.db.server.impl;
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.lang.annotation.Annotation;
-import java.util.*;
-
-import com.emc.storageos.db.common.*;
-import com.emc.storageos.services.util.AlertsLogger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.UpgradeFailureInfo;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.model.UpgradeAllowed;
+import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.upgrade.BaseDefaultMigrationCallback;
+import com.emc.storageos.db.client.upgrade.InternalDbClient;
+import com.emc.storageos.db.client.upgrade.MigrationCallback;
+import com.emc.storageos.db.client.upgrade.callbacks.GeoDbMigrationCallback;
+import com.emc.storageos.db.common.DbConfigConstants;
+import com.emc.storageos.db.common.DbSchemaChecker;
+import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
+import com.emc.storageos.db.common.DbSchemaScannerInterceptor;
+import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.diff.DbSchemasDiff;
 import com.emc.storageos.db.common.schema.AnnotationType;
 import com.emc.storageos.db.common.schema.AnnotationValue;
-import com.emc.storageos.db.common.schema.FieldInfo;
 import com.emc.storageos.db.common.schema.DbSchema;
 import com.emc.storageos.db.common.schema.DbSchemas;
+import com.emc.storageos.db.common.schema.FieldInfo;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.exceptions.FatalDatabaseException;
 import com.emc.storageos.db.server.MigrationHandler;
-import com.emc.storageos.db.client.upgrade.*;
-import com.emc.storageos.db.client.upgrade.callbacks.GeoDbMigrationCallback;
+import com.emc.storageos.services.util.AlertsLogger;
 import com.netflix.astyanax.Keyspace;
 
 /**
@@ -47,7 +61,7 @@ import com.netflix.astyanax.Keyspace;
  */
 public class MigrationHandlerImpl implements MigrationHandler {
     private static final Logger log = LoggerFactory.getLogger(MigrationHandler.class);
-    private AlertsLogger alertLog = AlertsLogger.getAlertsLogger();
+    private final AlertsLogger alertLog = AlertsLogger.getAlertsLogger();
 
     private static final int WAIT_TIME_BEFORE_RETRY_MSEC = 5 * 1000; // 5 sec
     private static final String DB_MIGRATION_LOCK = "dbmigration";
@@ -154,6 +168,8 @@ public class MigrationHandlerImpl implements MigrationHandler {
         setDbConfig(DbConfigConstants.MIGRATION_INIT);
 
         targetVersion = service.getVersion();
+        log.info("********** current version {}", coordinator.getCurrentDbSchemaVersion());
+        log.info("********** target version {}", targetVersion);
         statusChecker.setVersion(targetVersion);
         statusChecker.setServiceName(service.getName());
         // dbsvc will wait for all dbsvc, and geodbsvc waits for all geodbsvc.
@@ -180,7 +196,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
         String currentSchemaVersion = null;
         int retryCount = 0;
         while (retryCount < MAX_MIGRATION_RETRY) {
-            log.debug("Migration handlers - Start. Trying to grab lock ...");
+            log.info("Migration handlers - Start. Trying to grab lock ...");
             try {
                 // grab global lock for migration
                 lock = getLock(DB_MIGRATION_LOCK);
@@ -303,16 +319,16 @@ public class MigrationHandlerImpl implements MigrationHandler {
         failure.setStartTime(startTime);
         failure.setMessage(String.format("Upgrade to %s failed:%s", targetVersion, e.getClass().getName()));
         List<String> callStack = new ArrayList<String>();
-        for (StackTraceElement t : e.getStackTrace()){
+        for (StackTraceElement t : e.getStackTrace()) {
             callStack.add(t.toString());
-        }       
+        }
         failure.setCallStack(callStack);
         coordinator.persistRuntimeState(Constants.UPGRADE_FAILURE_INFO, failure);
     }
-    
+
     private void markMigrationFailure(Date startTime, String currentSchemaVersion, Exception e) {
         persistMigrationFailInfo(startTime, e);
-        
+
         String errMsg =
                 String.format("DB schema migration from %s to %s failed due to an unexpected error.",
                         currentSchemaVersion, targetVersion);
@@ -328,7 +344,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
             log.error(e.getMessage(), e);
         }
     }
-    
+
     private boolean isUnRetryableException(Exception e) {
         return e instanceof FatalDatabaseException ||
                 e instanceof FatalCoordinatorException ||

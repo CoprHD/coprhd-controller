@@ -207,6 +207,13 @@ public interface BlockStorageDriver extends StorageDriver {
     public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup);
 
     /**
+     * Delete block consistency group.
+     * @param consistencyGroup Input
+     * @return
+     */
+    public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup);
+
+    /**
      * Create snapshot of consistency group.
      * @param consistencyGroup input parameter
      * @param snapshots   input/output parameter

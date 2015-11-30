@@ -15,15 +15,24 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public interface ExternalDeviceErrors {
 
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_VOLUMES_ERROR)
-    public ServiceError createVolumesFailed(String volumes, String errorMsg);
+    public ServiceError createVolumesFailed(String method, String errorMsg);
 
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_VOLUMES_ERROR)
-    public ServiceError deleteVolumesFailed(String volumes, String errorMsg);
+    public ServiceError deleteVolumesFailed(String method, String errorMsg);
 
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_SNAPSHOTS_ERROR)
-    public ServiceError createSnapshotsFailed(String snapshots, String errorMsg);
+    public ServiceError createSnapshotsFailed(String method, String errorMsg);
 
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_CONSISTENCY_GROUP_ERROR)
-    public ServiceError createConsistencyGroupFailed(String consistencyGroup, String errorMsg);
+    public ServiceError createConsistencyGroupFailed(String method, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_CONSISTENCY_GROUP_ERROR)
+    public ServiceError deleteConsistencyGroupFailed(String method, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_GROUP_SNAPSHOT_ERROR)
+    public ServiceError deleteGroupSnapshotFailed(String method, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_SNAPSHOT_ERROR)
+    public ServiceError deleteSnapshotFailed(String method, String errorMsg);
 
 }

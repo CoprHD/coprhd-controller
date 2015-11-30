@@ -223,8 +223,10 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
 
     @Override
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
+        String snapTimestamp = Long.toString(System.currentTimeMillis());
         for (VolumeSnapshot snapshot : snapshots) {
             snapshot.setNativeId("snap-" + snapshot.getParentId() + UUID.randomUUID().toString());
+            snapshot.setTimestamp(snapTimestamp);
         }
         String taskType = "create-volume-snapshot";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
@@ -243,7 +245,16 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
 
     @Override
     public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
-        return null;
+        String taskType = "delete-volume-snapshot";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = String.format("StorageDriver: deleteVolumSnapshot for storage system %s, " +
+                        "snapshots nativeId %s - end",
+                snapshots.get(0).getStorageSystemId(), snapshots.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
@@ -322,9 +333,25 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
     }
 
     @Override
+    public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
+
+        String taskType = "delete-volume-cg";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = String.format("StorageDriver: deleteConsistencyGroup information for storage system %s, consistencyGroup nativeId %s - end",
+                consistencyGroup.getStorageSystemId(), consistencyGroup.getNativeId());
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
     public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities) {
+        String snapTimestamp = Long.toString(System.currentTimeMillis());
         for (VolumeSnapshot snapshot : snapshots) {
             snapshot.setNativeId("snap-" + snapshot.getParentId() + consistencyGroup.getDisplayName() + UUID.randomUUID().toString());
+            snapshot.setTimestamp(snapTimestamp);
         }
         String taskType = "create-group-snapshot";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
@@ -339,7 +366,16 @@ public class StorageDriverSimulator extends AbstractStorageDriver {
 
     @Override
     public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
-        return null;
+        String taskType = "delete-volume-cg-snapshot";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = String.format("StorageDriver: deleteConsistencyGroupSnapshot for storage system %s, " +
+                        "consistencyGroup nativeId %s, group snapshots %s - end",
+                snapshots.get(0).getStorageSystemId(), snapshots.get(0).getConsistencyGroup(), snapshots.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override

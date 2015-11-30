@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,30 +17,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.exceptions.DeviceControllerErrors;
-import com.emc.storageos.storagedriver.model.StorageObject;
-import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
-import com.emc.storageos.storagedriver.model.VolumeSnapshot;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
-import com.emc.storageos.xtremio.restapi.XtremIOClient;
-import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
@@ -48,14 +38,18 @@ import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.impl.LockManagerImpl;
 import com.emc.storageos.storagedriver.impl.RegistryImpl;
+import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StorageVolume;
+import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
+import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.base.Strings;
 
 
 public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
@@ -255,7 +249,36 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot,
                                  TaskCompleter taskCompleter) throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        try {
+            BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
+            List<BlockSnapshot> groupSnapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(blockSnapshot, dbClient);
+
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(Arrays.asList(blockSnapshot), dbClient, taskCompleter) &&
+                    groupSnapshots.size() > 1) {
+                // make sure we delete only snapshots from the same consistency group
+                List<BlockSnapshot> snapshotsToDelete = new ArrayList<>();
+                for (BlockSnapshot snap : groupSnapshots ) {
+                    if (snap.getConsistencyGroup().equals(blockSnapshot.getConsistencyGroup())) {
+                        snapshotsToDelete.add(snap);
+                    }
+                }
+                deleteGroupSnapshots(storage, snapshotsToDelete, taskCompleter);
+            } else {
+                deleteVolumeSnapshot(storage, snapshot, taskCompleter);
+            }
+        } catch (DatabaseException e) {
+            String message = String.format(
+                    "IO exception when trying to delete snapshot(s) on array %s", storage.getSerialNumber());
+            _log.error(message, e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteSnapshot", e.getMessage());
+            taskCompleter.error(dbClient, error);
+        } catch (Exception e) {
+            String message = String.format(
+                    "Exception when trying to delete snapshot(s) on array %s", storage.getSerialNumber());
+            _log.error(message, e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteSnapshot", e.getMessage());
+            taskCompleter.error(dbClient, error);
+        }
     }
 
     @Override
@@ -281,7 +304,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         } else {
             cg.setInactive(true);
             dbClient.updateObject(cg);
-            String errorMsg = String.format("doCreateConsistencyGroup -- Failed to create doCreateConsistencyGroup: %s .", task.getMessage());
+            String errorMsg = String.format("doCreateConsistencyGroup -- Failed to create Consistency Group: %s .", task.getMessage());
             _log.error(errorMsg);
             ServiceError serviceError = ExternalDeviceException.errors.createConsistencyGroupFailed("doCreateConsistencyGroup", errorMsg);
             taskCompleter.error(dbClient, serviceError);
@@ -303,16 +326,26 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         // call driver
         BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
 
-        // Todo complete, add to the driver api
-        // DriverTask task = driver.deleteConsistencyGroup(driverCG);
+        DriverTask task = driver.deleteConsistencyGroup(driverCG);
         // TODO: this is short cut for now, assuming synchronous driver implementation
         // We will implement support for async case later.
         consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageSystem.getId()), consistencyGroup.getLabel());
-        if (markInactive) {
-            consistencyGroup.setInactive(true);
+        if (task.getStatus() == DriverTask.TaskStatus.READY) {
+            if (markInactive) {
+                consistencyGroup.setInactive(true);
+            }
+            String msg = String.format("doDeleteConsistencyGroup -- Delete consistency group: %s .", task.getMessage());
+            _log.info(msg);
+            dbClient.updateObject(consistencyGroup);
+            taskCompleter.ready(dbClient);
+        } else {
+            String errorMsg = String.format("doDeleteConsistencyGroup -- Failed to delete Consistency Group: %s .", task.getMessage());
+            _log.error(errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.deleteConsistencyGroupFailed("doDelteConsistencyGroup", errorMsg);
+            taskCompleter.error(dbClient, serviceError);
         }
-        dbClient.updateObject(consistencyGroup);
-        taskCompleter.ready(dbClient);
+
+
     }
 
     @Override
@@ -376,6 +409,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 BlockSnapshot snapshot = driverSnapshotToSnapshotMap.get(driverSnapshot);
                 snapshot.setNativeId(driverSnapshot.getNativeId());
                 snapshot.setDeviceLabel(driverSnapshot.getDeviceLabel());
+                snapshot.setSnapsetLabel(driverSnapshot.getTimestamp());
             }
             dbClient.updateObject(driverSnapshotToSnapshotMap.values());
             String msg = String.format("createVolumeSnapshots -- Created snapshots: %s .", task.getMessage());
@@ -436,6 +470,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 BlockSnapshot snapshot = driverSnapshotToSnapshotMap.get(driverSnapshot);
                 snapshot.setNativeId(driverSnapshot.getNativeId());
                 snapshot.setDeviceLabel(driverSnapshot.getDeviceLabel());
+                // we use snapshot timestamp as snapset label for group snapshots
+                snapshot.setSnapsetLabel(driverSnapshot.getTimestamp());
             }
             dbClient.updateObject(driverSnapshotToSnapshotMap.values());
             String msg = String.format("createGroupSnapshots -- Created snapshots: %s .", task.getMessage());
@@ -449,6 +485,90 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             String errorMsg = String.format("doCreateSnapshot -- Failed to create snapshots: %s .", task.getMessage());
             _log.error(errorMsg);
             ServiceError serviceError = ExternalDeviceException.errors.createSnapshotsFailed("doCreateSnapshot", errorMsg);
+            taskCompleter.error(dbClient, serviceError);
+        }
+    }
+
+    private void deleteVolumeSnapshot(StorageSystem storageSystem, URI snapshot,
+                                      TaskCompleter taskCompleter) {
+        BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
+        if (blockSnapshot != null && !blockSnapshot.getInactive() &&
+                // If the blockSnapshot.nativeId is not filled in then the
+                // snapshot create may have failed somehow, so we'll allow
+                // this case to be marked as success, so that the inactive
+                // state against the BlockSnapshot object can be set.
+                !Strings.isNullOrEmpty(blockSnapshot.getNativeId())) {
+
+            Volume parent = dbClient.queryObject(Volume.class, blockSnapshot.getParent().getURI());
+            VolumeSnapshot driverSnapshot = new VolumeSnapshot();
+            driverSnapshot.setStorageSystemId(storageSystem.getNativeId());
+            driverSnapshot.setNativeId(blockSnapshot.getNativeId());
+            driverSnapshot.setParentId(parent.getNativeId());
+            driverSnapshot.setTimestamp(blockSnapshot.getSnapsetLabel());
+            List<VolumeSnapshot> driverSnapshots = new ArrayList<>();
+            driverSnapshots.add(driverSnapshot);
+            // call driver
+            BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+            DriverTask task = driver.deleteVolumeSnapshot(driverSnapshots);
+            // TODO: this is short cut for now, assuming synchronous driver implementation
+            // We will implement support for async case later.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                // update snapshots
+                blockSnapshot.setInactive(true);
+                dbClient.updateObject(blockSnapshot);
+                String msg = String.format("deleteVolumeSnapshot -- Deleted snapshot: %s .", task.getMessage());
+                _log.info(msg);
+                taskCompleter.ready(dbClient);
+            } else {
+                String errorMsg = String.format("doDeleteSnapshot -- Failed to delete snapshot: %s .", task.getMessage());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.deleteSnapshotFailed("doDeleteSnapshot", errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } else if (blockSnapshot != null) {
+            blockSnapshot.setInactive(true);
+            dbClient.updateObject(blockSnapshot);
+            String msg = String.format("deleteVolumeSnapshot -- Deleted snapshot: %s .", blockSnapshot.getId());
+            _log.info(msg);
+            taskCompleter.ready(dbClient);
+        }
+        taskCompleter.ready(dbClient);
+    }
+
+    private void deleteGroupSnapshots(StorageSystem storageSystem, List<BlockSnapshot> groupSnapshots,
+                                      TaskCompleter taskCompleter) {
+        _log.info("Deleting snapshot of consistency group .....");
+        URI cgUri = groupSnapshots.get(0).getConsistencyGroup();
+        BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+        List<VolumeSnapshot> driverSnapshots = new ArrayList<>();
+        for (BlockSnapshot blockSnapshot : groupSnapshots) {
+            VolumeSnapshot driverSnapshot = new VolumeSnapshot();
+            driverSnapshot.setStorageSystemId(storageSystem.getNativeId());
+            driverSnapshot.setNativeId(blockSnapshot.getNativeId());
+            driverSnapshot.setConsistencyGroup(consistencyGroup.getNativeId());
+            driverSnapshot.setTimestamp(blockSnapshot.getSnapsetLabel());
+            Volume parent = dbClient.queryObject(Volume.class, blockSnapshot.getParent().getURI());
+            driverSnapshot.setParentId(parent.getNativeId());
+            driverSnapshots.add(driverSnapshot);
+        }
+        // call driver
+        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+        DriverTask task = driver.deleteConsistencyGroupSnapshot(driverSnapshots);
+        // TODO: this is short cut for now, assuming synchronous driver implementation
+        // We will implement support for async case later.
+        if (task.getStatus() == DriverTask.TaskStatus.READY) {
+            // update snapshots
+            for (BlockSnapshot blockSnapshot : groupSnapshots) {
+                blockSnapshot.setInactive(true);
+            }
+            dbClient.updateObject(groupSnapshots);
+            String msg = String.format("deleteGroupSnapshots -- Deleted group snapshot: %s .", task.getMessage());
+            _log.info(msg);
+            taskCompleter.ready(dbClient);
+        } else {
+            String errorMsg = String.format("doDeleteSnapshot -- Failed to delete group snapshot: %s .", task.getMessage());
+            _log.error(errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.deleteGroupSnapshotFailed("doDeleteSnapshot", errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }
     }

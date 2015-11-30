@@ -9,7 +9,8 @@ public class VolumeSnapshot extends StorageBlockObject {
     // storage system of this volume. Type: Input.
     private String storageSystemId;
 
-    // timestamp. Type: Output.
+    // timestamp. Type: Input/Output.
+    // Should be set to the same value for all consistency group  snapshots taken at the same time.
     private String timestamp;
 
 

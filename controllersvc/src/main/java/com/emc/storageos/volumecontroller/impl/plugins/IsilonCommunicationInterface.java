@@ -736,10 +736,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             isilonNetworkPools.add(eachNetworkPool);
                         }
                     }
-                    // if the smart connect is null then set default access zone
-                    if (isilonNetworkPools != null && isilonNetworkPools.isEmpty()) {
-                        isilonNetworkPools.addAll(isilonNetworkPoolsSysAZ);
-                    }
 
                     // find virtualNAS in db
                     virtualNAS = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());

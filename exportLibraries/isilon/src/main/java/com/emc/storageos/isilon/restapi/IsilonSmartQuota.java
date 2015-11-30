@@ -131,6 +131,15 @@ public class IsilonSmartQuota {
         thresholds = new Thresholds(h, null, null, null);
     }
 
+    public IsilonSmartQuota(String p, long h, long a, long s, long sg) {
+        path = p;
+        type = "directory";
+        include_snapshots = false;              // default
+        thresholds_include_overhead = false;     // default
+        enforced = true;
+        thresholds = new Thresholds(h, a, s, sg);
+    }
+
     /**
      * Constructor for quota modification
      * 
@@ -140,6 +149,12 @@ public class IsilonSmartQuota {
         thresholds_include_overhead = false;     // default
         enforced = true;
         thresholds = new Thresholds(h, null, null, null);
+    }
+
+    public IsilonSmartQuota(long h, long a, long s, long sg) {
+        thresholds_include_overhead = false;     // default
+        enforced = true;
+        thresholds = new Thresholds(h, a, s, sg);
     }
 
     /**
@@ -157,6 +172,15 @@ public class IsilonSmartQuota {
         thresholds_include_overhead = bThresholdsIncludeOverhead;     // custom value
         enforced = true;
         thresholds = new Thresholds(h, null, null, null);
+    }
+
+    public IsilonSmartQuota(String p, long h, long a, long s, long sg, boolean bThresholdsIncludeOverhead, boolean bIncludeSnapshots) {
+        path = p;
+        type = "directory";
+        include_snapshots = bIncludeSnapshots;              // custom value
+        thresholds_include_overhead = bThresholdsIncludeOverhead;     // custom value
+        enforced = true;
+        thresholds = new Thresholds(h, a, s, sg);
     }
 
     /**

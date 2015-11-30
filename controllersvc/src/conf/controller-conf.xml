@@ -21,6 +21,12 @@
     <import resource="classpath:controller-xtremio-prov.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
 
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="location">
+			<value>classpath:isilon.properties</value>
+		</property>
+	</bean>
+
     <bean id="blockscheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
         <property name="dbClient" ref="dbclient"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
@@ -578,7 +584,11 @@
 
 
     <bean id="isilonapifactory" class="com.emc.storageos.isilon.restapi.IsilonApiFactory"
-          init-method="init" destroy-method="shutdown"/>
+          init-method="init" destroy-method="shutdown">
+          <property name="directorySoftQuotaDefaultSize" value="${isilon.directory.default.softquota.size}"/>
+          <property name="directorySoftQuotaDefaultGracePeriod" value="${isilon.directory.default.softquota.graceperiod}"/>
+          <property name="directoryAdvisoryQuotaSize" value="${isilon.directory.default.advisoryquota.size}"/>
+    </bean>
           
     <bean id="isilonDevice" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonFileStorageDevice">
         <property name="isilonApiFactory" ref="isilonapifactory"/>

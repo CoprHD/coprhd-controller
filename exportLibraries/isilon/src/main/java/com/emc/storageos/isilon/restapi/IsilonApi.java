@@ -39,7 +39,14 @@ import com.sun.jersey.core.util.MultivaluedMapImpl;
  */
 public class IsilonApi {
     private final URI _baseUrl;
+
     private final RESTClient _client;
+
+    private float directorySoftQuotaDefaultSize;
+
+    private long directorySoftQuotaDefaultGracePeriod;
+
+    private float directoryAdvisoryQuotaSize;
 
     private static final URI URI_IFS = URI.create("/namespace/");
     private static final URI URI_ALIAS = URI.create("/platform/1/protocols/nfs/aliases/");
@@ -105,14 +112,13 @@ public class IsilonApi {
         }
     }
 
-    /**
-     * Constructor for using http connections
-     * 
-     * @throws IsilonException
-     */
-    public IsilonApi(URI endpoint, RESTClient client) {
+    public IsilonApi(URI endpoint, RESTClient client, float directorySoftQuotaDefaultSize, long directorySoftQuotaDefaultGracePeriod,
+            float directoryAdvisoryQuotaSize) {
         _baseUrl = endpoint;
         _client = client;
+        this.directorySoftQuotaDefaultSize = directorySoftQuotaDefaultSize;
+        this.directorySoftQuotaDefaultGracePeriod = directorySoftQuotaDefaultGracePeriod;
+        this.directoryAdvisoryQuotaSize = directoryAdvisoryQuotaSize;
     }
 
     /**
@@ -697,7 +703,7 @@ public class IsilonApi {
     public void modifyExport(String id, IsilonExport exp) throws IsilonException {
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
-    
+
     /**
      * Modify export in access zone
      * 
@@ -706,7 +712,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
     }
 
@@ -729,7 +735,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonExport getExport(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         return get(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "exports", IsilonExport.class);
     }
 
@@ -742,7 +748,7 @@ public class IsilonApi {
     public void deleteExport(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export");
     }
-    
+
     /**
      * Delete export in access zone
      * 
@@ -750,7 +756,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteExport(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export");
     }
 
@@ -800,7 +806,7 @@ public class IsilonApi {
     public String createQuota(String path, long... thresholds) throws IsilonException {
         IsilonSmartQuota quota;
         if (thresholds != null && thresholds.length > 0) {
-            quota = new IsilonSmartQuota(path, thresholds[0]);
+            quota = createIsilonSmartQuotaWithThreshold(path, false, false,thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
                                       // cluster size.
         } else {
@@ -831,7 +837,7 @@ public class IsilonApi {
         IsilonSmartQuota quota;
         // Isilon does not allow to create zero quota directory.
         if (thresholds != null && thresholds.length > 0 && thresholds[0] > 0) {
-            quota = new IsilonSmartQuota(path, thresholds[0], bThresholdsIncludeOverhead, bIncludeSnapshots);
+            quota = createIsilonSmartQuotaWithThreshold(path, bThresholdsIncludeOverhead, bIncludeSnapshots, thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
                                       // cluster size.
         } else {
@@ -843,6 +849,31 @@ public class IsilonApi {
         return quotaId;
     }
 
+    // If we want to provide the UI to enter quota we can re-use this
+    private IsilonSmartQuota createIsilonSmartQuotaWithThreshold(String path, boolean bThresholdsIncludeOverhead,
+            boolean bIncludeSnapshots, long... thresholds) {
+        IsilonSmartQuota quota;
+        switch (thresholds.length) {
+            case 2:
+                quota = new IsilonSmartQuota(path, thresholds[0], thresholds[1], (long) (directorySoftQuotaDefaultSize * thresholds[0]),
+                        directorySoftQuotaDefaultGracePeriod);
+                break;
+            case 3:
+                quota = new IsilonSmartQuota(path, thresholds[0], thresholds[1], thresholds[2],
+                        directorySoftQuotaDefaultGracePeriod);
+                break;
+            case 4:
+                quota = new IsilonSmartQuota(path, thresholds[0], thresholds[1], thresholds[2],
+                        thresholds[3]);
+                break;
+            default:
+                quota = new IsilonSmartQuota(path, thresholds[0], (long) (directoryAdvisoryQuotaSize * thresholds[0]),
+                        (long) (directorySoftQuotaDefaultSize * thresholds[0]), directorySoftQuotaDefaultGracePeriod);
+                break;
+        }
+        return quota;
+    }
+    
     /**
      * Modify a smartquota
      * 
@@ -1034,7 +1065,7 @@ public class IsilonApi {
     public void modifyShare(String id, IsilonSMBShare s) throws IsilonException {
         modify(_baseUrl.resolve(URI_SMB_SHARES), id, "share", s);
     }
-    
+
     /**
      * Modify SMB share in access zone
      * 
@@ -1043,7 +1074,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyShare(String id, String zoneName, IsilonSMBShare s) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         modify(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share", s);
     }
 
@@ -1067,7 +1098,7 @@ public class IsilonApi {
      */
     public IsilonSMBShare getShare(String id, String zoneName) throws IsilonException {
 
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         return get(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "shares", IsilonSMBShare.class);
     }
 
@@ -1080,7 +1111,7 @@ public class IsilonApi {
     public void deleteShare(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_SMB_SHARES), id, "share");
     }
-    
+
     /**
      * Delete SMB share in access zone
      * 
@@ -1088,7 +1119,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteShare(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         delete(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share");
     }
 
@@ -1531,13 +1562,13 @@ public class IsilonApi {
         }
         return isNfsv4Enabled;
     }
-    
+
     private String getURIWithZoneName(String id, String zoneName) {
         StringBuffer buffer = new StringBuffer(id);
         buffer.append("?zone=");
         String accesszoneName = zoneName.replace(" ", "%20");
         buffer.append(accesszoneName);
-    	return buffer.toString();
+        return buffer.toString();
     }
 
 }

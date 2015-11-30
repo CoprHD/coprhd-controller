@@ -16,6 +16,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
+import com.emc.storageos.systemservices.impl.util.DbRepairStatusHandler;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
 
@@ -65,6 +66,9 @@ public class ControlService {
 
     @Autowired
     private RecoveryManager recoveryManager;
+
+    @Autowired
+    private DbRepairStatusHandler dbRepairStatusHandler;
 
     @Autowired
     private IpReconfigManager ipreconfigManager;
@@ -456,7 +460,7 @@ public class ControlService {
     @Produces({ MediaType.APPLICATION_JSON })
     public DbRepairStatus getDbRepairStatusFromLocalNode() throws Exception {
         _log.info("Check db repair status");
-        return recoveryManager.getDbRepairStatus();
+        return dbRepairStatusHandler.getDbRepairStatus();
     }
 
     /**

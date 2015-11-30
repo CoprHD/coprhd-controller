@@ -39,9 +39,9 @@ public class IngestStrategyFactory {
     
     private BlockIngestOrchestrator blockMirrorIngestOrchestrator;
 
-    private Map<String, IngestStrategy> ingestStrategyMap;
+    private final Map<String, IngestStrategy> ingestStrategyMap;
     
-    private Map<String, IngestExportStrategy> ingestExportStrategyMap;
+    private final Map<String, IngestExportStrategy> ingestExportStrategyMap;
 
     private DbClient _dbClient;
 
@@ -319,8 +319,11 @@ public class IngestStrategyFactory {
         } else {
             replicationStrategy = ReplicationStrategy.REMOTE.name();
         }
+        // Since a VPLEX backend volume may also be a snapshot target volume, we want to
+        // make sure we use the local volume ingest strategy when the volume is a VPLEX backend
+        // volume.
         String volumeType = VolumeType.VOLUME.name();
-        if(VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
+        if ((VolumeIngestionUtil.isSnapshot(unManagedVolume)) && (!VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume))) {
             volumeType = VolumeType.SNAPSHOT.name();
         } else if (VolumeIngestionUtil.isMirror(unManagedVolume)) {
             volumeType = VolumeType.MIRROR.name();

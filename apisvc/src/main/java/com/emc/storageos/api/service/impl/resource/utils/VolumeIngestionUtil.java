@@ -1105,7 +1105,8 @@ public class VolumeIngestionUtil {
      */
     public static <T extends BlockObject> void createExportMask(UnManagedExportMask eligibleMask, StorageSystem system,
             UnManagedVolume unManagedVolume,
-            ExportGroup exportGroup, T volume, DbClient dbClient, List<Host> hosts, Cluster cluster, String exportMaskLabel) throws Exception {
+            ExportGroup exportGroup, T volume, DbClient dbClient, List<Host> hosts, Cluster cluster, String exportMaskLabel)
+            throws Exception {
         _logger.info("Creating ExportMask for unManaged Mask {}", eligibleMask.getMaskName());
         List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
                 eligibleMask.getKnownInitiatorUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
@@ -2437,8 +2438,13 @@ public class VolumeIngestionUtil {
 
         blockObject.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
 
-        if (isVplexBackendVolume) {
-            // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
+        if ((blockObject instanceof Volume) && (isVplexBackendVolume)) {
+            // VPLEX backend volumes should still have the INTERNAL_OBJECT flag.
+            // Note that snapshots can also be VPLEX backend volumes so make sure
+            // to also check the type of the block object. We don't want a
+            // BlockSnapshot instance to be made internal. The ingestion process
+            // will also create Volume instance to represent the backend volume
+            // and this is what will be marked internal.
             blockObject.addInternalFlags(Flag.INTERNAL_OBJECT);
     }
     }
@@ -2472,7 +2478,7 @@ public class VolumeIngestionUtil {
     @SuppressWarnings("rawtypes")
     public static Class getBlockObjectClass(UnManagedVolume unManagedVolume) {
         Class blockObjectClass = Volume.class;
-        if(VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
+        if ((VolumeIngestionUtil.isSnapshot(unManagedVolume)) && (!VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume))) {
             blockObjectClass = BlockSnapshot.class;
         } else if(VolumeIngestionUtil.isMirror(unManagedVolume)) {
             blockObjectClass = BlockMirror.class;

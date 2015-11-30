@@ -868,6 +868,32 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return getConsistencyGroupSnapshots(ctx, consistencyGroup);
         }
     }
+    
+    @Asset("snapshotAvailableForResynchronize")
+    @AssetDependencies({ "blockVolumeWithSnapshot", "blockVolumeOrConsistencyType" })
+    public List<AssetOption> getSnapshotSynchronize(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
+        if (!checkTypeConsistency(volumeId, volumeOrConsistencyType)) {
+            warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+            return new ArrayList<AssetOption>();
+        }
+        final ViPRCoreClient client = api(ctx);
+        if (isVolumeType(volumeOrConsistencyType)) {
+            List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByVolume(volumeId, new DefaultResourceFilter<BlockSnapshotRestRep>() {
+                
+                @Override
+                public boolean accept(BlockSnapshotRestRep snapshot) {
+                    String replicaState = snapshot.getReplicaState();
+                    return replicaState != null &&
+                            !(replicaState.equals(ReplicationState.DETACHED.name())) &&
+                            !(replicaState.equals(ReplicationState.INACTIVE.name()));
+                }
+            });
+            
+            return constructResyncSnapshotOptions(snapshots);
+        } else {
+            return getConsistencyGroupSnapshots(ctx, volumeId);
+        }
+    }
 
     @Asset("consistencyGroupByProjectAndType")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
@@ -1240,15 +1266,28 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("blockVolumeWithSnapshot")
-    @AssetDependencies({ "project" })
-    public List<AssetOption> getBlockVolumesWithSnapshot(AssetOptionsContext context, URI project) {
+    @AssetDependencies({ "project", "blockVolumeOrConsistencyType"  })
+    public List<AssetOption> getBlockVolumesWithSnapshot(AssetOptionsContext context, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(context);
-        Set<URI> volumeIds = Sets.newHashSet();
-        for (BlockSnapshotRestRep snapshot : client.blockSnapshots().findByProject(project)) {
-            volumeIds.add(snapshot.getParent().getId());
+        if (isVolumeType(volumeOrConsistencyType)) {
+            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
+                @Override
+                public boolean accept(VolumeRestRep volume) {
+                    if (!(client.blockSnapshots().getByVolume(volume.getId())).isEmpty() && !isInConsistencyGroup(volume)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            });
+            return createVolumeOptions(client, volumes);
+        } else {
+            List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups()
+                    .search()
+                    .byProject(project)
+                    .run();
+            return createBaseResourceOptions(consistencyGroups);
         }
-        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds);
-        return createVolumeOptions(client, volumes);
     }
 
     @Asset("localSnapshotBlockVolume")
@@ -1699,6 +1738,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         Map<URI, VolumeRestRep> volumeNames = getProjectVolumeNames(client, project);
         for (BlockSnapshotRestRep snapshot : snapshots) {
             options.add(new AssetOption(snapshot.getId(), getBlockObjectLabel(client, snapshot, volumeNames)));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    protected List<AssetOption> constructResyncSnapshotOptions(List<BlockSnapshotRestRep> snapshots) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (BlockSnapshotRestRep snapshot : snapshots) {
+            options.add(new AssetOption(snapshot.getId(), snapshot.getName()));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

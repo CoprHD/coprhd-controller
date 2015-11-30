@@ -112,6 +112,27 @@ public abstract class VdcOpHandler {
     };
 
     /**
+     * Transit Cassandra native encryption to IPsec
+     */
+    public static class IPSecEnableHandler extends VdcOpHandler{
+        public IPSecEnableHandler() {
+        }
+        
+        @Override
+        public void execute() throws Exception {
+            syncFlushVdcConfigToLocal();
+            try {
+                localRepository.reconfig();
+                localRepository.reload("ipsec");
+                localRepository.restart("db");
+                localRepository.restart("geodb");
+            } catch (Exception ex) {
+                log.warn("Unexpected error happens during applying vdc config to local", ex);
+                resetLocalVdcConfigVersion();
+            }
+        }
+    }
+    /**
      * Process DR config change for add-standby op on all existing sites
      *  - flush vdc config to disk, regenerate config files and reload services for ipsec, firewall, coordinator, db
      */

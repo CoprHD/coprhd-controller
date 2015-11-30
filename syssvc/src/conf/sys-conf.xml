@@ -235,6 +235,7 @@
         <property name="retryInterval"  value="4000" />
         <property name="ipsecConfig" ref="ipsecConfig" />
         <property name="drUtil" ref="drUtil" />
+        <property name="backCompatPreYoda" ref="backCompatPreYoda"/>
         <property name="vdcOpHandlerMap">
         	<map>
         		<entry key="noop" value-ref="vdcNoopHandler"/>
@@ -244,8 +245,9 @@
         		<entry key="dr_resume_standby" value-ref="vdcDrResumeStandbyHandler"/>
         		<entry key="dr_switchover" value-ref="vdcDrSwitchoverHandler"/>
         		<entry key="dr_failover" value-ref="vdcDrFailoverHandler"/>
-                <entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
-        		<entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
+                <entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
+        		<entry key="ipsec_enable" value-ref="ipsecEnableHandler"/>
+        		<entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
         	</map>
         </property>
     </bean>
@@ -508,6 +510,14 @@
     </bean>
 
     <bean id="ipsecRotateHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPSecRotateOpHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+    <bean id="ipsecEnableHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPSecEnableHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>

@@ -163,9 +163,12 @@ public class GeoSeedProviderImpl implements SeedProvider {
     }
 
     private List<Configuration> getAllConfigZNodes() {
-        List<Configuration> configs = coordinator.queryAllConfiguration(Constants.GEODB_CONFIG);
+        List<Configuration> configs = coordinator.queryAllConfiguration(coordinator.getSiteId(), Constants.GEODB_CONFIG);
         List<Configuration> result = new ArrayList<>();
 
+        List<Configuration> leftoverConfig = coordinator.queryAllConfiguration(Constants.GEODB_CONFIG);
+        configs.addAll(leftoverConfig);
+        
         // filter out non config ZNodes: 2.0 and global
         for (Configuration config : configs) {
             if (isConfigZNode(config)) {

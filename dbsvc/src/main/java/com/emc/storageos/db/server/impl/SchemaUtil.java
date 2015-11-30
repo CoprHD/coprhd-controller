@@ -36,6 +36,7 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +53,7 @@ import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -406,6 +408,17 @@ public class SchemaUtil {
 
         _log.info("Add {} to strategy options", dcId);
         strategyOptions.put(dcId, Integer.toString(getReplicationFactor()));
+        
+        // If we upgrade from pre-yoda versions, the strategy option does not contains active site
+        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
+        String activeSiteDcId = drUtil.getCassandraDcId(activeSite);
+        if (!strategyOptions.containsKey(activeSiteDcId)) {
+            _log.info("Add {} to strategy options", activeSiteDcId);
+            strategyOptions.put(activeSiteDcId, Integer.toString(activeSite.getNodeCount()));
+            if (strategyOptions.containsKey("replication_factor")) {
+                strategyOptions.remove("replication_factor");
+            }
+        }
         return true;
     }
 
@@ -589,10 +602,10 @@ public class SchemaUtil {
 
     void setCurrentVersion(String currentVersion) {
         String configKind = _coordinator.getDbConfigPath(_service.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind, Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind, Constants.GLOBAL_ID);
         if (config != null) {
             config.setConfig(Constants.SCHEMA_VERSION, currentVersion);
-            _coordinator.persistServiceConfiguration(config);
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
         } else {
             // we are expecting this to exist, because its initialized from checkGlobalConfiguration
             throw new IllegalStateException("unexpected error, db global configuration is null");
@@ -600,7 +613,7 @@ public class SchemaUtil {
     }
 
     void setMigrationStatus(MigrationStatus status) {
-        Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), getDbConfigPath(), Constants.GLOBAL_ID);
         _log.debug("setMigrationStatus: target version \"{}\" status {}",
                 _coordinator.getTargetDbSchemaVersion(), status.name());
         if (config == null) {
@@ -610,7 +623,7 @@ public class SchemaUtil {
             config = cfg;
         }
         config.setConfig(Constants.MIGRATION_STATUS, status.name());
-        _coordinator.persistServiceConfiguration(config);
+        _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
     }
 
     /**
@@ -619,7 +632,7 @@ public class SchemaUtil {
      * @param checkpoint
      */
     void setMigrationCheckpoint(String checkpoint) {
-        Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), getDbConfigPath(), Constants.GLOBAL_ID);
         _log.debug("setMigrationCheckpoint: target version \"{}\" checkpoint {}",
                 _coordinator.getTargetDbSchemaVersion(), checkpoint);
         if (config == null) {
@@ -629,7 +642,7 @@ public class SchemaUtil {
             config = cfg;
         }
         config.setConfig(DbConfigConstants.MIGRATION_CHECKPOINT, checkpoint);
-        _coordinator.persistServiceConfiguration(config);
+        _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
     }
 
     /**
@@ -637,7 +650,7 @@ public class SchemaUtil {
      * 
      */
     String getMigrationCheckpoint() {
-        Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), getDbConfigPath(), Constants.GLOBAL_ID);
         _log.debug("getMigrationCheckpoint: target version \"{}\"",
                 _coordinator.getTargetDbSchemaVersion());
         if (config != null) {
@@ -652,12 +665,12 @@ public class SchemaUtil {
      * 
      */
     void removeMigrationCheckpoint() {
-        Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), getDbConfigPath(), Constants.GLOBAL_ID);
         _log.debug("removeMigrationCheckpoint: target version \"{}\"",
                 _coordinator.getTargetDbSchemaVersion());
         if (config != null) {
             config.removeConfig(DbConfigConstants.MIGRATION_CHECKPOINT);
-            _coordinator.persistServiceConfiguration(config);
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
         }
     }
 
@@ -847,6 +860,7 @@ public class SchemaUtil {
             } else {
                 _log.warn("Vdc record is not local for {}", _vdcShortId);
             }
+            checkAndInsertVdcConfig(localVdc);
             return;
         }
 
@@ -887,6 +901,17 @@ public class SchemaUtil {
         vdc.setLocal(true);
         dbClient.createObject(vdc);
 
+        checkAndInsertVdcConfig(vdc);
+    }
+    
+    private void checkAndInsertVdcConfig(VirtualDataCenter vdc) {
+        try {
+            drUtil.getLocalSite();
+            _log.info("Find local site config in ZK");
+            return;
+        } catch (RetryableCoordinatorException ex) {
+            _log.info("Cannot find local vdc config in ZK. Create new config");
+        }
         // create VDC parent ZNode for site config in ZK
         ConfigurationImpl vdcConfig = new ConfigurationImpl();
         vdcConfig.setKind(Site.CONFIG_KIND);
@@ -899,8 +924,8 @@ public class SchemaUtil {
         site.setName("Default Active Site");
         site.setVdcShortId(vdc.getShortId());
         site.setStandbyShortId("");
-        site.setHostIPv4AddressMap(ipv4Addresses);
-        site.setHostIPv6AddressMap(ipv6Addresses);
+        site.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
+        site.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
         site.setState(SiteState.PRIMARY);
         site.setCreationTime(System.currentTimeMillis());
         site.setVip(_vdcEndpoint);
@@ -916,7 +941,7 @@ public class SchemaUtil {
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
         _coordinator.setTargetInfo(siteInfo);
     }
-
+    
     /**
      * initialize PasswordHistory CF
      * 

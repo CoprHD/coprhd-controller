@@ -35,4 +35,8 @@
         <property name="nodeCount" value="1"/>
         <property name="service" ref="serviceinfo"/>
     </bean>
+    
+    <bean id="backCompatPreYoda" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="false" />
+    </bean>
 </beans>

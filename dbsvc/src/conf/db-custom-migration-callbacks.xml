@@ -101,6 +101,10 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.FullCopyVolumeDetachedStateMigration"/>
             </list>
         </entry>
-
+		<entry key="2.4">
+            <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VdcConfigMigration"/>
+            </list>
+        </entry>
     </util:map>
 </beans>

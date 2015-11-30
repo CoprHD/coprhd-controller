@@ -257,7 +257,7 @@ public interface CoordinatorClient {
     public boolean isConnected();
 
     /**
-     * Permanently persists configuration information. Note that most (if not all) services do not
+     * Permanently persists configuration information in global area. Note that most (if not all) services do not
      * need to persist their configuration information. This is used for services (such as dbsvc) that need
      * to adjust cluster configuration using existing configuration of other nodes.
      * 
@@ -266,7 +266,7 @@ public interface CoordinatorClient {
     public void persistServiceConfiguration(Configuration... config) throws CoordinatorException;
     
     /**
-     * Persist service configuration for given site
+     * Persist service configuration to site specific area
      * 
      * @param siteId
      * @param config
@@ -275,14 +275,21 @@ public interface CoordinatorClient {
     public void persistServiceConfiguration(String siteId, Configuration... config) throws CoordinatorException;
 
     /**
-     * Removes configured service information. See above notes about when this feature may be used.
+     * Removes configured service information in global area. See above notes about when this feature may be used.
      * 
      * @param config
      */
     public void removeServiceConfiguration(Configuration... config) throws CoordinatorException;
+    
+    /**
+     * Removes configured service information from site specific area.
+     * 
+     * @param config
+     */
+    public void removeServiceConfiguration(String siteId, Configuration... config) throws CoordinatorException;
 
     /**
-     * Queries all configuration with given kind
+     * Queries all configuration with given kind in zk global config area(/config)
      * 
      * @param kind
      * @return
@@ -290,7 +297,15 @@ public interface CoordinatorClient {
     public List<Configuration> queryAllConfiguration(String kind) throws CoordinatorException;
 
     /**
-     * Queries configuration with given kind and id
+     * Queries all configuration with given kind in site specific area(/config/<site id>/)
+     * 
+     * @param kind
+     * @return
+     */
+    public List<Configuration> queryAllConfiguration(String siteId, String kind) throws CoordinatorException;
+    
+    /**
+     * Queries configuration with given kind and id in zk global config area(/config)
      * 
      * @param kind
      * @param id
@@ -300,7 +315,7 @@ public interface CoordinatorClient {
     public Configuration queryConfiguration(String kind, String id) throws CoordinatorException;
 
     /**
-     * Query configuration for specific site
+     * Query configuration for a site in site specific area(/config/<site id>/)
      * 
      * @param siteId
      * @param kind
@@ -628,4 +643,11 @@ public interface CoordinatorClient {
      * @return An instance to help with owner lock management.
      */
     DistributedAroundHook getDistributedOwnerLockAroundHook();
+    
+    /**
+     * Delete a ZK path recursively
+     * 
+     * @param path full path on zk tree
+     */
+    void deletePath(String path);
 }

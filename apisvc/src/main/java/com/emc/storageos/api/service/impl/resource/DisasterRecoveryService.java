@@ -970,15 +970,15 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.siteIdNotFound();
         }
         
+        if (StringUtil.isBlank(siteParam.getName())) {
+            throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site name should not be empty.");
+        }
+        
+        if (StringUtil.isBlank(siteParam.getDescription())) {
+            throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site description should not be empty.");
+        }
+        
         try {
-            if (StringUtil.isBlank(siteParam.getName())) {
-                throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site name should not be empty.");
-            }
-            
-            if (StringUtil.isBlank(siteParam.getDescription())) {
-                throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site description should not be empty.");
-            }
-            
             site.setName(siteParam.getName());
             site.setDescription(siteParam.getDescription());
             coordinator.persistServiceConfiguration(site.toConfiguration());

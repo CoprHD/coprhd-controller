@@ -110,7 +110,7 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
                     snapshot.setCreationTime(Calendar.getInstance());
                     snapshot.setWWN(volumeWWN.toUpperCase());
                     snapshot.setAlternateName(volumeAltName);
-                    commonSnapshotUpdate(snapshot, volume, client, system, sourceObj.getNativeId(), volumeDeviceId, false, dbClient);
+                    commonSnapshotUpdate(snapshot, volume, client, system, sourceObj.getNativeId(), volumeElementName, false, dbClient);
                     s_logger.info(String
                             .format("For target volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). Associated volume is %5$s (%6$s)",
                                     volumePath.toString(), snapshot.getId().toString(), volumeDeviceId,

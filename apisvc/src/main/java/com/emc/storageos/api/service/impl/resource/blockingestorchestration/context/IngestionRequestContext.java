@@ -28,6 +28,30 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
+/**
+ * IngestionRequestContext is instantiated once per user request
+ * for ingestion of UnManagedVolumes in the UnManagedVolume service.
+ * It can be used for ingestion of both exported and unexported volumes.
+ * 
+ * This class implements Iterator<UnManagedVolume> and holds a nested
+ * iterator of URI for these UnManagedVolumes, so the UnManagedVolumeService
+ * can iterate this class directly.  Each UnManagedVolume is
+ * instantiated when next is called, and this ensure the current unmanaged
+ * volume is set correctly and the current VolumeIngestionContext is
+ * created for the currently iterating volume.
+ * 
+ * This class includes a VolumeIngestionContextFactory that will 
+ * creates the correct VolumeIngestionContext object for the current
+ * volume based on the UnManagedVolume type.
+ * 
+ * This class holds all the tracking collections for persistence of
+ * ingested unmanaged objects at the end of a successful ingestion run.
+ * 
+ * And finally, it has a rollbackAll method which can rollback all
+ * VolumeIngestionContexts in the event of an overall failure (but
+ * generally rollback would only happen on an individual volume if
+ * something about that volume's ingestion failed).
+ */
 public class IngestionRequestContext implements Iterator<UnManagedVolume> {
 
     private static Logger _logger = LoggerFactory.getLogger(IngestionRequestContext.class);
@@ -91,9 +115,14 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
 
     @Override
     public void remove() {
+        // TODO: no-op maybe?
         unManagedVolumeUrisToProcessIterator.remove();
     }
 
+    /**
+     * Instantiates the correct VolumeIngestionContext object
+     * for the current volume, based on the UnManagedVolume type.
+     */
     private static class VolumeIngestionContextFactory {
         
         public static VolumeIngestionContext getVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient) {
@@ -112,11 +141,20 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
         
     }
     
-    public void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
+    /**
+     * Private setter of the current UnManagedVolume, used by the UnManagedVolume
+     * iterator.
+     * 
+     * @param unManagedVolume
+     */
+    private void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
         currentVolumeIngestionContext = 
                 VolumeIngestionContextFactory.getVolumeIngestionContext(unManagedVolume, _dbClient);
     }
     
+    /**
+     * @return the current UnManagedVolume via the current VolumeIngestionContext
+     */
     public UnManagedVolume getCurrentUnmanagedVolume() {
         if (currentVolumeIngestionContext == null) {
             return null;
@@ -132,6 +170,9 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
         return currentUnManagedVolumeUri;
     }
 
+    /**
+     * @return the current VolumeIngestionContext
+     */
     public VolumeIngestionContext getVolumeContext() {
         return currentVolumeIngestionContext;
     }
@@ -391,6 +432,12 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
      */
     public void setDeviceInitiators(List<Initiator> deviceInitiators) {
         this.deviceInitiators = deviceInitiators;
+    }
+
+    public void rollbackAll() {
+        for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
+            volumeContext.rollback();
+        }
     }
 
 }

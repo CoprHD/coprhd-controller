@@ -77,7 +77,6 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-import com.emc.storageos.systemservices.impl.vdc.VdcOpHandler;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
@@ -99,6 +98,7 @@ public class DisasterRecoveryService {
     private static final String DR_OPERATION_LOCK = "droperation";
     private static final int LOCK_WAIT_TIME_SEC = 5;
     private static final int DEFAULT_GC_GRACE_PERIOD = 5 * 24 * 60 * 60; // 5 days;
+    private static final String NTPSERVERS = "network_ntpservers";
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -263,7 +263,7 @@ public class DisasterRecoveryService {
         // Need set stanby's NTP same as primary, so standby time is consistent with primary after reboot
         // It's because time inconsistency between primary and standby will cause db rebuild issue: COP-17965
         PropertyInfoExt targetPropInfo = coordinator.getTargetInfo(PropertyInfoExt.class);
-        String ntpServers = targetPropInfo.getProperty(VdcOpHandler.NTPSERVERS);
+        String ntpServers = targetPropInfo.getProperty(NTPSERVERS);
         log.info("    priamry site ntp servers: {}", ntpServers);
         configParam.setNtpServers(ntpServers);
 
@@ -342,8 +342,8 @@ public class DisasterRecoveryService {
 
             String ntpServers = configParam.getNtpServers();
             PropertyInfoExt targetPropInfo = coordinator.getTargetInfo(PropertyInfoExt.class);
-            if (ntpServers != null && !ntpServers.equals(targetPropInfo.getProperty(VdcOpHandler.NTPSERVERS))) {
-                targetPropInfo.addProperty(VdcOpHandler.NTPSERVERS, ntpServers);
+            if (ntpServers != null && !ntpServers.equals(targetPropInfo.getProperty(NTPSERVERS))) {
+                targetPropInfo.addProperty(NTPSERVERS, ntpServers);
                 coordinator.setTargetInfo(targetPropInfo);
                 log.info("Set ntp servers to {}", ntpServers);
             }

@@ -368,6 +368,7 @@ public class DbManager implements DbManagerMBean {
         try {
             thread.join(REMOVE_NODE_TIMEOUT_MILLIS);
             if (thread.isAlive()) {
+                log.warn("removenode timeout, calling forceRemoveCompletion()");
                 StorageService.instance.forceRemoveCompletion();
                 thread.join();
             }

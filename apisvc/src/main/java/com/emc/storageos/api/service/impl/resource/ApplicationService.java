@@ -6,6 +6,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
@@ -17,6 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -36,11 +38,15 @@ import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.ApplicationCreateParam;
 import com.emc.storageos.model.application.ApplicationList;
 import com.emc.storageos.model.application.ApplicationRestRep;
@@ -51,6 +57,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
  * APIs to view, create, modify and remove applications
@@ -201,50 +208,82 @@ public class ApplicationService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public ApplicationRestRep updateApplication(@PathParam("id") final URI id,
+    public TaskResourceRep updateApplication(@PathParam("id") final URI id,
             final ApplicationUpdateParam param) {
         ArgValidator.checkFieldUriType(id, Application.class, "id");
         Application application = (Application) queryResource(id);
         if (application.getInactive()) {
             throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(), "The application has been deleted");
         }
+        boolean isChanged = false;
         String apname = param.getName();
         if (apname != null && !apname.isEmpty()) {
             checkDuplicateLabel(Application.class, apname, "Application");
             application.setLabel(apname);
+            isChanged = true;
         }
         String description = param.getDescription();
         if (description != null && !description.isEmpty()) {
             application.setDescription(description);
+            isChanged = true;
         }
+        if (isChanged) {
+            _dbClient.updateObject(application);
+        }
+        String taskId = UUID.randomUUID().toString();
+        Operation op = null;
+        if (!param.hasEitherAddOrRemoveVolumes()) {
+            op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.UPDATE_APPLICATION);
+            op.ready();
+            application.getOpStatus().createTaskStatus(taskId, op);
+            _dbClient.updateObject(application);
+            return toTask(application, taskId, op);
+        }
+        List<Volume> addVols = new ArrayList<Volume> ();
+        List<Volume> removeVols = new ArrayList<Volume> ();
+        Volume firstVol = null;
         if (param.hasVolumesToAdd()) {
             List<URI> addVolList = param.getAddVolumesList().getVolumes();
-            Map<URI, List<Volume>> volMap = sortAndValidateAddVolumes(addVolList, application);
-            for (Map.Entry<URI, List<Volume>> entry : volMap.entrySet()) {
-                URI system = entry.getKey();
-                List<Volume> volumes = entry.getValue();
-                Volume firstVol = volumes.get(0);
-                BlockServiceApi serviceAPI = BlockService.getBlockServiceImpl(firstVol, _dbClient);
-            }
-            
+            addVols = validateAddVolumes(addVolList, application);
+            firstVol = addVols.get(0);
         }
-        _dbClient.updateObject(application);
+        if(param.hasVolumesToRemove()) {
+            List<URI> removeVolList = param.getRemoveVolumesList().getVolumes();
+            removeVols = validateRemoveVolumes(removeVolList, application);
+            if(firstVol== null && !removeVols.isEmpty()) {
+                firstVol = removeVols.get(0);
+            }
+        }
+        
+        BlockServiceApi serviceAPI = BlockService.getBlockServiceImpl(firstVol, _dbClient);
+        op = _dbClient.createTaskOpStatus(Application.class, application.getId(),
+                taskId, ResourceOperationTypeEnum.UPDATE_APPLICATION);
+        try {
+            serviceAPI.updateVolumesInApplication(addVols, removeVols, application, taskId);
+        } catch (InternalException e) {
+            op = application.getOpStatus().get(taskId);
+            op.error(e);
+            application.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.updateObject(application);
+            throw e;
+        }
         auditOp(OperationTypeEnum.UPDATE_APPLICATION, true, null, application.getId().toString(),
                 application.getLabel());
-        return DbObjectMapper.map(application);
+        return toTask(application, taskId, op);
     }
     
     /**
      * Sort add volume list based on its storage system, and validate the volume list.
-     * All volumes should be the same type (block, or RP, or VPLEX, or SRDF).
-     * Every volume should be in a consistency group
+     * All volumes should be the same type (block, or RP, or VPLEX, or SRDF),
+     * and should be in consistency group
      * @param volumes
      * @return
      */
-    private Map<URI, List<Volume>> sortAndValidateAddVolumes(List<URI> volumes, Application application) {
-        Map<URI, List<Volume>> volMap = new HashMap<URI, List<Volume>>();
+    private List<Volume> validateAddVolumes(List<URI> volumes, Application application) {
         String addedVolType = null;
         String firstVolLabel = null;
+        List<Volume> addVolumes = new ArrayList<Volume>();
         for (URI volUri : volumes) {
             ArgValidator.checkFieldUriType(volUri, Volume.class, "id");
             Volume volume = _dbClient.queryObject(Volume.class, volUri);
@@ -262,7 +301,7 @@ public class ApplicationService extends TaskResourceService {
                 throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(), 
                         "The storage system type that the volume created in is not allowed ");
             }
-            String volType = getSystemType(type);
+            String volType = getVolumeType(type);
             if (addedVolType == null) {
                 addedVolType = volType;
                 firstVolLabel = volume.getLabel();
@@ -271,12 +310,8 @@ public class ApplicationService extends TaskResourceService {
                 throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(), 
                         "The volume type is not same as others");
             }
-            List<Volume> vols = volMap.get(systemUri);
-            if (vols == null) {
-                vols = new ArrayList<Volume>();
-                volMap.put(systemUri, vols);
-            }
-            vols.add(volume);
+            
+            addVolumes.add(volume);
         }
         // Check if the to-add volumes are the same volume type as existing volumes in the application
         List<Volume> existingVols = getApplicationVolumes(application);
@@ -285,16 +320,39 @@ public class ApplicationService extends TaskResourceService {
             URI systemUri = firstVol.getStorageController();
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemUri);
             String type = system.getSystemType();
-            String existingType = getSystemType(type);
+            String existingType = getVolumeType(type);
             if (!existingType.equals(addedVolType)) {
                 throw APIException.badRequests.volumeCantBeAddedToApplication(firstVolLabel, 
                         "The volume type is not same as existing volumes in the application");
             }
         }
-        return volMap;
+        return addVolumes;
     }
     
-    private String getSystemType(String type) {
+    private List<Volume> validateRemoveVolumes(List<URI> volumes, Application application) {
+        List<Volume> removeVolumes = new ArrayList<Volume>();
+        for (URI removeVol : volumes) {
+            Volume removeVolume = _dbClient.queryObject(Volume.class, removeVol);
+            StringSet applications = removeVolume.getApplicationIds();
+            if (!applications.contains(application.getId().toString())) {
+                throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(), 
+                        "The volume is not assigned to the application");
+            }
+            if (removeVolume.getInactive()) {
+                continue;
+            }
+
+            removeVolumes.add(removeVolume);
+        }
+        return removeVolumes;
+    }
+    
+    /**
+     * Get Volume type, either block, rp, vplex or srdf
+     * @param type The system type
+     * @return
+     */
+    private String getVolumeType(String type) {
         if (BLOCK_TYPES.contains(type)) {
             return BLOCK;
         } else {
@@ -314,4 +372,5 @@ public class ApplicationService extends TaskResourceService {
         }
         return result;
     }
+    
 }

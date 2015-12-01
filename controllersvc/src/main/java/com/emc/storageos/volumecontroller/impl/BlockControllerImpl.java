@@ -452,5 +452,12 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         blockRMI("restoreFromFullCopy", storage, clones, updateOpStatus, opId);
 
     }
+    
+    @Override
+    public void removeVolumesFromApplication(List<URI> removeVolumeList,
+            URI application,
+            String opId) throws ControllerException {
+        blockRMI("removeVolumesFromApplication", removeVolumeList, application, opId);
+    }
 
 }

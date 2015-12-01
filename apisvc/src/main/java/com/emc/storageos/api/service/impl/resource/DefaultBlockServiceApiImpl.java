@@ -10,6 +10,7 @@ import static java.text.MessageFormat.format;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -340,7 +341,32 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * {@inheritDoc}
      */
     @Override
-    public void addVolumesToApplication(List<Volume> volumes, Application application) {
+    public void updateVolumesInApplication(List<Volume> addVolumes, 
+                                           List<Volume> removeVolumes, 
+                                           Application application,
+                                           String taskId) {
+        if (!addVolumes.isEmpty()) {
+            addVolumesToApplication(addVolumes, application);
+        }
+        if (!removeVolumes.isEmpty()) {
+            Volume firstVol = removeVolumes.get(0);
+            URI systemURI = firstVol.getStorageController();
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            BlockController controller = getController(BlockController.class, system.getSystemType());
+            List<URI> removeVolURIs = new ArrayList<URI>();
+            for (Volume vol : removeVolumes) {
+                removeVolURIs.add(vol.getId());
+            }
+            controller.removeVolumesFromApplication(removeVolURIs, application.getId(), taskId);
+        } else {
+            Operation op = application.getOpStatus().get(taskId);
+            op.ready();
+            application.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.updateObject(application);
+        }
+    }
+
+    private void addVolumesToApplication(List<Volume> volumes, Application application) {
         Set<URI> cgs = new HashSet<URI>();
         Set<URI> volumeURIs = new HashSet<URI>();
         String firstVolLabel = null;
@@ -364,13 +390,18 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             throw APIException.badRequests.volumeCantBeAddedToApplication(firstVolLabel, 
                     "Not all volumes in consistency group are in the to be added volume list");
         }
+        
         for (Volume volume : volumes) {
             StringSet applications = volume.getApplicationIds();
             if (applications == null) {
                 applications = new StringSet();
             }
             applications.add(application.getId().toString());
+            volume.setApplicationIds(applications);
             _dbClient.updateObject(volume);
         }
+        _log.info("Added volumes to the application" );
     }
+    
+    
 }

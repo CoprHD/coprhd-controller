@@ -1680,7 +1680,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * {@inheritDoc}
      */
     @Override
-    public void addVolumesToApplication(List<Volume> volumes, Application application) {
+    public void updateVolumesInApplication(List<Volume> addVolumes, List<Volume> removeVolumes, 
+            Application application, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }
+    
 }

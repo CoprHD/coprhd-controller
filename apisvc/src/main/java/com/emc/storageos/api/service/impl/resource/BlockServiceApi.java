@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.db.client.model.Application;
@@ -479,9 +480,12 @@ public interface BlockServiceApi {
             List<Volume> cgVolumes, StorageSystem cgStorageSystem);
     
     /**
-     * Validate and add volumes to the application
-     * @param volumes The to be added volumes
+     * Validate and add/remove volumes to the application
+     * @param addVolumes The volumes to be added to the application
+     * @param removeVolumes the volumes to be removed from the application
      * @param application The application that the volumes to be added to
      */
-    public void addVolumesToApplication(List<Volume> volumes, Application application);
+    public void updateVolumesInApplication(List<Volume> addVolumes, List<Volume> removeVolumes, 
+            Application application, String taskId);
+    
 }

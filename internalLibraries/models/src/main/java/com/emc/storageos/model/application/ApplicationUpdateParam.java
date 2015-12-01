@@ -104,7 +104,7 @@ public class ApplicationUpdateParam {
      * @valid minimum of 2 characters
      * @valid maximum of 128 characters
      */
-    @XmlElement(required = true)
+    @XmlElement
     @Length(min = 2, max = 128)
     public String getName() {
         return name;

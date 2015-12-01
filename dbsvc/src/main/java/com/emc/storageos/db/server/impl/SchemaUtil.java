@@ -83,6 +83,7 @@ import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.password.PasswordUtils;
@@ -487,7 +488,10 @@ public class SchemaUtil {
                 // the restart, in which case they must be removed again before a schema agreement can be reached.
                 // The reason is that all the other nodes in the current site are now being blocked by the schema
                 // lock and are definitely unreachable.
-                removeUnreachableNodesFromDc(localDcId);
+                String dbsvcName = isGeoDbsvc() ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME;
+                try (DbManagerOps dbManagerOps = new DbManagerOps(dbsvcName)) {
+                    dbManagerOps.removeUnreachableNodesFromDataCenter(localDcId);
+                }
 
                 // Wait for schema agreement before checking the strategy options, since the strategy options from
                 // the local site might be older than the active site and shouldn't be used any more.
@@ -508,23 +512,6 @@ public class SchemaUtil {
         if (changed) {
             _log.info("strategyOptions changed to {}", strategyOptions);
             clientContext.setCassandraStrategyOptions(strategyOptions, true);
-        }
-    }
-
-    private void removeUnreachableNodesFromDc(String dcName) {
-        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
-        for (InetAddress nodeIp : unreachableNodes) {
-            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
-            String dc = snitch.getDatacenter(nodeIp);
-            if (dc.equals(dcName)) {
-                Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
-                String guid = hostIdMap.get(nodeIp.getHostAddress());
-                _log.warn("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
-                Gossiper.instance.convict(nodeIp, 0);
-                StorageService.instance.removeNode(guid);
-            } else {
-                _log.warn("Unavailable node {} belongs to data center {} ", nodeIp, dc);
-            }
         }
     }
 

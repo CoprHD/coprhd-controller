@@ -167,7 +167,12 @@ public class DbManagerOps implements AutoCloseable {
 
     public void removeDataCenter(String dcName) {
         log.info("Removing Cassandra nodes for {}", dcName);
-        mbean.removeDataCenter(dcName);
+        mbean.removeDataCenter(dcName, false);
+    }
+
+    public void removeUnreachableNodesFromDataCenter(String dcName) {
+        log.info("Removing unreachable Cassandra nodes for {}", dcName);
+        mbean.removeDataCenter(dcName, true);
     }
     
     public void startNodeRepairAndWaitFinish(boolean canResume, boolean crossVdc) throws Exception {

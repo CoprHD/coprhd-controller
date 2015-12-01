@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RPVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
@@ -126,13 +127,17 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant, List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed, 
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, Class<T> clazz, 
             Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
+        
+        RPVolumeIngestionContext volumeContext = (RPVolumeIngestionContext) requestContext.getVolumeContext();
+        
         // Make sure there's an unmanaged protection set
-        UnManagedProtectionSet umpset = getUnManagedProtectionSet(unManagedVolume);
+        UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
         if (umpset == null) {
             _logger.warn("No unmanaged protection set could be found for unmanaged volume: " + unManagedVolume.getNativeGuid() + " Please run unmanaged CG discovery of registered protection system");
             throw IngestionException.exceptions.unManagedProtectionSetNotFound(unManagedVolume.getNativeGuid());
         }
 
+        // TODO reduce these params down to just context
         Volume volume = (Volume)ingestBlockObjectsInternal(requestContext, systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
                 unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap,
                 vplexIngestionMethod);
@@ -178,6 +183,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed, Map<String, BlockObject> createdObjectMap,
             Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, Class<T> clazz,
             Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) {
+
+        RPVolumeIngestionContext volumeContext = (RPVolumeIngestionContext) requestContext.getVolumeContext();
+
         String volumeNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                 VolumeIngestionUtil.VOLUME);
         BlockObject blockObject = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
@@ -186,7 +194,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         validateUnManagedVolumeProperties(unManagedVolume, virtualArray, vPool, project);
 
         // Make sure there's an unmanaged protection set
-        UnManagedProtectionSet umpset = getUnManagedProtectionSet(unManagedVolume);
+        UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
         validateUnmanagedProtectionSet(vPool, unManagedVolume, umpset);
         
         // Test ingestion status message
@@ -201,6 +209,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         
         Volume volume = (Volume)blockObject;
         // Perform RP-specific volume ingestion
+        // TODO reduce these params down to just context, also following methods
         volume = performRPVolumeIngestion(requestContext, project, virtualArray, vPool, system, unManagedVolume, systemCache, poolCache, tenant,
                 unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, taskStatusMap, vplexIngestionMethod,
                 volume);

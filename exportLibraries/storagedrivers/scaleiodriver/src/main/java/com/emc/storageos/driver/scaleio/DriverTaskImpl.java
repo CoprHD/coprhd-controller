@@ -2,8 +2,6 @@ package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.storagedriver.DriverTask;
 
-import java.util.Calendar;
-
 
 public class DriverTaskImpl extends DriverTask {
 
@@ -15,7 +13,7 @@ public class DriverTaskImpl extends DriverTask {
     public DriverTask abort(DriverTask task) {
         //task.setProgress(-1); //set Progress??
         task.setMessage("Task "+task.getTaskId()+" is aborted!");
-        task.setEndTime(Calendar.getInstance());
+       // task.setEndTime(Calendar.getInstance());
         task.setStatus(TaskStatus.ABORTED);
         return task;
     }

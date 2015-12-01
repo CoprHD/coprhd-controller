@@ -31,6 +31,35 @@ public class ScaleIORestHandleFactory {
     }
 
     /*
+   * Get Rest client handle for a scaleIO storage system
+   * @param systemNativeId optional
+   * @param ipAddr
+   * @param port
+   * @param username
+   * @param password
+   */
+    public ScaleIORestClient getClientHandle(String systemNativeId, String ipAddr, int port, String username, String password) throws Exception {
+        ScaleIORestClient handle = null;
+        synchronized (syncObject) {
+            if(systemNativeId!=null && systemNativeId.trim().length()>0) {
+                handle = ScaleIORestClientMap.get(systemNativeId);
+            }
+            if (handle == null) {
+                URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(ipAddr,port));
+                handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI,username,
+                           password, true);
+                if(handle==null){
+                    log.info("Failed to get Rest Handle");
+                }else if(systemNativeId==null || systemNativeId.trim().length()==0){
+                    systemNativeId=handle.getSystemId();
+                }
+                ScaleIORestClientMap.put(systemNativeId, handle);
+            }
+        }
+        return handle;
+    }
+
+    /*
     * Get Rest client handle for a scaleIO storage system
     * @param systemNativeId
     */
@@ -57,4 +86,6 @@ public class ScaleIORestHandleFactory {
             return handle;
         }
     }
+
+
 }

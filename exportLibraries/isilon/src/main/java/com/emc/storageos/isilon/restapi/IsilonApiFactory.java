@@ -35,12 +35,6 @@ public class IsilonApiFactory {
     private static final int DEFAULT_CONN_TIMEOUT = 1000 * 30;
     private static final int DEFAULT_SOCKET_CONN_TIMEOUT = 1000 * 60 * 60;
 
-    private float directorySoftQuotaDefaultSize;
-
-    private long directorySoftQuotaDefaultGracePeriod;
-
-    private float directoryAdvisoryQuotaSize;
-
     private int _maxConn = DEFAULT_MAX_CONN;
     private int _maxConnPerHost = DEFAULT_MAX_CONN_PER_HOST;
     private int _connTimeout = DEFAULT_CONN_TIMEOUT;
@@ -133,8 +127,7 @@ public class IsilonApiFactory {
         if (isilonApi == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
             RESTClient restClient = new RESTClient(jerseyClient);
-            isilonApi = new IsilonApi(endpoint, restClient, directorySoftQuotaDefaultSize, directorySoftQuotaDefaultGracePeriod,
-                    directoryAdvisoryQuotaSize);
+            isilonApi = new IsilonApi(endpoint, restClient);
             _clientMap.putIfAbsent(endpoint.toString() + ":" + ":", isilonApi);
         }
         return isilonApi;
@@ -152,34 +145,10 @@ public class IsilonApiFactory {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
             jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
             RESTClient restClient = new RESTClient(jerseyClient);
-            isilonApi = new IsilonApi(endpoint, restClient, directorySoftQuotaDefaultSize, directorySoftQuotaDefaultGracePeriod,
-                    directoryAdvisoryQuotaSize);
+            isilonApi = new IsilonApi(endpoint, restClient);
             _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, isilonApi);
         }
         return isilonApi;
     }
 
-    public float getDirectorySoftQuotaDefaultSize() {
-        return directorySoftQuotaDefaultSize;
-    }
-
-    public void setDirectorySoftQuotaDefaultSize(float directorySoftQuotaDefaultSize) {
-        this.directorySoftQuotaDefaultSize = directorySoftQuotaDefaultSize;
-    }
-
-    public long getDirectorySoftQuotaDefaultGracePeriod() {
-        return directorySoftQuotaDefaultGracePeriod;
-    }
-
-    public void setDirectorySoftQuotaDefaultGracePeriod(long directorySoftQuotaDefaultGracePeriod) {
-        this.directorySoftQuotaDefaultGracePeriod = directorySoftQuotaDefaultGracePeriod;
-    }
-
-    public float getDirectoryAdvisoryQuotaSize() {
-        return directoryAdvisoryQuotaSize;
-    }
-
-    public void setDirectoryAdvisoryQuotaSize(float directoryAdvisoryQuotaSize) {
-        this.directoryAdvisoryQuotaSize = directoryAdvisoryQuotaSize;
-    }
 }

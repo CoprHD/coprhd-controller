@@ -42,11 +42,11 @@ public class IsilonApi {
 
     private final RESTClient _client;
 
-    private float directorySoftQuotaDefaultSize;
+    private static final float directorySoftQuotaDefaultSize = (float) 0.95;
 
-    private long directorySoftQuotaDefaultGracePeriod;
+    private static final long directorySoftQuotaDefaultGracePeriod = 7L;
 
-    private float directoryAdvisoryQuotaSize;
+    private static final float directoryAdvisoryQuotaSize = (float)0.85;
 
     private static final URI URI_IFS = URI.create("/namespace/");
     private static final URI URI_ALIAS = URI.create("/platform/1/protocols/nfs/aliases/");
@@ -112,13 +112,9 @@ public class IsilonApi {
         }
     }
 
-    public IsilonApi(URI endpoint, RESTClient client, float directorySoftQuotaDefaultSize, long directorySoftQuotaDefaultGracePeriod,
-            float directoryAdvisoryQuotaSize) {
+    public IsilonApi(URI endpoint, RESTClient client) {
         _baseUrl = endpoint;
         _client = client;
-        this.directorySoftQuotaDefaultSize = directorySoftQuotaDefaultSize;
-        this.directorySoftQuotaDefaultGracePeriod = directorySoftQuotaDefaultGracePeriod;
-        this.directoryAdvisoryQuotaSize = directoryAdvisoryQuotaSize;
     }
 
     /**

@@ -10,6 +10,7 @@ import static util.BourneUtil.getViprClient;
 import java.util.List;
 
 import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SitePrimary;
@@ -91,6 +92,10 @@ public class DisasterRecoveryUtils {
     public static boolean isPrimarySite() {
         SitePrimary siteCheck = checkPrimary();
         return siteCheck.getIsPrimary();
+    }
+
+    public static SiteErrorResponse getSiteError(String uuid) {
+        return getViprClient().site().getSiteError(uuid);
     }
 
 }

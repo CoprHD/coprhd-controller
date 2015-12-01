@@ -5,8 +5,6 @@
 
 package controllers.infra;
 
-import static util.BourneUtil.getSysClient;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,13 +24,12 @@ import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
-import com.emc.storageos.model.db.DbConsistencyStatusRestRep;
 import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SitePrimary;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
-import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -88,6 +85,7 @@ public class DisasterRecovery extends ViprResourceController {
         list();
     }
 
+    @FlashException("list")
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void resume(String id) {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
@@ -102,6 +100,7 @@ public class DisasterRecovery extends ViprResourceController {
 
     }
 
+    @FlashException("list")
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void switchover(String id) {
         String standby_name = null;
@@ -218,6 +217,14 @@ public class DisasterRecovery extends ViprResourceController {
     public static void checkFailoverProgress(String uuid) {
         SiteRestRep siteRest = DisasterRecoveryUtils.getSite(uuid);
         renderJSON(siteRest);
+    }
+
+    public static void errorDetails(String id) {
+        SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
+        if (siteRest.getState().equals("STANDBY_ERROR")) {
+            SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
+            render(disasterSiteError);
+        }
     }
 
     private static void itemsJson(List<String> uuids) {

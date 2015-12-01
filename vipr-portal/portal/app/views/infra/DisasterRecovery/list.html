@@ -10,6 +10,7 @@
     #{Form.button name:'disasterRecovery.pauseButton', icon:'pause', submit:'pauseForm', data:['enabled':'selected']/}
     #{DataTable.formAction @pause(), id:'pauseForm', table:'disasterRecovery'/}
 #{/DataTable.crudTable}
+#{DataTable.expandHtml @errorDetails(':id'), table:'disasterRecovery' /}
 
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">

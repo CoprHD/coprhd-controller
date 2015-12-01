@@ -12,13 +12,13 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StorageContainer;
-import com.emc.storageos.db.client.model.StorageContainer.ProvisioningType;
 import com.emc.storageos.db.client.model.StorageContainer.ProtocolEndpointTypeEnum;
+import com.emc.storageos.db.client.model.StorageContainer.ProtocolType;
+import com.emc.storageos.db.client.model.StorageContainer.ProvisioningType;
 import com.emc.storageos.db.client.model.StorageContainer.SystemType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.vasa.StorageContainerRequestParam;
@@ -39,6 +39,7 @@ public abstract class AbstractStorageContainerService extends TaggedResource{
     protected static final String DESCRIPTION = "description";
     protected static final String MAXVVOLSIZEMB = "maxVvolSizeMB";
     protected static final String SYSTEM_TYPE = "system_type";
+    protected static final String PROTOCOL_TYPE = "protocolType";
     
     private static Set<String> fileProtocols = new HashSet<String>();
     private static Set<String> blockProtocols = new HashSet<String>();
@@ -104,6 +105,19 @@ public abstract class AbstractStorageContainerService extends TaggedResource{
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), SYSTEM_TYPE);
         ArgValidator.checkFieldValueFromEnum(param.getSystemType(), SYSTEM_TYPE,
                 EnumSet.of(SystemType.vmax, SystemType.vnxe, SystemType.vnxblock));
+        
+        if (null != param.getSystemType()) {
+            storageContainer.setSystemType(param.getSystemType());
+        }
+        
+        ArgValidator.checkFieldNotEmpty(param.getProtocolType(), PROTOCOL_TYPE);
+        ArgValidator.checkFieldValueFromEnum(param.getProtocolType(), PROTOCOL_TYPE,
+                EnumSet.of(ProtocolType.block, ProtocolType.file));
+        
+        if (null != param.getProtocolType()) {
+            storageContainer.setProtocolType(param.getProtocolType());
+        }
+
 
         ArgValidator.checkFieldNotEmpty(param.getProvisionType(), PROVISIONING_TYPE);
         ArgValidator.checkFieldValueFromEnum(param.getProvisionType(), PROVISIONING_TYPE,
@@ -119,7 +133,7 @@ public abstract class AbstractStorageContainerService extends TaggedResource{
         // Validate the protocols for not null and non-empty values
         ArgValidator.checkFieldNotEmpty(param.getProtocols(), PROTOCOLS);
         // Validate the protocols for type of StorageContianer.
-        validateVirtualPoolProtocol(storageContainer.getType(), param.getProtocols());
+        validateStorageContainerProtocol(storageContainer.getProtocolType(), param.getProtocols());
         storageContainer.getProtocols().addAll(param.getProtocols());
         
         //validate and set storage system
@@ -145,10 +159,10 @@ public abstract class AbstractStorageContainerService extends TaggedResource{
         
     }
     
-    protected void validateVirtualPoolProtocol(String type, Set<String> protocols) {
+    protected void validateStorageContainerProtocol(String type, Set<String> protocols) {
         if (null != protocols && !protocols.isEmpty()) {
             // Validate the protocols for type of VirtualPool.
-            switch (VirtualPool.Type.lookup(type)) {
+            switch (StorageContainer.ProtocolType.lookup(type)) {
                 case file:
                     if (!fileProtocols.containsAll(protocols)) {
                         throw APIException.badRequests.invalidProtocolsForVirtualPool(type, protocols, PROTOCOL_NFS,

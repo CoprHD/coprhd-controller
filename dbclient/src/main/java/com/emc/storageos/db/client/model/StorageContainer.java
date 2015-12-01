@@ -23,6 +23,8 @@ public class StorageContainer extends DataObjectWithACLs {
     
     private String systemType;
     
+    private String protocolType;
+    
     @Name("type")
     public String getType() {
         return type;
@@ -118,6 +120,17 @@ public class StorageContainer extends DataObjectWithACLs {
         setChanged("systemType");
     }
 
+    
+    @Name("protocolType")
+    public String getProtocolType() {
+        return protocolType;
+    }
+
+    public void setProtocolType(String protocolType) {
+        this.protocolType = protocolType;
+        setChanged("protocolType");
+    }
+
 
     public static enum Type {
         physical, geo;
@@ -165,6 +178,18 @@ public class StorageContainer extends DataObjectWithACLs {
 
         public static SystemType lookup(final String name) {
             for (SystemType value : copyOfValues) {
+                if (value.name().equals(name)) {
+                    return value;
+                }
+            }
+            return null;
+        }
+    }
+    
+    public static enum ProtocolType {
+        file, block;
+        public static ProtocolType lookup(final String name) {
+            for (ProtocolType value : values()) {
                 if (value.name().equals(name)) {
                     return value;
                 }

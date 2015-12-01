@@ -28,6 +28,7 @@ public class StorageContainerRequestParam {
 
     private String provisionType;
     private String systemType;
+    private String protocolType;
 
     /**
      * The name for the Storage Container.
@@ -145,6 +146,14 @@ public class StorageContainerRequestParam {
 
     public void setStorageSystem(String storageSystem) {
         this.storageSystem = storageSystem;
+    }
+
+    public String getProtocolType() {
+        return protocolType;
+    }
+
+    public void setProtocolType(String protocolType) {
+        this.protocolType = protocolType;
     }
 	
 	

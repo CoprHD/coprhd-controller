@@ -105,6 +105,14 @@
         <property name="customConfigHandler" ref="customConfigHandler" />
         <property name="configInfo" ref="configinfo" />
     </bean>
+    
+     <bean id="fileRPSchedular" class="com.emc.storageos.api.service.impl.placement.FileRPSchedular">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="matcherFramework" ref="matcherFramework"/>
+        <property name="fileStorageSchedular" ref="filescheduler" />
+    </bean>
+    
 
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
         <property name="packages">
@@ -166,6 +174,13 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="fileScheduler" ref="filescheduler"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="filePlacementManager" ref="filePlacementManager"/>
+        <property name="fileServiceApis">
+        <map>
+            <entry key="default" value-ref="defaultFileServiceApiImpl"/>
+            <entry key="mirror" value-ref="fileMirrorServiceApiImpl" />
+        </map>
+        </property>
     </bean>
     
     <bean id="bucketService" class="com.emc.storageos.api.service.impl.resource.BucketService">
@@ -224,6 +239,21 @@
          <property name="coordinator" ref="coordinator"/>
          <property name="blockScheduler" ref="storagescheduler"/>
     </bean>
+    
+    <bean id="defaultFileServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.DefaultFileServiceApiImpl">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="fileScheduler" ref="filescheduler"/>
+    </bean>
+
+    <bean id="fileMirrorServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.FileMirrorServiceApiImpl">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="fileScheduler" ref="filescheduler" />
+        <property name ="defaultFileServiceApiImpl" ref="defaultFileServiceApiImpl"/>
+    </bean>
+    
+    
     
     <bean id="ingestStrategyFactory" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory">
         <property name="dbClient" ref="dbclient"/>
@@ -315,6 +345,17 @@
             <entry key="vplex" value-ref="vplexscheduler"/>
             <entry key="srdf" value-ref="srdfscheduler"/>            
         </map>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    
+    <bean id="filePlacementManager" class="com.emc.storageos.api.service.impl.placement.FilePlacementManager">
+        <property name="storageSchedulers">
+            <map>
+                <entry key="file" value-ref="filescheduler"/>
+                <entry key="rpfile" value-ref="fileRPSchedular"/>
+            </map>
         </property>
         <property name="dbClient" ref="dbclient"/>
     </bean>

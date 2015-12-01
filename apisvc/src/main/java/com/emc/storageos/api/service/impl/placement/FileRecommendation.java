@@ -14,6 +14,12 @@ import com.emc.storageos.volumecontroller.Recommendation;
  * Recommendation with added support for storage ports.
  */
 public class FileRecommendation extends Recommendation {
+	public enum FileType {
+        FILE_VOLUME,          // user's data file
+        FILE_LOCAL_MIRROR,    // local mirror
+        FILE_COPY,            // full copy
+        RP_VOLUME             // RP file
+    };
 
     private static final long serialVersionUID = 1L;
     private List<URI> _storagePortUris;

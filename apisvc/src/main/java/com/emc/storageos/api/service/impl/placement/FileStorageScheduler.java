@@ -49,7 +49,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
  * StorageScheduler service for block and file storage. StorageScheduler is done
  * based on desired class-of-service parameters for the provisioned storage.
  */
-public class FileStorageScheduler {
+public class FileStorageScheduler implements Scheduler{
 
     public final Logger _log = LoggerFactory
             .getLogger(FileStorageScheduler.class);
@@ -914,6 +914,11 @@ public class FileStorageScheduler {
             }
         }
         return result;
+    }
+    
+    @Override
+    public List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
+        return placeFileShare(vArray, vPool, capabilities, project);
     }
 
 }

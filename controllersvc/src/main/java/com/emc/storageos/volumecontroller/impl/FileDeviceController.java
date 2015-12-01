@@ -50,6 +50,8 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
@@ -76,6 +78,7 @@ import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.emc.storageos.workflow.Workflow;
 
 /**
  * Generic File Controller Implementation that does all of the database
@@ -84,7 +87,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * @author burckb
  * 
  */
-public class FileDeviceController implements FileController {
+public class FileDeviceController implements FileOrchestrationInterface, FileController {
 
     private DbClient _dbClient;
     private static final String EVENT_SERVICE_TYPE = "file";
@@ -3314,6 +3317,30 @@ public class FileDeviceController implements FileController {
             VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
             args.setvNAS(vNAS);
         }
+	}
+
+	@Override
+	public String addStepsForCreateFileSystems(Workflow workflow,
+			String waitFor, List<FileDescriptor> filesystems, String taskId)
+			throws InternalException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String addStepsForDeleteFileSystems(Workflow workflow,
+			String waitFor, List<FileDescriptor> filesystems, String taskId)
+			throws InternalException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
+			List<FileDescriptor> fileDescriptors, String taskId)
+			throws InternalException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

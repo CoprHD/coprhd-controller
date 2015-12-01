@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.functions.MapFileShare;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.placement.FilePlacementManager;
 import com.emc.storageos.api.service.impl.placement.FileRecommendation;
 import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
@@ -191,6 +192,23 @@ public class FileService extends TaskResourceService {
 
     public void setFileScheduler(FileStorageScheduler fileScheduler) {
         _fileScheduler = fileScheduler;
+    }
+    
+    FilePlacementManager _filePlacementManager;
+
+    // Block service implementations
+    static volatile private Map<String, FileServiceApi> _fileServiceApis;
+
+    public static Map<String, FileServiceApi> getFileServiceApis() {
+        return _fileServiceApis;
+    }
+
+    public static void setFileServiceApis(Map<String, FileServiceApi> _fileServiceApis) {
+        FileService._fileServiceApis = _fileServiceApis;
+    }
+
+    public void setFilePlacementManager(FilePlacementManager placementManager) {
+        _filePlacementManager = placementManager;
     }
 
     /**

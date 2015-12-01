@@ -278,12 +278,12 @@ public class UpgradeManager extends AbstractManager {
                         retrySleep();
                         continue;
                     }
-
-                    if (new DbManagerOps(Constants.DBSVC_NAME).adjustNumTokens()) {
-                        log.info("Adjusted dbsvc num_tokens, restarting dbsvc...");
-                        localRepository.restart(Constants.DBSVC_NAME);
+                    try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME)) {
+                        if (dbOps.adjustNumTokens()) {
+                            log.info("Adjusted dbsvc num_tokens, restarting dbsvc...");
+                            localRepository.restart(Constants.DBSVC_NAME);
+                        }
                     }
-
                     continue;
                 } catch (Exception e) {
                     log.error("Step5: Adjust dbsvc num_tokens failed", e);

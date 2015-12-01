@@ -29,7 +29,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.management.backup.BackupConstants;
-import com.emc.storageos.db.exceptions.RetryableDatabaseException;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -115,6 +114,27 @@ public abstract class VdcOpHandler {
         }
     };
 
+    /**
+     * Transit Cassandra native encryption to IPsec
+     */
+    public static class IPSecEnableHandler extends VdcOpHandler{
+        public IPSecEnableHandler() {
+        }
+        
+        @Override
+        public void execute() throws Exception {
+            syncFlushVdcConfigToLocal();
+            try {
+                localRepository.reconfig();
+                localRepository.reload("ipsec");
+                localRepository.restart("db");
+                localRepository.restart("geodb");
+            } catch (Exception ex) {
+                log.warn("Unexpected error happens during applying vdc config to local", ex);
+                resetLocalVdcConfigVersion();
+            }
+        }
+    }
     /**
      * Process DR config change for add-standby op on all existing sites
      *  - flush vdc config to disk, regenerate config files and reload services for ipsec, firewall, coordinator, db
@@ -430,72 +450,9 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
-            Site localSite = drUtil.getLocalSite();
-            if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
-                // on resuming site, add db nodes back in strategy options and rebuild data
-                checkAndResumeStandby(localSite);
-            } else {
-                // on all other sites, reconfig to enable firewall/ipsec 
-                reconfigVdc();
-            }
+            // on all sites, reconfig to enable firewall/ipsec
+            reconfigVdc();
         }
-        
-        private void checkAndResumeStandby(Site localSite) {
-            InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_RESUME_STANDBY);
-            try {
-                log.info("Acquiring lock {}", LOCK_RESUME_STANDBY);
-                lock.acquire();
-                log.info("Acquired lock {}", LOCK_RESUME_STANDBY);
-
-                localSite = drUtil.getLocalSite();
-                if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) { //nobody get the lock before me
-                    waitForSchemaAgreement();
-
-                    int nodeCount = localSite.getNodeCount();
-                    String dcName = drUtil.getCassandraDcId(localSite);
-                    ((DbClientImpl) dbClient).getLocalContext().addDcToStrategyOptions(dcName, nodeCount);
-                    ((DbClientImpl) dbClient).getGeoContext().addDcToStrategyOptions(dcName, nodeCount);
-
-                    localSite.setState(SiteState.STANDBY_SYNCING);
-                    coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
-                }
-            } catch (RetryableDatabaseException e) {
-                // throw the exception for retry but don't set the site state to error.
-                throw new IllegalStateException(e);
-            } catch (Exception e) {
-                populateStandbySiteErrorIfNecessary(localSite,
-                    APIException.internalServerErrors.resumeStandbyReconfigFailed(e.getMessage()));
-                throw new IllegalStateException(e);
-            } finally {
-                try {
-                    log.info("Releasing lock {}", LOCK_RESUME_STANDBY);
-                    lock.release();
-                } catch (Exception e) {
-                    log.error("Failed to release lock {}", LOCK_RESUME_STANDBY);
-                }
-            }
-
-            if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
-                localRepository.restart("dbsvc");
-                localRepository.restart("geodbsvc");
-            }
-            flushVdcConfigToLocal();
-        }
-        
-        private void waitForSchemaAgreement() {
-            Map<String, List<String>> dbSchemaVersions;
-            Map<String, List<String>> geodbSchemaVersions;
-            int retryCnt = 0;
-            do {
-                dbSchemaVersions = ((DbClientImpl) dbClient).getLocalContext().getSchemaVersions();
-                geodbSchemaVersions = ((DbClientImpl) dbClient).getLocalContext().getSchemaVersions();
-                if (++retryCnt > MAX_RESUME_RETRY) {
-                    throw new IllegalStateException("timeout waiting for db schema to reach agreement on paused site.");
-                }
-                retrySleep();
-            } while (dbSchemaVersions.size() > 1 || geodbSchemaVersions.size() > 1);
-        }
-
     }
 
     /**

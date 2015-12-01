@@ -19,7 +19,7 @@
                 <prop key="autopurge.snapRetainCount">16</prop>
                 <!-- auto purge interval (minutes) -->
                 <prop key="autopurge.purgeInterval">30</prop> 
-                <prop key="server.1">localhost:2888:2889:participant</prop>
+                <prop key="server.1">localhost,2888,2889,participant</prop>
             </props>
         </property>
     </bean>

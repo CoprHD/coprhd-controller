@@ -260,6 +260,18 @@ _gen_prop2() {
         export _GENCONFIG_NETWORK_STACK="IPv4"
     fi
 
+    # _GENCONFIG_back_compat_preyoda
+    # set default value if VdcManager has no chance to start yet during first boot
+    if [ -z "${_GENCONFIG_back_compat_preyoda}" ]; then
+        if [ -n "${_GENCONFIG_vdc_config_hashcode}" ]; then
+            # upgrade from previous version
+            export _GENCONFIG_back_compat_preyoda="true"
+        else
+            # fresh install
+            export _GENCONFIG_back_compat_preyoda="false"
+        fi
+    fi
+
 }
 
 _gen_foreach() {

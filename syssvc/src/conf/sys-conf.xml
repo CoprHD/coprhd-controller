@@ -235,6 +235,7 @@
         <property name="retryInterval"  value="4000" />
         <property name="ipsecConfig" ref="ipsecConfig" />
         <property name="drUtil" ref="drUtil" />
+        <property name="backCompatPreYoda" ref="backCompatPreYoda"/>
         <property name="vdcOpHandlerMap">
         	<map>
         		<entry key="noop" value-ref="vdcNoopHandler"/>
@@ -244,8 +245,9 @@
         		<entry key="dr_resume_standby" value-ref="vdcDrResumeStandbyHandler"/>
         		<entry key="dr_switchover" value-ref="vdcDrSwitchoverHandler"/>
         		<entry key="dr_failover" value-ref="vdcDrFailoverHandler"/>
-                <entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
-        		<entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
+                <entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
+        		<entry key="ipsec_enable" value-ref="ipsecEnableHandler"/>
+        		<entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
         	</map>
         </property>
     </bean>
@@ -264,6 +266,7 @@
         <property name="serviceInfo" ref="serviceinfo"/>
         <property name="ciphersToInclude" ref="strongCiphers"/>
         <property name="coordinator" ref="coordinator"/>
+        <property name="startDbClientInBackground" value="true"/>
     </bean>
 
     <bean id="passwordUtils" class="com.emc.storageos.security.password.PasswordUtils">
@@ -514,4 +517,23 @@
         <property name="service" ref="serviceinfo" />
         <property name="drUtil" ref="drUtil" />
     </bean>
+    
+    <bean id="ipsecEnableHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPSecEnableHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+	</bean>
+
+    <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl">
+        <property name="coordinatorClient" ref="coordinator"/>
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+        <property name="encryptionProvider" ref="encryptionProvider"/>
+        <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
+        <property name="bypassMigrationLock" ref="serviceRunsDuringMigration"/>
+        <property name="localContext" ref="dbclientcontext"/>
+        <property name="geoContext" ref="geodbclientcontext"/>
+    </bean>
 </beans>
+    

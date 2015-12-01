@@ -83,7 +83,7 @@ public abstract class StartupMode {
      */
     void removeFlag(String flagName) {
         config.removeConfig(flagName);
-        coordinator.persistServiceConfiguration(config);
+        coordinator.persistServiceConfiguration(coordinator.getSiteId(), config);
     }
 
     public String toString() {
@@ -285,7 +285,7 @@ public abstract class StartupMode {
         void onPreStart() {
             if (!Boolean.parseBoolean(config.getConfig(Constants.STARTUPMODE_RESTORE_REINIT))) {
                 config.setConfig(Constants.STARTUPMODE_RESTORE_REINIT, Boolean.TRUE.toString());
-                coordinator.persistServiceConfiguration(config);
+                coordinator.persistServiceConfiguration(coordinator.getSiteId(), config);
             }
             super.onPreStart();
         }

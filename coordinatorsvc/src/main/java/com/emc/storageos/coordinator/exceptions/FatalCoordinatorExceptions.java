@@ -137,4 +137,7 @@ public interface FatalCoordinatorExceptions {
 
     @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
     public FatalCoordinatorException unableToCreateInstanceOfTargetInfo(final String className, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
+    public FatalCoordinatorException unableToDeletePath(String path, final Throwable cause);
 }

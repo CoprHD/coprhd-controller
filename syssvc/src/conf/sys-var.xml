@@ -45,4 +45,7 @@
         <constructor-arg type="java.lang.String" value="localhost" />
     </bean>
     
+    <bean id="backCompatPreYoda" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="false" />
+    </bean>
 </beans>

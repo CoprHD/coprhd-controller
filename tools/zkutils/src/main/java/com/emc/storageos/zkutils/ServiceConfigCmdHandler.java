@@ -63,7 +63,7 @@ public class ServiceConfigCmdHandler {
      * @return null if not found
      */
     public Configuration getMigrationConfiguration() {
-        Configuration config = coordinator.queryConfiguration(
+        Configuration config = coordinator.queryConfiguration( coordinator.getSiteId(), 
                 coordinator.getVersionedDbConfigPath(Constants.DBSVC_NAME,
                         coordinator.getTargetDbSchemaVersion()), Constants.GLOBAL_ID);
         return config;

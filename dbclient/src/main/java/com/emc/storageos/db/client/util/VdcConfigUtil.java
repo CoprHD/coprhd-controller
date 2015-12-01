@@ -46,13 +46,19 @@ public class VdcConfigUtil {
     public static final String SITE_MY_UUID="site_my_uuid";
     public static final String SITE_MYID="site_myid";
     public static final String SITE_IDS="site_ids";
-
+    public static final String BACK_COMPAT_PREYODA="back_compat_preyoda";
+    
     private DrUtil drUtil;
-
+    private Boolean backCompatPreYoda = false;
+    
     public VdcConfigUtil(CoordinatorClient coordinator) {
         drUtil = new DrUtil(coordinator);
     }
 
+    public void setBackCompatPreYoda(Boolean backCompatPreYoda) {
+        this.backCompatPreYoda = backCompatPreYoda;
+    }
+    
     /**
      * generates a property map containing all the VDC/site information this VDC has in
      * ZK, to be used by syssvc to update the local system property.
@@ -85,7 +91,8 @@ public class VdcConfigUtil {
             }
         });
         vdcConfig.put(VDC_IDS, StringUtils.join(vdcShortIdList, ","));
-
+        vdcConfig.put(BACK_COMPAT_PREYODA, String.valueOf(backCompatPreYoda));
+        
         log.info("vdc config property: \n{}", vdcConfig.toString());
 
         return vdcConfig;

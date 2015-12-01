@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.api.DeleteBuilder;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
@@ -504,7 +505,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public void persistServiceConfiguration(Configuration... configs) throws CoordinatorException {
-        persistServiceConfiguration(getSiteId(), configs);
+        persistServiceConfiguration(null, configs);
     }
     
     @Override
@@ -532,9 +533,18 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public void removeServiceConfiguration(Configuration... configs) throws CoordinatorException {
+        removeServiceConfiguration(null, configs);
+    }
+
+    @Override
+    public void removeServiceConfiguration(String siteId, Configuration... configs) throws CoordinatorException {
         for (int i = 0; i < configs.length; i++) {
             Configuration config = configs[i];
-            String servicePath = String.format("%1$s/%2$s/%3$s", ZkPath.CONFIG, config.getKind(),
+            String prefix = "";
+            if (siteId != null) {
+                prefix= getSitePrefix(siteId);
+            }
+            String servicePath = String.format("%1$s%2$s/%3$s/%4$s", prefix, ZkPath.CONFIG, config.getKind(),
                     config.getId());
             try {
                 _zkConnection.curator().delete().forPath(servicePath);
@@ -546,10 +556,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             }
         }
     }
-
+    
     @Override
     public List<Configuration> queryAllConfiguration(String kind) throws CoordinatorException {
-        String serviceParentPath = getKindPath(kind);
+        return queryAllConfiguration(null, kind);
+    }
+    
+    @Override
+    public List<Configuration> queryAllConfiguration(String siteId, String kind) throws CoordinatorException {
+        String serviceParentPath = getKindPath(siteId, kind);
         List<String> configPaths;
         try {
             configPaths = _zkConnection.curator().getChildren().forPath(serviceParentPath);
@@ -562,7 +577,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
         List<Configuration> configs = new ArrayList<Configuration>(configPaths.size());
         for (String configPath : configPaths) {
-            Configuration config = queryConfiguration(kind, configPath);
+            Configuration config = queryConfiguration(siteId, kind, configPath);
             if (config != null) {
                 configs.add(config);
             }
@@ -583,8 +598,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     
     private String getServicePath(String siteId) {
-        String sitePrefix= getSitePrefix(siteId);
-        StringBuilder builder = new StringBuilder(sitePrefix);
+        StringBuilder builder = new StringBuilder();
+        if (siteId != null) {
+            String sitePrefix= getSitePrefix(siteId);
+            builder.append(sitePrefix);
+        }
         builder.append(ZkPath.SERVICE.toString());
         return builder.toString();
     }
@@ -599,7 +617,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private String getKindPath(String siteId, String kind) {
         StringBuilder builder = new StringBuilder();
-        if (isSiteSpecific(kind)) {
+        if (siteId != null && isSiteSpecific(kind)) {
             String sitePrefix = getSitePrefix(siteId);
             builder.append(sitePrefix);
         }
@@ -624,7 +642,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public Configuration queryConfiguration(String kind, String id) throws CoordinatorException {
-        return queryConfiguration(getSiteId(), kind, id);
+        return queryConfiguration(null, kind, id);
     }
     
     @Override
@@ -1391,7 +1409,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     @Override
     public String getCurrentDbSchemaVersion() {
-        Configuration config = queryConfiguration(DB_CONFIG, GLOBAL_ID);
+        Configuration config = queryConfiguration(siteId, DB_CONFIG, GLOBAL_ID);
         if (config == null) {
             return null;
         }
@@ -1410,7 +1428,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public MigrationStatus getMigrationStatus() {
         log.debug("getMigrationStatus: target version: \"{}\"", getTargetDbSchemaVersion());
         // TODO support geodbsvc
-        Configuration config = queryConfiguration(getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()),
+        Configuration config = queryConfiguration(siteId, getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()),
                 GLOBAL_ID);
         if (config == null || config.getConfig(MIGRATION_STATUS) == null) {
             log.debug("config is null");
@@ -1771,5 +1789,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public DistributedAroundHook getDistributedOwnerLockAroundHook() {
         return ownerLockAroundHook;
+    }
+    
+    @Override
+    public void deletePath(String path) {
+        try {
+            DeleteBuilder deleteOp = _zkConnection.curator().delete();
+            deleteOp.deletingChildrenIfNeeded();
+            deleteOp.forPath(path);
+        } catch (Exception ex) {
+            CoordinatorException.fatals.unableToDeletePath(path, ex);
+        }
     }
 }

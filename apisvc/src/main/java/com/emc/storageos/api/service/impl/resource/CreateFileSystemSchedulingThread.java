@@ -1,4 +1,5 @@
 package com.emc.storageos.api.service.impl.resource;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -7,11 +8,13 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 public class CreateFileSystemSchedulingThread implements Runnable  {
 	static final Logger _log = LoggerFactory.getLogger(CreateFileSystemSchedulingThread.class);
@@ -25,13 +28,15 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
     private ArrayList<String> requestedTypes;
     private FileSystemParam param;
     private FileServiceApi fileServiceImpl;
+    private String SuggestedNativeFsId;
 
     public CreateFileSystemSchedulingThread(FileService fileService, VirtualArray varray, Project project,
             VirtualPool vpool,
             VirtualPoolCapabilityValuesWrapper capabilities,
             TaskList taskList, String task, ArrayList<String> requestedTypes,
-                FileSystemParam param,
-            FileServiceApi blockServiceImpl) {
+            FileSystemParam param,
+            FileServiceApi fileServiceImpl,
+            String suggestedNativeFsId) {
     	
 		this.fileService = fileService;
 		this.varray = varray;
@@ -42,7 +47,8 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
 		this.task = task;
 		this.requestedTypes = requestedTypes;
 		this.param = param;
-		this.fileServiceImpl = blockServiceImpl;
+		this.fileServiceImpl = fileServiceImpl;
+		this.SuggestedNativeFsId = suggestedNativeFsId;
     }
 	@Override
 	public void run() {
@@ -80,5 +86,46 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
         _log.info("Ending scheduling/placement thread...");
 		
 	}
+	
+	 /**
+     * Static method to execute the API task in the background to create an export group.
+     *
+     * @param fileService block service ("this" from caller)
+     * @param executorService executor service that manages the thread pool
+     * @param dbClient db client
+     * @param varray virtual array
+     * @param project project
+     * @param vpool virtual pool
+     * @param capabilities capabilities object
+     * @param taskList list of tasks
+     * @param task task ID
+     * @param requestedTypes requested types
+     * @param param volume creation request params
+     * @param fileServiceImpl block service impl to call
+     */
+    
+    public static void executeApiTask(FileService fileService, ExecutorService executorService, DbClient dbClient, VirtualArray varray,
+                                      Project project,
+                                      VirtualPool vpool, VirtualPoolCapabilityValuesWrapper capabilities,
+                                      TaskList taskList, String task, ArrayList<String> requestedTypes,
+                                      FileSystemParam param,
+                                      FileServiceApi fileServiceImpl, String suggestedNativeFsId) {
+    	CreateFileSystemSchedulingThread schedulingThread = new CreateFileSystemSchedulingThread(
+    			fileService, varray, project, vpool, capabilities, taskList, task, requestedTypes, param, fileServiceImpl, suggestedNativeFsId);
+        
+        try {
+            executorService.execute(schedulingThread);
+        } catch (Exception e) {
+            for (TaskResourceRep taskObj : taskList.getTaskList()) {
+                String message = "Failed to execute volume creation API task for resource " + taskObj.getResource().getId();
+                _log.error(message);
+                taskObj.setMessage(message);
+                // Set the volumes to inactive
+                Volume volume = dbClient.queryObject(Volume.class, taskObj.getResource().getId());
+                volume.setInactive(true);
+                dbClient.updateAndReindexObject(volume);
+            }
+        }
+    }
 	
 }

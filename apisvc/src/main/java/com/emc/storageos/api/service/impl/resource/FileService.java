@@ -92,6 +92,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.SnapshotList;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
@@ -199,8 +200,8 @@ public class FileService extends TaskResourceService {
     // Block service implementations
     static volatile private Map<String, FileServiceApi> _fileServiceApis;
 
-    public static Map<String, FileServiceApi> getFileServiceApis() {
-        return _fileServiceApis;
+    public static FileServiceApi getFileServiceApis(String Type) {
+        return _fileServiceApis.get(Type);
     }
 
     public static void setFileServiceApis(Map<String, FileServiceApi> _fileServiceApis) {
@@ -261,6 +262,8 @@ public class FileService extends TaskResourceService {
         // VNX file has min 2MB size, NetApp 20MB and Isilon 0
         // VNX File 8.1.6 min 1GB size
         ArgValidator.checkFieldMinimum(fsSizeMB, 1024, "MB", "size");
+        
+        ArrayList<String> requestedTypes = new ArrayList<String>();
 
         // check varray
         VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class, param.getVarray());
@@ -309,6 +312,9 @@ public class FileService extends TaskResourceService {
                 throw APIException.badRequests.duplicateLabel(param.getLabel());
             }
         }
+        
+        TaskList taskList = null;
+        FileServiceApi fileServiceApi = getFileServiceImpl(cos, _dbClient);
 
         FileController controller = getController(FileController.class, system.getSystemType());
         FileShare fs = prepareFileSystem(param, project, tenant, neighborhood, cos, flags, recommendation, task);
@@ -319,8 +325,11 @@ public class FileService extends TaskResourceService {
                 "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
                 fs.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
         try {
-            controller.createFS(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), fs.getId(),
-                    suggestedNativeFsId, task);
+            //controller.createFS(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), fs.getId(),
+            //        suggestedNativeFsId, task);
+        	CreateFileSystemSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, neighborhood,
+                    project, cos, capabilities, taskList, task, requestedTypes, param, fileServiceApi, suggestedNativeFsId);
+        	
         } catch (InternalException e) {
             fs.setInactive(true);
             _dbClient.persistObject(fs);
@@ -2238,5 +2247,20 @@ public class FileService extends TaskResourceService {
         dest.setReadWriteHosts(orig.getReadWriteHosts());
         dest.setRootHosts(orig.getRootHosts());
         dest.setMountPoint(orig.getMountPoint());
+    }
+    
+    /**
+     * Returns the bean responsible for servicing the request
+     *
+     * @param vpool Virtual Pool
+     * @return file service implementation object
+     */
+    private static FileServiceApi getFileServiceImpl(VirtualPool vpool, DbClient dbClient) {
+        // Mutually exclusive logic that selects an implementation of the file service
+        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
+            return getFileServiceApis("mirror");
+        } 
+
+        return getFileServiceApis("default");
     }
 }

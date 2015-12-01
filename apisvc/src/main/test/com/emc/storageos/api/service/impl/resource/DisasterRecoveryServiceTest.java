@@ -107,6 +107,8 @@ public class DisasterRecoveryServiceTest {
         standby.setFreshInstallation(true);
         standby.setDbSchemaVersion("2.4");
         standby.setSoftwareVersion("vipr-2.4.0.0.150");
+        standby.setHostIPv4AddressMap(new HashMap<String, String>());
+        standby.getHostIPv4AddressMap().put("vipr1", "10.247.101.100");
 
         // setup standby site
         standbySite1 = new Site();
@@ -364,7 +366,138 @@ public class DisasterRecoveryServiceTest {
     public void testPrecheckForStandbyAttach() throws Exception {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        doReturn(primarySite).when(drUtil).getLocalSite();
+        
         drService.precheckForStandbyAttach(standby);
+    }
+    
+    @Test
+    public void testCheckSupportedIPForAttachStandby_BothIPv4() {
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        doReturn(primarySite).when(drUtil).getLocalSite();
+        
+        //active and standby is IPv4
+        primarySite.getHostIPv4AddressMap().clear();
+        primarySite.getHostIPv4AddressMap().put("vipr1", "10.247.101.1");
+        primarySite.setHostIPv6AddressMap(null);
+        
+        standby.getHostIPv4AddressMap().clear();
+        standby.getHostIPv4AddressMap().put("vipr1", "10.247.98.1");
+        standby.setHostIPv6AddressMap(null);
+        
+        drService.checkSupportedIPForAttachStandby(standby);
+    }
+    
+    @Test
+    public void testCheckSupportedIPForAttachStandby_ActiveIPv4_StandbyDual() {
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        doReturn(primarySite).when(drUtil).getLocalSite();
+        
+        //active and standby is IPv4
+        primarySite.getHostIPv4AddressMap().clear();
+        primarySite.getHostIPv4AddressMap().put("vipr1", "10.247.101.1");
+        primarySite.setHostIPv6AddressMap(null);
+        
+        standby.getHostIPv4AddressMap().clear();
+        standby.getHostIPv4AddressMap().put("vipr1", "10.247.98.1");
+        standby.setHostIPv6AddressMap(new HashMap<String, String>());
+        standby.getHostIPv6AddressMap().put("vipr1", "fe80::250:56ff:fe9f:1dc3");
+        
+        drService.checkSupportedIPForAttachStandby(standby);
+    }
+    
+    @Test
+    public void testCheckSupportedIPForAttachStandby_BothIPv6() {
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        doReturn(primarySite).when(drUtil).getLocalSite();
+        
+        //active and standby is IPv4
+        primarySite.getHostIPv4AddressMap().clear();
+        primarySite.setHostIPv6AddressMap(new HashMap<String, String>());
+        primarySite.getHostIPv6AddressMap().put("vipr1", "fe80::280:56ff:fe9f:1234");
+        
+        standby.getHostIPv4AddressMap().clear();
+        standby.setHostIPv6AddressMap(new HashMap<String, String>());
+        standby.getHostIPv6AddressMap().put("vipr1", "fe80::250:56ff:fe9f:1dc3");
+        
+        drService.checkSupportedIPForAttachStandby(standby);
+    }
+    
+    @Test
+    public void testCheckSupportedIPForAttachStandby_ActiveDual_StandbyIPv4() {
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        doReturn(primarySite).when(drUtil).getLocalSite();
+        
+        //active and standby is IPv4
+        primarySite.getHostIPv4AddressMap().clear();
+        primarySite.getHostIPv4AddressMap().put("vipr1", "10.247.101.1");
+        primarySite.setHostIPv6AddressMap(new HashMap<String, String>());
+        primarySite.getHostIPv6AddressMap().put("vipr1", "fe80::280:56ff:fe9f:1234");
+        
+        standby.getHostIPv4AddressMap().clear();
+        standby.getHostIPv4AddressMap().put("vipr1", "10.247.98.1");
+        
+        drService.checkSupportedIPForAttachStandby(standby);
+    }
+    
+    @Test
+    public void testCheckSupportedIPForAttachStandby_ActiveDual_StandbyIDual() {
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        doReturn(primarySite).when(drUtil).getLocalSite();
+        
+        //active and standby is IPv4
+        primarySite.getHostIPv4AddressMap().clear();
+        primarySite.getHostIPv4AddressMap().put("vipr1", "10.247.101.1");
+        primarySite.setHostIPv6AddressMap(new HashMap<String, String>());
+        primarySite.getHostIPv6AddressMap().put("vipr1", "fe80::280:56ff:fe9f:1234");
+        
+        standby.getHostIPv4AddressMap().clear();
+        standby.getHostIPv4AddressMap().put("vipr1", "10.247.98.1");
+        standby.setHostIPv6AddressMap(new HashMap<String, String>());
+        standby.getHostIPv6AddressMap().put("vipr1", "fe80::250:56ff:fe9f:1dc3");
+        
+        drService.checkSupportedIPForAttachStandby(standby);
+    }
+    
+    @Test(expected=InternalServerErrorException.class)
+    public void testCheckSupportedIPForAttachStandby_Fail() {
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        doReturn(primarySite).when(drUtil).getLocalSite();
+        
+        //active and standby is IPv4
+        primarySite.getHostIPv4AddressMap().clear();
+        primarySite.getHostIPv4AddressMap().put("vipr1", "10.247.101.1");
+        
+        standby.getHostIPv4AddressMap().clear();
+        standby.setHostIPv6AddressMap(new HashMap<String, String>());
+        standby.getHostIPv6AddressMap().put("vipr1", "fe80::250:56ff:fe9f:1dc3");
+        
+        drService.checkSupportedIPForAttachStandby(standby);
+    }
+    
+    @Test(expected=InternalServerErrorException.class)
+    public void testCheckSupportedIPForAttachStandby_Fail_Dual() {
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        doReturn(primarySite).when(drUtil).getLocalSite();
+        
+        //active and standby is IPv4
+        primarySite.getHostIPv4AddressMap().clear();
+        primarySite.getHostIPv4AddressMap().put("vipr1", "10.247.101.1");
+        primarySite.setHostIPv6AddressMap(new HashMap<String, String>());
+        primarySite.getHostIPv6AddressMap().put("vipr1", "fe80::280:56ff:fe9f:1234");
+        
+        standby.getHostIPv4AddressMap().clear();
+        standby.setHostIPv6AddressMap(new HashMap<String, String>());
+        standby.getHostIPv6AddressMap().put("vipr1", "fe80::250:56ff:fe9f:1dc3");
+        
+        drService.checkSupportedIPForAttachStandby(standby);
     }
 
     @Test
@@ -510,6 +643,8 @@ public class DisasterRecoveryServiceTest {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         Configuration config = new ConfigurationImpl();
         doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
+        doReturn(primarySite).when(drUtil).getLocalSite();
+        
         drService.precheckForStandbyAttach(standby);
     }
     
@@ -517,6 +652,8 @@ public class DisasterRecoveryServiceTest {
     public void testPrecheckForStandbyAttach_PrimarySite_IsPrimary() throws Exception {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        doReturn(primarySite).when(drUtil).getLocalSite();
+        
         drService.precheckForStandbyAttach(standby);
     }
     

@@ -1083,6 +1083,30 @@ public class DisasterRecoveryService {
         if (primaryID != null && !primaryID.equals(coordinator.getSiteId())) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed("This site is also a standby site");
         }
+        
+        checkSupportedIPForAttachStandby(standby);
+    }
+
+    protected void checkSupportedIPForAttachStandby(SiteConfigRestRep standby) {
+        Site site = drUtil.getLocalSite();
+        
+        //primary has IPv4 and standby has no IPv4
+        if (!isMapEmpty(site.getHostIPv4AddressMap()) && isMapEmpty(standby.getHostIPv4AddressMap())) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Unsupported network configuration. Active site has IPv4. Standby site should be IPv4 or dual stack ");
+        }
+        
+        //primary has only IPv6 and standby has no IPv6
+        if (isMapEmpty(site.getHostIPv4AddressMap()) && isMapEmpty(standby.getHostIPv6AddressMap())) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Unsupported network configuration. Active site only has IPv6, Standby site should has IPv6 address");
+        }
+    }
+    
+    private boolean isMapEmpty(Map<?, ?> map) {
+        if (map == null || map.isEmpty()) {
+            return true;
+        }
+        
+        return false;
     }
 
     protected void precheckStandbyVersion(SiteAddParam standby) {

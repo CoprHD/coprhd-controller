@@ -61,7 +61,8 @@ public class VdcManager extends AbstractManager {
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-
+    private static final int BACK_UPGRADE_RETRY_MILLIS = 30 * 1000; // 30 seconds
+    
     private SiteInfo targetSiteInfo;
     private String currentSiteId;
     private DrUtil drUtil;
@@ -223,7 +224,6 @@ public class VdcManager extends AbstractManager {
                 if (backCompatPreYoda) {
                     log.info("Check if pre-yoda upgrade is done");
                     checkPreYodaUpgrade();
-                    retrySleep();
                     continue;
                 }
             } catch (Exception ex) {
@@ -518,6 +518,9 @@ public class VdcManager extends AbstractManager {
             opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
             opHandler.execute();
             backCompatPreYoda = false;
+        } else {
+            log.info("Migration to yoda is not completed. Sleep and retry later. isMigrationDone flag = {}", coordinator.isDBMigrationDone());
+            sleep(BACK_UPGRADE_RETRY_MILLIS);
         }
     }
 }

@@ -265,7 +265,6 @@ public class DisasterRecoveryService {
      * Initialize a to be added target standby
      * The current site will be demoted from primary to standby during the process
      *
->>>>>>> FETCH_HEAD
      * @param configParam
      * @return
      */

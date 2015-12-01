@@ -51,6 +51,9 @@ public class CoordinatorImpl implements Coordinator {
     private static final String PURGER_POOL = "SnapshotPurger";
     private ScheduledExecutorService _exe = new NamedScheduledThreadPoolExecutor(PURGER_POOL, 1);
     private static final String UNCOMMITTED_DATA_REVISION_FLAG = "/data/UNCOMMITTED_DATA_REVISION";
+    // ZK client port if we use dual coordinator hack for 1+0. No one use this port at all
+    private static final String DUAL_COORDINATOR_CLIENT_PORT="3181";  
+    
     /**
      * Set node / cluster config
      * 
@@ -145,7 +148,7 @@ public class CoordinatorImpl implements Coordinator {
                     _log.info("Starting the other peer to run zk in cluster mode. Aim to address a ZK 3.4.6 limitation(cannot add observers to standalone server)");
                     Properties prop = new Properties();
                     prop.setProperty("dataDir", _config.getDataDir() + "/peer2");
-                    prop.setProperty("clientPort", "3181"); // a deferent port
+                    prop.setProperty("clientPort", DUAL_COORDINATOR_CLIENT_PORT); // a deferent port
                     SpringQuorumPeerConfig newConfig = _config.createNewConfig(prop, 2);
                     runFromConfig(newConfig);
                 }

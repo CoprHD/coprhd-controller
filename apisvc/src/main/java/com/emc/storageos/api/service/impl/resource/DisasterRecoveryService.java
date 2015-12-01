@@ -983,11 +983,11 @@ public class DisasterRecoveryService {
             site.setDescription(siteParam.getDescription());
             coordinator.persistServiceConfiguration(site.toConfiguration());
             
-            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_SUCCESS, null, uuid, site.getVip(), site.getName());
+            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_SUCCESS, null, site.getVip(), site.getName());
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Error happened when update site %s", uuid, e);
-            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_FAILURE, null, uuid, site.getVip(), site.getName());
+            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_FAILURE, null, site.getVip(), site.getName());
             throw APIException.internalServerErrors.updateSiteFailed(site.getName(), e.getMessage());
         }
     }

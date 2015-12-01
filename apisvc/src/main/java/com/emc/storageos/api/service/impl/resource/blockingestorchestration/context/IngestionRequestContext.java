@@ -10,31 +10,32 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.ReplicationStrategy;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BlockVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RPVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
 public class IngestionRequestContext implements Iterator<UnManagedVolume> {
 
     private static Logger _logger = LoggerFactory.getLogger(IngestionRequestContext.class);
     private DbClient _dbClient;
-    
+
     private Iterator<URI> unManagedVolumeUrisToProcessIterator;
     private Map<String, VolumeIngestionContext> processedUnManagedVolumeMap;
-    
+
     private VirtualPool vpool; 
     private VirtualArray virtualArray; 
     private Project project; 
@@ -45,14 +46,22 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
     private Map<String, StorageSystem> systemMap;
     private List<URI> systemCache;
     private List<URI> poolCache;
-    
+
     private List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed;
     private List<UnManagedVolume> unManagedVolumesToBeDeleted;
     private Map<String, BlockObject> createdObjectMap; 
     private Map<String, List<DataObject>> updatedObjectMap; 
-    
+
     private VolumeIngestionContext currentVolumeIngestionContext;
     private URI currentUnManagedVolumeUri;
+
+    // export ingestion related items
+    private boolean exportGroupCreated = false;
+    private ExportGroup exportGroup;
+    private Host host;
+    private Cluster cluster;
+    private List<Initiator> deviceInitiators;
+    List<BlockObject> ingestedObjects;
 
     public IngestionRequestContext(DbClient dbClient, List<URI> unManagedVolumeUrisToProcess, VirtualPool vpool, 
             VirtualArray virtualArray, Project project, TenantOrg tenant, String vplexIngestionMethod) {
@@ -301,6 +310,87 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
      */
     public VolumeIngestionContext getProcessedVolumeContext(String nativeGuid) {
         return getProcessedUnManagedVolumeMap().get(nativeGuid);
+    }
+
+    /**
+     * @return the ingestedObjects
+     */
+    public List<BlockObject> getIngestedObjects() {
+        if (null == ingestedObjects) {
+            ingestedObjects = new ArrayList<BlockObject>();
+        }
+        
+        return ingestedObjects;
+    }
+
+    /**
+     * @return the exportGroupCreated
+     */
+    public boolean isExportGroupCreated() {
+        return exportGroupCreated;
+    }
+
+    /**
+     * @param exportGroupCreated the exportGroupCreated to set
+     */
+    public void setExportGroupCreated(boolean exportGroupCreated) {
+        this.exportGroupCreated = exportGroupCreated;
+    }
+
+    /**
+     * @return the exportGroup
+     */
+    public ExportGroup getExportGroup() {
+        return exportGroup;
+    }
+
+    /**
+     * @param exportGroup the exportGroup to set
+     */
+    public void setExportGroup(ExportGroup exportGroup) {
+        this.exportGroup = exportGroup;
+    }
+
+    /**
+     * @return the host
+     */
+    public Host getHost() {
+        return host;
+    }
+
+    /**
+     * @param host the host to set
+     */
+    public void setHost(Host host) {
+        this.host = host;
+    }
+
+    /**
+     * @return the cluster
+     */
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    /**
+     * @param cluster the cluster to set
+     */
+    public void setCluster(Cluster cluster) {
+        this.cluster = cluster;
+    }
+
+    /**
+     * @return the deviceInitiators
+     */
+    public List<Initiator> getDeviceInitiators() {
+        return deviceInitiators;
+    }
+
+    /**
+     * @param deviceInitiators the deviceInitiators to set
+     */
+    public void setDeviceInitiators(List<Initiator> deviceInitiators) {
+        this.deviceInitiators = deviceInitiators;
     }
 
 }

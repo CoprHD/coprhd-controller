@@ -40,6 +40,8 @@ public class IngestStrategy {
 
     public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz) {
 
+        // TODO: would reduce this to just the requestContext parameter and update all the orchestrator classes
+        // TODO: currently having issues getting the casting of clazz to work (weird generics compile issue)
         return ingestResourceOrchestrator.ingestBlockObjects(requestContext, 
                 requestContext.getSystemCache(), 
                 requestContext.getPoolCache(), 

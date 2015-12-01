@@ -34,6 +34,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -272,7 +273,6 @@ public class UnManagedVolumeService extends TaskResourceService {
                     requestContext.getCreatedObjectMap().put(blockObject.getNativeGuid(), blockObject);
                     requestContext.getProcessedUnManagedVolumeMap().put(
                             unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
-                    requestContext.getVolumeContext().commit();
 
                 } catch (APIException ex) {
                     _logger.error("APIException occurred", ex);
@@ -361,51 +361,40 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * 
-     * @param systemMap
-     * @param systemCache
-     * @param poolCache
-     * @param unManagedVolumeUris
-     * @param vPool
-     * @param virtualArray
-     * @param project
-     * @param tenant
-     * @param unManagedVolumesToBeDeleted
-     * @param createdObjectMap
-     * @param processedUnManagedVolumeMap
-     * @param taskList
+     * @param requestContext
+     * @param taskMap
      */
-    private void ingestBlockObjects(Map<String, StorageSystem> systemMap, List<URI> systemCache, List<URI> poolCache,
-            List<URI> unManagedVolumeUris, VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
-            List<UnManagedVolume> unManagedVolumesToBeDeleted, Map<String, BlockObject> createdObjectMap,
-            Map<String, List<DataObject>> updatedObjectMap,
-            Map<String, UnManagedVolume> processedUnManagedVolumeMap, Map<String, TaskResourceRep> taskMap,
-            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) {
+    private void ingestBlockObjects(IngestionRequestContext requestContext, Map<String, TaskResourceRep> taskMap) {
 
-        for (URI unManagedVolumeUri : unManagedVolumeUris) {
-            UnManagedVolume unManagedVolume = _dbClient.queryObject(UnManagedVolume.class,
-                    unManagedVolumeUri);
+        while (requestContext.hasNext()) {
+            UnManagedVolume unManagedVolume = requestContext.next();
+
+            if (null == unManagedVolume) {
+                _logger.info("No Unmanaged Volume with URI {} found in database. Continuing...", 
+                        requestContext.getCurrentUnManagedVolumeUri());
+                continue;
+            }
+
             _logger.info("Ingestion started for exported unmanagedvolume {}", unManagedVolume.getNativeGuid());
             String taskId = UUID.randomUUID().toString();
             Operation operation = _dbClient.createTaskOpStatus(UnManagedVolume.class,
-                    unManagedVolumeUri, taskId, ResourceOperationTypeEnum.INGEST_EXPORTED_BLOCK_OBJECTS);
+                    requestContext.getCurrentUnManagedVolumeUri(), 
+                    taskId, ResourceOperationTypeEnum.INGEST_EXPORTED_BLOCK_OBJECTS);
 
             try {
 
                 URI storageSystemUri = unManagedVolume.getStorageSystemUri();
-                StorageSystem system = systemMap.get(storageSystemUri.toString());
+                StorageSystem system = requestContext.getSystemMap().get(storageSystemUri.toString());
                 if (null == system) {
                     system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
-                    systemMap.put(storageSystemUri.toString(), system);
+                    requestContext.getSystemMap().put(storageSystemUri.toString(), system);
                 }
                 // Build the Strategy , which contains reference to Block object & export orchestrators
                 IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, false);
 
-                // TODO try to find ways to reduce parameters
                 @SuppressWarnings("unchecked")
-                BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool,
-                        virtualArray,
-                        project, tenant, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, true,
-                        VolumeIngestionUtil.getBlockObjectClass(unManagedVolume), taskStatusMap, vplexIngestionMethod);
+                BlockObject blockObject = ingestStrategy.ingestBlockObjects(requestContext, 
+                        VolumeIngestionUtil.getBlockObjectClass(unManagedVolume));
 
                 _logger.info("Ingestion ended for exported unmanagedvolume {}", unManagedVolume.getNativeGuid());
                 if (null == blockObject) {
@@ -414,16 +403,22 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
 
                 // TODO come up with a common response object to hold snaps/mirrors/clones
-                createdObjectMap.put(blockObject.getNativeGuid(), blockObject);
-                processedUnManagedVolumeMap.put(unManagedVolume.getNativeGuid(), unManagedVolume);
+                requestContext.getCreatedObjectMap().put(blockObject.getNativeGuid(), blockObject);
+                requestContext.getProcessedUnManagedVolumeMap().put(
+                        unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
+
             } catch (APIException ex) {
                 _logger.warn("error: " + ex.getLocalizedMessage(), ex);
-                _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
+                _dbClient.error(UnManagedVolume.class, 
+                        requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
+                requestContext.getVolumeContext().rollback();
             } catch (Exception ex) {
                 _logger.warn("error: " + ex.getLocalizedMessage(), ex);
-                _dbClient.error(UnManagedVolume.class, unManagedVolumeUri,
+                _dbClient.error(UnManagedVolume.class, 
+                        requestContext.getCurrentUnManagedVolumeUri(),
                         taskId, IngestionException.exceptions.generalVolumeException(
                                 unManagedVolume.getLabel(), ex.getLocalizedMessage()));
+                requestContext.getVolumeContext().rollback();
             }
 
             TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
@@ -433,27 +428,17 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * 
-     * @param systemMap
+     * @param requestContext
+     * @param taskMap
      * @param exportIngestParam
-     * @param exportGroup
-     * @param unManagedVolumesToBeDeleted
-     * @param exportGroupCreated
-     * @param createdObjectMap
-     * @param processedUnManagedVolumeMap
-     * @param ingestedObjects
-     * @param taskList
      */
-
-    private void ingestBlockExportMasks(Map<String, StorageSystem> systemMap, VolumeExportIngestParam exportIngestParam,
-            ExportGroup exportGroup,
-            List<UnManagedVolume> unManagedVolumesToBeDeleted, boolean exportGroupCreated, Map<String, BlockObject> createdObjectMap,
-            Map<String, List<DataObject>> updatedObjectMap,
-            Map<String, UnManagedVolume> processedUnManagedVolumeMap, List<BlockObject> ingestedObjects,
-            Map<String, TaskResourceRep> taskMap, Map<String, StringBuffer> taskStatusMap) {
-        for (String unManagedVolumeGUID : processedUnManagedVolumeMap.keySet()) {
+    private void ingestBlockExportMasks(IngestionRequestContext requestContext, Map<String, TaskResourceRep> taskMap, 
+            VolumeExportIngestParam exportIngestParam) {
+        for (String unManagedVolumeGUID : requestContext.getProcessedUnManagedVolumeMap().keySet()) {
             String objectGUID = unManagedVolumeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-            BlockObject processedBlockObject = createdObjectMap.get(objectGUID);
-            UnManagedVolume processedUnManagedVolume = processedUnManagedVolumeMap.get(unManagedVolumeGUID);
+            BlockObject processedBlockObject = requestContext.getCreatedObjectMap().get(objectGUID);
+            VolumeIngestionContext volumeContext = requestContext.getProcessedUnManagedVolumeMap().get(unManagedVolumeGUID);
+            UnManagedVolume processedUnManagedVolume = volumeContext.getUnmanagedVolume();
             URI unManagedVolumeUri = processedUnManagedVolume.getId();
             String taskId = taskMap.get(processedUnManagedVolume.getId().toString()).getOpId();
             try {
@@ -465,18 +450,22 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
 
                 URI storageSystemUri = processedUnManagedVolume.getStorageSystemUri();
-                StorageSystem system = systemMap.get(storageSystemUri.toString());
+                StorageSystem system = requestContext.getSystemMap().get(storageSystemUri.toString());
                 // Build the Strategy , which contains reference to Block object & export orchestrators
                 IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
-                BlockObject blockObject = ingestStrategy.ingestExportMasks(processedUnManagedVolume, exportIngestParam, exportGroup,
-                        processedBlockObject, unManagedVolumesToBeDeleted, system, exportGroupCreated, null);
+                // TODO: get rid of exportIngestParam, deviceInitiators, others in requestContext
+                //       when reducing params in the orchestrator interfaces
+                BlockObject blockObject = ingestStrategy.ingestExportMasks(
+                        processedUnManagedVolume, exportIngestParam, requestContext.getExportGroup(),
+                        processedBlockObject, requestContext.getUnManagedVolumesToBeDeleted(), 
+                        system, requestContext.isExportGroupCreated(), null);
                 if (null == blockObject) {
                     throw IngestionException.exceptions.generalVolumeException(
                             processedUnManagedVolume.getLabel(), "check the logs for more details");
                 }
-                ingestedObjects.add(blockObject);
+                requestContext.getIngestedObjects().add(blockObject);
                 if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
-                    StringBuffer taskStatus = taskStatusMap.get(processedUnManagedVolume.getNativeGuid());
+                    StringBuffer taskStatus = requestContext.getTaskStatusMap().get(processedUnManagedVolume.getNativeGuid());
                     String taskMessage = "";
                     if (taskStatus == null) {
                         // No task status found. Put in a default message.
@@ -495,19 +484,22 @@ public class UnManagedVolumeService extends TaskResourceService {
                                                                                                                                // message
                 }
                 // Update the related objects if any after successful export mask ingestion
-                List<DataObject> updatedObjects = updatedObjectMap.get(unManagedVolumeGUID);
+                List<DataObject> updatedObjects = requestContext.getUpdatedObjectMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateAndReindexObject(updatedObjects);
                 }
+                volumeContext.commit();
 
             } catch (APIException ex) {
                 _logger.warn(ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
+                volumeContext.rollback();
             } catch (Exception ex) {
                 _logger.warn(ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class, unManagedVolumeUri,
                         taskId, IngestionException.exceptions.generalVolumeException(
                                 processedUnManagedVolume.getLabel(), ex.getLocalizedMessage()));
+                volumeContext.rollback();
             }
         }
     }
@@ -539,12 +531,8 @@ public class UnManagedVolumeService extends TaskResourceService {
     public TaskList ingestExportedVolumes(VolumeExportIngestParam exportIngestParam) throws InternalException {
         TaskList taskList = new TaskList();
         Map<String, TaskResourceRep> taskMap = new HashMap<String, TaskResourceRep>();
-        Map<String, StringBuffer> taskStatusMap = new HashMap<String, StringBuffer>();
-        boolean exportGroupCreated = false;
-        ExportGroup exportGroup = null;
-        // List to hold the block objects which have been fully ingested
-        List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
 
+        IngestionRequestContext requestContext = null;
         try {
             ResourceAndUUIDNameGenerator nameGenerator = new ResourceAndUUIDNameGenerator();
             if (exportIngestParam.getUnManagedVolumes().size() > getMaxBulkSize()) {
@@ -573,6 +561,10 @@ public class UnManagedVolumeService extends TaskResourceService {
             VolumeIngestionUtil.checkIngestionRequestValidForUnManagedVolumes(exportIngestParam.getUnManagedVolumes(),
                     vpool, _dbClient);
 
+            requestContext = new IngestionRequestContext(
+                    _dbClient, exportIngestParam.getUnManagedVolumes(), vpool, 
+                    varray, project, tenant, exportIngestParam.getVplexIngestionMethod());
+
             URI exportGroupResourceUri = null;
             String resourceType = ExportGroupType.Host.name();
             String computeResourcelabel = null;
@@ -581,56 +573,45 @@ public class UnManagedVolumeService extends TaskResourceService {
                 Cluster cluster = _dbClient.queryObject(Cluster.class, exportIngestParam.getCluster());
                 exportGroupResourceUri = cluster.getId();
                 computeResourcelabel = cluster.getLabel();
+                requestContext.setCluster(cluster);
             } else {
                 Host host = _dbClient.queryObject(Host.class, exportIngestParam.getHost());
                 exportGroupResourceUri = host.getId();
                 computeResourcelabel = host.getHostName();
+                requestContext.setHost(host);
             }
+
             ExportGroupNameGenerator gen = new ExportGroupNameGenerator();
             String exportGroupLabel = gen.generate(null, computeResourcelabel, null, '_', 56);
-            exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), exportGroupResourceUri,
+            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), exportGroupResourceUri,
                     varray.getId(), resourceType, _dbClient);
             if (null == exportGroup) {
                 _logger.info("Creating Export Group with label {}", exportGroupLabel);
                 exportGroup = VolumeIngestionUtil.initializeExportGroup(project, resourceType, varray.getId(),
                         exportGroupLabel, _dbClient, nameGenerator, tenant);
-                exportGroupCreated = true;
+                requestContext.setExportGroupCreated(true);
             }
+            
+            requestContext.setExportGroup(exportGroup);
 
-            // List to hold the unmanaged volumes which have been fully ingested and have been marked as inactive
-            List<UnManagedVolume> unManagedVolumes = new ArrayList<UnManagedVolume>();
-            // Map to hold the unmanaged volumes which have been processed while ingesting the block objects first
-            Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
-            // Map to hold the block objects which have been ingested. This will hold the ingested block objects with both NO_PUBLIC_ACCESS
-            // is true and false.
-            Map<String, BlockObject> createdObjectMap = new HashMap<String, BlockObject>();
-            // Map to hold the block objects which were updated during ingestion. The data objects can be block objects, export masks,
-            // export groups which were updated
-            // while ingesting.
-            Map<String, List<DataObject>> updatedObjectMap = new HashMap<String, List<DataObject>>();
-
-            List<URI> full_pools = new ArrayList<URI>();
-            List<URI> full_systems = new ArrayList<URI>();
-
-            Map<String, StorageSystem> systemCache = new HashMap<String, StorageSystem>();
-            _logger.info("Ingestion of unmanaged volumes started....");
+            _logger.info("Ingestion of exported unmanaged volumes started....");
+            
             // First ingest the block objects
-            ingestBlockObjects(systemCache, full_systems, full_pools, exportIngestParam.getUnManagedVolumes(), vpool, varray, project,
-                    tenant,
-                    unManagedVolumes, createdObjectMap, updatedObjectMap, processedUnManagedVolumeMap, taskMap, taskStatusMap, 
-                    exportIngestParam.getVplexIngestionMethod());
+            ingestBlockObjects(requestContext, taskMap);
             _logger.info("Ingestion of unmanaged volumes ended....");
+            
             // next ingest the export masks for the unmanaged volumes which have been fully ingested
             _logger.info("Ingestion of unmanaged exportmasks started....");
-            ingestBlockExportMasks(systemCache, exportIngestParam, exportGroup, unManagedVolumes, exportGroupCreated,
-                    createdObjectMap, updatedObjectMap, processedUnManagedVolumeMap, ingestedObjects, taskMap, taskStatusMap);
+            // TODO: get rid of exportIngestParam when reworking orchestrator interfaces
+            ingestBlockExportMasks(requestContext, taskMap, exportIngestParam);
+            
             _logger.info("Ingestion of unmanaged exportmasks ended....");
             taskList.getTaskList().addAll(taskMap.values());
 
-            _dbClient.createObject(ingestedObjects);
-            _dbClient.persistObject(unManagedVolumes);
+            _dbClient.createObject(requestContext.getIngestedObjects());
+            _dbClient.persistObject(requestContext.getUnManagedVolumesToBeDeleted());
             // record the events after they have been persisted
-            for (BlockObject volume : ingestedObjects) {
+            for (BlockObject volume : requestContext.getIngestedObjects()) {
                 recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
                         Status.ready, volume.getId());
             }
@@ -643,12 +624,15 @@ public class UnManagedVolumeService extends TaskResourceService {
         } finally {
             // if we created an ExportGroup, but no volumes were ingested into
             // it, then we should clean it up in the database (CTRL-8520)
-            if (exportGroupCreated && ingestedObjects.isEmpty()) {
+            if ((null != requestContext) 
+                    && requestContext.isExportGroupCreated() 
+                    && requestContext.getIngestedObjects().isEmpty()) {
                 _logger.info("an export group was created, but no volumes were ingested into it");
-                if (exportGroup.getVolumes() == null || exportGroup.getVolumes().isEmpty()) {
+                if (requestContext.getExportGroup().getVolumes() == null || 
+                        requestContext.getExportGroup().getVolumes().isEmpty()) {
                     _logger.info("since no volumes are present, marking {} for deletion",
-                            exportGroup.getLabel());
-                    _dbClient.markForDeletion(exportGroup);
+                            requestContext.getExportGroup().getLabel());
+                    _dbClient.markForDeletion(requestContext.getExportGroup());
                 }
             }
         }

@@ -76,10 +76,7 @@ public class RPVolumeIngestionContext extends BlockVolumeIngestionContext {
         this.ingestedBlockConsistencyGroup = ingestedBlockConsistencyGroup;
     }
 
-    public void validate() {
-        // validate the unmanaged volume, protection set, etc...
-    }
-
+    @Override
     public void commit() {
         // save everything to the database
 
@@ -90,6 +87,7 @@ public class RPVolumeIngestionContext extends BlockVolumeIngestionContext {
         // etc etc
     }
 
+    @Override
     public void rollback() {
         // remove / rollback any changes to the data objects that were actually
         

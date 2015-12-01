@@ -38,6 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.api.service.impl.resource.utils.InternalSiteServiceClient;
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
@@ -97,6 +98,7 @@ public class DisasterRecoveryService {
     private static final String DR_OPERATION_LOCK = "droperation";
     private static final int LOCK_WAIT_TIME_SEC = 5;
     private static final int DEFAULT_GC_GRACE_PERIOD = 5 * 24 * 60 * 60; // 5 days;
+    private static final String NTPSERVERS = "network_ntpservers";
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -258,6 +260,13 @@ public class DisasterRecoveryService {
         }
         configParam.setStandbySites(standbySites);
 
+        // Need set stanby's NTP same as primary, so standby time is consistent with primary after reboot
+        // It's because time inconsistency between primary and standby will cause db rebuild issue: COP-17965
+        PropertyInfoExt targetPropInfo = coordinator.getTargetInfo(PropertyInfoExt.class);
+        String ntpServers = targetPropInfo.getProperty(NTPSERVERS);
+        log.info("    priamry site ntp servers: {}", ntpServers);
+        configParam.setNtpServers(ntpServers);
+
         return configParam;
     }
 
@@ -330,6 +339,15 @@ public class DisasterRecoveryService {
             if (dataRevision == null) {
                 throw new IllegalStateException("Illegal request on standby site. No data revision in request");
             }
+
+            String ntpServers = configParam.getNtpServers();
+            PropertyInfoExt targetPropInfo = coordinator.getTargetInfo(PropertyInfoExt.class);
+            if (ntpServers != null && !ntpServers.equals(targetPropInfo.getProperty(NTPSERVERS))) {
+                targetPropInfo.addProperty(NTPSERVERS, ntpServers);
+                coordinator.setTargetInfo(targetPropInfo);
+                log.info("Set ntp servers to {}", ntpServers);
+            }
+
             drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, dataRevision);
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {

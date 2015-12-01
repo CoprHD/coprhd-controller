@@ -17,6 +17,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SiteConfigParam {
     private List<SiteParam> standbySites;
     private SiteParam primarySite;
+    private String ntpServers;
     
     @XmlElement(name = "standby_sites")
     public List<SiteParam> getStandbySites() {
@@ -37,5 +38,14 @@ public class SiteConfigParam {
 
     public void setPrimarySite(SiteParam site) {
         this.primarySite = site;
+    }
+
+    @XmlElement(name = "ntp_servers")
+    public String getNtpServers() {
+        return ntpServers;
+    }
+
+    public void setNtpServers(String ntpServers) {
+        this.ntpServers = ntpServers;
     }
 }

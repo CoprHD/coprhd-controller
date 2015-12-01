@@ -2,8 +2,6 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.model.VirtualPool.SystemType;
-
 @Cf("StorageContainer")
 public class StorageContainer extends DataObjectWithACLs {
     

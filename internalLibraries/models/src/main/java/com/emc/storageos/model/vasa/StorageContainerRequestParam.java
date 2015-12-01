@@ -23,7 +23,6 @@ public class StorageContainerRequestParam {
 	
 	private String storageSystem;
 	
-	
     private Set<String> protocols;
     private Set<String> varrays;
 
@@ -59,6 +58,7 @@ public class StorageContainerRequestParam {
         this.description = description;
     }
 
+    @XmlElementWrapper(name = "protocols")
     @XmlElement(name = "protocol", required = true)
     public Set<String> getProtocols() {
         return protocols;
@@ -75,7 +75,7 @@ public class StorageContainerRequestParam {
      * @valid none
      */
     @XmlElement(name = "varray")
-    @JsonProperty("varrays")
+    @JsonProperty("varray")
     public Set<String> getVarrays() {
         return varrays;
     }

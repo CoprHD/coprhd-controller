@@ -884,4 +884,20 @@ public interface BlockStorageDevice {
      * @return The BlockObject URI to HLU mapping for the ExportMask
      */
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
+    
+    /**
+     * Untags one or more volumes on the same storage system.
+     * 
+     * @param storageSystem
+     *            Storage system on which the operation is performed.
+     * @param opId
+     *            The unique operation id.
+     * @param volumes
+     *            The volumes to be untagged.
+     * @param taskCompleter
+     *            The completer invoked when the operation completes.
+     * @throws DeviceControllerException
+     */
+    public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
 }

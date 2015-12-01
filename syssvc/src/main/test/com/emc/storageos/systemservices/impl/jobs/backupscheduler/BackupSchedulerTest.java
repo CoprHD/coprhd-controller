@@ -11,6 +11,7 @@ import com.emc.storageos.management.backup.BackupType;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.systemservices.TestProductName;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
@@ -298,6 +299,7 @@ class FakeBackupClient extends BackupScheduler {
 
 class FakeConfiguration extends SchedulerConfig {
     public Calendar currentTime;
+    public BackupUploadStatus uploadStatus = new BackupUploadStatus();
 
     public FakeConfiguration() {
         super(null, null, null);
@@ -320,6 +322,16 @@ class FakeConfiguration extends SchedulerConfig {
 
     @Override
     public void persist() {
+    }
+
+    @Override
+    public BackupUploadStatus queryBackupUploadStatus() {
+        return uploadStatus;
+    }
+
+    @Override
+    public void persistBackupUploadStatus(BackupUploadStatus status) {
+        uploadStatus.update(status.getBackupName(), status.getStatus(), status.getProgress(), status.getErrorCode());
     }
 
     @Override

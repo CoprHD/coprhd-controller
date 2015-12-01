@@ -140,7 +140,7 @@ public class IsilonSMBShare {
         strict_flush = true;
         host_acl = new ArrayList<String>();
         host_acl.add(host);
-        inheritable_path_acl = false;
+        inheritable_path_acl = true;
 
         // create the share without permission
     }
@@ -153,7 +153,7 @@ public class IsilonSMBShare {
         ntfs_acl_support = true;
         oplocks = true;
         strict_flush = true;
-        inheritable_path_acl = false;
+        inheritable_path_acl = true;
 
         // create the share without permission
     }
@@ -167,7 +167,7 @@ public class IsilonSMBShare {
         oplocks = true;
         strict_flush = true;
         permissions = new ArrayList<Permission>();
-        inheritable_path_acl = false;
+        inheritable_path_acl = true;
 
     }
 
@@ -204,6 +204,14 @@ public class IsilonSMBShare {
         return this.path;
     }
 
+    public Boolean getInheritablePathAcl() {
+        return this.inheritable_path_acl;
+    }
+
+    public void setInheritablePathAcl(Boolean inheritablePathAcl ) {
+        this.inheritable_path_acl = inheritablePathAcl;
+    }
+    
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("Share ( id: " + id);

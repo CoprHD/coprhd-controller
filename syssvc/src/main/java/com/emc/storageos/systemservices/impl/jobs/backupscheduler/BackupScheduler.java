@@ -27,7 +27,7 @@ import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
-import com.emc.storageos.systemservices.impl.jobs.JobConstants;
+import com.emc.storageos.systemservices.impl.jobs.common.JobConstants;
 import com.emc.storageos.systemservices.impl.property.Notifier;
 import com.emc.storageos.systemservices.impl.resource.BackupService;
 import com.emc.storageos.systemservices.impl.util.SkipOutputStream;

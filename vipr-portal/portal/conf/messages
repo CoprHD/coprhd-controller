@@ -3204,6 +3204,7 @@ resources.filesystems.deleteConfirm.FULL=Are you sure you want to proceed? The f
 resources.filesystems.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed?  The file systems will be removed from ViPR inventory, but will remain on the storage system.
 resources.filesystem.quotaDirectory=Quota Directory
 resources.filesystem.nfsAccessControl=NFS Access Controls
+resources.filesystem.nfs.acl.none=No NFS Access Controls
 
 resources.filesystem.export.mountpoint=Mount Point
 resources.filesystem.export.exportPath=Export Path
@@ -3242,6 +3243,7 @@ resources.filesystem.share.acl.deleted=Task initiated to delete selected ACEs.
 resources.filesystem.share.acl.deleteConfirm=Are you sure you want delete these access control setting(s)?
 resources.filesystem.share.acl.added=Task created to add Access Control Entry, You may need to refresh this view to see new  changes.
 resources.filesystem.share.acl.invalid.settings=Please Enter valid access control setting(s)
+resources.filesystem.share.acl.invalid.name=Name cannot be empty or cannot contain a backslash ('/') character.
 resources.filesystem.share.acl.add=Add Access Control Entry
 resources.filesystem.share.mountpoint=Mount Point
 resources.filesystem.share.description=Description
@@ -3495,6 +3497,7 @@ button.add=Add
 button.addExisting=Add Existing
 button.addExportRule=Add Export Rule
 button.updateAcl=Access Control
+button.addNfsAcl=Add Access Controls
 button.addSubDir=Add Share
 button.duplicate=Duplicate
 button.cancel=Cancel
@@ -4089,6 +4092,7 @@ nfsAccessControlList.permissions=Permissions
 nfsAccessControlList.name=Name
 nfsAccessControlList.type=Type
 nfsAccessControlList.domain=Domain
+nfs.subdirectory=Sub Directory
 
 
 subdir.share.name=Share Name

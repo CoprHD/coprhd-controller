@@ -243,6 +243,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException illegalZoneMember(final String zoneMemeber);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_ZONE)
+    public BadRequestException nameZoneLongerThanAllowed(String zoneName, final int zoneNameAllowedLength);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException illegalWWN(final String wwn);
 
@@ -2059,6 +2062,9 @@ public interface BadRequestExceptions {
     public BadRequestException notAllowedWhenCGHasSnapshots();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException notAllowedWhenCGHasMirrors();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllowedInvalidBackendSystem();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2074,6 +2080,14 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(
+            final String volumeName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumesWithReplicaCannotBeAdded(
+            final String volumeName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeWithDifferentNumberOfReplicasCannotBeAdded(
             final String volumeName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

@@ -245,10 +245,11 @@ public class DbServiceImpl implements DbService {
                 _serviceInfo.getId());
         if (config == null) {
             // check if it is upgraded from previous version to yoda - configuration may be stored in 
-            // znode /config
+            // zk global area /config. Since SeedProvider still need access that, so we remove the config 
+            // from global in migration callback after migration is done.  
             config = _coordinator.queryConfiguration(configKind, _serviceInfo.getId());
             if (config != null) {
-                _log.info("Upgrade from pre-2.5 release, move dbconfig to new location");
+                _log.info("Upgrade from pre-yoda release, move dbconfig to new location");
                 _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
                 return config;
             }
@@ -351,10 +352,11 @@ public class DbServiceImpl implements DbService {
         Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind, Constants.GLOBAL_ID);
         if (config == null) {
             // check if it is upgraded from previous version to yoda - configuration may be stored in 
-            // znode /config
+            // znode /config. Since SeedProvider still need access that, so we remove the config 
+            // from global in migration callback after migration is done.
             config = _coordinator.queryConfiguration(configKind, Constants.GLOBAL_ID);
             if (config != null) {
-                _log.info("Upgrade from pre-2.5 release, move global config to new location");
+                _log.info("Upgrade from pre-yoda release, move global config to new location");
                 _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
                 return config;
             }

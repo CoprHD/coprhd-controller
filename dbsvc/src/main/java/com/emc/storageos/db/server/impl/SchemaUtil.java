@@ -42,7 +42,6 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -415,7 +414,8 @@ public class SchemaUtil {
         _log.info("Add {} to strategy options", dcId);
         strategyOptions.put(dcId, Integer.toString(getReplicationFactor()));
         
-        // If we upgrade from pre-yoda versions, the strategy option does not contains active site
+        // If we upgrade from pre-yoda versions, the strategy option does not contains active site.
+        // we do it once during first add-standby operation on standby site
         Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
         String activeSiteDcId = drUtil.getCassandraDcId(activeSite);
         if (!strategyOptions.containsKey(activeSiteDcId)) {

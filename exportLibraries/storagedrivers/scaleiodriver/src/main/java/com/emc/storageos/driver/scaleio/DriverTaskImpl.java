@@ -11,9 +11,8 @@ public class DriverTaskImpl extends DriverTask {
 
     @Override
     public DriverTask abort(DriverTask task) {
-        //task.setProgress(-1); //set Progress??
+
         task.setMessage("Task "+task.getTaskId()+" is aborted!");
-       // task.setEndTime(Calendar.getInstance());
         task.setStatus(TaskStatus.ABORTED);
         return task;
     }

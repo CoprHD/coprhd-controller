@@ -91,8 +91,8 @@ public abstract class AbstractStorageContainerService extends TaggedResource{
             storageContainer.setDescription(param.getDescription());
         }
         
-        ArgValidator.checkFieldNotEmpty(param.getProvisionType(), PROTOCOL_ENDPOINT_TYPE);
-        ArgValidator.checkFieldValueFromEnum(param.getProvisionType(), PROTOCOL_ENDPOINT_TYPE,
+        ArgValidator.checkFieldNotEmpty(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE);
+        ArgValidator.checkFieldValueFromEnum(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE,
                 EnumSet.of(ProtocolEndpointTypeEnum.NFS, ProtocolEndpointTypeEnum.NFS4x, ProtocolEndpointTypeEnum.SCSI));
         if(null != param.getProtocolEndPointType()){
             storageContainer.setProtocolEndPointType(param.getProtocolEndPointType());

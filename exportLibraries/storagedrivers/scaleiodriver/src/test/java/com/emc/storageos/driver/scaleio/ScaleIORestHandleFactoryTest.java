@@ -23,7 +23,11 @@ public class ScaleIORestHandleFactoryTest {
     @Autowired
     private ScaleIORestHandleFactory handleFactory;
     private static Registry registry = new InMemoryRegistryImpl();
-    String SYS_NATIVE_ID="5a01234257c7cc9c";
+    String SYS_NATIVE_ID="6ee6d94e5a3517b8";
+    String IP_ADDRESS="10.193.17.97";
+    int PORT_NUMBER = 443;
+    String USER_NAME="admin";
+    String PASSWORD="Scaleio123";
 
     public void setHandleFactory(ScaleIORestHandleFactory handleFactory) {
         this.handleFactory = handleFactory;
@@ -50,14 +54,15 @@ public class ScaleIORestHandleFactoryTest {
     @org.junit.Test
     public void testGetClientHandle() throws Exception {
 
-        ScaleIORestClient client=handleFactory.getClientHandle(SYS_NATIVE_ID,registry);
-
+        //ScaleIORestClient client=handleFactory.getClientHandle(SYS_NATIVE_ID,registry);
+        ScaleIORestClient client=handleFactory.getClientHandle(null, IP_ADDRESS,PORT_NUMBER,USER_NAME,PASSWORD);
         if(client==null){
             System.out.print("no rest client returned!");
         }else{
             System.out.print("---------"+client.getSystemId()+"-------------");
-
         }
+        ScaleIORestClient client2=handleFactory.getClientHandle(SYS_NATIVE_ID, IP_ADDRESS,PORT_NUMBER,USER_NAME,PASSWORD);
+
     }
 
 

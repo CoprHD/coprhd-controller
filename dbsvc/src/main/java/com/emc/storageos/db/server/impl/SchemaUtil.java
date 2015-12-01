@@ -5,7 +5,6 @@
 
 package com.emc.storageos.db.server.impl;
 
-import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
@@ -16,8 +15,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
-
 import javax.crypto.SecretKey;
 
 import com.netflix.astyanax.AstyanaxContext;
@@ -34,10 +31,6 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
-import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.gms.Gossiper;
-import org.apache.cassandra.locator.IEndpointSnitch;
-import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -120,7 +113,7 @@ public class SchemaUtil {
     private boolean onStandby = false;
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private DrUtil drUtil;
-    
+
     @Autowired
     private DbRebuildRunnable dbRebuildRunnable;
 
@@ -130,7 +123,7 @@ public class SchemaUtil {
 
     /**
      * Set service info
-     * 
+     *
      * @param service
      */
     public void setService(Service service) {
@@ -139,7 +132,7 @@ public class SchemaUtil {
 
     /**
      * Set coordinator client
-     * 
+     *
      * @param coordinator
      */
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -148,16 +141,16 @@ public class SchemaUtil {
 
     /**
      * Return true if current ViPR is standby mode
-     * 
+     *
      * @return
      */
     public boolean isStandby() {
         return onStandby;
     }
-    
+
     /**
      * Set DataObjectScanner
-     * 
+     *
      * @param scanner
      */
     public void setDataObjectScanner(DataObjectScanner scanner) {
@@ -171,7 +164,7 @@ public class SchemaUtil {
 
     /**
      * Set keyspace name
-     * 
+     *
      * @param keyspaceName
      */
     public void setKeyspaceName(String keyspaceName) {
@@ -184,7 +177,7 @@ public class SchemaUtil {
 
     /**
      * Set cluster name
-     * 
+     *
      * @param clusterName
      */
     public void setClusterName(String clusterName) {
@@ -193,16 +186,16 @@ public class SchemaUtil {
 
     /**
      * Set the vdc id of current site. Must have for geodbsvc
-     * 
+     *
      * @param vdcId the vdc id of current site
      */
     public void setVdcShortId(String vdcId) {
         _vdcShortId = vdcId;
     }
-    
+
     /**
      * Set the endpoint of current vdc, for example, vip
-     * 
+     *
      * @param vdcEndpoint vdc end point
      */
     public void setVdcEndpoint(String vdcEndpoint) {
@@ -219,7 +212,7 @@ public class SchemaUtil {
 
     /**
      * Set node list in current vdc.
-     * 
+     *
      * @param nodelist vdc host list
      */
     public void setVdcNodeList(List<String> nodelist) {
@@ -238,7 +231,7 @@ public class SchemaUtil {
 
     /**
      * Set all vdc id list.
-     * 
+     *
      * @param vdcList vdc id list
      */
     public void setVdcList(List<String> vdcList) {
@@ -255,7 +248,7 @@ public class SchemaUtil {
 
     /**
      * Check if it is geodbsvc
-     * 
+     *
      * @return
      */
     protected boolean isGeoDbsvc() {
@@ -265,7 +258,7 @@ public class SchemaUtil {
     /**
      * Initializes database. Assumes that caller is serializing this call
      * across cluster.
-     * 
+     *
      * @param waitForSchema - indicate we should wait from schema from other site.
      *            false to create keyspace by our own
      */
@@ -283,7 +276,7 @@ public class SchemaUtil {
                     inited = checkAndInitSchemaOnActive(kd, waitForSchema);
                 }
                 if (inited) {
-                    return; 
+                    return;
                 }
             } catch (ConnectionException e) {
                 _log.warn("Unable to verify DB keyspace, will retry in {} secs", retryIntervalSecs, e);
@@ -305,7 +298,7 @@ public class SchemaUtil {
             }
         }
     }
-    
+
     private boolean checkAndInitSchemaOnActive(KeyspaceDefinition kd, boolean waitForSchema) throws InterruptedException, ConnectionException {
         _log.info("try scan and setup db ...");
         if (kd == null) {
@@ -335,10 +328,10 @@ public class SchemaUtil {
             _log.info("scan and setup db schema succeed");
             return true;
         }
-        
+
         return false;
     }
-    
+
     private boolean checkAndInitSchemaOnStandby(KeyspaceDefinition kd) throws ConnectionException{
         _log.info("try scan and setup db on standby site ...");
         if (kd == null) {
@@ -352,11 +345,12 @@ public class SchemaUtil {
                 _log.info("set current version for standby site {}", _service.getVersion());
                 setCurrentVersion(_service.getVersion());
             }
+            waitForSchemaAgreementDuringResume();
             checkStrategyOptions();
             return true;
         }
     }
-    
+
     public void rebuildDataOnStandby() {
         Site currentSite = drUtil.getLocalSite();
 
@@ -370,6 +364,50 @@ public class SchemaUtil {
             dbRebuildRunnable.run();
         }
     }
+
+    /**
+     * Wait for schema agreement before checking the strategy options during resume standby operation,
+     * since the strategy options from the local site might be older than the active site and shouldn't be used any more.
+     *
+     * Also there is a chance that some of the nodes in the current site has been added to gossip before the restart,
+     * in which case they must be removed again before a schema agreement can be reached.
+     * All the other nodes in the current site are now being blocked by the schema lock and are definitely unreachable
+     * if they are already in the ring.
+     */
+    private void waitForSchemaAgreementDuringResume() {
+        Site localSite = drUtil.getLocalSite();
+        if (!localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+            return;
+        }
+
+        String dbsvcName = isGeoDbsvc() ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME;
+        try (DbManagerOps dbManagerOps = new DbManagerOps(dbsvcName)) {
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
+                try {
+                    Thread.sleep(DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS);
+                } catch (InterruptedException ex) {
+                    _log.warn("Interrupted during sleep");
+                }
+
+                Map<String, List<String>> schemas = clientContext.getSchemaVersions();
+                if (schemas.size() > 2) {
+                    // there are more than two schema versions besides UNREACHABLE, keep waiting.
+                    continue;
+                }
+                if (schemas.size() == 1) {
+                    // schema agreement reached and we are all set
+                    return;
+                }
+                // schemas.size() == 2, try removing the unreachable nodes from local site and check again.
+                String localDcId = drUtil.getCassandraDcId(localSite);
+                dbManagerOps.removeUnreachableNodesFromDataCenter(localDcId);
+            }
+            _log.error("Unable to converge schema versions during resume");
+            throw new IllegalStateException("Unable to converge schema versions during resume");
+        }
+    }
+
     
     /**
      * Remove paused sites from db/geodb strategy options on the active site.
@@ -480,27 +518,6 @@ public class SchemaUtil {
      * Check keyspace strategy options for an existing keyspace and update if necessary
      */
     private void checkStrategyOptions() throws ConnectionException {
-        try {
-            Site localSite = drUtil.getLocalSite();
-            if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
-                String localDcId = drUtil.getCassandraDcId(localSite);
-                // There is a chance that some of the nodes in the current site has been added to gossip before
-                // the restart, in which case they must be removed again before a schema agreement can be reached.
-                // The reason is that all the other nodes in the current site are now being blocked by the schema
-                // lock and are definitely unreachable.
-                String dbsvcName = isGeoDbsvc() ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME;
-                try (DbManagerOps dbManagerOps = new DbManagerOps(dbsvcName)) {
-                    dbManagerOps.removeUnreachableNodesFromDataCenter(localDcId);
-                }
-
-                // Wait for schema agreement before checking the strategy options, since the strategy options from
-                // the local site might be older than the active site and shouldn't be used any more.
-                clientContext.waitForSchemaAgreement(null);
-            }
-        } catch (RetryableCoordinatorException e) {
-            _log.warn("local site not initialized. Moving on");
-        }
-
         KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
         Map<String, String> strategyOptions = kd.getStrategyOptions();
         _log.info("Current strategyOptions={}", strategyOptions);

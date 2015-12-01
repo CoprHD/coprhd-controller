@@ -3422,4 +3422,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.deleteVolumes(volumeDescriptors, taskId);        
     }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#checkVolumeCanBeAddedOrRemoved(com.emc.storageos.db.client.model.Volume)
+     */
+    @Override
+    public boolean checkVolumeCanBeAddedOrRemoved(Volume volume) {
+        return true;
+    }
 }

@@ -1811,7 +1811,7 @@ public class BlockService extends TaskResourceService {
          * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
          * Hence we don't require reference check for vmax.
          */
-        if (!BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+        if (!blockServiceApi.checkVolumeCanBeAddedOrRemoved(volume)) {
             ArgValidator.checkReference(Volume.class, id, blockServiceApi.checkForDelete(volume));
         }
 

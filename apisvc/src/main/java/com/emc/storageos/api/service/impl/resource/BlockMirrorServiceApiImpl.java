@@ -27,11 +27,13 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.SynchronizationState;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -812,6 +814,14 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
     private void addTask(TaskList taskList, DataObject object, String taskId, ResourceOperationTypeEnum opType) {
         Operation op = _dbClient.createTaskOpStatus(object.getClass(), object.getId(), taskId, opType);
         taskList.addTask(toTask(object, taskId, op));
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#checkVolumeCanBeAddedOrRemoved(com.emc.storageos.db.client.model.Volume)
+     */
+    @Override
+    public boolean checkVolumeCanBeAddedOrRemoved(Volume volume) {
+        return BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient);
     }
 
 }

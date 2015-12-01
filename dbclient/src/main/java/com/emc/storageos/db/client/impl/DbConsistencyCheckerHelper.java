@@ -201,6 +201,11 @@ public class DbConsistencyCheckerHelper {
                     ColumnFamily<String, CompositeColumnName> objCf = objCfs
                             .get(objEntry.getClassName());
 
+                    if (objCf == null) {
+                        logMessage(String.format("DataObject does not exist for %s", row.getKey()), true, toConsole);
+                        continue;
+                    }
+
                     Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
                     if (objKeysIdxEntryMap == null) {
                         objKeysIdxEntryMap = new HashMap<>();
@@ -215,13 +220,13 @@ public class DbConsistencyCheckerHelper {
                 }
                 
                 if (getObjsSize(objsToCheck) >= INDEX_OBJECTS_BATCH_SIZE ) {
-                    corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, corruptRowCount, objsToCheck);
+                    corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
                 }
             }
         }
 
         // Detect whether the DataObject CFs have the records
-        corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, corruptRowCount, objsToCheck);
+        corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
 
         return corruptRowCount;
     }
@@ -239,10 +244,12 @@ public class DbConsistencyCheckerHelper {
     /*
      * We need to process index objects in batch to avoid occupy too many memory
      * */
-    private int processBatchIndexObjects(IndexAndCf indexAndCf, boolean toConsole, int corruptRowCount,
+    private int processBatchIndexObjects(IndexAndCf indexAndCf, boolean toConsole,
             Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck) throws ConnectionException {
+        int corruptRowCount = 0;
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
             Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
+
             OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace
                     .prepareQuery(objCf).getRowSlice(objKeysIdxEntryMap.keySet())
                     .withColumnRange(new RangeBuilder().setLimit(1).build())

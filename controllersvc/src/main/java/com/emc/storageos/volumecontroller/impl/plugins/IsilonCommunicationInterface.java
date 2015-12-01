@@ -736,6 +736,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             isilonNetworkPools.add(eachNetworkPool);
                         }
                     }
+                    
+                    // if the smart connect is null then ignore the access zone
+                    if (isilonNetworkPools != null && isilonNetworkPools.isEmpty()) {
+                    	_log.info("No network pools assigned to this access zone: {}. So ignore it.",
+                    			isilonAccessZone.getName());
+                    	continue;
+                    }
 
                     // find virtualNAS in db
                     virtualNAS = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
@@ -770,6 +777,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             }
                         }
                         virtualNAS.setStoragePorts(storagePorts);
+                    } else {
+                    	/*
+                    	 * Smart connect zones are dissociated with this access zone.
+                    	 * So mark this access zone as not visible.
+                    	 */
+                    	_log.info("Setting discovery status of vnas {} as NOTVISIBLE", virtualNAS.getNasName());
+                    	virtualNAS.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
+                    	virtualNAS.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
                     }
                 } else {
                     _log.info("Process the System access zone {} ", isilonAccessZone.toString());

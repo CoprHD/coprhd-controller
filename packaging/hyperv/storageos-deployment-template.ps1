@@ -110,7 +110,10 @@ param(
     [switch]$interactive,
 
     [Parameter(Mandatory=$false, ParameterSetName="Operation")]
-    [string]$file
+    [string]$file,
+
+    [Parameter(Mandatory=$false, ParameterSetName="Operation")]
+    [string]$ipsec_key
 )
 
 $result="succeed"

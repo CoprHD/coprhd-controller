@@ -225,6 +225,14 @@ public class BackupService {
         return Response.ok().build();
     }
 
+    /**
+     * Upload the specific backup files from each controller node of cluster to external server
+     *
+     * @brief Upload a backup
+     * @param backupTag The name of backup
+     * @prereq This backup sets should have been created
+     * @return server response indicating if the operation accepted.
+     */
     @POST
     @Path("backup/upload/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -239,6 +247,14 @@ public class BackupService {
         return Response.status(ASYNC_STATUS).build();
     }
 
+    /**
+     * Get the upload status for a specific backup
+     *
+     * @brief Get upload status
+     * @param backupTag The name of backup
+     * @prereq none
+     * @return Upload status of the backup
+     */
     @GET
     @Path("backup/upload/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })

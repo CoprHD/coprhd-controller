@@ -213,6 +213,7 @@ public class UnManagedVolumeService extends TaskResourceService {
         TaskList taskList = new TaskList();
         List<UnManagedVolume> unManagedVolumes = new ArrayList<UnManagedVolume>();
         Map<String, String> taskMap = new HashMap<String, String>();
+        IngestionRequestContext requestContext = null;
         try {
             // Get and validate the project.
             Project project = _permissionsHelper.getObjectById(param.getProject(),
@@ -236,7 +237,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, unManagedVolumesCapacity, "volume");
             _logger.info("UnManagedVolume provisioning quota validation successful for {}", unManagedVolumesCapacity);
 
-            IngestionRequestContext requestContext = new IngestionRequestContext(
+            requestContext = new IngestionRequestContext(
                     _dbClient, param.getUnManagedVolumes(), vpool, 
                     varray, project, tenant, param.getVplexIngestionMethod());
             
@@ -346,9 +347,15 @@ public class UnManagedVolumeService extends TaskResourceService {
                         Status.ready, volume.getId());
             }
         } catch (InternalException e) {
+            if (null != requestContext) {
+                requestContext.rollbackAll();
+            }
             throw e;
         } catch (Exception e) {
             _logger.debug("Unexpected ingestion exception:", e);
+            if (null != requestContext) {
+                requestContext.rollbackAll();
+            }
             throw APIException.internalServerErrors.genericApisvcError(ExceptionUtils.getExceptionMessage(e), e);
         }
         return taskList;
@@ -617,9 +624,15 @@ public class UnManagedVolumeService extends TaskResourceService {
             }
         } catch (InternalException e) {
             _logger.debug("InternalException occurred due to: {}", e);
+            if (null != requestContext) {
+                requestContext.rollbackAll();
+            }
             throw e;
         } catch (Exception e) {
             _logger.debug("Unexpected exception occurred due to: {}", e);
+            if (null != requestContext) {
+                requestContext.rollbackAll();
+            }
             throw APIException.internalServerErrors.genericApisvcError(ExceptionUtils.getExceptionMessage(e), e);
         } finally {
             // if we created an ExportGroup, but no volumes were ingested into

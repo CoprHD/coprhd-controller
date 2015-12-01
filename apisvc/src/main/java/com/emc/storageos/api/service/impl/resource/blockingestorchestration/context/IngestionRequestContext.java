@@ -435,8 +435,12 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
     }
 
     public void rollbackAll() {
-        for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
-            volumeContext.rollback();
+        try {
+            for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
+                volumeContext.rollback();
+            }
+        } catch (Exception ex) {
+            _logger.error("failure during rollback", ex);
         }
     }
 

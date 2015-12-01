@@ -10,6 +10,7 @@ import java.net.URISyntaxException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Bucket;
@@ -27,18 +28,11 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
  */
 public class ECSObjectStorageDevice implements ObjectStorageDevice {
     private Logger _log = LoggerFactory.getLogger(ECSObjectStorageDevice.class);
-    private ECSApiFactory ecsApiFactory;
-    private DbClient _dbClient;
 
-    /**
-     * Set ECS API factory
-     * 
-     * @param factory
-     */
-    public void setECSApiFactory(ECSApiFactory factory) {
-        _log.info("ECSObjectStorageDevice setECSApiFactory");
-        ecsApiFactory = factory;
-    }
+    @Autowired
+    private ECSApiFactory ecsApiFactory;
+    
+    private DbClient _dbClient;
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
@@ -165,5 +159,13 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     private void completeTask(final URI bucketID, final String taskID, final String message) {
         BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
         completer.statusReady(_dbClient, message);
+    }
+
+    public ECSApiFactory getEcsApiFactory() {
+        return ecsApiFactory;
+    }
+
+    public void setEcsApiFactory(ECSApiFactory ecsApiFactory) {
+        this.ecsApiFactory = ecsApiFactory;
     }
 }

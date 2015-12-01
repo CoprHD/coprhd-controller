@@ -7,8 +7,11 @@ package com.emc.storageos.scaleio.api.restapi;
 
 import java.net.URI;
 
+import org.springframework.stereotype.Component;
+
 import com.emc.storageos.common.http.RestAPIFactory;
 
+@Component
 public class ScaleIORestClientFactory extends RestAPIFactory<ScaleIORestClient> {
 
     @Override

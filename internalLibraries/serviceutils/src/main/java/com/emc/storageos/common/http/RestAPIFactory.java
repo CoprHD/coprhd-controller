@@ -11,6 +11,7 @@ import javax.net.ssl.X509TrustManager;
 import org.apache.commons.httpclient.protocol.Protocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
@@ -19,6 +20,7 @@ public abstract class RestAPIFactory<T> {
 
     private Logger _log = LoggerFactory.getLogger(getClass());
 
+    @Autowired
     private RESTClient restClient;
 
     private boolean needCertificateManager;

@@ -7,11 +7,14 @@ package com.emc.storageos.ecs.api;
 
 import java.net.URI;
 
+import org.springframework.stereotype.Component;
+
 import com.emc.storageos.common.http.RestAPIFactory;;
 
 /**
  * ECS API client factory
  */
+@Component
 public class ECSApiFactory extends RestAPIFactory<ECSApi>{
     
     @Override

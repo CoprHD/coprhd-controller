@@ -7,22 +7,19 @@ package com.emc.storageos.isilon.restapi;
 
 import java.net.URI;
 
+import org.springframework.stereotype.Component;
+
 import com.emc.storageos.common.http.RestAPIFactory;
 
 /**
  * Isilon API client factory
  */
+@Component
 public class IsilonApiFactory extends RestAPIFactory<IsilonApi> {
     
-    /**
-     * Create Isilon API client
-     * 
-     * @param endpoint isilon endpoint
-     * @return
-     */
+    @Override
     public IsilonApi getRESTClient(URI endpoint) {
             return new IsilonApi(endpoint, getRestClient());
-         
     }
 
     @Override

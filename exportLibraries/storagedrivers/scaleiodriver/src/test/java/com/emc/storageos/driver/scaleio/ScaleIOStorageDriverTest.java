@@ -22,8 +22,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import java.util.ArrayList;
 import java.util.List;
 
-
-
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {"/scaleio-driver-prov.xml"})
 public class ScaleIOStorageDriverTest {

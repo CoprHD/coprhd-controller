@@ -135,7 +135,7 @@ public class BackupService {
      * Get info for a specific backupset on ViPR cluster
      *
      * @brief Get a specific backupset info
-     * @param backupTag The name of backupgit d
+     * @param backupTag The name of backup
      * @prereq none
      * @return Info of a specific backup
      */

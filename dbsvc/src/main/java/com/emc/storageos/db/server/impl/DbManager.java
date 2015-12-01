@@ -50,6 +50,7 @@ public class DbManager implements DbManagerMBean {
     // repair every 24*5 hours by default, given we do a proactive repair on start
     // once per five days on demand should suffice
     private static final int DEFAULT_DB_REPAIR_FREQ_MIN = 60 * 24 * 5;
+    private static final int REMOVE_NODE_TIMEOUT_MILLIS = 5 * 60 * 1000; // 5 min
     private int repairFreqMin = DEFAULT_DB_REPAIR_FREQ_MIN;
 
     @Autowired
@@ -177,7 +178,7 @@ public class DbManager implements DbManagerMBean {
         }
 
         log.info("Removing Cassandra node {} on vipr node {}", nodeGuid, nodeId);
-        StorageService.instance.removeNode(nodeGuid);
+        ensureRemoveNode(nodeGuid);
     }
 
     @Override
@@ -326,14 +327,16 @@ public class DbManager implements DbManagerMBean {
         }
         return true;
     }
-    
+
     @Override
-    public void removeDataCenter(String dcName) {
+    public void removeDataCenter(String dcName, boolean unreachableNodesOnly) {
         log.info("Remove Cassandra data center {}", dcName);
-        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+        List<InetAddress> allNodes = new ArrayList<>();
+        if (!unreachableNodesOnly) {
+            Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+            allNodes.addAll(liveNodes);
+        }
         Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
-        List<InetAddress> allNodes = new ArrayList<InetAddress>();
-        allNodes.addAll(liveNodes);
         allNodes.addAll(unreachableNodes);
         for (InetAddress nodeIp : allNodes) {
             IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
@@ -344,8 +347,33 @@ public class DbManager implements DbManagerMBean {
                 String guid = hostIdMap.get(nodeIp.getHostAddress());
                 log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
                 Gossiper.instance.convict(nodeIp, 0);
+                ensureRemoveNode(guid);
+            }
+        }
+    }
+
+    /**
+     * A safer method to remove Cassandra node. Calls forceRemoveCompletion after REMOVE_NODE_TIMEOUT_MILLIS
+     * This will help to prevent node removal from hanging due to CASSANDRA-6542.
+     *
+     * @param guid
+     */
+    private void ensureRemoveNode(final String guid) {
+        Thread thread = new Thread() {
+            public void run() {
                 StorageService.instance.removeNode(guid);
             }
+        };
+        thread.start();
+        try {
+            thread.join(REMOVE_NODE_TIMEOUT_MILLIS);
+            if (thread.isAlive()) {
+                log.warn("removenode timeout, calling forceRemoveCompletion()");
+                StorageService.instance.forceRemoveCompletion();
+                thread.join();
+            }
+        } catch (InterruptedException e) {
+            log.warn("Interrupted during node removal");
         }
     }
 }

@@ -5,6 +5,7 @@
 
 package com.emc.storageos.db.server.impl;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
@@ -15,6 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.crypto.SecretKey;
 
@@ -32,6 +34,10 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
+import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.locator.IEndpointSnitch;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -473,6 +479,24 @@ public class SchemaUtil {
      * Check keyspace strategy options for an existing keyspace and update if necessary
      */
     private void checkStrategyOptions() throws ConnectionException {
+        try {
+            Site localSite = drUtil.getLocalSite();
+            if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+                String localDcId = drUtil.getCassandraDcId(localSite);
+                // There is a chance that some of the nodes in the current site has been added to gossip before
+                // the restart, in which case they must be removed again before a schema agreement can be reached.
+                // The reason is that all the other nodes in the current site are now being blocked by the schema
+                // lock and are definitely unreachable.
+                removeUnreachableNodesFromDc(localDcId);
+
+                // Wait for schema agreement before checking the strategy options, since the strategy options from
+                // the local site might be older than the active site and shouldn't be used any more.
+                clientContext.waitForSchemaAgreement(null);
+            }
+        } catch (RetryableCoordinatorException e) {
+            _log.warn("local site not initialized. Moving on");
+        }
+
         KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
         Map<String, String> strategyOptions = kd.getStrategyOptions();
         _log.info("Current strategyOptions={}", strategyOptions);
@@ -482,10 +506,25 @@ public class SchemaUtil {
         changed |= checkStrategyOptionsForGeo(strategyOptions);
 
         if (changed) {
-            // log current schema versions for debug purpose
-            clientContext.getSchemaVersions();
             _log.info("strategyOptions changed to {}", strategyOptions);
             clientContext.setCassandraStrategyOptions(strategyOptions, true);
+        }
+    }
+
+    private void removeUnreachableNodesFromDc(String dcName) {
+        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
+        for (InetAddress nodeIp : unreachableNodes) {
+            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+            String dc = snitch.getDatacenter(nodeIp);
+            if (dc.equals(dcName)) {
+                Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
+                String guid = hostIdMap.get(nodeIp.getHostAddress());
+                _log.warn("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
+                Gossiper.instance.convict(nodeIp, 0);
+                StorageService.instance.removeNode(guid);
+            } else {
+                _log.warn("Unavailable node {} belongs to data center {} ", nodeIp, dc);
+            }
         }
     }
 
@@ -596,7 +635,7 @@ public class SchemaUtil {
         }
 
         if (latestSchemaVersion != null) {
-            clientContext.waitForSchemaChange(latestSchemaVersion);
+            clientContext.waitForSchemaAgreement(latestSchemaVersion);
         }
     }
 
@@ -1231,7 +1270,7 @@ public class SchemaUtil {
                 if (cfd != null) {
             	    _log.info("drop cf {} from db", cfName);
             	    String schemaVersion = dropColumnFamily(cfName, context);
-                    clientContext.waitForSchemaChange(schemaVersion);
+                    clientContext.waitForSchemaAgreement(schemaVersion);
                 }
             }
         } catch (Exception e){

@@ -26,6 +26,7 @@ import com.emc.storageos.security.password.InvalidLoginManager;
 import com.emc.storageos.auth.impl.CassandraTokenManager;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.security.AbstractSecuredWebServer;
 import com.emc.storageos.security.authentication.AuthSvcEndPointLocator;
 import com.emc.storageos.security.authentication.StorageOSUserRepository;
@@ -58,6 +59,9 @@ public class AuthenticationServerImpl extends AbstractSecuredWebServer {
 
     @Autowired
     TrustStoreLoader _trustStoreLoader;
+    
+    @Autowired
+    DrUtil _drUtil;
 
     public void setTrustStoreLoader(TrustStoreLoader trustStoreLoader) {
         _trustStoreLoader = trustStoreLoader;
@@ -81,14 +85,18 @@ public class AuthenticationServerImpl extends AbstractSecuredWebServer {
         initValidator();
         initViPRSSLSocketFactory();
         _svcBeacon.start();
-        _invalidLoginManager.init();
+        if (_drUtil.isActiveSite()) {
+            _invalidLoginManager.init();
+        }
     }
 
     public synchronized void stop() throws Exception {
         _server.stop();
         _dbClient.stop();
         _authManager.shutdown();
-        _invalidLoginManager.shutdown();
+        if (_drUtil.isActiveSite()) {
+            _invalidLoginManager.shutdown();
+        }
     }
 
     private void initValidator() {

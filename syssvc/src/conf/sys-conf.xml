@@ -432,7 +432,6 @@
 
     <bean id="ipsecMonitor" class="com.emc.storageos.systemservices.impl.security.IPSecMonitor" />
 
-    <bean id="dbConsistencyJobProducer" class="com.emc.storageos.systemservices.impl.jobs.producer.DbConsistencyJobProducer" init-method="startQueue" destroy-method="stopQueue">
     <bean id="backupUploadJobProducer" class="com.emc.storageos.systemservices.impl.jobs.common.JobProducer" init-method="startQueue" destroy-method="stopQueue">
         <property name="coordinator" ref="coordinator"/>
         <property name="consumer" ref="backupUploadJobConsumer"/>

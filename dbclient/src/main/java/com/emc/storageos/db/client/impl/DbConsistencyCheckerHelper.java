@@ -525,7 +525,7 @@ public class DbConsistencyCheckerHelper {
         } else if (dbIndex instanceof PrefixDbIndex) {
             indexKey = field.getPrefixIndexRowKey(column.getStringValue());
         } else if (dbIndex instanceof ScopedLabelDbIndex) {
-            indexKey = field.getPrefixIndexRowKey(column.getStringValue());
+            indexKey = field.getPrefixIndexRowKey(ScopedLabel.fromString(column.getStringValue()));
         } else if (dbIndex instanceof AggregateDbIndex) {
             // Not support this index type yet.
         } else {

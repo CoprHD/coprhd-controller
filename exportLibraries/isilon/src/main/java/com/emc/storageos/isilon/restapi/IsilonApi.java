@@ -42,11 +42,11 @@ public class IsilonApi {
 
     private final RESTClient _client;
 
-    private static final float directorySoftQuotaDefaultSize = (float) 0.95;
+    private static final int directorySoftQuotaDefaultSize = 95;
 
     private static final long directorySoftQuotaDefaultGracePeriod = 7L;
 
-    private static final float directoryAdvisoryQuotaSize = (float)0.85;
+    private static final int directoryAdvisoryQuotaSize = 85;
 
     private static final URI URI_IFS = URI.create("/namespace/");
     private static final URI URI_ALIAS = URI.create("/platform/1/protocols/nfs/aliases/");
@@ -851,20 +851,32 @@ public class IsilonApi {
         IsilonSmartQuota quota;
         switch (thresholds.length) {
             case 2:
-                quota = new IsilonSmartQuota(path, thresholds[0], thresholds[1], (long) (directorySoftQuotaDefaultSize * thresholds[0]),
-                        directorySoftQuotaDefaultGracePeriod);
+                quota = new IsilonSmartQuota(path, thresholds[0], 
+                        (long) ((thresholds[1] * thresholds[0])/100),
+                        (long) ((directorySoftQuotaDefaultSize * thresholds[0])/100),
+                        (directorySoftQuotaDefaultGracePeriod * 60 * 60 * 24), bThresholdsIncludeOverhead,
+                        bIncludeSnapshots);
                 break;
             case 3:
-                quota = new IsilonSmartQuota(path, thresholds[0], thresholds[1], thresholds[2],
-                        directorySoftQuotaDefaultGracePeriod);
+                quota = new IsilonSmartQuota(path, thresholds[0], 
+                        (long) ((thresholds[1] * thresholds[0])/100),
+                        (long) ((thresholds[2] * thresholds[0])/100),
+                        (directorySoftQuotaDefaultGracePeriod * 60 * 60 * 24), bThresholdsIncludeOverhead,
+                        bIncludeSnapshots);
                 break;
             case 4:
-                quota = new IsilonSmartQuota(path, thresholds[0], thresholds[1], thresholds[2],
-                        thresholds[3]);
+                quota = new IsilonSmartQuota(path, thresholds[0], 
+                        (long) ((thresholds[1] * thresholds[0])/100),
+                        (long) ((thresholds[2] * thresholds[0])/100),
+                        (thresholds[3] * 60 * 60 * 24), bThresholdsIncludeOverhead,
+                        bIncludeSnapshots);
                 break;
             default:
-                quota = new IsilonSmartQuota(path, thresholds[0], (long) (directoryAdvisoryQuotaSize * thresholds[0]),
-                        (long) (directorySoftQuotaDefaultSize * thresholds[0]), directorySoftQuotaDefaultGracePeriod);
+                quota = new IsilonSmartQuota(path, thresholds[0], 
+                        (long) ((directoryAdvisoryQuotaSize * thresholds[0])/100),
+                        (long) ((directorySoftQuotaDefaultSize * thresholds[0])/100),
+                        (directorySoftQuotaDefaultGracePeriod * 60 * 60 * 24), bThresholdsIncludeOverhead,
+                        bIncludeSnapshots);
                 break;
         }
         return quota;

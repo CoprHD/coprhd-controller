@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -41,6 +42,9 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
     // The unique job name.
     private static final String JOB_NAME = "SmisBlockSnapshotSessionLinkTargetJob";
 
+    // The URI of the snapshot session to which the target is linked
+    private final URI _snapSessionURI;
+
     // The copy mode in which the target is linked to the snapshot.
     @SuppressWarnings("unused")
     private final String _copyMode;
@@ -53,12 +57,14 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
      * 
      * @param cimJob The CIM object path of the underlying CIM Job.
      * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the snapshot session to which the target is linked.
      * @param copyMode The copy mode in which the target is linked to the snapshot.
      * @param taskCompleter A reference to the task completer.
      */
-    public SmisBlockSnapshotSessionLinkTargetJob(CIMObjectPath cimJob, URI systemURI, String copyMode,
+    public SmisBlockSnapshotSessionLinkTargetJob(CIMObjectPath cimJob, URI systemURI, URI snapSessionURI, String copyMode,
             TaskCompleter taskCompleter) {
         super(cimJob, systemURI, taskCompleter, JOB_NAME);
+        _snapSessionURI = snapSessionURI;
         _copyMode = copyMode;
     }
 
@@ -79,6 +85,9 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
             if (jobStatus == JobStatus.SUCCESS) {
                 s_logger.info("Post-processing successful link snapshot session target {} for task {}", snapshot.getId(),
                         completer.getOpId());
+                // Get the snapshot session to which the target is being linked.
+                BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, _snapSessionURI);
+
                 // Get the snapshot device ID and set it against the BlockSnapshot object.
                 BlockObject sourceObj = BlockObject.fetch(dbClient, snapshot.getParent().getURI());
                 CIMConnectionFactory cimConnectionFactory = jobContext.getCimConnectionFactory();
@@ -110,7 +119,8 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
                     snapshot.setCreationTime(Calendar.getInstance());
                     snapshot.setWWN(volumeWWN.toUpperCase());
                     snapshot.setAlternateName(volumeAltName);
-                    commonSnapshotUpdate(snapshot, volume, client, system, sourceObj.getNativeId(), volumeElementName, false, dbClient);
+                    snapshot.setSettingsInstance(snapSession.getSessionInstance());
+                    commonSnapshotUpdate(snapshot, volume, client, system, sourceObj.getNativeId(), volumeDeviceId, false, dbClient);
                     s_logger.info(String
                             .format("For target volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). Associated volume is %5$s (%6$s)",
                                     volumePath.toString(), snapshot.getId().toString(), volumeDeviceId,

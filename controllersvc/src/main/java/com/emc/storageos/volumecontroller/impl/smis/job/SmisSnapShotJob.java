@@ -105,7 +105,7 @@ public class SmisSnapShotJob extends SmisJob {
      */
     private void setSettingsInstance(StorageSystem storage, BlockSnapshot snapshot, String sourceElementId, String elementName,
             boolean createSession, DbClient dbClient) {
-        if (storage.checkIfVmax3()) {
+        if ((storage.checkIfVmax3()) && (createSession)) {
             // SYMMETRIX-+-000196700567-+-<sourceElementId>-+-<elementName>-+-0
             StringBuilder sb = new StringBuilder("SYMMETRIX");
             sb.append(Constants.SMIS80_DELIMITER)
@@ -117,19 +117,17 @@ public class SmisSnapShotJob extends SmisJob {
 
             // If the flag so indicates create a BlockSnapshotSession instance to represent this
             // settings instance.
-            if (createSession) {
-                BlockSnapshotSession snapSession = new BlockSnapshotSession();
-                snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
-                snapSession.setLabel(snapshot.getLabel());
-                snapSession.setSessionLabel(snapshot.getSnapsetLabel());
-                snapSession.setSessionInstance(snapshot.getSettingsInstance());
-                snapSession.setParent(snapshot.getParent());
-                snapSession.setProject(snapshot.getProject());
-                StringSet linkedTargets = new StringSet();
-                linkedTargets.add(snapshot.getId().toString());
-                snapSession.setLinkedTargets(linkedTargets);
-                dbClient.createObject(snapSession);
-            }
+            BlockSnapshotSession snapSession = new BlockSnapshotSession();
+            snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
+            snapSession.setLabel(snapshot.getLabel());
+            snapSession.setSessionLabel(snapshot.getSnapsetLabel());
+            snapSession.setSessionInstance(snapshot.getSettingsInstance());
+            snapSession.setParent(snapshot.getParent());
+            snapSession.setProject(snapshot.getProject());
+            StringSet linkedTargets = new StringSet();
+            linkedTargets.add(snapshot.getId().toString());
+            snapSession.setLinkedTargets(linkedTargets);
+            dbClient.createObject(snapSession);
         }
     }
 }

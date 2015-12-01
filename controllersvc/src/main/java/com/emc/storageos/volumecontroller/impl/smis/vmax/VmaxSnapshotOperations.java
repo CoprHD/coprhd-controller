@@ -1480,7 +1480,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionLinkTargetJob(jobPath,
-                        system.getId(), copyMode, completer)));
+                        system.getId(), snapSessionURI, copyMode, completer)));
             } catch (Exception e) {
                 _log.info("Exception creating and linking snapshot session target", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());

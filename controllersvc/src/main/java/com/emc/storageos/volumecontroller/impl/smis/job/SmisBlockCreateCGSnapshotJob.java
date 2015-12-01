@@ -110,7 +110,7 @@ public class SmisBlockCreateCGSnapshotJob extends SmisSnapShotJob {
                         snapshot.setCreationTime(now);
                         snapshot.setWWN(wwn.toUpperCase());
                         snapshot.setAlternateName(alternativeName);
-                        commonSnapshotUpdate(snapshot, syncVolume, client, storage, _sourceGroupId, relationshipName, false, dbClient);
+                        commonSnapshotUpdate(snapshot, syncVolume, client, storage, _sourceGroupId, relationshipName, true, dbClient);
                         _log.info(String.format("For sync volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). " +
                                 "Replication Group instance is %5$s. Associated volume is %6$s",
                                 syncVolumePath.toString(), snapshot.getId().toString(),

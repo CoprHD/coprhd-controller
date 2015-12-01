@@ -80,7 +80,7 @@ public class SmisBlockCreateSnapshotJob extends SmisSnapShotJob {
                     snapshot.setCreationTime(Calendar.getInstance());
                     snapshot.setWWN(wwn.toUpperCase());
                     snapshot.setAlternateName(alternateName);
-                    commonSnapshotUpdate(snapshot, syncVolume, client, storage, volume.getNativeId(), syncDeviceID, false, dbClient);
+                    commonSnapshotUpdate(snapshot, syncVolume, client, storage, volume.getNativeId(), syncDeviceID, true, dbClient);
                     _log.info(String
                             .format("For sync volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). Associated volume is %5$s (%6$s)",
                                     syncVolumePath.toString(), snapshot.getId().toString(),

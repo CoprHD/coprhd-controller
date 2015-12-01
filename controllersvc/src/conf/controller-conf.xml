@@ -9,6 +9,7 @@
     <!-- Import the CIM adapter Spring config file so that the ConnnectionManager bean -->
     <!-- can be referenced.                                                            -->
     <import resource="classpath:controller-configinfo.xml"/>
+    <import resource="classpath:controller-common-http.xml" />
     <import resource="CimAdapterSpringContext.xml"/>
     <import resource="classpath:dbclient-conf.xml"/>
     <import resource="classpath:dbcommon-var.xml"/>
@@ -358,7 +359,8 @@
     
     <bean id="xtremioStorageDevice" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOStorageDevice">
         <property name="dbClient" ref="dbclient"/>
-        <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
+        <property name="xtremIOV1ClientFactory" ref="xtremIOV1ClientFactory"/>
+        <property name="xtremIOV2ClientFactory" ref="xtremIOV2ClientFactory"/>
         <property name="xtremioExportOperationHelper" ref="xtremioExportOperationHelper"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="snapshotOperations" ref="xtremioSnapshotOperations"/>

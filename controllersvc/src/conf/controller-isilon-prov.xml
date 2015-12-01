@@ -4,8 +4,6 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-	<import resource="classpath:controller-common-http.xml" />
-
 	<bean id="isilonapifactory" class="com.emc.storageos.isilon.restapi.IsilonApiFactory"
 		init-method="init">
 		<property name="restClient" ref="controllerRestClient" />

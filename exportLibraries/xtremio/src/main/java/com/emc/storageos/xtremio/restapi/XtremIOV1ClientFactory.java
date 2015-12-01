@@ -2,11 +2,8 @@ package com.emc.storageos.xtremio.restapi;
 
 import java.net.URI;
 
-import org.springframework.stereotype.Component;
-
 import com.emc.storageos.common.http.RestAPIFactory;
 
-@Component
 public class XtremIOV1ClientFactory extends RestAPIFactory<XtremIOV1Client> {
     
     @Override

@@ -14,13 +14,14 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="xtremioRestClientFactory" class="com.emc.storageos.xtremio.restapi.XtremIOClientFactory"
+    <bean id="xtremIOV1ClientFactory" class="com.emc.storageos.xtremio.restapi.XtremIOV1ClientFactory"
               init-method="init" >
-        <property name="connectionTimeoutMs" value="30000"/>
-        <property name="maxConnections" value="300"/>
-        <property name="maxConnectionsPerHost" value="100"/>
-        <property name="socketConnectionTimeoutMs" value="3600000" />
-        <property name="needCertificateManager" value="true"/>
+        <property name="restClient" ref="controllerRestClient"/>
+    </bean>
+    
+    <bean id="xtremIOV2ClientFactory" class="com.emc.storageos.xtremio.restapi.XtremIOV2ClientFactory"
+              init-method="init" >
+        <property name="restClient" ref="controllerRestClient"/>
     </bean>
 
 </beans>

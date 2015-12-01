@@ -1,8 +1,5 @@
 package com.emc.storageos.driver.scaleio;
 
-/**
- * Created by shujinwu on 11/17/15.
- */
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;

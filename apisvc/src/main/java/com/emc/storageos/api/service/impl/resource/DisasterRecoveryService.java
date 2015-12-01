@@ -32,6 +32,7 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +62,7 @@ import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
+import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SitePrimary;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -948,6 +950,45 @@ public class DisasterRecoveryService {
             log.error("Error happened when failover at site %s", uuid, e);
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid, currentSite.getVip(), currentSite.getName());
             throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
+        }
+    }
+    
+    @PUT
+    @Path("/{uuid}/update")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    public Response updateSite(@PathParam("uuid") String uuid, SiteUpdateParam siteParam) {
+        log.info("Begin to update site information for {}", uuid);
+        
+        Site site = null;
+        
+        try {
+            site = drUtil.getSiteFromLocalVdc(uuid);
+        } catch (Exception e) {
+            log.error("Can't find site with specified site UUID {}", uuid);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+        
+        try {
+            if (StringUtil.isBlank(siteParam.getName())) {
+                throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site name should not be empty.");
+            }
+            
+            if (StringUtil.isBlank(siteParam.getDescription())) {
+                throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site description should not be empty.");
+            }
+            
+            site.setName(siteParam.getName());
+            site.setDescription(siteParam.getDescription());
+            coordinator.persistServiceConfiguration(site.toConfiguration());
+            
+            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_SUCCESS, null, uuid, site.getVip(), site.getName());
+            return Response.status(Response.Status.ACCEPTED).build();
+        } catch (Exception e) {
+            log.error("Error happened when update site %s", uuid, e);
+            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_FAILURE, null, uuid, site.getVip(), site.getName());
+            throw APIException.internalServerErrors.updateSiteFailed(site.getName(), e.getMessage());
         }
     }
 

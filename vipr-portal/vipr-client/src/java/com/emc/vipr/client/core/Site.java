@@ -17,6 +17,7 @@ import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SitePrimary;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -88,6 +89,10 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
 
     public ClientResponse doFailover(String uuid) {
         return client.post(ClientResponse.class, PathConstants.SITE_URL + "/" + uuid + "/failover");
+    }
+    
+    public ClientResponse updateSite(String uuid, SiteUpdateParam updateParam) {
+        return client.put(ClientResponse.class, updateParam, PathConstants.SITE_URL + "/" + uuid + "/update");
     }
 
     @Override

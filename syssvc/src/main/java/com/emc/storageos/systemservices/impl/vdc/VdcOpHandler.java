@@ -50,10 +50,7 @@ public abstract class VdcOpHandler {
     private static final int FAILOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 15;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
-    private static final int MAX_PAUSE_RETRY = 5;
-    // it takes a long time for db schema version to converge.
-    // that's why resume has a higher retry limit than pause.
-    private static final int MAX_RESUME_RETRY = 20;
+    private static final int MAX_PAUSE_RETRY = 20;
     // data revision time out - 5 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
     
@@ -61,7 +58,6 @@ public abstract class VdcOpHandler {
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
     private static final String LOCK_FAILOVER_REMOVE_OLD_PRIMARY="drFailoverRemoveOldPrimaryLock";
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
-    private static final String LOCK_RESUME_STANDBY="drResumeStandbyLock";
     private static final String LOCK_ADD_STANDBY="drAddStandbyLock";
     
     protected CoordinatorClientExt coordinator;

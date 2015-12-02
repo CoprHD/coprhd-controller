@@ -9,17 +9,6 @@ IPSEC_CONF_FILE="/etc/ipsec.conf"
 IPSEC_SECRET_FILE="/etc/ipsec.secrets"
 FIRT_BOOT_FLAG_FILE="/.volumes/bootfs/etc/first_boot_flag"
 
-# This method returns the configured ip address of this machine
-_get_local_ip() {
-    local nodeid="${_GENCONFIG_node_id}"
-    local nodenum=${nodeid#vipr}
-    local var="_GENCONFIG_network_${nodenum}_ipaddr"
-    local var6="_GENCONFIG_network_${nodenum}_ipaddr6"
-    local ipaddr="${!var}"
-    [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
-    echo "${ipaddr}"
-}
-
 #
 # common section for all connnections in ipsec.conf
 #

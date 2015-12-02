@@ -43,7 +43,7 @@ _get_local_ip() {
     local nodenum=${nodeid#vipr}
     local ipaddr=$(_get_prop "network_${nodenum}_ipaddr")
     local ipaddr6=$(_get_prop "network_${nodenum}_ipaddr6")
-    [ -z "${ipaddr}" ] && ipaddr="[${ipaddr6}]"
+    [ -z "${ipaddr}" ] && ipaddr="${ipaddr6}"
     echo "${ipaddr}"
 }
 
@@ -58,7 +58,7 @@ _get_ips_in_primary() {
     for i in $(seq ${primary_cnt}) ; do
         local ipaddr=$(_get_prop "vdc_${vdc_myid}_network_${i}_ipaddr")
         local ipaddr6=$(_get_prop "vdc_${vdc_myid}_network_${i}_ipaddr6")
-        [ -z "${ipaddr}" ] && ipaddr="[${ipaddr6}]"
+        [ -z "${ipaddr}" ] && ipaddr="${ipaddr6}"
         ips="${ips} ${ipaddr}"
     done
 
@@ -80,7 +80,7 @@ _get_ips_in_standby() {
         for standby_index in $(seq 1 ${standby_cnt}); do
             local ipaddr=$(_get_prop "vdc_${vdc_myid}_${standby}_network_${standby_index}_ipaddr")
             local ipaddr6=$(_get_prop "vdc_${vdc_myid}_${standby}_network_${standby_index}_ipaddr6")
-            [ -z "${ipaddr}" ] && ipaddr="[${ipaddr6}]"
+            [ -z "${ipaddr}" ] && ipaddr="${ipaddr6}"
             ips="${ips} ${ipaddr}"
         done
     else
@@ -134,7 +134,15 @@ _check_connection() {
 _get_remote_prop() {
     local remote=${1}
     local prop_name=${2}
-    local prop_value=$(ssh storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
+    local prop_value
+
+    # if remote ip contains ":", then it is a IPv6 address
+    if [[ ${remote} == *":"* ]] ; then
+        prop_value==$(ssh -6 storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
+    else
+        prop_value==$(ssh storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
+    fi
+
     echo "${prop_value}"
 }
 

@@ -399,7 +399,9 @@ public enum OperationTypeEnum {
             "operation to verify a compute image server and import images."),
     UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "",
             "operation to update and verify a compute image server."),
-    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."), ;
+    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."), 
+    UPDATE_BUCKET_ACL("UPDATE BUCKET ACL", "", "operation to update bucket ACL"),
+    DELETE_BUCKET_ACL("DELETE BUCKET ACL", "", "operation to delete bucket ACL");
 
     private final String _evType;
     private final String _fail_evType;

@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -138,5 +139,35 @@ public class ObjectDeviceController implements ObjectController {
         }
         bucketObj.getOpStatus().updateTaskStatus(task, result.toOperation());
     }
+
+    @Override
+    public void updateBucketACL(URI storage, URI bucket, BucketACLUpdateParams param, String opId) throws InternalException {
+
+        ControllerUtils.setThreadLocalLogData(bucket, opId);
+        _log.info("ObjectDeviceController:updateBucketACL Bucket URI : {} ", bucket);
+
+        Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+        ObjectDeviceInputOutput objectArgs = new ObjectDeviceInputOutput();
+        objectArgs.setAllBuckectAcl(param);
+        objectArgs.setName(bucketObj.getName());
+        objectArgs.setNamespace(bucketObj.getNamespace());
+
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucketACL(storageObj, objectArgs, param, opId);
+
+        if (result.getCommandPending()) {
+            return;
+        }
+        bucketObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+
+    }
+
+    @Override
+    public void deleteBucketACL(URI storage, URI bucket, String opId) throws InternalException {
+        // TODO Auto-generated method stub
+        
+    }
+    
+
 
 }

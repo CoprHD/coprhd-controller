@@ -22,13 +22,11 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- * Block snapshot session implementation for RP potected volumes.
+ * Block snapshot session implementation for RP protected volumes.
  */
 public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionApiImpl {
     /**
@@ -64,24 +62,19 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         // then we simply do platform specific validation for that volume's
         // platform.
         URI requestedSourceURI = requestedSourceObj.getId();
-        URI srcSystemURI = requestedSourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
         if (URIUtil.isType(requestedSourceURI, Volume.class)) {
             Volume sourceVolume = (Volume) requestedSourceObj;
-            boolean isVplex = RPHelper.isVPlexVolume(sourceVolume);
-            if (!isVplex) {
-                boolean protectionBased = RPBlockServiceApiImpl.isProtectionBasedSnapshot(sourceVolume,
-                        BlockSnapshot.TechnologyType.NATIVE.name());
-                if (!protectionBased) {
-                    BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
-                    snapSessionImpl.validateSnapshotSessionCreateRequest(requestedSourceObj, sourceObjList, project, name, newTargetsCount,
-                            newTargetsName, newTargetCopyMode, skipInternalCheck, fcManager);
-                    return;
-                }
+            boolean protectionBased = RPBlockServiceApiImpl.isProtectionBasedSnapshot(sourceVolume,
+                    BlockSnapshot.TechnologyType.NATIVE.name());
+            if (protectionBased) {
+                throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();
             }
-        }
 
-        throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();
+            // Validate using the appropriate implementation.
+            BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(requestedSourceObj.getStorageController());
+            snapSessionImpl.validateSnapshotSessionCreateRequest(requestedSourceObj, sourceObjList, project, name, newTargetsCount,
+                    newTargetsName, newTargetCopyMode, skipInternalCheck, fcManager);
+        }
     }
 
     /**
@@ -111,9 +104,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
     @Override
     public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
             Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
-        URI srcSystemURI = sourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
         snapSessionImpl.createSnapshotSession(sourceObj, snapSessionURIs, snapSessionSnapshotMap, copyMode, taskId);
     }
 
@@ -123,9 +114,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
     @Override
     public void validateLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
             String newTargetsName, String newTargetCopyMode) {
-        URI srcSystemURI = snapSessionSourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.validateLinkNewTargetsRequest(snapSessionSourceObj, project, newTargetsCount, newTargetsName, newTargetCopyMode);
     }
 
@@ -135,9 +124,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
     @Override
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
             List<URI> snapshotURIs, String copyMode, String taskId) {
-        URI srcSystemURI = snapSessionSourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.linkNewTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, snapshotURIs, copyMode, taskId);
     }
 
@@ -147,9 +134,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
     @Override
     public void validateRelinkSnapshotSessionTargets(BlockObject snapSessionSourceObj, BlockSnapshotSession tgtSnapSession,
             Project project, List<URI> snapshotURIs, UriInfo uriInfo) {
-        URI srcSystemURI = snapSessionSourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.validateRelinkSnapshotSessionTargets(snapSessionSourceObj, tgtSnapSession, project, snapshotURIs, uriInfo);
     }
 
@@ -159,9 +144,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
     @Override
     public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession TgtSnapSession,
             List<URI> snapshotURIs, String taskId) {
-        URI srcSystemURI = snapSessionSourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.relinkTargetVolumesToSnapshotSession(snapSessionSourceObj, TgtSnapSession, snapshotURIs, taskId);
     }
 
@@ -171,9 +154,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
     @Override
     public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
             Set<URI> snapshotURIs, UriInfo uriInfo) {
-        URI srcSystemURI = snapSessionSourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.validateUnlinkSnapshotSessionTargets(snapSession, snapSessionSourceObj, project, snapshotURIs, uriInfo);
     }
 
@@ -183,9 +164,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
     @Override
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
             Map<URI, Boolean> snapshotDeletionMap, String taskId) {
-        URI srcSystemURI = snapSessionSourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.unlinkTargetVolumesFromSnapshotSession(snapSessionSourceObj, snapSession, snapshotDeletionMap, taskId);
     }
 
@@ -194,9 +173,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
-        URI srcSystemURI = snapSessionSourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.validateRestoreSnapshotSession(snapSessionSourceObj, project);
     }
 
@@ -205,9 +182,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void restoreSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
-        URI srcSystemURI = snapSessionSourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.restoreSnapshotSession(snapSession, snapSessionSourceObj, taskId);
     }
 
@@ -216,9 +191,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project) {
-        URI srcSystemURI = snapSessionSourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.validateDeleteSnapshotSession(snapSession, snapSessionSourceObj, project);
     }
 
@@ -227,9 +200,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
-        URI srcSystemURI = snapSessionSourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.deleteSnapshotSession(snapSession, snapSessionSourceObj, taskId);
     }
 
@@ -238,9 +209,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj) {
-        URI srcSystemURI = sourceObj.getStorageController();
-        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
-        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
         return snapSessionImpl.getSnapshotSessionsForSource(sourceObj);
     }
 }

@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -608,5 +609,19 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj) {
         return CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
                 ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceObj.getId()));
+    }
+
+    /**
+     * Get the BlockSnapshotSessionApi implementation for the system with the passed URI.
+     * 
+     * @param systemURI The URI of a storage system.
+     * 
+     * @return The BlockSnapshotSessionApi implementation for the storage system.
+     */
+    protected BlockSnapshotSessionApi getImplementationForBackendSystem(URI systemURI) {
+        StorageSystem srcSideBackendSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
+        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr
+                .getPlatformSpecificImplForSystem(srcSideBackendSystem);
+        return snapSessionImpl;
     }
 }

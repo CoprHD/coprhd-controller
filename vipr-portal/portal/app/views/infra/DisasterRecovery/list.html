@@ -54,7 +54,7 @@ angular.module('tags').directive({
 				scope.isResumeSite = true;
              }
         	 
-        	 if(scope.row.status.toUpperCase() == "PRIMARY"){
+        	 if(scope.row.status.toUpperCase() == "ACTIVE"){
 				scope.isResumeSite = false;
 				scope.isPauseSite = false;
 				scope.isTestSite = false;
@@ -97,9 +97,9 @@ function standbyStatusIcon(o, val) {
         return "";
     }
     var labels = {
-        'PRIMARY': 'label-success',
-        'PRIMARY_SWITCHING_OVER': 'label-danger',
-        'PRIMARY_FAILING_OVER': 'label-danger',
+        'ACTIVE': 'label-success',
+        'ACTIVE_SWITCHING_OVER': 'label-danger',
+        'ACTIVE_FAILING_OVER': 'label-danger',
         'STANDBY_ADDING': 'label-info',
         'STANDBY_SYNCING' : 'label-info',
         'STANDBY_SYNCED': 'label-success',
@@ -113,9 +113,9 @@ function standbyStatusIcon(o, val) {
         'STANDBY_ERROR':  'label-danger'
     }
     var icons = {
-        'PRIMARY': 'glyphicon glyphicon-ok',
-        'PRIMARY_SWITCHING_OVER': 'glyphicon glyphicon-refresh rotate',
-        'PRIMARY_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',
+        'ACTIVE': 'glyphicon glyphicon-ok',
+        'ACTIVE_SWITCHING_OVER': 'glyphicon glyphicon-refresh rotate',
+        'ACTIVE_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_ADDING': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_SYNCING' : 'glyphicon glyphicon-refresh rotate',
         'STANDBY_SYNCED': 'glyphicon glyphicon-ok',
@@ -130,9 +130,9 @@ function standbyStatusIcon(o, val) {
     }
 
 	var messages = {
-            'PRIMARY': Messages.get("renderFunctions.disasterRecovery.status.primary"),
-            'PRIMARY_SWITCHING_OVER': Messages.get("renderFunctions.disasterRecovery.status.primary.switchingover"),
-            'PRIMARY_FAILING_OVER': Messages.get("renderFunctions.disasterRecovery.status.primary.failingover"),
+            'ACTIVE': Messages.get("renderFunctions.disasterRecovery.status.primary"),
+            'ACTIVE_SWITCHING_OVER': Messages.get("renderFunctions.disasterRecovery.status.primary.switchingover"),
+            'ACTIVE_FAILING_OVER': Messages.get("renderFunctions.disasterRecovery.status.primary.failingover"),
             'STANDBY_ADDING': Messages.get("renderFunctions.disasterRecovery.status.standby.adding"),
             'STANDBY_SYNCING' : Messages.get("renderFunctions.disasterRecovery.status.standby.syncing"),
             'STANDBY_SYNCED': Messages.get("renderFunctions.disasterRecovery.status.standby.synced"),

@@ -47,7 +47,7 @@ public class Site {
     private String standbyShortId;
     private long creationTime;
     private long pausedTime;
-    private SiteState state = SiteState.PRIMARY;
+    private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
 
     public Site() {

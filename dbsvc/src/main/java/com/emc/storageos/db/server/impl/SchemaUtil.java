@@ -455,7 +455,7 @@ public class SchemaUtil {
         
         // If we upgrade from pre-yoda versions, the strategy option does not contains active site.
         // we do it once during first add-standby operation on standby site
-        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
+        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
         String activeSiteDcId = drUtil.getCassandraDcId(activeSite);
         if (!strategyOptions.containsKey(activeSiteDcId)) {
             _log.info("Add {} to strategy options", activeSiteDcId);
@@ -969,7 +969,7 @@ public class SchemaUtil {
         site.setStandbyShortId("");
         site.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
         site.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
-        site.setState(SiteState.PRIMARY);
+        site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
         site.setVip(_vdcEndpoint);
 

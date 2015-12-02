@@ -16,7 +16,7 @@ _get_coordinator_var() {
     else
         _get_coordinator_var_normal
     fi
-    _get_props node_id node_index
+    _get_props node_id node_index site_is_standby
 }
 
 _get_coordinator_var_normal() {

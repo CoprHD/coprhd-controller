@@ -66,7 +66,7 @@ public class DbRebuildRunnable implements Runnable {
             return;
         }
         
-        Site primarySite = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
+        Site primarySite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
         String sourceDc = drUtil.getCassandraDcId(primarySite);
 
         log.info("starting db rebuild from source dc {}", sourceDc);
@@ -81,7 +81,7 @@ public class DbRebuildRunnable implements Runnable {
         if (dbRebuildComplete(Constants.DBSVC_NAME) && dbRebuildComplete(Constants.GEODBSVC_NAME)) {
             log.info("all db rebuild finish, updating site state to STANDBY_SYNCED");
             localSite.setState(SiteState.STANDBY_SYNCED);
-            coordinator.persistServiceConfiguration(coordinator.getSiteId(), localSite.toConfiguration());
+            coordinator.persistServiceConfiguration(localSite.toConfiguration());
         }
         isRunning = false;
     }

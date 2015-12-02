@@ -16,7 +16,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class SiteConfigParam {
     private List<SiteParam> standbySites;
-    private SiteParam primarySite;
+    private SiteParam activeSite;
     
     @XmlElement(name = "standby_sites")
     public List<SiteParam> getStandbySites() {
@@ -30,12 +30,12 @@ public class SiteConfigParam {
         this.standbySites = sites;
     }
     
-    @XmlElement(name = "primary_site")
-    public  SiteParam getPrimarySite() {
-       return this.primarySite;
+    @XmlElement(name = "active_site")
+    public  SiteParam getActiveSite() {
+       return this.activeSite;
     }
 
-    public void setPrimarySite(SiteParam site) {
-        this.primarySite = site;
+    public void setActiveSite(SiteParam site) {
+        this.activeSite = site;
     }
 }

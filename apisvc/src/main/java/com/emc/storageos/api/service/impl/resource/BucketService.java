@@ -506,12 +506,11 @@ public class BucketService extends TaskResourceService {
      * @return
      * @throws InternalException
      */
-    @PUT
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/acl")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public BucketACL getBucketACL(@PathParam("id") URI id) throws InternalException {
+    public BucketACL getBucketACL(@PathParam("id") URI id) {
         Bucket bucket = null;
         ArgValidator.checkFieldUriType(id, Bucket.class, "id");
         bucket = _dbClient.queryObject(Bucket.class, id);

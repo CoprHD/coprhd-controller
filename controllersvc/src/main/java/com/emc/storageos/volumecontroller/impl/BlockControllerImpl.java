@@ -454,10 +454,10 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
     
     @Override
-    public void removeVolumesFromApplication(List<URI> removeVolumeList,
+    public void removeVolumesFromApplication(URI storage, List<URI> removeVolumeList,
             URI application,
             String opId) throws ControllerException {
-        blockRMI("removeVolumesFromApplication", removeVolumeList, application, opId);
+        blockRMI("removeVolumesFromApplication", storage, removeVolumeList, application, opId);
     }
 
 }

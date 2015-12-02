@@ -28,6 +28,7 @@ public class ApplicationTaskCompleter extends TaskCompleter{
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
+        log.info("START ApplicationCompleter complete");
         super.setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
         log.info("END ApplicationCompleter complete");

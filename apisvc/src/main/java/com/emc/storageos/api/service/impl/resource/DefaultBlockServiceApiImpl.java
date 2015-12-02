@@ -12,6 +12,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -341,23 +342,28 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * {@inheritDoc}
      */
     @Override
-    public void updateVolumesInApplication(List<Volume> addVolumes, 
-                                           List<Volume> removeVolumes, 
-                                           Application application,
+    public void updateVolumesInApplication(Map<URI, List<Volume>> addVolumes, 
+                                           Map<URI, List<Volume>> removeVolumes, 
+                                           URI applicationId,
                                            String taskId) {
+        Application application = _dbClient.queryObject(Application.class, applicationId);
         if (!addVolumes.isEmpty()) {
             addVolumesToApplication(addVolumes, application);
         }
         if (!removeVolumes.isEmpty()) {
-            Volume firstVol = removeVolumes.get(0);
-            URI systemURI = firstVol.getStorageController();
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            BlockController controller = getController(BlockController.class, system.getSystemType());
-            List<URI> removeVolURIs = new ArrayList<URI>();
-            for (Volume vol : removeVolumes) {
-                removeVolURIs.add(vol.getId());
+            Iterator<List<Volume>> iterator = removeVolumes.values().iterator();
+            while (iterator.hasNext()) {
+                List<Volume> volumes = iterator.next();
+                Volume firstVol = volumes.get(0);
+                URI systemURI = firstVol.getStorageController();
+                StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+                BlockController controller = getController(BlockController.class, system.getSystemType());
+                List<URI> removeVolURIs = new ArrayList<URI>();
+                for (Volume vol : volumes) {
+                    removeVolURIs.add(vol.getId());
+                }
+                controller.removeVolumesFromApplication(systemURI, removeVolURIs, application.getId(), taskId);
             }
-            controller.removeVolumesFromApplication(removeVolURIs, application.getId(), taskId);
         } else {
             Operation op = application.getOpStatus().get(taskId);
             op.ready();
@@ -366,32 +372,39 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         }
     }
 
-    private void addVolumesToApplication(List<Volume> volumes, Application application) {
-        Set<URI> cgs = new HashSet<URI>();
+    /**
+     * Update volume attribute with application Id
+     * @param volumes
+     * @param application
+     */
+    private void addVolumesToApplication(Map<URI, List<Volume>> volumes, Application application) {
+        Set<URI> cgVolumes = new HashSet<URI>();
         Set<URI> volumeURIs = new HashSet<URI>();
+        List<Volume>addVolumes = new ArrayList<Volume>();
         String firstVolLabel = null;
-        for (Volume volume : volumes) {
-            URI cgUri = volume.getConsistencyGroup();
-            cgs.add(cgUri);
-            volumeURIs.add(volume.getId());
-            if (firstVolLabel == null) {
-                firstVolLabel = volume.getLabel();
-            }
-        }
-        Set<URI> cgVolumeURIs = new HashSet<URI>();
-        for (URI cgURI : cgs) {
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+        for (Map.Entry<URI, List<Volume>> entry : volumes.entrySet()) {
+            URI cgUri = entry.getKey();
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
             List<Volume> cgvolumes = getActiveCGVolumes(cg);
             for (Volume cgvol : cgvolumes) {
-                cgVolumeURIs.add(cgvol.getId());
+                cgVolumes.add(cgvol.getId());
+            }
+            for (Volume vol : entry.getValue()) {
+                volumeURIs.add(vol.getId());
+                addVolumes.add(vol);
+                if (firstVolLabel == null) {
+                    firstVolLabel = vol.getLabel();
+                }
             }
         }
-        if(!cgVolumeURIs.containsAll(volumeURIs) || volumeURIs.size() != cgVolumeURIs.size()) {
+
+        // Check if all CG volumes are adding into the application
+        if(!cgVolumes.containsAll(volumeURIs) || volumeURIs.size() != cgVolumes.size()) {
             throw APIException.badRequests.volumeCantBeAddedToApplication(firstVolLabel, 
                     "Not all volumes in consistency group are in the to be added volume list");
         }
         
-        for (Volume volume : volumes) {
+        for (Volume volume : addVolumes) {
             StringSet applications = volume.getApplicationIds();
             if (applications == null) {
                 applications = new StringSet();

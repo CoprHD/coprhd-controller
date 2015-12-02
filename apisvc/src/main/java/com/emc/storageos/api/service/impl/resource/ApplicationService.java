@@ -240,19 +240,21 @@ public class ApplicationService extends TaskResourceService {
             _dbClient.updateObject(application);
             return toTask(application, taskId, op);
         }
-        List<Volume> addVols = new ArrayList<Volume> ();
-        List<Volume> removeVols = new ArrayList<Volume> ();
+        Map<URI, List<Volume>> addVols = new HashMap<URI, List<Volume>> ();
+        Map<URI, List<Volume>> removeVolsMap = new HashMap<URI, List<Volume>> ();
         Volume firstVol = null;
         if (param.hasVolumesToAdd()) {
             List<URI> addVolList = param.getAddVolumesList().getVolumes();
             addVols = validateAddVolumes(addVolList, application);
-            firstVol = addVols.get(0);
+            Iterator<List<Volume>> it = addVols.values().iterator();
+            firstVol = it.next().get(0);
         }
         if(param.hasVolumesToRemove()) {
             List<URI> removeVolList = param.getRemoveVolumesList().getVolumes();
-            removeVols = validateRemoveVolumes(removeVolList, application);
-            if(firstVol== null && !removeVols.isEmpty()) {
-                firstVol = removeVols.get(0);
+            removeVolsMap = validateAndSortRemoveVolumes(removeVolList, application);
+            if(firstVol== null && !removeVolsMap.isEmpty()) {
+                Iterator<List<Volume>> it = removeVolsMap.values().iterator();
+                firstVol = it.next().get(0);
             }
         }
         
@@ -260,7 +262,7 @@ public class ApplicationService extends TaskResourceService {
         op = _dbClient.createTaskOpStatus(Application.class, application.getId(),
                 taskId, ResourceOperationTypeEnum.UPDATE_APPLICATION);
         try {
-            serviceAPI.updateVolumesInApplication(addVols, removeVols, application, taskId);
+            serviceAPI.updateVolumesInApplication(addVols, removeVolsMap, id, taskId);
         } catch (InternalException e) {
             op = application.getOpStatus().get(taskId);
             op.error(e);
@@ -280,10 +282,10 @@ public class ApplicationService extends TaskResourceService {
      * @param volumes
      * @return
      */
-    private List<Volume> validateAddVolumes(List<URI> volumes, Application application) {
+    private Map<URI, List<Volume>> validateAddVolumes(List<URI> volumes, Application application) {
         String addedVolType = null;
         String firstVolLabel = null;
-        List<Volume> addVolumes = new ArrayList<Volume>();
+        Map<URI, List<Volume>> addVolumes = new HashMap<URI, List<Volume>>();
         for (URI volUri : volumes) {
             ArgValidator.checkFieldUriType(volUri, Volume.class, "id");
             Volume volume = _dbClient.queryObject(Volume.class, volUri);
@@ -310,8 +312,13 @@ public class ApplicationService extends TaskResourceService {
                 throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(), 
                         "The volume type is not same as others");
             }
-            
-            addVolumes.add(volume);
+            URI cguri = volume.getConsistencyGroup();
+            List<Volume> cgvols = addVolumes.get(cguri);
+            if (cgvols == null) {
+                cgvols = new ArrayList<Volume>();
+            }
+            cgvols.add(volume);
+            addVolumes.put(cguri, cgvols);
         }
         // Check if the to-add volumes are the same volume type as existing volumes in the application
         List<Volume> existingVols = getApplicationVolumes(application);
@@ -329,22 +336,35 @@ public class ApplicationService extends TaskResourceService {
         return addVolumes;
     }
     
-    private List<Volume> validateRemoveVolumes(List<URI> volumes, Application application) {
-        List<Volume> removeVolumes = new ArrayList<Volume>();
-        for (URI removeVol : volumes) {
-            Volume removeVolume = _dbClient.queryObject(Volume.class, removeVol);
-            StringSet applications = removeVolume.getApplicationIds();
+    /**
+     * Valid the volume and sort them by CG. Called by updateApplication()
+     * @param volumes the volumes to be removed from application
+     * @param application The application
+     * @return The Map of the sorted volumes by CG
+     */
+    private Map<URI, List<Volume>> validateAndSortRemoveVolumes(List<URI> volumes, Application application) {
+        Map<URI, List<Volume>> cgVolumesMap = new HashMap<URI, List<Volume>>();
+        for (URI voluri : volumes) {
+            ArgValidator.checkFieldUriType(voluri, Volume.class, "id");
+            Volume vol = _dbClient.queryObject(Volume.class, voluri);
+            StringSet applications = vol.getApplicationIds();
             if (!applications.contains(application.getId().toString())) {
                 throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(), 
                         "The volume is not assigned to the application");
             }
-            if (removeVolume.getInactive()) {
+            if (vol.getInactive()) {
                 continue;
             }
-
-            removeVolumes.add(removeVolume);
+            URI cguri = vol.getConsistencyGroup();
+            List<Volume> cgvols = cgVolumesMap.get(cguri);
+            if (cgvols == null) {
+                cgvols = new ArrayList<Volume>();
+            }
+            cgvols.add(vol);
+            cgVolumesMap.put(cguri, cgvols);
         }
-        return removeVolumes;
+        
+        return cgVolumesMap;
     }
     
     /**

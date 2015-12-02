@@ -4462,43 +4462,38 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
+    /**
+     * To remove the volumes from Application. It would remove the volume from the CG, then update the volume 
+     * ApplicationId attribute to remove the applicationId.
+     */
     @Override
-    public void removeVolumesFromApplication(List<URI> removeVolumeList, URI application, String opId) throws ControllerException {
+    public void removeVolumesFromApplication(URI storage, List<URI> removeVolumeList, URI application, String opId) throws ControllerException {
         TaskCompleter completer = new ApplicationTaskCompleter(application, opId);
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     REMOVE_VOLUMES_FROM_APPLICATION_WS_NAME, false, opId);
             String waitFor = null;
-            Map<URI, List<URI>> cgVolumesMap = new HashMap<URI, List<URI>>();
-            for (URI voluri : removeVolumeList) {
+
+            if (!removeVolumeList.isEmpty()) {
+                URI voluri = removeVolumeList.get(0);
                 Volume vol = _dbClient.queryObject(Volume.class, voluri);
                 URI cguri = vol.getConsistencyGroup();
-                List<URI> cgvols = cgVolumesMap.get(cguri);
-                if (cgvols == null) {
-                    cgvols = new ArrayList<URI>();
-                }
-                cgvols.add(voluri);
-                cgVolumesMap.put(cguri, cgvols);
-            }
-            for (Map.Entry<URI, List<URI>> entry : cgVolumesMap.entrySet()) {
-                URI cguri = entry.getKey();
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
-                URI storage = cg.getStorageController();
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-                List<URI> volumes = entry.getValue();
                 // Remove the volumes from the consistency group
                 waitFor = workflow.createStep(REMOVE_VOLUMES_FROM_CG_STEP_GROUP,
                         String.format("Remove volumes from consistency group %s", cguri.toString()),
                         null,storage, storageSystem.getSystemType(),
                         this.getClass(),
-                        removeFromConsistencyGroupMethod(storage, cguri, volumes),
+                        removeFromConsistencyGroupMethod(storage, cguri, removeVolumeList),
                         rollbackMethodNullMethod(), null);
                 
                 // Update volume applicationIds attribute
                 workflow.createStep(UPDATE_VOLUMES_STEP_GROUP,
-                        "Waiting for synchronization", waitFor, storage,
-                        storageSystem.getSystemType(), getClass(), updateVolumeForApplicationMethod(volumes, application), null, null);
+                        "update volume for application", waitFor, storage,
+                        storageSystem.getSystemType(), getClass(), 
+                        updateVolumeForApplicationMethod(removeVolumeList, application), null, null);
             }
             
             // Finish up and execute the plan.
@@ -4507,7 +4502,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     "Update application successful for %s", application.toString());
             workflow.executePlan(completer, successMessage);
         } catch (Exception e) {
-            completer.error(_dbClient, DeviceControllerException.exceptions.failedToUpdateConsistencyGroup(e.getMessage()));
+            completer.error(_dbClient, DeviceControllerException.exceptions.failedToRemoveVolumesFromAppication(application.toString(), e.getMessage()));
         }
         
     }
@@ -4526,7 +4521,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
             _dbClient.updateObject(volume);
         }
-        _dbClient.ready(Application.class, application, opId);
+        WorkflowStepCompleter.stepSucceded(opId);
     }
     
     

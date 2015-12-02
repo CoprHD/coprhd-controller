@@ -481,11 +481,11 @@ public interface BlockServiceApi {
     
     /**
      * Validate and add/remove volumes to the application
-     * @param addVolumes The volumes to be added to the application
-     * @param removeVolumes the volumes to be removed from the application
-     * @param application The application that the volumes to be added to
+     * @param addVolumes The map of volumes to be added to the application by CG URI
+     * @param removeVolumes The map of volumes to be removed from the application by CG URI
+     * @param application The application that the volumes to be updated
      */
-    public void updateVolumesInApplication(List<Volume> addVolumes, List<Volume> removeVolumes, 
-            Application application, String taskId);
+    public void updateVolumesInApplication(Map<URI, List<Volume>> addVolumes, Map<URI, List<Volume>> removeVolumes, 
+            URI applicationId, String taskId);
     
 }

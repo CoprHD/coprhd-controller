@@ -214,32 +214,41 @@
   
   *{ SECURITY }*
   #{deadbolt.restrict roles:[['SECURITY_ADMIN'],['RESTRICTED_SECURITY_ADMIN'], ['TENANT_ADMIN']]}
-    #{if controllers.infra.DisasterRecovery.isPrimarySite()}
     #{nav.menu 'security', icon:'vipricon-security'}
       #{nav.menuSection 'nav.security'}
-        #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
-        #{nav.item 'vdcRoles', href: @auth.VDCRoleAssignments.list()/}
-        #{/deadbolt.restrict}
+        #{if controllers.infra.DisasterRecovery.isPrimarySite()}
+          #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+          #{nav.item 'vdcRoles', href: @auth.VDCRoleAssignments.list()/}
+          #{/deadbolt.restrict}
+
+          #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
+          #{nav.item 'providers', href: @auth.LDAPsources.list()/}
+          #{/deadbolt.restrict}
+
+          #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['TENANT_ADMIN']]}
+          #{if util.VCenterUtils.checkCompatibleVDCVersion(controllers.auth.UserGroup.EXPECTED_GEO_VERSION)}
+              #{nav.item 'userGroups', href: @auth.UserGroup.list()/}
+          #{/if}
+          #{/deadbolt.restrict}
+
+          #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
+          #{nav.item 'localPasswords', href: @infra.ConfigProperties.passwords()/}
+          #{/deadbolt.restrict}
+        #{/if}
 
         #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
-        #{nav.item 'providers', href: @auth.LDAPsources.list()/}
-        #{/deadbolt.restrict}
-
-        #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['TENANT_ADMIN']]}
-        #{if util.VCenterUtils.checkCompatibleVDCVersion(controllers.auth.UserGroup.EXPECTED_GEO_VERSION)}
-            #{nav.item 'userGroups', href: @auth.UserGroup.list()/}
-        #{/if}	
-        #{/deadbolt.restrict}
-
-        #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
-        #{nav.item 'localPasswords', href: @infra.ConfigProperties.passwords()/}
         #{nav.item 'keystores', href: @auth.Keystores.updateCertificate()/}
-        #{nav.item 'certificates', href: @auth.Certificates.list() /}
-        #{nav.item 'ipsec', href: @auth.IPsec.ipsec() /}
         #{/deadbolt.restrict}
+
+        #{if controllers.infra.DisasterRecovery.isPrimarySite()}
+          #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
+          #{nav.item 'certificates', href: @auth.Certificates.list() /}
+          #{nav.item 'ipsec', href: @auth.IPsec.ipsec() /}
+          #{/deadbolt.restrict}
+        #{/if}
+
       #{/nav.menuSection}
     #{/nav.menu}
-    #{/if}
   #{/deadbolt.restrict}
   
   *{ SETTINGS }*

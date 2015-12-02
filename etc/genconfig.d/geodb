@@ -14,7 +14,11 @@ _get_geodbvar_props() {
 }
 
 _get_geodbconf_props() {
-    echo "geodb_encryption=none"
+    if [ -e "/data/db/no_db_encryption" ]; then
+        echo "geodb_encryption=dc"
+    else
+        echo "geodb_encryption=all"
+    fi
     echo "dbclient_encrypt=false"
     echo "network_ipaddr_effective=${_GENCONFIG_network_ipaddr_effective}"
 

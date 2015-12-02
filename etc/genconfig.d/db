@@ -23,7 +23,11 @@ _get_db_jmx_props() {
 }
 
 _get_dbconf_props() {
-    echo "db_encryption=none"
+    if [ -e "/data/db/no_db_encryption" ]; then
+        echo "db_encryption=none"
+    else
+        echo "db_encryption=all"
+    fi
     echo "dbclient_encrypt=false"
 
     for i in ${_GENCONFIG_node_indexes} ; do

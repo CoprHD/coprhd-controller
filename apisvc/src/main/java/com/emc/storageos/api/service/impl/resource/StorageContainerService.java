@@ -3,6 +3,8 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.VasaObjectMapper.toStorageContainer;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -68,6 +70,9 @@ public class StorageContainerService extends AbstractStorageContainerService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response getResponseStatus(){
         _log.info("*******enter in get response***********");
+        List<URI> storageContainerList = new ArrayList<URI>();
+        storageContainerList = _dbClient.queryByType(StorageContainer.class, true);
+        _log.info("@@@@@@@@" + "StorageContainerObject : " + storageContainerList.toString() + " Count : " + storageContainerList.size() + "@@@@@@");
         return Response.status(200).build();
     }
 

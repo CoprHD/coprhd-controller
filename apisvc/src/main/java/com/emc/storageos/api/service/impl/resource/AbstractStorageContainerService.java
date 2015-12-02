@@ -165,13 +165,13 @@ public abstract class AbstractStorageContainerService extends TaggedResource{
             switch (StorageContainer.ProtocolType.lookup(type)) {
                 case file:
                     if (!fileProtocols.containsAll(protocols)) {
-                        throw APIException.badRequests.invalidProtocolsForVirtualPool(type, protocols, PROTOCOL_NFS,
+                        throw APIException.badRequests.invalidProtocolsForStorageContainer(type, protocols, PROTOCOL_NFS,
                                 PROTOCOL_CIFS);
                     }
                     break;
                 case block:
                     if (!blockProtocols.containsAll(protocols)) {
-                        throw APIException.badRequests.invalidProtocolsForVirtualPool(type, protocols, PROTOCOL_FC,
+                        throw APIException.badRequests.invalidProtocolsForStorageContainer(type, protocols, PROTOCOL_FC,
                                 PROTOCOL_ISCSI, PROTOCOL_SCALEIO);
                     }
                 default:

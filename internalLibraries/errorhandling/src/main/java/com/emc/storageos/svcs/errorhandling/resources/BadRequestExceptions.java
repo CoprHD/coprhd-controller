@@ -2507,4 +2507,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotUpdateTFTPBOOTDirectory();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidProtocolsForStorageContainer(String type, Set<String> requested, String... valid);
 }

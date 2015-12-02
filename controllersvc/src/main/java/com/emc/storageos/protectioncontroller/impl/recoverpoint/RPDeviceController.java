@@ -77,6 +77,7 @@ import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
@@ -1589,8 +1590,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 if (protectionSets.isEmpty()) {
                     // A protection set corresponding to the CG does not exist so we need to create one
-                    protectionSet = createProtectionSet(rpSystem, cgParams);
-                    protectionSet.setProtectionId(response.getCgId().toString());
+                    protectionSet = createProtectionSet(rpSystem, cgParams, response.getCgId());
                 } else {
                     // Update the existing protection set. We will only have 1 protection set
                     // get the first one.
@@ -3362,14 +3362,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * Create a protection set in the database that corresponds to this CG.
      *
      * @param params CG params object
+     * @param cgId 
      * @throws InternalException
      */
-    private ProtectionSet createProtectionSet(ProtectionSystem rpSystem, CGRequestParams params) throws InternalException {
+    private ProtectionSet createProtectionSet(ProtectionSystem rpSystem, CGRequestParams params, Long cgId) throws InternalException {
         ProtectionSet protectionSet = new ProtectionSet();
 
         protectionSet.setProtectionSystem(rpSystem.getId());
         protectionSet.setLabel(params.getCgName());
+        protectionSet.setNativeGuid(rpSystem.getNativeGuid() + Constants.PLUS + cgId);
         protectionSet.setProtectionStatus(ProtectionStatus.ENABLED.toString());
+        protectionSet.setProtectionId(cgId.toString());
         protectionSet.setId(URIUtil.createId(ProtectionSet.class));
         _dbClient.createObject(protectionSet);
 

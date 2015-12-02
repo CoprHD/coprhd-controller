@@ -117,11 +117,11 @@ public class DbsvcTestBase {
             stopAll();
         }
 
-/*        if (_dataDir != null) {
+        if (_dataDir != null) {
             cleanDirectory(_dataDir);
             _dataDir = null;
         }
-*/
+
         _log.info("The Dbsvc is stopped");
     }
 

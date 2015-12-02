@@ -15,6 +15,8 @@ import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 
 public class ProjectUtility {
+	
+	private static final String ACCESS_ZONE_LOCAL_PROVIDER_NAME = "lsa-local-provider";
 
 	/**
 	 * Checks if the if the domain of the virtual NAS matches with domain of the
@@ -59,6 +61,9 @@ public class ProjectUtility {
 				Set<Entry<String, NasCifsServer>> nasCifsServers = vNAS
 						.getCifsServersMap().entrySet();
 				for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
+					if(ACCESS_ZONE_LOCAL_PROVIDER_NAME.equals(nasCifsServer.getKey())) {
+						continue;
+					}
 					NasCifsServer cifsServer = nasCifsServer.getValue();
 					if (projectDomains.contains(cifsServer.getDomain()
 							.toUpperCase())) {

@@ -250,6 +250,8 @@ _get_ips_in_primary() {
             # use ipaddr from ovf-env. for ip change support
             local var="_GENCONFIG_network_${i}_ipaddr_service"
             ipaddr="${!var}"
+            # remove ipv6's brackets
+            ipaddr=$(echo ${ipaddr} | sed -e 's/^\[//' -e 's/\]$//')
         else
             local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr"
             local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr6"

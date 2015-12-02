@@ -13,7 +13,7 @@ public class StorageContainerBulkResponse {
 
     @XmlElement(name="storage_container")
     public List<StorageContainerCreateResponse> getStorageContainers() {
-        if(null != storageContainers){
+        if(null == storageContainers){
             storageContainers = new ArrayList<StorageContainerCreateResponse>();
         }
         return storageContainers;

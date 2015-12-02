@@ -254,7 +254,7 @@ public abstract class VdcOpHandler {
             }
             PropertyInfoExt ntpProp = new PropertyInfoExt();
             ntpProp.addProperty(NTPSERVERS, ntpServers);
-            localRepository.setVdcPropertyInfo(ntpProp);
+            localRepository.setOverrideProperties(ntpProp);
         }
     }
 

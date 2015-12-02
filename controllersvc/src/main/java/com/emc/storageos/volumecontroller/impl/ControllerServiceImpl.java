@@ -741,7 +741,7 @@ public class ControllerServiceImpl implements ControllerService {
             
             if (site.getState().equals(SiteState.STANDBY_FAILING_OVER)) {
                 _log.info("Site state is STANDBY_FAILING_OVER, set it to PRIMARY");
-                site.setState(SiteState.PRIMARY);
+                site.setState(SiteState.ACTIVE);
                 _coordinator.persistServiceConfiguration(site.toConfiguration());
             }
         } catch (Exception e) {

@@ -27,7 +27,7 @@ import util.validation.HostNameOrIpAddress;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
-import com.emc.storageos.model.dr.SitePrimary;
+import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
 
@@ -120,8 +120,8 @@ public class DisasterRecovery extends ViprResourceController {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
             // Check Switchover or Failover
-            SitePrimary currentSite = DisasterRecoveryUtils.checkPrimary();
-            if (currentSite.getIsPrimary() == true) {
+            SiteActive currentSite = DisasterRecoveryUtils.checkPrimary();
+            if (currentSite.getIsActive() == true) {
                 DisasterRecoveryUtils.doSwitchover(id);
             }
             else {

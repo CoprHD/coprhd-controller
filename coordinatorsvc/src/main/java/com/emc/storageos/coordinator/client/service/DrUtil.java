@@ -63,7 +63,7 @@ public class DrUtil {
      * @return true for acitve. otherwise false
      */
     public boolean isActiveSite() {
-        return getPrimarySiteId().equals(coordinator.getSiteId());
+        return getActiveSiteId().equals(coordinator.getSiteId());
     }
     
     /**
@@ -80,8 +80,8 @@ public class DrUtil {
      * 
      * @return
      */
-    public String getPrimarySiteId() {
-        return getPrimarySiteId(getLocalVdcShortId());
+    public String getActiveSiteId() {
+        return getActiveSiteId(getLocalVdcShortId());
     }
 
     /**
@@ -90,14 +90,14 @@ public class DrUtil {
      * @param vdcShortId short id of the vdc
      * @return uuid of the acitve site
      */
-    public String getPrimarySiteId(String vdcShortId) {
-        Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, vdcShortId);
+    public String getActiveSiteId(String vdcShortId) {
+        Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_ACTIVE_KIND, vdcShortId);
         if (config == null && vdcShortId.equals(getLocalVdcShortId())) {
             // active site config may not be initialized yet. Assume it is active site now
             log.info("Cannot load active site config for vdc {}. Use current site as the active one", vdcShortId);
             return coordinator.getSiteId();
         }
-        return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
+        return config.getConfig(Constants.CONFIG_DR_ACTIVE_SITEID);
     }
 
     /**
@@ -131,10 +131,10 @@ public class DrUtil {
      * @return list of standby sites
      */
     public List<Site> listStandbySites() {
-        String primaryId = this.getPrimarySiteId();
+        String activeSiteId = this.getActiveSiteId();
         List<Site> result = new ArrayList<>();
         for(Site site : listSites()) {
-            if (!site.getUuid().equals(primaryId)) {
+            if (!site.getUuid().equals(activeSiteId)) {
                 result.add(site);
             }
         }

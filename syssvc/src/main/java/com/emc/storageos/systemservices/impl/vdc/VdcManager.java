@@ -487,10 +487,10 @@ public class VdcManager extends AbstractManager {
                             DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
                 }
                 break;
-            case PRIMARY_SWITCHING_OVER:
+            case ACTIVE_SWITCHING_OVER:
                 if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
                     log.info("Step5: site {} set to error due to switchover timeout", site.getName());
-                    error = new SiteError(APIException.internalServerErrors.switchoverPrimaryFailedTimeout(
+                    error = new SiteError(APIException.internalServerErrors.switchoverActiveFailedTimeout(
                             site.getName(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
                 }
                 break;

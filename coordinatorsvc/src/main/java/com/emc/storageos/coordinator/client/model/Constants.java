@@ -126,9 +126,9 @@ public interface Constants {
     public static final String CATALOG_CONFIG = "catalog";
     public static final String CATALOG_ACL_CHANGE = "acl_change";
     
-    public static final String CONFIG_DR_PRIMARY_KIND = "disasterRecoveryActive";
-    public static final String CONFIG_DR_PRIMARY_ID = "global";
-    public static final String CONFIG_DR_PRIMARY_SITEID = "siteId";
+    public static final String CONFIG_DR_ACTIVE_KIND = "disasterRecoveryActive";
+    public static final String CONFIG_DR_ACTIVE_ID = "global";
+    public static final String CONFIG_DR_ACTIVE_SITEID = "siteId";
 
     String CONFIG_GEO_LOCAL_VDC_KIND = "geoLocalVDC";
     String CONFIG_GEO_LOCAL_VDC_ID = "global";

@@ -393,7 +393,7 @@ public class LocalRepository {
     }
 
     /**
-     * Reconfig local coordinatorsvc to observer(default mode), or pariticpant(when primary is down)
+     * Reconfig local coordinatorsvc to observer(default mode), or pariticpant(when active site is down)
      * For DR standby site only.  
      * 
      * @param type

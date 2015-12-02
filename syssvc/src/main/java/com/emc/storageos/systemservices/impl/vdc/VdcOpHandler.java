@@ -59,7 +59,7 @@ public abstract class VdcOpHandler {
     
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
-    private static final String LOCK_FAILOVER_REMOVE_OLD_PRIMARY="drFailoverRemoveOldPrimaryLock";
+    private static final String LOCK_FAILOVER_REMOVE_OLD_ACTIVE="drFailoverRemoveOldActiveLock";
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
     private static final String LOCK_RESUME_STANDBY="drResumeStandbyLock";
     private static final String LOCK_ADD_STANDBY="drAddStandbyLock";
@@ -338,7 +338,7 @@ public abstract class VdcOpHandler {
                 flushVdcConfigToLocal();
             } else {
                 reconfigVdc();
-                checkAndPauseOnPrimary();
+                checkAndPauseOnActive();
             }
         }
         
@@ -346,7 +346,7 @@ public abstract class VdcOpHandler {
          * Update the strategy options and remove the paused site from gossip ring on the acitve site.
          * This should be done after the firewall has been updated to block the paused site so that it's not affected.
          */
-        private void checkAndPauseOnPrimary() {
+        private void checkAndPauseOnActive() {
             // this should only be done on the active site
             if (drUtil.isStandby()) {
                 return;
@@ -405,7 +405,7 @@ public abstract class VdcOpHandler {
          */
         private void checkAndPauseOnStandby() {
             // wait for the firewall to be blocked from active site
-            waitForSiteUnreachable(drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId()));
+            waitForSiteUnreachable(drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId()));
 
             String state = drUtil.getLocalCoordinatorMode(coordinator.getMyNodeId());
             if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
@@ -460,7 +460,7 @@ public abstract class VdcOpHandler {
      *  - old active site: flush new vdc config to disk, reconfig/reload coordinator(synchronized with new active site), 
      *                     update site state to STANDBY_SYNCED
      *  - new active : flush new vdc config to disk, reconfig/reload coordinator(synchronized with old active site), 
-     *                 update site state to PRIMARY
+     *                 update site state to ACTIVE
      *  - other standby - flush new vdc config to disk, reconfig/reload coordinator
      */
     public static class DrSwitchoverHandler extends VdcOpHandler {
@@ -484,11 +484,11 @@ public abstract class VdcOpHandler {
                 refreshCoordinatorForSwitchover(site);
                 // Update site state
                 if (isOldActiveSiteForSwitchover(site)) {
-                    // old primary
-                    updateSwitchoverSiteStateOnOldPrimary(site);
+                    // old active site
+                    updateSwitchoverSiteStateOnOldActive(site);
                 } else if (isNewActiveSiteForSwitchover(site)) {
-                    // new primary
-                    updateSwitchoverSiteStateOnNewPrimary(site);
+                    // new active site
+                    updateSwitchoverSiteStateOnNewActive(site);
                 } 
                 
             } catch (Exception ex) {
@@ -499,7 +499,7 @@ public abstract class VdcOpHandler {
         }
         
         /**
-         * Synchronously reconfig coordinator in old/new primary so that we could minimize unavailable window of coordinatorsvc
+         * Synchronously reconfig coordinator in old/new active so that we could minimize unavailable window of coordinatorsvc
          * 
          * @throws Exception
          */
@@ -520,16 +520,16 @@ public abstract class VdcOpHandler {
             }
         }
         
-        private void updateSwitchoverSiteStateOnNewPrimary(Site site) throws Exception {
-            log.info("This is switchover standby site (new primary)");
+        private void updateSwitchoverSiteStateOnNewActive(Site site) throws Exception {
+            log.info("This is switchover standby site (new active)");
 
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
             
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
             barrier.enter();
             try {
-                log.info("Set state to PRIMARY");
-                site.setState(SiteState.PRIMARY);
+                log.info("Set state to ACTIVE");
+                site.setState(SiteState.ACTIVE);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
             } finally {
                 barrier.leave();
@@ -539,7 +539,7 @@ public abstract class VdcOpHandler {
             localRepository.reboot();
         }
 
-        private void updateSwitchoverSiteStateOnOldPrimary(Site site) throws Exception {
+        private void updateSwitchoverSiteStateOnOldActive(Site site) throws Exception {
             log.info("This is switchover acitve site (old acitve)");
             
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
@@ -562,7 +562,7 @@ public abstract class VdcOpHandler {
             int count = 0;
             
             for (Site site : drUtil.listSites()) {
-                if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+                if (site.getState().equals(SiteState.ACTIVE_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
                     count += site.getNodeCount();
                 }
             }
@@ -572,7 +572,7 @@ public abstract class VdcOpHandler {
         }
         
         private boolean isOldActiveSiteForSwitchover(Site site) {
-            return site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER);
+            return site.getState().equals(SiteState.ACTIVE_SWITCHING_OVER);
         }
         
         private boolean isNewActiveSiteForSwitchover(Site site) {
@@ -583,7 +583,7 @@ public abstract class VdcOpHandler {
         // ViPR is switching over, we need refresh firewall/ipsec
         private boolean hasSingleNodeSite() {
             for (Site site : drUtil.listSites()) {
-                if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+                if (site.getState().equals(SiteState.ACTIVE_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
                     if (site.getNodeCount() == 1) {
                         return true;
                     }
@@ -633,11 +633,11 @@ public abstract class VdcOpHandler {
             
             InterProcessLock lock = null;
             try {
-                lock = coordinator.getCoordinatorClient().getLock(LOCK_FAILOVER_REMOVE_OLD_PRIMARY);
-                log.info("Acquiring lock {}", LOCK_FAILOVER_REMOVE_OLD_PRIMARY);
+                lock = coordinator.getCoordinatorClient().getLock(LOCK_FAILOVER_REMOVE_OLD_ACTIVE);
+                log.info("Acquiring lock {}", LOCK_FAILOVER_REMOVE_OLD_ACTIVE);
                 
                 lock.acquire();
-                log.info("Acquired lock {}", LOCK_FAILOVER_REMOVE_OLD_PRIMARY); 
+                log.info("Acquired lock {}", LOCK_FAILOVER_REMOVE_OLD_ACTIVE); 
         
                 // double check site state
                 oldActiveSite = getOldActiveSiteForFailover();
@@ -663,7 +663,7 @@ public abstract class VdcOpHandler {
         
         private Site getOldActiveSiteForFailover() {
             for (Site site : drUtil.listSites()) {
-                if (site.getState().equals(SiteState.PRIMARY_FAILING_OVER)) {
+                if (site.getState().equals(SiteState.ACTIVE_FAILING_OVER)) {
                     return site;
                 }
             }

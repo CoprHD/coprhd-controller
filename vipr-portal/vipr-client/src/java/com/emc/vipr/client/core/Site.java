@@ -15,7 +15,7 @@ import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
-import com.emc.storageos.model.dr.SitePrimary;
+import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
@@ -66,8 +66,8 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.get(SiteList.class, PathConstants.SITE_URL);
     }
 
-    public SitePrimary checkPrimary() {
-        return client.get(SitePrimary.class, PathConstants.SITE_URL + "/primary");
+    public SiteActive checkIsActive() {
+        return client.get(SiteActive.class, PathConstants.SITE_URL + "/active");
     }
 
     public SiteConfigRestRep getStandbyConfig() {

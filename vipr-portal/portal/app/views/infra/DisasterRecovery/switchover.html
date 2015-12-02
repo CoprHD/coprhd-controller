@@ -71,7 +71,7 @@ function checkFailoverProgressUpdate() {
 
         success: function(result) {
         	updateProgressBar("Status",10);
-			if(result.state == "PRIMARY" || result.state == "STANDBY_SYNCED" ) {
+			if(result.state == "ACTIVE" || result.state == "STANDBY_SYNCED" ) {
 				updateProgressBar("Status",100);
 				$("#checkFailoverStatus").text('&{'disasterRecovery.failover.success'}');
 			}

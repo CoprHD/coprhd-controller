@@ -228,11 +228,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         String siteStatePath = String.format("%1$s/%2$s", sitePath, Constants.SITE_STATE);
         try {
             EnsurePath ePath = new EnsurePath(siteStatePath);
-            log.info("init site state to {}", SiteState.PRIMARY.name());
+            log.info("init site state to {}", SiteState.ACTIVE.name());
             ePath.ensure(zkConnection.curator().getZookeeperClient());
-            zkConnection.curator().setData().forPath(siteStatePath, SiteState.PRIMARY.name().getBytes());
+            zkConnection.curator().setData().forPath(siteStatePath, SiteState.ACTIVE.name().getBytes());
         } catch (Exception e) {
-            log.error("Failed to init site state {}", SiteState.PRIMARY.name());
+            log.error("Failed to init site state {}", SiteState.ACTIVE.name());
             throw e;
         }
     }
@@ -252,9 +252,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
         String localVdcShortId = localVdcConfig.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
         ConfigurationImpl config = new ConfigurationImpl();
-        config.setKind(Constants.CONFIG_DR_PRIMARY_KIND);
+        config.setKind(Constants.CONFIG_DR_ACTIVE_KIND);
         config.setId(localVdcShortId);
-        config.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, siteId);
+        config.setConfig(Constants.CONFIG_DR_ACTIVE_SITEID, siteId);
         persistServiceConfiguration(config);
     }
 

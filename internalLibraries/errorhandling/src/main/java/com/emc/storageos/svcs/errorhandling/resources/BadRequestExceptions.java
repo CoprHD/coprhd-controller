@@ -2430,7 +2430,7 @@ public interface BadRequestExceptions {
     public BadRequestException operationOnlyAllowedOnPausedSite(final String siteId, final String siteState);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException operationNotAllowedOnPrimarySite();
+    public BadRequestException operationNotAllowedOnActiveSite();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidQuotaRequestForObjectStorage(String type);

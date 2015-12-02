@@ -149,11 +149,21 @@ EOF
         done
     fi
 
-    local default_ipsec_key=$(cat /opt/storageos/conf/psk.default)
+# retrieve ipsec_key
+# the priority sequence as:
+#   1. from vdcconfig.properties
+#   2. from ovfenv.properties
+#   3. from psk.default
+    local ipsec_key=$(cat /opt/storageos/conf/psk.default)
+    if [ -n "${_GENCONFIG_ipsec_key}" ] ; then
+        ipsec_key="${_GENCONFIG_ipsec_key}"
+    elif [ -n "${_GENCONFIG_ipsec_key_ovfenv}" ] ; then
+        ipsec_key="${_GENCONFIG_ipsec_key_ovfenv}"
+    fi
 
     _genconfig_write 400 root:root "${IPSEC_CONF_FILE}" "${content}"
     _genconfig_write 400 root:root "${IPSEC_SECRET_FILE}" \
-        " : PSK ${_GENCONFIG_ipsec_key:-${default_ipsec_key}}"
+        " : PSK ${ipsec_key}"
 }
 
 _gen_ipsec_conf

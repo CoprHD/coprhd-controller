@@ -236,7 +236,15 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 }
 
                 // Discover the protection sets
-                discoverProtectionSets(protectionSystem);
+                try {
+                    if (discoverySuccess) {
+                        discoverProtectionSets(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discovery of protection sets failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
+                }
 
                 // Discover the protection system cluster connectivity topology information
                 try {

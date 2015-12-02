@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExp
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
@@ -616,6 +617,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getFileSystemNfsACLConstraint(String fileSystemNfsACLIndex) {
             DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemNfsACLIndex"), fileSystemNfsACLIndex);
+        }
+
+        public static AlternateIdConstraint getDriverRegistryEntriesByDriverName(String driverName) {
+            DataObjectType doType = TypeMap.getDoType(DriverRegistryRecord.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("driverName"), driverName);
         }
     }
 

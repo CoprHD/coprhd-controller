@@ -93,7 +93,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
 
     private void init(AbstractStorageDriver driver) {
-        Registry driverRegistry = RegistryImpl.getInstance();
+        Registry driverRegistry = RegistryImpl.getInstance(dbClient);
         driver.setDriverRegistry(driverRegistry);
         LockManager lockManager = LockManagerImpl.getInstance(locker);
         driver.setLockManager(lockManager);

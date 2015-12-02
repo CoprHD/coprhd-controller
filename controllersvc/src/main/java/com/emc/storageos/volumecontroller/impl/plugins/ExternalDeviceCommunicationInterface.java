@@ -13,17 +13,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -81,7 +79,7 @@ public class ExternalDeviceCommunicationInterface extends
     private void init(AbstractStorageDriver driver) {
         // TODO: temp code, may need to initialize this same way we initialize all service objects for communication interfaces, through
         // TODO: inject() methods. For now do it here to minimize changes in controller-conf.xml
-        Registry driverRegistry = RegistryImpl.getInstance();
+        Registry driverRegistry = RegistryImpl.getInstance(_dbClient);
         driver.setDriverRegistry(driverRegistry);
         LockManager lockManager = LockManagerImpl.getInstance(_locker);
         driver.setLockManager(lockManager);

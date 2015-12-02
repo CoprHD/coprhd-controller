@@ -8,7 +8,7 @@ public interface Registry {
 
     /**
      * Set attributes for a given driver and a given key.
-     * This method will update existing attributes and add new attributes.
+     * This method will override existing driver attributed for a given key.
      * @param driverName
      * @param key
      * @param attributes

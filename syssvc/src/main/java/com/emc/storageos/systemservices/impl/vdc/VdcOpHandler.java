@@ -400,8 +400,14 @@ public abstract class VdcOpHandler {
          * Update the site state from PAUSING to PAUSED on the standby site
          */
         private void checkAndPauseOnStandby() {
-            // wait for the firewall to be blocked from active site
-            waitForSiteUnreachable(drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId()));
+            // wait for the coordinator to be blocked on the active site
+            int retryCnt = 0;
+            while (coordinator.isActiveSiteStable()) {
+                if (++retryCnt > MAX_PAUSE_RETRY) {
+                    throw new IllegalStateException("timeout waiting for coordinatorsvc to be blocked on active site.");
+                }
+                retrySleep();
+            }
 
             String state = drUtil.getLocalCoordinatorMode(coordinator.getMyNodeId());
             if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {

@@ -72,7 +72,7 @@ public class StorageContainerService extends AbstractStorageContainerService {
         _log.info("*******enter in get response***********");
         List<URI> storageContainerList = new ArrayList<URI>();
         storageContainerList = _dbClient.queryByType(StorageContainer.class, true);
-        _log.info("@@@@@@@@" + "StorageContainerObject : " + storageContainerList.toString() + " Count : " + storageContainerList.size() + "@@@@@@");
+        _log.info("@@@@@@@@" + "StorageContainerObject : " + storageContainerList.toString()  + "@@@@@@");
         return Response.status(200).build();
     }
 

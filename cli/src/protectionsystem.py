@@ -440,7 +440,7 @@ def update_parser(subcommand_parsers, common_parser):
                     description='ViPR Protection system update cli usage',
                     parents=[common_parser],
                     conflict_handler='resolve',
-                    help='update a Protection system')
+                    help='Update attributes (such as port and credentials) of a Protection system')
 
     mandatory_args = update_parser.add_argument_group('mandatory arguments')
 
@@ -570,7 +570,7 @@ def discover_parser(subcommand_parsers, common_parser):
                 description='ViPR Protection system discover CLI usage',
                 parents=[common_parser],
                 conflict_handler='resolve',
-                help='discover a Protection system')
+                help='Discover a Protection system')
     discover_parser.add_argument('-name', '-n',
                                  help='name of Protection system',
                                  dest='name',
@@ -603,7 +603,7 @@ def um_cgs_discover_parser(subcommand_parsers, common_parser):
         description='ViPR Protection system discover unmanaged CG CLI usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Discover unmanaged CG details')
+        help='Discover unmanaged RecoverPoint CG details for ingestion operations')
         
     um_cg_discover_parser.add_argument('-name', '-n',
                                  help='name of Protection system',
@@ -633,7 +633,7 @@ def connectivity_parser(subcommand_parsers, common_parser):
         description='ViPR Protection system connectivity CLI usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='connectivity a Protection system')
+        help='Show connectivity information of a Protection system and its associated storage systems')
     connectivity_parser.add_argument('-name', '-n',
                                      help='name of Protection system',
                                      dest='name',

@@ -104,6 +104,7 @@
         <property name="scheduleUtils" ref="storagescheduler" />
         <property name="customConfigHandler" ref="customConfigHandler" />
         <property name="configInfo" ref="configinfo" />
+        <property name="permissionsHelper" ref="permissionsHelper"/>
     </bean>
 
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">

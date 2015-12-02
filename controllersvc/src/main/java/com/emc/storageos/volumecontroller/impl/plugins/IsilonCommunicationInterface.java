@@ -339,7 +339,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         String zoneName = accessZone.getName();
         String baseDirPath = accessZone.getPath() + "/";
 
-        // filesystems count & Capacity
+        // filesystems count & used Capacity
         IsilonList<IsilonSmartQuota> quotas = null;
 
         do {
@@ -347,45 +347,49 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             if (quotas != null && !quotas.getList().isEmpty()) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
-                    if (quota.getThresholds() != null && quota.getThresholds().getHard() != null) {
-                        totalProvCap = totalProvCap + quota.getThresholds().getHard();
-                        totalFsCount++;
-                    }
+
+                    totalProvCap = totalProvCap + quota.getUsagePhysical();
+                    totalFsCount++;
                 }
-                resumeToken = quotas.getToken();
             }
+            resumeToken = quotas.getToken();
+
         } while (resumeToken != null);
 
-        //get the base dir paths
+        // create a list of access zone for which base dir is not same as system access zone.
+        // we get all snapshot list at once. baseDirPaths list is used to
+        // find snaphot belong to which access zone.
         List<String> baseDirPaths = null;
-        if (baseDirPath.equals(IFS_ROOT)) {
+        if (accessZone.isSystem() == true) {
             List<IsilonAccessZone> isilonAccessZoneList = isilonApi.getAccessZones(resumeToken);
             baseDirPaths = new ArrayList<String>();
-            for (IsilonAccessZone isiAccessZone: isilonAccessZoneList) {
-                if (isiAccessZone.isSystem() == false) {
+            for (IsilonAccessZone isiAccessZone : isilonAccessZoneList) {
+                if (!baseDirPath.equals(IFS_ROOT + "/")) {
                     baseDirPaths.add(isiAccessZone.getPath() + "/");
                 }
             }
         }
-        //snapshots count & snap capacity
+        // snapshots count & snap capacity
         resumeToken = null;
         IsilonList<IsilonSnapshot> snapshots = null;
         do {
             snapshots = isilonApi.listSnapshots(resumeToken);
             if (snapshots != null && !snapshots.getList().isEmpty()) {
-                if (!baseDirPath.equals(IFS_ROOT)) { //if it not system access zone then compare with fs path with base dir path
+                if (!baseDirPath.equals(IFS_ROOT + "/")) {
+                    // if it is not system access zone then compare
+                    // with fs path with base dir path
                     _log.info("access zone base directory path {}", baseDirPath);
-                    for (IsilonSnapshot isilonSnap: snapshots.getList()) {
+                    for (IsilonSnapshot isilonSnap : snapshots.getList()) {
                         if (isilonSnap.getPath().startsWith(baseDirPath)) {
                             totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
-                            totalFsCount ++;
+                            totalFsCount++;
                         }
                     }
-                } else {//process the snapshots for system access zone
+                } else {// process the snapshots for system access zone
                     boolean snapSystem = true;
-                    for (IsilonSnapshot isilonSnap: snapshots.getList()) {
+                    for (IsilonSnapshot isilonSnap : snapshots.getList()) {
                         snapSystem = true;
-                        //first check fs path with user defined AZ's paths
+                        // first check fs path with user defined AZ's paths
                         if (baseDirPaths != null && !baseDirPaths.isEmpty()) {
                             for (String basePath : baseDirPaths) {
                                 if (isilonSnap.getPath().startsWith(basePath)) {
@@ -394,21 +398,22 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 }
                             }
                         }
-                        //if it not matched with any user define AZ's then it is belongs system AZ
+                        // it then it is belongs to access zone with basedir same as system access zone.
                         if (snapSystem) {
                             totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
-                            totalFsCount ++;
-                            _log.info("System access zone base directory path: {}", accessZone.getPath());
+                            totalFsCount++;
+                            _log.info("Access zone base directory path: {}", accessZone.getPath());
 
                         }
                     }
                 }
                 resumeToken = snapshots.getToken();
-               }
+            }
         } while (resumeToken != null);
 
-        if (totalProvCap >= KB_IN_BYTES) {
-            totalProvCap = (totalProvCap/KB_IN_BYTES);
+        if (totalProvCap > 0) {
+
+            totalProvCap = (totalProvCap / KB_IN_BYTES);
         }
         _log.info("Total fs Count {} for access zone : {}", String.valueOf(totalFsCount), accessZone.getName());
         _log.info("Total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());

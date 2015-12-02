@@ -244,7 +244,7 @@ DR_SITE_B_NAME=dr_site_B_$$
 DR_SITE_B_DESCRIPTION="Site B description"
 DR_SITE_C_NAME=dr_site_C_$$
 DR_SITE_C_DESCRIPTION="Site C description"
-DR_SITE_A_NAME="Primary"
+DR_SITE_A_NAME="Active"
 #
 # Recovery Configuration
 #
@@ -6330,8 +6330,8 @@ dr_basic_tests()
     projectid=$(project query $PROJECT)
     echo "Project id of $PROJECT is $projectid."
     
-    primary_site=$(dr find state PRIMARY|tail -1) || { echo "get dr primary site failed."; echo $primary_site; exit 1; }
-    echo "primary uuid is $primary_site"
+    active_site=$(dr find state ACTIVE|tail -1) || { echo "get dr active site failed."; echo $active_site; exit 1; }
+    echo "active uuid is $active_site"
     
     echo "---ADD STANDBY SITE---"
     echo "Adding new standby into current vipr system"
@@ -6387,7 +6387,7 @@ dr_basic_tests()
     # verify sites in standby
     echo "---VERIFY sites from standby $standby_site---"
     dr get $standby_site
-    dr get $primary_site
+    dr get $active_site
     dr checkstandby $DR_SITE_A_IP
 
     # wait for both sites stable so able to pause standby
@@ -6399,14 +6399,14 @@ dr_basic_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr pause $standby_site || { echo "pause dr standby site failed."; exit 1; }
 
-    echo "---WAIT 30s FOR $primary_site TO STABILIZE---"
+    echo "---WAIT 30s FOR $active_site TO STABILIZE---"
     sleep 30
 
     echo "---WAIT FOR PAUSE $standby_site---"
     dr waitforstate $standby_site STANDBY_PAUSED 30 1200
     echo "Pausing dr done"
 
-    echo "---CREATE A NEW PROJECT ON PRIMARY---"
+    echo "---CREATE A NEW PROJECT ON ACTIVE---"
     PROJECT_NEW=${PROJECT}_new
     project create ${PROJECT_NEW} --tenant $TENANT
     projectid_new=$(project query ${PROJECT_NEW})
@@ -6427,9 +6427,9 @@ dr_basic_tests()
     dr waitforstable 30 1200
     project show ${projectid_new}
 
-    # wait both primary and standby to be stable, ready to do switchover
-    echo "---WAIT BOTH PRIMARY AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
-    # there's no point in updating the property on both primary and standby since they are shared
+    # wait both active and standby to be stable, ready to do switchover
+    echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
+    # there's no point in updating the property on both active and standby since they are shared
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
@@ -6439,7 +6439,7 @@ dr_basic_tests()
     dr waitforstable 10 600
 
     # switchover to standby
-    echo "---SWITCHOVER FROM TO $primary_site TO $standby_site---"
+    echo "---SWITCHOVER FROM TO $active_site TO $standby_site---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr switchover $standby_site
@@ -6448,15 +6448,15 @@ dr_basic_tests()
     sleep 420
 
     # verify switchover status
-    echo "---WAIT FOR SWITCHOVER FROM $primary_site TO $standby_site DONE---"
-    dr waitforstate $standby_site PRIMARY 10 1200 && echo "standby has been switched into primary"
-    dr waitforstate $primary_site STANDBY_SYNCED 10 1200 && echo "primary has been switched into standby"
+    echo "---WAIT FOR SWITCHOVER FROM $active_site TO $standby_site DONE---"
+    dr waitforstate $standby_site ACTIVE 10 1200 && echo "standby has been switched into active"
+    dr waitforstate $active_site STANDBY_SYNCED 10 1200 && echo "active has been switched into standby"
 
-    # by now, primary site and standby site has been switched, need to switch variables accordingly
+    # by now, active site and standby site has been switched, need to switch variables accordingly
     local switch_tmp
     switch_tmp=$DR_SITE_A_IP; DR_SITE_A_IP=$DR_SITE_B_IP; DR_SITE_B_IP=$switch_tmp
     switch_tmp=$DR_SITE_A_NAME; DR_SITE_A_NAME=$DR_SITE_B_NAME; DR_SITE_B_NAME=$switch_tmp
-    switch_tmp=$primary_site; primary_site=$standby_site; standby_site=$switch_tmp
+    switch_tmp=$active_site; active_site=$standby_site; standby_site=$switch_tmp
 
     # delete standby
     echo "---DELETE STANDBY $standby_site---"
@@ -6471,11 +6471,11 @@ dr_basic_tests()
     # verify deleted
     echo "---VERIFY STANDBY DELETED $standby_site---should throw exceptions---"
     dr list $DR_SITE_B_NAME || echo "standby removed from site list"
-    dr get $standby_site || echo "standby uuid removed from primary"
+    dr get $standby_site || echo "standby uuid removed from active"
     
-    # verify primary still works
+    # verify active still works
     TESTPROJECT=dr_project_$$
-    echo "---CREATE PROJECT $TESTPROJECT ON PRIMARY $primary_site---"
+    echo "---CREATE PROJECT $TESTPROJECT ON ACTIVE $active_site---"
     project show $TESTPROJECT &> /dev/null && return $?
     project create $TESTPROJECT --tenant $TENANT
     test_projectid=$(project query $TESTPROJECT)
@@ -6490,8 +6490,8 @@ dr_multisite_tests()
     projectid=$(project query $PROJECT)
     echo "Project id of $PROJECT is $projectid."
 
-    primary_site=$(dr find state PRIMARY|tail -1) || { echo "get dr primary site failed."; echo $primary_site; exit 1; }
-    echo "primary uuid is $primary_site"
+    active_site=$(dr find state ACTIVE|tail -1) || { echo "get dr active site failed."; echo $active_site; exit 1; }
+    echo "active uuid is $active_site"
     
     echo "---ADD STANDBY SITE B---"
     echo "Adding new standby into current vipr system"
@@ -6548,7 +6548,7 @@ dr_multisite_tests()
     # verify sites in standby
     echo "---VERIFY sites from standby $standby_site_b---"
     dr get $standby_site_b
-    dr get $primary_site
+    dr get $active_site
 
     dr waitforstable 10 600
 
@@ -6607,7 +6607,7 @@ dr_multisite_tests()
     echo "---VERIFY sites from standby $standby_site_c---"
     dr get $standby_site_b
     dr get $standby_site_c
-    dr get $primary_site
+    dr get $active_site
 
     # login to standby with auth
     echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site_b---"
@@ -6618,7 +6618,7 @@ dr_multisite_tests()
     echo "---VERIFY sites from standby $standby_site_b---"
     dr get $standby_site_b
     dr get $standby_site_c
-    dr get $primary_site
+    dr get $active_site
 
     wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP $DR_SITE_C_IP
 
@@ -6628,7 +6628,7 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr pause $standby_site_b || { echo "pause dr standby site b failed."; exit 1; }
 
-    echo "---WAIT 30s FOR $primary_site_b TO STABILIZE---"
+    echo "---WAIT 30s FOR $active_site_b TO STABILIZE---"
     sleep 30
 
     echo "---WAIT FOR PAUSE $standby_site_b---"
@@ -6641,14 +6641,14 @@ dr_multisite_tests()
     echo "---PAUSE SITE $standby_site_c---"
     dr pause $standby_site_c || { echo "pause dr standby site c failed."; exit 1; }
 
-    echo "---WAIT 30s FOR $primary_site_c TO STABILIZE---"
+    echo "---WAIT 30s FOR $active_site_c TO STABILIZE---"
     sleep 30
 
     echo "---WAIT FOR PAUSE $standby_site_c---"
     dr waitforstate $standby_site_c STANDBY_PAUSED 30 1200
     echo "Pausing dr done"
 
-    echo "---CREATE A NEW PROJECT ON PRIMARY---"
+    echo "---CREATE A NEW PROJECT ON ACTIVE---"
     PROJECT_NEW=${PROJECT}_new
     project create ${PROJECT_NEW} --tenant $TENANT
     projectid_new=$(project query ${PROJECT_NEW})
@@ -6703,11 +6703,11 @@ dr_multisite_tests()
     # verify deleted
     echo "---VERIFY STANDBY DELETED $standby_site_b---should throw exceptions---"
     dr list $DR_SITE_B_NAME || echo "standby removed from site list"
-    dr get $standby_site_b || echo "standby uuid removed from primary"
+    dr get $standby_site_b || echo "standby uuid removed from active"
 
-    # verify primary still works
+    # verify active still works
     TESTPROJECT=dr_project_$$
-    echo "---CREATE PROJECT $TESTPROJECT ON PRIMARY $primary_site---"
+    echo "---CREATE PROJECT $TESTPROJECT ON ACTIVE $active_site---"
     project show $TESTPROJECT &> /dev/null && return $?
     project create $TESTPROJECT --tenant $TENANT
     test_projectid=$(project query $TESTPROJECT)
@@ -6718,7 +6718,7 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     project show $test_projectid
 
-    echo "Power off primary site $DR_SITE_A_IP to do failover"
+    echo "Power off active site $DR_SITE_A_IP to do failover"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr poweroffcluster $DR_SITE_A_IP
@@ -6731,7 +6731,7 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable --ip $DR_SITE_C_IP 10 600
 
-    echo "Failover to promote site $DR_SITE_C_NAME as primary"
+    echo "Failover to promote site $DR_SITE_C_NAME as active"
     dr failover --ip $DR_SITE_C_IP $standby_site_c
     sleep 300
 
@@ -6741,7 +6741,7 @@ dr_multisite_tests()
     dr waitforstable --ip $DR_SITE_C_IP 10 600
 
     echo "Wait site state to be PRIAMRY after failover"
-    dr waitforstate $standby_site_c PRIMARY 30 600 --ip $DR_SITE_C_IP
+    dr waitforstate $standby_site_c ACTIVE 30 600 --ip $DR_SITE_C_IP
 
     #disabling pipefail option to pipe exit codes
     set +o pipefail

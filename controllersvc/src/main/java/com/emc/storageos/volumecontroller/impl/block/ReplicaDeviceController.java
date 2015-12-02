@@ -899,7 +899,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      */
     public String addStepsForAddingVolumesToCG(Workflow workflow, String waitFor, URI cgURI, List<URI> volumeList,
             String taskId) throws InternalException {
-        log.info("addStepsForAddVolumesToCG {}", cgURI);
+        log.info("addStepsForAddingVolumesToCG {}", cgURI);
         List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeList);
         if (volumes != null && !volumes.isEmpty()) {
             Volume firstVolume = volumes.get(0);
@@ -935,7 +935,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 log.info("Adding snapshot steps for adding volumes");
                 // create new snapshots for the newly added volumes
                 // add the created snapshots to snapshot groups
-                Set<String> repGroupNames = ControllerUtils.getSnapshotReplicationGroupNames(volumes, _dbClient);
+                Set<String> repGroupNames = ControllerUtils.getSnapshotReplicationGroupNames(cgVolumes, _dbClient);
                 for (String repGroupName : repGroupNames) {
                     waitFor = addSnapshotsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes,
                             repGroupName, cgURI);
@@ -961,7 +961,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      */
     public String addStepsForRemovingVolumesFromCG(Workflow workflow, String waitFor, URI cgURI, List<URI> volumeList,
             String taskId) throws InternalException {
-        log.info("addStepsForAddVolumesToCG {}", cgURI);
+        log.info("addStepsForRemovingVolumesFromCG {}", cgURI);
         List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeList);
         if (volumes != null && !volumes.isEmpty()) {
             Volume firstVolume = volumes.get(0);

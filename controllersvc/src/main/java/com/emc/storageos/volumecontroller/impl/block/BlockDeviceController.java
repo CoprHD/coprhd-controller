@@ -3750,12 +3750,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMethodNullMethod(), null);
 
                 // call ReplicaDeviceController
-                _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, consistencyGroup, addVolumesList, task);
+                waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, consistencyGroup, addVolumesList, task);
             }
 
             if (removeVolumesList != null && !removeVolumesList.isEmpty()) {
                 // call ReplicaDeviceController
-                _replicaDeviceController.addStepsForRemovingVolumesFromCG(workflow, waitFor, consistencyGroup, removeVolumesList, task);
+                waitFor = _replicaDeviceController.addStepsForRemovingVolumesFromCG(workflow, waitFor, consistencyGroup, removeVolumesList, task);
 
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Updating consistency group %s", consistencyGroup),
@@ -4426,7 +4426,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         URI storage = storageSystem.getId();
         Workflow.Method createMethod = createListCloneMethod(storage, cloneList, false);
         Workflow.Method rollbackMethod = rollbackListCloneMethod(storage, cloneList);
-        waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", waitFor, storage,
+        waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating list clone", waitFor, storage,
                 storageSystem.getSystemType(), getClass(), createMethod, rollbackMethod, null);
 
         return waitFor;

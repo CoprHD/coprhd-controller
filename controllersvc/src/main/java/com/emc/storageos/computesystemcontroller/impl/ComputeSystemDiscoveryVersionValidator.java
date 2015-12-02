@@ -24,7 +24,7 @@ public class ComputeSystemDiscoveryVersionValidator {
     private static final String REDHAT_MIN_PROP = "compute_redhat_linux_version";
     private static final String SUSE_MIN_PROP = "compute_suse_linux_version";
     private static final String VCENTER_MIN_PROP = "compute_vmware_vcenter_version";
-    private static final String AIX_MIN_PROP = "compute_hpux_version";
+    private static final String AIX_MIN_PROP = "compute_aix_version";
     private static final String AIXVIO_MIN_PROP = "compute_aixvio_version";
     private static final String VMWARE_ESX_MIN_PROP = "compute_vmware_esx_version";
     private static final String HPUX_MIN_PROP = "compute_hpux_version";

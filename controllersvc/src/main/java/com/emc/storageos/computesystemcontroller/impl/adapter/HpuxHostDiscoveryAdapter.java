@@ -59,7 +59,7 @@ public class HpuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             save(host);
             throw ComputeSystemControllerException.exceptions.incompatibleHostVersion(
                     getSupportedType(), version.toString(),
-                    getVersionValidator().getAixMinimumVersion(false).toString());
+                    getVersionValidator().getHpuxMinimumVersion(false).toString());
         }
     }
 

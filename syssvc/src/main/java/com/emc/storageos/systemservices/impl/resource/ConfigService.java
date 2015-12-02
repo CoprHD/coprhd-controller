@@ -21,6 +21,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.security.password.InvalidLoginManager;
 import com.emc.storageos.model.auth.LoginFailedIPList;
 import org.apache.commons.lang.StringUtils;
@@ -60,6 +61,7 @@ import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toCluste
 public class ConfigService {
     // keys used in returning properties
     public static final String VERSION = "-clusterversion";
+    public static final String IPSEC_KEY = "-ipsec_key";
     public static final Map<String, String> propertyToParameters = new HashMap() {
         {
             put("node_count", "-nodecount");
@@ -98,6 +100,8 @@ public class ConfigService {
 
     @Autowired
     protected InvalidLoginManager _invLoginManager;
+
+    private IPsecConfig ipsecConfig;
 
     public static final String CERTIFICATE_VERSION = "certificate_version";
     private static final Logger _log = LoggerFactory.getLogger(ConfigService.class);
@@ -157,6 +161,11 @@ public class ConfigService {
     public void setPropertyHandlers(PropertyHandlers propertyHandlers) {
         _propertyHandlers = propertyHandlers;
     }
+
+    public void setIpsecConfig(IPsecConfig ipsecConfig) {
+        this.ipsecConfig = ipsecConfig;
+    }
+
 
     /**
      * Get properties defaults
@@ -249,6 +258,9 @@ public class ConfigService {
                     }
                     clusterInfo.put(parameter, ovfProp.getValue());
                 }
+
+                // Add ipsec key
+                clusterInfo.put(IPSEC_KEY, ipsecConfig.getPreSharedKey());
 
                 // Add version info
                 RepositoryInfo info = _coordinator.getTargetInfo(RepositoryInfo.class);

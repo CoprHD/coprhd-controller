@@ -485,4 +485,12 @@ public interface BlockServiceApi {
      * @param volsAlreadyInCG Volumes to be added are the same with those already in CG
      */
     public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG);
+    
+    /**
+     * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or higher
+     *
+     * @param volume Volume part of the CG
+     * @return true if the operation is supported.
+     */
+    public boolean checkVolumeCanBeAddedOrRemoved(Volume volume);
 }

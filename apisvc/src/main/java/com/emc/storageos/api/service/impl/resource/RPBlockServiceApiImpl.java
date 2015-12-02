@@ -1773,13 +1773,28 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // 3. If the device isn't part of a healthy protection set, then do a dependency check
 
         // Generate a list of dependencies, if there are any.
-        Map<URI, URI> dependencies = new HashMap<URI, URI>();
+        Map<String, String> dependencies = new HashMap<String, String>();
 
         Volume sourceVolume = (Volume) object;
         // Get all of the volumes associated with the volume
         for (BlockSnapshot snapshot : this.getSnapshots(sourceVolume)) {
             if (snapshot != null && !snapshot.getInactive()) {
-                dependencies.put(sourceVolume.getId(), snapshot.getId());
+                dependencies.put(sourceVolume.getLabel(), snapshot.getLabel());
+            }
+        }
+
+        if (!dependencies.isEmpty()) {
+            throw APIException.badRequests.cannotDeleteVolumeBlockSnapShotExists(String.valueOf(dependencies));
+        }
+
+        // now check to see if there are any bookmarks for any other source volume within this rset
+        List<Volume> allSrcVols = _rpHelper.getCgVolumes(((Volume) object).getConsistencyGroup(), Volume.PersonalityTypes.SOURCE.toString());
+        for (Volume vol : allSrcVols) {
+            for (BlockSnapshot snapshot : this.getSnapshots(vol)) {
+                if (snapshot != null && !snapshot.getInactive() && 
+                        TechnologyType.RP.toString().equals(snapshot.getTechnologyType())) {
+                    dependencies.put(vol.getLabel(), snapshot.getLabel());
+                }
             }
         }
 
@@ -1788,7 +1803,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         List<URI> volumeIDs = _rpHelper.getReplicationSetVolumes((Volume) object);
-
+        
         // Do a relatively "normal" check, as long as it's a "broken"
         // protection set.
         // It's considered a broken protection set if there's only one
@@ -3471,5 +3486,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.deleteVolumes(volumeDescriptors, taskId);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#checkVolumeCanBeAddedOrRemoved(com.emc.storageos.db.client.model.Volume)
+     */
+    @Override
+    public boolean checkVolumeCanBeAddedOrRemoved(Volume volume) {
+        // alway return false to ensure that dependency checks are done before deleting recoverpoint volumes
+        return false;
     }
 }

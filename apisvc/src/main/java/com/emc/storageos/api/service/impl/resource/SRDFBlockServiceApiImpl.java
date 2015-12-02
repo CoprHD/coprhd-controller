@@ -28,6 +28,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.SRDFScheduler;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
@@ -1052,6 +1053,14 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
 
         return allowedOperations;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#checkVolumeCanBeAddedOrRemoved(com.emc.storageos.db.client.model.Volume)
+     */
+    @Override
+    public boolean checkVolumeCanBeAddedOrRemoved(Volume volume) {
+        return BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient);
     }
 
 }

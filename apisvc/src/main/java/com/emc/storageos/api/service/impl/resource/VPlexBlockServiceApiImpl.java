@@ -40,6 +40,7 @@ import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation.VolumeType;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
@@ -3420,5 +3421,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
         StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexVolume.getStorageController());
         controller.resyncSnapshot(vplexSystem.getId(), snapshot.getId(), taskId);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#checkVolumeCanBeAddedOrRemoved(com.emc.storageos.db.client.model.Volume)
+     */
+    @Override
+    public boolean checkVolumeCanBeAddedOrRemoved(Volume volume) {
+        return BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient);
     }
 }

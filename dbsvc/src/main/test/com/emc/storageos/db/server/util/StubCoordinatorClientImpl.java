@@ -303,7 +303,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
 
     @Override
     public <T extends CoordinatorSerializable> T queryRuntimeState(String key, Class<T> clazz) throws CoordinatorException {
-        throw new UnsupportedOperationException();
+        return null; 
     }
 
     @Override

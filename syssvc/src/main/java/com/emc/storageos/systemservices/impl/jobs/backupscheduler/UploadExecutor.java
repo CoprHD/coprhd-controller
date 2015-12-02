@@ -16,13 +16,11 @@ import com.emc.vipr.model.sys.backup.BackupUploadStatus.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.nio.channels.UnsupportedAddressTypeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * This class uploads backups to user supplied external file server.
@@ -93,6 +91,8 @@ public class UploadExecutor {
                 }
 
                 String zipName = this.cli.generateZipFileName(tag, files);
+
+                markStaleIncompletedZipFile(zipName);
 
                 Long existingLen = uploader.getFileSize(zipName);
                 long len = existingLen == null ? 0 : existingLen;
@@ -254,5 +254,41 @@ public class UploadExecutor {
         if (modified) {
             this.cfg.persist();
         }
+    }
+
+    /**
+     * Mark invalid for stale incompleted backup file on server based on the input filename.
+     *
+     * @param toUploadedFileName the filename about to upload,
+     */
+    private void markStaleIncompletedZipFile(String toUploadedFileName) {
+        String noExtendFileName = toUploadedFileName.split(ScheduledBackupTag.ZIP_FILE_SURFIX)[0];
+        String toUploadFilePrefix = noExtendFileName.substring(0, noExtendFileName.length() - 2);
+        log.info("Check with prefix  {}", toUploadFilePrefix);
+        try {
+            List<String> ftpFiles = uploader.listFiles(toUploadFilePrefix);
+            for (String file : ftpFiles) {
+                if (isIncompletedFile(file, toUploadFilePrefix)) {
+                    if (isFullNodeFileName(noExtendFileName) && file.equals(toUploadedFileName)) {
+                        continue;
+                    }
+                    uploader.rename(file, ScheduledBackupTag.toInvalidFileName(file));
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to mark the previous uploaded backup zip file of ({}) as invalid", toUploadedFileName, e);
+        }
+    }
+
+    private boolean isFullNodeFileName(String noExtendFileName) {
+        String[] filenames = noExtendFileName.split(ScheduledBackupTag.BACKUP_TAG_SEPERATOR);
+        String availableNodes = filenames[filenames.length - 1];
+        String allNodes = filenames[filenames.length - 2];
+        return allNodes.equals(availableNodes);
+    }
+
+    private boolean isIncompletedFile(String filename, String prefix) {
+        Pattern pattern = Pattern.compile("^" + prefix + "-\\d" + ScheduledBackupTag.ZIP_FILE_SURFIX + "$");
+        return pattern.matcher(filename).matches();
     }
 }

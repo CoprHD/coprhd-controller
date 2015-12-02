@@ -157,8 +157,8 @@ EOF
     local ipsec_key=$(cat /opt/storageos/conf/psk.default)
     if [ -n "${_GENCONFIG_ipsec_key}" ] ; then
         ipsec_key="${_GENCONFIG_ipsec_key}"
-    elif [ -n "${_GENCONFIG_ipsec_key_from_ovfenv}" ] ; then
-        ipsec_key="${_GENCONFIG_ipsec_key_from_ovfenv}"
+    elif [ -n "${_GENCONFIG_ipsec_key_ovfenv}" ] ; then
+        ipsec_key="${_GENCONFIG_ipsec_key_ovfenv}"
     fi
 
     _genconfig_write 400 root:root "${IPSEC_CONF_FILE}" "${content}"

@@ -44,7 +44,8 @@ public class CoordinatorConfigStoringHelper {
 
     /**
      * 
-     * Creates or updates a new entry of the specified type in coordinator.
+     * Creates or updates a new entry of the specified type in coordinator. Config is 
+     * in ZK global aread /config
      * 
      * @param objToPersist
      *            the object to store in coordinator
@@ -57,11 +58,31 @@ public class CoordinatorConfigStoringHelper {
      * @throws Exception
      */
     public void createOrUpdateConfig(Object objToPersist, String lockName,
-            String configKInd, String configId, String ConfigKey) throws Exception {
+            String configKind, String configId, String configKey) throws Exception {
+        createOrUpdateConfig(objToPersist, lockName, null, configKind, configId, configKey);
+    }
+    
+    /**
+     * 
+     * Creates or updates a new entry of the specified type in coordinator. If siteId
+     * is not null, the config is in zk site specific area. Otherwise in global area
+     * 
+     * @param objToPersist
+     *            the object to store in coordinator
+     * @param lockName
+     *            the name of the lock to use while storing this object
+     *            If passed as Null, lock is assumed to be already owned
+     * @param configKInd
+     * @param configId
+     * @param ConfigKey
+     * @throws Exception
+     */
+    public void createOrUpdateConfig(Object objToPersist, String lockName,
+            String siteId, String configKInd, String configId, String ConfigKey) throws Exception {
         InterProcessLock lock = acquireLock(lockName);
         try {
             if (lock != null) {
-                Configuration config = coordinator.queryConfiguration(configKInd, configId);
+                Configuration config = coordinator.queryConfiguration(siteId, configKInd, configId);
                 ConfigurationImpl configImpl = null;
                 if (config == null) {
                     configImpl = new ConfigurationImpl();
@@ -92,7 +113,8 @@ public class CoordinatorConfigStoringHelper {
     }
 
     /**
-     * Reads object of the specified kind from coordinator and deserializes it.
+     * Reads object of the specified kind from coordinator and deserializes it. Config is 
+     * in ZK global aread /config
      * 
      * @param configKind
      * @param configId
@@ -103,7 +125,24 @@ public class CoordinatorConfigStoringHelper {
      */
     public <T> T readConfig(String configKind, String configId, String ConfigKey)
             throws IOException, ClassNotFoundException {
-        Configuration config = coordinator.queryConfiguration(configKind, configId);
+        return readConfig(null, configKind, configId, ConfigKey);
+    }
+    
+    /**
+     * Reads object of the specified kind from coordinator and deserializes it. If siteId
+     * is not null, the config is in zk site specific area. Otherwise in global area
+     * 
+     * @param siteId
+     * @param configKind
+     * @param configId
+     * @param ConfigKey
+     * @return the retrieved object or null if not found
+     * @throws ClassNotFoundException
+     * @throws IOException
+     */
+    public <T> T readConfig(String siteId, String configKind, String configId, String ConfigKey)
+            throws IOException, ClassNotFoundException {
+        Configuration config = coordinator.queryConfiguration(siteId, configKind, configId);
         if (config == null || config.getConfig(ConfigKey) == null) {
             log.debug("Config of kind " + configKind + " and id " + configId
                     + "not found");
@@ -114,7 +153,7 @@ public class CoordinatorConfigStoringHelper {
         T retObj = (T) SerializerUtils.deserialize(serializedConfig);
         return retObj;
     }
-
+    
     /**
      * Acquires an interprocess lock
      * 
@@ -154,7 +193,7 @@ public class CoordinatorConfigStoringHelper {
     }
 
     /**
-     * Removes the specified config from coordinator
+     * Removes the specified config from coordinator. Config is in global area
      * 
      * @param lockName
      *            the name of the lock to use while removing this object
@@ -162,13 +201,28 @@ public class CoordinatorConfigStoringHelper {
      * @param configId
      * @throws Exception
      */
-    public void removeConfig(String lockName, String configKInd, String configId)
+    public void removeConfig(String lockName, String configKind, String configId)
+            throws Exception {
+        removeConfig(lockName, null, configKind, configId);
+    }
+    
+    /**
+     * Removes the specified config from coordinator. If siteId is not null, config
+     * is in global area. Otherwise it is in site specific area
+     * 
+     * @param lockName
+     *            the name of the lock to use while removing this object
+     * @param configKInd
+     * @param configId
+     * @throws Exception
+     */
+    public void removeConfig(String lockName, String siteId, String configKInd, String configId)
             throws Exception {
         InterProcessLock lock = acquireLock(lockName);
         try {
-            Configuration config = coordinator.queryConfiguration(configKInd, configId);
+            Configuration config = coordinator.queryConfiguration(siteId, configKInd, configId);
             if (config != null) {
-                coordinator.removeServiceConfiguration(config);
+                coordinator.removeServiceConfiguration(siteId, config);
                 log.debug("removed config successfully");
             } else {
                 log.debug("config " + configId + " of kind " + configKInd
@@ -179,6 +233,7 @@ public class CoordinatorConfigStoringHelper {
         }
     }
 
+    
     /**
      * 
      * Removes all configs with the specified kind from coordinator
@@ -236,6 +291,10 @@ public class CoordinatorConfigStoringHelper {
         return returnedObjects;
     }
 
+    public String getSiteId() {
+        return coordinator.getSiteId();
+    }
+    
     /**
      * @param coordinator the coordinator to set
      */

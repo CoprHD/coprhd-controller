@@ -176,6 +176,9 @@ OVFBUILD_VSPHERE_BASH_LICENSE_FILE = $(OVFBUILD_VSPHERE_DIR)/storageos-license-s
           OVFBUILD_BASE_URL     = http://lglaf020.lss.emc.com/ionix/LAN/ADS-4993/strongswan/
 
             OVFBUILD_BASE_NAME  = base-2.4.0.0.$(OVFBUILD_BASE_RELEASE)
+          #OVFBUILD_BASE_RELEASE := 2
+          #OVFBUILD_BASE_URL      = http://lglaf020.lss.emc.com/images/vipr/ViPRBase/2.4.1.0/$(OVFBUILD_BASE_RELEASE)/
+          #  OVFBUILD_BASE_NAME  = base-2.4.1.0.$(OVFBUILD_BASE_RELEASE)
               OVFBUILD_BASE_DIR  = $(OBJDIR)/$(OVFBUILD_BASE_NAME)
               OVFBUILD_BASE_OVF  = $(OVFBUILD_BASE_DIR)/ViPRBase.x86_64-2.4.0.0.$(OVFBUILD_BASE_RELEASE).ovf
              OVFBUILD_BASE_DISK  = $(OVFBUILD_BASE_DIR)/ViPRBase.x86_64-2.4.0.0.$(OVFBUILD_BASE_RELEASE)-disk1.vmdk

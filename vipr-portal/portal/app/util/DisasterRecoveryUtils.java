@@ -10,9 +10,11 @@ import static util.BourneUtil.getViprClient;
 import java.util.List;
 
 import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
-import com.emc.storageos.model.dr.SitePrimary;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.ClientResponse;
@@ -29,8 +31,8 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().listAllSites();
     }
 
-    public static SitePrimary checkPrimary() {
-        return getViprClient().site().checkPrimary();
+    public static SiteActive checkPrimary() {
+        return getViprClient().site().checkIsActive();
     }
 
     public static SiteRestRep addStandby(SiteAddParam standbySite) {
@@ -81,7 +83,7 @@ public class DisasterRecoveryUtils {
     public static SiteRestRep getActiveSite() {
         List<SiteRestRep> sites = getViprClient().site().listAllSites().getSites();
         for (SiteRestRep activeSite : sites) {
-            if (activeSite.getState().toUpperCase().equals("PRIMARY")) {
+            if (activeSite.getState().toUpperCase().equals(String.valueOf(SiteState.ACTIVE))) {
                 return activeSite;
             }
         }
@@ -89,8 +91,12 @@ public class DisasterRecoveryUtils {
     }
 
     public static boolean isPrimarySite() {
-        SitePrimary siteCheck = checkPrimary();
-        return siteCheck.getIsPrimary();
+        SiteActive siteCheck = checkPrimary();
+        return siteCheck.getIsActive();
+    }
+
+    public static SiteErrorResponse getSiteError(String uuid) {
+        return getViprClient().site().getSiteError(uuid);
     }
 
 }

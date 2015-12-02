@@ -119,18 +119,18 @@ public class VdcConfigUtilTest {
         public Configuration queryConfiguration(String kind, String id) {
             ConfigurationImpl configuration = new ConfigurationImpl();
             switch(kind) {
-                case Constants.CONFIG_DR_PRIMARY_KIND:
+                case Constants.CONFIG_DR_ACTIVE_KIND:
                     switch(id) {
                         case "vdc1":
-                            configuration.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID,
+                            configuration.setConfig(Constants.CONFIG_DR_ACTIVE_SITEID,
                                     "11111111-1111-1111-1111-111111111111");
                             break;
                         case "vdc2":
-                            configuration.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, 
+                            configuration.setConfig(Constants.CONFIG_DR_ACTIVE_SITEID, 
                                     "22222222-2222-2222-2222-222222222222");
                             break;
                         case "vdc3":
-                            configuration.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID,
+                            configuration.setConfig(Constants.CONFIG_DR_ACTIVE_SITEID,
                                     "33333333-3333-3333-3333-333333333333");
                             break;
                     }

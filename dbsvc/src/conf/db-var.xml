@@ -12,6 +12,7 @@
     <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
         <property name="name" value="dbsvc"/>
         <property name="id" value="db-standalone"/>
+        <property name="nodeId" value="standalone"/>
         <property name="endpoint" value="thrift://localhost:9160"/>
         <property name="version" ref="dbSchemaVersion"/>
     </bean>

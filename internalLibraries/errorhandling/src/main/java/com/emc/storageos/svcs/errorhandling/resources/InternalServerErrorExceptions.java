@@ -287,8 +287,8 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_FAILED)
     public InternalServerErrorException switchoverFailed(String primaryName, String standbyName, String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_PRIMARY_FAILED_TIMEOUT)
-    public InternalServerErrorException switchoverPrimaryFailedTimeout(String siteName, int timeoutValue);
+    @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_ACTIVE_FAILED_TIMEOUT)
+    public InternalServerErrorException switchoverActiveFailedTimeout(String siteName, int timeoutValue);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_STANDBY_FAILED_TIMEOUT)
     public InternalServerErrorException switchoverStandbyFailedTimeout(String siteName, int timeoutValue);

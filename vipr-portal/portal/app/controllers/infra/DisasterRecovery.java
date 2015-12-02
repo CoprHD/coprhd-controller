@@ -25,11 +25,12 @@ import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
 import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
-import com.emc.storageos.model.dr.SitePrimary;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
-import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -85,6 +86,7 @@ public class DisasterRecovery extends ViprResourceController {
         list();
     }
 
+    @FlashException("list")
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void resume(String id) {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
@@ -99,11 +101,13 @@ public class DisasterRecovery extends ViprResourceController {
 
     }
 
+    @FlashException("list")
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void switchover(String id) {
         String standby_name = null;
         String standby_vip = null;
         String active_name = null;
+
         // Get active site details
         SiteRestRep activesite = DisasterRecoveryUtils.getActiveSite();
         if (activesite == null) {
@@ -117,8 +121,8 @@ public class DisasterRecovery extends ViprResourceController {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
             // Check Switchover or Failover
-            SitePrimary currentSite = DisasterRecoveryUtils.checkPrimary();
-            if (currentSite.getIsPrimary() == true) {
+            SiteActive currentSite = DisasterRecoveryUtils.checkPrimary();
+            if (currentSite.getIsActive() == true) {
                 DisasterRecoveryUtils.doSwitchover(id);
             }
             else {
@@ -127,8 +131,10 @@ public class DisasterRecovery extends ViprResourceController {
             standby_name = result.getName();
             standby_vip = result.getVip();
         }
-
-        render(active_name, standby_name, standby_vip);
+        String site_uuid = id;
+        result = DisasterRecoveryUtils.getSite(id);
+        String site_state = result.getState();
+        render(active_name, standby_name, standby_vip, site_uuid, site_state);
     }
 
     private static DisasterRecoveryDataTable createDisasterRecoveryDataTable() {
@@ -207,6 +213,19 @@ public class DisasterRecovery extends ViprResourceController {
 
     public static boolean isPrimarySite() {
         return DisasterRecoveryUtils.isPrimarySite();
+    }
+
+    public static void checkFailoverProgress(String uuid) {
+        SiteRestRep siteRest = DisasterRecoveryUtils.getSite(uuid);
+        renderJSON(siteRest);
+    }
+
+    public static void errorDetails(String id) {
+        SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
+        if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
+            SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
+            render(disasterSiteError);
+        }
     }
 
     private static void itemsJson(List<String> uuids) {

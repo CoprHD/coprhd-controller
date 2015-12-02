@@ -19,6 +19,7 @@ import com.emc.sa.service.vipr.block.consistency.tasks.DetachConsistencyGroupFul
 import com.emc.sa.service.vipr.block.consistency.tasks.RestoreConsistencyGroupFullCopy;
 import com.emc.sa.service.vipr.block.consistency.tasks.RestoreConsistencyGroupSnapshot;
 import com.emc.sa.service.vipr.block.consistency.tasks.ResynchronizeConsistencyGroupFullCopy;
+import com.emc.sa.service.vipr.block.consistency.tasks.ResynchronizeConsistencyGroupSnapshot;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
@@ -88,6 +89,10 @@ final class ConsistencyUtils {
 
     static Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroupId, URI snapshotId) {
         return execute(new RestoreConsistencyGroupSnapshot(consistencyGroupId, snapshotId));
+    }
+    
+    static Task<BlockConsistencyGroupRestRep> resynchronizeSnapshot(URI consistencyGroupId, URI snapshotId) {
+        return execute(new ResynchronizeConsistencyGroupSnapshot(consistencyGroupId, snapshotId));
     }
 
     /**

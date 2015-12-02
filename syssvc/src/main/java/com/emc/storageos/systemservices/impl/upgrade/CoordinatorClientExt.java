@@ -431,7 +431,7 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Get all target properties - include global(shared by primary/standby), or site specific properties
+     * Get all target properties - include global(shared by active/standby), or site specific properties
      * 
      * @return
      * @throws Exception
@@ -1450,7 +1450,7 @@ public class CoordinatorClientExt {
             try {
                 Site localSite = drUtil.getLocalSite();
                 SiteState siteState = localSite.getState();
-                if (siteState.equals(SiteState.PRIMARY_SWITCHING_OVER)
+                if (siteState.equals(SiteState.ACTIVE_SWITCHING_OVER)
                         || siteState.equals(SiteState.STANDBY_SWITCHING_OVER)
                         || siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
                     _log.info("Ignore coordinator check for site state {}", siteState);
@@ -1509,12 +1509,12 @@ public class CoordinatorClientExt {
          */
         public boolean isActiveSiteStable() {
             DrUtil drUtil = new DrUtil(_coordinator);
-            Site primary = drUtil.getSiteFromLocalVdc(drUtil.getPrimarySiteId());
+            Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
             
-            // Check alive coordinatorsvc on primary site
-            Collection<String> nodeAddrList = primary.getHostIPv4AddressMap().values();
+            // Check alive coordinatorsvc on active site
+            Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();
             if (nodeAddrList.isEmpty()) {
-                nodeAddrList = primary.getHostIPv6AddressMap().values();
+                nodeAddrList = activeSite.getHostIPv6AddressMap().values();
             }
 
             if (nodeAddrList.size() > 1) {
@@ -1531,7 +1531,7 @@ public class CoordinatorClientExt {
                 }
             } else { // standalone
                 String nodeAddr = nodeAddrList.iterator().next();
-                // check both election ports on the primary site.
+                // check both election ports on the active site.
                 if (!isZookeeperLeader(nodeAddr, ZK_LEADER_ELECTION_PORT) &&
                         !isZookeeperLeader(nodeAddr, DUAL_ZK_LEADER_ELECTION_PORT)) {
                     _log.info("No zookeeper leader alive on active site.");
@@ -1540,7 +1540,7 @@ public class CoordinatorClientExt {
             }
             
             // check if cluster state is stable
-            String vip = primary.getVip();
+            String vip = activeSite.getVip();
             int port = _svc.getEndpoint().getPort();
             String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, vip, port);
             try {

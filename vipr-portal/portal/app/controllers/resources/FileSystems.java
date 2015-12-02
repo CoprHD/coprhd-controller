@@ -367,6 +367,28 @@ public class FileSystems extends ResourceController {
         listNfsAcl(fileSystem, fsMountPath, subDir);
     }
 
+    public static void addSubDirAndNfsAcl(String formAccessControlList, String fileSystem, String subDir) {
+        if (formAccessControlList == null || "".equals(formAccessControlList)) {
+            flash.error(MessagesUtils
+                    .get("resources.filesystem.share.acl.invalid.settings"),
+                    null);
+            fileSystem(fileSystem);
+        }
+        NfsACLUpdateParams input = createNfsAclParams(formAccessControlList);
+        if (subDir != null && !"null".equals(subDir) && !subDir.isEmpty()) {
+            input.setSubDir(subDir);
+        }
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        try {
+            client.fileSystems().updateNfsACL(uri(fileSystem), input);
+        } catch (Exception e) {
+            flash.error(e.getMessage(), null);
+            fileSystem(fileSystem);
+        }
+        flash.success(MessagesUtils.get(ADDED));
+        fileSystem(fileSystem);
+    }
+
     private static NfsACLUpdateParams createNfsAclParams(String formData) {
         String[] uiAcls = formData.split(",");
         List<NfsACE> aces = Lists.newArrayList();
@@ -625,7 +647,7 @@ public class FileSystems extends ResourceController {
         }
 
         if (formAccessControlList == null || "".equals(formAccessControlList)) {
-            flash.error(MessagesUtils.get("resources.filesystem.share.acl.invalid.settings"), null);
+            flash.error(MessagesUtils.get("resources.filesystem.share.acl.invalid.name"), null);
             listAcl(fileSystem, shareName);
         }
         FileCifsShareACLUpdateParams input = createCifsShareAclParams(formAccessControlList);

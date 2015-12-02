@@ -9,6 +9,7 @@
     <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
         <property name="name" value="geodbsvc"/>
         <property name="id" value="geodb-${node_index}"/>
+        <property name="nodeId" value="${node_id}"/>
         <property name="endpoint" value="thrift://${node_id}:9260"/>
         <property name="version" ref="dbSchemaVersion"/>
     </bean>

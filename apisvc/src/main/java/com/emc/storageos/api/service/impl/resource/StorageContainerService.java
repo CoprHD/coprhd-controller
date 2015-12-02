@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.model.StorageContainer;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.model.vasa.StorageContainerBulkResponse;
 import com.emc.storageos.model.vasa.StorageContainerCreateResponse;
 import com.emc.storageos.model.vasa.StorageContainerRequestParam;
 import com.emc.storageos.security.authorization.ACL;
@@ -68,12 +69,19 @@ public class StorageContainerService extends AbstractStorageContainerService {
     
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response getResponseStatus(){
+    public StorageContainerBulkResponse getResponseStatus() {
         _log.info("*******enter in get response***********");
-        List<URI> storageContainerList = new ArrayList<URI>();
-        storageContainerList = _dbClient.queryByType(StorageContainer.class, true);
-        _log.info("@@@@@@@@" + "StorageContainerObject : " + storageContainerList.toString()  + "@@@@@@");
-        return Response.status(200).build();
+        List<URI> storageContainerUris = _dbClient.queryByType(StorageContainer.class, true);
+        List<StorageContainer> storageContainers = _dbClient.queryObject(StorageContainer.class, storageContainerUris);
+        StorageContainerBulkResponse storageContainerBulkResponse = new StorageContainerBulkResponse();
+        if(null != storageContainers){
+            for(StorageContainer storageContainer : storageContainers){
+                if(null != storageContainer){
+                    storageContainerBulkResponse.getStorageContainers().add(toStorageContainer(storageContainer));
+                }
+            }
+        }
+        return storageContainerBulkResponse;
     }
 
     @Override

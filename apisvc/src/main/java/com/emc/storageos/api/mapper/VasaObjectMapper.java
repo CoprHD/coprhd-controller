@@ -10,6 +10,7 @@ import com.emc.storageos.db.client.model.StorageContainer;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.vasa.StorageContainerCreateResponse;
+import com.emc.storageos.model.vasa.VasaCommonRestResponse;
 
 public class VasaObjectMapper {
 
@@ -18,27 +19,27 @@ public class VasaObjectMapper {
             return null;
         }
         StorageContainerCreateResponse to = new StorageContainerCreateResponse();
-        return mapStorageContainerFields(from, to);
+        to.setProtocolEndPointType(from.getProtocolEndPointType());
+        to.setMaxVvolSizeMB(from.getMaxVvolSizeMB());
+        to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystem()));
+        
+        return mapCommonVasaFields(from, to);
     }
 
-    private static StorageContainerCreateResponse mapStorageContainerFields(StorageContainer from, StorageContainerCreateResponse to) {
+    private static <T extends VasaCommonRestResponse> T mapCommonVasaFields(StorageContainer from, T to) {
         mapDataObjectFieldsNoLink(from, to);
         ResourceTypeEnum type = ResourceTypeEnum.STORAGE_CONTAINER;
         to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(type, from.getId())));
         to.setType(from.getType());
         to.setDescription(from.getDescription());
         to.setProtocols(from.getProtocols());
-        to.setProvisioningType(from.getProvisioningType());
-        to.setProtocolEndPointType(from.getProtocolEndPointType());
-        to.setMaxVvolSizeMB(from.getMaxVvolSizeMB());
+        to.setProvisioningType(from.getProvisioningType());        
         
         if (from.getVirtualArrays() != null) {
             for (String neighborhood : from.getVirtualArrays()) {
                 to.getVirtualArrays().add(toRelatedResource(ResourceTypeEnum.VARRAY, URI.create(neighborhood)));
             }
         }
-        
-        to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystem()));
         
         return to;
     }

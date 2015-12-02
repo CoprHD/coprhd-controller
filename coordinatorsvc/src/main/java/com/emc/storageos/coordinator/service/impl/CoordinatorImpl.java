@@ -87,7 +87,8 @@ public class CoordinatorImpl implements Coordinator {
             throw new RuntimeException("Uncommited data revision");
         }
 
-        _log.info(String.format("readonlymode.enabled: %s", System.getProperty("readonlymode.enabled")));
+        _log.info(String.format("%s: %s", SpringQuorumPeerConfig.READONLY_MODE_ENABLED,
+                System.getProperty(SpringQuorumPeerConfig.READONLY_MODE_ENABLED)));
         
         // snapshot clean up runs at regular interval and leaves desired snapshots
         // behind

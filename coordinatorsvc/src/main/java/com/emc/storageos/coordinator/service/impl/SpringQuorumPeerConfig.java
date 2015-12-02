@@ -26,6 +26,7 @@ import com.emc.storageos.services.util.FileUtils;
 public class SpringQuorumPeerConfig extends QuorumPeerConfig {
     private static final Logger log = LoggerFactory.getLogger(SpringQuorumPeerConfig.class);
     private static final String SERVER_ID_FILE = "myid";
+    public static final String READONLY_MODE_ENABLED = "readonlymode.enabled";
 
     private int _id;
     private Properties _properties;
@@ -91,8 +92,8 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
             }
         }
 
-        if (zkProp.containsKey("readonlymode.enabled")) {
-            System.setProperty("readonlymode.enabled", zkProp.getProperty("readonlymode.enabled"));
+        if (zkProp.containsKey(READONLY_MODE_ENABLED)) {
+            System.setProperty(READONLY_MODE_ENABLED, zkProp.getProperty(READONLY_MODE_ENABLED));
         }
     }
 

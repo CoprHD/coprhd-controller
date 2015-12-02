@@ -50,6 +50,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
@@ -62,10 +63,10 @@ import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
-import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SitePrimary;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
@@ -206,7 +207,7 @@ public class DisasterRecoveryService {
             // sync site related info with to be added standby site
             long dataRevision = System.currentTimeMillis();
             SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey(), standbyConfig.getUuid(), dataRevision);
-            viprCoreClient.site().syncSite(configParam);
+            viprCoreClient.site().syncSite(standbyConfig.getUuid(), configParam);
 
             drUtil.updateVdcTargetVersion(siteId, SiteInfo.DR_OP_CHANGE_DATA_REVISION, dataRevision);
 
@@ -267,11 +268,11 @@ public class DisasterRecoveryService {
      * Initialize a to be added target standby
      * The current site will be demoted from primary to standby during the process
      *
->>>>>>> FETCH_HEAD
      * @param configParam
      * @return
      */
     @PUT
+    @Path("/{uuid}/initstandby")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
@@ -960,7 +961,7 @@ public class DisasterRecoveryService {
      * @return
      */
     @PUT
-    @Path("/{uuid}/update")
+    @Path("/{uuid}")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
@@ -971,7 +972,7 @@ public class DisasterRecoveryService {
         
         try {
             site = drUtil.getSiteFromLocalVdc(uuid);
-        } catch (Exception e) {
+        } catch (RetryableCoordinatorException e) {
             log.error("Can't find site with specified site UUID {}", uuid);
             throw APIException.badRequests.siteIdNotFound();
         }
@@ -980,8 +981,14 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site name should not be empty.");
         }
         
-        if (StringUtil.isBlank(siteParam.getDescription())) {
-            throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site description should not be empty.");
+        for (Site eachSite : drUtil.listSites()) {
+            if (eachSite.getUuid().equals(uuid)) {
+                continue;
+            }
+            
+            if (eachSite.getName().equals(siteParam.getName())) {
+                throw APIException.internalServerErrors.addStandbyPrecheckFailed("Duplicate site name");
+            }
         }
         
         try {

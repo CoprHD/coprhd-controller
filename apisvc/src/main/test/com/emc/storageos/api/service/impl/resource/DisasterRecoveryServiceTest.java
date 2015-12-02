@@ -825,14 +825,6 @@ public class DisasterRecoveryServiceTest {
         }
         
         updateParam.setName("New Name");
-        
-        try {
-            drService.updateSite(standbySite1.getUuid(), updateParam);
-            fail();
-        } catch (InternalServerErrorException e) {
-            //Ignore expected exception
-        }
-        
         updateParam.setDescription("New Description");
         drService.updateSite(standbySite1.getUuid(), updateParam);
     }
@@ -868,7 +860,7 @@ public class DisasterRecoveryServiceTest {
                 config.setHostIPv4AddressMap(new HashMap<String, String>());
                 config.setHostIPv6AddressMap(new HashMap<String, String>());
                 doReturn(config).when(site).getStandbyConfig();
-                doReturn(null).when(site).syncSite(any(SiteConfigParam.class));
+                doReturn(null).when(site).syncSite(anyString(), any(SiteConfigParam.class));
                 return site;
             }
         }

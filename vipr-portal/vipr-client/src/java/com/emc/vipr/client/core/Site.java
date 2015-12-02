@@ -55,8 +55,8 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/resume/");
     }
 
-    public ClientResponse syncSite(SiteConfigParam input) {
-        return client.put(ClientResponse.class, input, PathConstants.SITE_URL);
+    public ClientResponse syncSite(String uuid, SiteConfigParam input) {
+        return client.put(ClientResponse.class, input, PathConstants.SITE_URL + "/" + uuid + "/initstandby/");
     }
 
     public SiteRestRep getSite(String uuid) {
@@ -92,7 +92,7 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     }
     
     public ClientResponse updateSite(String uuid, SiteUpdateParam updateParam) {
-        return client.put(ClientResponse.class, updateParam, PathConstants.SITE_URL + "/" + uuid + "/update");
+        return client.put(ClientResponse.class, updateParam, PathConstants.SITE_URL + "/" + uuid);
     }
 
     @Override

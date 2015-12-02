@@ -71,7 +71,7 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
     private List<URI> systemCache;
     private List<URI> poolCache;
 
-    private List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed;
+//     private List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed;  (think this is confusing wording for to be deleted)
     private List<UnManagedVolume> unManagedVolumesToBeDeleted;
     private Map<String, BlockObject> createdObjectMap; 
     private Map<String, List<DataObject>> updatedObjectMap; 
@@ -202,7 +202,7 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
     /**
      * @return the virtualArray
      */
-    public VirtualArray getVirtualArray() {
+    public VirtualArray getVarray() {
         return virtualArray;
     }
 
@@ -259,17 +259,17 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
         
         return poolCache;
     }
-
-    /**
-     * @return the unManagedVolumesSuccessfullyProcessed
-     */
-    public List<UnManagedVolume> getUnManagedVolumesSuccessfullyProcessed() {
-        if (null == unManagedVolumesSuccessfullyProcessed) {
-            unManagedVolumesSuccessfullyProcessed = new ArrayList<UnManagedVolume>();
-        }
-        
-        return unManagedVolumesSuccessfullyProcessed;
-    }
+//
+//    /**
+//     * @return the unManagedVolumesSuccessfullyProcessed
+//     */
+//    public List<UnManagedVolume> getUnManagedVolumesSuccessfullyProcessed() {
+//        if (null == unManagedVolumesSuccessfullyProcessed) {
+//            unManagedVolumesSuccessfullyProcessed = new ArrayList<UnManagedVolume>();
+//        }
+//        
+//        return unManagedVolumesSuccessfullyProcessed;
+//    }
 
     /**
      * @return the unManagedVolumesToBeDeleted

@@ -88,14 +88,7 @@ public abstract class BlockIngestOrchestrator {
      * @param clazz
      * @return BlockObject
      */
-    protected abstract <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, 
-            List<URI> systemCache, List<URI> poolCache, StorageSystem system,
-            UnManagedVolume unManagedVolume,
-            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
-            List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed,
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
-            Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod)
+    protected abstract <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
             throws IngestionException;
 
     /**
@@ -624,16 +617,17 @@ public abstract class BlockIngestOrchestrator {
      * @return
      */
     @SuppressWarnings("deprecation")
-    protected boolean markUnManagedVolumeInactive(UnManagedVolume currentUnmanagedVolume,
-            BlockObject currentBlockObject, List<UnManagedVolume> unManagedVolumes,
-            Map<String, BlockObject> createdObjects, Map<String, List<DataObject>> updatedObjects,
-            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) {
+    protected boolean markUnManagedVolumeInactive(
+            IngestionRequestContext requestContext, BlockObject currentBlockObject) {
+        UnManagedVolume currentUnmanagedVolume = requestContext.getCurrentUnmanagedVolume();
+        
         _logger.info("Running unmanagedvolume {} replica ingestion status", currentUnmanagedVolume.getNativeGuid());
         boolean markUnManagedVolumeInactive = false;
 
         // if the vplex ingestion method is vvol-only, we don't need to check replicas
         if (VolumeIngestionUtil.isVplexVolume(currentUnmanagedVolume) &&
-                VplexBackendIngestionContext.INGESTION_METHOD_VVOL_ONLY.equals(vplexIngestionMethod)) {
+                VplexBackendIngestionContext.INGESTION_METHOD_VVOL_ONLY.equals(
+                        requestContext.getVplexIngestionMethod())) {
             _logger.info("This is a VPLEX virtual volume and the ingestion method is "
                     + "virtual volume only. Skipping replica ingestion algorithm.");
             return true;
@@ -672,7 +666,7 @@ public abstract class BlockIngestOrchestrator {
                         rootBlockObject = VolumeIngestionUtil.getBlockObject(blockObjectNativeGUID, _dbClient);
                         // If the volumeobject is not found in DB. check in locally createdObjects.
                         if (rootBlockObject == null) {
-                            rootBlockObject = createdObjects.get(blockObjectNativeGUID);
+                            rootBlockObject = requestContext.getCreatedObjectMap().get(blockObjectNativeGUID);
                         }
                         // Get the parent unmanagedvolume for the current unmanagedvolume.
                         List<String> parents = getParentVolumeNativeGUIDByRepType(unManagedVolumeInformation);
@@ -748,14 +742,15 @@ public abstract class BlockIngestOrchestrator {
                 _logger.info("Running algorithm to check all replicas ingested for parent");
                 runReplicasIngestedCheck(rootUnManagedVolume, rootBlockObject, currentUnmanagedVolume, currentBlockObject,
                         processedUnManagedGUIDS,
-                        createdObjects, parentReplicaMap, taskStatusMap);
+                        requestContext.getCreatedObjectMap(), parentReplicaMap, requestContext.getTaskStatusMap());
                 _logger.info("Ended algorithm to check all replicas ingested for parent");
                 List<UnManagedVolume> processedUnManagedVolumes = _dbClient.queryObject(UnManagedVolume.class,
                         VolumeIngestionUtil.getUnManagedVolumeUris(processedUnManagedGUIDS, _dbClient));
 
                 if (!parentReplicaMap.isEmpty()) {
-                    setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap, unManagedVolumes, createdObjects,
-                            updatedObjects,
+                    setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap, 
+                            requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getCreatedObjectMap(),
+                            requestContext.getUpdatedObjectMap(),
                             processedUnManagedVolumes);
                     allGood = true;
                 }
@@ -780,14 +775,15 @@ public abstract class BlockIngestOrchestrator {
             _logger.info("Running algorithm to check all replicas ingested for parent");
             runReplicasIngestedCheck(rootUnManagedVolume, rootBlockObject, currentUnmanagedVolume, currentBlockObject,
                     processedUnManagedGUIDS,
-                    createdObjects, parentReplicaMap, taskStatusMap);
+                    requestContext.getCreatedObjectMap(), parentReplicaMap, requestContext.getTaskStatusMap());
             _logger.info("Ended algorithm to check all replicas ingested for parent");
             List<UnManagedVolume> processedUnManagedVolumes = _dbClient.queryObject(UnManagedVolume.class,
                     VolumeIngestionUtil.getUnManagedVolumeUris(processedUnManagedGUIDS, _dbClient));
 
             if (!parentReplicaMap.isEmpty()) {
-                setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap, unManagedVolumes, createdObjects, updatedObjects,
-                        processedUnManagedVolumes);
+                setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap, 
+                        requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getCreatedObjectMap(), 
+                        requestContext.getUpdatedObjectMap(), processedUnManagedVolumes);
                 return true;
             }
         }

@@ -4,10 +4,11 @@
  */
 package com.emc.storageos.datadomain.restapi.model;
 
-import com.google.gson.Gson;
-import com.google.gson.annotations.SerializedName;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonRootName;
+
+import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 
 /**
  * Created by zeldib on 2/10/14.
@@ -55,6 +56,9 @@ public class DDNetworkDetails {
     private int rate;
 
     private int txqueuelen;
+
+    @SerializedName("has_link")
+    private boolean hasLink;
 
     public String getId() {
         return id;
@@ -205,6 +209,16 @@ public class DDNetworkDetails {
         this.txqueuelen = txqueuelen;
     }
 
+    @JsonProperty(value = "has_link")
+    public boolean getHasLink() {
+        return hasLink;
+    }
+
+    public void setHasLink(boolean haslink) {
+        this.hasLink = haslink;
+    }
+
+    @Override
     public String toString() {
         return new Gson().toJson(this).toString();
     }

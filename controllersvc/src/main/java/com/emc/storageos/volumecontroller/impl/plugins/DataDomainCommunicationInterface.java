@@ -132,12 +132,11 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
      */
     private DataDomainClient getDataDomainClient(AccessProfile accessProfile) throws BaseCollectionException, DataDomainApiException {
 
-        DataDomainClient ddClient =
-                (DataDomainClient) _factory.getRESTClient(
-                        DataDomainApiConstants.newDataDomainBaseURI(accessProfile.getIpAddress(),
-                                accessProfile.getPortNumber()),
-                        accessProfile.getUserName(),
-                        accessProfile.getPassword());
+        DataDomainClient ddClient = (DataDomainClient) _factory.getRESTClient(
+                DataDomainApiConstants.newDataDomainBaseURI(accessProfile.getIpAddress(),
+                        accessProfile.getPortNumber()),
+                accessProfile.getUserName(),
+                accessProfile.getPassword());
         return ddClient;
     }
 
@@ -325,8 +324,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
         provider.setVersionString(version);
         _log.info("Verifying DDMC version: minimum supported {}, discovered {}",
                 minimumSupportedVersion, version);
-        if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, version) < 0)
-        {
+        if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, version) < 0) {
             provider.setConnectionStatus(ConnectionStatus.NOTCONNECTED.toString());
             provider.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
             DiscoveryUtils.setSystemResourcesIncompatible(_dbClient, _coordinator, provider.getId());
@@ -350,8 +348,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
         DDSystem ddSystem = ddClient.getDDSystem(storageSystem.getNativeGuid());
         _log.info("Verifying DDOS version: minimum supported {}, discovered {}",
                 minimumSupportedVersion, ddSystem.version);
-        if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, ddSystem.version) < 0)
-        {
+        if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, ddSystem.version) < 0) {
             return false;
         }
         return true;
@@ -428,8 +425,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
         boolean match = false;
         StoragePool storagePool = getPoolFromDB(storageSystem);
 
-        if (storagePool == null)
-        {
+        if (storagePool == null) {
             // New storage pool
             storagePool = new StoragePool();
             storagePool.setId(URIUtil.createId(StoragePool.class));
@@ -501,8 +497,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
 
         if (newPool) {
             _dbClient.createObject(storagePool);
-        }
-        else {
+        } else {
             _dbClient.persistObject(storagePool);
         }
 
@@ -528,7 +523,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
             List<StoragePort> ports = new ArrayList<StoragePort>();
             for (DDNetworkInfo network : networks.network) {
                 DDNetworkDetails detailedNetworkInfo = ddClient.getNetwork(storageSystem.getNativeGuid(), network.getId());
-                if ((!detailedNetworkInfo.getEnabled()) || (detailedNetworkInfo.getIp() == null)) {
+                if ((!detailedNetworkInfo.getEnabled()) || (detailedNetworkInfo.getIp() == null) || (!detailedNetworkInfo.getHasLink())) {
                     continue;
                 }
                 StoragePort storagePort = null;
@@ -537,8 +532,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                         storageSystem, detailedNetworkInfo.getIp(),
                         NativeGUIDGenerator.PORT);
                 URIQueryResultList results = new URIQueryResultList();
-                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                        getStoragePortByNativeGuidConstraint(portNativeGuid), results);
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(portNativeGuid), results);
 
                 while (results.iterator().hasNext()) {
                     StoragePort port = _dbClient.queryObject(StoragePort.class, results.iterator().next());
@@ -574,8 +568,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                 StoragePortAssociationHelper.updatePortAssociations(Arrays.asList(storagePort), _dbClient);
                 if (newPort) {
                     _dbClient.createObject(storagePort);
-                }
-                else {
+                } else {
                     _dbClient.persistObject(storagePort);
                 }
                 ports.add(storagePort);
@@ -592,8 +585,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
     private void discoverMtrees(DataDomainClient ddClient, StorageSystem storageSystem) {
 
         URIQueryResultList mtreeList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                getStorageDeviceFileshareConstraint(storageSystem.getId()), mtreeList);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceFileshareConstraint(storageSystem.getId()), mtreeList);
         Iterator<URI> mtreeItr = mtreeList.iterator();
         while (mtreeItr.hasNext()) {
             FileShare mtree = _dbClient.queryObject(FileShare.class, mtreeItr.next());
@@ -637,13 +629,11 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                 if ((mtree.protocolName == null) || (mtree.protocolName.isEmpty())) {
                     _log.info("Mtree: {} doesn't contain any protocol defined so ignoring it", mtree.name);
                     continue;
-                }
-                else {
+                } else {
                     if ((mtree.protocolName.contains(DataDomainApiConstants.NFS_PROTOCOL))
                             || (mtree.protocolName.contains(DataDomainApiConstants.CIFS_PROTOCOL))) {
                         _log.info("Mtree: {} contains supported protocol:{} so discovering it", mtree.name, mtree.protocolName.toArray());
-                    }
-                    else {
+                    } else {
                         _log.info("Mtree: {} contains unsupported protocol:{} so ignoring it", mtree.name, mtree.protocolName.toArray());
                         continue;
                     }
@@ -663,10 +653,10 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                     continue;
                 }
 
-                String fsUnManagedFsNativeGuid = NativeGUIDGenerator.
-                        generateNativeGuidForPreExistingFileSystem(storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber().toUpperCase(),
-                                mtreeInfo.getId());
+                String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
+                        storageSystem.getSystemType(),
+                        storageSystem.getSerialNumber().toUpperCase(),
+                        mtreeInfo.getId());
 
                 UnManagedFileSystem unManagedFS = getUnManagedFileSystemFromDB(fsUnManagedFsNativeGuid);
                 boolean alreadyExist = unManagedFS == null ? false : true;
@@ -680,7 +670,8 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                 allDiscoveredUnManagedFileSystems.add(unManagedFS.getId());
             }
 
-            // Process those active unmanaged fs objects available in database but not in newly discovered items, to mark them inactive.
+            // Process those active unmanaged fs objects available in database but not in newly discovered items, to
+            // mark them inactive.
             markUnManagedFSObjectsInActive(storageSystem, allDiscoveredUnManagedFileSystems);
 
             if (newUnManagedFileSystems != null && !newUnManagedFileSystems.isEmpty()) {
@@ -736,10 +727,10 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                     continue;
                 }
 
-                String fsUnManagedFsNativeGuid = NativeGUIDGenerator.
-                        generateNativeGuidForPreExistingFileSystem(storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber().toUpperCase(),
-                                export.getMtreeID());
+                String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
+                        storageSystem.getSystemType(),
+                        storageSystem.getSerialNumber().toUpperCase(),
+                        export.getMtreeID());
 
                 UnManagedFileSystem unManagedFS = existingUnManagedFileSystems.get(fsUnManagedFsNativeGuid);
                 if (unManagedFS == null) {
@@ -821,7 +812,8 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
      * If discovery fails, then mark the system as unreachable. The
      * discovery framework will remove the storage system from the database.
      * 
-     * @param system the system that failed discovery.
+     * @param system
+     *            the system that failed discovery.
      */
     private void cleanupDiscovery(StorageSystem system) {
         try {
@@ -839,8 +831,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                 system, system.getNativeGuid(), NativeGUIDGenerator.POOL);
 
         URIQueryResultList storagePoolList = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                getStoragePoolByNativeGuidConstraint(nativeGid), storagePoolList);
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(nativeGid), storagePoolList);
         Iterator<URI> poolItr = storagePoolList.iterator();
         while (poolItr.hasNext()) {
             StoragePool pool = _dbClient.queryObject(StoragePool.class, poolItr.next());
@@ -855,8 +846,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
 
         List<StoragePort> ports = new ArrayList<StoragePort>();
         URIQueryResultList storagePortList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                getStorageDeviceStoragePortConstraint(system.getId()), storagePortList);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(system.getId()), storagePortList);
         Iterator<URI> portItr = storagePortList.iterator();
         while (portItr.hasNext()) {
             StoragePort port = _dbClient.queryObject(StoragePort.class, portItr.next());
@@ -909,8 +899,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
             unManagedFileSystem.setFsUnManagedExportMap(new UnManagedFSExportMap());
             unManagedFileSystem.setHasExports(false);
             unManagedFileSystem.setHasShares(false);
-        }
-        else { // existing File System
+        } else { // existing File System
             UnManagedFSExportMap exportMap = unManagedFileSystem.getFsUnManagedExportMap();
             if (exportMap != null) {
                 exportMap.clear();
@@ -929,16 +918,19 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
         // DD supports only thinly provisioned FS
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                        .toString(), TRUE);
+                        .toString(),
+                TRUE);
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_INGESTABLE
-                        .toString(), TRUE);
+                        .toString(),
+                TRUE);
 
         // Don't yet know if the FS is exported, to be determined at export discovery
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(), FALSE);
+                        .toString(),
+                FALSE);
         unManagedFileSystem.setHasExports(false);
 
         if (null != pool) {
@@ -986,7 +978,8 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
         }
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.PROVISIONED_CAPACITY
-                        .toString(), provisionedCapacity);
+                        .toString(),
+                provisionedCapacity);
         StringSet allocatedCapacity = new StringSet();
         if (mtree.logicalCapacity != null) {
             allocatedCapacity.add(Long.toString(mtree.logicalCapacity.getUsed()));
@@ -995,7 +988,8 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
         }
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.ALLOCATED_CAPACITY
-                        .toString(), allocatedCapacity);
+                        .toString(),
+                allocatedCapacity);
 
         // Save off FileSystem Name, Path, Mount and label information
 
@@ -1067,10 +1061,10 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                     continue;
                 }
 
-                String fsUnManagedFsNativeGuid = NativeGUIDGenerator.
-                        generateNativeGuidForPreExistingFileSystem(storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber().toUpperCase(),
-                                export.getMtreeID());
+                String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
+                        storageSystem.getSystemType(),
+                        storageSystem.getSerialNumber().toUpperCase(),
+                        export.getMtreeID());
 
                 // Get UMFS from cache if possible, otherwise try to retrieve from DB
                 UnManagedFileSystem unManagedFS = existingUnManagedFileSystems.get(fsUnManagedFsNativeGuid);
@@ -1125,7 +1119,8 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                             unManagedFS.setHasExports(true);
                             unManagedFS.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                            .toString(), TRUE);
+                                            .toString(),
+                                    TRUE);
                             _dbClient.persistObject(unManagedFS);
                             _log.info("File System {} has Exports and their size is {}", unManagedFS.getId(),
                                     newUnManagedExportRules.size());
@@ -1135,7 +1130,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                             // Don't consider the file system with invalid exports!!!
                             unManagedFS.setInactive(true);
                         }
-                        
+
                     }
 
                     // Adding this additional logic to avoid OOM
@@ -1155,7 +1150,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                 _dbClient.persistObject(newUnManagedExportRules);
                 _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
             }
-            
+
             if (!existingUnManagedFileSystems.isEmpty()) {
                 // Update UnManagedFilesystem
                 _dbClient.persistObject(existingUnManagedFileSystems.values());
@@ -1215,10 +1210,10 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                     continue;
                 }
 
-                String fsUnManagedFsNativeGuid = NativeGUIDGenerator.
-                        generateNativeGuidForPreExistingFileSystem(storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber().toUpperCase(),
-                                share.getMtreeId());
+                String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
+                        storageSystem.getSystemType(),
+                        storageSystem.getSerialNumber().toUpperCase(),
+                        share.getMtreeId());
 
                 // Get UMFS from cache if possible, otherwise try to retrieve from DB
                 UnManagedFileSystem unManagedFS = existingUnManagedFileSystems.get(fsUnManagedFsNativeGuid);
@@ -1246,7 +1241,8 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                     unManagedFS.setHasShares(true);
                     unManagedFS.putFileSystemCharacterstics(
                             UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                    .toString(), TRUE);
+                                    .toString(),
+                            TRUE);
 
                     _log.debug("Export map for VNX UMFS {} = {}", unManagedFS.getLabel(), unManagedFS.getUnManagedSmbShareMap());
 
@@ -1433,8 +1429,10 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
     /**
      * Build viPR export rules from the export retrieved from the array
      * 
-     * @param export - detailed info on the export retrieved from the array
-     * @param fileSystemId - URI of the unmanaged
+     * @param export
+     *            - detailed info on the export retrieved from the array
+     * @param fileSystemId
+     *            - URI of the unmanaged
      * @return List of UnManagedFileExportRule
      * @throws IOException
      */
@@ -1459,8 +1457,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
             }
 
             if (optionInfo.permission.equals(DataDomainApiConstants.PERMISSION_RO)) {
-                if (ruleMap.get(optionInfo.security).get(DataDomainApiConstants.
-                        PERMISSION_RO) == null) {
+                if (ruleMap.get(optionInfo.security).get(DataDomainApiConstants.PERMISSION_RO) == null) {
                     ruleMap.get(optionInfo.security).put(
                             DataDomainApiConstants.PERMISSION_RO, new StringSet());
                 }
@@ -1469,8 +1466,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
             }
 
             if (optionInfo.permission.equals(DataDomainApiConstants.PERMISSION_RW)) {
-                if (ruleMap.get(optionInfo.security).get(DataDomainApiConstants.
-                        PERMISSION_RW) == null) {
+                if (ruleMap.get(optionInfo.security).get(DataDomainApiConstants.PERMISSION_RW) == null) {
                     ruleMap.get(optionInfo.security).put(
                             DataDomainApiConstants.PERMISSION_RW, new StringSet());
                 }

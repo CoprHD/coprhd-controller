@@ -53,7 +53,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
@@ -239,6 +238,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESUME_MIGRATION_STEP = "ResumeMigrationStep";
     private static final String CANCEL_MIGRATION_STEP = "CancelMigrationStep";
     private static final String DELETE_MIGRATION_STEP = "DeleteMigrationStep";
+    private static final String STEP_WAITER = "stepWaiterMethod";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
@@ -1155,7 +1155,25 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         
         URI vplexURI = vplexVolumes.get(0).getDeviceURI();
-        
+
+        // ======================================================================================================
+        // COP-17983 - We need to wait for the previous step *and* the forgetVolumes step, if it was scheduled.
+        // The below 'waiter' steps are there to make sure that this happens because if markVirtualVolumes ran
+        // before forgetVolumes, then:
+        //   1). forgetVolumes operation is never called against the VPlex
+        //   2). The overall delete volumes task, and thus the Order, will never be marked complete
+        // ======================================================================================================
+        String name = String.format("Wait for '%s'", waitFor);
+        Workflow.Method previousStepWaiter = stepWaiter(name);
+        waitFor = workflow.createStep(null, name, waitFor, vplexURI, DiscoveredDataObject.Type.vplex.name(),
+                this.getClass(), previousStepWaiter, previousStepWaiter, null);
+
+        if (workflow.stepMethodHasBeenScheduled(this.getClass(), vplexURI, FORGET_VOLUMES_METHOD_NAME)) {
+            Workflow.Method forgetVolumesWaiter = stepWaiter(FORGET_VOLUMES_METHOD_NAME);
+            waitFor = workflow.createStep(null, "Wait for forgetVolumes step", VOLUME_FORGET_STEP, vplexURI,
+                    DiscoveredDataObject.Type.vplex.name(), this.getClass(), forgetVolumesWaiter, forgetVolumesWaiter, null);
+        }
+
         // Get the VPlex Volume URIs
         List<URI> allVplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexVolumes);
                 
@@ -1169,6 +1187,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         return waitFor;
     }
 
+    private Workflow.Method stepWaiter(String waitedOn) {
+        return new Workflow.Method(STEP_WAITER, waitedOn);
+    }
+
+    /**
+     * Simple NO-OP method to use as a way to wait on a step.
+     *
+     * @param waitedOn [IN] - String name for what was being waited on
+     * @param stepId [IN] - This step waiter UUID
+     */
+    public void stepWaiterMethod(String waitedOn, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        _log.info("Completed waiting on '{}'", waitedOn);
+        WorkflowStepCompleter.stepSucceded(stepId);
+    }
+    
     public Workflow.Method markVolumesInactiveMethod(List<URI> volumes) {
         return new Workflow.Method(MARK_VIRTUAL_VOLUMES_INACTIVE, volumes);
     }

@@ -77,7 +77,6 @@ public abstract class AbstractSecuredWebServer {
     private Integer minQueueThreads;
     private Integer maxQueueThreads;
     private Integer maxQueued;
-    private boolean startDbClientInBackground;
 
     public void setUnsecuredConnector(SelectChannelConnector unsecuredConnector) {
         _unsecuredConnector = unsecuredConnector;
@@ -165,10 +164,6 @@ public abstract class AbstractSecuredWebServer {
 
     public void setMaxQueued(Integer maxQueued) {
         this.maxQueued = maxQueued;
-    }
-
-    public void setStartDbClientInBackground(boolean startDbClientInBackground) {
-        this.startDbClientInBackground = startDbClientInBackground;
     }
 
     public Server getServer() {
@@ -298,19 +293,8 @@ public abstract class AbstractSecuredWebServer {
             config.setPropertiesAndFeatures(props);
         }
         if (_dbClient != null) {
-            // in some cases, like syssvc, we don't want the service to be blocked by dbsvc startup.
-            // Otherwise there could be a dependency loop between services.
-            if (startDbClientInBackground) {
-                _log.info("starting dbclient in background");
-                new Thread() {
-                    public void run() {
-                        _dbClient.start();
-                    }
-                }.start();
-            } else {
-                _log.info("starting dbclient");
-                _dbClient.start();
-            }
+            _log.info("starting dbclient");
+            _dbClient.start();
         }
     }
 }

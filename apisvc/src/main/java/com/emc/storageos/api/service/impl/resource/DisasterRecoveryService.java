@@ -696,6 +696,8 @@ public class DisasterRecoveryService {
                         internalSiteServiceClient.setServer(site.getVip());
                         internalSiteServiceClient.initStandby(configParam);
 
+                        standby.setState(SiteState.STANDBY_SYNCING);
+                        coordinator.persistServiceConfiguration(standby.toConfiguration());
                         drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, dataRevision);
                     } else {
                         drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY);

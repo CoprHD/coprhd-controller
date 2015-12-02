@@ -269,7 +269,6 @@
         <property name="serviceInfo" ref="serviceinfo"/>
         <property name="ciphersToInclude" ref="strongCiphers"/>
         <property name="coordinator" ref="coordinator"/>
-        <property name="startDbClientInBackground" value="true"/>
     </bean>
 
     <bean id="passwordUtils" class="com.emc.storageos.security.password.PasswordUtils">
@@ -539,15 +538,5 @@
         <property name="service" ref="serviceinfo" />
         <property name="drUtil" ref="drUtil" />
 	</bean>
-
-    <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl">
-        <property name="coordinatorClient" ref="coordinator"/>
-        <property name="dbVersionInfo" ref="dbVersionInfo"/>
-        <property name="encryptionProvider" ref="encryptionProvider"/>
-        <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
-        <property name="bypassMigrationLock" ref="serviceRunsDuringMigration"/>
-        <property name="localContext" ref="dbclientcontext"/>
-        <property name="geoContext" ref="geodbclientcontext"/>
-    </bean>
 </beans>
     

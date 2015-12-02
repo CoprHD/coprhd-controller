@@ -329,13 +329,11 @@ public class DbManager implements DbManagerMBean {
     }
 
     @Override
-    public void removeDataCenter(String dcName, boolean unreachableNodesOnly) {
+    public void removeDataCenter(String dcName) {
         log.info("Remove Cassandra data center {}", dcName);
         List<InetAddress> allNodes = new ArrayList<>();
-        if (!unreachableNodesOnly) {
-            Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
-            allNodes.addAll(liveNodes);
-        }
+        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+        allNodes.addAll(liveNodes);
         Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
         allNodes.addAll(unreachableNodes);
         for (InetAddress nodeIp : allNodes) {

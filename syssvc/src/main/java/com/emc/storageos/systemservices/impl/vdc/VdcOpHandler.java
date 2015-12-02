@@ -450,8 +450,40 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
-            // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
+
+            Site localSite = drUtil.getLocalSite();
+            while (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+                InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_RESUME_STANDBY);
+                try {
+                    log.info("Acquiring lock {}", LOCK_RESUME_STANDBY);
+                    lock.acquire();
+                    log.info("Acquired lock {}", LOCK_RESUME_STANDBY);
+                    localSite = drUtil.getLocalSite();
+                    if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+                        // someone get the lock before me
+                        break;
+                    }
+
+                    String localDcId = drUtil.getCassandraDcId(localSite);
+                    int nodeCount = localSite.getNodeCount();
+                    ((DbClientImpl)dbClient).getLocalContext().addDcToStrategyOptions(localDcId, nodeCount);
+                    ((DbClientImpl)dbClient).getGeoContext().addDcToStrategyOptions(localDcId, nodeCount);
+
+                    log.info("Updating site state to STANDBY_RESUMING");
+                    localSite.setState(SiteState.STANDBY_RESUMING);
+                    localRepository.restart("dbsvc");
+                    localRepository.restart("geodbsvc");
+                } finally {
+                    try {
+                        log.info("Releasing lock {}", LOCK_RESUME_STANDBY);
+                        lock.release();
+                    } catch (Exception e) {
+                        log.error("Failed to release lock {}", LOCK_RESUME_STANDBY);
+                    }
+                }
+                localSite = drUtil.getLocalSite();
+            }
         }
     }
 

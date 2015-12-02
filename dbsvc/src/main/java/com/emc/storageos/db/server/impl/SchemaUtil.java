@@ -360,8 +360,7 @@ public class SchemaUtil {
     public void rebuildDataOnStandby() {
         Site currentSite = drUtil.getLocalSite();
 
-        if (currentSite.getState().equals(SiteState.STANDBY_ADDING) ||
-            currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+        if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
             currentSite.setState(SiteState.STANDBY_SYNCING);
             _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
         }
@@ -406,7 +405,8 @@ public class SchemaUtil {
         }
 
         Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
+                localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
             // don't add back the paused site
             _log.info("local standby site has been paused and removed from strategy options. Do nothing");
             return false;
@@ -480,33 +480,13 @@ public class SchemaUtil {
      * Check keyspace strategy options for an existing keyspace and update if necessary
      */
     private void checkStrategyOptions() throws ConnectionException {
-        try {
-            Site localSite = drUtil.getLocalSite();
-            if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
-                String localDcId = drUtil.getCassandraDcId(localSite);
-                // There is a chance that some of the nodes in the current site has been added to gossip before
-                // the restart, in which case they must be removed again before a schema agreement can be reached.
-                // The reason is that all the other nodes in the current site are now being blocked by the schema
-                // lock and are definitely unreachable.
-                String dbsvcName = isGeoDbsvc() ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME;
-                try (DbManagerOps dbManagerOps = new DbManagerOps(dbsvcName)) {
-                    dbManagerOps.removeUnreachableNodesFromDataCenter(localDcId);
-                }
-
-                // Wait for schema agreement before checking the strategy options, since the strategy options from
-                // the local site might be older than the active site and shouldn't be used any more.
-                clientContext.waitForSchemaAgreement(null);
-            }
-        } catch (RetryableCoordinatorException e) {
-            _log.warn("local site not initialized. Moving on");
-        }
-
         KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
         Map<String, String> strategyOptions = kd.getStrategyOptions();
         _log.info("Current strategyOptions={}", strategyOptions);
 
         boolean changed = false;
-        changed |= onStandby ? checkStrategyOptionsForDROnStandby(strategyOptions) : checkStrategyOptionsForDROnActive(strategyOptions) ;
+        changed |= onStandby ? checkStrategyOptionsForDROnStandby(strategyOptions) :
+                checkStrategyOptionsForDROnActive(strategyOptions) ;
         changed |= checkStrategyOptionsForGeo(strategyOptions);
 
         if (changed) {

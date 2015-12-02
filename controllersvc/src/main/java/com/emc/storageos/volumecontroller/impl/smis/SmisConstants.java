@@ -89,6 +89,7 @@ public interface SmisConstants {
     static final int VP_SNAP_VALUE = 32768;
     static final int INSTRUMENTATION_DECIDES_VALUE = 2;
     static final int CREATE_NEW_TARGET_VALUE = 2;
+    static final int IMPLEMENTATION_DECIDES = 4;
     static final int STORAGE_ELEMENT_CAPACITY_EXPANSION_VALUE = 12;
     static final int MODE_SYNCHRONOUS = 2;
     static final int RELINK_TARGET_VALUE = 0x8001;
@@ -100,6 +101,8 @@ public interface SmisConstants {
     static final int DISSOLVE_VALUE = 9;
     static final int SNAPSHOT_REPLICATION_TYPE = 6;
     static final int MIRROR_REPLICATION_TYPE = 2;
+    static final int SYNC_MIRROR_REMOTE_REPLICATION_TYPE = 4;
+    static final int ASYNC_MIRROR_REMOTE_REPLICATION_TYPE = 5;
     static final int EMULATION_VALUE = 10;
 
     static final String DEFAULT_INSTANCE = "DefaultInstance";

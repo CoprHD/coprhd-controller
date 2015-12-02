@@ -218,6 +218,26 @@ class FakeUploader extends Uploader {
             }
         };
     }
+
+    @Override
+    public List<String> listFiles(String prefix) throws Exception {
+        if (prefix == null) {
+            return null;
+        }
+        List<String> fileNames = new ArrayList<>();
+        for (String key : this.fileMap.keySet()) {
+            if (key.startsWith(prefix)) {
+                fileNames.add(key);
+            }
+        }
+       return fileNames;
+    }
+
+    @Override
+    public void rename(String sourceFileName,String destFileName) {
+        this.fileMap.put(destFileName,this.fileMap.get(sourceFileName));
+        this.fileMap.remove(sourceFileName);
+    }
 }
 
 class FakeBackupClient extends BackupScheduler {

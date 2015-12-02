@@ -121,7 +121,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final Long KB_IN_BYTES = 1024L;
     private static final String ONEFS_V8 = "8.0.0.0";
     private static final String ONEFS_V7_2 = "7.2.0.0";
-
+    private static final String ACCESS_ZONE_LOCAL_PROVIDER_NAME = "lsa-local-provider";
     private IsilonApiFactory _factory;
 
     private List<String> _discPathsForUnManaged;
@@ -2690,25 +2690,37 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param isiAccessZone
      * @return cifs server map
      */
-    CifsServerMap getCifsServerMap(final IsilonAccessZone isiAccessZone) {
+    private CifsServerMap getCifsServerMap(final IsilonAccessZone isiAccessZone) {
         // add authentication map
+    	String providerName = null;
+    	String domain = null;
         ArrayList<String> authArrayList = isiAccessZone.getAuth_providers();
         CifsServerMap cifsServersMap = new CifsServerMap();
         if (authArrayList != null && !authArrayList.isEmpty()) {
             for (String authProvider : authArrayList) {
                 NasCifsServer nasCifsServer = new NasCifsServer();
                 String[] providerArray = authProvider.split(":");
-                nasCifsServer.setName(providerArray[0]);
-                nasCifsServer.setDomain(providerArray[1]);
-                cifsServersMap.put(providerArray[0], nasCifsServer);
+                providerName = providerArray[0];
+                domain = providerArray[1];
+                if(ACCESS_ZONE_LOCAL_PROVIDER_NAME.equals(providerName)) {
+                	_log.debug("Skip the local provider domain: {}", domain);
+                	continue;
+                }
+                nasCifsServer.setName(providerName);
+                nasCifsServer.setDomain(domain);
+                cifsServersMap.put(providerName, nasCifsServer);
             }
         }
         if (isiAccessZone.isAll_auth_providers() == true) {
             NasCifsServer nasCifsServer = new NasCifsServer();
             String[] providerArray = isiAccessZone.getSystem_provider().split(":");
-            nasCifsServer.setName(providerArray[0]);
-            nasCifsServer.setDomain(providerArray[1]);
-            cifsServersMap.put(providerArray[0], nasCifsServer);
+            providerName = providerArray[0];
+            domain = providerArray[1];
+            if(!ACCESS_ZONE_LOCAL_PROVIDER_NAME.equals(providerName)) {
+            	nasCifsServer.setName(providerName);
+                nasCifsServer.setDomain(domain);
+                cifsServersMap.put(providerName, nasCifsServer);
+            }
         }
         return cifsServersMap;
     }

@@ -7,21 +7,15 @@ package com.emc.storageos.coordinator.service.impl;
 
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
-
-import com.emc.storageos.coordinator.client.model.Constants;
 
 import org.apache.zookeeper.server.quorum.QuorumPeer.LearnerType;
 import org.apache.zookeeper.server.quorum.QuorumPeer.QuorumServer;
-import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,6 +89,10 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
                 createQuorumServer(key, value);
                 iterator.remove();
             }
+        }
+
+        if (zkProp.containsKey("readonlymode.enabled")) {
+            System.setProperty("readonlymode.enabled", zkProp.getProperty("readonlymode.enabled"));
         }
     }
 

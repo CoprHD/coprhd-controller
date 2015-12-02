@@ -244,6 +244,64 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         // validate the supporting device structure is compatible with vipr
         context.validateSupportingDeviceStructure();
 
+        // validate that there are not too many replicas on a distributed volume
+        // as we can only support ingesting snaps or clones on one leg
+        if (context.isDistributed()) {
+            _logger.info("checking for presence of replicas on both legs of this distributed volume");
+            
+            // each entry in these collections is a concatenated list of replica names
+            // on each backend volume, so if their size is more than one, that means there
+            // are replicas present on both legs.
+            List<String> snapshotsList = new ArrayList<String>();
+            List<String> clonesList = new ArrayList<String>();
+            for (UnManagedVolume vol : unManagedBackendVolumes) {
+                StringSet snapshots = VplexBackendIngestionContext.extractValuesFromStringSet(
+                        SupportedVolumeInformation.SNAPSHOTS.name(), vol.getVolumeInformation());
+                if (snapshots != null && !snapshots.isEmpty()) {
+                    snapshotsList.add(Joiner.on(", ").join(snapshots));
+                }
+                StringSet clones = VplexBackendIngestionContext.extractValuesFromStringSet(
+                        SupportedVolumeInformation.FULL_COPIES.name(), vol.getVolumeInformation());
+                if (clones != null && !clones.isEmpty()) {
+                    clonesList.add(Joiner.on(", ").join(clones));
+                }
+            }
+            
+            // build up an error message
+            int counter = 0;
+            StringBuilder message = new StringBuilder("");
+            if (snapshotsList.size() > 1) {
+                for (String snapshots : snapshotsList) {
+                    if (counter > 0) {
+                        message.append(" and ");
+                    }
+                    message.append(" one distributed volume component has snapshots ").append(snapshots);
+                    counter++;
+                }
+                counter = 0;
+            }
+            if (message.length() > 0) {
+                // add some space between the message parts
+                // in the rare case of double clones and double snaps
+                // on the same volume
+                message.append("; ");
+            }
+            if (clonesList.size() > 1) {
+                for (String clones : clonesList) {
+                    if (counter > 0) {
+                        message.append(" and ");
+                    }
+                    message.append(" one distributed volume component has full copies ").append(clones);
+                    counter++;
+                }
+            }
+            if (message.length() > 0) {
+                String reason = message.toString();
+                _logger.error(reason);
+                throw IngestionException.exceptions.validationException(reason);
+            }
+        }
+
         for (UnManagedVolume vol : unManagedBackendVolumes) {
             _logger.info("checking for non native mirrors on backend volume " + vol.getNativeGuid());
             StringSet mirrors = PropertySetterUtil.extractValuesFromStringSet(

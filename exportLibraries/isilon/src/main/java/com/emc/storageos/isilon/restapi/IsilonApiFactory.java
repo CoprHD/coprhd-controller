@@ -21,7 +21,7 @@ public class IsilonApiFactory extends RestAPIFactory<IsilonApi> {
 
     @Override
     public IsilonApi getRESTClient(URI endpoint, String username, String password) {
-        return null;
+        return new IsilonApi(endpoint, getRestClient(), username, password);
     }
 
 

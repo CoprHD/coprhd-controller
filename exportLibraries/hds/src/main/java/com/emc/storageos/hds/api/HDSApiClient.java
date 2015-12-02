@@ -45,7 +45,11 @@ public class HDSApiClient {
     private URI baseURI;
 
     // The REST client for executing requests to the HDS Management Station.
-    private RESTClient client;
+    private com.emc.storageos.common.http.RESTClient client;
+    
+    private String username;
+    
+    private String password;
 
     private HDSApiVolumeManager hdsApiVolumeManager;
 
@@ -63,9 +67,21 @@ public class HDSApiClient {
      * @param endpoint The URI of the HighCommand Device Manager.
      * @param client A reference to the REST client for making requests.
      */
-    HDSApiClient(URI endpoint, RESTClient client) {
+    HDSApiClient(URI endpoint, com.emc.storageos.common.http.RESTClient client) {
         this.baseURI = endpoint;
         this.client = client;
+        this.hdsApiVolumeManager = new HDSApiVolumeManager(this);
+        this.hdsApiExportManager = new HDSApiExportManager(this);
+        this.hdsBatchApiExportManager = new HDSBatchApiExportManager(this);
+        this.hdsApiDiscoveryManager = new HDSApiDiscoveryManager(this);
+        this.hdsApiProtectionManager = new HDSApiProtectionManager(this);
+    }
+    
+    HDSApiClient(URI endpoint, com.emc.storageos.common.http.RESTClient client, String username, String password) {
+        this.baseURI = endpoint;
+        this.client = client;
+        this.username = username;
+        this.password = password;
         this.hdsApiVolumeManager = new HDSApiVolumeManager(this);
         this.hdsApiExportManager = new HDSApiExportManager(this);
         this.hdsBatchApiExportManager = new HDSBatchApiExportManager(this);
@@ -338,7 +354,7 @@ public class HDSApiClient {
      * @return The client response.
      */
     public ClientResponse get(URI resourceURI) {
-        return client.get(resourceURI);
+        return client.get(resourceURI, username, password);
     }
 
     /**
@@ -350,18 +366,7 @@ public class HDSApiClient {
      * @return The client response.
      */
     public ClientResponse post(URI resourceURI, String postData) {
-        return client.post(resourceURI, postData);
-    }
-
-    /**
-     * Package protected method for executing a PUT request.
-     * 
-     * @param resourceURI The resource URI.
-     * 
-     * @return The client response.
-     */
-    public ClientResponse put(URI resourceURI) {
-        return client.put(resourceURI);
+        return client.post(resourceURI, postData, username, password);
     }
 
     /**

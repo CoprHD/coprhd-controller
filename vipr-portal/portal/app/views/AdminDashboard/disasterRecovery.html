@@ -20,13 +20,13 @@
 							<td>${site.name}</td>
 							<td>${site.vip}</td>
 							<td>
-								#{if site.state == "PRIMARY"}
+								#{if site.state == "ACTIVE"}
 									<span class="glyphicon glyphicon-ok" style="color:#00FF00"></span><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>
 								#{/if}
-								#{if site.state == "PRIMARY_SWITCHING_OVER"}
+								#{if site.state == "ACTIVE_SWITCHING_OVER"}
 									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.primary.switchingover'}</span>
 								#{/if}
-								#{if site.state == "PRIMARY_FAILING_OVER"}
+								#{if site.state == "ACTIVE_FAILING_OVER"}
 									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.primary.failingover'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_ADDING"}

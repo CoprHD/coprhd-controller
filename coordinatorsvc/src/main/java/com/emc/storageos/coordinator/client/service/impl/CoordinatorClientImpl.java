@@ -611,13 +611,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return getServicePath(this.siteId);
     }
 
-    private String getKindPath(String kind) {
-        return getKindPath(this.getSiteId(), kind);
-    }
-
     private String getKindPath(String siteId, String kind) {
         StringBuilder builder = new StringBuilder();
-        if (siteId != null && isSiteSpecific(kind)) {
+        if (isSiteSpecific(kind) && siteId == null) {
+            siteId = getSiteId();
+        }
+        if (siteId != null) {
             String sitePrefix = getSitePrefix(siteId);
             builder.append(sitePrefix);
         }
@@ -629,12 +628,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
     
     private boolean isSiteSpecific(String kind) {
-        if (kind.startsWith(Constants.GEODB_CONFIG) 
-                || kind.startsWith(Constants.DB_CONFIG) 
-                || kind.equals(SiteInfo.CONFIG_KIND)
-                || kind.equals(SiteError.CONFIG_KIND)
-                || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND) 
-                || kind.equals(PowerOffState.CONFIG_KIND)) {
+        if (kind.equals(SiteInfo.CONFIG_KIND)
+            || kind.equals(SiteError.CONFIG_KIND)
+            || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND) 
+            || kind.equals(PowerOffState.CONFIG_KIND)) {
             return true;
         }
         return false;
@@ -1094,7 +1091,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz)
             throws CoordinatorException {
-        return getTargetInfo(getSiteId(), clazz);
+        return getTargetInfo(null, clazz);
     }
 
     @Override
@@ -1117,7 +1114,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id,
             String kind) throws CoordinatorException {
         
-        return getTargetInfo(getSiteId(), clazz, id, kind);
+        return getTargetInfo(null, clazz, id, kind);
     }
 
     private <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz, String id,
@@ -1149,7 +1146,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * @throws CoordinatorException
      */
     public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
-        setTargetInfo(this.getSiteId(), info);
+        setTargetInfo(null, info);
     }
     
     /**

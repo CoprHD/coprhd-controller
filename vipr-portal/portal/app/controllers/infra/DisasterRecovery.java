@@ -27,6 +27,7 @@ import util.validation.HostNameOrIpAddress;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
@@ -221,7 +222,7 @@ public class DisasterRecovery extends ViprResourceController {
 
     public static void errorDetails(String id) {
         SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
-        if (siteRest.getState().equals("STANDBY_ERROR")) {
+        if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
             SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
             render(disasterSiteError);
         }

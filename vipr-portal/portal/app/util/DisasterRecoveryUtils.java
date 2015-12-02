@@ -13,6 +13,7 @@ import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
@@ -82,7 +83,7 @@ public class DisasterRecoveryUtils {
     public static SiteRestRep getActiveSite() {
         List<SiteRestRep> sites = getViprClient().site().listAllSites().getSites();
         for (SiteRestRep activeSite : sites) {
-            if (activeSite.getState().toUpperCase().equals("PRIMARY")) {
+            if (activeSite.getState().toUpperCase().equals(String.valueOf(SiteState.ACTIVE))) {
                 return activeSite;
             }
         }

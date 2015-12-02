@@ -81,7 +81,7 @@ public class DbRebuildRunnable implements Runnable {
         if (dbRebuildComplete(Constants.DBSVC_NAME) && dbRebuildComplete(Constants.GEODBSVC_NAME)) {
             log.info("all db rebuild finish, updating site state to STANDBY_SYNCED");
             localSite.setState(SiteState.STANDBY_SYNCED);
-            coordinator.persistServiceConfiguration(coordinator.getSiteId(), localSite.toConfiguration());
+            coordinator.persistServiceConfiguration(localSite.toConfiguration());
         }
         isRunning = false;
     }

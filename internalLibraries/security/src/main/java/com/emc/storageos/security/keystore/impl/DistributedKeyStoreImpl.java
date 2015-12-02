@@ -244,10 +244,7 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
             throw SecurityException.fatals.failedToGetKeyCertificate();
         }
         try {
-            entryToReturn =
-                    coordConfigStoringHelper.readConfig(KEY_CERTIFICATE_PAIR_CONFIG_KIND,
-                            KEY_CERTIFICATE_PAIR_ID,
-                            KEY_CERTIFICATE_PAIR_KEY);
+            entryToReturn = readKeyCertificateEntry();
             if (entryToReturn == null) {
                 log.info("ViPR certificate not found");
                 entryToReturn = generator.tryGetV1Cert();
@@ -279,6 +276,32 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
         return entryToReturn;
     }
 
+    private KeyCertificateEntry readKeyCertificateEntry() throws IOException, ClassNotFoundException{
+        KeyCertificateEntry entryToReturn =
+                coordConfigStoringHelper.readConfig(coordConfigStoringHelper.getSiteId(), KEY_CERTIFICATE_PAIR_CONFIG_KIND,
+                        KEY_CERTIFICATE_PAIR_ID,
+                        KEY_CERTIFICATE_PAIR_KEY);
+        if (entryToReturn == null) {
+            log.info("Certificate not found from site specific area. Try global area");
+            entryToReturn =
+                    coordConfigStoringHelper.readConfig(KEY_CERTIFICATE_PAIR_CONFIG_KIND,
+                            KEY_CERTIFICATE_PAIR_ID,
+                            KEY_CERTIFICATE_PAIR_KEY);
+            if (entryToReturn != null) {
+                String siteId = coordConfigStoringHelper.getSiteId();
+                log.info("Found certificate from global area. Moving to site specific area");
+                try {
+                    coordConfigStoringHelper.createOrUpdateConfig(entryToReturn, KEY_CERTIFICATE_PAIR_LOCK,
+                        siteId, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID,
+                        KEY_CERTIFICATE_PAIR_KEY);
+                    coordConfigStoringHelper.removeConfig(KEY_CERTIFICATE_PAIR_LOCK, siteId, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID);
+                } catch (Exception ex) {
+                    log.error("Failed to move key certificate pair to site specific area", ex);
+                }
+            }
+        }
+        return entryToReturn;
+    }
     /**
      * Generates a new key certificate pair
      * 
@@ -403,7 +426,7 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
                         + entry.getCertificateChain()[0]);
             }
             coordConfigStoringHelper.createOrUpdateConfig(entry, KEY_CERTIFICATE_PAIR_LOCK,
-                    KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID,
+                    coordConfigStoringHelper.getSiteId(), KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID,
                     KEY_CERTIFICATE_PAIR_KEY);
         } catch (Exception e) {
             throw SecurityException.fatals.failedToUpdateKeyCertificateEntry(e);

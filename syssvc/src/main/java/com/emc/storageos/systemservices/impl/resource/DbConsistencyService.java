@@ -38,6 +38,7 @@ public class DbConsistencyService {
 
     /**
      * Trigger db consistency check
+     * @brief Trigger db consistency check
      * @return boolean to indicate if start db consistency check successfully or not
      */
     @POST
@@ -57,6 +58,7 @@ public class DbConsistencyService {
 
     /**
      * Get the status of db consistency check
+     * @brief Get the status of db consistency check
      * @return DbConsistencyStatusRestRep the status of db consistency check
      */
     @GET
@@ -71,6 +73,7 @@ public class DbConsistencyService {
     
     /**
      * Cancel db consistency check if it's in progress
+     * @brief Cancel db consistency check if it's in progress
      * @return boolean to indicate if db consistency check cancelled or not
      */
     @POST

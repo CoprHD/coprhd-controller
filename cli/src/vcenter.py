@@ -451,6 +451,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-cascade_tenancy', '-cascade',
                                dest='cascade_tenancy',
                                metavar='<cascade_tenancy>',
+                               choices=['true', 'false'],
                                help='Whether to cascade the vCenter tenancy to its datacenters, clusters and hosts or not')
 
     create_parser.set_defaults(func=vcenter_create)

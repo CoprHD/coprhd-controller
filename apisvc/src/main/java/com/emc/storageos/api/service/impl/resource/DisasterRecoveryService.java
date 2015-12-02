@@ -953,6 +953,12 @@ public class DisasterRecoveryService {
         }
     }
     
+    /**
+     * Update site information. Only name and description can be updated.
+     * @param uuid target site uuid
+     * @param siteParam site information
+     * @return
+     */
     @PUT
     @Path("/{uuid}/update")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

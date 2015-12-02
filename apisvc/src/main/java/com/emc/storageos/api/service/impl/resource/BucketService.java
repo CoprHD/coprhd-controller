@@ -489,7 +489,7 @@ public class BucketService extends TaskResourceService {
                 "Bucket ACL Update --- Bucket id: %1$s, Task: %2$s", id, task));
 
         Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
-                task, ResourceOperationTypeEnum.UPDATE_BUCKET);
+                task, ResourceOperationTypeEnum.UPDATE_BUCKET_ACL);
         op.setDescription("Bucket ACL update");
         controller.updateBucketACL(bucket.getStorageDevice(), id, param, task);
 

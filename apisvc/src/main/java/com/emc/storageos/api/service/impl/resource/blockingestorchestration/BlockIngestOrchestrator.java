@@ -20,7 +20,7 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.StoragePoolService;
 import com.emc.storageos.api.service.impl.resource.StorageSystemService;
 import com.emc.storageos.api.service.impl.resource.UnManagedVolumeService;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
@@ -88,7 +88,7 @@ public abstract class BlockIngestOrchestrator {
      * @param clazz
      * @return BlockObject
      */
-    protected abstract <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
+    protected abstract <T extends BlockObject> T ingestBlockObjects(IIngestionRequestContext requestContext, Class<T> clazz)
             throws IngestionException;
 
     /**
@@ -618,7 +618,7 @@ public abstract class BlockIngestOrchestrator {
      */
     @SuppressWarnings("deprecation")
     protected boolean markUnManagedVolumeInactive(
-            IngestionRequestContext requestContext, BlockObject currentBlockObject) {
+            IIngestionRequestContext requestContext, BlockObject currentBlockObject) {
         UnManagedVolume currentUnmanagedVolume = requestContext.getCurrentUnmanagedVolume();
         
         _logger.info("Running unmanagedvolume {} replica ingestion status", currentUnmanagedVolume.getNativeGuid());

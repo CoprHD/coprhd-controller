@@ -12,7 +12,7 @@ import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -46,7 +46,7 @@ public class IngestExportStrategy {
      * running ingest associated masks of the volume
      */
     public <T extends BlockObject> T ingestExportMasks(UnManagedVolume unManagedVolume, 
-            T blockObject, IngestionRequestContext requestContext) throws IngestionException {
+            T blockObject, IIngestionRequestContext requestContext) throws IngestionException {
 
         if (null != requestContext.getExportGroup()) {
             if (null != unManagedVolume.getUnmanagedExportMasks() && !unManagedVolume.getUnmanagedExportMasks().isEmpty()) {

@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ResourceService;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
@@ -65,7 +65,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
      *                         (such as VPLEX) rather than a Host or Cluster
      * @param errorMessages a List of error message strings collected during processing
      */
-    protected <T extends BlockObject> void ingestExportMasks(IngestionRequestContext requestContext, 
+    protected <T extends BlockObject> void ingestExportMasks(IIngestionRequestContext requestContext, 
             UnManagedVolume unManagedVolume, T blockObject,
             List<UnManagedExportMask> unManagedMasks, MutableInt masksIngestedCount)
             throws IngestionException {

@@ -33,8 +33,9 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategy;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.IngestionRequestContextImpl;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -213,7 +214,7 @@ public class UnManagedVolumeService extends TaskResourceService {
         TaskList taskList = new TaskList();
         List<UnManagedVolume> unManagedVolumes = new ArrayList<UnManagedVolume>();
         Map<String, String> taskMap = new HashMap<String, String>();
-        IngestionRequestContext requestContext = null;
+        IngestionRequestContextImpl requestContext = null;
         try {
             // Get and validate the project.
             Project project = _permissionsHelper.getObjectById(param.getProject(),
@@ -237,7 +238,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, unManagedVolumesCapacity, "volume");
             _logger.info("UnManagedVolume provisioning quota validation successful for {}", unManagedVolumesCapacity);
 
-            requestContext = new IngestionRequestContext(
+            requestContext = new IngestionRequestContextImpl(
                     _dbClient, param.getUnManagedVolumes(), vpool, 
                     varray, project, tenant, param.getVplexIngestionMethod());
             
@@ -371,7 +372,7 @@ public class UnManagedVolumeService extends TaskResourceService {
      * @param requestContext
      * @param taskMap
      */
-    private void ingestBlockObjects(IngestionRequestContext requestContext, Map<String, TaskResourceRep> taskMap) {
+    private void ingestBlockObjects(IngestionRequestContextImpl requestContext, Map<String, TaskResourceRep> taskMap) {
 
         while (requestContext.hasNext()) {
             UnManagedVolume unManagedVolume = requestContext.next();
@@ -439,7 +440,7 @@ public class UnManagedVolumeService extends TaskResourceService {
      * @param taskMap
      * @param exportIngestParam
      */
-    private void ingestBlockExportMasks(IngestionRequestContext requestContext, Map<String, TaskResourceRep> taskMap) {
+    private void ingestBlockExportMasks(IIngestionRequestContext requestContext, Map<String, TaskResourceRep> taskMap) {
         for (String unManagedVolumeGUID : requestContext.getProcessedUnManagedVolumeMap().keySet()) {
             BlockObject processedBlockObject = requestContext.getProcessedBlockObject(unManagedVolumeGUID);
             VolumeIngestionContext volumeContext = requestContext.getVolumeContext(unManagedVolumeGUID);
@@ -535,7 +536,7 @@ public class UnManagedVolumeService extends TaskResourceService {
         TaskList taskList = new TaskList();
         Map<String, TaskResourceRep> taskMap = new HashMap<String, TaskResourceRep>();
 
-        IngestionRequestContext requestContext = null;
+        IngestionRequestContextImpl requestContext = null;
         try {
             ResourceAndUUIDNameGenerator nameGenerator = new ResourceAndUUIDNameGenerator();
             if (exportIngestParam.getUnManagedVolumes().size() > getMaxBulkSize()) {
@@ -564,7 +565,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             VolumeIngestionUtil.checkIngestionRequestValidForUnManagedVolumes(exportIngestParam.getUnManagedVolumes(),
                     vpool, _dbClient);
 
-            requestContext = new IngestionRequestContext(
+            requestContext = new IngestionRequestContextImpl(
                     _dbClient, exportIngestParam.getUnManagedVolumes(), vpool, 
                     varray, project, tenant, exportIngestParam.getVplexIngestionMethod());
 

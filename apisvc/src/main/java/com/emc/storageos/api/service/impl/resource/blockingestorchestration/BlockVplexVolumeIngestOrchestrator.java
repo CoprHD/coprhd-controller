@@ -19,7 +19,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.TenantsService;
 import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.IngestionRequestContextImpl;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
@@ -86,7 +87,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
+    public <T extends BlockObject> T ingestBlockObjects(IIngestionRequestContext requestContext, Class<T> clazz)
             throws IngestionException {
 
         refreshCaches(requestContext.getStorageSystem());
@@ -129,14 +130,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 volumeContext.setInDiscoveryOnlyMode(true);
             }
 
-            // TODO
-            // TODO
-            // TODO
-            // TODO
-            // TODO
-            // Review this all to make sure we're using the correct backend data
-            //
-
             // the backend volumes and export masks will be part of the VPLEX project
             // rather than the front-end virtual volume project, so we need to set that in the context
             Project vplexProject = VPlexBlockServiceApiImpl.getVplexProject(
@@ -144,15 +137,28 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             volumeContext.setBackendProject(vplexProject);
             volumeContext.setFrontendProject(requestContext.getProject());
 
+            IngestionRequestContextImpl backendRequestContext = null;
+
             try {
                 _logger.info("Ingesting backend structure of VPLEX virtual volume {}", unManagedVolume.getLabel());
 
                 validateContext(requestContext.getVpool(), requestContext.getTenant(), volumeContext);
 
-                ingestBackendVolumes(requestContext, volumeContext);
+                List<URI> associatedVolumeUris = new ArrayList<URI>();
+                for (UnManagedVolume umv : volumeContext.getUnmanagedVolumesToIngest()) {
+                    associatedVolumeUris.add(umv.getId());
+                }
 
-                ingestBackendExportMasks(requestContext, volumeContext);
+                backendRequestContext = new IngestionRequestContextImpl(
+                        _dbClient, associatedVolumeUris, requestContext.getVpool(),
+                        requestContext.getVarray(), volumeContext.getBackendProject(), 
+                        requestContext.getTenant(), requestContext.getVplexIngestionMethod());
 
+                ingestBackendVolumes(backendRequestContext, volumeContext);
+
+                ingestBackendExportMasks(backendRequestContext, volumeContext);
+
+                // TODO commit all in backend ingestionRequestContext
                 handleBackendPersistence(volumeContext);
 
             } catch (Exception ex) {
@@ -410,13 +416,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private void ingestBackendVolumes(IngestionRequestContext requestContext, 
+    private void ingestBackendVolumes(IngestionRequestContextImpl backendRequestContext, 
             VplexBackendIngestionContext volumeContext) throws IngestionException {
 
         // determine the high availability varray and vpool
         VirtualArray haVarray = null;
         VirtualPool haVpool = null;
-        StringMap haVarrayVpoolMap = requestContext.getVpool().getHaVarrayVpoolMap();
+        StringMap haVarrayVpoolMap = backendRequestContext.getVpool().getHaVarrayVpoolMap();
         if (haVarrayVpoolMap != null && !haVarrayVpoolMap.isEmpty()) {
             String haVarrayStr = haVarrayVpoolMap.keySet().iterator().next();
             if (haVarrayStr != null && !(haVarrayStr.equals(NullColumnValueGetter.getNullURI().toString()))) {
@@ -428,33 +434,25 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         }
 
-        String sourceClusterId = getClusterNameForVarray(requestContext.getVarray(), requestContext.getStorageSystem());
-        String haClusterId = getClusterNameForVarray(haVarray, requestContext.getStorageSystem());
+        String sourceClusterId = getClusterNameForVarray(backendRequestContext.getVarray(), backendRequestContext.getStorageSystem());
+        String haClusterId = getClusterNameForVarray(haVarray, backendRequestContext.getStorageSystem());
         _logger.info("the source cluster id is {} and the high availability cluster id is {}",
                 sourceClusterId, haClusterId);
 
-        for (UnManagedVolume associatedVolume : volumeContext.getUnmanagedVolumesToIngest()) {
+        while (backendRequestContext.hasNext()) {
+
+            UnManagedVolume associatedVolume = backendRequestContext.next();
             _logger.info("Ingestion started for vplex backend volume {}", associatedVolume.getNativeGuid());
 
             try {
-                // get the associated storage system, possibly from cache
-                URI storageSystemUri = associatedVolume.getStorageSystemUri();
-                StorageSystem associatedSystem = _systemMap.get(storageSystemUri.toString());
-                if (null == associatedSystem) {
-                    associatedSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
-                    _systemMap.put(storageSystemUri.toString(), associatedSystem);
-                }
-
                 // determine the correct project to use with this volume:
                 // the backend volumes have the vplex backend Project, but
                 // the rest have the same Project as the virtual volume.
                 Project project = volumeContext.getUnmanagedBackendVolumes().contains(associatedVolume) ?
                         volumeContext.getBackendProject() : volumeContext.getFrontendProject();
 
-                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume, false);
-
-                VirtualArray varrayForThisVolume = requestContext.getVarray();
-                VirtualPool vpoolForThisVolume = requestContext.getVpool();
+                VirtualArray varrayForThisVolume = backendRequestContext.getVarray();
+                VirtualPool vpoolForThisVolume = backendRequestContext.getVpool();
 
                 // get the backend volume cluster id
                 String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
@@ -483,8 +481,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 validateBackendVolumeVpool(associatedVolume, vpoolForThisVolume);
 
+                backendRequestContext.setVarray(varrayForThisVolume);
+                backendRequestContext.setVpool(vpoolForThisVolume);
+                backendRequestContext.setProject(project);
+                
+                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume, false);
+
                 @SuppressWarnings("unchecked")
-                BlockObject blockObject = ingestStrategy.ingestBlockObjects(requestContext, 
+                BlockObject blockObject = ingestStrategy.ingestBlockObjects(backendRequestContext, 
                         VolumeIngestionUtil.getBlockObjectClass(associatedVolume));
 
                 if (null == blockObject) {
@@ -560,11 +564,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private void ingestBackendExportMasks(IngestionRequestContext requestContext,
+    private void ingestBackendExportMasks(IIngestionRequestContext backendRequestContext,
             VplexBackendIngestionContext context) throws IngestionException {
 
-        VirtualArray virtualArray = requestContext.getVarray();
-        VirtualPool vPool = requestContext.getVpool();
+        VirtualArray virtualArray = backendRequestContext.getVarray();
+        VirtualPool vPool = backendRequestContext.getVpool();
         
         // process masking for any successfully processed UnManagedVolumes
         for (Entry<String, UnManagedVolume> entry : context.getProcessedUnManagedVolumeMap().entrySet()) {
@@ -638,23 +642,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     }
                     List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initUris);
 
-                    List<URI> associatedVolumeUris = new ArrayList<URI>();
-                    for (UnManagedVolume umv : context.getUnmanagedBackendVolumes()) {
-                        associatedVolumeUris.add(umv.getId());
-                    }
-
-                    IngestionRequestContext backendRequestContext = new IngestionRequestContext(
-                            _dbClient, associatedVolumeUris, vPool, 
-                            virtualArray, context.getBackendProject(), 
-                            requestContext.getTenant(), requestContext.getVplexIngestionMethod());
-                    
                     backendRequestContext.setDeviceInitiators(initiators);
-                    
+
                     // find or create the backend export group
                     ExportGroup exportGroup = this.findOrCreateExportGroup(
-                            requestContext.getStorageSystem(), associatedSystem, initiators,
+                            backendRequestContext.getStorageSystem(), associatedSystem, initiators,
                             virtualArray.getId(), context.getBackendProject().getId(),
-                            requestContext.getTenant().getId(), DEFAULT_BACKEND_NUMPATHS, uem);
+                            backendRequestContext.getTenant().getId(), DEFAULT_BACKEND_NUMPATHS, uem);
                     if (null == exportGroup.getId()) {
                         backendRequestContext.setExportGroupCreated(true);
                         exportGroup.setId(URIUtil.createId(ExportGroup.class));

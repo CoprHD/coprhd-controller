@@ -7,7 +7,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
@@ -26,7 +26,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
     private static final Logger logger = LoggerFactory.getLogger(BlockMirrorIngestOrchestrator.class);
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
+    public <T extends BlockObject> T ingestBlockObjects(IIngestionRequestContext requestContext, Class<T> clazz)
             throws IngestionException {
 
         UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();

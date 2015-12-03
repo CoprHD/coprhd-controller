@@ -8,7 +8,7 @@ import java.util.List;
 
 import org.apache.commons.lang.mutable.MutableInt;
 
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -22,7 +22,7 @@ import com.emc.storageos.model.block.VolumeExportIngestParam;
 public class UnexportedVolumeIngestOrchestrator extends BlockIngestExportOrchestrator {
 
     @Override
-    public <T extends BlockObject> void ingestExportMasks(IngestionRequestContext requestContext, 
+    public <T extends BlockObject> void ingestExportMasks(IIngestionRequestContext requestContext, 
             UnManagedVolume unManagedVolume, T blockObject, List<UnManagedExportMask> unManagedMasks, 
             MutableInt masksIngestedCount) throws IngestionException {
         return;

@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.util;
 
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,6 +34,7 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface;
@@ -1403,6 +1406,28 @@ public class VPlexUtil {
             return true;
         }
         
+        return false;
+    }
+    
+    /**
+     * Check if the volume is a backend volume of a vplex volume
+     * @param volume the volume
+     * @param dbClient 
+     * @return true or false
+     */
+    public static boolean isVplexBackendVolume(Volume volume, DbClient dbClient) {
+        final List<Volume> vplexVolumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        getVolumesByAssociatedId(volume.getId().toString()));
+
+        for (Volume vplexVolume : vplexVolumes) {
+            URI storageURI = vplexVolume.getStorageController();
+            StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
+            if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+                return true;
+            }
+        }
+
         return false;
     }
 }

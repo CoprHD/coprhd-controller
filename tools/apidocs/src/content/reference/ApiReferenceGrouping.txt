@@ -63,6 +63,9 @@ TenantService
 =Config Services
 CustomConfigService
 
+=Application Services
+ApplicationService
+
 =UI Services
 com.emc.sa.api.ApprovalService
 com.emc.sa.api.AssetOptionService
@@ -114,4 +117,5 @@ Compute Services
 Tenant Services
 Virtual Data Center Services
 Object Data Control Services
+Application Services
 Other Services

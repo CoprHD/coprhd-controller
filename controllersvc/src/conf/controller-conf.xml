@@ -1039,6 +1039,7 @@
         <property name="computeDeviceController" ref="computeDeviceController" />
         <property name="pxeIntegrationService" ref="pxeIntegrationService" />
         <property name="osInstallStatusPoller" ref="osInstallStatusPoller" />
+        <property name="coordinator" ref="coordinator" />
     </bean>
 
     <bean id="vcenterController" class="com.emc.storageos.vcentercontroller.impl.VcenterControllerImpl">

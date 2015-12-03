@@ -20,7 +20,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
-import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
@@ -47,41 +46,44 @@ public class SRDFTargetVolumeRDFGroupMigration extends BaseCustomMigrationCallba
         List<URI> volumeURIs = dbClient.queryByType(Volume.class, false);
         Map<URI, RemoteDirectorGroup> rdfGroupCache = new HashMap<URI, RemoteDirectorGroup>();
         Map<URI, StorageSystem> systemCache = new HashMap<URI, StorageSystem>();
-        Map<URI, StorageProvider> providerCache = new HashMap<URI, StorageProvider>();
         List<Volume> volumesToUpdate = new ArrayList<Volume>();
         Iterator<Volume> volumes =
                 dbClient.queryIterativeObjects(Volume.class, volumeURIs);
         while (volumes.hasNext()) {
             Volume volume = volumes.next();
-            if (null != volume.getSrdfParent() && !NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {
-                if (null != volume.getSrdfGroup() && !NullColumnValueGetter.isNullURI(volume.getSrdfGroup())) {
-                    log.info("Determining SRDF Target volume {} to update rdf group", volume.getLabel());
-                    RemoteDirectorGroup volumeSrdfGroup = fetchRDFGroupFromCache(rdfGroupCache, volume.getSrdfGroup());
-                    StorageSystem system = fetchSystemFromCache(systemCache, volume.getStorageController());
-                    StorageProvider activeProvider = fetchProviderFromCache(providerCache, system);
-                    if (null == activeProvider) {
-                        log.info("No active provider found to update the target SRDF Volume {}. Hence skipping", volume.getLabel());
-                        continue;
-                    }
-                    // Found a target volume with the target SRDFGroup uri
-                    if (URIUtil.identical(volumeSrdfGroup.getSourceStorageSystemUri(), volume.getStorageController())) {
-                        // Set the source SRDF Group URI
-                        RemoteDirectorGroup sourceRDFGroup = getAssociatedTargetRemoteDirectorGroup(isSMIS8XProvider(activeProvider),
-                                volumeSrdfGroup.getNativeGuid());
-                        volume.setSrdfGroup(sourceRDFGroup.getId());
-                        volumesToUpdate.add(volume);
-                        if (volumesToUpdate.size() > 100) {
-                            this.dbClient.updateObject(volumesToUpdate);
-                            log.info("Updated {} SRDF Target volumes in db", volumesToUpdate.size());
-                            volumesToUpdate.clear();
+            try {
+                if (null != volume.getSrdfParent() && !NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {
+                    if (null != volume.getSrdfGroup() && !NullColumnValueGetter.isNullURI(volume.getSrdfGroup())) {
+                        log.info("Determining SRDF Target volume {} to update rdf group", volume.getLabel());
+                        RemoteDirectorGroup volumeSrdfGroup = fetchRDFGroupFromCache(rdfGroupCache, volume.getSrdfGroup());
+                        StorageSystem system = fetchSystemFromCache(systemCache, volume.getStorageController());
+                        // Found a target volume with the target SRDFGroup uri
+                        if (URIUtil.identical(volumeSrdfGroup.getSourceStorageSystemUri(), volume.getStorageController())) {
+                            // Set the source SRDF Group URI
+                            RemoteDirectorGroup sourceRDFGroup = getAssociatedTargetRemoteDirectorGroup(system.getUsingSmis80(),
+                                    volumeSrdfGroup.getNativeGuid());
+                            if (null == sourceRDFGroup) {
+                                log.info("Source RDFGroup not found in DB. Hence skipping.");
+                                continue;
+                            }
+                            volume.setSrdfGroup(sourceRDFGroup.getId());
+                            volumesToUpdate.add(volume);
+                            if (volumesToUpdate.size() > 100) {
+                                this.dbClient.updateObject(volumesToUpdate);
+                                log.info("Updated {} SRDF Target volumes in db", volumesToUpdate.size());
+                                volumesToUpdate.clear();
+                            }
+                        } else {
+                            log.info("No need to update the rdfgroup for volume {} as it has the right source RDFGroup {}",
+                                    volume.getLabel(),
+                                    volume.getSrdfGroup());
                         }
-                    } else {
-                        log.info("No need to update the rdfgroup for volume {} as it has the right source RDFGroup {}", volume.getLabel(),
-                                volume.getSrdfGroup());
+
                     }
 
                 }
-
+            } catch (Exception ex) {
+                log.error("Exception occurred while updating the SRDFGroup for the target volume {}. proceeding next..", volume.getLabel());
             }
         }
         // Update the remaining volumes
@@ -89,44 +91,6 @@ public class SRDFTargetVolumeRDFGroupMigration extends BaseCustomMigrationCallba
             this.dbClient.updateObject(volumesToUpdate);
             log.info("Updated {} SRDF Target volumes in db", volumesToUpdate.size());
         }
-    }
-
-    /**
-     * Return the provider version.
-     * 
-     * @param storageSystem
-     * @return
-     */
-    private StorageProvider fetchProviderFromCache(Map<URI, StorageProvider> providerCache, StorageSystem storageSystem) {
-        StorageProvider provider = null;
-        if (!NullColumnValueGetter.isNullURI(storageSystem.getActiveProviderURI())) {
-            if (providerCache.containsKey(storageSystem.getActiveProviderURI())) {
-                return providerCache.get(storageSystem.getActiveProviderURI());
-            }
-            provider = this.getDbClient().queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
-            if (null != provider && !provider.getInactive()) {
-                providerCache.put(storageSystem.getActiveProviderURI(), provider);
-            }
-        }
-        return provider;
-    }
-
-    /**
-     * Verify the version specified in the KeyMap and return true if major version is < 8.
-     * If Version string is not set in keyamp, then return true.
-     * 
-     * @param keyMap
-     * @return
-     */
-    private boolean isSMIS8XProvider(StorageProvider provider) {
-        boolean is8XProviderVersion = false;
-        if (null != provider && null != provider.getVersionString()) {
-            String providerVersion = provider.getVersionString().replaceFirst("[^\\d]", "");
-            String provStr[] = providerVersion.split(SMIS_DOT_REGEX);
-            is8XProviderVersion = Integer.parseInt(provStr[0]) >= 8;
-        }
-
-        return is8XProviderVersion;
     }
 
     /**

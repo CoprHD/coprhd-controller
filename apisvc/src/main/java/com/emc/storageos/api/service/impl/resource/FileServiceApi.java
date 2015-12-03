@@ -1,5 +1,4 @@
 package com.emc.storageos.api.service.impl.resource;
-
 import java.net.URI;
 import java.util.List;
 
@@ -39,7 +38,8 @@ public interface FileServiceApi {
      * @throws InternalException
      */
     public TaskList createFileSystems(FileSystemParam param, Project project,
-                                  VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
+                                  VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg, 
+                                  DataObject.Flag[] flags, List<Recommendation> recommendations,
                                   TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;
 

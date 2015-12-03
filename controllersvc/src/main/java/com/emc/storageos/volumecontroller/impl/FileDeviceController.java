@@ -64,6 +64,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -78,8 +79,9 @@ import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.Workflow;
-
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 /**
  * Generic File Controller Implementation that does all of the database
  * operations and calls methods on the array specific implementations
@@ -3318,14 +3320,79 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setvNAS(vNAS);
         }
 	}
+    
+    /**
+     * Get the deviceType for a StorageSystem.
+     *
+     * @param deviceURI -- StorageSystem URI
+     * @return deviceType String
+     */
+    String getDeviceType(URI deviceURI) throws ControllerException {
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, deviceURI);
+        if (storageSystem == null) {
+            throw DeviceControllerException.exceptions.getDeviceTypeFailed(deviceURI.toString());
+        }
+        return storageSystem.getSystemType();
+    }
+    
+    static final String CREATE_FILESYSTEMS_STEP = "FileDeviceCreateVolumes";
+    static final String MODIFY_FILESYSTEMS_STEP = "FileDeviceModifyVolumes";
+    static final String CREATE_FS_MIRRORS_STEP = "FileDeviceCreateMirrors";
 
 	@Override
 	public String addStepsForCreateFileSystems(Workflow workflow,
 			String waitFor, List<FileDescriptor> filesystems, String taskId)
 			throws InternalException {
-		// TODO Auto-generated method stub
-		return null;
+		
+		if(filesystems != null && !filesystems.isEmpty()) {
+			
+			List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
+	                FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE);
+			
+			FileDescriptor fileDescriptor = sourceDescriptors.get(0);
+			List<URI> fileURIs = FileDescriptor.getFileSystemURIs(sourceDescriptors);
+			
+			//create step
+			waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
+		                String.format("Creating File systems:%n%s", taskId),
+		                waitFor, fileDescriptor.getDeviceURI(), 
+		                getDeviceType(fileDescriptor.getDeviceURI()),
+		                this.getClass(),
+		                createFileSharesMethod(workflow, waitFor, fileDescriptor, taskId),
+		                rollbackCreateFileSharesMethod(fileDescriptor.getDeviceURI(), fileURIs), null);
+
+			
+		}
+		
+		//find out which value we should return
+		return waitFor;
 	}
+	
+	/**
+	 * create filesystem call
+	 * @param workflow
+	 * @param waitFor
+	 * @param fileDescriptor
+	 * @param taskId
+	 */
+	private void createFileSystemStep(Workflow workflow,
+			String waitFor, FileDescriptor fileDescriptor, String taskId) {
+		
+		try {
+			WorkflowStepCompleter.stepExecuting(taskId);
+			FileShare fsObj = _dbClient.queryObject(FileShare.class, fileDescriptor.getFsURI());
+	       //dummy code
+			createFS(fileDescriptor.getDeviceURI(), fileDescriptor.getPoolURI(), fileDescriptor.getFsURI(), fsObj.getNativeId(), taskId);
+			WorkflowStepCompleter.stepSucceded(taskId); 
+		} catch (Exception e) {
+			 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+	            WorkflowStepCompleter.stepFailed(taskId, serviceError);
+			
+		}
+		
+	}
+	
+	
 
 	@Override
 	public String addStepsForDeleteFileSystems(Workflow workflow,
@@ -3339,8 +3406,34 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 	public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
 			List<FileDescriptor> fileDescriptors, String taskId)
 			throws InternalException {
-		// TODO Auto-generated method stub
+		
 		return null;
 	}
+	
+	
+	 /**
+     * Return a Workflow.Method for createFileShares.
+     *
+     * @param systemURI
+     * @param poolURI
+     * @param fileURIs
+     * @param capabilities
+     * @return Workflow.Method
+     */
+    private Workflow.Method createFileSharesMethod(Workflow workflow,
+			String waitFor, FileDescriptor fileDescriptor, String taskId) {
+        return new Workflow.Method("createFileSystemStep", workflow, waitFor, fileDescriptor, taskId);
+    }
+    
+    /**
+     * Return a Workflow.Method for rollbackCreateFileSystems
+     *
+     * @param systemURI
+     * @param fileURI
+     * @return Workflow.Method
+     */
+    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs) {
+        return new Workflow.Method("rollBackCreateFileShares", systemURI, fileURIs);
+    }
 
 }

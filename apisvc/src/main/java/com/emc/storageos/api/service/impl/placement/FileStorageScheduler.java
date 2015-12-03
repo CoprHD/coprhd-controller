@@ -22,12 +22,17 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -35,11 +40,17 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.SizeUtil;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
@@ -919,6 +930,87 @@ public class FileStorageScheduler implements Scheduler{
     @Override
     public List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
         return placeFileShare(vArray, vPool, capabilities, project);
+    }
+    
+    public List<FileShare> preparedFileSystem(FileSystemParam param, String task, TaskList taskList,
+            Project project, VirtualArray varray, VirtualPool vpool, Integer volumeCount,
+            List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper cosCapabilities,
+            Boolean createInactive) {
+    	List<FileShare> preparedVolumes = new ArrayList<>();
+    	Iterator<Recommendation> recommendationsIter = recommendations.iterator();
+        while (recommendationsIter.hasNext()) {
+            FileRecommendation recommendation = (FileRecommendation) recommendationsIter.next();
+            // if id is already set in recommendation, do not prepare the fileSystem (fileSystem already exists)
+            if (recommendation.getId() != null) {
+                continue;
+            }
+            
+            if (recommendation.getFileType().toString().equals(
+            		FileRecommendation.FileType.FILE_SYSTEM_DATA.toString())) {
+            	// Grab the existing volume and task object from the incoming task list
+                FileShare fileShare = getPrecreatedFile(_dbClient, taskList, param.getLabel());
+                
+                //set the recommendation
+                setFileRecommendation(_dbClient, recommendation, fileShare, vpool);
+                
+            	
+            	
+            } else if (recommendation.getFileType().toString().equals(
+            		FileRecommendation.FileType.FILE_SYSTEM_LOCAL_MIRROR.toString())) {
+            	//prepare the mirror file share
+            	
+            }
+            
+        
+        }
+    	return preparedVolumes;
+    }
+    
+    public static void setFileRecommendation(DbClient dbClient, FileRecommendation placement, 
+    							FileShare fileShare, VirtualPool vpool) {
+    	StoragePool pool = null;
+        if (null != placement.getSourceStoragePool()) {
+        	pool = dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
+        	if (null != pool) {
+        		fileShare.setProtocol(new StringSet());
+        		fileShare.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
+        	}
+        }
+
+        fileShare.setStorageDevice(placement.getSourceStorageSystem());
+        fileShare.setPool(placement.getSourceStoragePool());
+        if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
+        	fileShare.setStoragePort(placement.getStoragePorts().get(0));
+        }
+        
+        if (placement.getvNAS() != null) {
+        	fileShare.setVirtualNAS(placement.getvNAS());
+        }
+        
+       // set file share id in recommendation
+        placement.setId(fileShare.getId());
+
+        
+    }
+    
+     
+    /**
+     * Convenience method to return a file from a task list with a pre-labeled fileshare.
+     * 
+     * @param dbClient dbclient
+     * @param taskList task list
+     * @param label base label
+     * @return file object
+     */
+    public static FileShare getPrecreatedFile(DbClient dbClient, TaskList taskList, String label) {
+ 
+        for (TaskResourceRep task : taskList.getTaskList()) {
+            FileShare fileShare = dbClient.queryObject(FileShare.class, task.getResource().getId());
+            if (fileShare.getLabel().equalsIgnoreCase(label)) {
+                return fileShare;
+            }
+        }
+        return null;
     }
 
 }

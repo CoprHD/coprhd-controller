@@ -4,7 +4,9 @@ import java.util.List;
 
 import com.emc.storageos.api.service.impl.placement.DefaultFileServiceApiImpl;
 import com.emc.storageos.api.service.impl.placement.FileRPSchedular;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.TaskList;
@@ -36,7 +38,11 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileRPS
 	}
 
 	@Override
-    public TaskList createFileSystems(FileSystemParam param, Project project, VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+    public TaskList createFileSystems(FileSystemParam param, Project project, VirtualArray varray, 
+    		VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags, 
+    		List<Recommendation> recommendations, 
+    		TaskList taskList, String task, 
+    		VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
         return null;
     }
 

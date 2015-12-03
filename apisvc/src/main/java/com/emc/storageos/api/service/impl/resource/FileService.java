@@ -313,38 +313,122 @@ public class FileService extends TaskResourceService {
             }
         }
         
-        TaskList taskList = null;
+        //add new method to handle task
         FileServiceApi fileServiceApi = getFileServiceImpl(cos, _dbClient);
+        TaskList taskList = createFileTaskList(param, project, tenant, neighborhood, cos, flags, task);
 
-        FileController controller = getController(FileController.class, system.getSystemType());
-        FileShare fs = prepareFileSystem(param, project, tenant, neighborhood, cos, flags, recommendation, task);
+//        FileController controller = getController(FileController.class, system.getSystemType());
+//        FileShare fs = prepareEmptyFileSystem(param, project, tenant, neighborhood, cos, flags, task);
+//
+//        String suggestedNativeFsId = param.getFsId() == null ? "" : param.getFsId();
+//
+//        _log.info(String.format(
+//                "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
+//                fs.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
+//        try {
+//            //controller.createFS(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), fs.getId(),
+//            //        suggestedNativeFsId, task);
+//        	
+//        } catch (InternalException e) {
+//            fs.setInactive(true);
+//            _dbClient.persistObject(fs);
+//
+//            // treating all controller exceptions as internal error for now. controller
+//            // should discriminate between validation problems vs. internal errors
+//            throw e;
+//        }
+        
+    	CreateFileSystemSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, 
+    			neighborhood, project, cos, tenant, flags, 
+    			capabilities, taskList, task, requestedTypes, param, fileServiceApi, null);
 
-        String suggestedNativeFsId = param.getFsId() == null ? "" : param.getFsId();
-
-        _log.info(String.format(
-                "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
-                fs.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
-        try {
-            //controller.createFS(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), fs.getId(),
-            //        suggestedNativeFsId, task);
-        	CreateFileSystemSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, neighborhood,
-                    project, cos, capabilities, taskList, task, requestedTypes, param, fileServiceApi, suggestedNativeFsId);
-        	
-        } catch (InternalException e) {
-            fs.setInactive(true);
-            _dbClient.persistObject(fs);
-
-            // treating all controller exceptions as internal error for now. controller
-            // should discriminate between validation problems vs. internal errors
-            throw e;
-        }
 
         auditOp(OperationTypeEnum.CREATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getLabel(), param.getSize(), neighborhood.getId().toString(),
                 project == null ? null : project.getId().toString());
 
-        return toTask(fs, task);
+        return taskList;
     }
+    /**
+     * Allocate, initialize and persist state of the fileSystem being created.
+     * 
+     * @param param
+     * @param project
+     * @param neighborhood
+     * @param vpool
+     * @param placement
+     * @param token
+     * @return
+     */
+    private FileShare
+    prepareEmptyFileSystem(FileSystemParam param, Project project, TenantOrg tenantOrg,
+            VirtualArray varray, VirtualPool vpool, DataObject.Flag[] flags, String task) {
+        _log.info("prepareFile System");
+        StoragePool pool = null;
+        FileShare fs = new FileShare();
+        fs.setId(URIUtil.createId(FileShare.class));
+
+        fs.setLabel(param.getLabel());
+
+        // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
+        // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
+        String convertedName = param.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
+        _log.info("Original name {} and converted name {}", param.getLabel(), convertedName);
+        fs.setName(convertedName);
+        Long fsSize = SizeUtil.translateSize(param.getSize());
+        fs.setCapacity(fsSize);
+        fs.setVirtualPool(param.getVpool());
+        if (project != null) {
+            fs.setProject(new NamedURI(project.getId(), fs.getLabel()));
+        }
+        fs.setTenant(new NamedURI(tenantOrg.getId(), param.getLabel()));
+        fs.setVirtualArray(varray.getId());
+
+//        if (null != placement.getSourceStoragePool()) {
+//            pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
+//            if (null != pool) {
+//                fs.setProtocol(new StringSet());
+//                fs.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
+//            }
+//        }
+//
+//        fs.setStorageDevice(placement.getSourceStorageSystem());
+//        fs.setPool(placement.getSourceStoragePool());
+//        if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
+//            fs.setStoragePort(placement.getStoragePorts().get(0));
+//        }
+
+        // When a VPool supports "thin" provisioning
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
+            fs.setThinlyProvisioned(Boolean.TRUE);
+        }
+
+//        if (placement.getvNAS() != null) {
+//            fs.setVirtualNAS(placement.getvNAS());
+//        }
+
+        fs.setOpStatus(new OpStatusMap());
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.CREATE_FILE_SYSTEM);
+        fs.getOpStatus().createTaskStatus(task, op);
+        if (flags != null) {
+            fs.addInternalFlags(flags);
+        }
+        _dbClient.createObject(fs);
+        return fs;
+    }
+    
+    TaskList createFileTaskList(FileSystemParam param, Project project, TenantOrg tenantOrg,
+            VirtualArray varray, VirtualPool vpool, DataObject.Flag[] flags, String task) {
+    	TaskList taskList = new TaskList();
+    	FileShare fs = prepareEmptyFileSystem(param, project, tenantOrg, varray, vpool, flags, task);
+    	TaskResourceRep fileTask = toTask(fs, task);
+        taskList.getTaskList().add(fileTask);
+        _log.info(String.format("FileShare and Task Pre-creation Objects [Init]--  Source FileSystem: %s, Task: %s, Op: %s",
+                fs.getId(), fileTask.getId(), task));
+    	return taskList;
+    }
+
 
     /**
      * Get info for file system

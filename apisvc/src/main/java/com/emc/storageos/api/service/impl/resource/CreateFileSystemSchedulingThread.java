@@ -29,9 +29,13 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
     private FileSystemParam param;
     private FileServiceApi fileServiceImpl;
     private String SuggestedNativeFsId;
+    private TenantOrg tenantOrg;
+    DataObject.Flag[] flags;
+
 
     public CreateFileSystemSchedulingThread(FileService fileService, VirtualArray varray, Project project,
             VirtualPool vpool,
+            TenantOrg tenantOrg, DataObject.Flag[] flags,
             VirtualPoolCapabilityValuesWrapper capabilities,
             TaskList taskList, String task, ArrayList<String> requestedTypes,
             FileSystemParam param,
@@ -42,6 +46,8 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
 		this.varray = varray;
 		this.project = project;
 		this.vpool = vpool;
+		this.tenantOrg = tenantOrg;
+		this.flags = flags;
 		this.capabilities = capabilities;
 		this.taskList = taskList;
 		this.task = task;
@@ -65,7 +71,7 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
 
             // Call out to the respective file service implementation to prepare
             // and create the fileshares based on the recommendations.
-            fileServiceImpl.createFileSystems(param, project, varray, vpool, recommendations, taskList, task, capabilities);
+            fileServiceImpl.createFileSystems(param, project, varray, vpool, tenantOrg, flags, recommendations, taskList, task, capabilities);
         } catch (Exception ex) {
             for (TaskResourceRep taskObj : taskList.getTaskList()) {
                 if (ex instanceof ServiceCoded) {
@@ -90,7 +96,7 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
 	 /**
      * Static method to execute the API task in the background to create an export group.
      *
-     * @param fileService block service ("this" from caller)
+     * @param fileService file service ("this" from caller)
      * @param executorService executor service that manages the thread pool
      * @param dbClient db client
      * @param varray virtual array
@@ -100,30 +106,32 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
      * @param taskList list of tasks
      * @param task task ID
      * @param requestedTypes requested types
-     * @param param volume creation request params
+     * @param param file creation request params
      * @param fileServiceImpl block service impl to call
      */
     
     public static void executeApiTask(FileService fileService, ExecutorService executorService, DbClient dbClient, VirtualArray varray,
                                       Project project,
-                                      VirtualPool vpool, VirtualPoolCapabilityValuesWrapper capabilities,
+                                      VirtualPool vpool,
+                                      TenantOrg tenantOrg, DataObject.Flag[] flags,
+                                      VirtualPoolCapabilityValuesWrapper capabilities,
                                       TaskList taskList, String task, ArrayList<String> requestedTypes,
                                       FileSystemParam param,
                                       FileServiceApi fileServiceImpl, String suggestedNativeFsId) {
     	CreateFileSystemSchedulingThread schedulingThread = new CreateFileSystemSchedulingThread(
-    			fileService, varray, project, vpool, capabilities, taskList, task, requestedTypes, param, fileServiceImpl, suggestedNativeFsId);
+    			fileService, varray, project, vpool, tenantOrg, flags, capabilities, taskList, task, requestedTypes, param, fileServiceImpl, suggestedNativeFsId);
         
         try {
             executorService.execute(schedulingThread);
         } catch (Exception e) {
             for (TaskResourceRep taskObj : taskList.getTaskList()) {
-                String message = "Failed to execute volume creation API task for resource " + taskObj.getResource().getId();
+                String message = "Failed to execute file creation API task for resource " + taskObj.getResource().getId();
                 _log.error(message);
                 taskObj.setMessage(message);
-                // Set the volumes to inactive
-                Volume volume = dbClient.queryObject(Volume.class, taskObj.getResource().getId());
-                volume.setInactive(true);
-                dbClient.updateAndReindexObject(volume);
+                // Set the fileshares to inactive
+                FileShare fileShare = dbClient.queryObject(FileShare.class, taskObj.getResource().getId());
+                fileShare.setInactive(true);
+                dbClient.updateAndReindexObject(fileShare);
             }
         }
     }

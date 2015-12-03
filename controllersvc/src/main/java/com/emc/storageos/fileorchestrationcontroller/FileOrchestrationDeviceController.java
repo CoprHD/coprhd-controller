@@ -63,8 +63,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String waitFor = null;    // the wait for key returned by previous call
 
             s_logger.info("Generating steps for create FileSystem");
-            // First, call the BlockDeviceController to add its methods.
-            waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, fileDescriptors, taskId);
+            // First, call the FileDeviceController to add its methods.
+            waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, 
+            													fileDescriptors, taskId);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter

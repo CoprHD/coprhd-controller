@@ -15,23 +15,33 @@ import com.emc.storageos.volumecontroller.Recommendation;
  */
 public class FileRecommendation extends Recommendation {
 	public enum FileType {
-        FILE_VOLUME,          // user's data file
-        FILE_LOCAL_MIRROR,    // local mirror
-        FILE_COPY,            // full copy
-        RP_VOLUME             // RP file
+        FILE_SYSTEM_DATA,            // user's data file
+        FILE_SYSTEM_LOCAL_MIRROR,    // local mirror
+        FILE_SYSTEM_COPY,            // full copy
+        RP_FILE_SYSTEM               // RP file
     };
 
     private static final long serialVersionUID = 1L;
     private List<URI> _storagePortUris;
     private URI vNASURI;
+    private URI _id;
+    private FileType fileType;
 
-    public FileRecommendation(Recommendation recommendation) {
+    
+	public FileRecommendation(Recommendation recommendation) {
         setDeviceType(recommendation.getDeviceType());
         setSourceStorageSystem(recommendation.getSourceStorageSystem());
         setSourceStoragePool(recommendation.getSourceStoragePool());
         setResourceCount(recommendation.getResourceCount());
     }
+    public URI getId() {
+        return _id;
+    }
 
+    public void setId(URI _id) {
+        this._id = _id;
+    }
+    
     public FileRecommendation() {
     }
 
@@ -49,6 +59,13 @@ public class FileRecommendation extends Recommendation {
 
 	public void setvNAS(URI vNASURI) {
 		this.vNASURI = vNASURI;
+	}
+	
+	public FileType getFileType() {
+		return fileType;
+	}
+	public void setFileType(FileType fileType) {
+		this.fileType = fileType;
 	}
 
 }

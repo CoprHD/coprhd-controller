@@ -1,6 +1,7 @@
 package com.emc.storageos.fileorchestrationcontroller;
 
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+
 import java.io.Serializable;
 import java.net.URI;
 import java.util.*;
@@ -8,7 +9,22 @@ import java.util.*;
 
 public class FileDescriptor implements Serializable {
 
-    public enum Type {
+    public FileDescriptor(Type _type, URI _deviceURI, URI _fsURI, URI _poolURI,
+			Long _fileSize,
+			VirtualPoolCapabilityValuesWrapper _capabilitiesValues,
+			URI _migrationId, String _suggestedNativeFsId) {
+		super();
+		this._type = _type;
+		this._deviceURI = _deviceURI;
+		this._fsURI = _fsURI;
+		this._poolURI = _poolURI;
+		this._fileSize = _fileSize;
+		this._capabilitiesValues = _capabilitiesValues;
+		this._migrationId = _migrationId;
+		this._suggestedNativeFsId = _suggestedNativeFsId;
+	}
+
+	public enum Type {
         /* ******************************
          * The ordering of these are important for the sortByType() method,
          * be mindful when adding/removing/changing the list.
@@ -18,7 +34,7 @@ public class FileDescriptor implements Serializable {
         FILE_DATA(1),               // user's data filesystem
         FILE_MIRROR(2),             // array level mirror
         FILE_SNAPSHOT(3),           // array level snapshot
-        FILE_RP_EXISTING_SOURCE(4), // RecoverPoint existing source file
+        FILE_EXISTING_SOURCE(4), // RecoverPoint existing source file
         FILE_RP_SOURCE(5),          // RecoverPoint source
         FILE_RP_TARGET(6);          // RecoverPoint target
 
@@ -38,8 +54,17 @@ public class FileDescriptor implements Serializable {
     private Long _fileSize;          // Used to separate multi-file create requests
     private VirtualPoolCapabilityValuesWrapper _capabilitiesValues;  // Non-file-specific RP policy is stored in here
     private URI _migrationId;        // Reference to the migration object for this file
+    private String _suggestedNativeFsId;
 
-    public Type getType() {
+    public String getSuggestedNativeFsId() {
+		return _suggestedNativeFsId;
+	}
+
+	public void setSuggestedNativeFsId(String _suggestedNativeFsId) {
+		this._suggestedNativeFsId = _suggestedNativeFsId;
+	}
+
+	public Type getType() {
         return _type;
     }
 

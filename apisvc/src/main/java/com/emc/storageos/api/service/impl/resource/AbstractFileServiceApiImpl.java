@@ -14,6 +14,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.common.DependencyChecker;
@@ -137,7 +138,7 @@ public class AbstractFileServiceApiImpl <T> implements FileServiceApi{
 
 	@Override
 	public TaskList createFileSystems(FileSystemParam param, Project project,
-			VirtualArray varray, VirtualPool vpool,
+			VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags,
 			List<Recommendation> recommendations, TaskList taskList,
 			String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
 			throws InternalException {

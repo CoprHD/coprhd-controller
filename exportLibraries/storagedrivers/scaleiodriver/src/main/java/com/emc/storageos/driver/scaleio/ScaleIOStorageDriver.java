@@ -9,7 +9,6 @@ import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOSystem;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.RegistrationData;
-import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.impl.InMemoryRegistryImpl;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
@@ -22,7 +21,6 @@ import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver {
 	private ScaleIORestHandleFactory handleFactory;
-	private static Registry registry = new InMemoryRegistryImpl();
 	private static Logger _log = LoggerFactory.getLogger(ScaleIORestClient.class);
 
 	DriverTask task;
@@ -156,23 +154,24 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 		String taskType = "discover-storage-system";
 		String taskID = String.format("%s+%s+%s",ScaleIOConstants.DRIVER_NAME,taskType, UUID.randomUUID());
 		task = new DriverTaskImpl(taskID);
+		driverRegistry = new InMemoryRegistryImpl();
 		for(StorageSystem storageSystem : storageSystems) {
 				try
 				{
 					_log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - Start", storageSystem.getIpAddress(), storageSystem.getSystemName());
 					List<String> list = new ArrayList<>();
 					list.add(storageSystem.getIpAddress());
-					registry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,storageSystem.getNativeId(),ScaleIOConstants.IP_ADDRESS,list);
+					driverRegistry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,storageSystem.getNativeId(),ScaleIOConstants.IP_ADDRESS,list);
 					list=new ArrayList<>();
 					list.add(String.valueOf(storageSystem.getPortNumber()));
-					registry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,storageSystem.getNativeId(),ScaleIOConstants.PORT_NUMBER,list);
+                    driverRegistry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,storageSystem.getNativeId(),ScaleIOConstants.PORT_NUMBER,list);
 					list=new ArrayList<>();
 					list.add(storageSystem.getUsername());
-					registry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,storageSystem.getNativeId(),ScaleIOConstants.USER_NAME,list);
+                    driverRegistry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,storageSystem.getNativeId(),ScaleIOConstants.USER_NAME,list);
 					list=new ArrayList<>();
 					list.add(storageSystem.getPassword());
-					registry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,storageSystem.getNativeId(),ScaleIOConstants.PASSWORD,list);
-					ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),registry);
+                    driverRegistry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,storageSystem.getNativeId(),ScaleIOConstants.PASSWORD,list);
+					ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),driverRegistry);
 					if(scaleIOHandle != null) {
 						ScaleIOSystem scaleIOSystem = scaleIOHandle.getSystem();
 						storageSystem.setSerialNumber(storageSystem.getSerialNumber());
@@ -210,7 +209,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 				String taskID = String.format("%s+%s+%s",ScaleIOConstants.DRIVER_NAME,taskType, UUID.randomUUID());
 				task = new DriverTaskImpl(taskID);
 				_log.info("Discovery of storage pools for storage system {} .", storageSystem.getNativeId());
-				ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),registry);
+				ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),driverRegistry);
 				if(scaleIOHandle != null) {
 					List <ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
 					for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
@@ -263,7 +262,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 				String taskID = String.format("%s+%s+%s",ScaleIOConstants.DRIVER_NAME,taskType, UUID.randomUUID());
 				task = new DriverTaskImpl(taskID);
 				_log.info("Discovery of storage ports for storage system {} .", storageSystem.getNativeId());
-				ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),registry);
+				ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),driverRegistry);
 				if(scaleIOHandle != null) {
 					List <ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
 					List <ScaleIOSDS> allSDSs = scaleIOHandle.queryAllSDS();

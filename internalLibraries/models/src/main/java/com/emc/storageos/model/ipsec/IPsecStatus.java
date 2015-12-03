@@ -5,6 +5,7 @@
 package com.emc.storageos.model.ipsec;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
@@ -34,7 +35,8 @@ public class IPsecStatus {
         this.isGood = isGood;
     }
 
-    @XmlElement(name = "disconnected_nodes")
+    @XmlElementWrapper(name = "disconnected_nodes")
+    @XmlElement(name = "ip")
     public String[] getDisconnectedNodes() {
         return disconnectedNodes;
     }

@@ -477,6 +477,7 @@ public abstract class VdcOpHandler {
             // Reload coordinator configuration on all sites
             flushVdcConfigToLocal();
             try {
+                coordinator.stopCoordinatorSvcMonitor();
                 if (hasSingleNodeSite()) {
                     log.info("Single node deployment detected. Need refresh firewall/ipsec");
                     refreshIPsec();
@@ -612,6 +613,7 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             if (isNewActiveSiteForFailover(site)) {
+                coordinator.stopCoordinatorSvcMonitor();
                 reconfigVdc();
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
                 removeDbNodesOfOldActiveSite();

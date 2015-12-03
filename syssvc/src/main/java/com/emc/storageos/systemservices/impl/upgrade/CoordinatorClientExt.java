@@ -108,6 +108,7 @@ public class CoordinatorClientExt {
     private String mySvcId = null;
     private int _nodeCount = 0;
     private DrUtil drUtil;
+    private volatile boolean stopCoordinatorSvcMonitor; // default to false
     
     private DbServiceStatusChecker statusChecker = null;
 
@@ -1330,6 +1331,7 @@ public class CoordinatorClientExt {
 
         Configuration config = this._coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_CONFIG, dbSvcId);
         if (config == null) {
+            _log.warn("dbconfig not initialized");
             return true;
         }
 
@@ -1424,6 +1426,10 @@ public class CoordinatorClientExt {
             exe.scheduleAtFixedRate(coordinatorSvcMonitor, 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
     }
+
+    public void stopCoordinatorSvcMonitor() {
+        stopCoordinatorSvcMonitor = true;
+    }
     
     /**
      * Monitor local coordinatorsvc on standby site
@@ -1432,6 +1438,10 @@ public class CoordinatorClientExt {
         private String initZkMode; // ZK mode during syssvc startup
         
         public void run() {
+            if (stopCoordinatorSvcMonitor) {
+                return;
+            }
+
             try {
                 checkLocalZKMode();
             } catch (Exception e) {
@@ -1448,19 +1458,6 @@ public class CoordinatorClientExt {
             
             if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
                 return; // expected situation. Standby zookeeper should be observer mode normally
-            }
-
-            try {
-                Site localSite = drUtil.getLocalSite();
-                SiteState siteState = localSite.getState();
-                if (siteState.equals(SiteState.ACTIVE_SWITCHING_OVER)
-                        || siteState.equals(SiteState.STANDBY_SWITCHING_OVER)
-                        || siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
-                    _log.info("Ignore coordinator check for site state {}", siteState);
-                    return;
-                }
-            } catch (Exception e) {
-                _log.error("Failed to get local site's state", e);
             }
             
             _log.info("Local zookeeper mode {}", state);

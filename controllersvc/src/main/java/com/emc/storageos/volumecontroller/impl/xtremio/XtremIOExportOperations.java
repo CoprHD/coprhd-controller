@@ -86,7 +86,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
         List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorUriList);
 
-        runLunMapDeletionAlgorithm(storage, exportMask, volumeUris, initiators, taskCompleter);
+        runLunMapDeletionOrRemoveInitiatorAlgorithm(storage, exportMask, volumeUris, initiators, taskCompleter);
     }
 
     @Override
@@ -403,6 +403,184 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             taskCompleter.error(dbClient, serviceError);
         }
 
+    }
+
+    /**
+     * It deletes the LunMap if the IG contains no other initiators than the requested ones.
+     * Else it removes the requested initiators from the IG
+     */
+    private void runLunMapDeletionOrRemoveInitiatorAlgorithm(StorageSystem storage, ExportMask exportMask,
+            List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        // find LunMap associated with Volume
+        // Then find initiatorGroup associated with this lun map
+
+        // find initiators associated with IG:
+        // -if the given list of initiators is same, then run removeLunMap,
+        // -else remove initiators from IG and don't delete LunMap
+        ArrayListMultimap<String, Initiator> groupInitiatorsByIG = ArrayListMultimap.create();
+        Set<String> igNames = new HashSet<String>();
+        XtremIOClient client = null;
+        // if host Name is not available in at least one of the initiator, then set it to
+        // Default_IG;
+        try {
+            String hostName = null;
+            String clusterName = null;
+            client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+
+            for (Initiator initiator : initiators) {
+                String igName = null;
+                if (null != initiator.getHostName()) {
+                    // initiators already grouped by Host
+                    hostName = initiator.getHostName();
+                    clusterName = initiator.getClusterName();
+                }
+                igName = getIGNameForInitiator(initiator, client, xioClusterName);
+                if (igName != null && !igName.isEmpty()) {
+                    groupInitiatorsByIG.put(igName, initiator);
+                    igNames.add(igName);
+                }
+            }
+
+            _log.info("List of reusable IGs found {} with size : {}",
+                    Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()),
+                    groupInitiatorsByIG.size());
+
+            List<URI> failedVolumes = new ArrayList<URI>();
+            List<String> failedIGs = new ArrayList<String>();
+            for (URI volumeUri : volumes) {
+                BlockObject blockObj = BlockObject.fetch(dbClient, volumeUri);
+                _log.info("Block Obj {} , wwn {}", blockObj.getId(), blockObj.getWWN());
+                XtremIOVolume xtremIOVolume = null;
+                if (URIUtil.isType(volumeUri, Volume.class)) {
+                    xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
+                            blockObj.getLabel(), xioClusterName);
+                } else {
+                    xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
+                            blockObj.getDeviceLabel(), xioClusterName);
+                }
+
+                if (null != xtremIOVolume) {
+                    // I need lun map id and igName
+                    // if iGName is available in the above group:
+                    // -if IG contains all requested initiators, then remove lunMap,
+                    // -else remove the requested initiators and don't remove lunMap.
+                    _log.info("Volume Details {}", xtremIOVolume.toString());
+                    _log.info("Volume lunMap details {}", xtremIOVolume.getLunMaps().toString());
+
+                    // Lun Maps to delete
+                    Set<String> lunMaps = new HashSet<String>();
+                    boolean removeInitiator = false;
+                    String volId = xtremIOVolume.getVolInfo().get(2);
+
+                    if (xtremIOVolume.getLunMaps().isEmpty()) {
+                        // handle scenarios where volumes gets unexported already
+                        _log.info("Volume  {} doesn't have any existing export available on Array, unexported already.",
+                                xtremIOVolume.toString());
+                        exportMask.removeFromUserCreatedVolumes(blockObj);
+                        exportMask.removeVolume(blockObj.getId());
+                        continue;
+                    }
+                    for (List<Object> lunMapEntries : xtremIOVolume.getLunMaps()) {
+                        @SuppressWarnings("unchecked")
+                        List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
+                        String igName = (String) igDetails.get(1);
+
+                        // IG details is actually transforming to a double by default, even though
+                        // its modeled as List<String>
+                        // hence this logic
+                        Double IgIdDouble = (Double) igDetails.get(2);
+                        String igId = String.valueOf(IgIdDouble.intValue());
+
+                        _log.info("IG Name: {} Id: {} found in Lun Map", igName, igId);
+                        if (!igNames.contains(igName)) {
+                            _log.info(
+                                    "Volume is associated with IG {} which is not in the removal list requested, ignoring..",
+                                    igName);
+                            continue;
+                        }
+
+                        XtremIOInitiatorGroup igGroup = client.getInitiatorGroup(igName, xioClusterName);
+                        int numOfInitiatorsInIG = Integer.parseInt(igGroup.getNumberOfInitiators());
+                        int numOfInitiatorsRequested = groupInitiatorsByIG.get(igName).size();
+                        _log.info("Number of Initiators present: {}, Number of Initiators requested: {}",
+                                numOfInitiatorsInIG, numOfInitiatorsRequested);
+
+                        if (numOfInitiatorsRequested < numOfInitiatorsInIG) {
+                            removeInitiator = true;
+                        } else {
+                            @SuppressWarnings("unchecked")
+                            List<Object> tgtGroupDetails = (List<Object>) lunMapEntries.get(1);
+                            Double tgIdDouble = (Double) tgtGroupDetails.get(2);
+                            String tgtid = String.valueOf(tgIdDouble.intValue());
+                            String lunMapId = volId.concat(XtremIOConstants.UNDERSCORE).concat(igId)
+                                    .concat(XtremIOConstants.UNDERSCORE).concat(tgtid);
+                            _log.info("LunMap Id {} Found associated with Volume {}", lunMapId,
+                                    blockObj.getLabel());
+                            lunMaps.add(lunMapId);
+
+                        }
+                    }
+                    // deletion of lun Maps
+                    // there will be only one lun map always
+                    for (String lunMap : lunMaps) {
+                        try {
+                            client.deleteLunMap(lunMap, xioClusterName);
+                        } catch (Exception e) {
+                            failedVolumes.add(volumeUri);
+                            _log.warn("Deletion of Lun Map {} failed}", lunMap, e);
+                        }
+                    }
+                    // remove initiator from IG
+                    if (removeInitiator) {
+                        _log.info("Removing requested intiators from IG instead of deleting LunMap as the IG contains other initiators.");
+                        // Deleting the initiator automatically removes the initiator from lun map
+                        for (Initiator initiator : initiators) {
+                            try {
+                                client.deleteInitiator(initiator.getLabel(), xioClusterName);
+                            } catch (Exception e) {
+                                failedIGs.add(initiator.getLabel());
+                                _log.warn("Removal of Initiator {} from IG failed", initiator.getLabel(), e);
+                            }
+                        }
+                    }
+                } else {
+                    exportMask.removeFromUserCreatedVolumes(blockObj);
+                    exportMask.removeVolume(blockObj.getId());
+                }
+
+            }
+            dbClient.updateAndReindexObject(exportMask);
+
+            if (!failedVolumes.isEmpty()) {
+                String errMsg = "Export Operations failed for these volumes: ".concat(Joiner.on(", ").join(
+                        failedVolumes));
+                ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(
+                        errMsg, null);
+                taskCompleter.error(dbClient, serviceError);
+                return;
+            }
+            if (!failedIGs.isEmpty()) {
+                String errMsg = "Export Operations failed deleting these initiators: ".concat(Joiner.on(", ").join(
+                        failedIGs));
+                ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
+                taskCompleter.error(dbClient, serviceError);
+                return;
+            }
+
+            // Clean IGs if empty
+            deleteInitiatorGroup(groupInitiatorsByIG, client, xioClusterName);
+            // delete IG Folder as well if IGs are empty
+            deleteInitiatorGroupFolder(client, xioClusterName, clusterName, hostName, storage);
+
+            taskCompleter.ready(dbClient);
+        } catch (Exception e) {
+            _log.error(String.format("Export Operations failed - maskName: %s", exportMask.getId()
+                    .toString()), e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(dbClient, serviceError);
+        }
     }
 
     private String getIGNameForInitiator(Initiator initiator, XtremIOClient client, String xioClusterName) throws Exception {

@@ -545,7 +545,7 @@ public class FileStorageScheduler {
                 } else if (!ProjectUtility.
                 		doesProjectDomainMatchesWithVNASDomain(projectDomains, vNAS)) {
                 	_log.info("Removing vNAS {} as its domain does not match with project's domain: {}",
-                            vNAS.getNasName(), vpool.getProtocols());
+                            vNAS.getNasName(), projectDomains);
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 }

@@ -630,7 +630,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private boolean isSiteSpecific(String kind) {
         if (kind.equals(SiteInfo.CONFIG_KIND)
             || kind.equals(SiteError.CONFIG_KIND)
-            || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND) 
             || kind.equals(PowerOffState.CONFIG_KIND)) {
             return true;
         }

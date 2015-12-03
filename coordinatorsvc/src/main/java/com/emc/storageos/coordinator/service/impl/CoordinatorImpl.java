@@ -25,7 +25,6 @@ import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import org.apache.zookeeper.server.quorum.QuorumPeer;
 import org.apache.zookeeper.server.quorum.QuorumPeer.LearnerType;
-import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -87,6 +86,9 @@ public class CoordinatorImpl implements Coordinator {
             _log.error("Uncommitted data revision detected. Manual relink db/zk data directory");
             throw new RuntimeException("Uncommited data revision");
         }
+
+        _log.info(String.format("%s: %s", SpringQuorumPeerConfig.READONLY_MODE_ENABLED,
+                System.getProperty(SpringQuorumPeerConfig.READONLY_MODE_ENABLED)));
         
         // snapshot clean up runs at regular interval and leaves desired snapshots
         // behind

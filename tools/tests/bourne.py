@@ -1106,6 +1106,7 @@ class Bourne:
                 raise Exception('Timed out waiting for request in pending state: ' + op)
 
             if (obj_op['state'] == 'error' and not ignore_error):
+                self.pretty_print_json(obj_op)
                 raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
 
         return obj_op
@@ -4890,7 +4891,7 @@ class Bourne:
         try:
             s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         except:
-            print o;
+            s = 'error'
         return (o, s)
 
     def export_group_add_volume(self, groupId, volspec):

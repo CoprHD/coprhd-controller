@@ -32,6 +32,7 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
@@ -64,6 +66,7 @@ import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
@@ -204,7 +207,7 @@ public class DisasterRecoveryService {
             // sync site related info with to be added standby site
             long dataRevision = System.currentTimeMillis();
             SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey(), standbyConfig.getUuid(), dataRevision);
-            viprCoreClient.site().syncSite(configParam);
+            viprCoreClient.site().syncSite(standbyConfig.getUuid(), configParam);
 
             drUtil.updateVdcTargetVersion(siteId, SiteInfo.DR_OP_CHANGE_DATA_REVISION, dataRevision);
 
@@ -269,6 +272,7 @@ public class DisasterRecoveryService {
      * @return
      */
     @PUT
+    @Path("/{uuid}/initstandby")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
@@ -947,6 +951,57 @@ public class DisasterRecoveryService {
             log.error("Error happened when failover at site %s", uuid, e);
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid, currentSite.getVip(), currentSite.getName());
             throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
+        }
+    }
+    
+    /**
+     * Update site information. Only name and description can be updated.
+     * @param uuid target site uuid
+     * @param siteParam site information
+     * @return
+     */
+    @PUT
+    @Path("/{uuid}")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    public Response updateSite(@PathParam("uuid") String uuid, SiteUpdateParam siteParam) {
+        log.info("Begin to update site information for {}", uuid);
+        
+        Site site = null;
+        
+        try {
+            site = drUtil.getSiteFromLocalVdc(uuid);
+        } catch (RetryableCoordinatorException e) {
+            log.error("Can't find site with specified site UUID {}", uuid);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+        
+        if (StringUtil.isBlank(siteParam.getName())) {
+            throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site name should not be empty.");
+        }
+        
+        for (Site eachSite : drUtil.listSites()) {
+            if (eachSite.getUuid().equals(uuid)) {
+                continue;
+            }
+            
+            if (eachSite.getName().equals(siteParam.getName())) {
+                throw APIException.internalServerErrors.addStandbyPrecheckFailed("Duplicate site name");
+            }
+        }
+        
+        try {
+            site.setName(siteParam.getName());
+            site.setDescription(siteParam.getDescription());
+            coordinator.persistServiceConfiguration(site.toConfiguration());
+            
+            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_SUCCESS, null, site.getVip(), site.getName());
+            return Response.status(Response.Status.ACCEPTED).build();
+        } catch (Exception e) {
+            log.error("Error happened when update site %s", uuid, e);
+            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_FAILURE, null, site.getVip(), site.getName());
+            throw APIException.internalServerErrors.updateSiteFailed(site.getName(), e.getMessage());
         }
     }
 

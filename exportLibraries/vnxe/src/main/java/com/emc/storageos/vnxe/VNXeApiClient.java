@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.vnxe.models.AccessEnum;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
 import com.emc.storageos.vnxe.models.BlockHostAccess;
@@ -22,34 +25,23 @@ import com.emc.storageos.vnxe.models.CifsShareCreateParam;
 import com.emc.storageos.vnxe.models.CifsShareDeleteParam;
 import com.emc.storageos.vnxe.models.CifsShareParam;
 import com.emc.storageos.vnxe.models.CreateFileSystemParam;
+import com.emc.storageos.vnxe.models.DiskGroup;
 import com.emc.storageos.vnxe.models.FastVP;
 import com.emc.storageos.vnxe.models.FastVPParam;
+import com.emc.storageos.vnxe.models.FileSystemParam;
+import com.emc.storageos.vnxe.models.FileSystemSnapCreateParam;
+import com.emc.storageos.vnxe.models.HostCreateParam;
 import com.emc.storageos.vnxe.models.HostInitiatorCreateParam;
+import com.emc.storageos.vnxe.models.HostIpPortCreateParam;
 import com.emc.storageos.vnxe.models.HostLun;
+import com.emc.storageos.vnxe.models.HostTypeEnum;
 import com.emc.storageos.vnxe.models.LunAddParam;
 import com.emc.storageos.vnxe.models.LunCreateParam;
 import com.emc.storageos.vnxe.models.LunGroupCreateParam;
 import com.emc.storageos.vnxe.models.LunGroupModifyParam;
+import com.emc.storageos.vnxe.models.LunModifyParam;
 import com.emc.storageos.vnxe.models.LunParam;
 import com.emc.storageos.vnxe.models.LunSnapCreateParam;
-import com.emc.storageos.vnxe.models.NfsShareParam.NFSShareDefaultAccessEnum;
-import com.emc.storageos.vnxe.models.StorageResource;
-import com.emc.storageos.vnxe.models.StorageResource.TieringPolicyEnum;
-import com.emc.storageos.vnxe.models.LunModifyParam;
-import com.emc.storageos.vnxe.models.VNXeEthernetPort;
-import com.emc.storageos.vnxe.models.FileSystemParam;
-import com.emc.storageos.vnxe.models.FileSystemSnapCreateParam;
-import com.emc.storageos.vnxe.models.HostCreateParam;
-import com.emc.storageos.vnxe.models.HostIpPortCreateParam;
-import com.emc.storageos.vnxe.models.HostTypeEnum;
-import com.emc.storageos.vnxe.models.VNXeExportResult;
-import com.emc.storageos.vnxe.models.VNXeFCPort;
-import com.emc.storageos.vnxe.models.VNXeHost;
-import com.emc.storageos.vnxe.models.VNXeHostInitiator;
-import com.emc.storageos.vnxe.models.VNXeHostInitiator.HostInitiatorTypeEnum;
-import com.emc.storageos.vnxe.models.DiskGroup;
-import com.emc.storageos.vnxe.models.VNXeIscsiPortal;
-import com.emc.storageos.vnxe.models.VNXeIscsiNode;
 import com.emc.storageos.vnxe.models.ModifyFileSystemParam;
 import com.emc.storageos.vnxe.models.NfsShareCreateForSnapParam;
 import com.emc.storageos.vnxe.models.NfsShareCreateParam;
@@ -57,16 +49,27 @@ import com.emc.storageos.vnxe.models.NfsShareDeleteParam;
 import com.emc.storageos.vnxe.models.NfsShareModifyForShareParam;
 import com.emc.storageos.vnxe.models.NfsShareModifyParam;
 import com.emc.storageos.vnxe.models.NfsShareParam;
+import com.emc.storageos.vnxe.models.NfsShareParam.NFSShareDefaultAccessEnum;
+import com.emc.storageos.vnxe.models.StorageResource;
+import com.emc.storageos.vnxe.models.StorageResource.TieringPolicyEnum;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsServer;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
+import com.emc.storageos.vnxe.models.VNXeEthernetPort;
+import com.emc.storageos.vnxe.models.VNXeExportResult;
+import com.emc.storageos.vnxe.models.VNXeFCPort;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeFileInterface;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
 import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
+import com.emc.storageos.vnxe.models.VNXeHost;
+import com.emc.storageos.vnxe.models.VNXeHostInitiator;
+import com.emc.storageos.vnxe.models.VNXeHostInitiator.HostInitiatorTypeEnum;
 import com.emc.storageos.vnxe.models.VNXeHostIpPort;
+import com.emc.storageos.vnxe.models.VNXeIscsiNode;
+import com.emc.storageos.vnxe.models.VNXeIscsiPortal;
 import com.emc.storageos.vnxe.models.VNXeLicense;
 import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.vnxe.models.VNXeLunGroupSnap;
@@ -82,13 +85,13 @@ import com.emc.storageos.vnxe.requests.BasicSystemInfoRequest;
 import com.emc.storageos.vnxe.requests.BlockLunRequests;
 import com.emc.storageos.vnxe.requests.CifsServerListRequest;
 import com.emc.storageos.vnxe.requests.CifsShareRequests;
+import com.emc.storageos.vnxe.requests.DeleteStorageResourceRequest;
 import com.emc.storageos.vnxe.requests.DiskGroupRequests;
 import com.emc.storageos.vnxe.requests.EthernetPortRequests;
 import com.emc.storageos.vnxe.requests.FastVPRequest;
 import com.emc.storageos.vnxe.requests.FcPortRequests;
-import com.emc.storageos.vnxe.requests.FileSystemActionRequest;
-import com.emc.storageos.vnxe.requests.DeleteStorageResourceRequest;
 import com.emc.storageos.vnxe.requests.FileInterfaceListRequest;
+import com.emc.storageos.vnxe.requests.FileSystemActionRequest;
 import com.emc.storageos.vnxe.requests.FileSystemListRequest;
 import com.emc.storageos.vnxe.requests.FileSystemRequest;
 import com.emc.storageos.vnxe.requests.FileSystemSnapRequests;
@@ -114,9 +117,6 @@ import com.emc.storageos.vnxe.requests.PoolRequest;
 import com.emc.storageos.vnxe.requests.StorageProcessorListRequest;
 import com.emc.storageos.vnxe.requests.StorageSystemRequest;
 import com.emc.storageos.vnxe.requests.StorageTierRequest;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class is used to get data or execute configuration commands against VNXe arrays
@@ -412,8 +412,7 @@ public class VNXeApiClient {
                 shareParm.setNoAccessHosts(null);
                 shareParm.setReadWriteHosts(null);
                 shareParm.setReadOnlyHosts(null);
-            }
-            else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READONLY)) {
+            } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READONLY)) {
                 if (!hosts.isEmpty()) {
                     shareParm.setReadOnlyHosts(hosts);
                 } else {
@@ -422,8 +421,7 @@ public class VNXeApiClient {
                 shareParm.setNoAccessHosts(null);
                 shareParm.setReadWriteHosts(null);
                 shareParm.setRootAccessHosts(null);
-            }
-            else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READWRITE)) {
+            } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READWRITE)) {
                 if (!hosts.isEmpty()) {
                     shareParm.setReadWriteHosts(hosts);
                 } else {
@@ -432,8 +430,7 @@ public class VNXeApiClient {
                 shareParm.setNoAccessHosts(null);
                 shareParm.setReadOnlyHosts(null);
                 shareParm.setRootAccessHosts(null);
-            }
-            else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.NONE)) {
+            } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.NONE)) {
                 if (!hosts.isEmpty()) {
                     shareParm.setNoAccessHosts(hosts);
                 } else {
@@ -481,16 +478,9 @@ public class VNXeApiClient {
     public VNXeNfsShare findNfsShare(String fsId, String shareName) {
         _logger.info("finding nfsShare id for file system id: {}, and nameKey: {} ",
                 fsId, shareName);
-
         NfsShareRequests req = new NfsShareRequests(_khClient);
-        VNXeNfsShare share = req.findNfsShare(fsId, shareName);
-        if (share != null) {
-            _logger.info("Got the nfsShare: {}", share.getId());
-            return share;
-        } else {
-            _logger.info("Could not find nfsShare for fsId: {}, nfsShare name: {}", fsId, shareName);
-            return null;
-        }
+        VNXeNfsShare share = req.findNfsShare(fsId, shareName, getBasicSystemInfo().getSoftwareVersion());
+        return share;
     }
 
     /**
@@ -500,48 +490,29 @@ public class VNXeApiClient {
      * @return nfsShare
      */
     public VNXeNfsShare getNfsShareById(String shareId) {
-        _logger.info("finding nfsShare id: {} ",
-                shareId);
-
+        _logger.info("finding nfsShare id: {} ", shareId);
         NfsShareRequests req = new NfsShareRequests(_khClient);
         VNXeNfsShare share = req.getShareById(shareId);
         if (share != null) {
             _logger.info("Got the nfsShare: {}", share.getId());
-            return share;
         } else {
             _logger.info("Could not find nfsShare by Id: {}", shareId);
-            return null;
         }
+        return share;
     }
 
     /**
-     * Find nfsShare using file system Id and vipr exportKey
+     * Find nfsShare using snapshot Id and snapshot share name
      * 
      * @param snapId file system snapshot Id
      * @param shareName NFS Export/Share name
-     * @return nfsShare Id
+     * @return nfsShare
      */
     public VNXeNfsShare findSnapNfsShare(String snapId, String shareName) {
-        _logger.info("finding nfsShare id for snap id: {}, and shareName: {} ",
-                snapId, shareName);
-
+        _logger.info("finding nfsShare id for snap id: {}, and shareName: {} ", snapId, shareName);
         NfsShareRequests req = new NfsShareRequests(_khClient);
-        VNXeNfsShare share = null;
-        List<VNXeNfsShare> nfsShares = req.get();
-        for (VNXeNfsShare nfsShare : nfsShares) {
-            if (nfsShare.getParentFilesystemSnap() != null && nfsShare.getParentFilesystemSnap().getId().equalsIgnoreCase(snapId)
-                    && nfsShare.getName().equalsIgnoreCase(shareName)) {
-                share = nfsShare;
-            }
-        }
-
-        if (share != null) {
-            _logger.info("Got the nfsShare: {}", share.getId());
-            return share;
-        } else {
-            _logger.info("Could not find nfsShare for snapId: {}, nfsShare name: {}", snapId, shareName);
-            return null;
-        }
+        VNXeNfsShare share = req.findSnapNfsShare(snapId, shareName, getBasicSystemInfo().getSoftwareVersion());
+        return share;
     }
 
     /**
@@ -631,8 +602,7 @@ public class VNXeApiClient {
         parm.setStorageResource(resource);
         parm.setName(name);
         parm.setIsReadOnly(false);
-
-        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient);
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getBasicSystemInfo().getSoftwareVersion());
 
         return req.createFileSystemSnap(parm);
 
@@ -646,7 +616,7 @@ public class VNXeApiClient {
      */
     public VNXeFileSystemSnap getSnapshotByName(String name) {
         _logger.info("Getting the snapshot {}: ", name);
-        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient);
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getBasicSystemInfo().getSoftwareVersion());
         return req.getByName(name);
 
     }
@@ -659,8 +629,9 @@ public class VNXeApiClient {
      */
     public VNXeCommandJob deleteFileSystemSnap(String snapId) {
         _logger.info("deleting file system snap:" + snapId);
-        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient);
-        return req.deleteFileSystemSnap(snapId);
+        String softwareVersion = getBasicSystemInfo().getSoftwareVersion();
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
+        return req.deleteFileSystemSnap(snapId, softwareVersion);
     }
 
     /**
@@ -671,8 +642,9 @@ public class VNXeApiClient {
      */
     public VNXeCommandJob restoreFileSystemSnap(String snapId) {
         _logger.info("restoring file system snap:" + snapId);
-        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient);
-        return req.restoreFileSystemSnap(snapId, null);
+        String softwareVersion = getBasicSystemInfo().getSoftwareVersion();
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
+        return req.restoreFileSystemSnap(snapId, null, softwareVersion);
     }
 
     /**
@@ -683,7 +655,7 @@ public class VNXeApiClient {
      */
     public List<VNXeFileSystemSnap> getFileSystemSnaps(String fsId) {
         String resourceId = getStorageResourceId(fsId);
-        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient);
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getBasicSystemInfo().getSoftwareVersion());
         return req.getFileSystemSnaps(resourceId);
     }
 
@@ -815,7 +787,12 @@ public class VNXeApiClient {
         param.setPath(path);
         VNXeBase snap = new VNXeBase();
         snap.setId(snapId);
-        param.setFilesystemSnap(snap);
+        if (!VNXeUtils.isHigherVersion(getBasicSystemInfo().getSoftwareVersion(),
+                VNXeConstants.VNXE_BASE_SOFT_VER)) {
+            param.setFilesystemSnap(snap);
+        } else {
+            param.setSnap(snap);
+        }
         param.setName(shareName);
         if (permission != null && !permission.isEmpty() &&
                 permission.equalsIgnoreCase(AccessEnum.READ.name())) {
@@ -840,26 +817,31 @@ public class VNXeApiClient {
     public VNXeCommandJob createNfsShareForSnap(String snapId, List<String> roEndpoints,
             List<String> rwEndpoints, List<String> rootEndpoints,
             AccessEnum access, String path, String shareName, String comments) throws VNXeException {
+
         _logger.info("creating nfs share for the snap: " + snapId);
         NfsShareRequests request = new NfsShareRequests(_khClient);
-        FileSystemSnapRequests snapRequest = new FileSystemSnapRequests(_khClient);
-        VNXeFileSystemSnap snapshot = snapRequest.getFileSystemSnap(snapId);
+        String softwareVersion = getBasicSystemInfo().getSoftwareVersion();
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
+        VNXeFileSystemSnap snapshot = req.getFileSystemSnap(snapId, softwareVersion);
         if (snapshot == null) {
             _logger.info("Could not find snapshot in the vxne");
             throw VNXeException.exceptions.vnxeCommandFailed("Could not find snapshot in the vnxe for: " + snapId);
         }
         NfsShareCreateForSnapParam nfsCreateParam = new NfsShareCreateForSnapParam();
         VNXeBase snap = new VNXeBase(snapId);
-        nfsCreateParam.setFilesystemSnap(snap);
-
+        if (!VNXeUtils.isHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
+            nfsCreateParam.setFilesystemSnap(snap);
+        } else {
+            nfsCreateParam.setSnap(snap);
+        }
         List<VNXeBase> roHosts = getHosts(roEndpoints);
         List<VNXeBase> rwHosts = getHosts(rwEndpoints);
         List<VNXeBase> rootHosts = getHosts(rootEndpoints);
 
-        VNXeNfsShare nfsShareFound = null;
-        boolean isShared = snapshot.getIsShared();
         VNXeCommandJob job = null;
-        if (!isShared) {
+        VNXeNfsShare nfsShareFound = request.findSnapNfsShare(snapId, shareName, softwareVersion);
+
+        if (nfsShareFound == null) {   // new export
             nfsCreateParam.setReadOnlyHosts(roHosts);
             nfsCreateParam.setReadWriteHosts(rwHosts);
             nfsCreateParam.setRootAccessHosts(rootHosts);
@@ -869,14 +851,7 @@ public class VNXeApiClient {
                 nfsCreateParam.setDescription(comments);
             }
             job = request.createShareForSnapshot(nfsCreateParam);
-
         } else {
-            List<VNXeNfsShare> nfsShares = request.get();
-            for (VNXeNfsShare nfsShare : nfsShares) {
-                if (nfsShare.getParentFilesystemSnap() != null && nfsShare.getParentFilesystemSnap().getId().equalsIgnoreCase(snap.getId())) {
-                    nfsShareFound = nfsShare;
-                }
-            }
             String nfsShareId = nfsShareFound.getId();
             NFSShareDefaultAccessEnum nfsShareDefaultAccess = nfsShareFound.getDefaultAccess();
             NfsShareModifyForShareParam nfsModifyParam = new NfsShareModifyForShareParam();
@@ -904,8 +879,7 @@ public class VNXeApiClient {
                     nfsModifyParam.setNoAccessHosts(null);
                     nfsModifyParam.setReadWriteHosts(null);
                     nfsModifyParam.setReadOnlyHosts(null);
-                }
-                else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READONLY)) {
+                } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READONLY)) {
                     if (!hosts.isEmpty()) {
                         nfsModifyParam.setReadOnlyHosts(hosts);
                     } else {
@@ -914,8 +888,7 @@ public class VNXeApiClient {
                     nfsModifyParam.setNoAccessHosts(null);
                     nfsModifyParam.setReadWriteHosts(null);
                     nfsModifyParam.setRootAccessHosts(null);
-                }
-                else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READWRITE)) {
+                } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READWRITE)) {
                     if (!hosts.isEmpty()) {
                         nfsModifyParam.setReadWriteHosts(hosts);
                     } else {
@@ -924,8 +897,7 @@ public class VNXeApiClient {
                     nfsModifyParam.setNoAccessHosts(null);
                     nfsModifyParam.setReadOnlyHosts(null);
                     nfsModifyParam.setRootAccessHosts(null);
-                }
-                else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.NONE)) {
+                } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.NONE)) {
                     if (!hosts.isEmpty()) {
                         nfsModifyParam.setNoAccessHosts(hosts);
                     } else {
@@ -1580,7 +1552,7 @@ public class VNXeApiClient {
 
             } else if (!needReattach &&
                     (accessMask == HostLUNAccessEnum.BOTH.getValue() ||
-                    accessMask == HostLUNAccessEnum.SNAPSHOT.getValue())) {
+                            accessMask == HostLUNAccessEnum.SNAPSHOT.getValue())) {
                 needReattach = true;
             }
             changedHostAccessList.add(hostAccess);

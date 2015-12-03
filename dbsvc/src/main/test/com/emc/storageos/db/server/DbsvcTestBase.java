@@ -70,6 +70,7 @@ public class DbsvcTestBase {
     protected static DbServiceStatusChecker statusChecker = null;
     protected static GeoDependencyChecker _geoDependencyChecker;
     protected static SchemaUtil schemaUtil;
+    protected  static final String dataDir="./dbtest";
 
     // This controls whether the JMX server is started with DBSVC or not. JMX server is used to snapshot Cassandra
     // DB files and dump SSTables to JSON files. However, current JmxServerWrapper.start() implementation blindly
@@ -103,10 +104,11 @@ public class DbsvcTestBase {
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("dbversion-info.xml");
 
         _dbVersionInfo = (DbVersionInfo)ctx.getBean("dbVersionInfo");
-        _dataDir = new File("./dbtest");
+        _dataDir = new File(dataDir);
         if (_dataDir.exists() && _dataDir.isDirectory()) {
             cleanDirectory(_dataDir);
         }
+        _dataDir.mkdir();
         startDb(_dbVersionInfo.getSchemaVersion(), null);
     }
 
@@ -254,7 +256,7 @@ public class DbsvcTestBase {
         _dbsvc.setJmxServerWrapper(jmx);
         _dbsvc.setDbClient(_dbClient);
         _dbsvc.setBeacon(beacon);
-        _dbsvc.setDbDir(".");
+        _dbsvc.setDbDir(dataDir);
         _dbsvc.setMigrationHandler(handler);
         _dbsvc.setDisableScheduledDbRepair(true);
         _dbsvc.start();

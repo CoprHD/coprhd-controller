@@ -61,7 +61,7 @@ class URIHelper(object):
     
     URI_FILESHARE_TASK=URI_FILESHARE_TASK_LIST+'/{1}'
     URI_FILESHARE_SEARCH_BY_PROJECT = '/file/filesystems/search?project={0}'
-
+    URI_FILESHARE_TASK_BY_ID = '/vdc/tasks/{0}'
     '''
     Volume URIs
     '''
@@ -288,6 +288,7 @@ class URIHelper(object):
         self.FILESHARE_URIS_MAP[
             "search_by_project"] = self.URI_FILESHARE_SEARCH_BY_PROJECT
         self.FILESHARE_URIS_MAP["show"] = self.URI_FILESHARE
+        self.FILESHARE_URIS_MAP["task_by_id"] = self.URI_FILESHARE_TASK_BY_ID
 
     def __fillVolumeMap(self):
         self.VOLUME_URIS_MAP["tasks_list"] = self.URI_VOLUME_TASK_LIST

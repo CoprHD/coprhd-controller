@@ -1,0 +1,19 @@
+##################################################
+#  Setup
+##################################################
+WORKSPACE := $(shell pwd)
+NAME := CoprHDDevKit
+VERSION := 1.0.0.0
+JOB := 999
+
+.DEFAULT: all
+.PHONY: blessing
+all: blessing
+
+##################################################
+#  Targets
+##################################################
+blessing:
+	chmod a+r $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)/*
+	chown -R ionixauto:ionixauto $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
+	su ionixauto -c "cp -pr $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB) /disks/ixeng08/vipr/images/coprhd/$(NAME)/"

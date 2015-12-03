@@ -347,7 +347,7 @@ public class FileService extends TaskResourceService {
                 param.getLabel(), param.getSize(), neighborhood.getId().toString(),
                 project == null ? null : project.getId().toString());
 
-        return taskList;
+        return null;
     }
     /**
      * Allocate, initialize and persist state of the fileSystem being created.

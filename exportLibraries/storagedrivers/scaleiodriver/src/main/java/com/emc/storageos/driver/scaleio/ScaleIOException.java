@@ -15,13 +15,11 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  */
 public class ScaleIOException extends InternalException {
 
-    private static final long serialVersionUID = -690567868124547639L;
-
     /** Holds the methods used to create ScaleIO related exceptions */
     public static final ScaleIOExceptions exceptions = ExceptionMessagesProxy.create(ScaleIOExceptions.class);
-
     /** Holds the methods used to create ScaleIO related error conditions */
     public static final ScaleIOErrors errors = ExceptionMessagesProxy.create(ScaleIOErrors.class);
+    private static final long serialVersionUID = -690567868124547639L;
 
     private ScaleIOException(final ServiceCode code, final Throwable cause,
             final String detailBase, final String detailKey, final Object[] detailParams) {

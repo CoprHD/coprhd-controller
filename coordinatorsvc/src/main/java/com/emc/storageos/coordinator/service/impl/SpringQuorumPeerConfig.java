@@ -7,21 +7,15 @@ package com.emc.storageos.coordinator.service.impl;
 
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
-
-import com.emc.storageos.coordinator.client.model.Constants;
 
 import org.apache.zookeeper.server.quorum.QuorumPeer.LearnerType;
 import org.apache.zookeeper.server.quorum.QuorumPeer.QuorumServer;
-import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +26,9 @@ import com.emc.storageos.services.util.FileUtils;
 public class SpringQuorumPeerConfig extends QuorumPeerConfig {
     private static final Logger log = LoggerFactory.getLogger(SpringQuorumPeerConfig.class);
     private static final String SERVER_ID_FILE = "myid";
+    // readonly mode should only be enabled on standby site to support unplanned failover
+    // on the active site it should be disabled otherwise the existing behavior of coordinatorsvc will be changed
+    public static final String READONLY_MODE_ENABLED = "readonlymode.enabled";
 
     private int _id;
     private Properties _properties;
@@ -95,6 +92,10 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
                 createQuorumServer(key, value);
                 iterator.remove();
             }
+        }
+
+        if (zkProp.containsKey(READONLY_MODE_ENABLED)) {
+            System.setProperty(READONLY_MODE_ENABLED, zkProp.getProperty(READONLY_MODE_ENABLED));
         }
     }
 

@@ -406,7 +406,8 @@ public enum OperationTypeEnum {
     RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to resume replication between acitve site and standby site"),
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
     SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to switchover from acitve site to a standby site"),
-    FAILOVER("FAILOVER TO A STANDBY", "", "operation to failover to a standby site");
+    FAILOVER("FAILOVER TO A STANDBY", "", "operation to failover to a standby site"),
+    UPDATE_SITE("UPDATE SITE", "", "operation to update site information");
 
     private final String _evType;
     private final String _fail_evType;

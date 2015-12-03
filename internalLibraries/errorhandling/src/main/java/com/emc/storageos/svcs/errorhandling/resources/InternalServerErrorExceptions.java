@@ -313,4 +313,7 @@ public interface InternalServerErrorExceptions {
     
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_RECONFIG_FAIL)
     public InternalServerErrorException failoverReconfigFailed(String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_UPDATE_SITE_FAILED)
+    public InternalServerErrorException updateSiteFailed(String siteName, String errMsg);
 }

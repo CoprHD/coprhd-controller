@@ -1,5 +1,10 @@
 package com.emc.storageos.volumecontroller.impl.utils;
 
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+
+import java.net.URI;
+import java.util.List;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -8,11 +13,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
-
-import java.net.URI;
-import java.util.List;
-
-import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Utility class for acquiring/checking consistency groups from ViPR block objects.
@@ -44,10 +45,16 @@ public class ConsistencyUtils {
                 return null;
             }
             Volume sourceVolume = (Volume) sourceObj;
+            /**
+             * This place needs to change
+             */
             if (!isNullURI(sourceVolume.getConsistencyGroup())) {
                 final URI cgId = sourceVolume.getConsistencyGroup();
                 if (cgId != null) {
                     cgResult = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+                    if (!ControllerUtils.checkCGCreatedOnBackEndArray(cgResult, sourceVolume.getStorageController(), dbClient)) {
+                        return null;
+                    }
                 }
             }
         }

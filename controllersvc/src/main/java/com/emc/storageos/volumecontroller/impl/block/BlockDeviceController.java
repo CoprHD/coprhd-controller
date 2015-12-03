@@ -61,7 +61,6 @@ import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.factories.VolumeFactory;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -74,7 +73,6 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -2174,15 +2172,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
                 boolean isListReplicaFlow = false;
                 BlockMirror mirrorObj = _dbClient.queryObject(BlockMirror.class, mirrorList.get(0));
+                Volume sourceVolume = _dbClient.queryObject(Volume.class, mirrorObj.getSource().getURI());
 
                 /**
                  * VPLEX/RP CG volumes may not be having back end Array Group.
                  * In this case we should create element replica using createListReplica.
                  * We should not use createGroup replica as backend cg will not be available in this case.
                  */
-                if (mirrorObj != null && !NullColumnValueGetter.isNullURI(mirrorObj.getConsistencyGroup())) {
+                if (sourceVolume != null && !NullColumnValueGetter.isNullURI(sourceVolume.getConsistencyGroup())) {
                     BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
-                            mirrorObj.getConsistencyGroup());
+                            sourceVolume.getConsistencyGroup());
                     if (!ControllerUtils.checkCGCreatedOnBackEndArray(consistencyGroup, storageObj.getId(), _dbClient)) {
                         isListReplicaFlow = true;
                     }
@@ -3101,16 +3100,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (isCG) {
                 boolean isListReplicaFlow = false;
                 StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-                Volume cloneObj = _dbClient.queryObject(Volume.class, fullCopyVolumes.get(0));
+                Volume sourceVolumeObj = _dbClient.queryObject(Volume.class, sourceVolume);
 
                 /**
                  * VPLEX/RP CG volumes may not be having back end Array Group.
                  * In this case we should create element replica using createListReplica.
                  * We should not use createGroup replica as backend cg will not be available in this case.
                  */
-                if (cloneObj != null && !NullColumnValueGetter.isNullURI(cloneObj.getConsistencyGroup())) {
+                if (sourceVolumeObj != null && !NullColumnValueGetter.isNullURI(sourceVolumeObj.getConsistencyGroup())) {
                     BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
-                            cloneObj.getConsistencyGroup());
+                            sourceVolumeObj.getConsistencyGroup());
                     if (!ControllerUtils.checkCGCreatedOnBackEndArray(consistencyGroup, storageObj.getId(), _dbClient)) {
                         isListReplicaFlow = true;
                     }
@@ -3670,7 +3669,29 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doWaitForSynchronized(clazz, storageObj, target.get(0), completer);
             } else {
-                getDevice(storageObj.getSystemType()).doWaitForGroupSynchronized(storageObj, target, completer);
+                Volume cloneVolume = _dbClient.queryObject(Volume.class, target.get(0));
+
+                Volume sourceVolumeObj = _dbClient.queryObject(Volume.class, cloneVolume.getAssociatedSourceVolume());
+                boolean canIgnoreThisStep = false;
+
+                /**
+                 * VPLEX/RP CG volumes may not be having back end Array Group.
+                 * In this case we should create element replica using createListReplica.
+                 * We can ignore the wait for sync step in this case.
+                 */
+                if (sourceVolumeObj != null && !NullColumnValueGetter.isNullURI(sourceVolumeObj.getConsistencyGroup())) {
+                    BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
+                            sourceVolumeObj.getConsistencyGroup());
+                    if (!ControllerUtils.checkCGCreatedOnBackEndArray(consistencyGroup, storageObj.getId(), _dbClient)) {
+                        canIgnoreThisStep = true;
+                    }
+                }
+                if (!canIgnoreThisStep) {
+                    getDevice(storageObj.getSystemType()).doWaitForGroupSynchronized(storageObj, target, completer);
+                } else {
+                    completer.ready(_dbClient); // Workaround
+                }
+
             }
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

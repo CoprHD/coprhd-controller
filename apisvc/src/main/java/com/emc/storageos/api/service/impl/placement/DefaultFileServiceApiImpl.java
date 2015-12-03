@@ -14,7 +14,6 @@ import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -31,16 +30,19 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
     		VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags,
     		List<Recommendation> recommendations, TaskList taskList, String task, 
     		VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+		List<FileShare> fileList = null;
 		List<FileShare> fileShares = new ArrayList<FileShare>();
 		FileRecommendation placement = (FileRecommendation)recommendations.get(0);
 		
-		FileShare fileShare = _scheduler.prepareFileSystem(param, project, 
-				tenantOrg, varray, vpool, flags, placement, task);
-		_log.info(String.format(
-                "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
-                fileShare.getId(), placement.getSourceStoragePool(), placement.getSourceStorageSystem()));
+		fileList = _scheduler.prepareFileSystem(param, task, taskList, project, 
+				varray, vpool, recommendations, vpoolCapabilities, false);
 		
-		fileShares.add(fileShare);
+//		_log.info(String.format(
+//                "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
+//                fileShare.getId(), placement.getSourceStoragePool(), placement.getSourceStorageSystem()));
+		
+		
+		fileShares.addAll(fileList);
 		//prepare the file descriptors
 		final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null, null);
 		final FileOrchestrationController controller = getController(FileOrchestrationController.class,

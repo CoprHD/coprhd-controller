@@ -932,10 +932,10 @@ public class FileStorageScheduler implements Scheduler{
         return placeFileShare(vArray, vPool, capabilities, project);
     }
     
-    public List<FileShare> preparedFileSystem(FileSystemParam param, String task, TaskList taskList,
-            Project project, VirtualArray varray, VirtualPool vpool, Integer volumeCount,
-            List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper cosCapabilities,
-            Boolean createInactive) {
+    
+    public List<FileShare> prepareFileSystem(FileSystemParam param, String task, TaskList taskList,
+            Project project, VirtualArray varray, VirtualPool vpool, 
+            List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
     	List<FileShare> preparedVolumes = new ArrayList<>();
     	Iterator<Recommendation> recommendationsIter = recommendations.iterator();
         while (recommendationsIter.hasNext()) {

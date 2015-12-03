@@ -1,11 +1,28 @@
+#-%emc-cr-s-shell-v2%-
+#
+# Copyright (c) 2012-2015, EMC Corporation. All Rights Reserved.
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.
+# This software is protected, without limitation, by copyright law and
+# international treaties.
+# Use of this software and the intellectual property contained therein
+# is expressly limited to the terms and conditions of the License
+# Agreement under which it is provided by or on behalf of EMC.
+#
+#-%emc-cr-e-shell-v2%-
+#
+# CoprHD/Makefile
+#
+
 ##################################################
 #  Setup
 ##################################################
 export DO_NOT_START := yes
 WORKSPACE := $(shell pwd)
 GIT_REVISION := $(shell git -C $(WORKSPACE)/../coprhd-controller rev-parse --short HEAD)
-NAME := CoprHDDevKit
-VERSION := 1.0.0.0
+NAME := CoprHD
+VERSION := 2.4.0.0
 JOB := 999
 VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso

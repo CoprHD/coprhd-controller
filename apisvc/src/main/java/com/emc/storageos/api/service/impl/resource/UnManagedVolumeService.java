@@ -439,12 +439,10 @@ public class UnManagedVolumeService extends TaskResourceService {
      * @param taskMap
      * @param exportIngestParam
      */
-    private void ingestBlockExportMasks(IngestionRequestContext requestContext, Map<String, TaskResourceRep> taskMap, 
-            VolumeExportIngestParam exportIngestParam) {
+    private void ingestBlockExportMasks(IngestionRequestContext requestContext, Map<String, TaskResourceRep> taskMap) {
         for (String unManagedVolumeGUID : requestContext.getProcessedUnManagedVolumeMap().keySet()) {
-            String objectGUID = unManagedVolumeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-            BlockObject processedBlockObject = requestContext.getCreatedObjectMap().get(objectGUID);
-            VolumeIngestionContext volumeContext = requestContext.getProcessedUnManagedVolumeMap().get(unManagedVolumeGUID);
+            BlockObject processedBlockObject = requestContext.getProcessedBlockObject(unManagedVolumeGUID);
+            VolumeIngestionContext volumeContext = requestContext.getVolumeContext(unManagedVolumeGUID);
             UnManagedVolume processedUnManagedVolume = volumeContext.getUnmanagedVolume();
             URI unManagedVolumeUri = processedUnManagedVolume.getId();
             String taskId = taskMap.get(processedUnManagedVolume.getId().toString()).getOpId();
@@ -462,10 +460,8 @@ public class UnManagedVolumeService extends TaskResourceService {
                 IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
                 // TODO: get rid of exportIngestParam, deviceInitiators, others in requestContext
                 //       when reducing params in the orchestrator interfaces
-                BlockObject blockObject = ingestStrategy.ingestExportMasks(
-                        processedUnManagedVolume, exportIngestParam, requestContext.getExportGroup(),
-                        processedBlockObject, requestContext.getUnManagedVolumesToBeDeleted(), 
-                        system, requestContext.isExportGroupCreated(), null);
+                BlockObject blockObject = ingestStrategy.ingestExportMasks(processedUnManagedVolume, 
+                        processedBlockObject, requestContext);
                 if (null == blockObject) {
                     throw IngestionException.exceptions.generalVolumeException(
                             processedUnManagedVolume.getLabel(), "check the logs for more details");
@@ -580,12 +576,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                 Cluster cluster = _dbClient.queryObject(Cluster.class, exportIngestParam.getCluster());
                 exportGroupResourceUri = cluster.getId();
                 computeResourcelabel = cluster.getLabel();
-                requestContext.setCluster(cluster);
+                requestContext.setCluster(exportIngestParam.getCluster());
             } else {
                 Host host = _dbClient.queryObject(Host.class, exportIngestParam.getHost());
                 exportGroupResourceUri = host.getId();
                 computeResourcelabel = host.getHostName();
-                requestContext.setHost(host);
+                requestContext.setHost(exportIngestParam.getHost());
             }
 
             ExportGroupNameGenerator gen = new ExportGroupNameGenerator();
@@ -609,8 +605,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             
             // next ingest the export masks for the unmanaged volumes which have been fully ingested
             _logger.info("Ingestion of unmanaged exportmasks started....");
-            // TODO: get rid of exportIngestParam when reworking orchestrator interfaces
-            ingestBlockExportMasks(requestContext, taskMap, exportIngestParam);
+            ingestBlockExportMasks(requestContext, taskMap);
             
             _logger.info("Ingestion of unmanaged exportmasks ended....");
             taskList.getTaskList().addAll(taskMap.values());

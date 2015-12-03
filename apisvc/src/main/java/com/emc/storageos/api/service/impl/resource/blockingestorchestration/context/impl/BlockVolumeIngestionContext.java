@@ -1,5 +1,8 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
@@ -11,6 +14,7 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
     protected DbClient _dbClient;
 
     private UnManagedVolume unManagedVolume;
+    private List<String> errorMessages;
 
     public BlockVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient) {
         this.unManagedVolume = unManagedVolume;
@@ -23,14 +27,6 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
     @Override
     public UnManagedVolume getUnmanagedVolume() {
         return unManagedVolume;
-    }
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext#getBlockObjectClass()
-     */
-    @Override
-    public Class<? extends BlockObject> getBlockObjectClass() {
-        return VolumeIngestionUtil.getBlockObjectClass(unManagedVolume);
     }
 
     /* (non-Javadoc)
@@ -57,5 +53,17 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
     public void rollback() {
         // TODO Auto-generated method stub
         
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext#getErrorMessages()
+     */
+    @Override
+    public List<String> getErrorMessages() {
+        if (null == errorMessages) {
+            errorMessages = new ArrayList<String>();
+        }
+        
+        return errorMessages;
     }
 }

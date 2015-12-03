@@ -82,8 +82,8 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
     // export ingestion related items
     private boolean exportGroupCreated = false;
     private ExportGroup exportGroup;
-    private Host host;
-    private Cluster cluster;
+    private URI host;
+    private URI cluster;
     private List<Initiator> deviceInitiators;
     List<BlockObject> ingestedObjects;
 
@@ -175,6 +175,15 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
      */
     public VolumeIngestionContext getVolumeContext() {
         return currentVolumeIngestionContext;
+    }
+
+    /**
+     * 
+     * @param unmanagedVolumeGuid
+     * @return
+     */
+    public VolumeIngestionContext getVolumeContext(String unmanagedVolumeGuid) {
+        return getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
     }
 
     /**
@@ -395,28 +404,28 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
     /**
      * @return the host
      */
-    public Host getHost() {
+    public URI getHost() {
         return host;
     }
 
     /**
      * @param host the host to set
      */
-    public void setHost(Host host) {
+    public void setHost(URI host) {
         this.host = host;
     }
 
     /**
      * @return the cluster
      */
-    public Cluster getCluster() {
+    public URI getCluster() {
         return cluster;
     }
 
     /**
      * @param cluster the cluster to set
      */
-    public void setCluster(Cluster cluster) {
+    public void setCluster(URI cluster) {
         this.cluster = cluster;
     }
 
@@ -430,10 +439,20 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
     /**
      * @param deviceInitiators the deviceInitiators to set
      */
-    public void setDeviceInitiators(List<Initiator> deviceInitiators) {
+    public void setDeviceInitiators(List<Initiator>  deviceInitiators) {
         this.deviceInitiators = deviceInitiators;
     }
 
+    /**
+     * 
+     * @param unmanagedVolumeGuid
+     * @return
+     */
+    public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid) {
+        String objectGUID = unmanagedVolumeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+        return getCreatedObjectMap().get(objectGUID);
+    }
+    
     public void rollbackAll() {
         try {
             for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {

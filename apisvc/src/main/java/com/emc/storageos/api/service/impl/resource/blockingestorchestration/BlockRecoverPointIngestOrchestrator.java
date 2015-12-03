@@ -835,11 +835,18 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             initiators.add(initiatorItr.next());
         }
         
-        volume = ingestStrategy.ingestExportMasks(
-                unManagedVolume, exportIngestParam, exportGroup,
-                volume, unManagedVolumesToBeDeleted,
-                _dbClient.queryObject(StorageSystem.class, volume.getStorageController()), 
-                newExportGroupWasCreated, initiators);
+
+        // TODO
+        // TODO
+        // TODO
+        // TODO
+        // TODO
+        // FIX THIS FOR BACKEND EG, inits, etc...
+        //
+//        
+//        volume = ingestStrategy.ingestExportMasks(
+//                unManagedVolume, 
+//                volume, new IngestionRequestContext());
 
         if (null == volume) {
             // an exception should have been thrown by a lower layer in

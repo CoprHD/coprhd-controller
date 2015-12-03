@@ -12,6 +12,7 @@ import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -44,23 +45,21 @@ public class IngestExportStrategy {
      * After volume object gets created successfully locally, now start
      * running ingest associated masks of the volume
      */
-    public <T extends BlockObject> T ingestExportMasks(UnManagedVolume unManagedVolume, VolumeExportIngestParam exportIngestParam,
-            ExportGroup exportGroup, T blockObject,
-            List<UnManagedVolume> unManagedVolumesToBeDeleted, StorageSystem system, boolean exportGroupCreated, List<Initiator> deviceInitiators) throws IngestionException {
+    public <T extends BlockObject> T ingestExportMasks(UnManagedVolume unManagedVolume, 
+            T blockObject, IngestionRequestContext requestContext) throws IngestionException {
 
-        if (null != exportGroup) {
+        if (null != requestContext.getExportGroup()) {
             if (null != unManagedVolume.getUnmanagedExportMasks() && !unManagedVolume.getUnmanagedExportMasks().isEmpty()) {
                 List<URI> unManagedMaskUris = new ArrayList<URI>(Collections2.transform(
                         unManagedVolume.getUnmanagedExportMasks(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
                 List<UnManagedExportMask> unManagedMasks = _dbClient.queryObject(UnManagedExportMask.class, unManagedMaskUris);
                 int originalSize = unManagedMasks.size();
                 MutableInt masksIngestedCount = new MutableInt(0);
-                // TODO: add errorMessages to volume ingestion context
-                List<String> errorMessages = new ArrayList<String>();
+                List<String> errorMessages = requestContext.getVolumeContext(
+                        unManagedVolume.getNativeGuid()).getErrorMessages();
                 // Ingest Associated Masks
-                // TODO: reduce params with ingestion context
-                ingestExportOrchestrator.ingestExportMasks(unManagedVolume, unManagedMasks, exportIngestParam, exportGroup, blockObject,
-                        system, exportGroupCreated, masksIngestedCount, deviceInitiators, errorMessages);
+                ingestExportOrchestrator.ingestExportMasks(
+                        requestContext, unManagedVolume, blockObject, unManagedMasks, masksIngestedCount);
                 // If the internal flags are set, return the block object
                 if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
                     // check if none of the export masks are ingested
@@ -77,7 +76,7 @@ public class IngestExportStrategy {
                         _logger.info("Marking UnManaged Volume {} inactive as it doesn't have any associated unmanaged export masks ",
                                 unManagedVolume.getNativeGuid());
                         unManagedVolume.setInactive(true);
-                        unManagedVolumesToBeDeleted.add(unManagedVolume);
+                        requestContext.getUnManagedVolumesToBeDeleted().add(unManagedVolume);
                     }
 
                     return blockObject;

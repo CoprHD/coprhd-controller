@@ -1,14 +1,17 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
 public class VplexVolumeIngestionContext extends VplexBackendIngestionContext implements VolumeIngestionContext {
+
+    private List<String> errorMessages;
 
     public VplexVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient) {
         super(unManagedVolume, dbClient);
@@ -22,13 +25,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         return super.getUnmanagedVirtualVolume();
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext#getBlockObjectClass()
-     */
-    @Override
-    public Class<? extends BlockObject> getBlockObjectClass() {
-        return Volume.class;
-    }
     
     /* (non-Javadoc)
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext#isVolumeExported()
@@ -54,6 +50,17 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     public void rollback() {
         // TODO Auto-generated method stub
         
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext#getErrorMessages()
+     */
+    public List<String> getErrorMessages() {
+        if (null == errorMessages) {
+            errorMessages = new ArrayList<String>();
+        }
+        
+        return errorMessages;
     }
 
 }

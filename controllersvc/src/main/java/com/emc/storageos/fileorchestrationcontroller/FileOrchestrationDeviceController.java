@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Serializable;
 
 
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -17,6 +18,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
+import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
@@ -141,6 +143,33 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         s_logger.info("Releasing all workflow locks with owner: {}", workflow.getWorkflowURI());
         _workflowService.releaseAllWorkflowLocks(workflow);
 	}
-
 	
+	
+	 public WorkflowService getWorkflowService() {
+	        return _workflowService;
+	    }
+
+	    public void setWorkflowService(WorkflowService workflowService) {
+	        this._workflowService = workflowService;
+	    }
+
+	    public DbClient getDbClient() {
+	        return s_dbClient;
+	    }
+
+	    public void setDbClient(DbClient dbClient) {
+	        this.s_dbClient = dbClient;
+	    }
+
+	    public void setLocker(ControllerLockingService locker) {
+	        this._locker = locker;
+	    }
+
+	    public FileDeviceController getFileDeviceController() {
+	        return _fileDeviceController;
+	    }
+
+	    public void setFileDeviceController(FileDeviceController fileDeviceController) {
+	        this._fileDeviceController = fileDeviceController;
+	    }
 }

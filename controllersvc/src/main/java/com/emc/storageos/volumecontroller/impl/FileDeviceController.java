@@ -81,6 +81,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 /**
  * Generic File Controller Implementation that does all of the database
@@ -96,6 +97,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private static final String EVENT_SERVICE_SOURCE = "FileController";
     private static final Logger _log = LoggerFactory.getLogger(FileDeviceController.class);
     private Map<String, FileStorageDevice> _devices;
+    
+    private WorkflowService _workflowService;
 
     private RecordableEventManager _eventManager;
     private AuditLogManager _auditMgr;
@@ -119,6 +122,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private FileStorageDevice getDevice(String deviceType) {
         return _devices.get(deviceType);
     }
+    
+    public void setWorkflowService(WorkflowService workflowService) {
+        _workflowService = workflowService;
+    }
+    
 
     /**
      * Create a nice event based on the File Share

@@ -764,6 +764,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="eventManager" ref="recordableEventMgr"/>
         <property name="auditLogManager" ref="auditLogManager"/>
+        <property name="workflowService" ref="workflowService"/>
     </bean>
 
     <bean id="objectDeviceController" class="com.emc.storageos.volumecontroller.impl.ObjectDeviceController">

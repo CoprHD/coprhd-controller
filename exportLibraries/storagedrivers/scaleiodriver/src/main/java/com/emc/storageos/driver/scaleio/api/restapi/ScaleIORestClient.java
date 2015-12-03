@@ -5,11 +5,7 @@
 package com.emc.storageos.driver.scaleio.api.restapi;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.ws.rs.core.MediaType;
 
@@ -20,20 +16,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.scaleio.ScaleIOException;
+import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
+import com.emc.storageos.driver.scaleio.api.restapi.request.*;
+import com.emc.storageos.driver.scaleio.api.restapi.response.*;
 import com.emc.storageos.services.restutil.StandardRestClient;
+import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.WebResource.Builder;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.api.client.filter.LoggingFilter;
-
-import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
-import com.emc.storageos.driver.scaleio.api.restapi.request.ScaleIOCreateVolume;
-import com.emc.storageos.driver.scaleio.api.restapi.request.*;
-import com.emc.storageos.driver.scaleio.api.restapi.response.*;
-
-import com.google.gson.Gson;
 
 /**
  * This class implements methods for calling ScaleIO REST API to do operations.
@@ -507,7 +500,7 @@ public class ScaleIORestClient extends StandardRestClient {
         }
         return result;
     }
-    
+
     /**
      * Get the volumes for the given volume Ids
      * 

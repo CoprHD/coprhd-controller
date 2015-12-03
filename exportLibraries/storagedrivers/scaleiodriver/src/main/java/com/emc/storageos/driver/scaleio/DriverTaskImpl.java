@@ -2,8 +2,7 @@ package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.storagedriver.DriverTask;
 
-
-public class DriverTaskImpl extends DriverTask {
+class DriverTaskImpl extends DriverTask {
 
     public DriverTaskImpl(String taskId) {
         super(taskId);
@@ -11,8 +10,7 @@ public class DriverTaskImpl extends DriverTask {
 
     @Override
     public DriverTask abort(DriverTask task) {
-
-        task.setMessage("Task "+task.getTaskId()+" is aborted!");
+        task.setMessage("Task " + task.getTaskId() + " is aborted!");
         task.setStatus(TaskStatus.ABORTED);
         return task;
     }

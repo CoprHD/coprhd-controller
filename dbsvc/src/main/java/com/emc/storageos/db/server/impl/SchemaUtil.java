@@ -31,6 +31,7 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
+import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -401,8 +402,10 @@ public class SchemaUtil {
                     return;
                 }
                 // schemas.size() == 2, try removing the unreachable nodes from local site and check again.
-                String localDcId = drUtil.getCassandraDcId(localSite);
-                dbManagerOps.removeUnreachableNodesFromDataCenter(localDcId);
+                if (schemas.containsKey(StorageProxy.UNREACHABLE)) {
+                    String localDcId = drUtil.getCassandraDcId(localSite);
+                    dbManagerOps.removeUnreachableNodesFromDataCenter(localDcId);
+                }
             }
             _log.error("Unable to converge schema versions during resume");
             throw new IllegalStateException("Unable to converge schema versions during resume");

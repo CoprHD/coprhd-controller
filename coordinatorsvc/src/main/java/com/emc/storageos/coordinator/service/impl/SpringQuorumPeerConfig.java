@@ -26,6 +26,8 @@ import com.emc.storageos.services.util.FileUtils;
 public class SpringQuorumPeerConfig extends QuorumPeerConfig {
     private static final Logger log = LoggerFactory.getLogger(SpringQuorumPeerConfig.class);
     private static final String SERVER_ID_FILE = "myid";
+    // readonly mode should only be enabled on standby site to support unplanned failover
+    // on the active site it should be disabled otherwise the existing behavior of coordinatorsvc will be changed
     public static final String READONLY_MODE_ENABLED = "readonlymode.enabled";
 
     private int _id;

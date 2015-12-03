@@ -1329,6 +1329,9 @@ public class CoordinatorClientExt {
         String dbSvcId = "db" + this.mySvcId.substring(this.mySvcId.lastIndexOf("-"));
 
         Configuration config = this._coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_CONFIG, dbSvcId);
+        if (config == null) {
+            return true;
+        }
 
         String numToken = config.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
         if (numToken == null) {

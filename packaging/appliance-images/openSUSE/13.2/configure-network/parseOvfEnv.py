@@ -1,12 +1,7 @@
 #!/usr/bin/python
 #
-# Copyright 2015, EMC Corporation ("EMC").
+# Copyright 2015 EMC Corporation
 # All Rights Reserved
-#
-# UNPUBLISHED CONFIDENTIAL AND PROPRIETARY PROPERTY OF EMC. The copyright
-# notice above does not evidence any actual or intended publication of this
-# software. Disclosure and dissemination are pursuant to separate agreements.
-# Unauthorized use, distribution or dissemination are strictly prohibited.
 #
 # Parse OVF Script
 #

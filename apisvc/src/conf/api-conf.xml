@@ -108,8 +108,7 @@
     
      <bean id="fileRPSchedular" class="com.emc.storageos.api.service.impl.placement.FileRPSchedular">
         <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>
-        <property name="matcherFramework" ref="matcherFramework"/>
+        <property name="storageScheduler" ref="storagescheduler" />
         <property name="fileStorageSchedular" ref="filescheduler" />
     </bean>
     

@@ -417,19 +417,20 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             URI virtualArrayId = uri(haVirtualArray);
             URI virtualPoolId = uri(haVirtualPool);
             boolean activeProtectionAtHASite = BooleanUtils.isTrue(protectHASite);
+            boolean activeProtectionAtSourceSite = BooleanUtils.isTrue(protectSourceSite);
             boolean metroPoint = false;
             if (BooleanUtils.isTrue(protectSourceSite) && BooleanUtils.isTrue(protectHASite)) {
                 metroPoint = true;
                 activeProtectionAtHASite = StringUtils.equalsIgnoreCase(activeSite, HighAvailability.VPLEX_HA);
                 builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
                 builder.setStandByJournalVArrayVpool(uri(haJournalVArray), uri(haJournalVPool));
-            }
-            else {
-                if (activeProtectionAtHASite) {
-                    builder.setJournalVarrayAndVpool(uri(haJournalVArray), uri(haJournalVPool));
-                }
-                else {
+            } else {
+                if (activeProtectionAtSourceSite) {
                     builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
+                }
+
+                if (activeProtectionAtHASite) {
+                    builder.setStandByJournalVArrayVpool(uri(haJournalVArray), uri(haJournalVPool));
                 }
             }
             builder.setHighAvailability(highAvailability, enableAutoCrossConnExport, virtualArrayId, virtualPoolId,

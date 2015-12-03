@@ -233,7 +233,7 @@ _get_local_ip() {
     local var="_GENCONFIG_network_${nodenum}_ipaddr"
     local var6="_GENCONFIG_network_${nodenum}_ipaddr6"
     local ipaddr="${!var}"
-    [ -z "${ipaddr}" ] && ipaddr="${!var6}"
+    [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]]  && ipaddr="${ipaddr6}"
     echo "${ipaddr}"
 }
 

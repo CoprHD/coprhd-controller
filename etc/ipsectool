@@ -43,7 +43,7 @@ _get_local_ip() {
     local nodenum=${nodeid#vipr}
     local ipaddr=$(_get_prop "network_${nodenum}_ipaddr")
     local ipaddr6=$(_get_prop "network_${nodenum}_ipaddr6")
-    [ -z "${ipaddr}" ] && ipaddr="${ipaddr6}"
+    [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]]  && ipaddr="${ipaddr6}"
     echo "${ipaddr}"
 }
 

@@ -30,6 +30,7 @@
          <ref bean="remoteMirrorProtectionMatcher"/>
          <ref bean="longTermRetentionMatcher"/>
          <ref bean="hdsShadowImagePairCountMatcher"/>
+         <ref bean="fileReplicationMatcher" />
 	</util:list>
 	
 	<util:list id="placementMatchers">
@@ -42,6 +43,7 @@
         <ref bean="storageSystemMatcher" />
         <ref bean="vmaxFASTInitialTierSelectionMatcher"/>
         <ref bean="poolPreferenceBasedOnDriveMathcer"/>
+        <ref bean="fileReplicationMatcher" />
         
 	</util:list>
 
@@ -86,7 +88,7 @@
     <bean id="compatiblePoolMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CompatiblePoolMatcher" />
     <bean id="longTermRetentionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.LongTermRetentionMatcher" />
     <bean id="hdsShadowImagePairCountMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HDSShadowImagePairCountMatcher"/>
-    
+    <bean id="fileReplicationMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileReplicationAttrMatcher" />
 	
 	<!-- The following bean represents how to inject a bean in a util class having static methods. 
 	     Ex. matcherFramework bean in a ImplicitPoolMatcher static method. -->

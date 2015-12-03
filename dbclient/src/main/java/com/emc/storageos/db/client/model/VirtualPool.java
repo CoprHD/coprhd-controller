@@ -111,6 +111,30 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Boolean autoCrossConnectExport = false;
     // Max retention for a Virtual Pool
     private Integer maxRetention;
+    
+    // File Replication attributes.
+    // Replication type { Local or Remote}
+    private String fileReplicationType;
+    // File Replication RPO value
+    private Long _frRpoValue;
+    // File Replication RPO type
+    private String _frRpoType;
+    // RP Copy Mode
+    
+    // File Repilcation copies
+    private StringMap _fileRemoteCopySettings;
+    
+    public static enum FileReplicationType {
+        LOCAL, REMOTE;
+        public static FileReplicationType lookup(final String name) {
+            for (FileReplicationType value : values()) {
+                if (value.name().equals(name)) {
+                    return value;
+                }
+            }
+            return null;
+        }
+    }
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
@@ -1332,4 +1356,45 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         this.maxRetention = (null==maxRetention || maxRetention == 0) ? 0 : maxRetention;
         setChanged("maxRetention");
     }
+    
+    @Name("fileReplicationType")
+    public String getFileReplicationType() {
+        return fileReplicationType;
+    }
+
+    public void setFileReplicationType(String fileReplicationType) {
+        this.fileReplicationType = fileReplicationType;
+        setChanged("fileReplicationType");
+    }
+    
+    @Name("fileRemoteCopySettings")
+    public StringMap getFileRemoteCopySettings() {
+        return _fileRemoteCopySettings;
+    }
+
+    public void setFileRemoteCopySettings(final StringMap fileRemoteCopySettings) {
+        this._fileRemoteCopySettings = fileRemoteCopySettings;
+        setChanged("fileRemoteCopySettings");
+    }
+    
+    @Name("frRpoValue")
+    public Long getFrRpoValue() {
+        return _frRpoValue;
+    }
+
+    public void setFrRpoValue(Long frRpoValue) {
+        this._frRpoValue = frRpoValue;
+        setChanged("frRpoValue");
+    }
+
+    @Name("frRpoType")
+    public String getFrRpoType() {
+        return _frRpoType;
+    }
+
+    public void setFrRpoType(String frRpoType) {
+        this._frRpoType = frRpoType;
+        setChanged("frRpoType");
+    }
+    
 }

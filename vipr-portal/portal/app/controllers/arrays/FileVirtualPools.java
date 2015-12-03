@@ -18,6 +18,7 @@ import jobs.vipr.VirtualArraysCall;
 import models.FileProtocols;
 import models.PoolAssignmentTypes;
 import models.ProvisioningTypes;
+import models.RemoteCopyMode;
 import models.StorageSystemTypes;
 import models.datatable.StoragePoolDataTable;
 import models.datatable.StoragePoolDataTable.StoragePoolInfo;
@@ -261,6 +262,7 @@ public class FileVirtualPools extends ViprResourceController {
         renderArgs.put("poolAssignmentOptions",
                 PoolAssignmentTypes.options(PoolAssignmentTypes.AUTOMATIC, PoolAssignmentTypes.MANUAL));
         renderArgs.put("varrayAttributeNames", VirtualArrayUtils.ATTRIBUTES);
+        renderArgs.put("replicationModeOptions", RemoteCopyMode.OPTIONS);
     }
 
     private static void addDynamicOptions(FileVirtualPoolForm vpool) {

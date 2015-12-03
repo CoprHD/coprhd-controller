@@ -9,8 +9,12 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.VirtualPoolMapper.toFileVirtualPool;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -27,10 +31,13 @@ import com.emc.storageos.api.mapper.VirtualPoolMapper;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyModes;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -76,9 +83,16 @@ public class FileVirtualPoolService extends VirtualPoolService {
         checkForDuplicateName(param.getName(), VirtualPool.class);
         ArgValidator.checkFieldNotEmpty(param.getDescription(), VPOOL_DESCRIPTION);
         VirtualPoolUtil.validateFileVirtualPoolCreateParams(param, _dbClient);
-        VirtualPool cos = prepareVirtualPool(param);
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap = 
+        		new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
+        
+        VirtualPool cos = prepareVirtualPool(param, remoteSettingsMap);
         if (null != param.getLongTermRetention()) {
             cos.setLongTermRetention(param.getLongTermRetention());
+        }
+        
+        if (!remoteSettingsMap.isEmpty()) {
+            _dbClient.createObject(new ArrayList(remoteSettingsMap.values()));
         }
 
         // update the implicit pools matching with this VirtualPool.
@@ -158,7 +172,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StoragePoolList getMatchingPoolsForVirtualPoolAttributes(FileVirtualPoolParam param) {
         StoragePoolList poolList = new StoragePoolList();
-        VirtualPool vpool = prepareVirtualPool(param);
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap = 
+        		new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
+        VirtualPool vpool = prepareVirtualPool(param, remoteSettingsMap);
         List<URI> poolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, poolURIs);
 
@@ -499,7 +515,13 @@ public class FileVirtualPoolService extends VirtualPoolService {
     }
 
     // this method must not persist anything to the DB.
-    private VirtualPool prepareVirtualPool(FileVirtualPoolParam param) {
+    private VirtualPool prepareVirtualPool(FileVirtualPoolParam param,
+    		Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap) {
+    	
+    	if (remoteSettingsMap == null) {
+            remoteSettingsMap = new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
+        }
+    	
         VirtualPool vPool = new VirtualPool();
         vPool.setType(VirtualPool.Type.file.name());
         // set common VirtualPool parameters.
@@ -519,6 +541,61 @@ public class FileVirtualPoolService extends VirtualPoolService {
             if ((param.getProtection().getSnapshots() != null)
                     && (param.getProtection().getSnapshots().getMaxSnapshots() != null)) {
                 vPool.setMaxNativeSnapshots(param.getProtection().getSnapshots().getMaxSnapshots());
+            }
+            if (param.getProtection().getReplicationParam() != null ) {
+            	String copyMode = CopyModes.ASYNCHRONOUS.name();
+            	FileReplicationPolicy replPolicy = 
+            			param.getProtection().getReplicationParam().getSourcePolicy();
+            	if ( replPolicy != null) {
+            		if (null != replPolicy.getRemoteCopyMode()) {
+                        if (!CopyModes.lookup(replPolicy.getRemoteCopyMode())) {
+                            throw APIException.badRequests.invalidCopyMode(replPolicy.getRemoteCopyMode());
+                        }
+                        copyMode = replPolicy.getRemoteCopyMode();
+                    }
+            		if (null != replPolicy.getRpoValue()) {
+            			vPool.setFrRpoValue(replPolicy.getRpoValue());
+                    }
+            		if (null != replPolicy.getRpoType()) {
+                        vPool.setFrRpoType(replPolicy.getRpoType());
+                    }
+            		vPool.setFileReplicationType(FileReplicationType.LOCAL.name());
+            	}
+            	
+            	Set<VirtualPoolProtectionVirtualArraySettingsParam> copies = 
+            			param.getProtection().getReplicationParam().getCopies();
+            	if( copies != null & !copies.isEmpty()) {
+            		// Create a Map with remote copies 
+            		StringMap remoteCopiesMap = new StringMap();
+            		for (VirtualPoolProtectionVirtualArraySettingsParam remoteCopy : copies) {
+            			
+            			VirtualArray remoteVArray = _dbClient.queryObject(VirtualArray.class, remoteCopy.getVarray());
+                        if (null == remoteVArray || remoteVArray.getInactive()) {
+                            throw APIException.badRequests.inactiveRemoteVArrayDetected(remoteCopy.getVarray());
+                        }
+                        VpoolRemoteCopyProtectionSettings remoteCopySettings = new VpoolRemoteCopyProtectionSettings();
+                        remoteCopySettings.setId(URIUtil.createId(VpoolRemoteCopyProtectionSettings.class));
+                        remoteCopySettings.setVirtualArray(remoteCopy.getVarray());
+                        if (remoteCopiesMap.containsKey(remoteCopy.getVarray().toString())) {
+                            throw APIException.badRequests.duplicateRemoteSettingsDetected(remoteCopy.getVarray());
+                        }
+                        
+                        remoteCopySettings.setCopyMode(copyMode);
+                        VirtualPool remoteVPool = _dbClient.queryObject(VirtualPool.class, remoteCopy.getVpool());
+                        if (null == remoteVPool || remoteVPool.getInactive()) {
+                            throw APIException.badRequests.inactiveRemoteVPoolDetected(remoteCopy.getVpool());
+                        }
+                        remoteCopySettings.setVirtualPool(remoteCopy.getVpool());
+                        
+                        remoteCopiesMap.put(remoteCopySettings.getVirtualArray().toString(), 
+                        		remoteCopySettings.getId().toString());
+                        
+                        remoteSettingsMap.put(remoteCopySettings.getVirtualArray(), remoteCopySettings);
+            		}
+            		
+            		vPool.setProtectionRemoteCopySettings(remoteCopiesMap);
+            		vPool.setFileReplicationType(FileReplicationType.REMOTE.name());
+            	}
             }
         }
 

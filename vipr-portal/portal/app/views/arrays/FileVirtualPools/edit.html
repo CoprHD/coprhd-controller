@@ -120,6 +120,19 @@ $(document).ready(function() {
       #{field 'vpool.maxSnapshots'}
         #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
       #{/field}
+      #{field 'vpool.replicationMode'}
+        #{Form.selectOneControlGroup field:field, options:replicationModeOptions, cssClass:'span4' /}
+      #{/field}
+      #{field 'vpool.replicationRpo'}
+        #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
+      #{/field}
+      #{field 'vpool.remoteVirtualArray'}
+        #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
+      #{/field}
+      #{field 'vpool.remoteVirtualPool'}
+        #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
+      #{/field}
+      
   #{/collapse}
   
   #{collapse 'vpool.group.archive', icon:'floppy-disk'}
@@ -127,6 +140,7 @@ $(document).ready(function() {
       #{Form.booleanCheckBoxControlGroup field:field /}
     #{/field}
   #{/collapse}
+  
   </div>
   
   *{ tenantOptions is only set if user has access to read tenants and write ACLs }*

@@ -108,6 +108,11 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
             putAttributeInMap(Attributes.remote_copy.toString(), remoteProtectionSettings);
         }
         putAttributeInMap(Attributes.long_term_retention_policy.toString(), _vpool.getLongTermRetention());
+        
+        if (_vpool.getFileReplicationType() != null) {
+        	putAttributeInMap(Attributes.file_replication_type.toString(), _vpool.getFileReplicationType());
+        	putAttributeInMap(Attributes.file_replication.toString(), remoteProtectionSettings);
+        }
         return _attributeMap;
     }
 }

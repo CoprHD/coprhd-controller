@@ -21,7 +21,7 @@ public class ListHBAInfoCommand extends HpuxResultsCommand<List<HBAInfo>> {
 
     public ListHBAInfoCommand() {
         StringBuilder sb = new StringBuilder();
-        sb.append("for DEVICE in $(ioscan -kfnCfc | awk '/dev/{print $1}')\n");
+        sb.append("for DEVICE in $(/usr/sbin/ioscan -kfnCfc | awk '/dev/{print $1}')\n");
         sb.append("do \n");
         sb.append("  echo \"host: $DEVICE\" ; \n");
         sb.append("  /opt/fcms/bin/fcmsutil $DEVICE | grep \"World Wide Name\"  | grep \"N_Port\" \n");
@@ -31,6 +31,7 @@ public class ListHBAInfoCommand extends HpuxResultsCommand<List<HBAInfo>> {
         System.out.println(command);
 
         setCommand(sb.toString());
+        setRunAsRoot(true);
     }
 
     @Override

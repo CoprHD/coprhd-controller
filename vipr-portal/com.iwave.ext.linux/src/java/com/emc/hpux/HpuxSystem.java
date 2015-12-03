@@ -16,7 +16,6 @@ import com.emc.hpux.command.ListIPInterfacesCommand;
 import com.emc.hpux.command.ListIQNsCommand;
 import com.emc.hpux.model.HpuxVersion;
 import com.iwave.ext.command.Command;
-import com.iwave.ext.command.CommandExecutor;
 import com.iwave.ext.linux.model.HBAInfo;
 import com.iwave.ext.linux.model.IPInterface;
 import com.iwave.utility.ssh.SSHCommandExecutor;
@@ -63,7 +62,8 @@ public final class HpuxSystem extends SecureShellSupport {
 
     @Override
     public void executeCommand(Command command) {
-        CommandExecutor executor = new SSHCommandExecutor(getHost(), getPort(), getUsername(), getPassword());
+        SSHCommandExecutor executor = new SSHCommandExecutor(getHost(), getPort(), getUsername(), getPassword());
+        executor.setSudoPrefix("export PATH=$PATH:/usr/local/bin; sudo -S -p '' sh -c ");
         command.setCommandExecutor(executor);
         command.execute();
     }

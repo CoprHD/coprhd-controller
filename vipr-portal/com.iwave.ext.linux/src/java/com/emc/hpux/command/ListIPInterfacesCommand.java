@@ -22,8 +22,7 @@ public class ListIPInterfacesCommand extends HpuxResultsCommand<List<IPInterface
     private static final Pattern BROADCAST_ADDRESS_PATTERN = Pattern.compile("broadcast ([^ ]+)\n");
 
     public ListIPInterfacesCommand() {
-        setCommand("for host in `netstat -rn|egrep -v \"Interface|Routing\"|awk '{print $5}'`;do ifconfig $host; echo '\n'; done");
-        setRunAsRoot(true);
+        setCommand("for host in `netstat -rn|egrep -v \"Interface|Routing\"|awk '{print $5}'`;do /usr/sbin/ifconfig $host; done");
     }
 
     @Override

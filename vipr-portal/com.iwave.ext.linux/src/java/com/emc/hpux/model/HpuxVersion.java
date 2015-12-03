@@ -10,7 +10,7 @@ public class HpuxVersion {
 
     public HpuxVersion(String version) {
         String[] versions = version.split("\\.");
-        if (versions.length < 3) {
+        if (versions.length < 2) {
             throw new IllegalArgumentException(version);
         }
         String last = versions[versions.length - 1];
@@ -29,5 +29,9 @@ public class HpuxVersion {
 
     public void setVersion(String version) {
         this.version = version;
+    }
+
+    public static void main(String... args) {
+        HpuxVersion v = new HpuxVersion("11.31");
     }
 }

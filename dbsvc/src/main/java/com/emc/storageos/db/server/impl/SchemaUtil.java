@@ -376,7 +376,8 @@ public class SchemaUtil {
      */
     private void waitForSchemaAgreementDuringResume() {
         Site localSite = drUtil.getLocalSite();
-        if (!localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+        if (!localSite.getState().equals(SiteState.STANDBY_RESUMING) &&
+                !localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
             return;
         }
 

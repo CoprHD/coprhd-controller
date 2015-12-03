@@ -4,9 +4,7 @@ import com.emc.storageos.storagedriver.DriverTask;
 
 import java.util.Calendar;
 
-/**
- * Created by shujinwu on 11/22/15.
- */
+
 public class DriverTaskImpl extends DriverTask {
 
     public DriverTaskImpl(String taskId) {

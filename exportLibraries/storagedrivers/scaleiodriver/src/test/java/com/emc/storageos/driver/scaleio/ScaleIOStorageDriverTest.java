@@ -1,20 +1,14 @@
 package com.emc.storageos.driver.scaleio;
 
-import com.emc.storageos.storagedriver.AbstractStorageDriver;
-import com.emc.storageos.storagedriver.DiscoveryDriver;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
-import org.junit.Test;
 import org.junit.Assert;
+import org.junit.Test;
 
-import java.sql.Driver;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by shujinwu on 11/17/15.
- */
 public class ScaleIOStorageDriverTest {
 
     public ScaleIOStorageDriver driver = new ScaleIOStorageDriver();

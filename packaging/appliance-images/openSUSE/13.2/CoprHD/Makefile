@@ -84,7 +84,7 @@ createREPO: | downdloadRPM downdloadTGZ
 	rm -fr $(WORKSPACE)/zypper/repo
 	mkdir -p $(WORKSPACE)/zypper/repo
 	if [ $(SOURCE_RPM) == "jenkins" ]; then \
-		wget --no-check-certificate https://build.coprhd.org/jenkins/job/CH-coprhd-controller-master/lastSuccessfulBuild/artifact/CH-coprhd-controller-master/build/RPMS/x86_64/storageos-$(STORAGEOS_VERSION).$(STORAGEOS_STABLE)-1.x86_64.rpm --continue --progress=bar --output-document=$(WORKSPACE)/zypper/repo/storageos-$(STORAGEOS_VERSION).$(STORAGEOS_STABLE)-1.x86_64.rpm; \
+		wget --no-check-certificate https://build.coprhd.org/jenkins/job/CH-coprhd-controller-release-2.4-coprhd/lastSuccessfulBuild/artifact/CH-coprhd-controller-release-2.4-coprhd/build/RPMS/x86_64/storageos-$(STORAGEOS_VERSION).$(STORAGEOS_STABLE)-1.x86_64.rpm --continue --progress=bar --output-document=$(WORKSPACE)/zypper/repo/storageos-$(STORAGEOS_VERSION).$(STORAGEOS_STABLE)-1.x86_64.rpm; \
 	fi
 	if [ $(SOURCE_RPM) == "git" ]; then \
 		if [ ! -f "$(STORAGEOS_RPM)" ]; then \

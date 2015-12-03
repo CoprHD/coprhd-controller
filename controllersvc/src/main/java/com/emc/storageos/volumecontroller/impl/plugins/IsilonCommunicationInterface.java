@@ -121,7 +121,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final Long KB_IN_BYTES = 1024L;
     private static final String ONEFS_V8 = "8.0.0.0";
     private static final String ONEFS_V7_2 = "7.2.0.0";
-    private static final String ACCESS_ZONE_LOCAL_PROVIDER_NAME = "lsa-local-provider";
     private IsilonApiFactory _factory;
 
     private List<String> _discPathsForUnManaged;
@@ -718,7 +717,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             StoragePort storagePort = null;
             StringSet storagePorts = null;
-            CifsServerMap cifsServersMap = null;
             List<IsilonNetworkPool> isilonNetworkPools = null;
 
             // process the access zones list
@@ -751,11 +749,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         existingvNASList.add(virtualNAS);
                     }
 
-                    // authenticate providers
-                    cifsServersMap = getCifsServerMap(isilonAccessZone);
-                    if (!cifsServersMap.isEmpty()) {
-                        virtualNAS.setCifsServersMap(cifsServersMap);
-                    }
+                    // Set authentication providers
+                    setCifsServerMap(isilonAccessZone, virtualNAS);
+                    
                     // set protocol support
                     virtualNAS.setProtocols(protocols);
                     // set the smart connect
@@ -795,11 +791,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         setMaxDbMetricsAz(storageSystem, physicalNAS.getMetrics());
                         existingPhysicalNASList.add(physicalNAS);
                     }
-                    // add authentication providers
-                    cifsServersMap = getCifsServerMap(isilonAccessZone);
-                    if (!cifsServersMap.isEmpty()) {
-                        physicalNAS.setCifsServersMap(cifsServersMap);
-                    }
+                    // Set authentication providers
+                    setCifsServerMap(isilonAccessZone, physicalNAS);
 
                     // set the smart connect
                     if (isilonNetworkPoolsSysAZ != null) {
@@ -2685,44 +2678,41 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     /**
-     * get the cifs servers for accesszone
+     * Set the cifs servers for accesszone
      * 
-     * @param isiAccessZone
-     * @return cifs server map
+     * @param isiAccessZone the Isilon access zone object
+     * @param nasServer the NAS server in which CIF server map will be set
      */
-    private CifsServerMap getCifsServerMap(final IsilonAccessZone isiAccessZone) {
-        // add authentication map
+    private void setCifsServerMap(final IsilonAccessZone isiAccessZone, NASServer nasServer) {
+        
+    	_log.info("Set the authentication providers for NAS: {}", nasServer.getNasName());
     	String providerName = null;
     	String domain = null;
         ArrayList<String> authArrayList = isiAccessZone.getAuth_providers();
         CifsServerMap cifsServersMap = new CifsServerMap();
         if (authArrayList != null && !authArrayList.isEmpty()) {
             for (String authProvider : authArrayList) {
-                NasCifsServer nasCifsServer = new NasCifsServer();
                 String[] providerArray = authProvider.split(":");
                 providerName = providerArray[0];
                 domain = providerArray[1];
-                if(ACCESS_ZONE_LOCAL_PROVIDER_NAME.equals(providerName)) {
-                	_log.debug("Skip the local provider domain: {}", domain);
-                	continue;
-                }
+                NasCifsServer nasCifsServer = new NasCifsServer();
                 nasCifsServer.setName(providerName);
                 nasCifsServer.setDomain(domain);
                 cifsServersMap.put(providerName, nasCifsServer);
+                _log.info("Setting provider: {} and domain: {}", providerName, domain);
             }
         }
         if (isiAccessZone.isAll_auth_providers() == true) {
-            NasCifsServer nasCifsServer = new NasCifsServer();
             String[] providerArray = isiAccessZone.getSystem_provider().split(":");
             providerName = providerArray[0];
             domain = providerArray[1];
-            if(!ACCESS_ZONE_LOCAL_PROVIDER_NAME.equals(providerName)) {
-            	nasCifsServer.setName(providerName);
-                nasCifsServer.setDomain(domain);
-                cifsServersMap.put(providerName, nasCifsServer);
-            }
+            NasCifsServer nasCifsServer = new NasCifsServer();
+            nasCifsServer.setName(providerName);
+            nasCifsServer.setDomain(domain);
+            cifsServersMap.put(providerName, nasCifsServer);
+            _log.info("Setting provider: {} and domain: {}", providerName, domain);
         }
-        return cifsServersMap;
+        nasServer.setCifsServersMap(cifsServersMap);
     }
 
     /**

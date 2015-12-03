@@ -43,7 +43,7 @@ public class SRDFTargetVolumeRDFGroupMigration extends BaseCustomMigrationCallba
     public void process() {
         log.info("Updating SRDF Target volume rdfGroup information.");
         DbClient dbClient = this.getDbClient();
-        List<URI> volumeURIs = dbClient.queryByType(Volume.class, false);
+        List<URI> volumeURIs = dbClient.queryByType(Volume.class, true);
         Map<URI, RemoteDirectorGroup> rdfGroupCache = new HashMap<URI, RemoteDirectorGroup>();
         Map<URI, StorageSystem> systemCache = new HashMap<URI, StorageSystem>();
         List<Volume> volumesToUpdate = new ArrayList<Volume>();

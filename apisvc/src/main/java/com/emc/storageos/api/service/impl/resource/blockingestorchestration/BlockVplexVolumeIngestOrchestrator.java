@@ -638,13 +638,17 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     }
                     List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initUris);
 
-                    // TODO
-                    // TODO
-                    // TODO
-                    // TODO
-                    // TODO
-                    // FIX THIS FOR BACKEND EG, inits, etc...
-                    //
+                    List<URI> associatedVolumeUris = new ArrayList<URI>();
+                    for (UnManagedVolume umv : context.getUnmanagedBackendVolumes()) {
+                        associatedVolumeUris.add(umv.getId());
+                    }
+
+                    IngestionRequestContext backendRequestContext = new IngestionRequestContext(
+                            _dbClient, associatedVolumeUris, vPool, 
+                            virtualArray, context.getBackendProject(), 
+                            requestContext.getTenant(), requestContext.getVplexIngestionMethod());
+                    
+                    backendRequestContext.setDeviceInitiators(initiators);
                     
                     // find or create the backend export group
                     ExportGroup exportGroup = this.findOrCreateExportGroup(
@@ -652,26 +656,16 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                             virtualArray.getId(), context.getBackendProject().getId(),
                             requestContext.getTenant().getId(), DEFAULT_BACKEND_NUMPATHS, uem);
                     if (null == exportGroup.getId()) {
-                        requestContext.setExportGroupCreated(true);
+                        backendRequestContext.setExportGroupCreated(true);
                         exportGroup.setId(URIUtil.createId(ExportGroup.class));
                     }
-
-                    // create an ingest param so that we can reuse the ingestExportMask method
-                    VolumeExportIngestParam exportIngestParam = new VolumeExportIngestParam();
-                    exportIngestParam.setProject(context.getBackendProject().getId());
-                    exportIngestParam.setVarray(virtualArray.getId());
-                    exportIngestParam.setVpool(vPool.getId());
-                    List<URI> associatedVolumeUris = new ArrayList<URI>();
-                    for (UnManagedVolume umv : context.getUnmanagedBackendVolumes()) {
-                        associatedVolumeUris.add(umv.getId());
-                    }
-                    exportIngestParam.setUnManagedVolumes(associatedVolumeUris);
+                    backendRequestContext.setExportGroup(exportGroup);
 
                     // find the ingest export strategy and call into for this unmanaged export mask
                     IngestExportStrategy ingestStrategy = 
                             ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
                     BlockObject blockObject = ingestStrategy.ingestExportMasks(
-                            processedUnManagedVolume, processedBlockObject, requestContext);
+                            processedUnManagedVolume, processedBlockObject, backendRequestContext);
 
                     if (null == blockObject) {
                         // an exception should have been thrown by a lower layer in

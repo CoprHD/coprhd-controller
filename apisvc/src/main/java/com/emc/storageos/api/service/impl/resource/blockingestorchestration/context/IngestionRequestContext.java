@@ -115,7 +115,6 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
 
     @Override
     public void remove() {
-        // TODO: no-op maybe?
         unManagedVolumeUrisToProcessIterator.remove();
     }
 
@@ -142,12 +141,12 @@ public class IngestionRequestContext implements Iterator<UnManagedVolume> {
     }
     
     /**
-     * Private setter of the current UnManagedVolume, used by the UnManagedVolume
+     * Setter of the current UnManagedVolume, used by the UnManagedVolume
      * iterator.
      * 
      * @param unManagedVolume
      */
-    private void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
+    public void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
         currentVolumeIngestionContext = 
                 VolumeIngestionContextFactory.getVolumeIngestionContext(unManagedVolume, _dbClient);
     }

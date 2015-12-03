@@ -1,4 +1,4 @@
-package com.emc.storageos.api.service.impl.placement;
+package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.List;
 import java.util.ArrayList;
@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.placement.FileRecommendation;
 import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
-import com.emc.storageos.api.service.impl.resource.AbstractFileServiceApiImpl;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;

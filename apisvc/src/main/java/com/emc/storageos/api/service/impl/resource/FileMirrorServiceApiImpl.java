@@ -2,7 +2,6 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.api.service.impl.placement.DefaultFileServiceApiImpl;
 import com.emc.storageos.api.service.impl.placement.FileRPSchedular;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;

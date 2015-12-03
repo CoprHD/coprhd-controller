@@ -23,10 +23,11 @@ import com.jcraft.jsch.Session;
 
 public class SSHCommandExecutor implements CommandExecutor {
     static final Logger log = LoggerFactory.getLogger(SSHCommandExecutor.class);
-    private String sudoCommand = "sudo -S -p '' sh -c ";
-
+    private static final String DEFAULT_SUDO_COMMAND = "sudo -S -p '' sh -c ";
     private static final long MILLIS_PER_SECOND = 1000;
     private static final long SLEEP_TIME = 100;
+
+    private String sudoCommand = DEFAULT_SUDO_COMMAND;
     private SSHConnection connection;
     private Session session;
     private int connectTimeout;

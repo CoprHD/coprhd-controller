@@ -30,8 +30,4 @@ public class HpuxVersion {
     public void setVersion(String version) {
         this.version = version;
     }
-
-    public static void main(String... args) {
-        HpuxVersion v = new HpuxVersion("11.31");
-    }
 }

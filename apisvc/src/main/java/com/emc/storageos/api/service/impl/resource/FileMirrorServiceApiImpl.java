@@ -17,10 +17,9 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 
 public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileRPSchedular>{
 
-	public FileMirrorServiceApiImpl(String protectionType) {
-		super(protectionType);
-		// TODO Auto-generated constructor stub
-	}
+	public FileMirrorServiceApiImpl() {
+        super(null);
+    }
 	
 	private DefaultFileServiceApiImpl _defaultFileServiceApiImpl;
 
@@ -33,8 +32,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileRPS
 	}
 
 	public void setDefaultFileServiceApiImpl(
-			DefaultFileServiceApiImpl _defaultFileServiceApiImpl) {
-		this._defaultFileServiceApiImpl = _defaultFileServiceApiImpl;
+			DefaultFileServiceApiImpl defaultFileServiceApiImpl) {
+		this._defaultFileServiceApiImpl = defaultFileServiceApiImpl;
 	}
 
 	@Override

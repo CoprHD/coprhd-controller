@@ -20,9 +20,8 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileStorageScheduler>  {
 	 private static final Logger _log = LoggerFactory.getLogger(DefaultFileServiceApiImpl.class);
 
-	public DefaultFileServiceApiImpl(String protectionType) {
-		super(protectionType);
-		// TODO Auto-generated constructor stub
+	public DefaultFileServiceApiImpl() {
+		super(null);
 	}
 	
 	@Override

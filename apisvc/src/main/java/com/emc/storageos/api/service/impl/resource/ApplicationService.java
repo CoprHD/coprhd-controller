@@ -378,12 +378,10 @@ public class ApplicationService extends TaskResourceService {
             }
             StringSet applications = vol.getApplicationIds();
             if (!applications.contains(application.getId().toString())) {
-                throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(),
-                        "The volume is not assigned to the application");
-            }
-            if (vol.getInactive()) {
+                log.info(String.format("The volume %s is not assigned to the application", vol.getLabel()));
                 continue;
             }
+            
             removeVolumeCGs.add(vol.getConsistencyGroup());
 
             removeVolumes.add(vol);

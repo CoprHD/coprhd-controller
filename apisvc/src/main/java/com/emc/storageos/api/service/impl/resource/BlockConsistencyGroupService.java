@@ -1117,6 +1117,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         if (cgStorageSystem.getUsingSmis80() && cgStorageSystem.deviceIsType(Type.vmax)) {
             // CG can have replicas
+            if (_log.isDebugEnabled()) {
+                _log.debug("CG can have replicas for VMAX with SMI-S 8.x");
+            }
         } else if (param.hasVolumesToRemove() || (!isReplica && !volsAlreadyInCG)) {
             // CG cannot have replicas when adding/removing volumes to/from CG
             // Check snapshots

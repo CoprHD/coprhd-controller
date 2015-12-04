@@ -203,7 +203,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             List<Volume> volumeList, URI cgURI) {
         log.info("START create snapshot steps");
         List<URI> sourceList = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
-        List<Volume> volumes = _dbClient.queryObject(Volume.class, sourceList);
+        List<Volume> volumes = new ArrayList<Volume>();
+        Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, sourceList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume != null && !volume.getInactive()) {
+                volumes.add(volume);
+            }
+        }
+
         URI storage = volumes.get(0).getStorageController();
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
 
@@ -228,7 +236,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             final List<VolumeDescriptor> volumeDescriptors, List<Volume> volumeList, URI cgURI) {
         log.info("START create clone steps");
         List<URI> sourceList = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
-        List<Volume> volumes = _dbClient.queryObject(Volume.class, sourceList);
+        List<Volume> volumes = new ArrayList<Volume>();
+        Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, sourceList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume != null && !volume.getInactive()) {
+                volumes.add(volume);
+            }
+        }
+
         URI storage = volumes.get(0).getStorageController();
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
 
@@ -353,9 +369,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
 
         fullCopies.add(clone.getId().toString());
-
         _dbClient.createObject(clone);
-        _dbClient.persistObject(volume);
 
         return clone;
     }
@@ -368,7 +382,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             final List<VolumeDescriptor> volumeDescriptors, List<Volume> volumeList, URI cgURI) {
         log.info("START create mirror steps");
         List<URI> sourceList = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
-        List<Volume> volumes = _dbClient.queryObject(Volume.class, sourceList);
+        List<Volume> volumes = new ArrayList<Volume>();
+        Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, sourceList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume != null && !volume.getInactive()) {
+                volumes.add(volume);
+            }
+        }
+
         URI storage = volumes.get(0).getStorageController();
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
 
@@ -458,7 +480,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         mirrors.add(mirror.getId().toString());
         volume.setMirrors(mirrors);
         // Persist changes
-        _dbClient.persistObject(volume);
+        _dbClient.updateObject(volume);
     }
 
     public Workflow.Method addToReplicationGroupMethod(URI storage, URI consistencyGroup, String repGroupName,
@@ -592,7 +614,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         for (Entry<URI, Set<URI>> entry : entrySet) {
             // find member volumes in the group
             Set<URI> volumeURIs = entry.getValue();
-            List<Volume> volumeList = _dbClient.queryObject(Volume.class, volumeURIs);
+            List<Volume> volumeList = new ArrayList<Volume>();
+            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumeURIs);
+            while (volumeIterator.hasNext()) {
+                Volume volume = volumeIterator.next();
+                if (volume != null && !volume.getInactive()) {
+                    volumeList.add(volume);
+                }
+            }
+
             boolean isRemoveAllFromCG = ControllerUtils.cgHasNoOtherVolume(_dbClient, entry.getKey(), volumeList);
             log.info("isRemoveAllFromCG {}", isRemoveAllFromCG);
             if (checkIfCGHasCloneReplica(volumeList)) {
@@ -885,8 +915,16 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     public String addStepsForAddingVolumesToCG(Workflow workflow, String waitFor, URI cgURI, List<URI> volumeList,
             String taskId) throws InternalException {
         log.info("addStepsForAddingVolumesToCG {}", cgURI);
-        List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeList);
-        if (volumes != null && !volumes.isEmpty()) {
+        List<Volume> volumes = new ArrayList<Volume>();
+        Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumeList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume != null && !volume.getInactive()) {
+                volumes.add(volume);
+            }
+        }
+
+        if (!volumes.isEmpty()) {
             Volume firstVolume = volumes.get(0);
             if (!(firstVolume != null && ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient))) {
                 return waitFor;
@@ -947,8 +985,16 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     public String addStepsForRemovingVolumesFromCG(Workflow workflow, String waitFor, URI cgURI, List<URI> volumeList,
             String taskId) throws InternalException {
         log.info("addStepsForRemovingVolumesFromCG {}", cgURI);
-        List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeList);
-        if (volumes != null && !volumes.isEmpty()) {
+        List<Volume> volumes = new ArrayList<Volume>();
+        Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumeList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume != null && !volume.getInactive()) {
+                volumes.add(volume);
+            }
+        }
+
+        if (!volumes.isEmpty()) {
             Volume firstVolume = volumes.get(0);
             if (!(firstVolume != null && firstVolume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient))) {
                 return waitFor;

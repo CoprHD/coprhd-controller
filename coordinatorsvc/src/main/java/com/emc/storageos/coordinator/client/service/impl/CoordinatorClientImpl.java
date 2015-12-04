@@ -212,6 +212,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    /**
+     * Create a znode "/site/<uuid>" for specific site. This znode should have the following sub zones
+     *  - config : site specific configurations
+     *  - service: service beacons of this site
+     *  - mutex: locks for nodes in this ste
+     */
     public void addSite(String siteId) throws Exception {
         String sitePath = getSitePrefix(siteId);
         ZkConnection zkConnection = getZkConnection();
@@ -222,17 +228,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             ensurePath.ensure(zkConnection.curator().getZookeeperClient());
         }catch(Exception e) {
             log.error("Failed to set site info of {}. Error {}", sitePath, e);
-            throw e;
-        }
-
-        String siteStatePath = String.format("%1$s/%2$s", sitePath, Constants.SITE_STATE);
-        try {
-            EnsurePath ePath = new EnsurePath(siteStatePath);
-            log.info("init site state to {}", SiteState.ACTIVE.name());
-            ePath.ensure(zkConnection.curator().getZookeeperClient());
-            zkConnection.curator().setData().forPath(siteStatePath, SiteState.ACTIVE.name().getBytes());
-        } catch (Exception e) {
-            log.error("Failed to init site state {}", SiteState.ACTIVE.name());
             throw e;
         }
     }

@@ -434,6 +434,8 @@ public class RPUnManagedObjectDiscoverer {
                     .get(SupportedVolumeInformation.RP_UNMANAGED_SOURCE_VOLUME.toString());
             StringSet rpTargetVols = rpUnManagedVolume.getVolumeInformation()
                     .get(SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString());
+            StringSet rpAccessState = rpUnManagedVolume.getVolumeInformation()
+                    .get(SupportedVolumeInformation.RP_ACCESS_STATE.toString());
 
             if (rpPersonality != null) {
                 rpPersonality.clear();
@@ -452,6 +454,9 @@ public class RPUnManagedObjectDiscoverer {
             }
             if (rpTargetVols != null) {
                 rpTargetVols.clear();
+            }
+            if (rpAccessState != null) {
+                rpAccessState.clear();
             }
             unManagedVolumesToUpdateByWwn.put(rpUnManagedVolume.getWwn(), rpUnManagedVolume);
         }

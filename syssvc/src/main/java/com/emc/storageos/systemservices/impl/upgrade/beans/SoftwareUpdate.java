@@ -16,7 +16,7 @@ import com.emc.storageos.db.client.model.EncryptionProvider;
 
 public class SoftwareUpdate {
 
-    private static SoftwareUpdate instance = null;
+    private static final SoftwareUpdate instance = new SoftwareUpdate();
     private static volatile EncryptionProvider _encryptionProvider;
     private static volatile List<String> _catalogServerHostNames;
     private static volatile String _catalogKey;
@@ -54,9 +54,6 @@ public class SoftwareUpdate {
     }
 
     public static SoftwareUpdate getInstance() {
-        if(instance == null) {
-            instance = new SoftwareUpdate();
-        }
         return instance;
     }
 

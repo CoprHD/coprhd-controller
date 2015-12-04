@@ -632,9 +632,15 @@ public class DisasterRecoveryService {
                 site.setState(SiteState.STANDBY_PAUSING);
                 site.setPausedTime(System.currentTimeMillis());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
+                // notify the to-be-paused sites before others.
+                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY);
             }
             log.info("Notify all sites for reconfig");
             for (Site site : drUtil.listSites()) {
+                if (toBePausedSites.contains(site)) { // Site#equals only compares the site uuid
+                    // already notified
+                    continue;
+                }
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY);
             }
             auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, siteIdStr);

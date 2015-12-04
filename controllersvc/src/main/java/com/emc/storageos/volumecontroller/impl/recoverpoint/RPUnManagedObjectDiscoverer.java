@@ -154,7 +154,7 @@ public class RPUnManagedObjectDiscoverer {
             }
             // clean up the existing journal and replicationsets info in the unmanaged protection set, so that updated info is populated
             if (!newCG) {
-                cleanUpUnManagedProtectionSet(unManagedProtectionSet, unManagedVolumesToUpdateByWwn, dbClient);
+                cleanUpUnManagedResources(unManagedProtectionSet, unManagedVolumesToUpdateByWwn, dbClient);
             }
             for (GetCopyResponse copy : cg.getCopies()) {
                 for (GetVolumeResponse volume : copy.getJournals()) {
@@ -394,14 +394,14 @@ public class RPUnManagedObjectDiscoverer {
     }
 
     /**
-     * Clean up the existing unmanaged protection set and its assocaited unmanaged volumes
+     * Clean up the existing unmanaged protection set and its associated unmanaged volumes
      * so that it gets updated with latest info during rediscovery
      * 
      * @param unManagedProtectionSet
      * @param unManagedVolumesToUpdateByWwn
      * @param dbClient
      */
-    private void cleanUpUnManagedProtectionSet(UnManagedProtectionSet unManagedProtectionSet,
+    private void cleanUpUnManagedResources(UnManagedProtectionSet unManagedProtectionSet,
             Map<String, UnManagedVolume> unManagedVolumesToUpdateByWwn, DbClient dbClient) {
         // Clean up the volume wwns, managed volume and unmanaged volume lists of the unmanaged protection set
         unManagedProtectionSet.getManagedVolumeIds().clear();

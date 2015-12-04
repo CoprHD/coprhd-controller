@@ -19,14 +19,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
 
     /**
-     * Setter of the current UnManagedVolume, used by the UnManagedVolume
-     * iterator.
-     * 
-     * @param unManagedVolume
-     */
-    public void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume);
-
-    /**
      * @return the current UnManagedVolume via the current VolumeIngestionContext
      */
     public UnManagedVolume getCurrentUnmanagedVolume();
@@ -59,32 +51,14 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public VirtualPool getVpool();
 
     /**
-     * 
-     * @param vpool
-     */
-    public void setVpool(VirtualPool vpool);
-
-    /**
      * @return the virtualArray
      */
     public VirtualArray getVarray();
 
     /**
-     * 
-     * @param varray
-     */
-    public void setVarray(VirtualArray varray);
-
-    /**
      * @return the project
      */
     public Project getProject();
-
-    /**
-     * 
-     * @param project
-     */
-    public void setProject(Project project);
 
     /**
      * @return the tenant

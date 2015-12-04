@@ -121,9 +121,10 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
      * Instantiates the correct VolumeIngestionContext object
      * for the current volume, based on the UnManagedVolume type.
      */
-    private static class VolumeIngestionContextFactory {
+    protected static class VolumeIngestionContextFactory {
         
-        public static VolumeIngestionContext getVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient) {
+        public static VolumeIngestionContext getVolumeIngestionContext(UnManagedVolume unManagedVolume, 
+                DbClient dbClient, IngestionRequestContext parentRequestContext) {
             if (null == unManagedVolume) {
                 return null;
             }
@@ -131,7 +132,7 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
             if (VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
                 return new RPVolumeIngestionContext(unManagedVolume, dbClient);
             } else if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
-                return new VplexVolumeIngestionContext(unManagedVolume, dbClient);
+                return new VplexVolumeIngestionContext(unManagedVolume, dbClient, parentRequestContext);
             } else {
                 return new BlockVolumeIngestionContext(unManagedVolume, dbClient);
             }
@@ -139,13 +140,11 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         
     }
     
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setCurrentUnmanagedVolume(com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume)
-     */
-    @Override
-    public void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
+
+
+    protected void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
         currentVolumeIngestionContext = 
-                VolumeIngestionContextFactory.getVolumeIngestionContext(unManagedVolume, _dbClient);
+                VolumeIngestionContextFactory.getVolumeIngestionContext(unManagedVolume, _dbClient, this);
     }
     
     /* (non-Javadoc)
@@ -209,27 +208,11 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
     }
 
     /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setVpool(com.emc.storageos.db.client.model.VirtualPool)
-     */
-    @Override
-    public void setVpool(VirtualPool vpool) {
-        this.vpool = vpool;
-    }
-
-    /* (non-Javadoc)
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getVarray()
      */
     @Override
     public VirtualArray getVarray() {
         return virtualArray;
-    }
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setVarray(com.emc.storageos.db.client.model.VirtualArray)
-     */
-    @Override
-    public void setVarray(VirtualArray varray) {
-        this.virtualArray = varray;
     }
 
     /* (non-Javadoc)
@@ -240,14 +223,6 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return project;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setProject(com.emc.storageos.db.client.model.Project)
-     */
-    @Override
-    public void setProject(Project project) {
-        this.project = project;
-    }
-    
     /* (non-Javadoc)
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getTenant()
      */

@@ -9,6 +9,10 @@
 nl="
 "
 
+# commands
+SIPCALC="/usr/local/bin/sipcalc"
+SSH="/usr/bin/ssh"
+
 _usage() {
     set +Ex
     echo "Usage: $0 check-connection       return IPs with ipsec connections"          >&2
@@ -44,7 +48,7 @@ _get_ipv6_uncompressed(){
         echo ""
         return 0
     fi
-    ipaddr=$(sipcalc ${1} | egrep '^Expanded Address' | awk '{print $4}')
+    ipaddr=$(${SIPCALC} ${1} | egrep '^Expanded Address' | awk '{print $4}')
     [ ! -z ${ipaddr} ] && echo ${ipaddr} || echo ${1}
 }
 
@@ -152,9 +156,9 @@ _get_remote_prop() {
 
     # if remote ip contains ":", then it is a IPv6 address
     if [[ ${remote} == *":"* ]] ; then
-        prop_value=$(ssh -6 storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
+        prop_value=$(${SSH} -6 storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
     else
-        prop_value=$(ssh storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
+        prop_value=$(${SSH} storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
     fi
 
     echo "${prop_value}"

@@ -1,13 +1,15 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright (c) 2013-2015 EMC Corporation
  * All Rights Reserved
  */
 
 package com.emc.storageos.db.server.impl;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -15,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import javax.crypto.SecretKey;
 
 import com.netflix.astyanax.AstyanaxContext;
@@ -31,7 +34,11 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
+import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -77,7 +84,6 @@ import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.password.PasswordUtils;
@@ -96,6 +102,8 @@ public class SchemaUtil {
     private static final int MAX_REPLICATION_FACTOR = 5;
     private static final int DBINIT_RETRY_INTERVAL = 5;
     private static final int DBINIT_RETRY_MAX = 20;
+    // a normal node removal should succeed in 30s.
+    private static final int REMOVE_NODE_TIMEOUT_MILLIS = 1 * 60 * 1000; // 1 min
 
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
@@ -382,34 +390,33 @@ public class SchemaUtil {
             return;
         }
 
-        String dbsvcName = isGeoDbsvc() ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME;
-        try (DbManagerOps dbManagerOps = new DbManagerOps(dbsvcName)) {
-            long start = System.currentTimeMillis();
-            while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
-                try {
-                    Thread.sleep(DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS);
-                } catch (InterruptedException ex) {
-                    _log.warn("Interrupted during sleep");
-                }
-
-                Map<String, List<String>> schemas = clientContext.getSchemaVersions();
-                if (schemas.size() > 2) {
-                    // there are more than two schema versions besides UNREACHABLE, keep waiting.
-                    continue;
-                }
-                if (schemas.size() == 1) {
-                    // schema agreement reached and we are all set
-                    return;
-                }
-                // schemas.size() == 2, try removing the unreachable nodes from local site and check again.
-                if (schemas.containsKey(StorageProxy.UNREACHABLE)) {
-                    String localDcId = drUtil.getCassandraDcId(localSite);
-                    dbManagerOps.removeUnreachableNodesFromDataCenter(localDcId);
-                }
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
+            try {
+                _log.info("sleep for {} seconds before checking schema versions.",
+                        DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS / 1000);
+                Thread.sleep(DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS);
+            } catch (InterruptedException ex) {
+                _log.warn("Interrupted during sleep");
             }
-            _log.error("Unable to converge schema versions during resume");
-            throw new IllegalStateException("Unable to converge schema versions during resume");
+
+            Map<String, List<String>> schemas = clientContext.getSchemaVersions();
+            if (schemas.size() > 2) {
+                // there are more than two schema versions besides UNREACHABLE, keep waiting.
+                continue;
+            }
+            if (schemas.size() == 1) {
+                // schema agreement reached and we are all set
+                return;
+            }
+            // schemas.size() == 2, try removing the unreachable nodes from local site and check again.
+            if (schemas.containsKey(StorageProxy.UNREACHABLE)) {
+                String localDcId = drUtil.getCassandraDcId(localSite);
+                removeDataCenter(localDcId, true);
+            }
         }
+        _log.error("Unable to converge schema versions during resume");
+        throw new IllegalStateException("Unable to converge schema versions during resume");
     }
 
     
@@ -1287,6 +1294,54 @@ public class SchemaUtil {
         }
         return true;
    }
+
+    public void removeDataCenter(String dcName, boolean unreachableNodesOnly) {
+        _log.info("Remove Cassandra data center {}", dcName);
+        List<InetAddress> allNodes = new ArrayList<>();
+        if (!unreachableNodesOnly) {
+            Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+            allNodes.addAll(liveNodes);
+        }
+        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
+        allNodes.addAll(unreachableNodes);
+        for (InetAddress nodeIp : allNodes) {
+            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+            String dc = snitch.getDatacenter(nodeIp);
+            _log.info("node {} belongs to data center {} ", nodeIp, dc);
+            if (dc.equals(dcName)) {
+                Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
+                String guid = hostIdMap.get(nodeIp.getHostAddress());
+                _log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
+                Gossiper.instance.convict(nodeIp, 0);
+                ensureRemoveNode(guid);
+            }
+        }
+    }
+
+    /**
+     * A safer method to remove Cassandra node. Calls forceRemoveCompletion after REMOVE_NODE_TIMEOUT_MILLIS
+     * This will help to prevent node removal from hanging due to CASSANDRA-6542.
+     *
+     * @param guid
+     */
+    public void ensureRemoveNode(final String guid) {
+        Thread thread = new Thread() {
+            public void run() {
+                StorageService.instance.removeNode(guid);
+            }
+        };
+        thread.start();
+        try {
+            thread.join(REMOVE_NODE_TIMEOUT_MILLIS);
+            if (thread.isAlive()) {
+                _log.warn("removenode timeout, calling forceRemoveCompletion()");
+                StorageService.instance.forceRemoveCompletion();
+                thread.join();
+            }
+        } catch (InterruptedException e) {
+            _log.warn("Interrupted during node removal");
+        }
+    }
     
     public void setApiSignatureGenerator(InternalApiSignatureKeyGenerator apiSignatureGenerator) {
         this.apiSignatureGenerator = apiSignatureGenerator;

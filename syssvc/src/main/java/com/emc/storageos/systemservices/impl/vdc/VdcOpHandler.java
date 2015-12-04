@@ -406,6 +406,7 @@ public abstract class VdcOpHandler {
                 if (++retryCnt > MAX_PAUSE_RETRY) {
                     throw new IllegalStateException("timeout waiting for coordinatorsvc to be blocked on active site.");
                 }
+                log.info("short sleep before checking active site status again");
                 retrySleep();
             }
 

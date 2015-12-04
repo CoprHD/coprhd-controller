@@ -50,8 +50,6 @@ public class DbClientContext {
     private static final long DEFAULT_CONNECTION_POOL_MONITOR_INTERVAL = 1000;
     private static final int MAX_QUERY_RETRY = 5;
     private static final int QUERY_RETRY_SLEEP_SECONDS = 1000;
-    public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10; // 10 minutes
-    public static final int SCHEMA_RETRY_SLEEP_MILLIS = 10 * 1000; // 10 seconds
     private static final String LOCAL_HOST = "localhost";
     private static final int DB_THRIFT_PORT = 9160;
     private static final int GEODB_THRIFT_PORT = 9260;
@@ -62,6 +60,8 @@ public class DbClientContext {
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
     public static final String GEO_CLUSTER_NAME = "GeoStorageOS";
     public static final String GEO_KEYSPACE_NAME = "GeoStorageOS";
+    public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10; // 10 minutes
+    public static final int SCHEMA_RETRY_SLEEP_MILLIS = 10 * 1000; // 10 seconds
 
     private int maxConnections = DEFAULT_MAX_CONNECTIONS;
     private int maxConnectionsPerHost = DEFAULT_MAX_CONNECTIONS_PER_HOST;

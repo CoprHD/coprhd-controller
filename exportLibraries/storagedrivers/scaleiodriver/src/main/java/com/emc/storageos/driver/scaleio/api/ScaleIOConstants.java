@@ -8,6 +8,10 @@ package com.emc.storageos.driver.scaleio.api;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ScaleIOConstants {
+    static final String REGEX_CAPACITY = "\\s+\\d+(?:\\.\\d+)?\\s+\\w{2}\\s+\\((.*?)\\)";
+    static final String REGEX_CAPACITY_NO_SPACE_IN_FRONT = "\\d+(?:\\.\\d+)?\\s+\\w{2}\\s+\\((.*?)\\)";
+    static final String REGEX_BYTES_CAPACITY = "\\s+(\\d+)\\s+Bytes\\s+";
+
     public static final String API_LOGIN = "/api/login";
     public static final String ERROR_CODE = "httpStatusCode";
     public static final String GET_SYSTEMS_URI = "/api/types/System/instances";
@@ -21,6 +25,7 @@ public class ScaleIOConstants {
     public static final String POOL_ID = "PoolId";
     public static final String THIN_PROVISIONED = "ThinProvisioned";
     public static final String THICK_PROVISIONED = "ThickProvisioned";
+
     public static final String SCALEIO_VERSION = "Version";
     public static final String SCALEIO_CUSTOMER_ID = "CustomerID";
     public static final String SCALEIO_INSTALLATION_ID = "InstallationID";
@@ -29,14 +34,55 @@ public class ScaleIOConstants {
     public static final String SCALEIO_IN_USE_CAPACITY = "InUseCapacity";
     public static final String SCALEIO_PROTECTED_CAPACITY = "ProtectedCapacity";
     public static final String SCALEIO_SNAPSHOT_CAPACITY = "SnapshotCapacity";
-    public static final String IP_ADDRESS = "IpAddress";
-    public static final String PORT_NUMBER = "PortNumber";
-    public static final String USER_NAME = "UserName";
-    public static final String PASSWORD = "Password";
-    public static final String DRIVER_NAME = "ScaleIO";
-    static final String REGEX_CAPACITY = "\\s+\\d+(?:\\.\\d+)?\\s+\\w{2}\\s+\\((.*?)\\)";
-    static final String REGEX_CAPACITY_NO_SPACE_IN_FRONT = "\\d+(?:\\.\\d+)?\\s+\\w{2}\\s+\\((.*?)\\)";
-    static final String REGEX_BYTES_CAPACITY = "\\s+(\\d+)\\s+Bytes\\s+";
+    public static final String IP_ADDRESS="IpAddress";
+    public static final String PORT_NUMBER="PortNumber";
+    public static final String USER_NAME="UserName";
+    public static final String PASSWORD="Password";
+    public static final String DRIVER_NAME="ScaleIO";
+    public static final String MINIMUM_SUPPORTED_VERSION="1.32";
+    public static final Boolean INCOMPATIBLE=false;
+    public static final Boolean COMPATIBLE=true;
+    enum PoolCapacityMultiplier {
+
+        BYTES("Bytes", 1),
+        KB_BYTES("KB", 1024),
+        MB_BYTES("MB", 1048576),
+        GB_BYTES("GB", 1073741824),
+        TB_BYTES("TB", 1099511627776L),
+        PB_BYTES("PB", 1125899906842624L);
+
+        private String postFix;
+        private long multiplier;
+
+        PoolCapacityMultiplier(String name, long multipler) {
+            this.postFix = name;
+            this.multiplier = multipler;
+        }
+
+        static AtomicReference<PoolCapacityMultiplier[]> cachedValues =
+                new AtomicReference<PoolCapacityMultiplier[]>();
+
+        static PoolCapacityMultiplier matches(String name) {
+            if (cachedValues.get() == null) {
+                cachedValues.compareAndSet(null, values());
+            }
+            for (PoolCapacityMultiplier thisMultiplier : cachedValues.get()) {
+                if (name.endsWith(thisMultiplier.postFix)) {
+                    return thisMultiplier;
+                }
+            }
+            return null;
+        }
+
+        String getPostFix() {
+            return postFix;
+        }
+
+        public long getMultiplier() {
+            return multiplier;
+        }
+
+    }
 
     public static String getAPIBaseURI(String ipAddress, int port) {
         return String.format("https://%1$s:%2$d", ipAddress, port);
@@ -84,46 +130,5 @@ public class ScaleIOConstants {
 
     public static String getRemoveConsistencyGroupSnapshotsURI(String systemId) {
         return String.format("/api/instances/System::%1$s/action/removeConsistencyGroupSnapshots", systemId);
-    }
-
-    enum PoolCapacityMultiplier {
-
-        BYTES("Bytes", 1),
-        KB_BYTES("KB", 1024),
-        MB_BYTES("MB", 1048576),
-        GB_BYTES("GB", 1073741824),
-        TB_BYTES("TB", 1099511627776L),
-        PB_BYTES("PB", 1125899906842624L);
-
-        static AtomicReference<PoolCapacityMultiplier[]> cachedValues =
-                new AtomicReference<PoolCapacityMultiplier[]>();
-        private String postFix;
-        private long multiplier;
-
-        PoolCapacityMultiplier(String name, long multipler) {
-            this.postFix = name;
-            this.multiplier = multipler;
-        }
-
-        static PoolCapacityMultiplier matches(String name) {
-            if (cachedValues.get() == null) {
-                cachedValues.compareAndSet(null, values());
-            }
-            for (PoolCapacityMultiplier thisMultiplier : cachedValues.get()) {
-                if (name.endsWith(thisMultiplier.postFix)) {
-                    return thisMultiplier;
-                }
-            }
-            return null;
-        }
-
-        String getPostFix() {
-            return postFix;
-        }
-
-        public long getMultiplier() {
-            return multiplier;
-        }
-
     }
 }

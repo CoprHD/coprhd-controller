@@ -1,6 +1,5 @@
 package com.emc.storageos.driver.scaleio;
 
-import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -8,16 +7,11 @@ import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import org.apache.commons.lang.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 class ScaleIOStorageDriver extends AbstractStorageDriver {
-    private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
+
     private ScaleIORestHandleFactory handleFactory;
 
     public void setHandleFactory(ScaleIORestHandleFactory handleFactory) {
@@ -392,52 +386,4 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
     public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
         return null;
     }
-
-    /**
-     * Get connection info from registry
-     * 
-     * @param systemNativeId
-     * @param attrName use string constants in the scaleioConstants.java. e.g. ScaleIOConstants.IP_ADDRESS
-     * @return Ip_address, port, username or password for given systemId and attribute name
-     */
-    public String getConnInfoFromRegistry(String systemNativeId, String attrName) {
-        Map<String, List<String>> attributes = this.driverRegistry.getDriverAttributesForKey(ScaleIOConstants.DRIVER_NAME, systemNativeId);
-        if (attributes == null) {
-            log.info("Connection info for " + systemNativeId + " is not set up in the registry");
-            return null;
-        } else if (attributes.get(attrName) == null) {
-            log.info(attrName + "is not found in the registry");
-            return null;
-        } else {
-            return attributes.get(attrName).get(0);
-        }
-    }
-
-    /**
-     * Set connection information to registry
-     * 
-     * @param systemNativeId
-     * @param ipAddress
-     * @param port
-     * @param username
-     * @param password
-     */
-    public void setConnInfoToRegistry(String systemNativeId, String ipAddress, int port, String username, String password) {
-        Map<String, List<String>> attributes = new HashMap<>();
-        List<String> listIP = new ArrayList<>();
-        listIP.add(ipAddress);
-        attributes.put(ScaleIOConstants.IP_ADDRESS, listIP);
-        List<String> listPort = new ArrayList<>();
-        listPort.add(Integer.toString(port));
-        attributes.put(ScaleIOConstants.PORT_NUMBER, listPort);
-        List<String> listUserName = new ArrayList<>();
-        listUserName.add(username);
-        attributes.put(ScaleIOConstants.USER_NAME, listUserName);
-        List<String> listPwd = new ArrayList<>();
-        listPwd.add(password);
-        attributes.put(ScaleIOConstants.PASSWORD, listPwd);
-
-        this.driverRegistry.setDriverAttributesForKey(ScaleIOConstants.DRIVER_NAME, systemNativeId, attributes);
-    }
-
 }

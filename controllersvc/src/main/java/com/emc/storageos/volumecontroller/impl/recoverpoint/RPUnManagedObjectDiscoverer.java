@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedPro
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
@@ -38,6 +39,7 @@ import com.emc.storageos.recoverpoint.responses.GetCopyResponse;
 import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
 import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
@@ -151,7 +153,10 @@ public class RPUnManagedObjectDiscoverer {
                 log.info("Protection Set " + nativeGuid + " does not contain any copies.  Skipping...");
                 continue;
             }
-
+            // clean up the existing journal and replicationsets info in the unmanaged protection set, so that updated info is populated
+            if (!newCG) {
+                cleanUpUnManagedResources(unManagedProtectionSet, unManagedVolumesToUpdateByWwn, dbClient);
+            }
             for (GetCopyResponse copy : cg.getCopies()) {
                 String accessState = copy.getAccessState();
                 if (GetCopyResponse.GetCopyAccessStateResponse.LOGGED_ACCESS.name().equals(accessState)) {
@@ -397,6 +402,61 @@ public class RPUnManagedObjectDiscoverer {
         }
 
         cleanUp(protectionSystem, dbClient);
+    }
+
+    /**
+     * Clean up the existing unmanaged protection set and its associated unmanaged volumes
+     * so that it gets updated with latest info during rediscovery
+     * 
+     * @param unManagedProtectionSet
+     * @param unManagedVolumesToUpdateByWwn
+     * @param dbClient
+     */
+    private void cleanUpUnManagedResources(UnManagedProtectionSet unManagedProtectionSet,
+            Map<String, UnManagedVolume> unManagedVolumesToUpdateByWwn, DbClient dbClient) {
+        // Clean up the volume wwns, managed volume and unmanaged volume lists of the unmanaged protection set
+        unManagedProtectionSet.getManagedVolumeIds().clear();
+        unManagedProtectionSet.getVolumeWwns().clear();
+        List<URI> unManagedVolsUris = new ArrayList<URI>(Collections2.transform(
+                unManagedProtectionSet.getUnManagedVolumeIds(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        Iterator<UnManagedVolume> unManagedVolsOfProtectionSetIter = dbClient.queryIterativeObjects(UnManagedVolume.class,
+                unManagedVolsUris);
+        while (unManagedVolsOfProtectionSetIter.hasNext()) {
+            UnManagedVolume rpUnManagedVolume = unManagedVolsOfProtectionSetIter.next();
+            // Clear the RP related fields in the UnManagedVolume
+            StringSet rpPersonality = rpUnManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.RP_PERSONALITY.toString());
+            StringSet rpCopyName = rpUnManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.RP_COPY_NAME.toString());
+            StringSet rpInternalSiteName = rpUnManagedVolume.getVolumeInformation().get(
+                    SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString());
+            StringSet rpProtectionSystem = rpUnManagedVolume.getVolumeInformation()
+                    .get(SupportedVolumeInformation.RP_PROTECTIONSYSTEM.toString());
+            StringSet rpSourceVol = rpUnManagedVolume.getVolumeInformation()
+                    .get(SupportedVolumeInformation.RP_UNMANAGED_SOURCE_VOLUME.toString());
+            StringSet rpTargetVols = rpUnManagedVolume.getVolumeInformation()
+                    .get(SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString());
+
+            if (rpPersonality != null) {
+                rpPersonality.clear();
+            }
+            if (rpCopyName != null) {
+                rpCopyName.clear();
+            }
+            if (rpInternalSiteName != null) {
+                rpInternalSiteName.clear();
+            }
+            if (rpProtectionSystem != null) {
+                rpProtectionSystem.clear();
+            }
+            if (rpSourceVol != null) {
+                rpSourceVol.clear();
+            }
+            if (rpTargetVols != null) {
+                rpTargetVols.clear();
+            }
+            unManagedVolumesToUpdateByWwn.put(rpUnManagedVolume.getWwn(), rpUnManagedVolume);
+        }
+
+        unManagedProtectionSet.getUnManagedVolumeIds().clear();
     }
 
     /**

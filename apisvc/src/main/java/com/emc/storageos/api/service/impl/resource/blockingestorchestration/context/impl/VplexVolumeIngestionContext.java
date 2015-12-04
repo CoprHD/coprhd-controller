@@ -45,8 +45,13 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     private Map<String, BlockObject> createdObjectMap;
     private Map<String, List<DataObject>> updatedObjectMap;
     private List<UnManagedVolume> unManagedVolumesToBeDeleted;
-    
+
+    private VolumeIngestionContext currentBackendVolumeIngestionContext;
+    private Iterator<UnManagedVolume> backendVolumeUrisToProcessIterator;
     private List<VplexMirror> createdVplexMirrors;
+
+    private String sourceClusterId;
+    private String haClusterId;
 
     private List<String> errorMessages;
     
@@ -55,8 +60,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     // export ingestion related items
     private boolean exportGroupCreated = false;
     private ExportGroup exportGroup;
-    private URI host;
-    private URI cluster;
     private List<Initiator> deviceInitiators;
     private List<BlockObject> ingestedObjects;
     
@@ -142,10 +145,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
 
         return errorMessages;
     }
-
-    
-    private Iterator<UnManagedVolume> backendVolumeUrisToProcessIterator;
-    private VolumeIngestionContext currentBackendVolumeIngestionContext;
 
     /*
      * (non-Javadoc)
@@ -285,9 +284,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         
         return haVarray;
     }
-
-    private String sourceClusterId;
-    private String haClusterId;
 
     /**
      * @param sourceClusterId the sourceClusterId to set

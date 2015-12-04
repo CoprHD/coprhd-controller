@@ -130,7 +130,7 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
             }
             
             if (VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
-                return new RPVolumeIngestionContext(unManagedVolume, dbClient);
+                return new RPVolumeIngestionContext(unManagedVolume, dbClient, parentRequestContext);
             } else if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
                 return new VplexVolumeIngestionContext(unManagedVolume, dbClient, parentRequestContext);
             } else {

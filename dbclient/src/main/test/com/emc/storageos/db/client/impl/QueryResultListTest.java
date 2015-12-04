@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -65,8 +66,12 @@ public class QueryResultListTest {
     public void shouldEmptyIfNoData() {
         int expectCount = randInt(5, 10);
         this.createDataObject(Volume.class, expectCount);
-        this.removeObject(Volume.class, this.ids);
         List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
+        Assert.assertNotNull(volumes);
+        Assert.assertTrue(volumes.size() > 0);
+        this.removeObject(Volume.class, this.ids);
+        List<Volume> copy = new ArrayList<Volume> (volumes);
+        volumes.removeAll(copy);
         Assert.assertTrue(volumes.isEmpty());
         this.cleanAll();
     }
@@ -161,6 +166,7 @@ public class QueryResultListTest {
             subObjects.add(o);
         }
         volumes.addAll(subObjects);
+        this.dbClient.createObject(subObjects);
         Assert.assertEquals(this.ids.size()+subObjects.size(), volumes.size());
         this.cleanAll();
     }
@@ -170,14 +176,10 @@ public class QueryResultListTest {
         int expectCount = randInt(5, 10);
         this.createDataObject(Volume.class, expectCount);
         List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
-        List<Volume> subObjects = new ArrayList<Volume>();
-        
-        for (int i=0; i<5; i++) {
-            Volume o = (Volume) this.constructDataObject(Volume.class);
-            subObjects.add(o);
-        }
-        volumes.removeAll(subObjects);
-        Assert.assertEquals(this.ids.size()-subObjects.size(), volumes.size());
+        List<URI> subUris = new ArrayList<URI>(this.ids.subList(0, 4));
+        this.removeObject(Volume.class, subUris);
+        volumes.removeAll(subUris);
+        Assert.assertEquals(this.ids.size(), volumes.size());
         this.cleanAll();
     }
     
@@ -186,14 +188,18 @@ public class QueryResultListTest {
         int expectCount = randInt(5, 10);
         this.createDataObject(Volume.class, expectCount);
         List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
-        List<Volume> subObjects = new ArrayList<Volume>();
-        
-        for (int i=0; i<5; i++) {
-            Volume o = (Volume) this.constructDataObject(Volume.class);
-            subObjects.add(o);
+        List<Volume> retainedVolumes = new ArrayList<Volume>();
+        List<URI> retainedIds = new ArrayList<URI>(this.ids.subList(0, 3));
+        for (URI id : retainedIds) {
+            Volume volume = (Volume) this.constructDataObject(Volume.class, id);
+            retainedVolumes.add(volume);
         }
-        volumes.retainAll(subObjects);
-        Assert.assertEquals(subObjects.size(), volumes.size());
+        List<URI> removedIds = new ArrayList<URI>(this.ids.subList(3, this.ids.size()));
+
+        volumes.retainAll(retainedVolumes);
+        this.removeObject(Volume.class, removedIds);
+        Assert.assertEquals(retainedIds.size(), volumes.size());
+        this.cleanAll();
     }
     
     @Test
@@ -204,6 +210,7 @@ public class QueryResultListTest {
         Assert.assertTrue(volumes.size() > 0);
         volumes.clear();
         Assert.assertTrue(volumes.isEmpty());
+        this.cleanAll();
     }
     
     @Test
@@ -215,6 +222,7 @@ public class QueryResultListTest {
         Volume volumeToSet = (Volume) this.constructDataObject(Volume.class);
         volumes.set(0, volumeToSet);
         Assert.assertNull(volumes.get(0));
+        this.cleanAll();
     }
     
     @Test
@@ -226,6 +234,7 @@ public class QueryResultListTest {
         volumes.set(0, volumeToSet);
         this.dbClient.createObject(new DataObject[] {volumeToSet});
         Assert.assertEquals(volumeToSet.getId().toString(), volumes.get(0).getId().toString());
+        this.cleanAll();
     }
     
     @Test
@@ -300,6 +309,12 @@ public class QueryResultListTest {
                     DataObject object = clazz.newInstance();
                     object.setId(id);
                     objects[index++] = object;
+                    Iterator<URI> it = this.ids.iterator();
+                    while (it.hasNext()) {
+                        if (it.next().equals(id)) {
+                            it.remove();
+                        }
+                    }
                 }
                 this.dbClient.removeObject(objects);
             } catch (Exception e) {

@@ -15,13 +15,21 @@ public class GetCopyResponse implements Serializable {
     private boolean production;
     private String accessState; // LOGGED_ACCESS, NO_ACCESS, etc
     private boolean enabled;
-    private String accessedImage; 
-    
+    private String accessedImage;
+
     // Every copy has three identifiers, and you need all three to be unique across all CG's copies
     private long cgId;       // The ID of the CG it belongs to
     // You need the following two identifiers to be unique WITHIN a CG
     private long clusterId;  // The global ID of the cluster the copy lives on
     private long copyId;     // The ID of the copy
+
+    // Access state info of RP Copy
+    public static enum GetCopyAccessStateResponse implements Serializable {
+        NO_ACCESS,
+        LOGGED_ACCESS,
+        DIRECT_ACCESS,
+        VIRTUAL_ACCESS;
+    }
 
     public GetCopyResponse() {
     }
@@ -73,6 +81,7 @@ public class GetCopyResponse implements Serializable {
     public void setCopyId(long copyId) {
         this.copyId = copyId;
     }
+
     public String getAccessState() {
         return accessState;
     }

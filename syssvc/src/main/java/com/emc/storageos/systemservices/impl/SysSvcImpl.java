@@ -82,7 +82,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     }
 
     /**
-     * Initialize SoftwareUpdate bean
+     * Instantiate SoftwareUpdate bean
      *
      */
     public void setSoftwareUpdate(SoftwareUpdate softwareUpdate) {

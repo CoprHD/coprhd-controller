@@ -362,9 +362,8 @@ public class RemoteRepository {
             HttpURLConnection httpCon = prepareConnection(repo);
             httpCon.setInstanceFollowRedirects(false);
             httpCon.addRequestProperty("User-Agent", "Mozilla");
-            SoftwareUpdate softwareUpdate = SoftwareUpdate.getInstance();
-            if (softwareUpdate.isCatalogServer(repo)) {
-                writePostContent(httpCon, softwareUpdate.getCatalogPostContent(repo));
+            if (SoftwareUpdate.isCatalogServer(repo)) {
+                writePostContent(httpCon, SoftwareUpdate.getCatalogPostContent(repo));
             } else {
                 httpCon.connect();
                 _log.debug("The return code of the connection is: " + httpCon.getResponseCode());
@@ -772,8 +771,7 @@ public class RemoteRepository {
             URL url = new URL(EMC_SSO_AUTH_SERVICE_PROTOCOL, _ssohost, EMC_SSO_AUTH_SERVICE_URLPATH);
             HttpURLConnection httpCon = prepareConnection(url);
             httpCon.setInstanceFollowRedirects(false);
-            SoftwareUpdate softwareUpdate = SoftwareUpdate.getInstance();
-            String loginContent = softwareUpdate.getDownloadLoginContent(_username, _password);
+            String loginContent = SoftwareUpdate.getDownloadLoginContent(_username, _password);
             writePostContent(httpCon, loginContent);
 
             InputStream in = httpCon.getInputStream();

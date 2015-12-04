@@ -257,6 +257,7 @@
     </bean>
 
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
+        <property name="softwareUpdate" ref="softwareUpdate" />
         <property name="application" ref="syssvcApp" />
         <property name="keyGenerator" ref="keyGenerator" />
         <property name="upgradeManager" ref="upgradeManager" />

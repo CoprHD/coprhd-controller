@@ -8,6 +8,7 @@ package com.emc.storageos.systemservices.impl;
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
+import com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.security.AbstractSecuredWebServer;
@@ -37,6 +38,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private Thread _vdcManagerThread = null;
     private Thread _ipreconfigManagerThread = null;
     private int _timeout;
+    private SoftwareUpdate _softwareUpdate;
 
     @Autowired
     private SecretsManager _secretsMgr;
@@ -77,6 +79,14 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
      */
     public void setSysClientTimeout(int timeout) {
         _timeout = timeout;
+    }
+
+    /**
+     * Instantiate SoftwareUpdate bean
+     *
+     */
+    public void setSoftwareUpdate(SoftwareUpdate softwareUpdate) {
+        _softwareUpdate = softwareUpdate;
     }
 
     /**

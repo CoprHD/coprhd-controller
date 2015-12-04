@@ -239,6 +239,25 @@ public class RPVolumeIngestionContext extends BlockVolumeIngestionContext implem
         return getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
     }
 
+    public void commitBackend() {
+
+        _dbClient.createObject(getIngestedObjects());
+        _dbClient.createObject(getCreatedObjectMap().values());
+
+        for (List<DataObject> dos : getUpdatedObjectMap().values()) {
+            _dbClient.updateObject(dos);
+        }
+        _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
+    }
+
+    public void rollbackBackend() {
+        getIngestedObjects().clear();
+        getCreatedObjectMap().clear();
+        getUpdatedObjectMap().clear();
+        getUnManagedVolumesToBeDeleted().clear();
+    }
+    
+    
     /*
      * (non-Javadoc)
      * 

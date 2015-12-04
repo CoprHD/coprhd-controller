@@ -126,30 +126,36 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throws IngestionException {
         
         RPVolumeIngestionContext volumeContext = (RPVolumeIngestionContext) requestContext.getVolumeContext();
+        Volume volume = null; 
         
-        // Make sure there's an unmanaged protection set
-        UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
-        if (umpset == null) {
-            _logger.warn("No unmanaged protection set could be found for unmanaged volume: " 
-                    + volumeContext.getUnmanagedVolume().getNativeGuid() 
-                    + " Please run unmanaged CG discovery of registered protection system");
-            throw IngestionException.exceptions.unManagedProtectionSetNotFound(
-                    volumeContext.getUnmanagedVolume().getNativeGuid());
-        }
+        try {
+            // Make sure there's an unmanaged protection set
+            UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
+            if (umpset == null) {
+                _logger.warn("No unmanaged protection set could be found for unmanaged volume: " 
+                        + volumeContext.getUnmanagedVolume().getNativeGuid() 
+                        + " Please run unmanaged CG discovery of registered protection system");
+                throw IngestionException.exceptions.unManagedProtectionSetNotFound(
+                        volumeContext.getUnmanagedVolume().getNativeGuid());
+            }
 
-        Volume volume = (Volume)ingestBlockObjectsInternal(volumeContext, clazz);
-        
-        // Reload the unmanaged protection set after ingestion
-        umpset = _dbClient.queryObject(UnManagedProtectionSet.class, umpset.getId());
-        
-        // Experimental auto-ingestion feature.  Only run it if we haven't ingested everything yet.
-        /*
-        if (!validateAllVolumesInCGIngested(unManagedVolume, umpset)) {
-            performAutoIngestOnRemainingVolumes(umpset, systemCache, poolCache, project, tenant,
-                    unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported,
-                    taskStatusMap, vplexIngestionMethod);
+            volume = (Volume)ingestBlockObjectsInternal(volumeContext, clazz);
+
+            // Experimental auto-ingestion feature.  Only run it if we haven't ingested everything yet.
+            /*
+            if (!validateAllVolumesInCGIngested(unManagedVolume, umpset)) {
+                performAutoIngestOnRemainingVolumes(umpset, systemCache, poolCache, project, tenant,
+                        unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported,
+                        taskStatusMap, vplexIngestionMethod);
+            }
+            */
+            
+            volumeContext.commit();
+            
+        } catch (Exception ex) {
+            _logger.error("Exception during RP volume ingestion: ", ex);
+            volumeContext.rollback();
         }
-        */
         
         return clazz.cast(volume);
     }

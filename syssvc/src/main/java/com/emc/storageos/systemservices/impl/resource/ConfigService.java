@@ -555,7 +555,7 @@ public class ConfigService {
         StringBuilder propChanges = new StringBuilder();
 
         // get current property set
-        PropertyInfoRestRep currentProps = _coordinator.getTargetInfo(PropertyInfoExt.class);
+        PropertyInfoRestRep currentProps = _coordinator.getTargetProperties();
         PropertyInfoRestRep oldProps = new PropertyInfoRestRep();
         oldProps.addProperties(currentProps.getAllProperties());
 

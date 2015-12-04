@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver {
+
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
     private ScaleIORestHandleFactory handleFactory;
 
@@ -250,6 +251,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
     }
 
     /**
+<<<<<<< HEAD
      * Delete block consistency group.
      *
      * @param consistencyGroup Input
@@ -261,6 +263,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
     }
 
     /**
+=======
+>>>>>>> c55eabc... fix compile issue
      * Create snapshot of consistency group.
      *
      * @param consistencyGroup input parameter
@@ -351,6 +355,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
     @Override
     public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
         return null;
+
     }
 
     /**
@@ -405,7 +410,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
     /**
      * Get connection info from registry
+<<<<<<< HEAD
      * 
+=======
+     *
+>>>>>>> c55eabc... fix compile issue
      * @param systemNativeId
      * @param attrName use string constants in the scaleioConstants.java. e.g. ScaleIOConstants.IP_ADDRESS
      * @return Ip_address, port, username or password for given systemId and attribute name
@@ -425,7 +434,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
     /**
      * Set connection information to registry
+<<<<<<< HEAD
      * 
+=======
+     *
+>>>>>>> c55eabc... fix compile issue
      * @param systemNativeId
      * @param ipAddress
      * @param port
@@ -451,4 +464,3 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
     }
 
 }
-

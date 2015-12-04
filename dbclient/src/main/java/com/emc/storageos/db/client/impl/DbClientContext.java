@@ -83,11 +83,6 @@ public class DbClientContext {
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
-    private String keySpaceStrategy = KEYSPACE_NETWORK_TOPOLOGY_STRATEGY;
-    
-    public void setKeySpaceStrategy(String keySpaceStrategy) {
-        this.keySpaceStrategy = keySpaceStrategy;
-    }
 
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
@@ -339,7 +334,7 @@ public class DbClientContext {
     
             KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
             update.setName(getKeyspaceName());
-            update.setStrategyClass(keySpaceStrategy);
+            update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
             update.setStrategyOptions(strategyOptions);
 
             waitForSchemaAgreement(null);

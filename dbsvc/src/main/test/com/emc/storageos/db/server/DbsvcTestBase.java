@@ -227,14 +227,13 @@ public class DbsvcTestBase {
         schemaUtil.setService(service);
         schemaUtil.setStatusChecker(statusChecker);
         schemaUtil.setCoordinator(_coordinator);
-        schemaUtil.setVdcShortId("replication_factor"); //tricky way for workaround for SimpleStrategy
+        schemaUtil.setVdcShortId("datacenter1");
         schemaUtil.setDrUtil(new DrUtil(_coordinator));
         schemaUtil.setApiSignatureGenerator(apiSignatureGeneratorMock);
 
         DbClientContext dbctx = new MockDbClientContext();
         dbctx.setClusterName("Test");
         dbctx.setKeyspaceName("Test");
-        dbctx.setKeySpaceStrategy("SimpleStrategy");
         schemaUtil.setClientContext(dbctx);
 
         Properties props = new Properties();
@@ -326,7 +325,6 @@ public class DbsvcTestBase {
         DbClientContext localCtx = new MockDbClientContext();
         localCtx.setClusterName("Test");
         localCtx.setKeyspaceName("Test");
-        localCtx.setKeySpaceStrategy("SimpleStrategy");
         dbClient.setLocalContext(localCtx);
 
         VdcUtil.setDbClient(dbClient);

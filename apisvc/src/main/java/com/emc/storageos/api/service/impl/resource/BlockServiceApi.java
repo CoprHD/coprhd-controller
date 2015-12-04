@@ -6,10 +6,8 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
-import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;

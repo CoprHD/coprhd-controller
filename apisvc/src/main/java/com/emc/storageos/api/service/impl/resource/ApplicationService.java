@@ -7,16 +7,13 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,7 +31,6 @@ import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
@@ -74,8 +70,8 @@ public class ApplicationService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "application";
     private static final Set<String> ALLOWED_SYSTEM_TYPES = new HashSet<String>(Arrays.asList(
             DiscoveredDataObject.Type.vnxblock.name(),
-            DiscoveredDataObject.Type.vplex.name(), 
-            DiscoveredDataObject.Type.vmax.name(), 
+            DiscoveredDataObject.Type.vplex.name(),
+            DiscoveredDataObject.Type.vmax.name(),
             DiscoveredDataObject.Type.xtremio.name(),
             DiscoveredDataObject.Type.scaleio.name(),
             DiscoveredDataObject.Type.rp.name(),
@@ -83,12 +79,11 @@ public class ApplicationService extends TaskResourceService {
             DiscoveredDataObject.Type.ibmxiv.name()));
     private static final Set<String> BLOCK_TYPES = new HashSet<String>(Arrays.asList(
             DiscoveredDataObject.Type.vnxblock.name(),
-            DiscoveredDataObject.Type.vmax.name(), 
+            DiscoveredDataObject.Type.vmax.name(),
             DiscoveredDataObject.Type.xtremio.name(),
             DiscoveredDataObject.Type.scaleio.name(),
             DiscoveredDataObject.Type.ibmxiv.name()));
     private static final String BLOCK = "block";
-   
 
     @Override
     protected DataObject queryResource(URI id) {
@@ -195,8 +190,8 @@ public class ApplicationService extends TaskResourceService {
         if (!getApplicationVolumes(application).isEmpty()) {
             // application could not be deleted if it has volumes
             throw APIException.badRequests.applicationWithVolumesCantBeDeleted(application.getLabel());
-         }
-         
+        }
+
         _dbClient.markForDeletion(application);
 
         auditOp(OperationTypeEnum.DELETE_CONFIG, true, null, id.toString(),
@@ -248,22 +243,22 @@ public class ApplicationService extends TaskResourceService {
         List<Volume> addVols = null;
         Set<URI> removeVolumeCGs = null;
         Volume firstVol = null;
-        
+
         if (param.hasVolumesToAdd()) {
             addVols = validateAddVolumes(param, application);
             if (firstVol == null) {
                 firstVol = addVols.get(0);
-            }            
+            }
         }
-        if(param.hasVolumesToRemove()) {
+        if (param.hasVolumesToRemove()) {
             removeVolumeCGs = new HashSet<URI>();
             List<URI> removeVolList = param.getRemoveVolumesList().getVolumes();
             removeVols = validateRemoveVolumes(removeVolList, application, removeVolumeCGs);
             if (!removeVols.isEmpty() && firstVol == null) {
-                firstVol = removeVols.get(0);               
-            }            
+                firstVol = removeVols.get(0);
+            }
         }
-        
+
         BlockServiceApi serviceAPI = BlockService.getBlockServiceImpl(firstVol, _dbClient);
         op = _dbClient.createTaskOpStatus(Application.class, application.getId(),
                 taskId, ResourceOperationTypeEnum.UPDATE_APPLICATION);
@@ -280,7 +275,7 @@ public class ApplicationService extends TaskResourceService {
                 updateFailedVolumeTasks(addURIs, taskId, e);
             }
             if (param.hasVolumesToRemove()) {
-                List<URI>removeURIs = param.getRemoveVolumesList().getVolumes();
+                List<URI> removeURIs = param.getRemoveVolumesList().getVolumes();
                 updateFailedVolumeTasks(removeURIs, taskId, e);
                 updateFailedCGTasks(removeVolumeCGs, taskId, e);
             }
@@ -290,11 +285,12 @@ public class ApplicationService extends TaskResourceService {
                 application.getLabel());
         return taskList;
     }
-    
+
     /**
      * Validate the volumes to be added to the application.
      * All volumes should be the same type (block, or RP, or VPLEX, or SRDF),
      * If the volumes are not in a consistency group, it should specify a CG that the volumes to be add to
+     * 
      * @param volumes
      * @return The validated volumes
      */
@@ -302,8 +298,8 @@ public class ApplicationService extends TaskResourceService {
         String addedVolType = null;
         String firstVolLabel = null;
         List<URI> addVolList = param.getAddVolumesList().getVolumes();
-        //URI paramCG = param.getAddVolumesList().getConsistencyGroup();
-        List<Volume> volumes = new ArrayList<Volume> ();
+        // URI paramCG = param.getAddVolumesList().getConsistencyGroup();
+        List<Volume> volumes = new ArrayList<Volume>();
         for (URI volUri : addVolList) {
             ArgValidator.checkFieldUriType(volUri, Volume.class, "id");
             Volume volume = _dbClient.queryObject(Volume.class, volUri);
@@ -313,18 +309,22 @@ public class ApplicationService extends TaskResourceService {
             URI cgUri = volume.getConsistencyGroup();
             if (NullColumnValueGetter.isNullURI(cgUri)) {
                 // Do not support not in CG volumes yet.
-                throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(), "The volume is not in CG. Not supported yet");
-                /*if (paramCG == null) {
-                    throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(), "Conssitency group is not specified for the volumes not in a consistency group");
-                }
-                ArgValidator.checkFieldUriType(paramCG, BlockConsistencyGroup.class, "consistency_group");*/
-                
+                throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(),
+                        "The volume is not in CG. Not supported yet");
+                /*
+                 * if (paramCG == null) {
+                 * throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(),
+                 * "Conssitency group is not specified for the volumes not in a consistency group");
+                 * }
+                 * ArgValidator.checkFieldUriType(paramCG, BlockConsistencyGroup.class, "consistency_group");
+                 */
+
             }
             URI systemUri = volume.getStorageController();
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemUri);
             String type = system.getSystemType();
             if (!ALLOWED_SYSTEM_TYPES.contains(type)) {
-                throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(), 
+                throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(),
                         "The storage system type that the volume created in is not allowed ");
             }
             String volType = getVolumeType(type);
@@ -333,10 +333,10 @@ public class ApplicationService extends TaskResourceService {
                 firstVolLabel = volume.getLabel();
             }
             if (!volType.equals(addedVolType)) {
-                throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(), 
+                throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(),
                         "The volume type is not same as others");
             }
-            volumes.add(volume);            
+            volumes.add(volume);
         }
         // Check if the to-add volumes are the same volume type as existing volumes in the application
         List<Volume> existingVols = getApplicationVolumes(application);
@@ -347,15 +347,16 @@ public class ApplicationService extends TaskResourceService {
             String type = system.getSystemType();
             String existingType = getVolumeType(type);
             if (!existingType.equals(addedVolType)) {
-                throw APIException.badRequests.volumeCantBeAddedToApplication(firstVolLabel, 
+                throw APIException.badRequests.volumeCantBeAddedToApplication(firstVolLabel,
                         "The volume type is not same as existing volumes in the application");
             }
         }
         return volumes;
     }
-    
+
     /**
      * Valid the volumes to be removed from the application. Called by updateApplication()
+     * 
      * @param volumes the volumes to be removed from application
      * @param application The application
      * @return The validated volumes
@@ -366,26 +367,27 @@ public class ApplicationService extends TaskResourceService {
             ArgValidator.checkFieldUriType(voluri, Volume.class, "id");
             Volume vol = _dbClient.queryObject(Volume.class, voluri);
             if (vol == null) {
-                throw APIException.badRequests.applicationCantBeUpdated(voluri.toString(), 
+                throw APIException.badRequests.applicationCantBeUpdated(voluri.toString(),
                         "The volume does not exist");
             }
             StringSet applications = vol.getApplicationIds();
             if (!applications.contains(application.getId().toString())) {
-                throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(), 
+                throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(),
                         "The volume is not assigned to the application");
             }
             if (vol.getInactive()) {
                 continue;
             }
             removeVolumeCGs.add(vol.getConsistencyGroup());
-            
-            removeVolumes.add(vol);            
-        }        
+
+            removeVolumes.add(vol);
+        }
         return removeVolumes;
     }
-    
+
     /**
      * Get Volume type, either block, rp, vplex or srdf
+     * 
      * @param type The system type
      * @return
      */
@@ -396,9 +398,10 @@ public class ApplicationService extends TaskResourceService {
             return type;
         }
     }
-    
+
     /**
      * Get application volumes
+     * 
      * @param application
      * @return The list of volumes in application
      */
@@ -414,7 +417,7 @@ public class ApplicationService extends TaskResourceService {
         }
         return result;
     }
-    
+
     /**
      * Creates tasks against consistency group associated with a request and adds them to the given task list.
      *
@@ -431,7 +434,7 @@ public class ApplicationService extends TaskResourceService {
                 operationTypeEnum);
         taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
     }
-    
+
     /**
      * Creates tasks against volume associated with a request and adds them to the given task list.
      *
@@ -447,16 +450,17 @@ public class ApplicationService extends TaskResourceService {
                 operationTypeEnum);
         taskList.getTaskList().add(TaskMapper.toTask(volume, taskId, op));
     }
-    
+
     /**
      * Add task for volumes and consistency groups
+     * 
      * @param addVols
      * @param removeVols
      * @param removeVolumeCGs
      * @param taskId
      * @param taskList
      */
-    private void addTasksForVolumesAndCGs(List<Volume>addVols, List<Volume>removeVols, Set<URI>removeVolumeCGs,
+    private void addTasksForVolumesAndCGs(List<Volume> addVols, List<Volume> removeVols, Set<URI> removeVolumeCGs,
             String taskId, TaskList taskList) {
         if (addVols != null && !addVols.isEmpty()) {
             for (Volume vol : addVols) {
@@ -468,14 +472,14 @@ public class ApplicationService extends TaskResourceService {
                 addVolumeTask(vol, taskList, taskId, ResourceOperationTypeEnum.UPDATE_APPLICATION);
             }
         }
-        
+
         if (removeVolumeCGs != null && !removeVolumeCGs.isEmpty()) {
             for (URI cg : removeVolumeCGs) {
                 addConsistencyGroupTask(cg, taskList, taskId, ResourceOperationTypeEnum.UPDATE_APPLICATION);
             }
         }
     }
-    
+
     private void updateFailedVolumeTasks(List<URI> uriList, String taskId, InternalException e) {
         for (URI uri : uriList) {
             Volume vol = _dbClient.queryObject(Volume.class, uri);
@@ -486,7 +490,7 @@ public class ApplicationService extends TaskResourceService {
             }
         }
     }
-    
+
     private void updateFailedCGTasks(Set<URI> uriList, String taskId, InternalException e) {
         for (URI uri : uriList) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, uri);
@@ -497,5 +501,5 @@ public class ApplicationService extends TaskResourceService {
             }
         }
     }
-    
+
 }

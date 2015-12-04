@@ -12,7 +12,7 @@ import com.emc.storageos.db.client.util.iSCSIUtility;
  * SCSI initiator in either a Fiber Channel or iSCSI SAN.
  */
 @Cf("Initiator")
-public class Initiator extends HostInterface {
+public class Initiator extends HostInterface implements Comparable<Initiator> {
 
     private String _port;
     private String _node;
@@ -192,5 +192,38 @@ public class Initiator extends HostInterface {
     public Object[] auditParameters() {
         return new Object[] { getInitiatorPort(), getInitiatorNode(),
                 getHost(), getId() };
+    }
+
+    @Override
+    public int compareTo(Initiator that) {
+        if (this == that) {
+            return 0;
+        }
+
+        if (this.equals(that)) {
+            return 0;
+        }
+
+        return this.getInitiatorPort().compareTo(that.getInitiatorPort());
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (!(object instanceof Initiator)) {
+            return false;
+        }
+
+        if (this == object) {
+            return true;
+        }
+
+        Initiator that = (Initiator) object;
+        if (this._id.equals(that._id)) {
+            return true;
+        }
+
+        String thisPort = this.getInitiatorPort();
+        String thatPort = that.getInitiatorPort();
+        return thisPort.equals(thatPort);
     }
 }

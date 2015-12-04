@@ -501,13 +501,14 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             continue;
                         }
 
-                        XtremIOInitiatorGroup igGroup = client.getInitiatorGroup(igName, xioClusterName);
-                        int numOfInitiatorsInIG = Integer.parseInt(igGroup.getNumberOfInitiators());
-                        int numOfInitiatorsRequested = groupInitiatorsByIG.get(igName).size();
-                        _log.info("Number of Initiators present: {}, Number of Initiators requested: {}",
-                                numOfInitiatorsInIG, numOfInitiatorsRequested);
-
-                        if (numOfInitiatorsRequested < numOfInitiatorsInIG) {
+                        // check if IG has other initiators than the ones in ExportMask.
+                        List<String> initiatorsInIG = getInitiatorsForIG(igName, xioClusterName, client);
+                        Collection<String> requestedInitiators = Collections2.transform(groupInitiatorsByIG.get(igName),
+                                CommonTransformerFunctions.fctnInitiatorToPortName());
+                        _log.info("Initiators present in IG: {}, Initiators requested to be removed: {}",
+                                initiatorsInIG, requestedInitiators);
+                        initiatorsInIG.removeAll(requestedInitiators);
+                        if (!initiatorsInIG.isEmpty()) {
                             removeInitiator = true;
                         } else {
                             @SuppressWarnings("unchecked")
@@ -519,7 +520,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             _log.info("LunMap Id {} Found associated with Volume {}", lunMapId,
                                     blockObj.getLabel());
                             lunMaps.add(lunMapId);
-
                         }
                     }
                     // deletion of lun Maps
@@ -549,7 +549,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     exportMask.removeFromUserCreatedVolumes(blockObj);
                     exportMask.removeVolume(blockObj.getId());
                 }
-
             }
             dbClient.updateAndReindexObject(exportMask);
 
@@ -866,6 +865,28 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             }
         }
 
+    }
+
+    /**
+     * Returns a list of initiators for the given IG name.
+     * 
+     * @param igName
+     * @param xio ClusterName
+     * @param xio client
+     * @return
+     */
+    private List<String> getInitiatorsForIG(String igName, String xioClusterName, XtremIOClient client)
+            throws Exception {
+        _log.info("Getting list of Initiators for IG {}", igName);
+        List<String> initiatorsInIG = new ArrayList<String>();
+        List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo(xioClusterName);
+        for (XtremIOInitiator initiator : initiators) {
+            String igNameInInitiator = initiator.getInitiatorGroup().get(1);
+            if (igName.equals(igNameInInitiator)) {
+                initiatorsInIG.add(initiator.getPortAddress());
+            }
+        }
+        return initiatorsInIG;
     }
 
     @Override

@@ -82,9 +82,13 @@ public class DbClientContext {
     private String trustStoreFile;
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
-
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+    private String keySpaceStrategy = KEYSPACE_NETWORK_TOPOLOGY_STRATEGY;
     
+    public void setKeySpaceStrategy(String keySpaceStrategy) {
+        this.keySpaceStrategy = keySpaceStrategy;
+    }
+
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
     }
@@ -273,7 +277,7 @@ public class DbClientContext {
      * while init() depends on dbclient which in turn depends on dbsvc.
      */
     private void initClusterContext() {
-        int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
+        int port = getThriftPort();
 
         ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(clusterName)
                 .setMaxConnsPerHost(1)
@@ -293,6 +297,11 @@ public class DbClientContext {
                 .buildCluster(ThriftFamilyFactory.getInstance());
         clusterContext.start();
         cluster = clusterContext.getClient();
+    }
+
+    protected int getThriftPort() {
+        int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
+        return port;
     }
 
     public SSLConnectionContext getSSLConnectionContext() {
@@ -330,7 +339,7 @@ public class DbClientContext {
     
             KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
             update.setName(getKeyspaceName());
-            update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
+            update.setStrategyClass(keySpaceStrategy);
             update.setStrategyOptions(strategyOptions);
 
             waitForSchemaAgreement(null);

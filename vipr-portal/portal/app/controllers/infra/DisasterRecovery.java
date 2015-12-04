@@ -27,6 +27,7 @@ import util.validation.HostNameOrIpAddress;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
+import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -51,6 +52,7 @@ public class DisasterRecovery extends ViprResourceController {
     protected static final String DELETED_SUCCESS = "disasterRecovery.delete.success";
     protected static final String DELETED_ERROR = "disasterRecovery.delete.error";
     protected static final String UNKNOWN = "disasterRecovery.unknown";
+    protected static final String UPDATE_SUCCESS = "disasterRecovery.update.success";
 
     private static void backToReferrer() {
         String referrer = Common.getReferrer();
@@ -158,11 +160,19 @@ public class DisasterRecovery extends ViprResourceController {
 
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void edit(String id) {
-        render();
+        SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
+        if (siteRest != null) {
+            DisasterRecoveryForm disasterRecovery = new DisasterRecoveryForm(siteRest);
+            edit(disasterRecovery);
+        }
+        else {
+            flash.error(MessagesUtils.get(UNKNOWN, id));
+            list();
+        }
     }
 
-    private static void edit(DisasterRecoveryForm site) {
-        render("@edit", site);
+    private static void edit(DisasterRecoveryForm disasterRecovery) {
+        render("@edit", disasterRecovery);
     }
 
     @FlashException(keep = true, referrer = { "create", "edit" })
@@ -173,17 +183,26 @@ public class DisasterRecovery extends ViprResourceController {
             if (Validation.hasErrors()) {
                 Common.handleError();
             }
+            if (disasterRecovery.isNew()) {
+                SiteAddParam standbySite = new SiteAddParam();
+                standbySite.setName(disasterRecovery.name);
+                standbySite.setVip(disasterRecovery.VirtualIP);
+                standbySite.setUsername(disasterRecovery.userName);
+                standbySite.setPassword(disasterRecovery.userPassword);
+                standbySite.setDescription(disasterRecovery.description);
 
-            SiteAddParam standbySite = new SiteAddParam();
-            standbySite.setName(disasterRecovery.name);
-            standbySite.setVip(disasterRecovery.VirtualIP);
-            standbySite.setUsername(disasterRecovery.userName);
-            standbySite.setPassword(disasterRecovery.userPassword);
-            standbySite.setDescription(disasterRecovery.description);
-
-            SiteRestRep result = DisasterRecoveryUtils.addStandby(standbySite);
-            flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
-            list();
+                SiteRestRep result = DisasterRecoveryUtils.addStandby(standbySite);
+                flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
+                list();
+            }
+            else {
+                SiteUpdateParam siteUpdateParam = new SiteUpdateParam();
+                siteUpdateParam.setName(disasterRecovery.name);
+                siteUpdateParam.setDescription(disasterRecovery.description);
+                DisasterRecoveryUtils.updateSite(disasterRecovery.id, siteUpdateParam);
+                flash.success(MessagesUtils.get(UPDATE_SUCCESS, disasterRecovery.name));
+                list();
+            }
         }
     }
 
@@ -282,25 +301,32 @@ public class DisasterRecovery extends ViprResourceController {
             this.description = siteaddParam.getDescription();
         }
 
+        public DisasterRecoveryForm(SiteRestRep siteeditParam) {
+            this.id = siteeditParam.getUuid();
+            this.name = siteeditParam.getName();
+            this.description = siteeditParam.getDescription();
+            this.VirtualIP = siteeditParam.getVip();
+        }
+
         public boolean isNew() {
             return StringUtils.isBlank(id);
         }
 
         public void validate(String fieldName) {
-            Validation.valid(fieldName, this);
-
             if (isNew()) {
+                Validation.valid(fieldName, this);
                 Validation.required(fieldName + ".name", this.name);
+                Validation.required(fieldName + ".description", this.description);
+                Validation.required(fieldName + ".VirtualIP", this.VirtualIP);
                 Validation.required(fieldName + ".userName", this.userName);
                 Validation.required(fieldName + ".userPassword", this.userPassword);
                 Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
-            }
 
-            if (!isMatchingPasswords(userPassword, confirmPassword)) {
-                Validation.addError(fieldName + ".confirmPassword",
-                        MessagesUtils.get("storageArray.confirmPassword.not.match"));
+                if (!isMatchingPasswords(userPassword, confirmPassword)) {
+                    Validation.addError(fieldName + ".confirmPassword",
+                            MessagesUtils.get("storageArray.confirmPassword.not.match"));
+                }
             }
-
         }
 
         private boolean isMatchingPasswords(String password, String confirm) {

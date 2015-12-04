@@ -11,7 +11,8 @@ import com.emc.storageos.model.dr.SiteRestRep;
 public class DisasterRecoveryDataTable extends DataTable {
 
     public DisasterRecoveryDataTable() {
-        addColumn("name");
+        addColumn("name").setRenderFunction("renderLink");
+        addColumn("description");
         addColumn("VirtualIP");
         addColumn("status").setRenderFunction("standbyStatusIcon");
         addColumn("id");

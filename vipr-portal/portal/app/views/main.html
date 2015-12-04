@@ -67,8 +67,8 @@
                 	#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
               	#{/if}
               	#{nav.item 'dbHealthDashboard', href: @SystemHealth.dbHealth()/}
-              	#{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}
               #{/if}
+            #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}  
             #{/deadbolt.restrict}
             #{deadbolt.restrict roles:[['SYSTEM_AUDITOR']]}
               #{nav.item 'auditLog', href: @infra.AuditLog.list()/}

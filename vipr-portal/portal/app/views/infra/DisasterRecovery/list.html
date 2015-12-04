@@ -73,7 +73,15 @@ angular.module('tags').directive({
 
 function renderButtonBar(o,val) {
     return "<actions></actions>";
-    
+}
+</script>
+
+<script type="text/javascript">
+function renderLink(o, val) {
+	var data = o.aData;
+    var url = #{jsAction @edit(':id')/};
+    var href = url(data);
+    return "<a href='"+href+"'>" + val + "</a>";
 }
 </script>
 
@@ -104,7 +112,7 @@ function standbyStatusIcon(o, val) {
         'STANDBY_SYNCING' : 'label-info',
         'STANDBY_SYNCED': 'label-success',
         'STANDBY_PAUSING': 'label-info',
-        'STANDBY_PAUSED': 'label-success',
+        'STANDBY_PAUSED': 'label-info',
         'STANDBY_TESTING' : 'label-info',
         'STANDBY_SWITCHING_OVER': 'label-danger',
         'STANDBY_FAILING_OVER': 'label-danger',
@@ -120,7 +128,7 @@ function standbyStatusIcon(o, val) {
         'STANDBY_SYNCING' : 'glyphicon glyphicon-refresh rotate',
         'STANDBY_SYNCED': 'glyphicon glyphicon-ok',
         'STANDBY_PAUSING': 'glyphicon glyphicon-refresh rotate',
-        'STANDBY_PAUSED': 'glyphicon glyphicon-ok',
+        'STANDBY_PAUSED': 'glyphicon glyphicon-pause',
         'STANDBY_TESTING' : 'glyphicon glyphicon-refresh rotate',
         'STANDBY_SWITCHING_OVER': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',

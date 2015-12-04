@@ -225,8 +225,8 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
                 this.listener.onStartToken(range.end, getProgress());
 
-                svcProxy.forceKeyspaceRepairRange(range.begin, range.end, this.keySpaceName,
-                        true, _isLocal);
+                svcProxy.forceRepairRangeAsync(range.begin, range.end, this.keySpaceName,
+                        true, _isLocal, true);
 
                 if (!_success) {
                     _log.error("Fail to repair range {} {}. Stopping the job",

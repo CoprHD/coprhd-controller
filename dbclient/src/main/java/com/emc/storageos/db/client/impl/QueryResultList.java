@@ -146,8 +146,7 @@ public abstract class QueryResultList<T extends DataObject> implements List<T> {
         if (!this.initialized.get()) {
             this.iterateAll();
         }
-        List<T> objects = queryObjects(Arrays.asList(this.ids.get(index)));
-        return objects.isEmpty()? null : objects.get(0);
+        return queryObject(this.ids.get(index));
     }
 
     @Override
@@ -167,8 +166,8 @@ public abstract class QueryResultList<T extends DataObject> implements List<T> {
     @Override
     public synchronized T remove(int index) {
         checkRange(index);
-         URI id = this.ids.remove(index);
-         return queryObject(id);
+        URI id = this.ids.remove(index);
+        return queryObject(id);
     }
 
     @Override
@@ -221,7 +220,6 @@ public abstract class QueryResultList<T extends DataObject> implements List<T> {
         
     }
     
-    protected abstract List<T> queryObjects(List<URI> ids);
     protected abstract Iterator<T> queryIterativeObjects();
     protected abstract T queryObject(URI id);
 

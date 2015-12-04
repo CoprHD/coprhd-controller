@@ -27,12 +27,6 @@ public class QueryObjectFieldResultList <T extends DataObject>  extends QueryRes
     }
 
     @Override
-    protected List<T> queryObjects(List<URI> ids) {
-        Collection<T> objects = this.dbClient.queryObjectFields(clazz, fieldNames, ids);
-        return new ArrayList<T>(objects);
-    }
-
-    @Override
     protected Iterator<T> queryIterativeObjects() {
         return this.dbClient.queryIterativeObjectFields(this.clazz, this.fieldNames, this.ids);
     }

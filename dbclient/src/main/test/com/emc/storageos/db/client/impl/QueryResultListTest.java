@@ -37,6 +37,7 @@ public class QueryResultListTest {
         this.createDataObject(Volume.class, expectCount);
         List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
         Assert.assertEquals(this.ids.size(), volumes.size());
+        this.cleanAll();
     }
     
     @Test
@@ -48,6 +49,7 @@ public class QueryResultListTest {
         this.dbClient.removeObject(volume);
         List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
         Assert.assertNotEquals(this.ids.size(), volumes.size());
+        this.cleanAll();
     }
     
     @Test
@@ -56,6 +58,7 @@ public class QueryResultListTest {
         this.createDataObject(Volume.class, expectCount);
         List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
         Assert.assertFalse(volumes.isEmpty());
+        this.cleanAll();
     }
     
     @Test
@@ -65,6 +68,7 @@ public class QueryResultListTest {
         this.removeObject(Volume.class, this.ids);
         List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
         Assert.assertTrue(volumes.isEmpty());
+        this.cleanAll();
     }
     
     @Test
@@ -73,6 +77,7 @@ public class QueryResultListTest {
         this.createDataObject(Volume.class, expectCount);
         List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
         Assert.assertTrue(volumes.contains(this.constructDataObject(Volume.class, this.ids.get(0))));
+        this.cleanAll();
     }
     
     @Test
@@ -81,6 +86,7 @@ public class QueryResultListTest {
         this.createDataObject(Volume.class, expectCount);
         List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
         Assert.assertFalse(volumes.contains(this.constructDataObject(Volume.class, null)));
+        this.cleanAll();
     }
     
     @Test
@@ -91,6 +97,7 @@ public class QueryResultListTest {
         Object[] array =  volumes.toArray();
         Assert.assertNotNull(array);
         Assert.assertEquals(this.ids.size(), array.length);
+        this.cleanAll();
     }
     
     @Test
@@ -102,10 +109,125 @@ public class QueryResultListTest {
         volumes.add(object);
         this.ids.add(object.getId());
         Assert.assertTrue(this.ids.size()!=volumes.size());
+        this.cleanAll();
     }
     
-    
+    @Test
+    public void shouldRemoveNotTouchDb() {
+        int expectCount = randInt(5, 10);
+        this.createDataObject(Volume.class, expectCount);
+        List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
+        Assert.assertTrue(this.ids.size()==volumes.size());
+        Volume removedVolume = volumes.remove(0);
+        Assert.assertNotNull(removedVolume);
+        Assert.assertTrue(this.ids.size()!=volumes.size());
+        this.cleanAll();
+    }
 
+    @Test
+    public void shouldIndexOfWork() {
+        int expectCount = randInt(5, 10);
+        this.createDataObject(Volume.class, expectCount);
+        List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
+        int index = volumes.indexOf(this.constructDataObject(Volume.class, this.ids.get(0)));
+        Assert.assertTrue(index != -1);
+        this.cleanAll();
+    }
+    
+    @Test
+    public void shouldContainsAllIfExist() {
+        int expectCount = randInt(5, 10);
+        this.createDataObject(Volume.class, expectCount);
+        List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
+        List<DataObject> subObjects = new ArrayList<DataObject>();
+        
+        for (int i=0; i<5; i++) {
+            DataObject o = this.constructDataObject(Volume.class, this.ids.get(i));
+            subObjects.add(o);
+        }
+        Assert.assertTrue(volumes.containsAll(subObjects));
+        this.cleanAll();
+    }
+    
+    @Test
+    public void shouldAddAll() {
+        int expectCount = randInt(5, 10);
+        this.createDataObject(Volume.class, expectCount);
+        List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
+        List<Volume> subObjects = new ArrayList<Volume>();
+        
+        for (int i=0; i<5; i++) {
+            Volume o = (Volume) this.constructDataObject(Volume.class);
+            subObjects.add(o);
+        }
+        volumes.addAll(subObjects);
+        Assert.assertEquals(this.ids.size()+subObjects.size(), volumes.size());
+        this.cleanAll();
+    }
+    
+    @Test
+    public void shouldRemoveAll() {
+        int expectCount = randInt(5, 10);
+        this.createDataObject(Volume.class, expectCount);
+        List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
+        List<Volume> subObjects = new ArrayList<Volume>();
+        
+        for (int i=0; i<5; i++) {
+            Volume o = (Volume) this.constructDataObject(Volume.class);
+            subObjects.add(o);
+        }
+        volumes.removeAll(subObjects);
+        Assert.assertEquals(this.ids.size()-subObjects.size(), volumes.size());
+        this.cleanAll();
+    }
+    
+    @Test
+    public void shouldRetainAll() {
+        int expectCount = randInt(5, 10);
+        this.createDataObject(Volume.class, expectCount);
+        List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
+        List<Volume> subObjects = new ArrayList<Volume>();
+        
+        for (int i=0; i<5; i++) {
+            Volume o = (Volume) this.constructDataObject(Volume.class);
+            subObjects.add(o);
+        }
+        volumes.retainAll(subObjects);
+        Assert.assertEquals(subObjects.size(), volumes.size());
+    }
+    
+    @Test
+    public void shouldClearAllElements() {
+        int expectCount = randInt(5, 10);
+        this.createDataObject(Volume.class, expectCount);
+        List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
+        Assert.assertTrue(volumes.size() > 0);
+        volumes.clear();
+        Assert.assertTrue(volumes.isEmpty());
+    }
+    
+    @Test
+    public void shouldSetNotTouchDb() {
+        int expectCount = randInt(5, 10);
+        this.createDataObject(Volume.class, expectCount);
+        List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
+        Assert.assertTrue(volumes.size() > 0);
+        Volume volumeToSet = (Volume) this.constructDataObject(Volume.class);
+        volumes.set(0, volumeToSet);
+        Assert.assertNull(volumes.get(0));
+    }
+    
+    @Test
+    public void shouldGetElementAfterSetAndExist() {
+        int expectCount = randInt(5, 10);
+        this.createDataObject(Volume.class, expectCount);
+        List<Volume> volumes = this.dbClient.queryObject(Volume.class, this.ids);
+        Volume volumeToSet = (Volume) this.constructDataObject(Volume.class);
+        volumes.set(0, volumeToSet);
+        this.dbClient.createObject(new DataObject[] {volumeToSet});
+        Assert.assertEquals(volumeToSet.getId().toString(), volumes.get(0).getId().toString());
+    }
+    
     @Test
     public void shouldGetIfNoModification() {
         int expectCount = randInt(5, 10);

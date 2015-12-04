@@ -21,11 +21,6 @@ public class QueryObjectResultList <T extends DataObject> extends QueryResultLis
     }
 
     @Override
-    protected List<T> queryObjects(List<URI> ids) {
-        return this.dbClient.internalQueryObject(clazz, ids, activeOnly);
-    }
-
-    @Override
     protected Iterator<T> queryIterativeObjects() {
         return this.dbClient.queryIterativeObjects(this.clazz, this.ids, this.activeOnly);
     }

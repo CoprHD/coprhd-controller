@@ -142,7 +142,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             try {
                 _logger.info("Ingesting backend structure of VPLEX virtual volume {}", unManagedVolume.getLabel());
 
-                // TODO reduce params
                 validateContext(requestContext.getVpool(), requestContext.getTenant(), volumeContext);
 
                 ingestBackendVolumes(volumeContext);
@@ -151,7 +150,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             } catch (Exception ex) {
                 _logger.error("error during VPLEX backend ingestion: ", ex);
-                preventBackendUnmanagedVolumeDeletionOnError(requestContext.getUnManagedVolumesToBeDeleted(), volumeContext);
+                volumeContext.rollbackBackend();
                 throw IngestionException.exceptions.failedToIngestVplexBackend(ex.getLocalizedMessage());
             }
         }
@@ -161,7 +160,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             T virtualVolume = super.ingestBlockObjects(requestContext, clazz);
 
             if (ingestBackend && (null != volumeContext) && (null != virtualVolume)) {
-                volumeContext.commit();
+                volumeContext.commitBackend();
                 // TODO combine this all into commit
                 setFlags(volumeContext);
                 createVplexMirrorObjects(volumeContext, (Volume) virtualVolume);
@@ -171,27 +170,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             return virtualVolume;
         } catch (Exception ex) {
             _logger.error("error during VPLEX backend ingestion wrap up: ", ex);
-            preventBackendUnmanagedVolumeDeletionOnError(requestContext.getUnManagedVolumesToBeDeleted(), volumeContext);
+            volumeContext.rollbackBackend();
             throw ex;
-        }
-    }
-
-    /**
-     * Remove unmanaged backend volumes from ones to be deleted in case
-     * they were marked for deletion during ingestion.
-     * 
-     * @param unManagedVolumesToBeDeleted the running list of unmanaged volume to be deleted
-     * @param context the VplexBackendIngestionContext
-     */
-    private void preventBackendUnmanagedVolumeDeletionOnError(
-            List<UnManagedVolume> unManagedVolumesToBeDeleted,
-            VplexBackendIngestionContext context) {
-        
-        // TODO make this part of rollback?
-        
-        if (null != context && null != context.getUnmanagedBackendVolumes()) {
-            boolean removed = unManagedVolumesToBeDeleted.removeAll(context.getUnmanagedBackendVolumes());
-            _logger.info("were backend unmanaged volumes prevented from deletion? " + removed);
         }
     }
 
@@ -586,7 +566,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         initUris.add(URI.create(initUri));
                     }
                     List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initUris);
-
                     backendRequestContext.setDeviceInitiators(initiators);
 
                     // find or create the backend export group

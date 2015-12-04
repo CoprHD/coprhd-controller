@@ -36,13 +36,20 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     private Map<String, VolumeIngestionContext> processedUnManagedVolumeMap;
     private Map<String, BlockObject> createdObjectMap;
     private Map<String, List<DataObject>> updatedObjectMap;
-    private List<BlockObject> ingestedObjects;
     private List<UnManagedVolume> unManagedVolumesToBeDeleted;
 
     private List<String> errorMessages;
     
     private IngestionRequestContext parentRequestContext;
 
+    // export ingestion related items
+    private boolean exportGroupCreated = false;
+    private ExportGroup exportGroup;
+    private URI host;
+    private URI cluster;
+    private List<Initiator> deviceInitiators;
+    private List<BlockObject> ingestedObjects;
+    
     public VplexVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient, IngestionRequestContext parentRequestContext) {
         super(unManagedVolume, dbClient);
         
@@ -76,12 +83,16 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public void commit() {
+    }
+    
+    public void commitBackend() {
         _dbClient.createObject(getIngestedObjects());
         _dbClient.createObject(getCreatedObjectMap().values());
         _dbClient.createObject(getCreatedSnapshotMap().values());
         for (List<DataObject> dos : getUpdatedObjectMap().values()) {
-            _dbClient.persistObject(dos);
+            _dbClient.updateObject(dos);
         }
+        _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
     }
 
     /*
@@ -91,12 +102,16 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public void rollback() {
+    }
+
+    public void rollbackBackend() {
         getIngestedObjects().clear();
         getCreatedObjectMap().clear();
         getCreatedSnapshotMap().clear();
         getUpdatedObjectMap().clear();
+        getUnManagedVolumesToBeDeleted().clear();
     }
-
+    
     /*
      * (non-Javadoc)
      * 
@@ -488,8 +503,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public boolean isExportGroupCreated() {
-        // TODO Auto-generated method stub
-        return false;
+        return exportGroupCreated;
     }
 
     /*
@@ -500,8 +514,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public void setExportGroupCreated(boolean exportGroupCreated) {
-        // TODO Auto-generated method stub
-
+        this.exportGroupCreated = exportGroupCreated;
     }
 
     /*
@@ -511,8 +524,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public ExportGroup getExportGroup() {
-        // TODO Auto-generated method stub
-        return null;
+        return exportGroup;
     }
 
     /*
@@ -524,8 +536,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public void setExportGroup(ExportGroup exportGroup) {
-        // TODO Auto-generated method stub
-
+        this.exportGroup = exportGroup;
     }
 
     /*
@@ -568,8 +579,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         // no-op; vplex ingestion only uses device initiators for export
     }
 
-    private List<Initiator> deviceInitiators;
-    
     /*
      * (non-Javadoc)
      * 

@@ -209,7 +209,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         
         Volume volume = (Volume)blockObject;
         // Perform RP-specific volume ingestion
-        // TODO reduce these params down to just context, also following methods
         volume = performRPVolumeIngestion(volumeContext, unManagedVolume, volume);
         
         // Decorate volume with RP Properties.

@@ -55,6 +55,7 @@ import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 @Path("/backupset/")
 public class BackupService {
     private static final Logger log = LoggerFactory.getLogger(BackupService.class);
+    private static final int ASYNC_STATUS = 202;
     private BackupOps backupOps;
     private BackupScheduler backupScheduler;
     private JobProducer jobProducer;
@@ -94,12 +95,11 @@ public class BackupService {
     }
 
     /**
-     * List the info of backupsets that have zk backup file and
-     * quorum db and geodb backup files
+     * Get a list of info for valid backupsets on ViPR cluster
      * 
-     * @brief List current backup info
+     * @brief List current backupsets info
      * @prereq none
-     * @return A list of backup info
+     * @return A list of backupset info
      */
     @GET
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -132,12 +132,12 @@ public class BackupService {
     }
 
     /**
-     * List the info of backupsets that have zk backup file and
-     * quorum db and geodb backup files
+     * Get info for a specific backupset on ViPR cluster
      *
-     * @brief List current backup info
+     * @brief Get a specific backupset info
+     * @param backupTag The name of backup
      * @prereq none
-     * @return A list of backup info
+     * @return Info of a specific backup
      */
     @GET
     @Path("backup/")
@@ -176,11 +176,7 @@ public class BackupService {
      * 
      * @param backupTag The name of backup. This parameter is optional,
      *            default is timestamp(for example 20140531193000).
-     * @param forceCreate If true, will ignore the errors during the operation
-     *            and force create backup, and return success if zk backup file
-     *            and quorum db and geodb backup files create succeed,
-     *            or else return failures and roolback. A probable use senario
-     *            of this paramter is single node crash.
+     * @param forceCreate If true, force backup creation even when minority nodes are unavailable
      * @prereq none
      * @return server response indicating if the operation succeeds.
      */
@@ -224,6 +220,14 @@ public class BackupService {
         return Response.ok().build();
     }
 
+    /**
+     * Upload the specific backup files from each controller node of cluster to external server
+     *
+     * @brief Upload a backup
+     * @param backupTag The name of backup
+     * @prereq This backup sets should have been created
+     * @return server response indicating if the operation accepted.
+     */
     @POST
     @Path("backup/upload/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -235,9 +239,17 @@ public class BackupService {
         job.setStatus(Status.NOT_STARTED);
         jobProducer.enqueue(job);
 
-        return Response.ok().build();
+        return Response.status(ASYNC_STATUS).build();
     }
 
+    /**
+     * Get the upload status for a specific backup
+     *
+     * @brief Get upload status
+     * @param backupTag The name of backup
+     * @prereq none
+     * @return Upload status of the backup
+     */
     @GET
     @Path("backup/upload/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })

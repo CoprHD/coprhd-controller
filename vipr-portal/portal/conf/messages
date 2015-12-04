@@ -859,8 +859,9 @@ backup.create.description=Enter the information needed to create backup
 BackupForm.title=Add Backup
 backupForm.name=Backup Name
 backupForm.force=Force Creation
-backupForm.force.help=When checked it ignores the error during operation and force creation of backup
+backupForm.force.help=When checked, it forces backup creation even when minortity nodes are unavailable
 backup.save.success=Saved '%s'
+backup.name.invalid=Backup name cannot have character "
 backup.deleteConfirm=Are you sure you want to delete these Backup(s)?
 backups.deleted=Backup(s) deleted successfully.
 backup.upload.title=Backup Upload
@@ -3164,6 +3165,7 @@ resources.filesystem.acl.fullcontrol=FullControl
 resources.filesystem.nfsacl.read=Read
 resources.filesystem.nfsacl.write=Write
 resources.filesystem.nfsacl.execute=Execute
+resources.filesystem.nfsacl.fullControl=FullControl
 resources.filesystem.nfsacl.allow=Allow
 resources.filesystem.nfsacl.deny=Deny
 resources.filesystem.share.add.subdir=Add Share
@@ -3171,6 +3173,7 @@ resources.filesystem.share.acl.deleted=Task initiated to delete selected ACEs.
 resources.filesystem.share.acl.deleteConfirm=Are you sure you want delete these access control setting(s)?
 resources.filesystem.share.acl.added=Task created to add Access Control Entry, You may need to refresh this view to see new  changes.
 resources.filesystem.share.acl.invalid.settings=Please Enter valid access control setting(s)
+resources.filesystem.share.acl.invalid.name=Name cannot be empty or cannot contain a backslash ('/') character.
 resources.filesystem.share.acl.add=Add Access Control Entry
 resources.filesystem.share.mountpoint=Mount Point
 resources.filesystem.share.description=Description
@@ -4002,7 +4005,9 @@ nfsAccessControlList.permissions=Permissions
 nfsAccessControlList.name=Name
 nfsAccessControlList.type=Type
 nfsAccessControlList.domain=Domain
+nfsAccessControlList.permissionType=Permissions Type
 nfs.subdirectory=Sub Directory
+
 
 
 subdir.share.name=Share Name

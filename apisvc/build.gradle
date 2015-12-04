@@ -47,6 +47,7 @@ test {
     exclude "com/emc/storageos/api/service/ApiTestTenants.class"
     exclude "com/emc/storageos/api/service/ApiTestUserGroup.class"
     exclude "com/emc/storageos/api/service/ApiTestVcenter.class"
+    exclude "com/emc/storageos/api/service/utils/ApisvcTest.class"
 }
 
 // ./gradlew :apisvc:TrustStoreTest -PAPP_HOST_NAMES="lglw0061,lglw0062,lglw0061"

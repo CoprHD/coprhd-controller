@@ -942,7 +942,8 @@ public class ExportMaskUtils {
         List<URI> targetURIs = StringSetUtil.stringSetToUriList(exportMask.getStoragePorts());
         List<StoragePort> ports = dbClient.queryObject(StoragePort.class, targetURIs);
         for (StoragePort port : ports) {
-            if (!port.getTaggedVirtualArrays().contains(varrayURI.toString())) {
+            if (port.getTaggedVirtualArrays() == null 
+                    || !port.getTaggedVirtualArrays().contains(varrayURI.toString())) {
                 return false;
             }
         }

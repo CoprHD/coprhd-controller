@@ -24,7 +24,11 @@ import java.util.List;
 @ContextConfiguration(locations = { "/scaleio-driver-prov.xml" })
 public class ScaleIOStorageDriverTest {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriverTest.class);
-    private final String SYS_NATIVE_ID = "5a01234257c7cc9c";
+    String SYS_NATIVE_ID = "6ee6d94e5a3517b8";
+    String IP_ADDRESS = "10.193.17.97";
+    int PORT_NUMBER = 443;
+    String USER_NAME = "admin";
+    String PASSWORD = "Scaleio123";
     private ScaleIOStorageDriver driver;
     @Autowired
     private ScaleIORestHandleFactory handleFactory;
@@ -33,20 +37,7 @@ public class ScaleIOStorageDriverTest {
     @Before
     public void setUp() throws Exception {
         Registry registry = new InMemoryRegistryImpl();
-        List<String> list = new ArrayList<>();
-        list.add("10.193.17.97");
-        registry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME, SYS_NATIVE_ID, ScaleIOConstants.IP_ADDRESS, list);
-        list = new ArrayList<>();
-        list.add("443");
-        registry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME, SYS_NATIVE_ID, ScaleIOConstants.PORT_NUMBER, list);
-        list = new ArrayList<>();
-        list.add("admin");
-        registry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME, SYS_NATIVE_ID, ScaleIOConstants.USER_NAME, list);
-        list = new ArrayList<>();
-        list.add("Scaleio123");
-        registry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME, SYS_NATIVE_ID, ScaleIOConstants.PASSWORD, list);
         driver = new ScaleIOStorageDriver();
-
         driver.setHandleFactory(handleFactory);
         driver.setDriverRegistry(registry);
     }
@@ -180,4 +171,12 @@ public class ScaleIOStorageDriverTest {
 
     }
 
+    @Test
+    public void testGetConnInfoFromRegistry() throws Exception {
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID, IP_ADDRESS, PORT_NUMBER, USER_NAME, PASSWORD);
+        Assert.assertEquals(IP_ADDRESS, driver.getConnInfoFromRegistry(SYS_NATIVE_ID, ScaleIOConstants.IP_ADDRESS));
+        Assert.assertEquals(Integer.toString(PORT_NUMBER), driver.getConnInfoFromRegistry(SYS_NATIVE_ID, ScaleIOConstants.PORT_NUMBER));
+        Assert.assertEquals(USER_NAME, driver.getConnInfoFromRegistry(SYS_NATIVE_ID, ScaleIOConstants.USER_NAME));
+        Assert.assertEquals(PASSWORD, driver.getConnInfoFromRegistry(SYS_NATIVE_ID, ScaleIOConstants.PASSWORD));
+    }
 }

@@ -10,7 +10,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
@@ -51,9 +51,9 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
  * generally rollback would only happen on an individual volume if
  * something about that volume's ingestion failed).
  */
-public class IngestionRequestContextImpl implements IIngestionRequestContext {
+public class BasicIngestionRequestContext implements IngestionRequestContext {
 
-    private static Logger _logger = LoggerFactory.getLogger(IngestionRequestContextImpl.class);
+    private static Logger _logger = LoggerFactory.getLogger(BasicIngestionRequestContext.class);
     private DbClient _dbClient;
 
     private Iterator<URI> unManagedVolumeUrisToProcessIterator;
@@ -86,7 +86,7 @@ public class IngestionRequestContextImpl implements IIngestionRequestContext {
     private List<Initiator> deviceInitiators;
     List<BlockObject> ingestedObjects;
 
-    public IngestionRequestContextImpl(DbClient dbClient, List<URI> unManagedVolumeUrisToProcess, VirtualPool vpool, 
+    public BasicIngestionRequestContext(DbClient dbClient, List<URI> unManagedVolumeUrisToProcess, VirtualPool vpool, 
             VirtualArray virtualArray, Project project, TenantOrg tenant, String vplexIngestionMethod) {
         this._dbClient = dbClient;
         this.unManagedVolumeUrisToProcessIterator = unManagedVolumeUrisToProcess.iterator();

@@ -19,8 +19,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.TenantsService;
 import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.IngestionRequestContextImpl;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BasicIngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
@@ -87,7 +87,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(IIngestionRequestContext requestContext, Class<T> clazz)
+    public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
             throws IngestionException {
 
         refreshCaches(requestContext.getStorageSystem());
@@ -137,7 +137,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             volumeContext.setBackendProject(vplexProject);
             volumeContext.setFrontendProject(requestContext.getProject());
 
-            IngestionRequestContextImpl backendRequestContext = null;
+            BasicIngestionRequestContext backendRequestContext = null;
 
             try {
                 _logger.info("Ingesting backend structure of VPLEX virtual volume {}", unManagedVolume.getLabel());
@@ -149,7 +149,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     associatedVolumeUris.add(umv.getId());
                 }
 
-                backendRequestContext = new IngestionRequestContextImpl(
+                backendRequestContext = new BasicIngestionRequestContext(
                         _dbClient, associatedVolumeUris, requestContext.getVpool(),
                         requestContext.getVarray(), volumeContext.getBackendProject(), 
                         requestContext.getTenant(), requestContext.getVplexIngestionMethod());
@@ -416,7 +416,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private void ingestBackendVolumes(IngestionRequestContextImpl backendRequestContext, 
+    private void ingestBackendVolumes(BasicIngestionRequestContext backendRequestContext, 
             VplexBackendIngestionContext volumeContext) throws IngestionException {
 
         // determine the high availability varray and vpool
@@ -564,7 +564,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private void ingestBackendExportMasks(IIngestionRequestContext backendRequestContext,
+    private void ingestBackendExportMasks(IngestionRequestContext backendRequestContext,
             VplexBackendIngestionContext context) throws IngestionException {
 
         VirtualArray virtualArray = backendRequestContext.getVarray();

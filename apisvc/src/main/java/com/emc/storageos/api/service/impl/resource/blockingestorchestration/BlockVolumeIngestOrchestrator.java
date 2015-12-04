@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.IngestStrategyEnum;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.ReplicationStrategy;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.VolumeType;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -43,7 +43,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
     }
 
     @Override
-    protected <T extends BlockObject> T ingestBlockObjects(IIngestionRequestContext requestContext, Class<T> clazz)
+    protected <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
             throws IngestionException {
 
         UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();

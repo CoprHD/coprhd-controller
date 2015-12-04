@@ -21,7 +21,6 @@ import com.emc.storageos.api.service.impl.resource.TenantsService;
 import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BasicIngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
@@ -34,7 +33,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -48,14 +46,11 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
@@ -161,10 +156,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             if (ingestBackend && (null != volumeContext) && (null != virtualVolume)) {
                 volumeContext.commitBackend();
-                // TODO combine this all into commit
-                setFlags(volumeContext);
-                createVplexMirrorObjects(volumeContext, (Volume) virtualVolume);
-                _logger.info(volumeContext.toStringDebug());
             }
 
             return virtualVolume;
@@ -603,123 +594,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             } catch (Exception ex) {
                 _logger.error(ex.getLocalizedMessage());
                 throw ex;
-            }
-        }
-    }
-
-    /**
-     * Updates any internal flags on the ingested backend resources.
-     * 
-     * @param context the VplexBackendIngestionContext
-     */
-    private void setFlags(VplexVolumeIngestionContext context) {
-        // set internal object flag on any backend volumes
-        for (BlockObject o : context.getCreatedObjectMap().values()) {
-            if (context.getBackendVolumeGuids().contains(o.getNativeGuid())) {
-                _logger.info("setting INTERNAL_OBJECT flag on " + o.getLabel());
-                o.addInternalFlags(Flag.INTERNAL_OBJECT);
-                _dbClient.updateAndReindexObject(o);
-            }
-        }
-
-        // Look to see if the backend ingestion resulted in the creation of a
-        // BlockSnapshot instance, which would occur if the backend volume is
-        // also a snapshot target volume. It is possible that the snapshot is
-        // still marked internal if the VPLEX volume built on the snapshot
-        // is ingested after the VPLEX volume whose backend volume is the
-        // snapshot source volume. If the snapshot source is set, then snapshot
-        // and source are fully ingested and we need to make sure the snapshot
-        // is public.
-        for (BlockSnapshot snapshot : context.getCreatedSnapshotMap().values()) {
-            if (!NullColumnValueGetter.isNullValue(snapshot.getSourceNativeId())) {
-                snapshot.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
-                _dbClient.updateObject(snapshot);
-            }
-        }
-    }
-
-    /**
-     * Create a VplexMirror database object if a VPLEX native mirror is present.
-     * This should be called after the parent virtual volume has already been ingested.
-     * 
-     * @param context the VplexBackendIngestionContext
-     * @param virtualVolume the ingested virtual volume's Volume object.
-     */
-    private void createVplexMirrorObjects(VplexVolumeIngestionContext context, Volume virtualVolume) {
-        if (!context.getUnmanagedVplexMirrors().isEmpty()) {
-            _logger.info("creating VplexMirror object for virtual volume " + virtualVolume.getLabel());
-            for (Entry<UnManagedVolume, String> entry : context.getUnmanagedVplexMirrors().entrySet()) {
-                // find mirror and create a VplexMirror object
-                BlockObject mirror = context.getCreatedObjectMap().get(entry.getKey().getNativeGuid()
-                        .replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
-                                VolumeIngestionUtil.VOLUME));
-                if (null != mirror) {
-                    _logger.info("processing mirror " + mirror.getLabel());
-                    if (mirror instanceof Volume) {
-                        Volume mirrorVolume = (Volume) mirror;
-
-                        // create VplexMirror set all the basic properties
-                        VplexMirror vplexMirror = new VplexMirror();
-                        vplexMirror.setId(URIUtil.createId(VplexMirror.class));
-                        vplexMirror.setCapacity(mirrorVolume.getCapacity());
-                        vplexMirror.setLabel(mirrorVolume.getLabel());
-                        vplexMirror.setNativeId(entry.getValue());
-                        vplexMirror.setAllocatedCapacity(mirrorVolume.getAllocatedCapacity());
-                        vplexMirror.setProvisionedCapacity(mirrorVolume.getProvisionedCapacity());
-                        vplexMirror.setSource(new NamedURI(virtualVolume.getId(), virtualVolume.getLabel()));
-                        vplexMirror.setStorageController(virtualVolume.getStorageController());
-                        vplexMirror.setTenant(mirrorVolume.getTenant());
-                        vplexMirror.setThinPreAllocationSize(mirrorVolume.getThinVolumePreAllocationSize());
-                        vplexMirror.setThinlyProvisioned(mirrorVolume.getThinlyProvisioned());
-                        vplexMirror.setVirtualArray(mirrorVolume.getVirtualArray());
-                        vplexMirror.setVirtualPool(mirrorVolume.getVirtualPool());
-
-                        // set the associated volume for this VplexMirror
-                        StringSet associatedVolumes = new StringSet();
-                        associatedVolumes.add(mirrorVolume.getId().toString());
-                        vplexMirror.setAssociatedVolumes(associatedVolumes);
-
-                        // VplexMirror will have the same project
-                        // as the virtual volume (i.e., the front-end project)
-                        // but the mirror backend will have the backend project
-                        vplexMirror.setProject(new NamedURI(
-                                context.getFrontendProject().getId(), mirrorVolume.getLabel()));
-                        mirrorVolume.setProject(new NamedURI(
-                                context.getBackendProject().getId(), mirrorVolume.getLabel()));
-
-                        // update flags on mirror volume
-                        List<DataObject> updatedObjects =
-                                context.getUpdatedObjectMap().get(mirrorVolume.getNativeGuid());
-                        if (updatedObjects == null) {
-                            updatedObjects = new ArrayList<DataObject>();
-                            context.getUpdatedObjectMap().put(mirrorVolume.getNativeGuid(), updatedObjects);
-                        }
-                        VolumeIngestionUtil.clearInternalFlags(mirrorVolume, updatedObjects, _dbClient);
-                        // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
-                        mirrorVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
-
-                        // deviceLabel will be the very last part of the native guid
-                        String[] devicePathParts = entry.getValue().split("/");
-                        String deviceName = devicePathParts[devicePathParts.length - 1];
-                        vplexMirror.setDeviceLabel(deviceName);
-
-                        // save the new VplexMirror & persist backend & updated objects
-                        _dbClient.createObject(vplexMirror);
-                        _dbClient.updateAndReindexObject(mirrorVolume);
-                        for (DataObject updatedObject : updatedObjects) {
-                            _dbClient.persistObject(updatedObject);
-                        }
-
-                        // set mirrors property on the parent virtual volume
-                        StringSet mirrors = virtualVolume.getMirrors();
-                        if (mirrors == null) {
-                            mirrors = new StringSet();
-                        }
-                        mirrors.add(vplexMirror.getId().toString());
-                        virtualVolume.setMirrors(mirrors);
-                        _dbClient.updateAndReindexObject(virtualVolume);
-                    }
-                }
             }
         }
     }

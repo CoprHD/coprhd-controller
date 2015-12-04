@@ -477,6 +477,15 @@ public interface BlockServiceApi {
      */
     public void verifyAddVolumeToCG(Volume volume, BlockConsistencyGroup cg,
             List<Volume> cgVolumes, StorageSystem cgStorageSystem);
+
+    /**
+     * Verifies replica count of the volumes to be added to CG.
+     *
+     * @param volumes List of volumes
+     * @param cgVolumes List of active volumes in the CG
+     * @param volsAlreadyInCG Volumes to be added are the same with those already in CG
+     */
+    public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG);
     
     /**
      * Validate and add/remove volumes to the application

@@ -49,13 +49,13 @@ public class CreatePoolSettingProcessor extends Processor {
                         .get(Constants.VNXPOOLCAPABILITIES_TIER);
                 String poolSettingToTierMethodology = poolSettingsList.get(index);
                 tierMethodologyToBeUsedForThisCreatedSetting = poolSettingToTierMethodology.substring(
-                        poolSettingToTierMethodology.lastIndexOf(Constants.HYPEN) + 1, poolSettingToTierMethodology.length());
+                        poolSettingToTierMethodology.lastIndexOf(Constants.HYPHEN) + 1, poolSettingToTierMethodology.length());
 
                 String poolCapabilitiesPathAssociatedWiththisSetting = poolSettingToTierMethodology.substring(0,
-                        poolSettingToTierMethodology.lastIndexOf(Constants.HYPEN));
+                        poolSettingToTierMethodology.lastIndexOf(Constants.HYPHEN));
 
                 keyMap.put(path.toString(), poolCapabilitiesPathAssociatedWiththisSetting);
-                keyMap.put(path.toString() + Constants.HYPEN + Constants.TIERMETHODOLOGY,
+                keyMap.put(path.toString() + Constants.HYPHEN + Constants.TIERMETHODOLOGY,
                         tierMethodologyToBeUsedForThisCreatedSetting);
                 addPath(keyMap, operation.getResult(), path);
             }

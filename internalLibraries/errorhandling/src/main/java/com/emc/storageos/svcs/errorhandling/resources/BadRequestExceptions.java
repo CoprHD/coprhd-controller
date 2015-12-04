@@ -2062,6 +2062,9 @@ public interface BadRequestExceptions {
     public BadRequestException notAllowedWhenCGHasSnapshots();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException notAllowedWhenCGHasMirrors();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllowedInvalidBackendSystem();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2077,6 +2080,14 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(
+            final String volumeName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumesWithReplicaCannotBeAdded(
+            final String volumeName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeWithDifferentNumberOfReplicasCannotBeAdded(
             final String volumeName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

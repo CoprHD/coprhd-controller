@@ -27,7 +27,7 @@ public class NfsShareRequestsTest {
     @Test
     public void findNfsShareTest() {
         NfsShareRequests req = new NfsShareRequests(_client);
-        VNXeNfsShare share = req.findNfsShare("fs_30", "ProviderTenant_fskh33_d7909c79-3bfe-4845-bc84-6c9775f1e44d-share" + host);
+        VNXeNfsShare share = req.findNfsShare("fs_30", "ProviderTenant_fskh33_d7909c79-3bfe-4845-bc84-6c9775f1e44d-share" + host, "3.1.0");
         req.get();
         System.out.println(share.getId());
 

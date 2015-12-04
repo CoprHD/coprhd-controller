@@ -27,6 +27,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.eclipse.jetty.util.log.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.db.client.URIUtil;
@@ -84,6 +88,8 @@ public class ApplicationService extends TaskResourceService {
             DiscoveredDataObject.Type.scaleio.name(),
             DiscoveredDataObject.Type.ibmxiv.name()));
     private static final String BLOCK = "block";
+    
+    static final Logger log = LoggerFactory.getLogger(ApplicationService.class);
 
     @Override
     protected DataObject queryResource(URI id) {
@@ -366,9 +372,9 @@ public class ApplicationService extends TaskResourceService {
         for (URI voluri : volumes) {
             ArgValidator.checkFieldUriType(voluri, Volume.class, "id");
             Volume vol = _dbClient.queryObject(Volume.class, voluri);
-            if (vol == null) {
-                throw APIException.badRequests.applicationCantBeUpdated(voluri.toString(),
-                        "The volume does not exist");
+            if (vol == null || vol.getInactive()) {
+                log.info(String.format("The volume does not exist or has been deleted", voluri.toString()));
+                continue;
             }
             StringSet applications = vol.getApplicationIds();
             if (!applications.contains(application.getId().toString())) {

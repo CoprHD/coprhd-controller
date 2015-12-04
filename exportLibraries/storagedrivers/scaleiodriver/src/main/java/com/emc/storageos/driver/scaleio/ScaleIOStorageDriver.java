@@ -163,7 +163,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 		for(StorageSystem storageSystem : storageSystems) {
 				try
 				{
-					_log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - Start", storageSystem.getIpAddress(), storageSystem.getSystemName());
+					//_log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - Start", storageSystem.getIpAddress(), storageSystem.getSystemName());
 					List<String> list = new ArrayList<>();
 					list.add(storageSystem.getIpAddress());
 					driverRegistry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,storageSystem.getNativeId(),ScaleIOConstants.IP_ADDRESS,list);

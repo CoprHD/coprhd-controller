@@ -393,6 +393,14 @@ public class RPUnManagedObjectDiscoverer {
         cleanUp(protectionSystem, dbClient);
     }
 
+    /**
+     * Clean up the existing unmanaged protection set and its assocaited unmanaged volumes
+     * so that it gets updated with latest info during rediscovery
+     * 
+     * @param unManagedProtectionSet
+     * @param unManagedVolumesToUpdateByWwn
+     * @param dbClient
+     */
     private void cleanUpUnManagedProtectionSet(UnManagedProtectionSet unManagedProtectionSet,
             Map<String, UnManagedVolume> unManagedVolumesToUpdateByWwn, DbClient dbClient) {
         // Clean up the volume wwns, managed volume and unmanaged volume lists of the unmanaged protection set

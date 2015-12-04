@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Volume;
 
 /**
  * Defines the API for platform specific implementations for block snapshot
@@ -67,6 +68,19 @@ public interface BlockSnapshotSessionApi {
      */
     public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
             String newTargetsName, List<URI> snapSessionURIs, Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String taskId);
+
+    /**
+     * Prepare a ViPR BlockSnapshotSession instance for the passed source object.
+     * 
+     * @param sourceObj The snapshot session source.
+     * @param snapSessionLabel The snapshot session label.
+     * @param instanceLabel The unique snapshot session instance label.
+     * @param taskId The unique task identifier.
+     * 
+     * @return A ViPR BlockSnapshotSession instance for the passed source object
+     */
+    public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
+            String taskId);
 
     /**
      * Prepare ViPR BlockSnapshot instances for the new targets to be created and
@@ -215,4 +229,12 @@ public interface BlockSnapshotSessionApi {
      * @param sourceObj A reference to the source object.
      */
     public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj);
+
+    /**
+     * Verifies there are no active mirrors for the snapshot session source volume.
+     * Should be overridden when there are additional or different platform restrictions.
+     * 
+     * @param sourceVolume A reference to the snapshot session source.
+     */
+    public void verifyActiveMirrors(Volume sourceVolume);
 }

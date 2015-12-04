@@ -2290,7 +2290,7 @@ public class SmisCommandHelper implements SmisConstants {
             List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
             volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));
 
-            _log.info(String.format("Volume [%s](%s) will be %s for RP", 
+            _log.info(String.format("Volume [%s](%s) will be %s for RP",
                     volume.getLabel(), volume.getId(),
                     (flag ? "tagged" : "untagged")));
             setRecoverPointTag(storageSystem, volumePathList, flag);
@@ -6518,7 +6518,7 @@ public class SmisCommandHelper implements SmisConstants {
     public List<CIMObjectPath> getSettingsDefineStatePaths(
             StorageSystem storage, BlockObject blockObject,
             BlockSnapshot snapshot) throws WBEMException {
-        if (!blockObject.hasConsistencyGroup()) {
+        if ((!blockObject.hasConsistencyGroup()) || (snapshot == null)) {
             return getSettingsDefineStateFromSource(storage, blockObject);
         } else {
             return getSettingsDefineStateFromSourceGroup(storage, snapshot);

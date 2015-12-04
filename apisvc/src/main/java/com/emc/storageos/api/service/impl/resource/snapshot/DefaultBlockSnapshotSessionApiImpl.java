@@ -299,16 +299,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     }
 
     /**
-     * Prepare a ViPR BlockSnapshotSession instance for the passed source object.
-     * 
-     * @param sourceObj The snapshot session source.
-     * @param snapSessionLabel The snapshot session label.
-     * @param instanceLabel The unique snapshot session instance label.
-     * @param taskId The unique task identifier.
-     * 
-     * @return A ViPR BlockSnapshotSession instance for the passed source object
+     * {@inheritDoc}
      */
-    protected BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
+    @Override
+    public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
             String taskId) {
         BlockSnapshotSession snapSession = new BlockSnapshotSession();
         snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
@@ -528,12 +522,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     }
 
     /**
-     * Verifies there are no active mirrors for the snapshot session source volume.
-     * Should be overridden when there are additional or different platform restrictions.
-     * 
-     * @param sourceVolume A reference to the snapshot session source.
+     * {@inheritDoc}
      */
-    protected void verifyActiveMirrors(Volume sourceVolume) {
+    @Override
+    public void verifyActiveMirrors(Volume sourceVolume) {
         // By default, disallow if there are active mirrors on the volume.
         List<URI> activeMirrorsForSource = BlockServiceUtils.getActiveMirrorsForVolume(sourceVolume, _dbClient);
         if (!activeMirrorsForSource.isEmpty()) {

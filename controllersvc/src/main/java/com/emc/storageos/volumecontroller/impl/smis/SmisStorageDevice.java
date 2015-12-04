@@ -2644,7 +2644,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
         return false;
     }
-    
+
     @Override
     public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
             TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -2653,11 +2653,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             String[] volumeNativeIds = new String[volumes.size()];
             StringBuilder logMsgBuilder = new StringBuilder(String.format(
                     "Untag Volume Start - Array:%s", storageSystem.getSerialNumber()));
-            MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;            
+            MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;
             for (Volume volume : volumes) {
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
                 _helper.doApplyRecoverPointTag(storageSystem, volume, false);
-            }                        
+            }
         } catch (WBEMException e) {
             _log.error("Problem making SMI-S call: ", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e
@@ -2674,8 +2674,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         for (Volume volume : volumes) {
             logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
-        _log.info(logMsgBuilder.toString());        
+        _log.info(logMsgBuilder.toString());
     }
+
     /**
      * {@inheritDoc}
      */
@@ -2685,7 +2686,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshotSession> snapSessions = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIs);
             if (doGroupSnapshotSessionCreation(snapSessions)) {
-                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURIs, completer);
+                // Note that this will need to be changed when we add group support.
+                // Because RP+VPLEX requires groups, even if we aren't really doing
+                // a group operation, it will be determined this is a group operation.
+                // For now we just call the single snapshot session create.
+                _snapshotOperations.createSnapshotSession(system, snapSessionURIs.get(0), completer);
             } else {
                 URI snapSessionURI = snapSessionURIs.get(0);
                 _snapshotOperations.createSnapshotSession(system, snapSessionURI, completer);

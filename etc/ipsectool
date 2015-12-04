@@ -152,9 +152,9 @@ _get_remote_prop() {
 
     # if remote ip contains ":", then it is a IPv6 address
     if [[ ${remote} == *":"* ]] ; then
-        prop_value==$(ssh -6 storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
+        prop_value=$(ssh -6 storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
     else
-        prop_value==$(ssh storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
+        prop_value=$(ssh storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
     fi
 
     echo "${prop_value}"

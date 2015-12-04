@@ -593,7 +593,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             // find member volumes in the group
             Set<URI> volumeURIs = entry.getValue();
             List<Volume> volumeList = _dbClient.queryObject(Volume.class, volumeURIs);
-            boolean isRemoveAllFromCG = isRemoveAllFromCG(entry.getKey(), volumeList);
+            boolean isRemoveAllFromCG = ControllerUtils.cgHasNoOtherVolume(_dbClient, entry.getKey(), volumeList);
             log.info("isRemoveAllFromCG {}", isRemoveAllFromCG);
             if (checkIfCGHasCloneReplica(volumeList)) {
                 log.info("Adding clone steps for deleting volumes");
@@ -614,21 +614,6 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
 
         return waitFor;
-    }
-
-    private boolean isRemoveAllFromCG(URI cg, List<Volume> volumes) {
-        URIQueryResultList cgVolumeList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getVolumesByConsistencyGroup(cg), cgVolumeList);
-        int totalVolumeCount = 0;
-        while (cgVolumeList.iterator().hasNext()) {
-            Volume cgSourceVolume = _dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
-            if (cgSourceVolume != null) {
-                totalVolumeCount++;
-            }
-        }
-        log.info("totalVolumeCount {} volume size {}", totalVolumeCount, volumes.size());
-        return totalVolumeCount == volumes.size();
     }
 
     /**
@@ -969,7 +954,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 return waitFor;
             }
 
-            boolean isRemoveAllFromCG = isRemoveAllFromCG(cgURI, volumes);
+            boolean isRemoveAllFromCG = ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumes);
             log.info("isRemoveAllFromCG {}", isRemoveAllFromCG);
             Set<URI> volumeSet = new HashSet<URI>(volumeList);
             if (checkIfCGHasCloneReplica(volumes)) {

@@ -574,8 +574,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         String.format("Creating consistency group  %s", consistencyGroupURI), waitFor,
                         deviceURI, getDeviceType(deviceURI),
                         this.getClass(),
-                        new Workflow.Method("createConsistencyGroup", deviceURI, consistencyGroupURI),
-                        new Workflow.Method("deleteConsistencyGroup", deviceURI, consistencyGroupURI, false), null);
+                        createConsistencyGroupMethod(deviceURI, consistencyGroupURI),
+                        deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, false), null);
                 createdCg = true;
                 _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
             }
@@ -2879,6 +2879,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
+    public Workflow.Method deleteConsistencyGroupMethod(URI storage, URI consistencyGroup, Boolean markInactive) {
+        return new Workflow.Method("deleteConsistencyGroup", storage, consistencyGroup, markInactive);
+    }
+
     @Override
     public void deleteConsistencyGroup(URI storage, URI consistencyGroup, Boolean markInactive, String opId) throws ControllerException {
         TaskCompleter completer = null;
@@ -3858,6 +3862,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         this.getClass(),
                         removeFromConsistencyGroupMethod(storage, consistencyGroup, removeVolumesList),
                         rollbackMethodNullMethod(), null);
+
+                // remove replication group if the CG will become empty
+                if ((addVolumesList == null || addVolumesList.isEmpty()) &&
+                        ControllerUtils.cgHasNoOtherVolume(_dbClient, consistencyGroup, removeVolumesList)) {
+                    waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                            String.format("Deleting replication group for consistency group %s", consistencyGroup),
+                            waitFor, storage, storageSystem.getSystemType(),
+                            this.getClass(),
+                            deleteConsistencyGroupMethod(storage, consistencyGroup, false),
+                            rollbackMethodNullMethod(), null);
+                }
             }
 
             // For SRDF, we need to create target consistency group and

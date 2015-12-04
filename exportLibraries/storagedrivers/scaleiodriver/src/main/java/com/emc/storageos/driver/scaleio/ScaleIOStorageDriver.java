@@ -171,7 +171,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 					list=new ArrayList<>();
 					list.add(storageSystem.getPassword());
                     driverRegistry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME,storageSystem.getNativeId(),ScaleIOConstants.PASSWORD,list);
-					ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),driverRegistry);
+					ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),storageSystem.getIpAddress(),storageSystem.getPortNumber(),storageSystem.getUsername(),storageSystem.getPassword());
 					if(scaleIOHandle != null) {
 						ScaleIOSystem scaleIOSystem = scaleIOHandle.getSystem();
 						storageSystem.setSerialNumber(storageSystem.getSerialNumber());
@@ -209,7 +209,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 				String taskID = String.format("%s+%s+%s",ScaleIOConstants.DRIVER_NAME,taskType, UUID.randomUUID());
 				task = new DriverTaskImpl(taskID);
 				_log.info("Discovery of storage pools for storage system {} .", storageSystem.getNativeId());
-				ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),driverRegistry);
+			ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),storageSystem.getIpAddress(),storageSystem.getPortNumber(),storageSystem.getUsername(),storageSystem.getPassword());
 				if(scaleIOHandle != null) {
 					List <ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
 					for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
@@ -262,7 +262,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 				String taskID = String.format("%s+%s+%s",ScaleIOConstants.DRIVER_NAME,taskType, UUID.randomUUID());
 				task = new DriverTaskImpl(taskID);
 				_log.info("Discovery of storage ports for storage system {} .", storageSystem.getNativeId());
-				ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),driverRegistry);
+				ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(),storageSystem.getIpAddress(),storageSystem.getPortNumber(),storageSystem.getUsername(),storageSystem.getPassword());
 				if(scaleIOHandle != null) {
 					List <ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
 					List <ScaleIOSDS> allSDSs = scaleIOHandle.queryAllSDS();

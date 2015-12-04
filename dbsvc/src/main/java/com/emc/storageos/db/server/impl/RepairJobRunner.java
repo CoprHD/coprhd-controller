@@ -225,6 +225,9 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
                 this.listener.onStartToken(range.end, getProgress());
 
+                /*
+                 TODO: The logic is from sync to async, should refine this part code, Boying is working on this.
+                  */
                 svcProxy.forceRepairRangeAsync(range.begin, range.end, this.keySpaceName,
                         true, _isLocal, true);
 

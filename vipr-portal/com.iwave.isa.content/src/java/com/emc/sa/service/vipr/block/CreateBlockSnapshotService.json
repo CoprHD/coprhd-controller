@@ -13,10 +13,6 @@
       initialValue:"volume"
     },
     
-    volumes:{
-      type:"assetType.vipr.snapshotBlockVolume"
-    },
-
     type: {
       type: "assetType.vipr.blockSnapshotType",
       initialValue: "local",
@@ -24,6 +20,10 @@
       lockable: true
     },
     
+    volumes:{
+      type:"assetType.vipr.snapshotBlockVolume"
+    },
+
     readOnly: {
       type: "boolean",
       initialValue: "false",
@@ -37,6 +37,33 @@
         min:2,
         max:128
       }
-    }         
+    },
+    
+    advanced:{
+      type:"group",
+      lockable: true,
+      collapsed:true,
+      items:{
+        linkSnapshot:{
+          type:"table",
+          items:{
+            name:{
+              type:"text",
+              validation:{
+                min:2,
+                max:128
+              }
+            },
+            numberOfSnapshots:{
+              type:"number",
+              initialValue: "1",
+              validation:{
+                  min:1
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }

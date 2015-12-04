@@ -16,7 +16,6 @@ import com.emc.storageos.db.client.model.EncryptionProvider;
 
 public class SoftwareUpdate {
 
-    private static final SoftwareUpdate instance = new SoftwareUpdate();
     private static volatile EncryptionProvider _encryptionProvider;
     private static volatile List<String> _catalogServerHostNames;
     private static volatile String _catalogKey;
@@ -53,11 +52,6 @@ public class SoftwareUpdate {
 
     }
 
-    public static SoftwareUpdate getInstance() {
-        return instance;
-    }
-
-
     public void setCatalogServerHostNames(List<String> catalogServerHostNames) {
         _catalogServerHostNames = catalogServerHostNames;
     }
@@ -77,7 +71,7 @@ public class SoftwareUpdate {
         _encryptionProvider = encryptionProvider;
     }
 
-    public boolean isCatalogServer(final URL url) {
+    public static boolean isCatalogServer(final URL url) {
         if (null == _catalogServerHostNames) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("catalog server host names");
         }
@@ -89,7 +83,7 @@ public class SoftwareUpdate {
         return false;
     }
 
-    public String getCatalogPostContent(final URL url) {
+    public static String getCatalogPostContent(final URL url) {
         if (null == _catalogKey || null == _catalogCategory
                 || null == _catalogLanguage || null == _catalogEnvironment) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("catalog name");
@@ -102,7 +96,7 @@ public class SoftwareUpdate {
                         _catalogEnvironment });
     }
 
-    public String getDownloadLoginContent(final String username, final String encryptedPassword) throws UnsupportedEncodingException {
+    public static String getDownloadLoginContent(final String username, final String encryptedPassword) throws UnsupportedEncodingException {
         return MessageFormat.format(EMC_SSO_AUTH_SERVICE_LOGIN_POST_CONTENT,
                 _encryptionProvider.decrypt(Base64.decodeBase64(encryptedPassword.getBytes("UTF-8"))), username);
     }

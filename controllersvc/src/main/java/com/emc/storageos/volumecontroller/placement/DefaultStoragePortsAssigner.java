@@ -7,12 +7,14 @@ package com.emc.storageos.volumecontroller.placement;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +24,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.NetworkLite;
+import com.emc.storageos.util.NetworkUtil;
 
 /**
  * Assign StoragePorts to Initiators.
@@ -51,7 +54,8 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             Map<URI, List<Initiator>> net2InitiatorsMap,    // new initiators only grouped by Network
             ExportPathParams pathParams,
             Map<URI, Set<StoragePort>> existingPortsMap,    // existing ports grouped by Network
-            Map<URI, Set<Initiator>> existingInitiatorsMap) // existing initiators grouped by Network
+            Map<URI, Set<Initiator>> existingInitiatorsMap, // existing initiators grouped by Network
+            List<URI> networkOrder)                     // OUTPUT; order for network allocaations
             throws PlacementException {
         if (existingPortsMap == null) {
             existingPortsMap = new HashMap<URI, Set<StoragePort>>();
@@ -94,6 +98,18 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         // This is the combination of the existing initiators and the new initiators.
         Map<URI, Integer> net2MaxHostInitiators = makeNetwork2MaxHostInitiators(
                 allInitiatorsMap);
+        
+        // Determine the non-redundant networks. These are the networks where at least
+        // one host is using that single network. For non redundant networks, we
+        // will allow the lower of maxPaths or the maximum initiators for any host..
+        // If a network is redundant, we will allow the lower of (maxPaths+1)/2 or the
+        // maximum number of initiators for any host.
+        Map<URI, Set<URI>> hostToNetworksMap = new HashMap<URI, Set<URI>>();
+        Set<URI> nonRedundantNetworks = networksNotRedundant(allInitiatorsMap, hostToNetworksMap);
+        
+        // Generate network allocation ordering.
+        networkOrder.clear();
+        networkOrder.addAll(orderNetworksForAllocation(hostToNetworksMap, net2MaxHostInitiators));
 
         // Strategy: we iterate over the networks, adding pathsPerInitiator ports at a time
         // to each network that has fewer paths than maxHostInitiators * pathsPerInitiator.
@@ -104,6 +120,11 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             addedThisPass = false;
             for (int index = 0; index < networkURIs.length; index++) {
                 URI networkURI = networkURIs[index];
+                boolean nonRedundantNet = nonRedundantNetworks.contains(networkURI);
+                int pathLimit = (nonRedundantNet ? maxPaths : ((maxPaths+1)/2));
+                if (pathLimit < pathsPerInitiator) {
+                    pathLimit = pathsPerInitiator;
+                }
                 int maxHostInitiators = net2MaxHostInitiators.get(networkURI);
                 if (net2NumPortsMap.get(networkURI) == null) {
                     net2NumPortsMap.put(networkURI, new Integer(0));
@@ -112,7 +133,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 // than maxHostInitiators * pathsPerInitiator,
                 // add a path
                 Integer currentPorts = net2NumPortsMap.get(networkURI);
-                if (currentPorts <= (maxPaths - pathsPerInitiator) 
+                if (currentPorts <= (pathLimit - pathsPerInitiator) 
                         && currentPorts < (maxHostInitiators * pathsPerInitiator)) {
                     net2NumPortsMap.put(networkURI, currentPorts + pathsPerInitiator);
                     addedThisPass = true;
@@ -455,6 +476,128 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         }
         return net2MaxHostInitiators;
     }
+    
+    /**
+     * Determines if there are any hosts that only have connectivity to only one network.
+     * We favor allocating more ports in a network if it is the only one some host has access to.
+     * Returns a list of such networks.
+     * @param net2InitiatorsMap
+     * @param hostToNetworks - outputs a map of Host URI to Netowrk URIs used by that host
+     * @return
+     */
+    private Set<URI> networksNotRedundant(Map<URI, Set<Initiator>> netToInitiatorsMap, 
+            Map<URI, Set<URI>> hostToNetworks) {
+        hostToNetworks.clear();
+        // Reverse the netToInitiatorsMap to make an Initiator to Net map.
+        Map<Initiator, URI> initiatorsToNetMap = new HashMap<Initiator, URI>();
+        for (Map.Entry<URI, Set<Initiator>> entry : netToInitiatorsMap.entrySet()) {
+            for (Initiator initiator : entry.getValue()) {
+                initiatorsToNetMap.put(initiator,  entry.getKey());
+            }
+        }
+        Set<URI> nonredundantNets = new HashSet<URI>();
+        Map<URI, List<Initiator>> hostInitiatorsMap = makeHostInitiatorsMap(initiatorsToNetMap.keySet());
+        for (Map.Entry<URI, List<Initiator>> entry : hostInitiatorsMap.entrySet()) {
+            hostToNetworks.put(entry.getKey(), new HashSet<URI>());
+            for (Initiator initiator : entry.getValue()) {
+                URI initiatorNet = initiatorsToNetMap.get(initiator);
+                if (initiatorNet != null) {
+                    hostToNetworks.get(entry.getKey()).add(initiatorNet);
+                }
+            }
+            _log.info(String.format("Host %s uses networks %s", entry.getKey(), hostToNetworks.get(entry.getKey())));
+        }
+        // Identify any hosts only using one network and add that network to the set.
+        for (Set<URI> networks : hostToNetworks.values()) {
+            if (networks.size() == 1) {
+                _log.info("Non redundant network: " + networks.toString());
+                nonredundantNets.addAll(networks);
+            }
+        }
+        return nonredundantNets;
+    }
+    
+    // A class that can be sorted that holds the initiator count for each network.
+    private class NetworkInitiatorCount implements Comparable<NetworkInitiatorCount> {
+        URI net;
+        int count;
+        NetworkInitiatorCount(URI net, int count) {
+            this.net = net;
+            this.count = count;
+        }
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + getOuterType().hashCode();
+            result = prime * result + ((net == null) ? 0 : net.hashCode());
+            return result;
+        }
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            NetworkInitiatorCount other = (NetworkInitiatorCount) obj;
+            if (!getOuterType().equals(other.getOuterType()))
+                return false;
+            if (net == null) {
+                if (other.net != null)
+                    return false;
+            } else if (!net.equals(other.net))
+                return false;
+            return true;
+        }
+        private DefaultStoragePortsAssigner getOuterType() {
+            return DefaultStoragePortsAssigner.this;
+        }
+        @Override
+        public int compareTo(NetworkInitiatorCount arg0) {
+            return this.count - arg0.count;
+        }
+    };
+    
+    List<URI> orderNetworksForAllocation(Map<URI, Set<URI>> hostToNetworks, Map<URI, Integer> net2MaxHostInitiators) {
+        List<URI> orderedNetworks = new ArrayList<URI>();
+        List<URI> skippedNetworks = new ArrayList<URI>();
+        // Loop through each host, processing thos with more than one network.
+        // Record any skipped networks.
+        for (Map.Entry<URI, Set<URI>>  entry : hostToNetworks.entrySet()) {
+            if (entry.getValue().size() == 1) {
+                // process single networks last, as that net may be allocaated with other net
+                skippedNetworks.addAll(entry.getValue());
+                continue;
+            }
+            // May a NetworkInitiatorCount for each network
+            List<NetworkInitiatorCount> netInitiatorCounts = new ArrayList<NetworkInitiatorCount>();
+            for (URI net : entry.getValue()) {
+                netInitiatorCounts.add(new NetworkInitiatorCount(net, net2MaxHostInitiators.get(net)));
+            }
+            // Sort the netInitiatorCounts list and process from fewest initiators to most;
+            // this will give better redundancy choices.
+            Collections.sort(netInitiatorCounts);
+            List<URI> ordered = new ArrayList<URI>();
+            for (NetworkInitiatorCount netInitiatorCount : netInitiatorCounts) {
+                ordered.add(netInitiatorCount.net);
+                if (!orderedNetworks.contains(netInitiatorCount.net)) {
+                    orderedNetworks.add(netInitiatorCount.net);
+                }
+            }
+            _log.info(String.format("host %s ordered nets %s", entry.getKey(), ordered));
+        }
+        // Add any skipped networks that have not already been processed.
+        for (URI skippedNet : skippedNetworks) {
+            if (!orderedNetworks.contains(skippedNet)) {
+                _log.info("Adding skipped network " + skippedNet);
+                orderedNetworks.add(skippedNet);
+            }
+        }
+        _log.info("Ordered networks: " + orderedNetworks);
+        return orderedNetworks;
+    }
 
     @Override
     public boolean isPortAssignableToInitiator(NetworkLite initiatorNetwork, Initiator initiator, StoragePort port) {
@@ -611,6 +754,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     private List<StoragePort> getAvailablePorts(List<StoragePort> allocatedPorts, 
             Map<StoragePort, Integer> portUseCounts, int numberOfPorts, int maxUseCount) {
         List<StoragePort> availPorts = new ArrayList<StoragePort>();
+        if (allocatedPorts == null || allocatedPorts.isEmpty()) {
+            return null;
+        }
         // If maxUseCount > 0, we are trying to reuse ports for multiple initiators,
         // so do not return any ports that have not already been used by this host.
         int startCount = (maxUseCount == 0) ? 0 : 1;

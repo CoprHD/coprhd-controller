@@ -469,7 +469,8 @@ public class StoragePortsAllocator {
         // then try not to overlap directors with the already allocated
         // transport zones. We do not do this if we've already allocated ports
         // previously, because we match with those ports instead.
-        else if (portsRequested < context._directorToStoragePortSet.size()
+        else if ( (portsRequested < context._directorToStoragePortSet.size()
+                || context._alreadyAllocatedDirectors.size() == 1)
                 && previouslyAllocatedPorts == null) {
             allocatedEngines.addAll(context._alreadyAllocatedEngines);
             _log.info("Already allocated engines: " + context._alreadyAllocatedEngines.toString());

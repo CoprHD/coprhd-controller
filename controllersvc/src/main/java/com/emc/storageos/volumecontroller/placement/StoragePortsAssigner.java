@@ -38,13 +38,15 @@ public interface StoragePortsAssigner {
      * @param pathParams - Export Path Params (maxPaths, pathsPerInitiator)
      * @param existingPortsMap - map of Network URI to set of existing (already allocated) StoragePorts
      * @param existingInitiatorsMap map of Network URI to set of existing (already assigned) Initiators
+     * @param networkOrder -- output parameter List of networks in order they should be allocated.
      * @return Map of network URI to Integer number of ports to allocate
      */
     public abstract Map<URI, Integer> getPortsNeededPerNetwork(
             Map<URI, List<Initiator>> net2InitiatorsMap,
             ExportPathParams pathParams,
             Map<URI, Set<StoragePort>> existingPortsMap,
-            Map<URI, Set<Initiator>> existingInitiatorsMap)
+            Map<URI, Set<Initiator>> existingInitiatorsMap,
+            List<URI> networkOrder)
             throws PlacementException;
 
     /**

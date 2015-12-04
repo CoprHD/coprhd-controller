@@ -644,7 +644,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 unManagedVolumeInformation);
         // check for LOGGED_ACCESS state for unexported target volumes
         if (VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)
-                && GetCopyResponse.GetCopyAccessStateResponse.LOGGED_ACCESS.equals(rpAccessState)) {
+                && GetCopyResponse.GetCopyAccessStateResponse.LOGGED_ACCESS.name().equals(rpAccessState)) {
             _logger.error("RP target unmanaged volume is not exported and is in LOGGED_ACCESS state.");
             throw IngestionException.exceptions.rpUnManagedTargetVolumeLoggedAccess(unManagedVolume.getNativeGuid());
         }

@@ -145,6 +145,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 	}
 
 	@Override
+	public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
+		return null;
+	}
+
+	@Override
 	public RegistrationData getRegistrationData() {
 		return null;
 	}

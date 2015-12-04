@@ -154,7 +154,7 @@ public class RPUnManagedObjectDiscoverer {
 
             for (GetCopyResponse copy : cg.getCopies()) {
                 String accessState = copy.getAccessState();
-                if (GetCopyResponse.GetCopyAccessStateResponse.LOGGED_ACCESS.equals(accessState)) {
+                if (GetCopyResponse.GetCopyAccessStateResponse.LOGGED_ACCESS.name().equals(accessState)) {
                     isLoggedAccess = true;
                 }
                 for (GetVolumeResponse volume : copy.getJournals()) {

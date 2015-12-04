@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.DataBindingException;
 
@@ -36,7 +37,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -62,7 +62,6 @@ import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.factories.VolumeFactory;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -75,13 +74,13 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -4463,55 +4462,83 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * To remove the volumes from Application. It would remove the volume from the CG, then update the volume 
+     * To remove/add the volumes from/to Application. It would remove the volume from the CG, then update the volume 
      * ApplicationId attribute to remove the applicationId.
+     * TODO add volumes not in the CG to the application
      */
     @Override
-    public void removeVolumesFromApplication(URI storage, List<URI> removeVolumeList, URI application, String opId) throws ControllerException {
-        TaskCompleter completer = new ApplicationTaskCompleter(application, opId);
+    public void updateApplication(URI storage, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList, 
+            URI application, String opId) throws ControllerException {
+        
+        List<URI> cgs = new ArrayList<URI>();
+        TaskCompleter completer = null;
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     REMOVE_VOLUMES_FROM_APPLICATION_WS_NAME, false, opId);
-            String waitFor = null;
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
 
-            if (!removeVolumeList.isEmpty()) {
-                URI voluri = removeVolumeList.get(0);
-                Volume vol = _dbClient.queryObject(Volume.class, voluri);
-                URI cguri = vol.getConsistencyGroup();
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
-                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-                // Remove the volumes from the consistency group
-                waitFor = workflow.createStep(REMOVE_VOLUMES_FROM_CG_STEP_GROUP,
-                        String.format("Remove volumes from consistency group %s", cguri.toString()),
-                        null,storage, storageSystem.getSystemType(),
-                        this.getClass(),
-                        removeFromConsistencyGroupMethod(storage, cguri, removeVolumeList),
-                        rollbackMethodNullMethod(), null);
-                
+            if (removeVolumeList!= null && !removeVolumeList.isEmpty()) {
+                Map<URI, List<URI>> removeVolsMap = new HashMap<URI, List<URI>>();
+                for (URI voluri : removeVolumeList) {
+                    Volume vol = _dbClient.queryObject(Volume.class, voluri);
+                    URI cguri = vol.getConsistencyGroup();
+                    List<URI> vols = removeVolsMap.get(cguri);
+                    if (vols == null) {
+                        vols = new ArrayList<URI>();
+                    }
+                    vols.add(voluri);
+                    removeVolsMap.put(cguri, vols);
+                }
+                cgs.addAll(removeVolsMap.keySet());
+                for (Map.Entry<URI, List<URI>> entry : removeVolsMap.entrySet()) {
+                    URI cguri = entry.getKey();
+                    List<URI> removeVols = entry.getValue();
+                    URI voluri = removeVols.get(0);
+                    Volume vol = _dbClient.queryObject(Volume.class, voluri);
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+                    URI storageUri = vol.getStorageController();
+                    StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageUri);
+                    // Remove the volumes from the consistency group
+                    workflow.createStep(REMOVE_VOLUMES_FROM_CG_STEP_GROUP,
+                            String.format("Remove volumes from consistency group %s", cguri.toString()),
+                            null,storage, storageSystem.getSystemType(),
+                            this.getClass(),
+                            removeFromConsistencyGroupMethod(storageUri, cguri, removeVolumeList),
+                            addToConsistencyGroupMethod(storage, cguri, removeVolumeList), null);
+                }
                 // Update volume applicationIds attribute
                 workflow.createStep(UPDATE_VOLUMES_STEP_GROUP,
-                        "update volume for application", waitFor, storage,
-                        storageSystem.getSystemType(), getClass(), 
-                        updateVolumeForApplicationMethod(removeVolumeList, application), null, null);
+                        "update volume for application", REMOVE_VOLUMES_FROM_CG_STEP_GROUP, storage,
+                        system.getSystemType(), getClass(), 
+                        removeVolumeForApplicationMethod(removeVolumeList, application), null, null);
             }
-            
+            completer = new ApplicationTaskCompleter(application, removeVolumeList, cgs, opId);
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", REMOVE_VOLUMES_FROM_APPLICATION_WS_NAME);
             String successMessage = String.format(
                     "Update application successful for %s", application.toString());
             workflow.executePlan(completer, successMessage);
         } catch (Exception e) {
-            completer.error(_dbClient, DeviceControllerException.exceptions.failedToRemoveVolumesFromAppication(application.toString(), e.getMessage()));
+            _log.error("Exception while updating the application", e);
+            if (completer != null) {
+                completer.error(_dbClient, DeviceControllerException.exceptions.failedToUpdateVolumesFromAppication(application.toString(), e.getMessage()));
+            }
         }
         
     }
     
-    public Workflow.Method updateVolumeForApplicationMethod(List<URI> volumes, URI application) {
-        return new Workflow.Method("updateVolumeForApplication", volumes, application);
+    public Workflow.Method removeVolumeForApplicationMethod(List<URI> volumes, URI application) {
+        return new Workflow.Method("removeVolumeForApplication", volumes, application);
     } 
     
-    public void updateVolumeForApplication(List<URI>volumes, URI application, String opId) {
+    /**
+     * Remove the application from the volume applicationIds attribute
+     * @param volumes The volumes that will be updated
+     * @param application The application URI
+     * @param opId
+     */
+    public void removeVolumeForApplication(List<URI>volumes, URI application, String opId) {
         for (URI voluri : volumes) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
             String appId = application.toString();

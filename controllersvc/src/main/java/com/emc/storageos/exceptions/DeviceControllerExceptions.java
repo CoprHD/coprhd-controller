@@ -434,5 +434,5 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException unexpectedCondition(String message);
     
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
-    public DeviceControllerException failedToRemoveVolumesFromAppication(String application, String error);
+    public DeviceControllerException failedToUpdateVolumesFromAppication(String application, String error);
 }

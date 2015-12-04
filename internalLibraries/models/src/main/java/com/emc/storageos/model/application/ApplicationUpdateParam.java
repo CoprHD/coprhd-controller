@@ -21,7 +21,10 @@ public class ApplicationUpdateParam {
     
     public static class ApplicationVolumeList {
         private List<URI> volumes;
+        // The name of the backend replication group that the volumes would add to
         private String replicationGroupName;
+        // The consistency group URI that the volumes would add to
+        private URI consistencyGroup;
         /**
          * A block volume URI
          * 
@@ -46,6 +49,15 @@ public class ApplicationUpdateParam {
         
         public void setReplicationGroupName(String rpname) {
             replicationGroupName = rpname;
+        }
+        
+        @XmlElement(name = "consistency_group")
+        public URI getConsistencyGroup() {
+            return consistencyGroup;
+        }
+        
+        public void setConsistencyGroup(URI cg) {
+            consistencyGroup = cg;
         }
     }
 

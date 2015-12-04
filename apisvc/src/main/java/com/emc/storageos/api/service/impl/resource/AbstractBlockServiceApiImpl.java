@@ -71,6 +71,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.ApplicationUpdateParam.ApplicationVolumeList;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -1680,8 +1681,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * {@inheritDoc}
      */
     @Override
-    public void updateVolumesInApplication(Map<URI, List<Volume>> addVolumes, 
-            Map<URI, List<Volume>> removeVolumes, 
+    public void updateVolumesInApplication(ApplicationVolumeList addVolumes, 
+            List<Volume> removeVolumes, 
             URI applicationId, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }

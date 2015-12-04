@@ -460,12 +460,13 @@ public interface BlockController extends BlockStorageManagementController {
     /**
      * Remove volumes from application
      * @param storage
+     * @param addVolList
      * @param removeVolumeList
      * @param application
      * @param opId
      * @throws ControllerException
      */
-    public void removeVolumesFromApplication(URI storage, List<URI> removeVolumeList,
+    public void updateApplication(URI storage, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList,
             URI application,
             String opId) throws ControllerException;
 

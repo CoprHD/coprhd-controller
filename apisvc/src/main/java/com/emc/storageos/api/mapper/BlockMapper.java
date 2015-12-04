@@ -229,6 +229,13 @@ public class BlockMapper {
             }
             to.setHaVolumes(backingVolumes);
         }
+        if ((from.getApplicationIds() != null) && (!from.getApplicationIds().isEmpty())) {
+            List<RelatedResourceRep> applications = new ArrayList<RelatedResourceRep>();
+            for (String application : from.getApplicationIds()) {
+                applications.add(toRelatedResource(ResourceTypeEnum.APPLICATION, URI.create(application)));
+            }
+            to.setApplications(applications);
+        }
 
         return to;
     }

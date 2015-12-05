@@ -2042,12 +2042,13 @@ public class RecoverPointScheduler implements Scheduler {
         // Build source journal
         Volume sourceJournal = dbClient.queryObject(Volume.class, sourceVolume.getRpJournalVolume());
         RPRecommendation sourceJournalRecommendation = new RPRecommendation();
-        VirtualPool sourceJournalVpool = dbClient.queryObject(VirtualPool.class, sourceJournal.getVirtualPool());
+        VirtualPool sourceJournalVpool = vpool.getJournalVpool() != null ?  dbClient.queryObject(VirtualPool.class, URI.create(vpool.getJournalVpool())) : vpool;
         sourceJournalRecommendation.setSourceStorageSystem(sourceJournal.getStorageController());
         sourceJournalRecommendation.setSourceStoragePool(sourceJournal.getPool());
         sourceJournalRecommendation.setVirtualArray(sourceJournal.getVirtualArray());
         sourceJournalRecommendation.setVirtualPool(sourceJournalVpool);
         sourceJournalRecommendation.setInternalSiteName(sourceJournal.getInternalSiteName());
+        // TODO: This should be getting capacity from the vpool, not the previously created volume.
         sourceJournalRecommendation.setSize(sourceJournal.getCapacity());
         sourceJournalRecommendation.setResourceCount(1);
 
@@ -2068,12 +2069,13 @@ public class RecoverPointScheduler implements Scheduler {
         if (!NullColumnValueGetter.isNullURI(sourceVolume.getSecondaryRpJournalVolume())) {
             Volume standbyJournal = dbClient.queryObject(Volume.class, sourceVolume.getSecondaryRpJournalVolume());
             RPRecommendation standbyJournalRecommendation = new RPRecommendation();
-            VirtualPool standbyJournalVpool = dbClient.queryObject(VirtualPool.class, standbyJournal.getVirtualPool());
+            VirtualPool standbyJournalVpool = vpool.getStandbyJournalVpool() != null ? dbClient.queryObject(VirtualPool.class, URI.create(vpool.getStandbyJournalVpool())) : vpool;
             standbyJournalRecommendation.setSourceStorageSystem(standbyJournal.getStorageController());
             standbyJournalRecommendation.setSourceStoragePool(standbyJournal.getPool());
             standbyJournalRecommendation.setVirtualArray(standbyJournal.getVirtualArray());
             standbyJournalRecommendation.setVirtualPool(standbyJournalVpool);
             standbyJournalRecommendation.setInternalSiteName(standbyJournal.getInternalSiteName());
+            // TODO: This should be getting capacity from the vpool, not the previously created volume.
             standbyJournalRecommendation.setSize(standbyJournal.getCapacity());
             standbyJournalRecommendation.setResourceCount(1);
 
@@ -2098,7 +2100,7 @@ public class RecoverPointScheduler implements Scheduler {
         sourceRecommendation.setInternalSiteName(sourceVolume.getInternalSiteName());
         sourceRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
         sourceRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool()));
-        sourceRecommendation.setSize(sourceVolume.getCapacity());
+        sourceRecommendation.setSize(capabilities.getSize());
         sourceRecommendation.setResourceCount(capabilities.getResourceCount());
 
         // Build vplex recommendation of the source if specified
@@ -2148,18 +2150,20 @@ public class RecoverPointScheduler implements Scheduler {
             sourceRecommendation.setHaRecommendation(haRec);
         }
 
+        Map<URI, VpoolProtectionVarraySettings> protectionSettings = VirtualPool.getProtectionSettings(vpool, dbClient);
+        
         // Build targets
         for (VirtualArray protectionVarray : protectionVarrays) {
             RPRecommendation targetRecommendation = new RPRecommendation();
             Volume targetVolume = getTargetVolumeForProtectionVirtualArray(sourceVolume, protectionVarray);
-            VirtualPool targetVpool = dbClient.queryObject(VirtualPool.class, targetVolume.getVirtualPool());
+            VirtualPool targetVpool = protectionSettings.get(protectionVarray.getId()) != null ? dbClient.queryObject(VirtualPool.class, protectionSettings.get(protectionVarray.getId()).getVirtualPool()) : sourceVirtualPool;
             targetRecommendation.setInternalSiteName(targetVolume.getInternalSiteName());
             targetRecommendation.setVirtualArray(targetVolume.getVirtualArray());
             targetRecommendation.setVirtualPool(targetVpool);
             StoragePool targetPool = dbClient.queryObject(StoragePool.class, targetVolume.getPool());
             targetRecommendation.setSourceStoragePool(targetPool.getId());
             targetRecommendation.setSourceStorageSystem(targetPool.getStorageDevice());
-            targetRecommendation.setSize(targetVolume.getCapacity());
+            targetRecommendation.setSize(capabilities.getSize());
             targetRecommendation.setResourceCount(capabilities.getResourceCount());
 
             if (VirtualPool.vPoolSpecifiesHighAvailability(targetVpool)) {
@@ -2182,7 +2186,7 @@ public class RecoverPointScheduler implements Scheduler {
             // Build target Journals
             RPRecommendation targetJournalRecommendation = new RPRecommendation();
             Volume targetJournal = dbClient.queryObject(Volume.class, targetVolume.getRpJournalVolume());
-            VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, targetJournal.getVirtualPool());
+            VirtualPool targetJournalVpool = protectionSettings.get(protectionVarray.getId()).getJournalVpool() != null ? dbClient.queryObject(VirtualPool.class, protectionSettings.get(protectionVarray.getId()).getJournalVpool()) : targetVpool;
             targetJournalRecommendation.setSourceStoragePool(targetJournal.getPool());
             targetJournalRecommendation.setSourceStorageSystem(targetJournal.getStorageController());
             targetJournalRecommendation.setVirtualPool(targetJournalVpool);

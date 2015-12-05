@@ -45,6 +45,7 @@
       startUpdating('@{AdminDashboard.health()}', '#healthPanel', 60);
       startUpdating('@{AdminDashboard.physicalAssets()}', '#physicalAssetsPanel', 600);
       startUpdating('@{AdminDashboard.virtualAssets()}', '#virtualAssetsPanel', 600);
+      startUpdating('@{AdminDashboard.disasterRecovery()}', '#disasterPanel', 300);
       window.setInterval(refreshLastUpdated, 5000);
     });
   </script>
@@ -74,5 +75,6 @@
     <div class="col-sm-4">
       #{include 'AdminDashboard/version.html'/}
       #{include 'AdminDashboard/health.html'/}
+      #{include 'AdminDashboard/disasterRecovery.html'/}
     </div>
 </div>

@@ -1,0 +1,205 @@
+#!/bin/bash
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# /etc/ipsectool
+#
+
+nl="
+"
+
+# commands
+SIPCALC="/usr/local/bin/sipcalc"
+SSH="/usr/bin/ssh"
+
+_usage() {
+    set +Ex
+    echo "Usage: $0 check-connection       return IPs with ipsec connections"          >&2
+    echo "   or: $0 get-props <ip>         get version and ipsec_key from given node"  >&2
+    echo "   or: $0 sync-key  <ipsec-key>  write given key to vdc property file"       >&2
+    exit 0
+}
+
+
+#
+# get local properties from systool
+#
+GENCONFIG_PROPS=$(/etc/systool --getprops)
+_get_prop() {
+    ( IFS="${nl}" ; for arg in ${GENCONFIG_PROPS} ; do
+          [ "${1}" = "${arg%%=*}" ] && arg="${arg#*=}" && arg="${arg//\\n/${nl}}" && echo "${arg}" && return 0
+      done
+      if [ ${#} = 2 ] ; then
+          echo "${2}"
+      else
+          #echo "No such property: ${1}" >&2 && return 253
+          echo ""
+      fi
+   )
+}
+
+#
+# get expanded form of IPV6 address
+#
+_get_ipv6_uncompressed(){
+    local ipaddr
+    if [ "${1}" = "::0" ]; then
+        echo ""
+        return 0
+    fi
+    ipaddr=$(${SIPCALC} ${1} | egrep '^Expanded Address' | awk '{print $4}')
+    [ ! -z ${ipaddr} ] && echo ${ipaddr} || echo ${1}
+}
+
+
+#
+# This method returns the configured ip address of this machine
+#
+_get_local_ip() {
+    local nodeid=$(_get_prop "node_id")
+    local nodenum=${nodeid#vipr}
+    local ipaddr=$(_get_prop "network_${nodenum}_ipaddr")
+    local ipaddr6=$(_get_prop "network_${nodenum}_ipaddr6")
+    [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]]  && ipaddr=$(_get_ipv6_uncompressed "${ipaddr6}")
+    echo "${ipaddr}"
+}
+
+#
+# get ips in primary site
+#
+_get_ips_in_primary() {
+    local cursite_begin_index="0"
+    local vdc_myid=$(_get_prop "vdc_myid")
+    local primary_cnt=$(_get_prop "vdc_${vdc_myid}_node_count")
+    local ips=""
+    for i in $(seq ${primary_cnt}) ; do
+        local ipaddr=$(_get_prop "vdc_${vdc_myid}_network_${i}_ipaddr")
+        local ipaddr6=$(_get_prop "vdc_${vdc_myid}_network_${i}_ipaddr6")
+        [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]]  && ipaddr=$(_get_ipv6_uncompressed "${ipaddr6}")
+        ips="${ips} ${ipaddr}"
+    done
+
+    echo "${ips}"
+}
+
+#
+# get ips in specified standby site
+# input - standby site id
+#
+_get_ips_in_standby() {
+    local standby=$1
+    local ips=""
+
+    local site_ids=$(_get_prop "site_ids")
+    local vdc_myid=$(_get_prop "vdc_myid")
+    if [ -n "${site_ids}" ] ; then
+        local standby_cnt=$(_get_prop "vdc_${vdc_myid}_${standby}_node_count")
+        for standby_index in $(seq 1 ${standby_cnt}); do
+            local ipaddr=$(_get_prop "vdc_${vdc_myid}_${standby}_network_${standby_index}_ipaddr")
+            local ipaddr6=$(_get_prop "vdc_${vdc_myid}_${standby}_network_${standby_index}_ipaddr6")
+            [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]]  && ipaddr=$(_get_ipv6_uncompressed "${ipaddr6}")
+            ips="${ips} ${ipaddr}"
+        done
+    else
+        # no standby defined
+        echo ""
+    fi
+    echo "${ips}"
+}
+
+#
+# return all nodes, include primary site and standby sites
+#
+_get_all_nodes() {
+    local ips=$(_get_ips_in_primary)
+    local site_ids=$(_get_prop "site_ids")
+    if [ -n "${site_ids}" ] ; then
+        local site_ids=$(echo ${site_ids} | sed 's/,/ /g')
+        for standby in ${site_ids} ; do
+            ips="${ips} $(_get_ips_in_standby ${standby})"
+        done
+    fi
+    echo "${ips}"
+}
+
+
+#
+# leverage "ipsec status" to check if there is connection between local and remote node
+# return a list of IPs without established connection, separated by space.
+#
+_check_connection() {
+    local local_ip=$(_get_local_ip)
+    local ips=$(_get_all_nodes)
+    for ip in ${ips} ; do
+        if [[ ${ip} != "${local_ip}" && ${ip} != "127.0.0.1" ]] ; then
+            local establish=$(/usr/sbin/ipsec status | grep ESTABLISHED | grep "${ip}")
+            if [[ ${establish} != *"${ip}"* ]] ; then
+                echo "${ip}"
+            fi
+        fi
+    done
+}
+
+#
+# get property from remote node
+# input:
+#    1 - remote ip
+#    2 - property name
+# return:
+#    value of the property
+#
+_get_remote_prop() {
+    local remote=${1}
+    local prop_name=${2}
+    local prop_value
+
+    # if remote ip contains ":", then it is a IPv6 address
+    if [[ ${remote} == *":"* ]] ; then
+        prop_value=$(${SSH} -6 storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
+    else
+        prop_value=$(${SSH} storageos@${remote} "sudo /etc/systool --getprops | grep ${prop_name} | sed 's/.*=//'" 2>/dev/null)
+    fi
+
+    echo "${prop_value}"
+}
+
+#
+# get values of vdc_config_version and ipsec_key from remote node
+# the 2 values are in different lines
+#
+_get_props() {
+    local remote=${1}
+    local version=$(_get_remote_prop ${remote} "vdc_config_version")
+    local ipsec_key=$(_get_remote_prop ${remote} "ipsec_key")
+    echo "vdc_config_version=${version}"
+    echo "ipsec_key=${ipsec_key}"
+}
+
+#
+# write given ipsec_key to local's vdcconfig.properties
+# input: new ipsec_key
+#
+_sync_key() {
+   local ipsec_key=${1}
+   /etc/systool --remount-rw
+   sed -i -- "s/ipsec_key=.*/ipsec_key=${ipsec_key}/" "/.volumes/bootfs/etc/vdcconfig.properties"
+   /etc/systool --remount-ro
+}
+
+
+case ${#} in
+    0) ;;
+    1) case ${1} in
+        check-connection)  _check_connection ;;
+        *)                 _usage
+       esac ;;
+    2) case ${1} in
+        get-props)         _get_props   "${2}" ;;
+        sync-key)          _sync_key    "${2}" ;;
+        *)                 _usage
+       esac ;;
+    *) _usage
+esac
+
+

@@ -8,6 +8,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

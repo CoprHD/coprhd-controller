@@ -2,6 +2,9 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.service.impl.placement.FileRPSchedular;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
@@ -15,7 +18,7 @@ import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileRPSchedular>{
-
+	private static final Logger _log = LoggerFactory.getLogger(FileMirrorServiceApiImpl.class);
 	public FileMirrorServiceApiImpl() {
         super(null);
     }

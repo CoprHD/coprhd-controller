@@ -56,6 +56,7 @@ URI_VPOOL_ACLS                    = URI_VPOOL_INSTANCE + '/acl'
 
 URI_VPOOL_UPDATE                  = URI_VPOOL_INSTANCE + '/assign-matched-pools'
 URI_VPOOL_DEACTIVATE              = URI_VPOOL_INSTANCE + '/deactivate'
+URI_VPOOL_REFRESH                 = URI_VPOOL_INSTANCE + '/refresh-matched-pools'
 URI_BLOCKVPOOLS_BULKGET            = URI_SERVICES_BASE + '/block/vpools/bulk'
 URI_FILEVPOOLS_BULKGET             = URI_SERVICES_BASE + '/file/vpools/bulk'
 URI_SMISPROVIDER_BULKGET        = URI_SERVICES_BASE + '/vdc/smis-providers/bulk'
@@ -1739,6 +1740,9 @@ class Bourne:
 
     def cos_show(self, type, uri):
         return self.api('GET', URI_VPOOL_INSTANCE.format(type, uri))
+
+    def cos_refresh(self, type, uri):
+	return self.api('GET', URI_VPOOL_REFRESH.format(type, uri))
 
     def cos_query(self, type, name):
         if (self.__is_uri(name)):

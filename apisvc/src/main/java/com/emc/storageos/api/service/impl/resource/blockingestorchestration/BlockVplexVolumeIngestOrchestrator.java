@@ -273,29 +273,25 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             if (snapshotsList.size() > 1) {
                 for (String snapshots : snapshotsList) {
                     if (counter > 0) {
-                        message.append(" and ");
+                        message.append(" and");
                     }
                     message.append(" one distributed volume component has snapshots ").append(snapshots);
                     counter++;
                 }
                 counter = 0;
             }
-            if (message.length() > 0) {
-                // add some space between the message parts
-                // in the rare case of double clones and double snaps
-                // on the same volume
-                message.append("; ");
-            }
             if (clonesList.size() > 1) {
                 for (String clones : clonesList) {
                     if (counter > 0) {
-                        message.append(" and ");
+                        message.append(" and");
                     }
                     message.append(" one distributed volume component has full copies ").append(clones);
                     counter++;
                 }
             }
             if (message.length() > 0) {
+                message.insert(0, "Cannot ingest a distributed volume with replicas on both legs (");
+                message.append(")");
                 String reason = message.toString();
                 _logger.error(reason);
                 throw IngestionException.exceptions.validationException(reason);

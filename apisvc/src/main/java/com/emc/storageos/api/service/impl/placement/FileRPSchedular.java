@@ -19,7 +19,7 @@ public class FileRPSchedular implements Scheduler {
 
     private DbClient _dbClient;
     private StorageScheduler _storageScheduler;
-    private FileStorageScheduler _fileStorageSchedular;
+    private FileStorageScheduler _fileScheduler;
     
     public void setStorageScheduler(final StorageScheduler storageScheduler) {
         _storageScheduler = storageScheduler;
@@ -29,12 +29,8 @@ public class FileRPSchedular implements Scheduler {
         _dbClient = dbClient;
     }
     
-    public void setFileStorageSchedular(FileStorageScheduler _fileStorageSchedular) {
-        this._fileStorageSchedular = _fileStorageSchedular;
-    }
-
-    public FileStorageScheduler getFileStorageSchedular() {
-        return _fileStorageSchedular;
+    public void setFileScheduler(FileStorageScheduler fileScheduler) {
+        _fileScheduler = fileScheduler;
     }
     
     @Autowired

@@ -878,6 +878,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     private List<String> getInitiatorsForIG(String igName, String xioClusterName, XtremIOClient client)
             throws Exception {
         _log.info("Getting list of Initiators for IG {}", igName);
+        // get all initiators and see which initiators belong to given IG name.
+        // Currently this is the only way to get initiators belonging to IG
         List<String> initiatorsInIG = new ArrayList<String>();
         List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo(xioClusterName);
         for (XtremIOInitiator initiator : initiators) {

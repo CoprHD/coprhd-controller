@@ -19,6 +19,7 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.placement.FileRecommendation.FileType;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
@@ -187,6 +188,11 @@ public class FileStorageScheduler implements Scheduler{
             _log.error(
                     "Could not find matching pools for virtual array {} & vpool {}",
                     vArray.getId(), vPool.getId());
+        } else { // joseph add code for file orchestration
+        	for(FileRecommendation recommendation : fileRecommendations) {
+        		FileRecommendation fileRecommendation = (FileRecommendation)recommendation;        		
+        		fileRecommendation.setFileType(FileType.FILE_SYSTEM_DATA);
+        	}
         }
 
         return fileRecommendations;

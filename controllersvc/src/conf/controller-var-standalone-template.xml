@@ -13,6 +13,7 @@
                 <entry key="BlockExportController"
                        value="rmi://${node_id}:10099/BlockExportController"/>
                 <entry key="BlockOrchestrationController" value="rmi://${node_id}:10099/BlockOrchestrationController"/>
+                <entry key="FileOrchestrationController" value="rmi://${node_id}:10099/FileOrchestrationController"/>
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
                 <entry key="ObjectController" value="rmi://${node_id}:10099/ObjectController"/>
             </map>
@@ -40,6 +41,7 @@
                 <value>ibmxiv</value>
                 <value>export</value>
                 <value>block-orchestration</value>
+                <value>file-orchestration</value>
                 <value>host</value>
                 <value>vcenter</value>
                 <value>scaleio</value>

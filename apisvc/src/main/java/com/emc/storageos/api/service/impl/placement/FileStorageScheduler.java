@@ -942,7 +942,7 @@ public class FileStorageScheduler implements Scheduler{
     public List<FileShare> prepareFileSystem(FileSystemParam param, String task, TaskList taskList,
             Project project, VirtualArray varray, VirtualPool vpool, 
             List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
-    	List<FileShare> preparedVolumes = new ArrayList<>();
+    	List<FileShare> preparedFileSystems = new ArrayList<>();
     	Iterator<Recommendation> recommendationsIter = recommendations.iterator();
         while (recommendationsIter.hasNext()) {
             FileRecommendation recommendation = (FileRecommendation) recommendationsIter.next();
@@ -958,7 +958,7 @@ public class FileStorageScheduler implements Scheduler{
                 
                 //set the recommendation
                 setFileRecommendation(_dbClient, recommendation, fileShare, vpool);
-                
+                preparedFileSystems.add(fileShare);
             	
             	
             } else if (recommendation.getFileType().toString().equals(
@@ -969,7 +969,7 @@ public class FileStorageScheduler implements Scheduler{
             
         
         }
-    	return preparedVolumes;
+    	return preparedFileSystems;
     }
     
     public static void setFileRecommendation(DbClient dbClient, FileRecommendation placement, 

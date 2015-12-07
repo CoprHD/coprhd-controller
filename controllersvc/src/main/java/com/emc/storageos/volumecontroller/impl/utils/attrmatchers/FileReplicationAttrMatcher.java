@@ -34,6 +34,7 @@ import com.google.common.collect.ListMultimap;
 public class FileReplicationAttrMatcher extends AttributeMatcher {
     private static final Logger _logger = LoggerFactory.getLogger(FileReplicationAttrMatcher.class);
     private static final String STORAGE_DEVICE = "storageDevice";
+    private static final String SUPPORTED_COPY_TYPES = "supportedCopyTypes";
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
@@ -73,7 +74,9 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
             _logger.info("Remote Pools found : {}", remotePoolUris);
             // get Remote Storage Systems associated with given remote Settings via VPool's matched or
             // assigned Pools
-            remotestorageToPoolMap = groupStoragePoolsByStorageSystem(remotePoolUris, true);
+            Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
+            
+            remotestorageToPoolMap = groupStoragePoolsByStorageSystem(remotePoolUris, copyModes, true);
             _logger.info("Grouped Remote Storage Devices : {}", remotestorageToPoolMap.asMap().keySet());
             remoteReplication = true;
             // Group the remote storage system based on type!!!
@@ -181,18 +184,21 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
      * @param allPoolUris
      * @return
      */
-    private ListMultimap<String, URI> groupStoragePoolsByStorageSystem(Set<String> allPoolUris, boolean replicationPools) {
+    private ListMultimap<String, URI> groupStoragePoolsByStorageSystem(Set<String> allPoolUris,
+    		Set<String> copyModes, boolean replicationPools) {
         Set<String> columnNames = new HashSet<String>();
         columnNames.add(STORAGE_DEVICE);
+        columnNames.add(SUPPORTED_COPY_TYPES);
         Set<String> requiredCopyType = new HashSet<String>();
-        requiredCopyType.add(CopyTypes.ASYNC.name());
+       
         
         Collection<StoragePool> storagePools = _objectCache.getDbClient().queryObjectFields(StoragePool.class, columnNames,
                 new ArrayList<URI>(
                         Collections2.transform(allPoolUris, CommonTransformerFunctions.FCTN_STRING_TO_URI)));
         ListMultimap<String, URI> storageToPoolMap = ArrayListMultimap.create();
         for (StoragePool pool : storagePools) {
-        	if (replicationPools && !pool.getSupportedCopyTypes().contains(CopyTypes.ASYNC.name())) {
+        	if (replicationPools && pool.getSupportedCopyTypes() != null &&
+        			!pool.getSupportedCopyTypes().contains(CopyTypes.ASYNC.name())) {
         		continue;
         	}
             storageToPoolMap.put(pool.getStorageDevice().toString(), pool.getId());

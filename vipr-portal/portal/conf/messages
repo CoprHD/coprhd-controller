@@ -2862,7 +2862,8 @@ affectedResources.blockSnapshot.volume=Volume
 affectedResources.blockSnapshot.varray=Virtual Array
 
 affectedResources.blockConsistencyGroup=Consistency Group
-affectedResources.blockConsistencyGroup.image=serviceCatalog/Snapshot.png
+affectedResources.blockConsistencyGroup.image=assets/Consistency_Group.png
+affectedResources.blockConsistencyGroup.name=Name
 
 affectedResources.fileSnapshot=File Snapshot
 affectedResources.fileSnapshot.image=serviceCatalog/Snapshot.png

@@ -110,7 +110,10 @@ param(
     [switch]$interactive,
 
     [Parameter(Mandatory=$false, ParameterSetName="Operation")]
-    [string]$file
+    [string]$file,
+
+    [Parameter(Mandatory=$false, ParameterSetName="Operation")]
+    [string]$ipsec_key
 )
 
 $result="succeed"
@@ -189,6 +192,7 @@ function Usage() {
 	Write-Host "    -memory:            (Optional) Amount of memory for each VM (default is 8192)"
     Write-Host "    -poweron:           (Optional) Auto power on the VM after deploy, (no power on by default)"
     Write-Host "    -interactive:       (Optional) Interactive way to deploy"
+    Write-Host "    -ipsec_key:         (Optional) IPSec pre-shared key"
 	Write-Host ""
 	Write-Host "    example: .\$scriptName -mode redeploy -file your_setting_file_path -nodeid 1 -nodecount 3 -net network_name -vswitch virtual_switch_name -librarypath library_path -vmhostname vm_host_name -vmpath vm_path -disktype fixed -vlanid vlan_id -vmprefix vmprefix- -cpucount 2 -memory 8192 -poweron"
 	Write-Host ""
@@ -445,6 +449,9 @@ function ReadParamsFromFile($file, $isDotSettingsFile) {
 						}
 						"-clusterversion" {
 							$Script:clusterVersion=$value
+						}
+						"-ipsec_key" {
+							$Script:ipsec_key=$value
 						}
 						default {
 							Write-Host "WARNNING: Unknown line" -ForegroundColor Yellow

@@ -12,13 +12,14 @@
                 <!-- see zk configuration guide -->
                 <prop key="tickTime">2000</prop>
                 <prop key="dataDir">/data/zk</prop>
-                <prop key="clientPort">2181</prop>
                 <prop key="initLimit">5</prop>
                 <prop key="syncLimit">2</prop>
+                <prop key="clientPort">2181</prop>
                 <!-- auto purge zookeeper snapshot and transaction logs -->
                 <prop key="autopurge.snapRetainCount">16</prop>
                 <!-- auto purge interval (minutes) -->
                 <prop key="autopurge.purgeInterval">30</prop> 
+                <prop key="server.1">localhost,2888,2889,participant</prop>
             </props>
         </property>
     </bean>

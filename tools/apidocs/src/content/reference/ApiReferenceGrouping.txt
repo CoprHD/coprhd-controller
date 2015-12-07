@@ -95,6 +95,7 @@ com.emc.storageos.systemservices.impl.resource.LogService
 com.emc.storageos.systemservices.impl.resource.PasswordService
 com.emc.storageos.systemservices.impl.resource.UpgradeService
 com.emc.storageos.systemservices.impl.resource.DbConsistencyService
+com.emc.storageos.systemservices.impl.resource.IPsecService
 
 =Other Services
 com.emc.storageos.api.service.impl.resource.AuditService
@@ -106,6 +107,7 @@ MonitoringService
 MeteringService
 WorkflowService
 TaskService
+DisasterRecoveryService
 
 =API Differences
 Block Services

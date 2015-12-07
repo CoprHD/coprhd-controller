@@ -15,8 +15,8 @@ CONFIG_FILE=${1}
 Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
- vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | ecs | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>] | sanzoning'
+ vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr | ipsec} [local|ldap] [<timeslot>] | sanzoning'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -42,6 +42,7 @@ else
     echo "Configuration file $CONFIG_FILE not found"
     Usage
 fi
+
 
 
 [ $# -ge 3 ] || Usage
@@ -103,6 +104,15 @@ elif [ ${SS} = "vdc" ]; then
             AUTH=ldap
         fi
         echo AUTH=$AUTH
+elif [ ${SS} = "dr" ]; then
+        DR_SITE_B_IP=${4}
+        DR_SITE_C_IP=${5}
+        if [ -n "${BOURNE_IPV6_MODE}" ]; then
+            AUTH=ipv6
+        else
+            AUTH=ldap
+        fi
+        echo AUTH=$AUTH
 else
 
 	# By default, we're not running quick sanity
@@ -120,7 +130,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|ecs|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
+    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -228,6 +238,14 @@ VDC_TEST_DISCONN_RECONN_PROJECT=disrecon_vdc_project_$$
 VDC_TEST_REMOVE_PROJECT=testremove_vdc_project_$$
 
 #
+# Disaster Recovery Configuration
+#
+DR_SITE_B_NAME=dr_site_B_$$
+DR_SITE_B_DESCRIPTION="Site B description"
+DR_SITE_C_NAME=dr_site_C_$$
+DR_SITE_C_DESCRIPTION="Site C description"
+DR_SITE_A_NAME="Active"
+#
 # Recovery Configuration
 #
 RECOVERY_CORRUPTED_NODE_IP=
@@ -238,6 +256,7 @@ RECOVERY_CORRUPTED_NODE_IP=
 SHORTENED_HOST=`hostname`
 : ${TENANT=$SHORTENED_HOST}
 : ${PROJECT=sanity}
+: ${SRDF_PROJECT=dontuseme}
 
 SVCUSER=svcuser
 
@@ -775,7 +794,7 @@ tenant_setup()
         tenant add_group $LOCAL_LDAP_AUTHN_DOMAINS "$LOCAL_LDAP_VIPR_USER_GROUP"
         security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
         security login $SYSADMIN $SYSADMIN_PASSWORD
-        tenant add_attribute $LOCAL_LDAP_AUTHN_DOMAINS $LOCAL_LDAP_TENANT_ATTRIBUTE_KEY $LOCAL_LDAP_TENANT_ATTRIBUTE_ROOT_TENANT_VALUE 
+        tenant add_attribute $LOCAL_LDAP_AUTHN_DOMAINS $LOCAL_LDAP_TENANT_ATTRIBUTE_KEY $LOCAL_LDAP_TENANT_ATTRIBUTE_ROOT_TENANT_VALUE
         security add_tenant_role subject_id $LOCAL_LDAP_SUPERUSER_USERNAME TENANT_ADMIN
         security add_zone_role subject_id $LOCAL_LDAP_SUPERUSER_USERNAME SYSTEM_ADMIN
         security add_zone_role subject_id $LOCAL_LDAP_SUPERUSER_USERNAME SYSTEM_MONITOR
@@ -802,6 +821,8 @@ project_setup()
 
     project show $PROJECT &> /dev/null && return $?
     project create $PROJECT --tenant $TENANT 
+    project show $SRDF_PROJECT &> /dev/null && return $?
+    project create $SRDF_PROJECT --tenant $TENANT
     if [ "$EXTRA_PARAM" = "search" ] ; then
         project search $(echo $PROJECT | head -c 2)
         project tag "$PROJECT" $TAG
@@ -1014,8 +1035,11 @@ xtremio_setup()
 {
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-    discoveredsystem show $XTREMIO_NATIVEGUID &> /dev/null && return $?
-    discoveredsystem create $XTREMIO xtremio $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD --serialno=$XTREMIO_SN
+    storageprovider show $XTREMIO  &> /dev/null && return $?
+    echo "Starting storageprovider create"
+    storageprovider create $XTREMIO $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD xtremio 
+    storagedevice discover_all
+    storagedevice list
 
     project_setup
 
@@ -1145,7 +1169,7 @@ srdf_setup_once()
 { 
     login_nd_configure_smtp_nd_add_licenses
     tenant_setup
-    run blockconsistencygroup create $PROJECT $CONSISTENCY_GROUP_SRDF
+    run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
@@ -1282,7 +1306,7 @@ srdf_cos_change_meta()
 {
    # Create non-protected meta volume, then move it to a cos that has protection
    srdfvolumeccmeta="${SRDF_VOLUME}-coschangemeta"
-   run volume create ${srdfvolumeccmeta} $PROJECT $NH $COS_VMAXBLOCK_SRDF_TARGET 300GB
+   run volume create ${srdfvolumeccmeta} $SRDF_PROJECT $NH $COS_VMAXBLOCK_SRDF_TARGET 300GB
    echo "Created volume, now sleeping..."
    sleep 60
    echo "Changing cos..."
@@ -1290,7 +1314,7 @@ srdf_cos_change_meta()
    echo "Changed cos"
    sleep 60
    echo "Deleting volume"
-   run volume delete $PROJECT/${srdfvolumeccmeta} --wait
+   run volume delete $SRDF_PROJECT/${srdfvolumeccmeta} --wait
 }
 
 
@@ -1298,12 +1322,12 @@ srdf_cos_change_meta()
 srdf_basic_sync_test()
 {
    srdfvolume="${SRDF_VOLUME}_sync"
-   run volume create ${srdfvolume}1 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB
    sleep 300
    #run volume create ${srdfvolume}2 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB --consistencygroup $CONSISTENCY_GROUP_SRDF
    #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB --count 2
    #run volume delete $PROJECT/${srdfvolume}2 --wait
-   run volume delete $PROJECT/${srdfvolume}1 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-2 --wait
 }
@@ -1311,14 +1335,14 @@ srdf_basic_sync_test()
 srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
-   run volume create ${srdfvolume}1 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
-   run volume create ${srdfvolume}2 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
    echo "Created 2 volumes... now going to sleep..."
    sleep 60
    echo "Deleting volumes..."
    #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --count 2
-   run volume delete $PROJECT/${srdfvolume}2 --wait
-   run volume delete $PROJECT/${srdfvolume}1 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-2 --wait
 }
@@ -6265,6 +6289,473 @@ monitor_tests()
     monitor query $timeslot $language
 }
 
+dr_setup()
+{
+    if [ -z "$DR_SITE_B_IP" ] ; then
+        echo -e "\nFail: Usage of dr sanity test is like:\n ./sanity 255.254.253.site1 dr 255.254.253.site2\nOr multi site configuration can be tested:\n ./sanity 255.254.253.site1 dr 255.254.253.site2 255.254.253.site3"
+        exit 1
+    fi
+
+    vdc_common_setup
+
+    #setting pipefail option to pipe exit codes
+    set -o pipefail
+
+    DR_SITE_A_IP=$BOURNE_IPADDR
+    security login $SYSADMIN $SYSADMIN_PASSWORD
+    LOCAL_LDAP_GROUPUSER_USERNAME='ldapvipruser1@viprsanity.com'
+
+}
+
+# method to wait for all sites that are given as arguments to be stable
+# each one wait 600 seconds and check every 10 seconds
+wait_for_site_stable()
+{
+    local old_bourne_ipaddr=$BOURNE_IPADDR
+    for ip in "$@"
+    do
+        echo "Waiting for $ip to be stable ..."
+        BOURNE_IPADDR=$ip
+        security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+        dr waitforstable --ip $ip 10 600
+    done
+    BOURNE_IPADDR=$old_bourne_ipaddr
+}
+
+dr_tests()
+{
+    if [ -z "$DR_SITE_C_IP" ]; then
+        dr_basic_tests
+    else
+        dr_multisite_tests
+    fi
+}
+
+dr_basic_tests()
+{
+    projectid=$(project query $PROJECT)
+    echo "Project id of $PROJECT is $projectid."
+    
+    active_site=$(dr find state ACTIVE|tail -1) || { echo "get dr active site failed."; echo $active_site; exit 1; }
+    echo "active uuid is $active_site"
+    
+    echo "---ADD STANDBY SITE---"
+    echo "Adding new standby into current vipr system"
+    standby_site=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" $DR_SITE_B_IP $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site; exit 1; }
+    echo "Adding dr done"
+    echo "stanby uuid is $standby_site"    
+
+    echo "---GET SITES---"
+    dr list
+
+    echo "---GET SITE $standby_site---"
+    dr get $standby_site
+
+    echo "---VERIFY SITE $standby_site---"
+    name=$(dr get $standby_site name|tail -1)
+    description=$(dr get $standby_site description|tail -1)
+    vip=$(dr get $standby_site vip|tail -1)
+
+    if [ "$vip" != "$DR_SITE_B_IP" ] ; then
+        echo -e "Fail: site vip \"$vip\" isn't equalt to \"$DR_SITE_B_IP\""
+        exit 1
+    fi
+
+    if [ "$name" != "$DR_SITE_B_NAME" ] ; then
+        echo -e "Fail: site name \"$name\" isn't equalt to \"$DR_SITE_B_NAME\""
+        exit 1
+    fi
+
+    if [ "$description" != "$DR_SITE_B_DESCRIPTION" ] ; then
+        echo -e "Fail: site description \"$description\" isn't equalt to \"$DR_SITE_B_DESCRIPTION\""
+        exit 1
+    fi
+
+    
+    echo "---WAIT FOR SYNC $standby_site---"
+    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
+    echo "Syncing dr done"
+
+    echo "---WAIT 1m FOR $standby_site TO BOOTSTRAP---"
+    sleep 60
+
+    # login to standby with auth
+    echo "---VERIFY PROJECT SYNCED $standby_site---"
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    
+    echo "---WAIT FOR STABLE $standby_site---"
+    dr waitforstable 30 1200
+
+    # verify project
+    project show $projectid
+
+    # verify sites in standby
+    echo "---VERIFY sites from standby $standby_site---"
+    dr get $standby_site
+    dr get $active_site
+    dr checkstandby $DR_SITE_A_IP
+
+    # wait for both sites stable so able to pause standby
+    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP
+
+    # pause standby
+    echo "---PAUSE SITE $standby_site---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr pause $standby_site || { echo "pause dr standby site failed."; exit 1; }
+
+    echo "---WAIT 30s FOR $active_site TO STABILIZE---"
+    sleep 30
+
+    echo "---WAIT FOR PAUSE $standby_site---"
+    dr waitforstate $standby_site STANDBY_PAUSED 30 1200
+    echo "Pausing dr done"
+
+    echo "---CREATE A NEW PROJECT ON ACTIVE---"
+    PROJECT_NEW=${PROJECT}_new
+    project create ${PROJECT_NEW} --tenant $TENANT
+    projectid_new=$(project query ${PROJECT_NEW})
+    echo "Project id of ${PROJECT_NEW} is ${projectid_new}."
+
+    echo "---RESUME SITE $standby_site---"
+    dr resume $standby_site || { echo "resume dr standby site failed."; exit 1; }
+
+    echo "---WAIT FOR SYNC $standby_site---"
+    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
+    echo "Syncing dr done"
+
+    echo "---VERIFY NEW PROJECT FROM $standby_site---"
+    sleep 30
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    echo "wait for $standby_site to become stable"
+    dr waitforstable 30 1200
+    project show ${projectid_new}
+
+    # wait both active and standby to be stable, ready to do switchover
+    echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
+    # there's no point in updating the property on both active and standby since they are shared
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
+    dr waitforstable 10 600
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable 10 600
+
+    # switchover to standby
+    echo "---SWITCHOVER FROM TO $active_site TO $standby_site---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr switchover $standby_site
+
+    echo "---WAIT 7m AFTER SWITCHOVER FOR THE REBOOT---"
+    sleep 420
+
+    # verify switchover status
+    echo "---WAIT FOR SWITCHOVER FROM $active_site TO $standby_site DONE---"
+    dr waitforstate $standby_site ACTIVE 10 1200 && echo "standby has been switched into active"
+    dr waitforstate $active_site STANDBY_SYNCED 10 1200 && echo "active has been switched into standby"
+
+    # by now, active site and standby site has been switched, need to switch variables accordingly
+    local switch_tmp
+    switch_tmp=$DR_SITE_A_IP; DR_SITE_A_IP=$DR_SITE_B_IP; DR_SITE_B_IP=$switch_tmp
+    switch_tmp=$DR_SITE_A_NAME; DR_SITE_A_NAME=$DR_SITE_B_NAME; DR_SITE_B_NAME=$switch_tmp
+    switch_tmp=$active_site; active_site=$standby_site; standby_site=$switch_tmp
+
+    # delete standby
+    echo "---DELETE STANDBY $standby_site---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr delete $standby_site
+
+    echo "---WAIT FOR REMOVED $standby_site---should throw exceptions---"
+    dr waitforstate $standby_site STANDBY_REMOVING 30 600 -n|| echo "standby removed"
+    echo "Removing dr done"
+
+    # verify deleted
+    echo "---VERIFY STANDBY DELETED $standby_site---should throw exceptions---"
+    dr list $DR_SITE_B_NAME || echo "standby removed from site list"
+    dr get $standby_site || echo "standby uuid removed from active"
+    
+    # verify active still works
+    TESTPROJECT=dr_project_$$
+    echo "---CREATE PROJECT $TESTPROJECT ON ACTIVE $active_site---"
+    project show $TESTPROJECT &> /dev/null && return $?
+    project create $TESTPROJECT --tenant $TENANT
+    test_projectid=$(project query $TESTPROJECT)
+    echo "Project id of $TESTPROJECT is $test_projectid."
+
+    #disabling pipefail option to pipe exit codes
+    set +o pipefail
+}
+
+dr_multisite_tests()
+{
+    projectid=$(project query $PROJECT)
+    echo "Project id of $PROJECT is $projectid."
+
+    active_site=$(dr find state ACTIVE|tail -1) || { echo "get dr active site failed."; echo $active_site; exit 1; }
+    echo "active uuid is $active_site"
+    
+    echo "---ADD STANDBY SITE B---"
+    echo "Adding new standby into current vipr system"
+    standby_site_b=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" $DR_SITE_B_IP $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site_b; exit 1; }
+    echo "Adding dr done"
+    echo "stanby uuid is $standby_site_b"    
+
+    echo "---GET SITES---"
+    dr list
+
+    echo "---GET SITE $standby_site_b---"
+    dr get $standby_site_b
+
+    echo "---VERIFY SITE $standby_site_b---"
+    name=$(dr get $standby_site_b name|tail -1)
+    description=$(dr get $standby_site_b description|tail -1)
+    vip=$(dr get $standby_site_b vip|tail -1)
+
+    if [ "$vip" != "$DR_SITE_B_IP" ] ; then
+        echo -e "Fail: site vip \"$vip\" isn't equalt to \"$DR_SITE_B_IP\""
+        exit 1
+    fi
+
+    if [ "$name" != "$DR_SITE_B_NAME" ] ; then
+        echo -e "Fail: site name \"$name\" isn't equalt to \"$DR_SITE_B_NAME\""
+        exit 1
+    fi
+
+    if [ "$description" != "$DR_SITE_B_DESCRIPTION" ] ; then
+        echo -e "Fail: site description \"$description\" isn't equalt to \"$DR_SITE_B_DESCRIPTION\""
+        exit 1
+    fi
+
+    
+    echo "---WAIT FOR SYNC $standby_site_b---"
+    dr waitforstate $standby_site_b STANDBY_SYNCED 30 600
+    echo "Syncing dr done"
+
+    echo "---WAIT 1m FOR $standby_site_b TO BOOTSTRAP---"
+    sleep 60
+
+    # login to standby with auth
+    echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site_b---"
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+
+    echo "---WAIT FOR STABLE $standby_site_b---"
+    dr waitforstable 30 1200
+
+    # verify project
+    echo "---VERIFY PROJECT SYNCED $standby_site_b---"
+    project show $projectid
+
+    # verify sites in standby
+    echo "---VERIFY sites from standby $standby_site_b---"
+    dr get $standby_site_b
+    dr get $active_site
+
+    dr waitforstable 10 600
+
+    echo "---ADD STANDBY SITE C---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    echo "Adding new standby into current vipr system"
+    standby_site_c=$(dr add $DR_SITE_C_NAME "$DR_SITE_C_DESCRIPTION" $DR_SITE_C_IP $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site c failed."; echo $standby_site_c; exit 1; }
+    echo "Adding dr site c done"
+    echo "stanby uuid is $standby_site_c"
+
+    echo "---GET SITES---"
+    dr list
+
+    echo "---GET SITE $standby_site_c---"
+    dr get $standby_site_c
+
+    echo "---VERIFY SITE $standby_site_c---"
+    name=$(dr get $standby_site_c name|tail -1)
+    description=$(dr get $standby_site_c description|tail -1)
+    vip=$(dr get $standby_site_c vip|tail -1)
+
+    if [ "$vip" != "$DR_SITE_C_IP" ] ; then
+        echo -e "Fail: site vip \"$vip\" isn't equalt to \"$DR_SITE_C_IP\""
+        exit 1
+    fi
+
+    if [ "$name" != "$DR_SITE_C_NAME" ] ; then
+        echo -e "Fail: site name \"$name\" isn't equalt to \"$DR_SITE_C_NAME\""
+        exit 1
+    fi
+
+    if [ "$description" != "$DR_SITE_C_DESCRIPTION" ] ; then
+        echo -e "Fail: site description \"$description\" isn't equalt to \"$DR_SITE_C_DESCRIPTION\""
+        exit 1
+    fi
+
+
+    echo "---WAIT FOR SYNC $standby_site_c---"
+    dr waitforstate $standby_site_c STANDBY_SYNCED 30 600
+    echo "Syncing dr done"
+
+    echo "---WAIT 1m FOR $standby_site_c TO BOOTSTRAP---"
+    sleep 60
+
+    # login to standby with auth
+    echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site_c---"
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+
+    echo "---WAIT FOR STABLE $standby_site_c---"
+    dr waitforstable 30 1200
+
+    # verify project
+    echo "---VERIFY PROJECT SYNCED $standby_site_c---"
+    project show $projectid
+
+    # verify sites in standby
+    echo "---VERIFY sites from standby $standby_site_c---"
+    dr get $standby_site_b
+    dr get $standby_site_c
+    dr get $active_site
+
+    # login to standby with auth
+    echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site_b---"
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+
+    # verify sites in standby
+    echo "---VERIFY sites from standby $standby_site_b---"
+    dr get $standby_site_b
+    dr get $standby_site_c
+    dr get $active_site
+
+    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP $DR_SITE_C_IP
+
+    # pause standby b
+    echo "---PAUSE SITE $standby_site_b---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr pause $standby_site_b || { echo "pause dr standby site b failed."; exit 1; }
+
+    echo "---WAIT 30s FOR $active_site_b TO STABILIZE---"
+    sleep 30
+
+    echo "---WAIT FOR PAUSE $standby_site_b---"
+    dr waitforstate $standby_site_b STANDBY_PAUSED 30 1200
+    echo "Pausing dr done"
+
+    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP $DR_SITE_C_IP
+
+    # pause standby c
+    echo "---PAUSE SITE $standby_site_c---"
+    dr pause $standby_site_c || { echo "pause dr standby site c failed."; exit 1; }
+
+    echo "---WAIT 30s FOR $active_site_c TO STABILIZE---"
+    sleep 30
+
+    echo "---WAIT FOR PAUSE $standby_site_c---"
+    dr waitforstate $standby_site_c STANDBY_PAUSED 30 1200
+    echo "Pausing dr done"
+
+    echo "---CREATE A NEW PROJECT ON ACTIVE---"
+    PROJECT_NEW=${PROJECT}_new
+    project create ${PROJECT_NEW} --tenant $TENANT
+    projectid_new=$(project query ${PROJECT_NEW})
+    echo "Project id of ${PROJECT_NEW} is ${projectid_new}."
+
+    echo "---RESUME SITE $standby_site_b---"
+    dr resume $standby_site_b || { echo "resume dr standby site b failed."; exit 1; }
+
+    echo "---WAIT FOR SYNC $standby_site_b---"
+    dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
+    echo "Syncing dr done"
+
+    echo "---WAIT 30s TO STABILIZE---"
+    sleep 30
+
+    echo "---VERIFY NEW PROJECT FROM $standby_site_b---"
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    echo "wait for $standby_site_b to be stable"
+    dr waitforstable 30 1200
+    project show ${projectid_new}
+
+    echo "---RESUME SITE $standby_site_c---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr resume $standby_site_c || { echo "resume dr standby site c failed."; exit 1; }
+
+    echo "---WAIT FOR SYNC $standby_site_c---"
+    dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
+    echo "Syncing dr done"
+
+    echo "---WAIT 30s TO STABILIZE---"
+    sleep 30
+
+    echo "---VERIFY NEW PROJECT FROM $standby_site_c---"
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    echo "wait for $standby_site_b to be stable"
+    dr waitforstable 30 1200
+    project show ${projectid_new}
+
+    # delete standby
+    echo "---DELETE STANDBY $standby_site_b---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr delete $standby_site_b
+
+    echo "---WAIT FOR REMOVED $standby_site_b---should throw exceptions---"
+    dr waitforstate $standby_site_b STANDBY_REMOVING 30 600 -n|| echo "standby removed"
+    echo "Removing dr done"
+
+    # verify deleted
+    echo "---VERIFY STANDBY DELETED $standby_site_b---should throw exceptions---"
+    dr list $DR_SITE_B_NAME || echo "standby removed from site list"
+    dr get $standby_site_b || echo "standby uuid removed from active"
+
+    # verify active still works
+    TESTPROJECT=dr_project_$$
+    echo "---CREATE PROJECT $TESTPROJECT ON ACTIVE $active_site---"
+    project show $TESTPROJECT &> /dev/null && return $?
+    project create $TESTPROJECT --tenant $TENANT
+    test_projectid=$(project query $TESTPROJECT)
+    echo "Project id of $TESTPROJECT is $test_projectid."
+
+    # verify stanby C still syncs
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    project show $test_projectid
+
+    echo "Power off active site $DR_SITE_A_IP to do failover"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr poweroffcluster $DR_SITE_A_IP
+
+    echo "Sleep 300 seconds to wait standby ZK switch to participant"
+    sleep 300
+
+    echo "Wait for stable"
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip $DR_SITE_C_IP 10 600
+
+    echo "Failover to promote site $DR_SITE_C_NAME as active"
+    dr failover --ip $DR_SITE_C_IP $standby_site_c
+    sleep 300
+
+    echo "Wait for stable"
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip $DR_SITE_C_IP 10 600
+
+    echo "Wait site state to be PRIAMRY after failover"
+    dr waitforstate $standby_site_c ACTIVE 30 600 --ip $DR_SITE_C_IP
+
+    #disabling pipefail option to pipe exit codes
+    set +o pipefail
+}
+
 vdc_setup()
 {
 	vdc_common_setup	
@@ -6283,6 +6774,32 @@ vdc_common_setup()
     echo "Project id of $PROJECT is $projectid."
     
     export BOURNE_API_SYNC_TIMEOUT=5600
+}
+
+ipsec_setup()
+{
+    echo "No setup needed"
+}
+
+ipsec_tests() 
+{
+    echo "--- IPSEC Key Rotation ---"
+    ipsec keyrotate || { echo "key rotation failed."; exit 1; }
+    echo "Key Rotation done"
+
+    echo "Checking IPsec status"
+    local result=1
+    for i in {1..5}; do
+        ./ipsec check
+        [[ $? == 0 ]] && { result=0; break; }
+        sleep 5
+    done
+
+    if [[ $result == 1 ]]; then 
+        echo "ipsec is not good"
+        exit 1
+    fi
+    echo "IPsec status checking is done." 
 }
 
 sec_start_ldap_server()
@@ -6908,7 +7425,7 @@ fail(){
 
 trap _failure ERR INT
 set -E
-if [ "$2" != "recoverpoint" ] && [ "$2" != "vdc" ]; then
+if [ "$3" != "recoverpoint" ] && [ "$3" != "vdc" ] && [ "$3" != "dr" ]; then
     common_setup	
 fi
 

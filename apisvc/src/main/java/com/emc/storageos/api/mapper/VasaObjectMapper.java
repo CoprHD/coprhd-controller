@@ -6,9 +6,14 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 import java.net.URI;
 
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
+import com.emc.storageos.db.client.model.CapabilityProfile;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ProtocolEndpoint;
 import com.emc.storageos.db.client.model.StorageContainer;
+import com.emc.storageos.db.client.model.VVol;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.vasa.CapabilityProfileCreateResponse;
 import com.emc.storageos.model.vasa.StorageContainerCreateResponse;
 import com.emc.storageos.model.vasa.VasaCommonRestResponse;
 
@@ -19,28 +24,63 @@ public class VasaObjectMapper {
             return null;
         }
         StorageContainerCreateResponse to = new StorageContainerCreateResponse();
-        to.setProtocolEndPointType(from.getProtocolEndPointType());
-        to.setMaxVvolSizeMB(from.getMaxVvolSizeMB());
-        to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystem()));
         
-        return mapCommonVasaFields(from, to);
-    }
-
-    private static <T extends VasaCommonRestResponse> T mapCommonVasaFields(StorageContainer from, T to) {
-        mapDataObjectFieldsNoLink(from, to);
-        ResourceTypeEnum type = ResourceTypeEnum.STORAGE_CONTAINER;
-        to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(type, from.getId())));
         to.setType(from.getType());
         to.setDescription(from.getDescription());
         to.setProtocols(from.getProtocols());
-        to.setProvisioningType(from.getProvisioningType());        
+        to.setProvisioningType(from.getProvisioningType()); 
         
+        to.setProtocolEndPointType(from.getProtocolEndPointType());
+        to.setMaxVvolSizeMB(from.getMaxVvolSizeMB());
+        to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystem()));
         if (from.getVirtualArrays() != null) {
             for (String neighborhood : from.getVirtualArrays()) {
                 to.getVirtualArrays().add(toRelatedResource(ResourceTypeEnum.VARRAY, URI.create(neighborhood)));
             }
         }
         
+        return mapCommonVasaFields(from, to);
+    }
+
+    private static <T extends VasaCommonRestResponse> T mapCommonVasaFields(DataObject from, T to) {
+        mapDataObjectFieldsNoLink(from, to);
+        ResourceTypeEnum type = getResource(from);
+        to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(type, from.getId())));       
         return to;
     }
+    
+    public static CapabilityProfileCreateResponse toCapabilityProfile(CapabilityProfile from){
+        if(from == null){
+            return null;
+        }
+        CapabilityProfileCreateResponse to = new CapabilityProfileCreateResponse();
+        to.setType(from.getType());
+        to.setDescription(from.getDescription());
+        to.setProtocols(from.getProtocols());
+        to.setProvisioningType(from.getProvisioningType());
+        
+        to.setProtocolEndPointType(from.getProtocolEndPointType());
+        to.setQuotaGB(from.getQuotaGB());
+        to.setDriveType(from.getDriveType());
+        to.setHighAvailability(from.getHighAvailability());
+        
+        return mapCommonVasaFields(from, to);
+        
+    }
+    
+    private static ResourceTypeEnum getResource(DataObject obj){
+        if(obj instanceof StorageContainer){
+            return ResourceTypeEnum.STORAGE_CONTAINER;
+        }else if(obj instanceof CapabilityProfile){
+            return ResourceTypeEnum.CAPABILITY_PROFILE;
+        }else if(obj instanceof ProtocolEndpoint){
+            return ResourceTypeEnum.PROTOCOL_ENDPOINT;
+        }else if(obj instanceof VVol){
+            return ResourceTypeEnum.V_VOL;
+        }
+        return null;
+        
+    }
+    
+
 }

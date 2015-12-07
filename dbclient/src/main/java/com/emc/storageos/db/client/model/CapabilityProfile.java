@@ -32,6 +32,10 @@ public class CapabilityProfile extends DiscoveredDataObject{
     private String protocolEndPointType;
     
     private StringSetMap arrayInfo;
+    
+    private String type;
+    
+    private String protocolType;
 
     @Name("storageProfileId")
     public String getStorageProfileId() {
@@ -176,6 +180,41 @@ public class CapabilityProfile extends DiscoveredDataObject{
         this.arrayInfo = arrayInfo;
         setChanged("arrayInfo");
     }
+
+    @Name("type")
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+        setChanged("type");
+    }
+    
+    @Name("protocolType")
+    public String getProtocolType() {
+        return protocolType;
+    }
+
+    public void setProtocolType(String protocolType) {
+        this.protocolType = protocolType;
+        setChanged("protocolType");
+    }
+
+    public static enum Type {
+        physical, geo;
+        private static final Type[] capabilityProfiles = values();
+        
+        public static Type lookup(final String name){
+            for(Type value : capabilityProfiles){
+                if(value.name().equals(name)){
+                    return value;
+                }
+            }
+            return null;
+        }
+    }
+
     
     
 }

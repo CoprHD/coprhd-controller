@@ -3,7 +3,6 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.VasaObjectMapper.toStorageContainer;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -12,7 +11,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +48,7 @@ public class StorageContainerService extends AbstractStorageContainerService {
     public StorageContainerCreateResponse createStorageContainer(
             StorageContainerRequestParam param) throws DatabaseException {
         ArgValidator.checkFieldNotEmpty(param.getName(), NAME);
-        checkForDuplicateName(param.getName(), VirtualPool.class);
+        checkForDuplicateName(param.getName(), StorageContainer.class);
         ArgValidator.checkFieldNotEmpty(param.getDescription(), DESCRIPTION);
         StorageContainer storageContainer = prepareStorageContainer(param);
         
@@ -70,7 +68,6 @@ public class StorageContainerService extends AbstractStorageContainerService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public StorageContainerBulkResponse getResponseStatus() {
-        _log.info("*******enter in get response***********");
         List<URI> storageContainerUris = _dbClient.queryByType(StorageContainer.class, true);
         List<StorageContainer> storageContainers = _dbClient.queryObject(StorageContainer.class, storageContainerUris);
         StorageContainerBulkResponse storageContainerBulkResponse = new StorageContainerBulkResponse();

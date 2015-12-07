@@ -205,6 +205,11 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
+    
+    <bean id="capabilityProfileService" class="com.emc.storageos.api.service.impl.resource.CapabilityProfileService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
 
     <bean id="virtualArrayService" class="com.emc.storageos.api.service.impl.resource.VirtualArrayService">
         <property name="dbClient" ref="dbclient"/>
@@ -437,6 +442,7 @@
                 <ref bean="fileVirtualPoolService"/>
                 <ref bean="objectVirtualPoolService"/>
                 <ref bean="storageContainerService"/>
+                <ref bean="capabilityProfileService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.BlockVirtualPoolService">
                   <property name="dbClient" ref="dbclient"/>
                   <property name="coordinator" ref="coordinator"/>

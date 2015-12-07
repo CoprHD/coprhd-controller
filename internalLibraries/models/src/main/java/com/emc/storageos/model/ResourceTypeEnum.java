@@ -75,7 +75,10 @@ public enum ResourceTypeEnum {
     USER_GROUP("user_group", "/vdc/admin/user-groups"),
     VIRTUAL_NAS("vnas-servers", "/vdc/vnas-servers"),
     COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers"),
-    STORAGE_CONTAINER("storage_container", "/vasa/storagecontainer");
+    STORAGE_CONTAINER("storage_container", "/vasa/storagecontainer"),
+    CAPABILITY_PROFILE("capability_profile", "/vasa/capabilityprofile"),
+    PROTOCOL_ENDPOINT("protocol_endpoint", "/vasa/protocolendpoint"),
+    V_VOL("v_vol", "/vasa/v_vol");
     private final String type;
     private final String service;
 

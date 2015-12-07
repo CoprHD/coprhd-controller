@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.StorageContainer;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.vasa.StorageContainerBulkResponse;
 import com.emc.storageos.model.vasa.StorageContainerCreateResponse;
@@ -67,7 +66,7 @@ public class StorageContainerService extends AbstractStorageContainerService {
     
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public StorageContainerBulkResponse getResponseStatus() {
+    public StorageContainerBulkResponse getStorageContainers() {
         List<URI> storageContainerUris = _dbClient.queryByType(StorageContainer.class, true);
         List<StorageContainer> storageContainers = _dbClient.queryObject(StorageContainer.class, storageContainerUris);
         StorageContainerBulkResponse storageContainerBulkResponse = new StorageContainerBulkResponse();

@@ -2,20 +2,24 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.VasaObjectMapper.toCapabilityProfile;
 
+import java.net.URI;
+import java.util.List;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.CapabilityProfile;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.model.vasa.CapabilityProfileBulkResponse;
 import com.emc.storageos.model.vasa.CapabilityProfileCreateRequestParam;
+import com.emc.storageos.model.vasa.CapabilityProfileCreateResponse;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -33,13 +37,13 @@ public class CapabilityProfileService extends AbstractCapabilityProfileService{
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public void createCapabilityProfile(CapabilityProfileCreateRequestParam param) throws DatabaseException{
+    public CapabilityProfileCreateResponse createCapabilityProfile(CapabilityProfileCreateRequestParam param) throws DatabaseException{
         ArgValidator.checkFieldNotEmpty(param.getName(), NAME);
         checkForDuplicateName(param.getName(), CapabilityProfile.class);
         ArgValidator.checkFieldNotEmpty(param.getDescription(), DESCRIPTION);
         CapabilityProfile capabilityProfile = prepareCapabilityProfile(param);
         
-        toCapabilityProfile(capabilityProfile);
+        return toCapabilityProfile(capabilityProfile);
     }
 
     private CapabilityProfile prepareCapabilityProfile(CapabilityProfileCreateRequestParam param) {
@@ -53,8 +57,18 @@ public class CapabilityProfileService extends AbstractCapabilityProfileService{
     
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response getCapabilityProfiles(){
+    public CapabilityProfileBulkResponse getCapabilityProfiles(){
         _log.info("@@@@@@@@ Getting Capability Profiles @@@@@@@@@@@");
-        return Response.status(200).build();
+        List<URI> capabilityProfileUris = _dbClient.queryByType(CapabilityProfile.class, true);
+        List<CapabilityProfile> capabilityProfiles = _dbClient.queryObject(CapabilityProfile.class, capabilityProfileUris);
+        CapabilityProfileBulkResponse capabilityProfileBulkResponse = new CapabilityProfileBulkResponse();
+        if(null != capabilityProfiles){
+            for(CapabilityProfile capabilityProfile : capabilityProfiles){
+                if(capabilityProfile != null){
+                    capabilityProfileBulkResponse.getCapabilityProfiles().add(toCapabilityProfile(capabilityProfile));
+                }
+            }
+        }
+        return capabilityProfileBulkResponse;
     }
 }

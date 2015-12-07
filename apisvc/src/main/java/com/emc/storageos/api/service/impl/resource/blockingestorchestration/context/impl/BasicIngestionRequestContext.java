@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl;
 
 import java.net.URI;
@@ -27,30 +31,6 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
-/**
- * IngestionRequestContext is instantiated once per user request
- * for ingestion of UnManagedVolumes in the UnManagedVolume service.
- * It can be used for ingestion of both exported and unexported volumes.
- * 
- * This class implements Iterator<UnManagedVolume> and holds a nested
- * iterator of URI for these UnManagedVolumes, so the UnManagedVolumeService
- * can iterate this class directly.  Each UnManagedVolume is
- * instantiated when next is called, and this ensure the current unmanaged
- * volume is set correctly and the current VolumeIngestionContext is
- * created for the currently iterating volume.
- * 
- * This class includes a VolumeIngestionContextFactory that will 
- * creates the correct VolumeIngestionContext object for the current
- * volume based on the UnManagedVolume type.
- * 
- * This class holds all the tracking collections for persistence of
- * ingested unmanaged objects at the end of a successful ingestion run.
- * 
- * And finally, it has a rollbackAll method which can rollback all
- * VolumeIngestionContexts in the event of an overall failure (but
- * generally rollback would only happen on an individual volume if
- * something about that volume's ingestion failed).
- */
 public class BasicIngestionRequestContext implements IngestionRequestContext {
 
     private static Logger _logger = LoggerFactory.getLogger(BasicIngestionRequestContext.class);

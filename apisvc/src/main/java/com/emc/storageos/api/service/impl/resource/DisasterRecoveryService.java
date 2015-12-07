@@ -597,6 +597,7 @@ public class DisasterRecoveryService {
         String siteIdStr = StringUtils.join(siteIdList, ",");
         log.info("Begin to pause standby site from local vdc by uuid: {}", siteIdStr);
         List<Site> toBePausedSites = new ArrayList<>();
+        List<String> siteNameList = new ArrayList<>();
         for (String siteId : siteIdList) {
             Site site;
             try {
@@ -615,12 +616,16 @@ public class DisasterRecoveryService {
                 throw APIException.badRequests.operationOnlyAllowedOnSyncedSite(siteId, state.toString());
             }
             toBePausedSites.add(site);
+            siteNameList.add(site.getName());
         }
+
+        // This String is only used to output human readable message to user when Exception is thrown
+        String siteNameStr = StringUtils.join(siteNameList, ',');
 
         try {
             commonPrecheck(siteIdList);
         } catch (IllegalStateException e) {
-            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteIdStr, e.getMessage());
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNameStr, e.getMessage());
         }
 
         InterProcessLock lock = getDROperationLock();
@@ -648,7 +653,7 @@ public class DisasterRecoveryService {
         } catch (Exception e) {
             log.error("Failed to pause site {}", siteIdStr, e);
             auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, siteIdStr);
-            throw APIException.internalServerErrors.pauseStandbyFailed(siteIdStr, e.getMessage());
+            throw APIException.internalServerErrors.pauseStandbyFailed(siteNameStr, e.getMessage());
         } finally {
             try {
                 lock.release();

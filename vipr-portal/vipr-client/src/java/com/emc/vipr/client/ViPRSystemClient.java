@@ -4,6 +4,7 @@
  */
 package com.emc.vipr.client;
 
+import com.emc.vipr.client.core.ApplicationSupport;
 import com.emc.vipr.client.core.Backup;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.system.*;
@@ -106,5 +107,9 @@ public class ViPRSystemClient {
     
     public Backup backup(){
     	return new Backup(client);
+    }
+
+    public ApplicationSupport application() {
+        return new ApplicationSupport(client);
     }
 }

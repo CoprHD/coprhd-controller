@@ -43,9 +43,9 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
-public class RPVolumeIngestionContext extends BlockVolumeIngestionContext implements IngestionRequestContext {
+public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionContext implements IngestionRequestContext {
 
-    private static final Logger _logger = LoggerFactory.getLogger(RPVolumeIngestionContext.class);
+    private static final Logger _logger = LoggerFactory.getLogger(RecoverPointVolumeIngestionContext.class);
 
     
     
@@ -80,7 +80,7 @@ public class RPVolumeIngestionContext extends BlockVolumeIngestionContext implem
     private ProtectionSet managedProtectionSet;
     private BlockConsistencyGroup managedBlockConsistencyGroup;
 
-    public RPVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient,
+    public RecoverPointVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient,
             IngestionRequestContext parentRequestContext) {
         super(unManagedVolume, dbClient);
         this.parentRequestContext = parentRequestContext;

@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RPVolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
@@ -125,7 +125,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz) 
             throws IngestionException {
         
-        RPVolumeIngestionContext volumeContext = (RPVolumeIngestionContext) requestContext.getVolumeContext();
+        RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext();
         Volume volume = null; 
         
         try {
@@ -180,7 +180,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * @param vplexIngestionMethod vplex ingestion method
      * @return Volume of a managed RP volume
      */
-    private <T extends BlockObject> T ingestBlockObjectsInternal(RPVolumeIngestionContext volumeContext, 
+    private <T extends BlockObject> T ingestBlockObjectsInternal(RecoverPointVolumeIngestionContext volumeContext, 
             Class<T> clazz) {
 
         UnManagedVolume unManagedVolume = volumeContext.getUnmanagedVolume();
@@ -253,7 +253,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * 
      * @param umpset unmanaged protection set.
      */
-    private void performAutoIngestOnRemainingVolumes(RPVolumeIngestionContext context, 
+    private void performAutoIngestOnRemainingVolumes(RecoverPointVolumeIngestionContext context, 
             UnManagedProtectionSet umpset, List<URI> systemCache, List<URI> poolCache, Project project, 
             TenantOrg tenant, List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed, 
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, 

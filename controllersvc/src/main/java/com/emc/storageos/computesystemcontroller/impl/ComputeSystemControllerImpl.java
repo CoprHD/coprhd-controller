@@ -1082,13 +1082,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             _log.info("Number of deleted clusters: " + deletedClusters.size());
 
             for (URI clusterId : deletedClusters) {
-                // the cluster's hosts will already be processed as deletedHosts
-                List<ExportGroup> clusterExportGroups = getSharedExports(clusterId);
-                for (ExportGroup export : clusterExportGroups) {
-                    ExportGroupState egh = getExportGroupState(exportGroups, export);
-                    egh.removeCluster(clusterId);
+                Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
+                if (!cluster.getAutoExportEnabled()) {
+                    _log.info("Cluster " + clusterId + " can not be deleted because it has auto exports disabled");
+                } else {
+                    // the cluster's hosts will already be processed as deletedHosts
+                    List<ExportGroup> clusterExportGroups = getSharedExports(clusterId);
+                    for (ExportGroup export : clusterExportGroups) {
+                        ExportGroupState egh = getExportGroupState(exportGroups, export);
+                        egh.removeCluster(clusterId);
+                    }
                 }
-
             }
 
             _log.info("Number of ExportGroupStates: " + exportGroups.size());

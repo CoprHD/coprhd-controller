@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
+import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.NfsShareCreateForSnapParam;
 import com.emc.storageos.vnxe.models.NfsShareModifyForShareParam;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
@@ -45,42 +46,62 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
      * @param shareName
      * @return
      */
-    public VNXeNfsShare findNfsShare(String fsId, String shareName) {
-
-        StringBuilder queryFilter = new StringBuilder(VNXeConstants.NAME_FILTER);
-        queryFilter.append(shareName);
-        queryFilter.append(VNXeConstants.AND);
-        queryFilter.append(VNXeConstants.FILE_SYSTEM_FILTER);
-        queryFilter.append(fsId);
-        setFilter(queryFilter.toString());
-
+    public VNXeNfsShare findNfsShare(String fsId, String shareName, String softwareVersion) {
         VNXeNfsShare result = null;
+        StringBuilder queryFilter = new StringBuilder(VNXeConstants.NAME_FILTER);
+
+        if (!VNXeUtils.isHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
+            queryFilter.append(shareName);
+            queryFilter.append(VNXeConstants.AND);
+            queryFilter.append(VNXeConstants.FILE_SYSTEM_FILTER);
+            queryFilter.append(fsId);
+        } else {
+            queryFilter.append("\"" + shareName + "\"");
+            queryFilter.append(VNXeConstants.AND);
+            queryFilter.append(VNXeConstants.FILE_SYSTEM_FILTER_V31);
+            queryFilter.append("\"" + fsId + "\"");
+        }
+        setFilter(queryFilter.toString());
         List<VNXeNfsShare> shareList = getDataForObjects(VNXeNfsShare.class);
-        // it should just return 1
         if (shareList != null && !shareList.isEmpty()) {
             result = shareList.get(0);
+            _logger.info("File system : {} NFS share named : {} found", fsId, shareName);
         } else {
-            _logger.info("No file system found using the fs id: {}, nfsShare name: {} ", fsId, shareName);
+            _logger.info("No file system share found using the fs id: {}, nfsShare name: {} ", fsId, shareName);
         }
         return result;
     }
 
-    public VNXeNfsShare findSnapNfsShare(String snapId, String shareName) {
+    /**
+     * find Snapshot nfsShare using snapshot id and share name
+     * 
+     * @param snapId
+     * @param shareName
+     * @return VNXeNfsShare
+     */
+    public VNXeNfsShare findSnapNfsShare(String snapId, String shareName, String softwareVersion) {
 
-        StringBuilder queryFilter = new StringBuilder(VNXeConstants.SNAP_FILTER);
-        queryFilter.append(snapId);
-        queryFilter.append(VNXeConstants.AND);
-        queryFilter.append(VNXeConstants.NAME_FILTER);
-        queryFilter.append(shareName);
+        StringBuilder queryFilter = new StringBuilder(VNXeConstants.NAME_FILTER);
+
+        if (!VNXeUtils.isHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
+            queryFilter.append(shareName);
+            queryFilter.append(VNXeConstants.AND);
+            queryFilter.append(VNXeConstants.SNAP_FILTER);
+            queryFilter.append(snapId);
+        } else {
+            queryFilter.append("\"" + shareName + "\"");
+            queryFilter.append(VNXeConstants.AND);
+            queryFilter.append(VNXeConstants.SNAP_FILTER_V31);
+            queryFilter.append("\"" + snapId + "\"");
+        }
         setFilter(queryFilter.toString());
-
         VNXeNfsShare result = null;
-        List<VNXeNfsShare> shareList = getDataForObjects(VNXeNfsShare.class);
-        // it should just return 1
+        List<VNXeNfsShare> shareList = getDataForObjects(VNXeNfsShare.class);// it should just return 1
         if (shareList != null && !shareList.isEmpty()) {
             result = shareList.get(0);
+            _logger.info("Snapshot : {} NFS share named : {} found", snapId, shareName);
         } else {
-            _logger.info("No file system found using the fs id: {}, nfsShare name: {} ", snapId, shareName);
+            _logger.info("No snapshot share found using the snapId : {}, nfsShare name: {} ", snapId, shareName);
         }
         return result;
     }

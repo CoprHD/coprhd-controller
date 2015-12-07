@@ -695,10 +695,11 @@ def create_parser(subcommand_parsers, common_parser):
                                 help='Management interface port for the host',
                                 required=False)
 
-    create_parser.add_argument('-un', '-hostusername',
+    mandatory_args.add_argument('-un', '-hostusername',
                                 help='User name for the host',
                                 dest='hostusername',
-                                metavar='<hostusername>')
+                                metavar='<hostusername>',
+                                required=True)
 
     create_parser.add_argument('-t', '-tenant',
                                help='Tenant for the host',

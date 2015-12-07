@@ -92,6 +92,28 @@ public class IPsecManager {
         }
     }
 
+    /**
+     * enable/disable IPSec for the vdc
+     *
+     * @param state
+     * @return
+     */
+    public String changeIpsecState(String state) {
+        try {
+            String oldState = ipsecConfig.getIpsecState();
+            if (oldState.equalsIgnoreCase(state)) {
+                log.info("ipsec already in state: " + state + ", skip the operation.");
+                return oldState;
+            }
+            log.info("change Ipsec State from " + oldState + " to " + state);
+            ipsecConfig.setIpsecState(state);
+            return ipsecConfig.getIpsecState();
+        } catch (Exception e) {
+            throw SecurityException.fatals.failToRotateIPsecKey(e);
+        }
+
+    }
+
     private List<IPsecNodeState> checkConfigurations(String vdcConfigVersion, List<IPsecNodeState> nodeStatus) {
         List<IPsecNodeState> unreachableNodes = new ArrayList<>();
 

@@ -191,6 +191,9 @@ public interface FatalSecurityExceptions {
     FatalSecurityException failToGenerateKeypair(String algo, final Throwable e);
 
     @DeclareServiceCode(ServiceCode.SECURITY_ERROR)
+    FatalSecurityException failToChangeIPsecState(Exception e);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_ERROR)
     FatalSecurityException failToNotifyChange(Exception e);
 
     @DeclareServiceCode(ServiceCode.SECURITY_ERROR)

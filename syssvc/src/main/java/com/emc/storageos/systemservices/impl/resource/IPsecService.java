@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 /**
  * Web resource class for IPsec
@@ -59,5 +60,28 @@ public class IPsecService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
     public IPsecStatus getIPsecStatus() {
         return ipsecMgr.checkStatus();
+    }
+
+    /**
+     * change IPsec state to enabled/disabled for the vdc
+     *
+     * @param state - valid values [ enabled | disabled ] (case insensitive)
+     * @return the new IPsec state
+     */
+    @PUT
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    @Path("/state")
+    public String changeIpsecState(@QueryParam("state") String state) {
+        String result = ipsecMgr.changeIpsecState(state);
+        auditMgr.recordAuditLog(null, null,
+                IPSEC_SERVICE_TYPE,
+                OperationTypeEnum.UPDATE_SYSTEM_PROPERTY,
+                System.currentTimeMillis(),
+                AuditLogManager.AUDITLOG_SUCCESS,
+                null);
+
+        return result;
     }
 }

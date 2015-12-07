@@ -31,6 +31,7 @@ public class IPsecConfig {
     private static final String IPSEC_CONFIG_KIND = "ipsec";
     private static final String IPSEC_CONFIG_ID = "ipsec";
     private static final String IPSEC_PSK_KEY = "ipsec_key";
+    private static final String IPSEC_STATE = "ipsec_state";
     private static final int KEY_LENGHT = 64;
 
     // Properties injected by spring
@@ -102,5 +103,29 @@ public class IPsecConfig {
      */
     public void setDefaultPskFile(String defaultPskFile) {
         this.defaultPskFile = defaultPskFile;
+    }
+
+    /**
+     * get ipsec state of current vdc
+     *
+     * @return
+     * @throws Exception
+     */
+    public String getIpsecState() throws Exception {
+        String ipsecState = getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATE);
+        return ipsecState;
+    }
+
+    /**
+     * write ipsec state to ZK
+     *
+     * @param state
+     * @throws Exception
+     */
+    public void setIpsecState(String state) throws Exception {
+        if (state == null || !state.equalsIgnoreCase("enabled") || !state.equalsIgnoreCase("disabled")) {
+            return;
+        }
+        getCoordinatorHelper().createOrUpdateConfig(state.toLowerCase(), IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATE);
     }
 }

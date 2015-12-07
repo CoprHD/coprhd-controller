@@ -1,6 +1,9 @@
 package com.emc.storageos.model.vasa;
 
-public class ProtocolEndpointCreateRequestParam extends VasaCommonRestRequest {
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement(name="protocol_endpoint")
+public class ProtocolEndpointResponseParam extends VasaCommonRestResponse {
 
     private String protocolEndpointType;
     

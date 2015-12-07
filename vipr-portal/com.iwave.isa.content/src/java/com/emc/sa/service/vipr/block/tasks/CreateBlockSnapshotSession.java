@@ -1,0 +1,40 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
+package com.emc.sa.service.vipr.block.tasks;
+
+import java.net.URI;
+
+import com.emc.sa.service.vipr.tasks.WaitForTasks;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
+import com.emc.storageos.model.block.SnapshotSessionCreateParam;
+import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
+import com.emc.vipr.client.Tasks;
+
+public class CreateBlockSnapshotSession extends WaitForTasks<BlockSnapshotSessionRestRep> {
+    private URI volumeId;
+    private String name;
+    private SnapshotSessionNewTargetsParam linkedTargetsParam; //Not sure if this is right way...I think no.
+    
+    public CreateBlockSnapshotSession(String volumeId, String name, SnapshotSessionNewTargetsParam linkedTargetsParam) {
+        this(uri(volumeId), name, linkedTargetsParam);
+    }
+
+    public CreateBlockSnapshotSession(URI volumeId, String name, SnapshotSessionNewTargetsParam linkedTargetsParam) {
+        this.volumeId = volumeId;
+        this.name = name;
+        this.linkedTargetsParam = linkedTargetsParam;
+        provideDetailArgs(volumeId, name);
+    }
+
+    @Override
+    protected Tasks<BlockSnapshotSessionRestRep> doExecute() throws Exception {
+        SnapshotSessionCreateParam createParam = new SnapshotSessionCreateParam();
+        createParam.setName(name);
+        if (linkedTargetsParam != null) {
+            createParam.setNewLinkedTargets(linkedTargetsParam);
+        }
+        return getClient().blockSnapshotSessions().createForVolume(volumeId, createParam);
+    }
+}

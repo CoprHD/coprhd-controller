@@ -92,13 +92,13 @@ public class ZkBackupHandler extends BackupHandler {
     /**
      * Just backup the zk files in the leader node
      */
-    public boolean isLeader() {
+    public boolean isEligibleForBackup() {
         String result = readZkInfo("stat", "Mode");
         if (result == null || !result.contains(": ")) {
             throw BackupException.fatals.failedToParseLeaderStatus(result);
         }
         String mode = (result.split(": "))[1];
-        if (mode.equals("leader") || mode.equals("standalone")) {
+        if (mode.equals("leader") || mode.equals("standalone") || mode.equals("observer")) {
             return true;
         } else {
             log.info("Status mode is: {}", mode);
@@ -194,7 +194,7 @@ public class ZkBackupHandler extends BackupHandler {
      */
     private boolean checkZkConditionAfterBackup() {
         validateQuorumStatus();
-        if (!isLeader()) {
+        if (!isEligibleForBackup()) {
             log.error("This node is not leader any more");
             return false;
         }
@@ -269,9 +269,9 @@ public class ZkBackupHandler extends BackupHandler {
     @Override
     public boolean isNeed() {
         validateQuorumStatus();
-        boolean ret = isLeader();
+        boolean ret = isEligibleForBackup();
         if (!ret) {
-            log.info("Skip follower instance during backup");
+            log.info("Skip current zk instance during backup");
         }
         return ret;
     }

@@ -87,9 +87,10 @@ public class DiscoveredDataObject extends DataObject {
                 return storageDriverManager.isBlockStorageSystem(storageType);
             } else {
                 Type type = Type.valueOf(storageType);
-                return (type == vnxblock || type == vmax || type == vnxe || type == hds || type == ibmxiv || type == xtremio || type == driversystem);
+                return (type == vnxblock || type == vmax || type == vnxe || type == hds || type == ibmxiv || type == xtremio || type == scaleio);
             }
         }
+
 
         static public boolean isHDSStorageSystem(Type type) {
             return (type == hds);

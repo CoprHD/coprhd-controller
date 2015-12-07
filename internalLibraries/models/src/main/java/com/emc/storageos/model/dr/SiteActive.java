@@ -9,22 +9,22 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "site_is_primary")
+@XmlRootElement(name = "site_is_active")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-public class SitePrimary {
+public class SiteActive {
 
-    private boolean isPrimary;
+    private boolean isActiveSite;
 
-    public SitePrimary() {
-        isPrimary = false;
+    public SiteActive() {
+        isActiveSite = false;
     }
 
-    @XmlElement(name = "isPrimary")
-    public boolean getIsPrimary() {
-        return isPrimary;
+    @XmlElement(name = "is_active")
+    public boolean getIsActive() {
+        return isActiveSite;
     }
 
-    public void setIsPrimary(boolean sitePrimary) {
-        this.isPrimary = sitePrimary;
+    public void setIsActive(boolean sitePrimary) {
+        this.isActiveSite = sitePrimary;
     }
 }

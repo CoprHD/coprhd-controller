@@ -1136,15 +1136,14 @@ public class SmisCommandHelper implements SmisConstants {
                     _cimArgument.uint32(CP_EMC_NUMBER_OF_DEVICES, count),
                     _cimArgument.uint64(CP_SIZE, capacity),
                     _cimArgument.reference(CP_IN_POOL, poolPath),
-                    _cimArgument.referenceArray(CP_EMC_COLLECTIONS,
-                            new CIMObjectPath[] { volumeGroupPath }) };
+                    _cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)) };
         }
         return new CIMArgument[] {
                 _cimArgument.uint16(CP_ELEMENT_TYPE, STORAGE_VOLUME_VALUE),
                 _cimArgument.uint32(CP_EMC_NUMBER_OF_DEVICES, count),
                 _cimArgument.uint64(CP_SIZE, capacity),
                 _cimArgument.reference(CP_IN_POOL, poolPath),
-                _cimArgument.referenceArray(CP_EMC_COLLECTIONS, new CIMObjectPath[] { volumeGroupPath }) };
+                _cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)) };
     }
 
     public CIMArgument[] getCreateVolumesBasedOnVolumeGroupInputArguments80(
@@ -1161,8 +1160,7 @@ public class SmisCommandHelper implements SmisConstants {
                 toMultiElementArray(count, new UnsignedInteger64(Long.toString(capacity)))));
         list.add(_cimArgument.referenceArray(CP_IN_POOL,
                 toMultiElementArray(count, poolPath)));
-        list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS,
-                new CIMObjectPath[] { volumeGroupPath }));
+        list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)));
 
         if (label != null) {
             list.add(_cimArgument.stringArray(CP_ELEMENT_NAMES,
@@ -2285,12 +2283,17 @@ public class SmisCommandHelper implements SmisConstants {
     public void doApplyRecoverPointTag(final StorageSystem storageSystem,
             Volume volume, boolean flag) throws Exception {
         // Set/Unset the RP tag (if applicable)
-        if (volume.checkForRp() && storageSystem.getSystemType() != null
+        if (volume != null && storageSystem != null && volume.checkForRp() && storageSystem.getSystemType() != null
                 && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
             List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
             volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));
 
+            _log.info(String.format("Volume [%s](%s) will be %s for RP", 
+                    volume.getLabel(), volume.getId(),
+                    (flag ? "tagged" : "untagged")));
             setRecoverPointTag(storageSystem, volumePathList, flag);
+        } else {
+            _log.info(String.format("Volume [%s](%s) is not valid for RP tagging operation", volume.getLabel(), volume.getId()));
         }
     }
 
@@ -5539,7 +5542,6 @@ public class SmisCommandHelper implements SmisConstants {
             StorageSystem storage) throws Exception {
 
         Set<String> discoveredGroupNames = new HashSet<String>();
-        CloseableIterator<CIMInstance> deviceMaskingGroupPathItr = null;
         CloseableIterator<CIMInstance> volumePathItr = null;
         CloseableIterator<CIMInstance> sgPaths = null;
         try {
@@ -5551,25 +5553,40 @@ public class SmisCommandHelper implements SmisConstants {
                         "Masking View {} not available in Provider, either its deleted or provider might take some time to sync with Array.  Try again if group is available on Array",
                         maskingViewName);
             } else {
-                _log.debug("Masking View {} found", maskingViewName);
+                _log.info("Running phantom SG check for Masking View {}", maskingViewName);
                 volumePathItr = getAssociatorInstances(storage, maskingViewPath, null,
                         CIM_STORAGE_VOLUME, null, null, PS_EMCWWN);
+                // COP-18172 - Use a cache for holding StorageGroup information. There could be many volumes in the MaskingView, which
+                // could be associated with the same StorageGroup(s). It could be more efficient to cache the StorageGroup information, so
+                // that we don't hit the provider over and over again for the same StorageGroup information.
+                class StorageGroupInfo {
+                    Set<String> policyNames;
+                    String storageGroupName;
+                    Boolean isPartOfExistingParentGroups;
+                }
+                Map<String, StorageGroupInfo> storageGroupInfoCache = new HashMap<>();
                 while (volumePathItr.hasNext()) {
                     CIMInstance cimInstance = volumePathItr.next();
                     String deviceName = cimInstance.getObjectPath().getKey(CP_SYSTEM_NAME).getValue().toString() + ":" +
                             cimInstance.getObjectPath().getKey(CP_DEVICE_ID).getValue().toString();
-                    _log.info("phantom checker: looking at volume to see what storage groups it's part of: " +
-                            deviceName);
+                    _log.debug("phantom checker: looking at volume to see what storage groups it's part of: {}", deviceName);
                     // Get all of the storage groups associated with this volume
                     sgPaths = getAssociatorInstances(storage, cimInstance.getObjectPath(), null,
                             SmisConstants.SE_DEVICE_MASKING_GROUP, null, null, null);
                     while (sgPaths.hasNext()) {
                         CIMInstance sgPath = sgPaths.next();
-                        String storageGroupName = CIMPropertyFactory.getPropertyValue(sgPath, SmisConstants.CP_ELEMENT_NAME);
-                        Set<String> policyNames = this.findTierPoliciesForStorageGroup(storage, storageGroupName);
-                        if (policyNames != null && !policyNames.isEmpty()
-                                && !checkStorageGroupAlreadyPartOfExistingParentGroups(storage, sgPath.getObjectPath())) {
-                            discoveredGroupNames.add(storageGroupName);
+                        String cacheKey = sgPath.toString();
+                        StorageGroupInfo sgInfo = storageGroupInfoCache.get(cacheKey);
+                        if (sgInfo == null) {
+                            sgInfo = new StorageGroupInfo();
+                            sgInfo.storageGroupName = CIMPropertyFactory.getPropertyValue(sgPath, SmisConstants.CP_ELEMENT_NAME);
+                            sgInfo.policyNames = this.findTierPoliciesForStorageGroup(storage, sgInfo.storageGroupName);
+                            sgInfo.isPartOfExistingParentGroups = checkStorageGroupAlreadyPartOfExistingParentGroups(storage,
+                                    sgPath.getObjectPath());
+                            storageGroupInfoCache.put(cacheKey, sgInfo);
+                        }
+                        if (sgInfo.policyNames != null && !sgInfo.policyNames.isEmpty() && !sgInfo.isPartOfExistingParentGroups) {
+                            discoveredGroupNames.add(sgInfo.storageGroupName);
                         }
                     }
                 }
@@ -5581,10 +5598,10 @@ public class SmisCommandHelper implements SmisConstants {
             _log.error("Failed trying to find existing Storage Groups under Masking View {}", maskingViewName, e);
             throw e;
         } finally {
-            closeCIMIterator(deviceMaskingGroupPathItr);
             closeCIMIterator(sgPaths);
         }
 
+        _log.info("Phantom SG check for Masking View {} found: {}", maskingViewName, discoveredGroupNames);
         return discoveredGroupNames;
     }
 

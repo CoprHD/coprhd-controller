@@ -25,7 +25,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
  * 
  * The VDC/Site configurations are stored in ZK as follows:
  * /config/disasterRecoverySites/<vdc_short_id>/<site_uuid>     has all the VDC/site configurations
- * /config/disasterRecoveryPrimary/<vdc_short_id>               specifies which site is the primary in each VDC
+ * /config/disasterRecoveryActive/<vdc_short_id>               specifies which site is the acitve in each VDC
  * /config/geoLocalVDC/global                                   specifies the local VDC in the geo federation
  */
 public class VdcConfigUtil {
@@ -46,13 +46,19 @@ public class VdcConfigUtil {
     public static final String SITE_MY_UUID="site_my_uuid";
     public static final String SITE_MYID="site_myid";
     public static final String SITE_IDS="site_ids";
-
+    public static final String BACK_COMPAT_PREYODA="back_compat_preyoda";
+    
     private DrUtil drUtil;
-
+    private Boolean backCompatPreYoda = false;
+    
     public VdcConfigUtil(CoordinatorClient coordinator) {
         drUtil = new DrUtil(coordinator);
     }
 
+    public void setBackCompatPreYoda(Boolean backCompatPreYoda) {
+        this.backCompatPreYoda = backCompatPreYoda;
+    }
+    
     /**
      * generates a property map containing all the VDC/site information this VDC has in
      * ZK, to be used by syssvc to update the local system property.
@@ -85,14 +91,15 @@ public class VdcConfigUtil {
             }
         });
         vdcConfig.put(VDC_IDS, StringUtils.join(vdcShortIdList, ","));
-
+        vdcConfig.put(BACK_COMPAT_PREYODA, String.valueOf(backCompatPreYoda));
+        
         log.info("vdc config property: \n{}", vdcConfig.toString());
 
         return vdcConfig;
     }
 
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
-        String primarySiteId = drUtil.getPrimarySiteId(vdcShortId);
+        String activeSiteId = drUtil.getActiveSiteId(vdcShortId);
         
         Collections.sort(sites, new Comparator<Site>() {
             @Override
@@ -103,7 +110,7 @@ public class VdcConfigUtil {
         
         List<String> shortIds = new ArrayList<>();
         for (Site site : sites) {
-            boolean isPrimarySite = site.getUuid().equals(primarySiteId);
+            boolean isActiveSite = site.getUuid().equals(activeSiteId);
 
             if (shouldExcludeFromConfig(site)) {
                 log.info("Ignore site {} of vdc {}", site.getStandbyShortId(), site.getVdcShortId());
@@ -116,7 +123,7 @@ public class VdcConfigUtil {
                 if (site.getState().equals(SiteState.STANDBY_PAUSING)
                         || site.getState().equals(SiteState.STANDBY_PAUSED)
                         || site.getState().equals(SiteState.STANDBY_REMOVING)
-                        || site.getState().equals(SiteState.PRIMARY_FAILING_OVER)) {
+                        || site.getState().equals(SiteState.ACTIVE_FAILING_OVER)) {
                     continue;
                 }
             }
@@ -134,7 +141,7 @@ public class VdcConfigUtil {
             for (String hostName : siteHosts) {
                 siteNodeCnt++;
                 String address = siteIPv4Addrs.get(hostName);
-                if (isPrimarySite) {
+                if (isActiveSite) {
                     vdcConfig.put(String.format(VDC_IPADDR_PTN, vdcShortId, siteNodeCnt),
                             address == null ? "" : address);
                 } else {
@@ -143,7 +150,7 @@ public class VdcConfigUtil {
                 }
 
                 address = siteIPv6Addrs.get(hostName);
-                if (isPrimarySite) {
+                if (isActiveSite) {
                     vdcConfig.put(String.format(VDC_IPADDR6_PTN, vdcShortId, siteNodeCnt),
                             address == null ? "" : address);
                 } else {
@@ -152,14 +159,14 @@ public class VdcConfigUtil {
                 }
             }
 
-            if (isPrimarySite) {
+            if (isActiveSite) {
                 vdcConfig.put(String.format(VDC_NODE_COUNT_PTN, vdcShortId), String.valueOf(siteNodeCnt));
             } else {
                 vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, vdcShortId, siteShortId),
                         String.valueOf(siteNodeCnt));
             }
 
-            if (isPrimarySite) {
+            if (isActiveSite) {
                 vdcConfig.put(String.format(VDC_VIP_PTN, vdcShortId), site.getVip());
             } else {
                 vdcConfig.put(String.format(VDC_STANDBY_VIP_PTN, vdcShortId, siteShortId), site.getVip());
@@ -170,7 +177,7 @@ public class VdcConfigUtil {
                 vdcConfig.put(SITE_MY_UUID, site.getUuid());
             }
 
-            if (!isPrimarySite) {
+            if (!isActiveSite) {
                 shortIds.add(siteShortId);
             }
         }

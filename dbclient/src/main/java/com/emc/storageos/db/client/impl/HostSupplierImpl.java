@@ -89,6 +89,7 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
             boolean isGeodb = Constants.GEODBSVC_NAME.equals(dbSvcName);
             List<Service> service = _coordinator.locateAllServices(dbSvcName, _version, (String) null, null);
             List<Host> hostList = new ArrayList<Host>(service.size());
+
             for (int i = 0; i < service.size(); i++) {
                 Service svc = service.get(i);
                 if (isGeodb && isDbReinitializing(svc)) {
@@ -112,7 +113,7 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
 
     private boolean isDbReinitializing(Service serviceInfo) {
         String configKind = _coordinator.getDbConfigPath(serviceInfo.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind, serviceInfo.getId());
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind, serviceInfo.getId());
         String value = config.getConfig(Constants.REINIT_DB);
         return (value != null && Boolean.parseBoolean(value));
     }

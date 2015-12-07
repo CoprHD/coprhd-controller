@@ -40,6 +40,7 @@ public class SeedProviderImpl implements SeedProvider {
     private CoordinatorClientImpl _client;
     private List<String> extraSeeds = new ArrayList<>();
     private boolean isDrActiveSite;
+    private DrUtil drUtil;
     
     /**
      * This constructor's argument is from cassandral's yaml configuration. Here is an example
@@ -106,8 +107,8 @@ public class SeedProviderImpl implements SeedProvider {
         }
         client.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
         client.start();
-        DrUtil drUtil = new DrUtil(client);
-        isDrActiveSite = drUtil.isPrimary();
+        drUtil = new DrUtil(client);
+        isDrActiveSite = drUtil.isActiveSite();
         
         _client = client;
     }
@@ -123,9 +124,13 @@ public class SeedProviderImpl implements SeedProvider {
     public List<InetAddress> getSeeds() {
         try {
             CoordinatorClientInetAddressMap nodeMap = _client.getInetAddessLookupMap();
-            List<Configuration> configs = _client.queryAllConfiguration(Constants.DB_CONFIG);
+            List<Configuration> configs = _client.queryAllConfiguration(_client.getSiteId(), Constants.DB_CONFIG);
             List<InetAddress> seeds = new ArrayList<>();
-
+            
+            // If we are upgrading from pre-2.5 releases, dbconfig exists in zk global area
+            List<Configuration> leftoverConfig = _client.queryAllConfiguration(Constants.DB_CONFIG);
+            configs.addAll(leftoverConfig);
+            
             // Add extra seeds - seeds from remote sites
             for (String seed : extraSeeds) {
                 if (StringUtils.isNotEmpty(seed)) {
@@ -149,7 +154,7 @@ public class SeedProviderImpl implements SeedProvider {
                         nodeId = "vipr" + nodeIndex;
                         config.setConfig(DbConfigConstants.NODE_ID, nodeId);
                         config.removeConfig(DbConfigConstants.DB_IP);
-                        _client.persistServiceConfiguration(config);
+                        _client.persistServiceConfiguration(_client.getSiteId(), config);
                     }
                     if (!Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT)) ||
                             (!config.getId().equals(_id) && Boolean.parseBoolean(config.getConfig(DbConfigConstants.JOINED)))) {

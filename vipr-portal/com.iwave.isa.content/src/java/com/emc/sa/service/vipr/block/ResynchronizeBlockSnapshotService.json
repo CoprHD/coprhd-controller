@@ -1,0 +1,26 @@
+{
+  baseKey:"ResynchronizeBlockSnapshot.Block",
+  serviceId:"ResynchronizeBlockSnapshot",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+
+    storageType:{
+      type:"assetType.vipr.blockVolumeOrConsistencyType",
+      lockable:true,
+      initialValue:"volume"
+    },
+
+    volume:{
+      type:"assetType.vipr.blockVolumeWithSnapshot",
+      select: "one"
+    },
+    
+    snapshots:{
+      type:"assetType.vipr.snapshotAvailableForResynchronize",
+      select: "many"
+    }
+  }
+}

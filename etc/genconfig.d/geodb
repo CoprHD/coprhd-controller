@@ -10,16 +10,16 @@
 # it is provided by or on behalf of EMC.
 
 _get_geodbvar_props() {
-    _get_props vdc_myid node_id node_index site_myid site_my_uuid
+    _get_props vdc_myid node_id node_index site_myid site_my_uuid back_compat_preyoda
 }
 
 _get_geodbconf_props() {
-    if [ -e "/data/db/no_db_encryption" ]; then
-        echo "geodb_encryption=dc"
-    else
+    if [ "${_GENCONFIG_back_compat_preyoda}" == "true" ]; then
         echo "geodb_encryption=all"
+    else
+        echo "geodb_encryption=none"
     fi
-    echo "dbclient_encrypt=false"
+
     echo "network_ipaddr_effective=${_GENCONFIG_network_ipaddr_effective}"
 
     for i in ${_GENCONFIG_node_indexes} ; do
@@ -77,4 +77,5 @@ _get_rackdc_props() {
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/geodb-var.xml               $(_get_geodbvar_props)
 _genconfig_exec _gen_template           /opt/storageos/conf/geodb-jmx-var.xml           $(_get_geodb_jmx_props)
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/geodb-conf.yaml             $(_get_geodbconf_props)
-_genconfig_exec _gen_template           /opt/storageos/conf/cassandra-rackdc.properties $(_get_rackdc_props)
+_genconfig_exec _gen_template           /opt/storageos/conf/cassandra-rackdc.properties $(_get_rackdc_props
+)

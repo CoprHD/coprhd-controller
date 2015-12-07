@@ -10,9 +10,9 @@ package com.emc.storageos.coordinator.client.model;
  **/
 public enum SiteState {
     /**
-     * Primary site. Eligible for all provisioning operations
+     * Active site. Eligible for all provisioning operations
      */
-    PRIMARY {
+    ACTIVE {
         @Override
         public boolean isDROperationOngoing() {
             return false;
@@ -20,9 +20,9 @@ public enum SiteState {
     },
 
     /**
-     * Primary site is doing planned failover
+     * Active site is doing planned failover
      */
-    PRIMARY_SWITCHING_OVER {
+    ACTIVE_SWITCHING_OVER {
         @Override
         public boolean isDROperationOngoing() {
             return true;
@@ -30,9 +30,9 @@ public enum SiteState {
     },
 
     /**
-     * Primary site is doing failover
+     * Active site is doing failover
      */
-    PRIMARY_FAILING_OVER {
+    ACTIVE_FAILING_OVER {
         @Override
         public boolean isDROperationOngoing() {
             return true;

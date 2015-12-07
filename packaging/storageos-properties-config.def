@@ -1494,6 +1494,7 @@
         reconfigRequired : true,
         rebootRequired : true,
         controlNodeOnly : false,
+        siteSpecific: true,
         value : "You are accessing ViPR. By using this system you consent to the owning organization's terms and conditions.", 
     },
     {

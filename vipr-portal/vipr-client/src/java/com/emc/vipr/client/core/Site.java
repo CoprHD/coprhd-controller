@@ -15,8 +15,9 @@ import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
-import com.emc.storageos.model.dr.SitePrimary;
+import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -54,8 +55,8 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/resume/");
     }
 
-    public ClientResponse syncSite(SiteConfigParam input) {
-        return client.put(ClientResponse.class, input, PathConstants.SITE_URL);
+    public ClientResponse syncSite(String uuid, SiteConfigParam input) {
+        return client.put(ClientResponse.class, input, PathConstants.SITE_URL + "/" + uuid + "/initstandby/");
     }
 
     public SiteRestRep getSite(String uuid) {
@@ -66,8 +67,8 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.get(SiteList.class, PathConstants.SITE_URL);
     }
 
-    public SitePrimary checkPrimary() {
-        return client.get(SitePrimary.class, PathConstants.SITE_URL + "/primary");
+    public SiteActive checkIsActive() {
+        return client.get(SiteActive.class, PathConstants.SITE_URL + "/active");
     }
 
     public SiteConfigRestRep getStandbyConfig() {
@@ -88,6 +89,10 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
 
     public ClientResponse doFailover(String uuid) {
         return client.post(ClientResponse.class, PathConstants.SITE_URL + "/" + uuid + "/failover");
+    }
+    
+    public ClientResponse updateSite(String uuid, SiteUpdateParam updateParam) {
+        return client.put(ClientResponse.class, updateParam, PathConstants.SITE_URL + "/" + uuid);
     }
 
     @Override

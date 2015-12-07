@@ -1068,7 +1068,7 @@ public class ConnectivityUtil {
                         storageSystemIDs);
             }
 
-            if (storageSystems != null) {
+            if (storageSystems != null && !storageSystems.isEmpty()) {
                 for (StorageSystem storageSystem : storageSystems) {
                     if (NullColumnValueGetter.isNotNullValue(storageSystem.getSerialNumber())
                             && storageSystem.getSerialNumber().contains(serialNumber)) {

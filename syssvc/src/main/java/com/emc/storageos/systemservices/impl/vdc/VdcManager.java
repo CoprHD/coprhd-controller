@@ -6,18 +6,11 @@
 package com.emc.storageos.systemservices.impl.vdc;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
@@ -27,21 +20,14 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
-import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
-import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
-import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
 
 
@@ -75,12 +61,14 @@ public class VdcManager extends AbstractManager {
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-
+    private static final int BACK_UPGRADE_RETRY_MILLIS = 30 * 1000; // 30 seconds
+    
     private SiteInfo targetSiteInfo;
     private String currentSiteId;
     private DrUtil drUtil;
     private VdcConfigUtil vdcConfigUtil;
     private Map<String, VdcOpHandler> vdcOpHandlerMap;
+    private Boolean backCompatPreYoda = false;
     
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
@@ -98,6 +86,10 @@ public class VdcManager extends AbstractManager {
         this.vdcOpHandlerMap = vdcOpHandlerMap;
     }
 
+    public void setBackCompatPreYoda(Boolean backCompat) {
+        backCompatPreYoda = backCompat;
+    }
+    
     @Override
     protected URI getWakeUpUrl() {
         return SysClientFactory.URI_WAKEUP_VDC_MANAGER;
@@ -152,6 +144,7 @@ public class VdcManager extends AbstractManager {
         final String svcId = coordinator.getMySvcId();
         currentSiteId = coordinator.getCoordinatorClient().getSiteId();
         vdcConfigUtil = new VdcConfigUtil(coordinator.getCoordinatorClient());
+        vdcConfigUtil.setBackCompatPreYoda(backCompatPreYoda);
         
         addSiteInfoListener();
 
@@ -218,14 +211,26 @@ public class VdcManager extends AbstractManager {
                 continue;
             }
             
-            // Step5: set site error state if on primary
+            // Step4: set site error state if on acitve
             try {
                 updateSiteErrors();
             } catch (RuntimeException e) {
-                log.error("Step5: Failed to set site errors. {}", e);
+                log.error("Step4: Failed to set site errors. {}", e);
                 continue;
             }
-
+            
+            // Step 5 : check backward compatibile upgrade flag
+            try {
+                if (backCompatPreYoda) {
+                    log.info("Check if pre-yoda upgrade is done");
+                    checkPreYodaUpgrade();
+                    continue;
+                }
+            } catch (Exception ex) {
+                log.error("Step5: Failed to set back compat yoda upgrade. {}", ex);
+                continue;
+            }
+            
             // Step6: sleep
             log.info("Step6: sleep");
             longSleep();
@@ -431,7 +436,7 @@ public class VdcManager extends AbstractManager {
     private void updateSiteErrors() {
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
 
-        if (!drUtil.isPrimary()) {
+        if (!drUtil.isActiveSite()) {
             log.info("Step5: current site is a standby, nothing to do");
             return;
         }
@@ -482,10 +487,10 @@ public class VdcManager extends AbstractManager {
                             DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
                 }
                 break;
-            case PRIMARY_SWITCHING_OVER:
+            case ACTIVE_SWITCHING_OVER:
                 if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
                     log.info("Step5: site {} set to error due to switchover timeout", site.getName());
-                    error = new SiteError(APIException.internalServerErrors.switchoverPrimaryFailedTimeout(
+                    error = new SiteError(APIException.internalServerErrors.switchoverActiveFailedTimeout(
                             site.getName(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
                 }
                 break;
@@ -498,5 +503,24 @@ public class VdcManager extends AbstractManager {
                 break;
         }
         return error;
+    }
+    
+    private void checkPreYodaUpgrade() throws Exception {
+        String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
+        String targetDbSchemaVersion = coordinator.getCoordinatorClient().getTargetDbSchemaVersion();
+        log.info("Current schema version {}", currentDbSchemaVersion);
+        if (targetDbSchemaVersion.equals(currentDbSchemaVersion) && coordinator.isDBMigrationDone()) {
+            log.info("Db migration is done. Switch to IPSec mode");
+            vdcConfigUtil.setBackCompatPreYoda(false);
+            targetVdcPropInfo = loadVdcConfig(); // refresh local vdc config
+            VdcOpHandler opHandler = getOpHandler(SiteInfo.IPSEC_OP_ENABLE);
+            opHandler.setTargetSiteInfo(targetSiteInfo);
+            opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
+            opHandler.execute();
+            backCompatPreYoda = false;
+        } else {
+            log.info("Migration to yoda is not completed. Sleep and retry later. isMigrationDone flag = {}", coordinator.isDBMigrationDone());
+            sleep(BACK_UPGRADE_RETRY_MILLIS);
+        }
     }
 }

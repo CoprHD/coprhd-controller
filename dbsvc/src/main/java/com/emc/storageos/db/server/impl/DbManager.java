@@ -27,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jmx.export.annotation.ManagedResource;
 
 import java.net.InetAddress;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -177,7 +176,7 @@ public class DbManager implements DbManagerMBean {
         }
 
         log.info("Removing Cassandra node {} on vipr node {}", nodeGuid, nodeId);
-        StorageService.instance.removeNode(nodeGuid);
+        schemaUtil.ensureRemoveNode(nodeGuid);
     }
 
     @Override
@@ -326,26 +325,9 @@ public class DbManager implements DbManagerMBean {
         }
         return true;
     }
-    
+
     @Override
     public void removeDataCenter(String dcName) {
-        log.info("Remove Cassandra data center {}", dcName);
-        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
-        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
-        List<InetAddress> allNodes = new ArrayList<InetAddress>();
-        allNodes.addAll(liveNodes);
-        allNodes.addAll(unreachableNodes);
-        for (InetAddress nodeIp : allNodes) {
-            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
-            String dc = snitch.getDatacenter(nodeIp);
-            log.info("node {} belongs to data center {} ", nodeIp, dc);
-            if (dc.equals(dcName)) {
-                Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
-                String guid = hostIdMap.get(nodeIp.getHostAddress());
-                log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
-                Gossiper.instance.convict(nodeIp, 0);
-                StorageService.instance.removeNode(guid);
-            }
-        }
+        schemaUtil.removeDataCenter(dcName, false);
     }
 }

@@ -34,7 +34,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
@@ -390,19 +389,10 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 _log.info(String.format("initiator %s masks {%s}", initiator.getInitiatorPort(),
                         Joiner.on(',').join(exportMaskURIs)));
                 for (ExportMask mask : masks) {
-                    // ExportMask is created using non-vipr. Set the mask name if it doesn't have.
                     if (null == mask.getMaskName()) {
                         String maskName = ExportMaskUtils.getMaskName(_dbClient, initiators, exportGroup, storage);
                         _log.info("Generated mask name: {}", maskName);
                         mask.setMaskName(maskName);
-                    }
-
-                    // Check for NO_VIPR. If found, avoid this mask.
-                    if (mask.getMaskName() != null && mask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
-                        _log.info(String.format(
-                                "ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
-                                mask.getMaskName(), ExportUtils.NO_VIPR));
-                        continue;
                     }
 
                     _log.info(String.format("mask %s has initiator %s", mask.getMaskName(),

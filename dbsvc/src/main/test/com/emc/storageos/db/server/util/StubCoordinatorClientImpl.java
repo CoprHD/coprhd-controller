@@ -303,7 +303,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
 
     @Override
     public <T extends CoordinatorSerializable> T queryRuntimeState(String key, Class<T> clazz) throws CoordinatorException {
-        throw new UnsupportedOperationException();
+        return null; 
     }
 
     @Override
@@ -324,7 +324,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
 
     @Override
     public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
-        throw new UnsupportedOperationException();
+        
     }
     
     @Override
@@ -442,12 +442,47 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     }
 
     @Override
-    public void setPrimarySite(String siteId) {
+    public void setActiveSite(String siteId) {
         throw new UnsupportedOperationException();
     }
     
     @Override
     public void removeRuntimeState(String key) throws CoordinatorException {
-        return;
+    }
+    
+    @Override
+    public InterProcessLock getSiteLocalLock(String name) throws CoordinatorException {
+        return this.getLock(name);
+    }
+
+    @Override
+    public void removeServiceConfiguration(String siteId, Configuration... configs) throws CoordinatorException {
+        this.removeServiceConfiguration(configs);
+    }
+
+    @Override
+    public List<Configuration> queryAllConfiguration(String siteId, String kind) throws CoordinatorException {
+        return this.queryAllConfiguration(kind);
+    }
+
+    @Override
+    public void persistServiceConfiguration(String siteId, Configuration... configs) throws CoordinatorException {
+        this.persistServiceConfiguration(configs);
+    }
+
+    @Override
+    public List<Service> locateAllServices(String siteId, String name, String version, String tag, String endpointKey)
+            throws CoordinatorException {
+        return this.locateAllServices(name, version, tag, endpointKey);
+    }
+
+    @Override
+    public Configuration queryConfiguration(String siteId, String kind, String id) throws CoordinatorException {
+        return this.queryConfiguration(kind, id);
+    }
+
+    @Override
+    public void setTargetInfo(String siteId, CoordinatorSerializable info) throws CoordinatorException {
+        this.setTargetInfo(info);
     }
 }

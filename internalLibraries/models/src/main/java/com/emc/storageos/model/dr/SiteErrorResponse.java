@@ -73,4 +73,15 @@ public class SiteErrorResponse {
     public static SiteErrorResponse noError() {
         return noError;
     }
+    
+    public static boolean isErrorResponse(SiteErrorResponse response) {
+        if (response == null)
+            return false;
+        
+        if (response.getServiceCode() > 0 && response.getErrorMessage() != null && response.getErrorMessage().length() > 0) {
+            return true;
+        }
+        
+        return false;
+    }
 }

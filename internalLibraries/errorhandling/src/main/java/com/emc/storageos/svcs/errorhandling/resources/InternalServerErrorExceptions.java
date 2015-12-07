@@ -287,8 +287,8 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_FAILED)
     public InternalServerErrorException switchoverFailed(String primaryName, String standbyName, String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_PRIMARY_FAILED_TIMEOUT)
-    public InternalServerErrorException switchoverPrimaryFailedTimeout(String siteName, int timeoutValue);
+    @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_ACTIVE_FAILED_TIMEOUT)
+    public InternalServerErrorException switchoverActiveFailedTimeout(String siteName, int timeoutValue);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_STANDBY_FAILED_TIMEOUT)
     public InternalServerErrorException switchoverStandbyFailedTimeout(String siteName, int timeoutValue);
@@ -306,11 +306,14 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException unexpectedErrorExportGroupPlacement(Exception ex);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED)
-    public InternalServerErrorException failoverFailed(String standbyId, String errMsg);
+    public InternalServerErrorException failoverFailed(String siteName, String errMsg);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_PRECHECK_FAILED)
-    public InternalServerErrorException failoverPrecheckFailed(final String siteId, String errMsg);
+    public InternalServerErrorException failoverPrecheckFailed(final String siteName, String errMsg);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_RECONFIG_FAIL)
     public InternalServerErrorException failoverReconfigFailed(String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_UPDATE_SITE_FAILED)
+    public InternalServerErrorException updateSiteFailed(String siteName, String errMsg);
 }

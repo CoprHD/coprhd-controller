@@ -34,13 +34,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 public class DbClientContext {
 
@@ -55,8 +50,6 @@ public class DbClientContext {
     private static final long DEFAULT_CONNECTION_POOL_MONITOR_INTERVAL = 1000;
     private static final int MAX_QUERY_RETRY = 5;
     private static final int QUERY_RETRY_SLEEP_SECONDS = 1000;
-    private static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
-    private static final int SCHEMA_RETRY_SLEEP_MILLIS = 1000;
     private static final String LOCAL_HOST = "localhost";
     private static final int DB_THRIFT_PORT = 9160;
     private static final int GEODB_THRIFT_PORT = 9260;
@@ -67,6 +60,8 @@ public class DbClientContext {
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
     public static final String GEO_CLUSTER_NAME = "GeoStorageOS";
     public static final String GEO_KEYSPACE_NAME = "GeoStorageOS";
+    public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10; // 10 minutes
+    public static final int SCHEMA_RETRY_SLEEP_MILLIS = 10 * 1000; // 10 seconds
 
     private int maxConnections = DEFAULT_MAX_CONNECTIONS;
     private int maxConnectionsPerHost = DEFAULT_MAX_CONNECTIONS_PER_HOST;
@@ -87,9 +82,8 @@ public class DbClientContext {
     private String trustStoreFile;
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
-
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
-    
+
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
     }
@@ -255,8 +249,8 @@ public class DbClientContext {
 
         // Check and reset default write consistency level
         final DrUtil drUtil = new DrUtil(hostSupplier.getCoordinatorClient());
-        if (drUtil.isPrimary()) {
-            log.info("Schedule db consistency level monitor on DR primary site");
+        if (drUtil.isActiveSite()) {
+            log.info("Schedule db consistency level monitor on DR acitve site");
             exe.scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {
@@ -278,7 +272,7 @@ public class DbClientContext {
      * while init() depends on dbclient which in turn depends on dbsvc.
      */
     private void initClusterContext() {
-        int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
+        int port = getThriftPort();
 
         ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(clusterName)
                 .setMaxConnsPerHost(1)
@@ -298,6 +292,11 @@ public class DbClientContext {
                 .buildCluster(ThriftFamilyFactory.getInstance());
         clusterContext.start();
         cluster = clusterContext.getClient();
+    }
+
+    protected int getThriftPort() {
+        int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
+        return port;
     }
 
     public SSLConnectionContext getSSLConnectionContext() {
@@ -338,6 +337,8 @@ public class DbClientContext {
             update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
             update.setStrategyOptions(strategyOptions);
 
+            waitForSchemaAgreement(null);
+
             String schemaVersion;
             if (kd != null) {
                 schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
@@ -346,7 +347,7 @@ public class DbClientContext {
             }
     
             if (wait) {
-                waitForSchemaChange(schemaVersion);
+                waitForSchemaAgreement(schemaVersion);
             }
         } catch (ConnectionException ex) {
             log.error("Fail to update strategy option", ex);
@@ -398,17 +399,25 @@ public class DbClientContext {
     /**
      * Waits for schema change to propagate through cluster
      *
-     * @param schemaVersion version we are waiting for
+     * @param targetSchemaVersion version we are waiting for, if null returns as soon as schema versions converge.
      * @throws InterruptedException
      */
-    public void waitForSchemaChange(String schemaVersion) {
+    public void waitForSchemaAgreement(String targetSchemaVersion) {
         long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
-            log.info("schema version to sync to: {}", schemaVersion);
-            Map<String, List<String>> versions = getSchemaVersions();
+        Map<String, List<String>> versions = null;
+        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
+            if (targetSchemaVersion != null) {
+                log.info("schema version to sync to: {}", targetSchemaVersion);
+            }
+            versions = getSchemaVersions();
 
-            if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
-                log.info("schema version sync to: {} done", schemaVersion);
+            if (versions.size() == 1) {
+                if (targetSchemaVersion != null && !versions.containsKey(targetSchemaVersion)) {
+                    log.warn("Unable to converge to target version. Schema versions:{}, target version:{}",
+                            versions, targetSchemaVersion);
+                    return;
+                }
+                log.info("schema versions converged");
                 return;
             }
 
@@ -417,7 +426,7 @@ public class DbClientContext {
                 Thread.sleep(SCHEMA_RETRY_SLEEP_MILLIS);
             } catch (InterruptedException ex) {}
         }
-        log.warn("Unable to sync schema version {}", schemaVersion);
+        log.warn("Unable to converge schema versions: {}", versions);
     }
 
     /**

@@ -28,7 +28,6 @@ public class DbRebuildRunnable implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(DbRebuildRunnable.class);
 
     private CoordinatorClient coordinator;
-    private String sourceDc;
     private int nodeCount;
     private Service service;
 
@@ -36,10 +35,6 @@ public class DbRebuildRunnable implements Runnable {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
-    }
-
-    public void setSourceDc(String sourceDc) {
-        this.sourceDc = sourceDc;
     }
 
     public void setNodeCount(int nodeCount) {
@@ -64,12 +59,15 @@ public class DbRebuildRunnable implements Runnable {
             return;
         }
 
-        Configuration dbconfig = coordinator.queryConfiguration(
+        Configuration dbconfig = coordinator.queryConfiguration(coordinator.getSiteId(),
                 coordinator.getVersionedDbConfigPath(service.getName(), service.getVersion()), service.getId());
         if (isLastDataSyncCurrent(dbconfig)) {
             log.info("last data sync time is later than the target site info update, nothing to do");
             return;
         }
+        
+        Site primarySite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+        String sourceDc = drUtil.getCassandraDcId(primarySite);
 
         log.info("starting db rebuild from source dc {}", sourceDc);
         isRunning = true;
@@ -78,7 +76,7 @@ public class DbRebuildRunnable implements Runnable {
         long currentSyncTime = System.currentTimeMillis();
         log.info("local db rebuild finishes. Updating last data sync time to {}", currentSyncTime);
         dbconfig.setConfig(DbConfigConstants.LAST_DATA_SYNC_TIME, String.valueOf(currentSyncTime));
-        coordinator.persistServiceConfiguration(dbconfig);
+        coordinator.persistServiceConfiguration(coordinator.getSiteId(), dbconfig);
 
         if (dbRebuildComplete(Constants.DBSVC_NAME) && dbRebuildComplete(Constants.GEODBSVC_NAME)) {
             log.info("all db rebuild finish, updating site state to STANDBY_SYNCED");
@@ -89,7 +87,7 @@ public class DbRebuildRunnable implements Runnable {
     }
 
     private boolean dbRebuildComplete(String svcName) {
-        List<Configuration> configs = coordinator.queryAllConfiguration(
+        List<Configuration> configs = coordinator.queryAllConfiguration(coordinator.getSiteId(),
                 coordinator.getVersionedDbConfigPath(svcName, coordinator.getCurrentDbSchemaVersion()));
         int count = 0;
         for (Configuration config : configs) {

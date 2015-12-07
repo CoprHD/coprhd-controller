@@ -70,7 +70,7 @@ public interface DbManagerMBean {
 
     /**
      * Remove nodes in a specified data center
-     * 
+     *
      * @param dcName
      */
     @ManagedOperation(description = "Remove all ndoes in a data center")

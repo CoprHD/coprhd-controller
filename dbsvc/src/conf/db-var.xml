@@ -12,6 +12,7 @@
     <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
         <property name="name" value="dbsvc"/>
         <property name="id" value="db-standalone"/>
+        <property name="nodeId" value="standalone"/>
         <property name="endpoint" value="thrift://localhost:9160"/>
         <property name="version" ref="dbSchemaVersion"/>
     </bean>
@@ -46,8 +47,11 @@
 
     <bean id="dbRebuildRunnable" class="com.emc.storageos.db.server.impl.DbRebuildRunnable">
         <property name="coordinator" ref="coordinator"/>
-        <property name="sourceDc" value="vdc1"/>
         <property name="nodeCount" value="1"/>
         <property name="service" ref="serviceinfo"/>
+    </bean>
+    
+    <bean id="backCompatPreYoda" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="false" />
     </bean>
 </beans>

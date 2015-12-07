@@ -94,14 +94,6 @@ public class VdcConfigHelper {
 
     private final static int NODE_CHECK_TIMEOUT = 60 * 1000; // one minute
 
-    // All the compatible versions, current version is v2.2
-    private static final List<SoftwareVersion> compatibleVersions = Collections.unmodifiableList(
-            Arrays.asList(new SoftwareVersion("vipr-2.0.0.0.*"),
-                    new SoftwareVersion("vipr-2.1.0.0.*"),
-                    new SoftwareVersion("vipr-2.1.0.1.*"),
-                    new SoftwareVersion("vipr-2.2.0.0.*"),
-                    new SoftwareVersion("vipr-2.3.0.0.*")));
-
     private static final int NODE_REACHABLE_TIMEOUT = 30 * 1000; // 30 seconds
     private static final int NODE_REACHABLE_PORT = 4443;
 
@@ -607,7 +599,7 @@ public class VdcConfigHelper {
     public void updateDbSvcConfig(String svcName, String key, String value) {
         String kind = coordinator.getDbConfigPath(svcName);
         try {
-            List<Configuration> configs = coordinator.queryAllConfiguration(kind);
+            List<Configuration> configs = coordinator.queryAllConfiguration(coordinator.getSiteId(), kind);
             if (configs == null) {
                 String errMsg = "No " + svcName + " config found in the current vdc";
                 log.error(errMsg);
@@ -623,7 +615,7 @@ public class VdcConfigHelper {
                     continue;
                 }
                 config.setConfig(key, value);
-                coordinator.persistServiceConfiguration(config);
+                coordinator.persistServiceConfiguration(coordinator.getSiteId(), config);
             }
         } catch (CoordinatorException e) {
             throw new IllegalStateException(e);
@@ -716,12 +708,18 @@ public class VdcConfigHelper {
 
     public boolean isCompatibleVersion(SoftwareVersion remoteVer) {
         log.info("Remote version is {}", remoteVer);
-        for (SoftwareVersion compVer : compatibleVersions) {
-            if (compVer.weakEquals(remoteVer)) {
-                log.info("Compare version  {} is weak equals of remote version.", compVer);
-                return true;
-            }
+
+        VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
+        String viprVersion = getViPRVersion(localVdc.getShortId());
+        log.info("My vipr version is {}", viprVersion);
+
+        SoftwareVersion myViprVersion = new SoftwareVersion(viprVersion);
+
+        if (myViprVersion.compareTo(remoteVer) >= 0 ) {
+            log.info("version compatible");
+            return true;
         }
+
         log.info("version not compatible");
         return false;
     }

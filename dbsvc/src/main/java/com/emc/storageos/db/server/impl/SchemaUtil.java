@@ -1,13 +1,15 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright (c) 2013-2015 EMC Corporation
  * All Rights Reserved
  */
 
 package com.emc.storageos.db.server.impl;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -15,7 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
+import java.util.Set;
 import javax.crypto.SecretKey;
 
 import com.netflix.astyanax.AstyanaxContext;
@@ -32,6 +34,11 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
+import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.locator.IEndpointSnitch;
+import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -52,6 +59,7 @@ import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -94,6 +102,8 @@ public class SchemaUtil {
     private static final int MAX_REPLICATION_FACTOR = 5;
     private static final int DBINIT_RETRY_INTERVAL = 5;
     private static final int DBINIT_RETRY_MAX = 20;
+    // a normal node removal should succeed in 30s.
+    private static final int REMOVE_NODE_TIMEOUT_MILLIS = 1 * 60 * 1000; // 1 min
 
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
@@ -112,7 +122,7 @@ public class SchemaUtil {
     private boolean onStandby = false;
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private DrUtil drUtil;
-    
+
     @Autowired
     private DbRebuildRunnable dbRebuildRunnable;
 
@@ -122,7 +132,7 @@ public class SchemaUtil {
 
     /**
      * Set service info
-     * 
+     *
      * @param service
      */
     public void setService(Service service) {
@@ -131,7 +141,7 @@ public class SchemaUtil {
 
     /**
      * Set coordinator client
-     * 
+     *
      * @param coordinator
      */
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -140,16 +150,16 @@ public class SchemaUtil {
 
     /**
      * Return true if current ViPR is standby mode
-     * 
+     *
      * @return
      */
     public boolean isStandby() {
         return onStandby;
     }
-    
+
     /**
      * Set DataObjectScanner
-     * 
+     *
      * @param scanner
      */
     public void setDataObjectScanner(DataObjectScanner scanner) {
@@ -163,7 +173,7 @@ public class SchemaUtil {
 
     /**
      * Set keyspace name
-     * 
+     *
      * @param keyspaceName
      */
     public void setKeyspaceName(String keyspaceName) {
@@ -176,7 +186,7 @@ public class SchemaUtil {
 
     /**
      * Set cluster name
-     * 
+     *
      * @param clusterName
      */
     public void setClusterName(String clusterName) {
@@ -185,16 +195,16 @@ public class SchemaUtil {
 
     /**
      * Set the vdc id of current site. Must have for geodbsvc
-     * 
+     *
      * @param vdcId the vdc id of current site
      */
     public void setVdcShortId(String vdcId) {
         _vdcShortId = vdcId;
     }
-    
+
     /**
      * Set the endpoint of current vdc, for example, vip
-     * 
+     *
      * @param vdcEndpoint vdc end point
      */
     public void setVdcEndpoint(String vdcEndpoint) {
@@ -211,7 +221,7 @@ public class SchemaUtil {
 
     /**
      * Set node list in current vdc.
-     * 
+     *
      * @param nodelist vdc host list
      */
     public void setVdcNodeList(List<String> nodelist) {
@@ -230,7 +240,7 @@ public class SchemaUtil {
 
     /**
      * Set all vdc id list.
-     * 
+     *
      * @param vdcList vdc id list
      */
     public void setVdcList(List<String> vdcList) {
@@ -247,7 +257,7 @@ public class SchemaUtil {
 
     /**
      * Check if it is geodbsvc
-     * 
+     *
      * @return
      */
     protected boolean isGeoDbsvc() {
@@ -257,7 +267,7 @@ public class SchemaUtil {
     /**
      * Initializes database. Assumes that caller is serializing this call
      * across cluster.
-     * 
+     *
      * @param waitForSchema - indicate we should wait from schema from other site.
      *            false to create keyspace by our own
      */
@@ -275,7 +285,7 @@ public class SchemaUtil {
                     inited = checkAndInitSchemaOnActive(kd, waitForSchema);
                 }
                 if (inited) {
-                    return; 
+                    return;
                 }
             } catch (ConnectionException e) {
                 _log.warn("Unable to verify DB keyspace, will retry in {} secs", retryIntervalSecs, e);
@@ -297,7 +307,7 @@ public class SchemaUtil {
             }
         }
     }
-    
+
     private boolean checkAndInitSchemaOnActive(KeyspaceDefinition kd, boolean waitForSchema) throws InterruptedException, ConnectionException {
         _log.info("try scan and setup db ...");
         if (kd == null) {
@@ -327,10 +337,10 @@ public class SchemaUtil {
             _log.info("scan and setup db schema succeed");
             return true;
         }
-        
+
         return false;
     }
-    
+
     private boolean checkAndInitSchemaOnStandby(KeyspaceDefinition kd) throws ConnectionException{
         _log.info("try scan and setup db on standby site ...");
         if (kd == null) {
@@ -344,15 +354,17 @@ public class SchemaUtil {
                 _log.info("set current version for standby site {}", _service.getVersion());
                 setCurrentVersion(_service.getVersion());
             }
+            waitForSchemaAgreementDuringResume();
             checkStrategyOptions();
             return true;
         }
     }
-    
+
     public void rebuildDataOnStandby() {
         Site currentSite = drUtil.getLocalSite();
 
-        if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+        if (currentSite.getState().equals(SiteState.STANDBY_ADDING) ||
+            currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
             currentSite.setState(SiteState.STANDBY_SYNCING);
             _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
         }
@@ -361,6 +373,52 @@ public class SchemaUtil {
             dbRebuildRunnable.run();
         }
     }
+
+    /**
+     * Wait for schema agreement before checking the strategy options during resume standby operation,
+     * since the strategy options from the local site might be older than the active site and shouldn't be used any more.
+     *
+     * Also there is a chance that some of the nodes in the current site has been added to gossip before the restart,
+     * in which case they must be removed again before a schema agreement can be reached.
+     * All the other nodes in the current site are now being blocked by the schema lock and are definitely unreachable
+     * if they are already in the ring.
+     */
+    private void waitForSchemaAgreementDuringResume() {
+        Site localSite = drUtil.getLocalSite();
+        if (!localSite.getState().equals(SiteState.STANDBY_RESUMING) &&
+                !localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+            return;
+        }
+
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
+            try {
+                _log.info("sleep for {} seconds before checking schema versions.",
+                        DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS / 1000);
+                Thread.sleep(DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS);
+            } catch (InterruptedException ex) {
+                _log.warn("Interrupted during sleep");
+            }
+
+            Map<String, List<String>> schemas = clientContext.getSchemaVersions();
+            if (schemas.size() > 2) {
+                // there are more than two schema versions besides UNREACHABLE, keep waiting.
+                continue;
+            }
+            if (schemas.size() == 1) {
+                // schema agreement reached and we are all set
+                return;
+            }
+            // schemas.size() == 2, try removing the unreachable nodes from local site and check again.
+            if (schemas.containsKey(StorageProxy.UNREACHABLE)) {
+                String localDcId = drUtil.getCassandraDcId(localSite);
+                removeDataCenter(localDcId, true);
+            }
+        }
+        _log.error("Unable to converge schema versions during resume");
+        throw new IllegalStateException("Unable to converge schema versions during resume");
+    }
+
     
     /**
      * Remove paused sites from db/geodb strategy options on the active site.
@@ -384,21 +442,20 @@ public class SchemaUtil {
     }
 
     /**
-     * Add new standby site into the db/geodb strategy options on each new standby site
+     * Put to be added or resumed standby site into the db/geodb strategy options on each new standby site
      *
      * @param strategyOptions
      * @return true to indicate keyspace strategy option is changed
      */
     private boolean checkStrategyOptionsForDROnStandby(Map<String, String> strategyOptions) {
-        // no need to add new site on primary site, since dbsvc/geodbsvc are not restarted
+        // no need to add new site on acitve site, since dbsvc/geodbsvc are not restarted
         String dcId = drUtil.getCassandraDcId(drUtil.getLocalSite());
         if (strategyOptions.containsKey(dcId)) {
             return false;
         }
 
         Site localSite = drUtil.getLocalSite();
-        if (localSite.getState().equals(SiteState.STANDBY_PAUSED) ||
-                localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
             // don't add back the paused site
             _log.info("local standby site has been paused and removed from strategy options. Do nothing");
             return false;
@@ -406,6 +463,18 @@ public class SchemaUtil {
 
         _log.info("Add {} to strategy options", dcId);
         strategyOptions.put(dcId, Integer.toString(getReplicationFactor()));
+        
+        // If we upgrade from pre-yoda versions, the strategy option does not contains active site.
+        // we do it once during first add-standby operation on standby site
+        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+        String activeSiteDcId = drUtil.getCassandraDcId(activeSite);
+        if (!strategyOptions.containsKey(activeSiteDcId)) {
+            _log.info("Add {} to strategy options", activeSiteDcId);
+            strategyOptions.put(activeSiteDcId, Integer.toString(activeSite.getNodeCount()));
+            if (strategyOptions.containsKey("replication_factor")) {
+                strategyOptions.remove("replication_factor");
+            }
+        }
         return true;
     }
 
@@ -469,8 +538,6 @@ public class SchemaUtil {
         changed |= checkStrategyOptionsForGeo(strategyOptions);
 
         if (changed) {
-            // log current schema versions for debug purpose
-            clientContext.getSchemaVersions();
             _log.info("strategyOptions changed to {}", strategyOptions);
             clientContext.setCassandraStrategyOptions(strategyOptions, true);
         }
@@ -583,16 +650,16 @@ public class SchemaUtil {
         }
 
         if (latestSchemaVersion != null) {
-            clientContext.waitForSchemaChange(latestSchemaVersion);
+            clientContext.waitForSchemaAgreement(latestSchemaVersion);
         }
     }
 
     void setCurrentVersion(String currentVersion) {
         String configKind = _coordinator.getDbConfigPath(_service.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind, Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind, Constants.GLOBAL_ID);
         if (config != null) {
             config.setConfig(Constants.SCHEMA_VERSION, currentVersion);
-            _coordinator.persistServiceConfiguration(config);
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
         } else {
             // we are expecting this to exist, because its initialized from checkGlobalConfiguration
             throw new IllegalStateException("unexpected error, db global configuration is null");
@@ -600,7 +667,7 @@ public class SchemaUtil {
     }
 
     void setMigrationStatus(MigrationStatus status) {
-        Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), getDbConfigPath(), Constants.GLOBAL_ID);
         _log.debug("setMigrationStatus: target version \"{}\" status {}",
                 _coordinator.getTargetDbSchemaVersion(), status.name());
         if (config == null) {
@@ -610,7 +677,7 @@ public class SchemaUtil {
             config = cfg;
         }
         config.setConfig(Constants.MIGRATION_STATUS, status.name());
-        _coordinator.persistServiceConfiguration(config);
+        _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
     }
 
     /**
@@ -619,7 +686,7 @@ public class SchemaUtil {
      * @param checkpoint
      */
     void setMigrationCheckpoint(String checkpoint) {
-        Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), getDbConfigPath(), Constants.GLOBAL_ID);
         _log.debug("setMigrationCheckpoint: target version \"{}\" checkpoint {}",
                 _coordinator.getTargetDbSchemaVersion(), checkpoint);
         if (config == null) {
@@ -629,7 +696,7 @@ public class SchemaUtil {
             config = cfg;
         }
         config.setConfig(DbConfigConstants.MIGRATION_CHECKPOINT, checkpoint);
-        _coordinator.persistServiceConfiguration(config);
+        _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
     }
 
     /**
@@ -637,7 +704,7 @@ public class SchemaUtil {
      * 
      */
     String getMigrationCheckpoint() {
-        Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), getDbConfigPath(), Constants.GLOBAL_ID);
         _log.debug("getMigrationCheckpoint: target version \"{}\"",
                 _coordinator.getTargetDbSchemaVersion());
         if (config != null) {
@@ -652,12 +719,12 @@ public class SchemaUtil {
      * 
      */
     void removeMigrationCheckpoint() {
-        Configuration config = _coordinator.queryConfiguration(getDbConfigPath(), Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), getDbConfigPath(), Constants.GLOBAL_ID);
         _log.debug("removeMigrationCheckpoint: target version \"{}\"",
                 _coordinator.getTargetDbSchemaVersion());
         if (config != null) {
             config.removeConfig(DbConfigConstants.MIGRATION_CHECKPOINT);
-            _coordinator.persistServiceConfiguration(config);
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
         }
     }
 
@@ -847,6 +914,7 @@ public class SchemaUtil {
             } else {
                 _log.warn("Vdc record is not local for {}", _vdcShortId);
             }
+            checkAndInsertVdcConfig(localVdc);
             return;
         }
 
@@ -887,21 +955,32 @@ public class SchemaUtil {
         vdc.setLocal(true);
         dbClient.createObject(vdc);
 
+        checkAndInsertVdcConfig(vdc);
+    }
+    
+    private void checkAndInsertVdcConfig(VirtualDataCenter vdc) {
+        try {
+            drUtil.getLocalSite();
+            _log.info("Find local site config in ZK");
+            return;
+        } catch (RetryableCoordinatorException ex) {
+            _log.info("Cannot find local vdc config in ZK. Create new config");
+        }
         // create VDC parent ZNode for site config in ZK
         ConfigurationImpl vdcConfig = new ConfigurationImpl();
         vdcConfig.setKind(Site.CONFIG_KIND);
         vdcConfig.setId(vdc.getShortId());
         _coordinator.persistServiceConfiguration(vdcConfig);
 
-        // insert DR primary site info to ZK
+        // insert DR acitve site info to ZK
         Site site = new Site();
         site.setUuid(_coordinator.getSiteId());
-        site.setName("Primary");
+        site.setName("Default Active Site");
         site.setVdcShortId(vdc.getShortId());
         site.setStandbyShortId("");
-        site.setHostIPv4AddressMap(ipv4Addresses);
-        site.setHostIPv6AddressMap(ipv6Addresses);
-        site.setState(SiteState.PRIMARY);
+        site.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
+        site.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
+        site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
         site.setVip(_vdcEndpoint);
 
@@ -916,7 +995,7 @@ public class SchemaUtil {
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
         _coordinator.setTargetInfo(siteInfo);
     }
-
+    
     /**
      * initialize PasswordHistory CF
      * 
@@ -1206,7 +1285,7 @@ public class SchemaUtil {
                 if (cfd != null) {
             	    _log.info("drop cf {} from db", cfName);
             	    String schemaVersion = dropColumnFamily(cfName, context);
-                    clientContext.waitForSchemaChange(schemaVersion);
+                    clientContext.waitForSchemaAgreement(schemaVersion);
                 }
             }
         } catch (Exception e){
@@ -1215,6 +1294,54 @@ public class SchemaUtil {
         }
         return true;
    }
+
+    public void removeDataCenter(String dcName, boolean unreachableNodesOnly) {
+        _log.info("Remove Cassandra data center {}", dcName);
+        List<InetAddress> allNodes = new ArrayList<>();
+        if (!unreachableNodesOnly) {
+            Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+            allNodes.addAll(liveNodes);
+        }
+        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
+        allNodes.addAll(unreachableNodes);
+        for (InetAddress nodeIp : allNodes) {
+            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+            String dc = snitch.getDatacenter(nodeIp);
+            _log.info("node {} belongs to data center {} ", nodeIp, dc);
+            if (dc.equals(dcName)) {
+                Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
+                String guid = hostIdMap.get(nodeIp.getHostAddress());
+                _log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
+                Gossiper.instance.convict(nodeIp, 0);
+                ensureRemoveNode(guid);
+            }
+        }
+    }
+
+    /**
+     * A safer method to remove Cassandra node. Calls forceRemoveCompletion after REMOVE_NODE_TIMEOUT_MILLIS
+     * This will help to prevent node removal from hanging due to CASSANDRA-6542.
+     *
+     * @param guid
+     */
+    public void ensureRemoveNode(final String guid) {
+        Thread thread = new Thread() {
+            public void run() {
+                StorageService.instance.removeNode(guid);
+            }
+        };
+        thread.start();
+        try {
+            thread.join(REMOVE_NODE_TIMEOUT_MILLIS);
+            if (thread.isAlive()) {
+                _log.warn("removenode timeout, calling forceRemoveCompletion()");
+                StorageService.instance.forceRemoveCompletion();
+                thread.join();
+            }
+        } catch (InterruptedException e) {
+            _log.warn("Interrupted during node removal");
+        }
+    }
     
     public void setApiSignatureGenerator(InternalApiSignatureKeyGenerator apiSignatureGenerator) {
         this.apiSignatureGenerator = apiSignatureGenerator;

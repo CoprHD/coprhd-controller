@@ -233,9 +233,10 @@ _get_local_ip() {
     local var="_GENCONFIG_network_${nodenum}_ipaddr"
     local var6="_GENCONFIG_network_${nodenum}_ipaddr6"
     local ipaddr="${!var}"
-    [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
+    [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
     echo "${ipaddr}"
 }
+
 
 # get ips in primary site
 _get_ips_in_primary() {
@@ -244,10 +245,19 @@ _get_ips_in_primary() {
     local primary_cnt="${!var}"
     local ips=""
     for i in $(seq ${primary_cnt}) ; do
-        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr"
-        local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr6"
-        local ipaddr="${!var}"
-        [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
+        local ipaddr=""
+        if [ "${_GENCONFIG_site_is_standby}" == "false" ]; then
+            # use ipaddr from ovf-env. for ip change support
+            local var="_GENCONFIG_network_${i}_ipaddr_service"
+            ipaddr="${!var}"
+            # remove ipv6's brackets
+            ipaddr=$(echo ${ipaddr} | sed -e 's/^\[//' -e 's/\]$//')
+        else
+            local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr"
+            local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr6"
+            ipaddr="${!var}"
+            [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
+        fi
         ips="${ips} ${ipaddr}"
     done
 
@@ -267,7 +277,7 @@ _get_ips_in_standby() {
             var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_${standby_index}_ipaddr"
             var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_${standby_index}_ipaddr6"
             local ipaddr="${!var}"
-            [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
+            [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
             ips="${ips} ${ipaddr}"
         done
     else

@@ -113,6 +113,11 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 continue;
             }
             String snapNameToProcess = (String) snapDetail.get(1);
+            if(snapNameToProcess.length() == 0)
+            {
+            	log.warn("Snap name is null, ignore this");
+            	continue; 
+            }
             XtremIOVolume snap = xtremIOClient.getSnapShotDetails(snapNameToProcess, xioClusterName);
             UnManagedVolume unManagedVolume = null;
             boolean isExported = !snap.getLunMaps().isEmpty();

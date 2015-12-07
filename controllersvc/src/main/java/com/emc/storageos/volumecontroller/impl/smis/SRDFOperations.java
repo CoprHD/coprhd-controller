@@ -1426,7 +1426,11 @@ public class SRDFOperations implements SmisConstants {
                 suspendOp = SRDFOperation.SUSPEND;
                 detachOp = SRDFOperation.DELETE_GROUP_PAIRS;
             } else {
-                suspendOp = SRDFOperation.SUSPEND_CONS_EXEMPT;
+                if (target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString())) {
+                    suspendOp = SRDFOperation.SUSPEND;
+                } else {
+                    suspendOp = SRDFOperation.SUSPEND_CONS_EXEMPT;
+                }
                 detachOp = SRDFOperation.DELETE_PAIR;
             }
             ctxFactory.build(suspendOp, target).perform();
@@ -1539,18 +1543,48 @@ public class SRDFOperations implements SmisConstants {
             Collection<Volume> srcVolumes = newArrayList(filter(volumes, volumePersonalityPredicate(SOURCE)));
             Collection<Volume> tgtVolumes = newArrayList(filter(volumes, volumePersonalityPredicate(TARGET)));
 
-            ((SRDFLinkStopCompleter) completer).setVolumes(srcVolumes, tgtVolumes);
-            log.info("Sources: {}", Joiner.on(", ").join(transform(srcVolumes, fctnBlockObjectToNativeGuid())));
-            log.info("Targets: {}", Joiner.on(", ").join(transform(tgtVolumes, fctnBlockObjectToNativeGuid())));
-
             ctxFactory.build(SRDFOperation.SUSPEND, target).perform();
-            ctxFactory.build(SRDFOperation.DELETE_GROUP_PAIRS, target).perform();
             if (target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString())) {
+                Volume source = getSourceVolume(target);
+                ((SRDFLinkStopCompleter) completer).setVolumes(Arrays.asList(source), Arrays.asList(target));
+                log.info("Source: {}", source.getNativeId());
+                log.info("Target: {}", target.getNativeId());
+
+                // Remove the source and target form the list that will be stopped.
+                // If tgtVolumes is not empty then after stop(deletepair) resume(establish) will be done
+                // on rest of the volumes in the SRDF group.
+                Iterator<Volume> srcIter = srcVolumes.iterator();
+                while (srcIter.hasNext()) {
+                    if (srcIter.next().getId().equals(source.getId())) {
+                        srcIter.remove();
+                        break;
+                    }
+                }
+                Iterator<Volume> tgtIter = tgtVolumes.iterator();
+                while (tgtIter.hasNext()) {
+                    if (tgtIter.next().getId().equals(target.getId())) {
+                        tgtIter.remove();
+                        break;
+                    }
+                }
+
+                // DELETE_PAIR will stop only one pair
+                ctxFactory.build(SRDFOperation.DELETE_PAIR, target).perform();
+
+                if (!tgtVolumes.isEmpty() && tgtVolumes.iterator().hasNext()) {
+                    // We need to get other pairs back in the original state.
+                    ctxFactory.build(SRDFOperation.ESTABLISH, tgtVolumes.iterator().next()).perform();
+                }
                 // If Active SRDF copy mode then refresh storage system and update volume properties
                 // as target volume wwn changes after stop
                 ArrayList<URI> volumeURIs = new ArrayList<URI>(Arrays.asList(target.getId()));
                 refreshStorageSystem(system.getId());
                 refreshVolumeProperties(system.getId(), volumeURIs);
+            } else {
+                ((SRDFLinkStopCompleter) completer).setVolumes(srcVolumes, tgtVolumes);
+                log.info("Sources: {}", Joiner.on(", ").join(transform(srcVolumes, fctnBlockObjectToNativeGuid())));
+                log.info("Targets: {}", Joiner.on(", ").join(transform(tgtVolumes, fctnBlockObjectToNativeGuid())));
+                ctxFactory.build(SRDFOperation.DELETE_GROUP_PAIRS, target).perform();
             }
 
             if (target.hasConsistencyGroup()) {
@@ -1560,8 +1594,20 @@ public class SRDFOperations implements SmisConstants {
         } catch (RemoteGroupAssociationNotFoundException e) {
             log.warn("No remote group association found for {}.  It may have already been removed.", target.getId());
         } catch (Exception e) {
-            log.error("Failed to stop srdf link {}", target.getSrdfParent().getURI(), e);
-            error = SmisException.errors.jobFailed(e.getMessage());
+            log.error("Failed to stop srdf link {} {}", target.getSrdfParent().getURI(), e);
+            StringBuffer sf = new StringBuffer();
+            sf.append(e.getMessage());
+            if (target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString())
+                    && !target.hasConsistencyGroup()) {
+                try {
+                    // Rollback to previous status in case of stop failure
+                    ctxFactory.build(SRDFOperation.ESTABLISH, target).perform();
+                } catch (Exception e1) {
+                    log.error("Failed to resume srdf link during rollback {} {}", target.getSrdfParent().getURI(), e);
+                    sf.append("Rollback error: ").append(e1.getMessage());
+                }
+            }
+            error = SmisException.errors.jobFailed(sf.toString());
         } finally {
             if (error == null) {
                 completer.ready(dbClient);

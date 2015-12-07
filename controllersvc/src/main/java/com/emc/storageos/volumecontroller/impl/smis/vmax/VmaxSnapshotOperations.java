@@ -484,6 +484,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
                 CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
                 _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
+            } else {
+                _log.info("GroupSynchronized {} not found", groupSynchronized.toString());
             }
             // Set inactive=true for all snapshots in the snaps set
             Iterator<BlockSnapshot> snapshotIter = snapshotList.iterator();

@@ -27,7 +27,7 @@ import java.util.Set;
 import javax.xml.bind.DataBindingException;
 
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jetty.util.log.Log;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,6 +163,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private BlockStorageScheduler _blockScheduler;
     private WorkflowService _workflowService;
     private SRDFDeviceController srdfDeviceController;
+    private ReplicaDeviceController _replicaDeviceController;
 
     private static final String ATTACH_MIRRORS_WF_NAME = "ATTACH_MIRRORS_WORKFLOW";
     private static final String DETACH_MIRRORS_WF_NAME = "DETACH_MIRRORS_WORKFLOW";
@@ -210,6 +211,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void setWorkflowService(WorkflowService workflowService) {
         _workflowService = workflowService;
+    }
+
+    public void setReplicaDeviceController(ReplicaDeviceController replicaDeviceController) {
+        _replicaDeviceController = replicaDeviceController;
     }
 
     public BlockStorageDevice getDevice(String deviceType) {
@@ -576,8 +581,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         String.format("Creating consistency group  %s", consistencyGroupURI), waitFor,
                         deviceURI, getDeviceType(deviceURI),
                         this.getClass(),
-                        new Workflow.Method("createConsistencyGroup", deviceURI, consistencyGroupURI),
-                        new Workflow.Method("deleteConsistencyGroup", deviceURI, consistencyGroupURI, false), null);
+                        createConsistencyGroupMethod(deviceURI, consistencyGroupURI),
+                        deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, false), null);
                 createdCg = true;
                 _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
             }
@@ -2881,6 +2886,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
+    public Workflow.Method deleteConsistencyGroupMethod(URI storage, URI consistencyGroup, Boolean markInactive) {
+        return new Workflow.Method("deleteConsistencyGroup", storage, consistencyGroup, markInactive);
+    }
+
     @Override
     public void deleteConsistencyGroup(URI storage, URI consistencyGroup, Boolean markInactive, String opId) throws ControllerException {
         TaskCompleter completer = null;
@@ -3822,6 +3831,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     }
                 }
             }
+
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     UPDATE_CONSISTENCY_GROUP_WF_NAME, false, task);
@@ -3844,15 +3854,32 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         this.getClass(),
                         addToConsistencyGroupMethod(storage, consistencyGroup, addVolumesList),
                         rollbackMethodNullMethod(), null);
+
+                // call ReplicaDeviceController
+                waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, consistencyGroup, addVolumesList, task);
             }
 
             if (removeVolumesList != null && !removeVolumesList.isEmpty()) {
+                // call ReplicaDeviceController
+                waitFor = _replicaDeviceController.addStepsForRemovingVolumesFromCG(workflow, waitFor, consistencyGroup, removeVolumesList, task);
+
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Removing volumes from consistency group %s", consistencyGroup),
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
                         removeFromConsistencyGroupMethod(storage, consistencyGroup, removeVolumesList),
                         rollbackMethodNullMethod(), null);
+
+                // remove replication group if the CG will become empty
+                if ((addVolumesList == null || addVolumesList.isEmpty()) &&
+                        ControllerUtils.cgHasNoOtherVolume(_dbClient, consistencyGroup, removeVolumesList)) {
+                    waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                            String.format("Deleting replication group for consistency group %s", consistencyGroup),
+                            waitFor, storage, storageSystem.getSystemType(),
+                            this.getClass(),
+                            deleteConsistencyGroupMethod(storage, consistencyGroup, false),
+                            rollbackMethodNullMethod(), null);
+                }
             }
 
             // For SRDF, we need to create target consistency group and
@@ -4516,7 +4543,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         URI storage = storageSystem.getId();
         Workflow.Method createMethod = createListCloneMethod(storage, cloneList, false);
         Workflow.Method rollbackMethod = rollbackListCloneMethod(storage, cloneList);
-        waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", waitFor, storage,
+        waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating list clone", waitFor, storage,
                 storageSystem.getSystemType(), getClass(), createMethod, rollbackMethod, null);
 
         return waitFor;

@@ -387,7 +387,7 @@ public enum OperationTypeEnum {
     DELETE_FILE_SYSTEM_NFS_ACL("DELETE FILE NFS ACL", "", "operation to delete filesystem nfs ACL"),
     DELETE_FILE_SNAPSHOT_NFS_ACL("DELETE SNAPSHOT NFS ACL", "", "operation to delete snapshot nfs ACL"),
     CREATE_BACKUP("CREATE BACKUP", "", "operation to create ViPR backup"),
-    DELETE_BACKUP("DELETE BACKUP", "", "operation to delete ViPR backup "),
+    DELETE_BACKUP("DELETE BACKUP", "", "operation to delete ViPR backup"),
     UPLOAD_BACKUP("UPLOAD BACKUP", "", "operation to upload ViPR backup to external location"),
     RECOVER_NODES("RECOVER NODES", "", "operation to recover corrupted nodes"),
     RECONFIG_IP("Reconfig IPs", "", "trigger ip reconfiguration"),

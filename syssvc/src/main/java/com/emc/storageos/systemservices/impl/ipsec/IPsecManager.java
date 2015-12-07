@@ -99,19 +99,21 @@ public class IPsecManager {
      * @return
      */
     public String changeIpsecState(String state) {
-        try {
-            String oldState = ipsecConfig.getIpsecState();
-            if (oldState.equalsIgnoreCase(state)) {
-                log.info("ipsec already in state: " + state + ", skip the operation.");
-                return oldState;
-            }
-            log.info("change Ipsec State from " + oldState + " to " + state);
-            ipsecConfig.setIpsecState(state);
-            return ipsecConfig.getIpsecState();
-        } catch (Exception e) {
-            throw SecurityException.fatals.failToRotateIPsecKey(e);
-        }
 
+        String oldState = ipsecConfig.getIpsecState();
+        if (oldState.equalsIgnoreCase(state)) {
+            log.info("ipsec already in state: " + state + ", skip the operation.");
+            return oldState;
+        }
+        log.info("change Ipsec State from " + oldState + " to " + state);
+        if (state != null && (state.equalsIgnoreCase("enabled") || state.equalsIgnoreCase("disabled"))) {
+            ipsecConfig.setIpsecState(state);
+        } else {
+            throw SecurityException.fatals.failToChangeIPsecState("invalid value");
+        }
+        String version = updateTargetSiteInfo();
+        log.info("ipsec state changed, and new config version is {}", version);
+        return ipsecConfig.getIpsecState();
     }
 
     private List<IPsecNodeState> checkConfigurations(String vdcConfigVersion, List<IPsecNodeState> nodeStatus) {

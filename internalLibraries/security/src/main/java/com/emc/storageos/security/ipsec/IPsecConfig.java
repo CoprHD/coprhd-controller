@@ -11,6 +11,8 @@
 package com.emc.storageos.security.ipsec;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.security.exceptions.*;
+import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper;
 import org.apache.commons.codec.binary.StringUtils;
 import org.apache.commons.lang.RandomStringUtils;
@@ -111,9 +113,12 @@ public class IPsecConfig {
      * @return
      * @throws Exception
      */
-    public String getIpsecState() throws Exception {
-        String ipsecState = getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATE);
-        return ipsecState;
+    public String getIpsecState() {
+        try {
+            return getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATE);
+        } catch (Exception e) {
+            throw SecurityException.fatals.failToChangeIPsecState(e.getMessage());
+        }
     }
 
     /**
@@ -122,10 +127,11 @@ public class IPsecConfig {
      * @param state
      * @throws Exception
      */
-    public void setIpsecState(String state) throws Exception {
-        if (state == null || !state.equalsIgnoreCase("enabled") || !state.equalsIgnoreCase("disabled")) {
-            return;
+    public void setIpsecState(String state) {
+        try {
+            getCoordinatorHelper().createOrUpdateConfig(state.toLowerCase(), IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATE);
+        } catch (Exception e) {
+            throw SecurityException.fatals.failToChangeIPsecState(e.getMessage());
         }
-        getCoordinatorHelper().createOrUpdateConfig(state.toLowerCase(), IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATE);
     }
 }

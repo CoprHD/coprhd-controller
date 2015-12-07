@@ -40,10 +40,12 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/ssh_auth_key \
     $(ETCDIR)/genconfig.d/ssl \
     $(ETCDIR)/genconfig.d/syssvc \
+    $(ETCDIR)/genconfig.d/ipsec \
     $(ETCDIR)/genconfig.d/test \
     $(ETCDIR)/gentmpl \
     $(ETCDIR)/diagtool \
     $(ETCDIR)/powerofftool \
+    $(ETCDIR)/ipsectool \
     $(ETCDIR)/gatherheapdumps \
     $(ETCDIR)/patch-props.defaults \
     $(ETCDIR)/ovf-env.README \
@@ -145,7 +147,9 @@ ETCFILES_COMMON = \
     $(ETCDIR)/systemd/system/connectemc.service \
     $(ETCDIR)/systemd/system/syncntp.service \
     $(ETCDIR)/systemd/system/ipchecktool.service \
-    $(ETCDIR)/systemd/system/storageos-installer.service
+    $(ETCDIR)/systemd/system/storageos-installer.service \
+    $(ETCDIR)/systemd/system/ipsec.service
+
 
 SYSTEMD_DIR = ${BUILD_BASE}/etc/systemd/system
 SYSTEMD_TMPL = $(SYSTEMD_DIR)/storageos-template.service

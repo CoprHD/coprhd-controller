@@ -584,7 +584,8 @@ function GenerateOvfenvProperties() {
     if ($Script:nodeCount -eq "5") {
 		$nodesIpProperties+=[String]::Format("network_4_ipaddr6={0}`nnetwork_4_ipaddr={1}`nnetwork_5_ipaddr6={2}`nnetwork_5_ipaddr={3}`n", 
 		$Script:ipaddr6_4, $Script:ipaddr_4, $Script:ipaddr6_5, $Script:ipaddr_5)
-	}		
+	}
+	$nodesIpProperties+=[String]::Format("ipsec_key_ovfenv={0}`n",$Script:ipsec_key)
     $outputProperties=New-Object string[] $nodeCount  
     for ($i=0; $i -lt $outputProperties.Length; $i++) {
         $currentNodeId='${product_name}'+($i+1)       

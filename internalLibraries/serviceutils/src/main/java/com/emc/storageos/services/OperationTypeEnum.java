@@ -408,7 +408,17 @@ public enum OperationTypeEnum {
     RELINK_SNAPSHOT_SESSION_TARGET("RelinkBlockSnapshotSessionTargets", "RelinkBlockSnapshotSessionTargetsFailed",
             "Re-link targets to BlockSnapshotSession"),
     UNLINK_SNAPSHOT_SESSION_TARGET("UnlinkBlockSnapshotSessionTargets", "UnlinkBlockSnapshotSessionTargetsFailed",
-            "Unlink targets from BlockSnapshotSession");
+            "Unlink targets from BlockSnapshotSession"),
+
+    /* Disaster Recovery Operations */
+    ADD_STANDBY("ADD STANDBY", "", "operation to add a new standby to ensemble"),
+    REMOVE_STANDBY("REMOVE STANDBY", "", "operation to remove an existing standby from ensemble"),
+    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to pause replication between acitve site and standby site"),
+    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to resume replication between acitve site and standby site"),
+    IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
+    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to switchover from acitve site to a standby site"),
+    FAILOVER("FAILOVER TO A STANDBY", "", "operation to failover to a standby site"),
+    UPDATE_SITE("UPDATE SITE", "", "operation to update site information");
 
     private final String _evType;
     private final String _fail_evType;

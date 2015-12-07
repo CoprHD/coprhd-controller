@@ -18,6 +18,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -27,6 +28,7 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.DownloadingInfo;
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -36,7 +38,6 @@ import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
 import com.emc.vipr.model.sys.ClusterInfo.NodeState;
 import com.emc.vipr.model.sys.NodeProgress.DownloadStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public class UpgradeManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(UpgradeManager.class);
@@ -77,6 +78,49 @@ public class UpgradeManager extends AbstractManager {
         return SysClientFactory.URI_WAKEUP_UPGRADE_MANAGER;
     }
 
+    /**
+     * Register repository info listener to monitor repository version changes
+     */
+    private void addRepositoryInfoListener() {
+        try {
+            coordinator.getCoordinatorClient().addNodeListener(new RepositoryInfoListener());
+        } catch (Exception e) {
+            log.error("Fail to add node listener for repository info target znode", e);
+            throw APIException.internalServerErrors.addListenerFailed();
+        }
+        log.info("Successfully added node listener for repository info target znode");
+    }
+
+    /**
+     * the listener class to listen the repository target node change.
+     */
+    class RepositoryInfoListener implements NodeListener {
+        public String getPath() {
+            return String.format("/config/%s/%s", RepositoryInfo.CONFIG_KIND, RepositoryInfo.CONFIG_ID);
+        }
+
+        /**
+         * called when user update the target version
+         */
+        @Override
+        public void nodeChanged() {
+            log.info("Repository info changed. Waking up the upgrade manager...");
+            wakeup();
+        }
+
+        /**
+         * called when connection state changed.
+         */
+        @Override
+        public void connectionStateChanged(State state) {
+            log.info("Repository info connection state changed to {}", state);
+            if (state.equals(State.CONNECTED)) {
+                log.info("Curator (re)connected. Waking up the upgrade manager...");
+                wakeup();
+            }
+        }
+    }
+
     @Override
     protected void innerRun() {
         final String svcId = coordinator.getMySvcId();
@@ -84,6 +128,8 @@ public class UpgradeManager extends AbstractManager {
         boolean dbCurrentVersionEncrypted = false;
         boolean isDBMigrationDone = false;
         isValidRepo = localRepository.isValidRepository();
+
+        addRepositoryInfoListener();
 
         while (doRun) {
             log.debug("Main loop: Start");
@@ -133,13 +179,6 @@ public class UpgradeManager extends AbstractManager {
             }
 
             if (hasLock) {
-                try {
-                    handleDataNodes();
-                } catch (Exception e) {
-                    log.info("Setting target version failed and will be retried: {}", e.getMessage());
-                    retrySleep();
-                    continue;
-                }
 
                 try {
                     coordinator.releasePersistentLock(svcId, upgradeLockId);
@@ -239,12 +278,12 @@ public class UpgradeManager extends AbstractManager {
                         retrySleep();
                         continue;
                     }
-
-                    if (new DbManagerOps(Constants.DBSVC_NAME).adjustNumTokens()) {
-                        log.info("Adjusted dbsvc num_tokens, restarting dbsvc...");
-                        localRepository.restart(Constants.DBSVC_NAME);
+                    try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME)) {
+                        if (dbOps.adjustNumTokens()) {
+                            log.info("Adjusted dbsvc num_tokens, restarting dbsvc...");
+                            localRepository.restart(Constants.DBSVC_NAME);
+                        }
                     }
-
                     continue;
                 } catch (Exception e) {
                     log.error("Step5: Adjust dbsvc num_tokens failed", e);
@@ -256,41 +295,6 @@ public class UpgradeManager extends AbstractManager {
             // Step6: sleep
             log.info("Step6: sleep");
             longSleep();
-        }
-    }
-
-    /**
-     * Handle datanodes after the first node is upgraded from 2.2-(exclusive) to 2.2+(inclusive).
-     * If datanodes are configured and previous version can be found, revert the upgrade.
-     * If datanodes are configured but previous version cannot be found, reset the system_datanode_ipaddrs property
-     * and proceed.
-     * 
-     * @throws Exception
-     */
-    private void handleDataNodes() throws Exception {
-        PropertyInfoExt targetPropInfo = coordinator.getTargetInfo(PropertyInfoExt.class);
-        String datanodeList = targetPropInfo.getAllProperties().get("system_datanode_ipaddrs");
-        if (datanodeList != null && !datanodeList.isEmpty()) {
-            log.error("datanodeList is: {}", datanodeList);
-            log.error("There are datanodes configured in the system, the 2.2 version doesn't support this feature, roll back to previous version");
-            String previousVersion = getPreviousVersion();
-            if (previousVersion == null) {
-                log.warn("Cannot find previous version. Reset system_datanode_ipaddrs and proceed with upgrade.");
-                PropertyInfoExt removeDataNodeProp = coordinator.getTargetInfo(PropertyInfoExt.class);
-                removeDataNodeProp.addProperty("system_datanode_ipaddrs", "");
-                removeDataNodeProp.addProperty(PropertyInfoRestRep.CONFIG_VERSION, String.valueOf(System.currentTimeMillis()));
-                coordinator.setTargetInfo(removeDataNodeProp);
-                // There's no need to wake up other nodes, because
-                // a) All other nodes are in version <2.2 so there's no such concept as PropertyManager
-                // b) For most of the cases, this only happens on 1+0, in which there's no other nodes
-                // c) Even if there are, they will be rebooted shortly anyways
-                propertyManager.wakeup();
-            } else {
-                log.warn("Reverting to version {}", previousVersion);
-                RepositoryInfo revertedTargetInfo = new RepositoryInfo(new SoftwareVersion(previousVersion),
-                        coordinator.getTargetInfo(RepositoryInfo.class).getVersions());
-                coordinator.setTargetInfo(revertedTargetInfo, false);
-            }
         }
     }
 

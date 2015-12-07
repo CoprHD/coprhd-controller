@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Severity;
 import com.emc.nas.vnxfile.xmlapi.Status;
-import com.emc.nas.vnxfile.xmlapi.Status.Problem;
 import com.emc.nas.vnxfile.xmlapi.TaskResponse;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
@@ -56,17 +55,8 @@ public class VNXSnapshotCreateProcessor extends VNXFileProcessor {
                             _logger.info("NewCheckpoint creation success");
                             keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                         } else if (status.getMaxSeverity() == Severity.ERROR) {
-                            Iterator<Problem> msgItr = status.getProblem().iterator();
-                            StringBuilder errorMessage = new StringBuilder();
-                            while (msgItr.hasNext()) {
-                                errorMessage.append(msgItr.next().getMessage() + " ");
-                            }
-                            if (errorMessage.toString().isEmpty()) {
-                                errorMessage.append("Unable to create Snapshot");
-                            }
+                            processErrorStatus(status, keyMap);
                             _logger.info("NewCheckpoint creation failed");
-                            keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_FAILURE);
-                            keyMap.put(VNXFileConstants.FAULT_DESC, errorMessage.toString());
                         }
 
                         break;

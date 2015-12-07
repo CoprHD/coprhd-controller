@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
@@ -35,6 +36,8 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     private StringSet _knownVolumeUris;
     private StringSet _unmanagedVolumeUris;
     private ZoneInfoMap _zoningMap;
+
+    private StringSetMap deviceDataMap;
 
     @RelationIndex(cf = "UnManagedExportMaskRelationIndex", type = StorageSystem.class)
     @Name("storageSystem")
@@ -214,6 +217,20 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     }
 
     /**
+     * @return the deviceDataMap
+     */
+    public StringSetMap getDeviceDataMap() {
+        return deviceDataMap;
+    }
+
+    /**
+     * @param deviceDataMap the deviceDataMap to set
+     */
+    public void setDeviceDataMap(StringSetMap deviceDataMap) {
+        this.deviceDataMap = deviceDataMap;
+    }
+
+    /**
      * Update initiator/volumes/ports
      * 
      * @param knownIniSet
@@ -262,8 +279,8 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         str.append("; unmanaged storage ports: ").append(this.getUnmanagedStoragePortNetworkIds());
         str.append("; known storage volumes: ").append(this.getKnownVolumeUris());
         str.append("; unmanaged storage volumes: ").append(this.getUnmanagedVolumeUris());
+        str.append("; deviceDataMap: ").append(this.getDeviceDataMap());
         str.append("; zoning map: ").append(this.getZoningMap());
         return str.toString();
     }
-
 }

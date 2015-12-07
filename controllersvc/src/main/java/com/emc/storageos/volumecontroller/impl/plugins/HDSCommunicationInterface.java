@@ -277,15 +277,16 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                                 .toString()))) {
             Map<String, Set<UnManagedExportMask>> volumeToUems = new HashMap<String, Set<UnManagedExportMask>>();
             boolean umvDiscoveryStatus = false;
-            if (null != this.volumeDiscoverer) {
-                this.volumeDiscoverer.setDbClient(_dbClient);
-                this.volumeDiscoverer.setVolumeMasks(volumeToUems);
-                umvDiscoveryStatus = discoverUnManagedVolumes(accessProfile);
-            }
+
             if (umvDiscoveryStatus && null != this.exportDiscoverer) {
                 this.exportDiscoverer.setDbClient(_dbClient);
                 this.exportDiscoverer.setVolumeMasks(volumeToUems);
                 discoverUnManagedExportMasks(accessProfile);
+            }
+            if (null != this.volumeDiscoverer) {
+                this.volumeDiscoverer.setDbClient(_dbClient);
+                this.volumeDiscoverer.setVolumeMasks(volumeToUems);
+                umvDiscoveryStatus = discoverUnManagedVolumes(accessProfile);
             }
 
             if (null != volumeToUems && !volumeToUems.isEmpty()) {

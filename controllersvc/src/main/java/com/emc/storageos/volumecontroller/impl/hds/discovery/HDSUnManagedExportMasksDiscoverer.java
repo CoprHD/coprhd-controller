@@ -137,11 +137,11 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
                 processIscsiInitiators(storageSystem, umExportMask, hsd, iscsiList, matchedInitiators, knownIniSet, knownIniWwnSet,
                         newMasks, updateMasks, allMasks);
             }
+            processStoragePorts(storageSystem, hsd.getPortID(), storagePortsItr, umExportMask, matchedPorts, knownPortSet);
 
             if (null != pathList && !pathList.isEmpty()) {
                 processVolumes(storageSystem, umExportMask, knownVolumeSet, pathList);
             }
-            processStoragePorts(storageSystem, hsd.getPortID(), storagePortsItr, umExportMask, matchedPorts, knownPortSet);
             updateZoningMap(umExportMask, matchedInitiators, matchedPorts);
             updateMaskInfo(umExportMask, knownIniSet, knownIniWwnSet, knownVolumeSet, knownPortSet);
         }
@@ -231,9 +231,8 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
 
         if (null != knownStoragePort) {
             log.info("Found a matching storage port {} in ViPR ", knownStoragePort.getLabel());
-            knownPortSet.add(knownStoragePort.getId().toString());
+            knownPortSet.add(knownStoragePort.getPortNetworkId());
             matchedPorts.add(knownStoragePort);
-
         } else {
             log.info("No storage port in ViPR found matching portNetworkId {}", sport.getPortNetworkId());
             umExportMask.getUnmanagedStoragePortNetworkIds().add(sport.getPortNetworkId());
@@ -319,7 +318,7 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
                 umExportMask = findAnyExistingUnManagedExportMask(storageSystem, initiatorWwn, knownInitiator, newMasks, updateMasks);
             }
             if (null != knownInitiator) {
-                log.info("   found an initiator in ViPR on host " + knownInitiator.getHostName());
+                log.info("Found an initiator in ViPR on host " + knownInitiator.getHostName());
                 knownIniSet.add(knownInitiator.getId().toString());
 
                 knownIniWwnSet.add(knownInitiator.getInitiatorPort());
@@ -327,7 +326,7 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
                     matchedInitiators.add(knownInitiator);
                 }
             } else {
-                log.info("no hosts in ViPR found configured for initiator {} ", initiatorWwn);
+                log.info("No host in ViPR found configured for initiator {} ", initiatorWwn);
                 umExportMask.getUnmanagedInitiatorNetworkIds().add(initiatorWwn);
             }
             allMasks.add(umExportMask.getId());

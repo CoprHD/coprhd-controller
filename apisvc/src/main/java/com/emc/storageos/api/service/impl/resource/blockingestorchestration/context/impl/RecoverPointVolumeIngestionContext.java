@@ -54,8 +54,10 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     private Map<String, BlockObject> createdObjectMap;
     private Map<String, List<DataObject>> updatedObjectMap;
     private List<UnManagedVolume> unManagedVolumesToBeDeleted;
-    
-    private List<VplexMirror> createdVplexMirrors;
+
+    private List<Volume> managedSourceVolumesToUpdate;
+    private List<UnManagedVolume> unmanagedSourceVolumesToUpdate;
+    private List<UnManagedVolume> unmanagedTargetVolumesToUpdate;
 
     private List<String> errorMessages;
     
@@ -64,8 +66,6 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     // export ingestion related items
     private boolean exportGroupCreated = false;
     private ExportGroup exportGroup;
-    private URI host;
-    private URI cluster;
     private List<Initiator> deviceInitiators;
     private List<BlockObject> ingestedObjects;
 
@@ -75,7 +75,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     
     
     
-    private Volume managedVolume;
+    private Volume managedBlockObject;
     
     private ProtectionSet managedProtectionSet;
     private BlockConsistencyGroup managedBlockConsistencyGroup;
@@ -89,15 +89,23 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     /**
      * @return the ingestedVolume
      */
-    public Volume getManagedVolume() {
-        return managedVolume;
+    public BlockObject getManagedBlockObject() {
+
+        if (null == managedBlockObject) {
+            String volumeNativeGuid = 
+                    getUnmanagedVolume().getNativeGuid().replace(
+                            VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+            managedBlockObject = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
+        }
+        
+        return managedBlockObject;
     }
 
     /**
-     * @param managedVolume the ingestedVolume to set
+     * @param managedBlockObject the ingestedVolume to set
      */
-    public void setManagedVolume(Volume managedVolume) {
-        this.managedVolume = managedVolume;
+    public void setManagedBlockObject(Volume managedBlockObject) {
+        this.managedBlockObject = managedBlockObject;
     }
 
     /**
@@ -119,12 +127,26 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
         return unManagedProtectionSet;
     }
+
+    /**
+     * @return the managedProtectionSet
+     */
+    public ProtectionSet getManagedProtectionSet() {
+        return managedProtectionSet;
+    }
     
     /**
      * @param ingestedProtectionSet the ingestedProtectionSet to set
      */
     public void setManagedProtectionSet(ProtectionSet ingestedProtectionSet) {
         this.managedProtectionSet = ingestedProtectionSet;
+    }
+
+    /**
+     * @return the managedBlockConsistencyGroup
+     */
+    public BlockConsistencyGroup getManagedBlockConsistencyGroup() {
+        return managedBlockConsistencyGroup;
     }
 
     /**
@@ -168,6 +190,24 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
             _dbClient.updateObject(dos);
         }
         _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
+
+        _dbClient.updateObject(managedSourceVolumesToUpdate);
+        _dbClient.updateObject(unmanagedSourceVolumesToUpdate);
+        _dbClient.updateObject(unmanagedTargetVolumesToUpdate);
+        
+        
+        if (null != managedProtectionSet) {
+            
+            managedProtectionSet.getVolumes().add(managedBlockObject.getId().toString());
+            _dbClient.createObject(managedProtectionSet);
+            
+            // the protection set was created, so deleted the unmanaged one
+            _dbClient.removeObject(unManagedProtectionSet);
+        }
+        
+        if (null != managedBlockConsistencyGroup) {
+            _dbClient.createObject(managedBlockConsistencyGroup);
+        }
     }
 
     public void rollbackBackend() {
@@ -175,6 +215,12 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         getCreatedObjectMap().clear();
         getUpdatedObjectMap().clear();
         getUnManagedVolumesToBeDeleted().clear();
+        managedSourceVolumesToUpdate.clear();
+        unmanagedSourceVolumesToUpdate.clear();
+        unmanagedTargetVolumesToUpdate.clear();
+        managedProtectionSet = null;
+        managedBlockConsistencyGroup = null;
+        managedBlockObject = null;
     }
     
     
@@ -590,6 +636,10 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         return updatedObjectMap;
     }
 
+    public void addObjectToCreate(BlockObject blockObject) {
+        getCreatedObjectMap().put(getUnmanagedVolume().getNativeGuid(), blockObject);
+    }
+
     public void addObjectToUpdate(DataObject dataObject) {
         List<DataObject> objectsToUpdate = getUpdatedObjectMap().get(getUnmanagedVolume().getNativeGuid());
         if (null == objectsToUpdate) {
@@ -597,5 +647,32 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
         objectsToUpdate.add(dataObject);
     }
+
+    
+    
+
+    
+    
+    public void addManagedSourceVolumeToUpdate(Volume volume) {
+        if (null == managedSourceVolumesToUpdate) {
+            managedSourceVolumesToUpdate = new ArrayList<Volume>();
+        }
+        managedSourceVolumesToUpdate.add(volume);
+    }
+    
+    public void addUnmanagedSourceVolumeToUpdate(UnManagedVolume volume) {
+        if (null == unmanagedSourceVolumesToUpdate) {
+            unmanagedSourceVolumesToUpdate = new ArrayList<UnManagedVolume>();
+        }
+        unmanagedSourceVolumesToUpdate.add(volume);
+    }
+    
+    public void addUnmanagedTargetVolumeToUpdate(UnManagedVolume volume) {
+        if (null == unmanagedTargetVolumesToUpdate) {
+            unmanagedTargetVolumesToUpdate = new ArrayList<UnManagedVolume>();
+        }
+        unmanagedTargetVolumesToUpdate.add(volume);
+    }
+    
     
 }

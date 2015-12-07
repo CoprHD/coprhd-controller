@@ -371,7 +371,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         if (volumesInRDFGroupsOnProvider.isEmpty() && SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
             log.info("RA Group {} was empty", group.getId());
-            waitFor = createNonCGSrdfPairStepsOnEmptyGroup(sourceDescriptors, targetDescriptors, group, waitFor, workflow);
+            waitFor = createNonCGSrdfPairStepsOnEmptyGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor, workflow);
         } else {
             log.info("RA Group {} not empty", group.getId());
             // TODO : add steps to be able to add more pairs to a populated RDF group dependent on OPT 489689.
@@ -1223,14 +1223,23 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     private String createNonCGSrdfPairStepsOnEmptyGroup(List<VolumeDescriptor> sourceDescriptors,
-            List<VolumeDescriptor> targetDescriptors, RemoteDirectorGroup group,
+            List<VolumeDescriptor> targetDescriptors, RemoteDirectorGroup group, Map<URI, Volume> uriVolumeMap,
             String waitFor, Workflow workflow) {
 
         StorageSystem system = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
         URI vpoolChangeUri = getVirtualPoolChangeVolume(sourceDescriptors);
         log.info("VPoolChange URI {}", vpoolChangeUri);
         List<URI> sourceURIs = VolumeDescriptor.getVolumeURIs(sourceDescriptors);
-        List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(targetDescriptors);
+        List<URI> targetURIs = new ArrayList<>();
+
+        for (URI sourceURI : sourceURIs) {
+            Volume source = uriVolumeMap.get(sourceURI);
+            StringSet srdfTargets = source.getSrdfTargets();
+            for (String targetStr : srdfTargets) {
+                URI targetURI = URI.create(targetStr);
+                targetURIs.add(targetURI);
+            }
+        }
 
         /*
          * Invoke CreateListReplica with all source/target pairings.

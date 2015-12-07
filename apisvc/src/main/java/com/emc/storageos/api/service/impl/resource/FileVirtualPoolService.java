@@ -593,7 +593,8 @@ public class FileVirtualPoolService extends VirtualPoolService {
                         remoteSettingsMap.put(remoteCopySettings.getVirtualArray(), remoteCopySettings);
             		}
             		
-            		vPool.setProtectionRemoteCopySettings(remoteCopiesMap);
+            		//vPool.setProtectionRemoteCopySettings(remoteCopiesMap);
+            		vPool.setFileRemoteCopySettings(remoteCopiesMap);
             		vPool.setFileReplicationType(FileReplicationType.REMOTE.name());
             	}
             }

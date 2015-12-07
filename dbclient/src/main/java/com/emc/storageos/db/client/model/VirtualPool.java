@@ -1192,6 +1192,29 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return settings;
     }
+    
+    /**
+     * Return the remote protection setting objects associated with this virtual pool.
+     * 
+     * @param vpool
+     *            the virtual pool
+     * @return a mapping of virtual arrays to the protection settings for that copy
+     */
+    public static Map<URI, VpoolRemoteCopyProtectionSettings> getFileRemoteProtectionSettings(
+            final VirtualPool vpool, final DbClient dbClient) {
+        Map<URI, VpoolRemoteCopyProtectionSettings> settings = new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
+        if (vpool.getFileRemoteCopySettings() != null) {
+            for (String protectionVarray : vpool.getFileRemoteCopySettings().keySet()) {
+                settings.put(
+                        URI.create(protectionVarray),
+                        dbClient.queryObject(
+                                VpoolRemoteCopyProtectionSettings.class,
+                                URI.create(vpool.getFileRemoteCopySettings().get(
+                                        protectionVarray))));
+            }
+        }
+        return settings;
+    }
 
     public static Map<String, List<String>> groupRemoteCopyModesByVPool(final VirtualPool vpool,
             final DbClient dbClient) {

@@ -218,7 +218,8 @@ public class ImplicitPoolMatcher {
             CoordinatorClient coordinator) {
         List<StoragePool> filterPools = getMatchedPoolWithStoragePools(vpool, pools,
                 VirtualPool.getProtectionSettings(vpool, dbClient),
-                VirtualPool.getRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator);
+                VirtualPool.getRemoteProtectionSettings(vpool, dbClient),
+                VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator);
         updateInvalidAndMatchedPoolsForVpool(vpool, filterPools, pools, dbClient);
     }
 
@@ -236,6 +237,30 @@ public class ImplicitPoolMatcher {
         _logger.info("Started matching {} pools with {} vpool", pools.size(), vpool.getId());
         AttributeMapBuilder vpoolMapBuilder = new VirtualPoolAttributeMapBuilder(vpool, protectionVarraySettings,
                 VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap));
+        Map<String, Object> attributeMap = vpoolMapBuilder.buildMap();
+        _logger.info("Implict Pool matching populated attribute map: {}", attributeMap);
+        List<StoragePool> filterPools = _matcherFramework.matchAttributes(pools, attributeMap, dbClient, coordinator,
+                AttributeMatcher.VPOOL_MATCHERS);
+        _logger.info("Ended matching pools with vpool attributes. Found {} matching pools", filterPools.size());
+        return filterPools;
+    }
+    
+    /**
+     * Matches given VirtualPool with list of pools provided and update matched/invalid pools in
+     * VirtualPool.
+     * 
+     */
+    public static List<StoragePool> getMatchedPoolWithStoragePools(VirtualPool vpool,
+            List<StoragePool> pools,
+            Map<URI, VpoolProtectionVarraySettings> protectionVarraySettings,
+            Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap,
+            Map<URI, VpoolRemoteCopyProtectionSettings> fileRemoteSettingsMap,
+            DbClient dbClient,
+            CoordinatorClient coordinator) {
+        _logger.info("Started matching {} pools with {} vpool", pools.size(), vpool.getId());
+        AttributeMapBuilder vpoolMapBuilder = new VirtualPoolAttributeMapBuilder(vpool, protectionVarraySettings,
+                VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap),
+                VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), fileRemoteSettingsMap));
         Map<String, Object> attributeMap = vpoolMapBuilder.buildMap();
         _logger.info("Implict Pool matching populated attribute map: {}", attributeMap);
         List<StoragePool> filterPools = _matcherFramework.matchAttributes(pools, attributeMap, dbClient, coordinator,

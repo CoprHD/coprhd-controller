@@ -26,6 +26,7 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
     private VirtualPool _vpool = null;
     private Map<URI, VpoolProtectionVarraySettings> protectionSettings = null;
     private Map<String, List<String>> remoteProtectionSettings = null;
+    private Map<String, List<String>> fileRemoteProtectionSettings = null;
     private static final Logger _logger = LoggerFactory
             .getLogger(VirtualPoolAttributeMapBuilder.class);
 
@@ -40,6 +41,14 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
         _vpool = vpool;
         protectionSettings = map;
         this.remoteProtectionSettings = remoteProtectionSettings;
+    }
+    
+    public VirtualPoolAttributeMapBuilder(VirtualPool vpool, Map<URI, VpoolProtectionVarraySettings> map,
+            Map<String, List<String>> remoteProtectionSettings, Map<String, List<String>> fileRemoteProtectionSettings) {
+        _vpool = vpool;
+        protectionSettings = map;
+        this.remoteProtectionSettings = remoteProtectionSettings;
+        this.fileRemoteProtectionSettings = fileRemoteProtectionSettings;
     }
 
     @Override
@@ -111,7 +120,10 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
         
         if (_vpool.getFileReplicationType() != null) {
         	putAttributeInMap(Attributes.file_replication_type.toString(), _vpool.getFileReplicationType());
-        	putAttributeInMap(Attributes.file_replication.toString(), remoteProtectionSettings);
+        	if (null != fileRemoteProtectionSettings && !fileRemoteProtectionSettings.isEmpty()) {
+                _logger.info("File Replication Remote Settings : {}", Joiner.on("\t").join(fileRemoteProtectionSettings.keySet()));
+                putAttributeInMap(Attributes.file_replication.toString(), fileRemoteProtectionSettings);
+            }
         }
         return _attributeMap;
     }

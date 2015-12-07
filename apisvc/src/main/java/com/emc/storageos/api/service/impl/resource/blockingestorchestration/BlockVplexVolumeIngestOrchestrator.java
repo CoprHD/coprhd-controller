@@ -294,11 +294,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 }
             }
             if (message.length() > 0) {
-                message.insert(0, "Cannot ingest a distributed volume with replicas on both legs (");
-                message.append(")");
                 String reason = message.toString();
                 _logger.error(reason);
-                throw IngestionException.exceptions.validationException(reason);
+                throw IngestionException.exceptions.vplexVolumeCannotHaveReplicasOnBothLegs(reason);
             }
         }
 

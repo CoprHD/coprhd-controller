@@ -16,8 +16,10 @@ import com.emc.storageos.security.exceptions.SecurityException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -74,7 +76,7 @@ public class IPsecManager {
         }
     }
 
-    private String[] checkIPsecStatus() {
+    private List<String> checkIPsecStatus() {
         LocalRepository localRepository = new LocalRepository();
         String[] disconnectedIPs = localRepository.checkIpsecConnection();
         if (disconnectedIPs[0].isEmpty()) {
@@ -82,7 +84,7 @@ public class IPsecManager {
             return null;
         } else {
             log.info("Some nodes disconnected over IPsec {}", disconnectedIPs);
-            return disconnectedIPs;
+            return Arrays.asList(disconnectedIPs);
         }
     }
 

@@ -54,6 +54,7 @@ public class CapabilityProfileService extends AbstractCapabilityProfileService{
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response getCapabilityProfiles(){
+        _log.info("@@@@@@@@ Getting Capability Profiles @@@@@@@@@@@");
         return Response.status(200).build();
     }
 }

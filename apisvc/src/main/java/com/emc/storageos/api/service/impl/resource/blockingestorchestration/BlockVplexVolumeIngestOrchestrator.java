@@ -252,6 +252,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             // each entry in these collections is a concatenated list of replica names
             // on each backend volume, so if their size is more than one, that means there
             // are replicas present on both legs.
+            // for example: all the backend volume name strings on leg 1 are concatenated, 
+            // added to snapshotsList at position 0.  All the backend volumes on leg2 (if 
+            // present) are concatenated and added to snapshotsList at position 1.  So, 
+            // if the size snapshotsList is greater than 1, we've got snaps on both legs.
             List<String> snapshotsList = new ArrayList<String>();
             List<String> clonesList = new ArrayList<String>();
             for (UnManagedVolume vol : unManagedBackendVolumes) {

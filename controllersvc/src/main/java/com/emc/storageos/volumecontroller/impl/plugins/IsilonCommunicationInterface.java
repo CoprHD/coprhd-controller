@@ -682,12 +682,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // Make restapi call to get access zones
             List<IsilonAccessZone> accessZoneList = isilonApi.getAccessZones(null);
             if (accessZoneList == null || accessZoneList.isEmpty()) {
-                // No ports defined throw an exception and fail the discovery
+                // No access zones defined. Throw an exception and fail the discovery
                 IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. No Zones defined");
                 throw ice;
             }
 
-            // find the smart connet zones for system
+            // Find the smart connect zones
             IsilonNetworkPool isilonNetworkPoolSystem = null;
             List<IsilonNetworkPool> isilonNetworkPoolsSysAZ = new ArrayList<>();
 

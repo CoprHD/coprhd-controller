@@ -162,30 +162,6 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
     @Override
     public void commit() {
-        // save everything to the database
-
-        // dbClient.updateObject(getUpdatedObjectMap());
-        
-        // if everything ingested, mark umpset for deletion
-        
-        // etc etc
-    }
-
-    @Override
-    public void rollback() {
-        // remove / rollback any changes to the data objects that were actually
-        
-        // if exportGroupWasCreated, delete ExportGroup
-        
-        // etc etc
-        
-    }
-
-    
-    
-    
-
-    public void commitBackend() {
 
         _dbClient.createObject(getObjectsIngestedByExportProcessing());
         _dbClient.createObject(getObjectsToBeCreatedMap().values());
@@ -214,7 +190,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
     }
 
-    public void rollbackBackend() {
+    @Override
+    public void rollback() {
         getObjectsIngestedByExportProcessing().clear();
         getObjectsToBeCreatedMap().clear();
         getObjectsToBeUpdatedMap().clear();
@@ -225,13 +202,10 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         managedProtectionSet = null;
         managedBlockConsistencyGroup = null;
         managedBlockObject = null;
+        if (exportGroupCreated) {
+            _dbClient.removeObject(exportGroup);
+        }
     }
-    
-    
-    
-    
-    
-    
 
     /*
      * (non-Javadoc)

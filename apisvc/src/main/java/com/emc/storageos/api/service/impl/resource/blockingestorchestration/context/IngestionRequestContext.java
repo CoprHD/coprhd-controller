@@ -24,18 +24,22 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
  * IngestionRequestContext is instantiated once per user request
  * for ingestion of UnManagedVolumes in the UnManagedVolume service.
  * It can be used for ingestion of both exported and unexported volumes.
- * Also, it can be used by Volume types that have a "backend" concept, 
+ * 
+ * It can also be used by Volume types that have a "backend" concept,
  * such as VPLEX or RecoverPoint volumes, to encapsulate everything
- * dependent that must be ingested for that volume.
+ * dependent that must be ingested for that volume. For example,
+ * VplexVolumeIngestionContext, a VolumeIngestionContext, also implements
+ * this interface, allowing it to be used as a nested IngestionRequestContext
+ * for its backend volumes and exports.
  * 
  * This class implements Iterator<UnManagedVolume> and holds a nested
- * iterator of URI for these UnManagedVolumes, so the UnManagedVolumeService
- * can iterate this class directly.  Each UnManagedVolume is
+ * iterator of URIs for these UnManagedVolumes, so the UnManagedVolumeService
+ * can iterate this class directly. Each UnManagedVolume is
  * instantiated when next is called, and this ensure the current unmanaged
  * volume is set correctly and the current VolumeIngestionContext is
  * created for the currently iterating volume.
  * 
- * This class includes a VolumeIngestionContextFactory that will 
+ * This class includes a VolumeIngestionContextFactory that will
  * creates the correct VolumeIngestionContext object for the current
  * volume based on the UnManagedVolume type.
  * 
@@ -54,7 +58,7 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     /**
      * Returns the UnManagedVolume URI currently being processed by ingestion.
      * 
-     * @return the UnManagedVolume URI currently being processed 
+     * @return the UnManagedVolume URI currently being processed
      */
     public URI getCurrentUnManagedVolumeUri();
 
@@ -162,27 +166,27 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * as mapped to the native GUID of the UnManagedVolume Object
      * for which they were updated.
      * 
-     * @return a Map of UnManagedVolume native GUID Strings to a 
-     *          List of associated updated DataObjects 
+     * @return a Map of UnManagedVolume native GUID Strings to a
+     *         List of associated updated DataObjects
      */
     public Map<String, List<DataObject>> getObjectsToBeUpdatedMap();
 
     /**
-     * Returns a Map of UnManagedVolume native GUID Strings to 
+     * Returns a Map of UnManagedVolume native GUID Strings to
      * StringBuffer for its task status to be returned in the
      * response to this ingestion request.
      * 
      * @return a Map of UnManagedVolume native GUID Strings to
-     *          task status StringBuffers
+     *         task status StringBuffers
      */
     public Map<String, StringBuffer> getTaskStatusMap();
 
     /**
-     * Returns a Map of UnManagedVolume native GUID Strings to 
-     * its associated VolumeIngestionContext. 
+     * Returns a Map of UnManagedVolume native GUID Strings to
+     * its associated VolumeIngestionContext.
      * 
      * @return a Map of UnManagedVolume native GUID Strings to
-     *          VolumeIngestionContext objects
+     *         VolumeIngestionContext objects
      */
     public Map<String, VolumeIngestionContext> getProcessedUnManagedVolumeMap();
 
@@ -231,7 +235,7 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public boolean isExportGroupCreated();
 
     /**
-     * Sets the status of ExportGroupCreated, which represents whether 
+     * Sets the status of ExportGroupCreated, which represents whether
      * the ExportGroup in this IngestionRequestContext
      * was created by it, rather than being fetched from the database
      * as an already existing ExportGroup.
@@ -292,7 +296,7 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     /**
      * Sets the List of Initiator Objects for this ingestion request
      * 
-     * @param deviceInitiators the List of Initiator objects for this ingestion request 
+     * @param deviceInitiators the List of Initiator objects for this ingestion request
      */
     public void setDeviceInitiators(List<Initiator> deviceInitiators);
 

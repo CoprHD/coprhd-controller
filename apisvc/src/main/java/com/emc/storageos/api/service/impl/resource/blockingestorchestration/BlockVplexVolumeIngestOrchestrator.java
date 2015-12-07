@@ -145,25 +145,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             } catch (Exception ex) {
                 _logger.error("error during VPLEX backend ingestion: ", ex);
-                volumeContext.rollbackBackend();
                 throw IngestionException.exceptions.failedToIngestVplexBackend(ex.getLocalizedMessage());
             }
         }
 
-        try {
-            _logger.info("Ingesting VPLEX virtual volume {}", unManagedVolume.getLabel());
-            T virtualVolume = super.ingestBlockObjects(requestContext, clazz);
+        _logger.info("Ingesting VPLEX virtual volume {}", unManagedVolume.getLabel());
+        T virtualVolume = super.ingestBlockObjects(requestContext, clazz);
 
-            if (ingestBackend && (null != volumeContext) && (null != virtualVolume)) {
-                volumeContext.commitBackend();
-            }
-
-            return virtualVolume;
-        } catch (Exception ex) {
-            _logger.error("error during VPLEX backend ingestion wrap up: ", ex);
-            volumeContext.rollbackBackend();
-            throw ex;
-        }
+        return virtualVolume;
     }
 
     /**

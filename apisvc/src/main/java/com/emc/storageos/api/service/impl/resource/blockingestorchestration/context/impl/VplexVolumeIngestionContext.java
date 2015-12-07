@@ -100,9 +100,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public void commit() {
-    }
-    
-    public void commitBackend() {
         setFlags();
 
         createVplexMirrorObjects();
@@ -118,7 +115,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
         _logger.info(toStringDebug());
     }
-
+    
     /*
      * (non-Javadoc)
      * 
@@ -126,9 +123,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public void rollback() {
-    }
-
-    public void rollbackBackend() {
         getObjectsIngestedByExportProcessing().clear();
         getObjectsToBeCreatedMap().clear();
         getCreatedSnapshotMap().clear();
@@ -136,7 +130,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         getUnManagedVolumesToBeDeleted().clear();
         getCreatedVplexMirrors().clear();
     }
-    
+
     /*
      * (non-Javadoc)
      * 

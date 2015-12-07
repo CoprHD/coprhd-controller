@@ -126,28 +126,18 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throws IngestionException {
         
         RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext) parentRequestContext.getVolumeContext();
-        Volume volume = null; 
-        
-        try {
 
-            volume = (Volume)ingestBlockObjectsInternal(parentRequestContext, volumeContext, clazz);
+        Volume volume = (Volume)ingestBlockObjectsInternal(parentRequestContext, volumeContext, clazz);
 
-            // Experimental auto-ingestion feature.  Only run it if we haven't ingested everything yet.
-            /*
-            if (!validateAllVolumesInCGIngested(unManagedVolume, umpset)) {
-                performAutoIngestOnRemainingVolumes(umpset, systemCache, poolCache, project, tenant,
-                        unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported,
-                        taskStatusMap, vplexIngestionMethod);
-            }
-            */
-            
-            volumeContext.commitBackend();
-            
-        } catch (Exception ex) {
-            _logger.error("Exception during RP volume ingestion: ", ex);
-            volumeContext.rollbackBackend();
+        // Experimental auto-ingestion feature.  Only run it if we haven't ingested everything yet.
+        /*
+        if (!validateAllVolumesInCGIngested(unManagedVolume, umpset)) {
+            performAutoIngestOnRemainingVolumes(umpset, systemCache, poolCache, project, tenant,
+                    unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported,
+                    taskStatusMap, vplexIngestionMethod);
         }
-        
+        */
+
         return clazz.cast(volume);
     }
 

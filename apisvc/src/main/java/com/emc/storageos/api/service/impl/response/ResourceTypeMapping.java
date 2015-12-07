@@ -10,6 +10,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_MIRROR;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_VPOOL;
+import static com.emc.storageos.model.ResourceTypeEnum.BUCKET;
 import static com.emc.storageos.model.ResourceTypeEnum.CLUSTER;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_ELEMENT;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGE;
@@ -21,6 +22,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.DATA_STORE;
 import static com.emc.storageos.model.ResourceTypeEnum.EXPORT_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.FC_PORT_CONNECTION;
 import static com.emc.storageos.model.ResourceTypeEnum.FILE;
+import static com.emc.storageos.model.ResourceTypeEnum.FILE_POLICY;
 import static com.emc.storageos.model.ResourceTypeEnum.FILE_SNAPSHOT;
 import static com.emc.storageos.model.ResourceTypeEnum.FILE_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.HOST;
@@ -29,6 +31,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.IPINTERFACE;
 import static com.emc.storageos.model.ResourceTypeEnum.MIGRATION;
 import static com.emc.storageos.model.ResourceTypeEnum.NETWORK;
 import static com.emc.storageos.model.ResourceTypeEnum.NETWORK_SYSTEM;
+import static com.emc.storageos.model.ResourceTypeEnum.OBJECT_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.PROJECT;
 import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SET;
 import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SYSTEM;
@@ -56,8 +59,6 @@ import static com.emc.storageos.model.ResourceTypeEnum.VPLEX_MIRROR;
 import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
-import static com.emc.storageos.model.ResourceTypeEnum.BUCKET;
-import static com.emc.storageos.model.ResourceTypeEnum.OBJECT_VPOOL;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -81,6 +82,7 @@ import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostingDeviceInfo;
@@ -182,6 +184,7 @@ public class ResourceTypeMapping {
         classMapping.put(USER_GROUP, UserGroup.class);
         classMapping.put(VIRTUAL_NAS, VirtualNAS.class);
         classMapping.put(COMPUTE_IMAGESERVER, ComputeImageServer.class);
+        classMapping.put(FILE_POLICY, FilePolicy.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

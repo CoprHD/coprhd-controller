@@ -5,6 +5,8 @@
 
     <bean id="isilonapifactory" class="com.emc.storageos.isilon.restapi.IsilonApiFactory"
 		init-method="init" >
+		<property name="connectionTimeoutMs" value="30000"/>
+        <property name="socketConnectionTimeoutMs" value="3600000" />
 	</bean>
 
 	<bean id="isilon"

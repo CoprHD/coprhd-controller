@@ -802,7 +802,7 @@ public class IsilonApi {
     public String createQuota(String path, long... thresholds) throws IsilonException {
         IsilonSmartQuota quota;
         if (thresholds != null && thresholds.length > 0) {
-            quota = createIsilonSmartQuotaWithThreshold(path, false, false,thresholds);
+            quota = constructIsilonSmartQuotaObjectWithThreshold(path, false, false,thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
                                       // cluster size.
         } else {
@@ -833,7 +833,7 @@ public class IsilonApi {
         IsilonSmartQuota quota;
         // Isilon does not allow to create zero quota directory.
         if (thresholds != null && thresholds.length > 0 && thresholds[0] > 0) {
-            quota = createIsilonSmartQuotaWithThreshold(path, bThresholdsIncludeOverhead, bIncludeSnapshots, thresholds);
+            quota = constructIsilonSmartQuotaObjectWithThreshold(path, bThresholdsIncludeOverhead, bIncludeSnapshots, thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
                                       // cluster size.
         } else {
@@ -846,7 +846,7 @@ public class IsilonApi {
     }
 
     // If we want to provide the UI to enter quota we can re-use this
-    private IsilonSmartQuota createIsilonSmartQuotaWithThreshold(String path, boolean bThresholdsIncludeOverhead,
+    private IsilonSmartQuota constructIsilonSmartQuotaObjectWithThreshold(String path, boolean bThresholdsIncludeOverhead,
             boolean bIncludeSnapshots, long... thresholds) {
         IsilonSmartQuota quota;
         switch (thresholds.length) {

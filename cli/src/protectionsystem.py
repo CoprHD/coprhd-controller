@@ -613,11 +613,6 @@ def um_cgs_discover_parser(subcommand_parsers, common_parser):
                                 metavar='<psname>',
                                 required=True)
         
-    um_cg_discover_parser.add_argument('-name', '-n',
-                                 help='name of Protection system',
-                                 dest='name',
-                                 metavar='<psname>')
-
     um_cg_discover_parser.set_defaults(func=ps_discover_unmanaged_cgs)
 
 

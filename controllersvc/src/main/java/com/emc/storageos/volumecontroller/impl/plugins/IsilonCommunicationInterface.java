@@ -2684,7 +2684,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     	String providerName = null;
     	String domain = null;
         ArrayList<String> authArrayList = isiAccessZone.getAuth_providers();
-        CifsServerMap cifsServersMap = new CifsServerMap();
+        CifsServerMap cifsServersMap = nasServer.getCifsServersMap();
+        if (cifsServersMap != null) {
+        	cifsServersMap.clear();
+        } else {
+        	cifsServersMap = new CifsServerMap();
+        }
         if (authArrayList != null && !authArrayList.isEmpty()) {
             for (String authProvider : authArrayList) {
                 String[] providerArray = authProvider.split(":");
@@ -2707,6 +2712,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             cifsServersMap.put(providerName, nasCifsServer);
             _log.info("Setting provider: {} and domain: {}", providerName, domain);
         }
+        
         nasServer.setCifsServersMap(cifsServersMap);
     }
 

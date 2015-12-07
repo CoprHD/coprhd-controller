@@ -665,7 +665,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         VirtualNAS virtualNAS = null;
         PhysicalNAS physicalNAS = null;
-        List<IsilonAccessZone> accessZoneListTemp = null;
 
         List<VirtualNAS> newvNASList = new ArrayList<VirtualNAS>();
         List<VirtualNAS> existingvNASList = new ArrayList<VirtualNAS>();
@@ -679,17 +678,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         try {
             _log.info("discoverAccessZones for storage system {} - start", storageSystemId);
 
-            List<IsilonAccessZone> accessZoneList = new ArrayList<IsilonAccessZone>();
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-
-            // make restapi call to get access zones
-            accessZoneListTemp = isilonApi.getAccessZones(null);
-            if (accessZoneListTemp == null || accessZoneListTemp.isEmpty()) {
+            // Make restapi call to get access zones
+            List<IsilonAccessZone> accessZoneList = isilonApi.getAccessZones(null);
+            if (accessZoneList == null || accessZoneList.isEmpty()) {
                 // No ports defined throw an exception and fail the discovery
                 IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. No Zones defined");
                 throw ice;
-            } else {
-                accessZoneList.addAll(accessZoneListTemp);
             }
 
             // find the smart connet zones for system

@@ -28,6 +28,8 @@ import javax.ws.rs.core.*;
 
 import com.emc.storageos.management.backup.BackupFile;
 import com.emc.storageos.management.backup.BackupFileSet;
+import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
@@ -186,10 +188,16 @@ public class BackupService {
     public Response createBackup(@QueryParam("tag") String backupTag,
             @QueryParam("force") @DefaultValue("false") boolean forceCreate) {
         log.info("Received create backup request, backup tag={}", backupTag);
+        List<String> descParams = null;
         try {
             backupOps.createBackup(backupTag, forceCreate);
+            descParams = backupScheduler.getDescParams(backupTag);
+            backupScheduler.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         } catch (BackupException e) {
             log.error("Failed to create backup(tag={}), e=", backupTag, e);
+            descParams = backupScheduler.getDescParams(backupTag);
+            descParams.add(e.getLocalizedMessage());
+            backupScheduler.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             throw APIException.internalServerErrors.createObjectError("Backup files", e);
         }
         return Response.ok().build();
@@ -211,10 +219,16 @@ public class BackupService {
         if (backupTag == null) {
             throw APIException.badRequests.parameterIsNotValid(backupTag);
         }
+        List<String> descParams = null;
         try {
             backupOps.deleteBackup(backupTag);
+            descParams = backupScheduler.getDescParams(backupTag);
+            backupScheduler.auditBackup(OperationTypeEnum.DELETE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         } catch (BackupException e) {
             log.error("Failed to delete backup(tag= {}), e=", backupTag, e);
+            descParams = backupScheduler.getDescParams(backupTag);
+            descParams.add(e.getLocalizedMessage());
+            backupScheduler.auditBackup(OperationTypeEnum.DELETE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             throw APIException.internalServerErrors.updateObjectError("Backup files", e);
         }
         return Response.ok().build();

@@ -169,12 +169,18 @@ public class BackupExecutor {
         // Actually delete backups from disk that not in master list
         // NOTE: Down nodes are ignored, because once quorum nodes agree a backup is deleted, it is deleted even it still exists
         // in minority nodes.
+        List<String> descParams = null;
         for (String tag : ScheduledBackupTag.pickScheduledBackupTags(this.cli.getClusterBackupTags(true))) {
             if (!this.cfg.retainedBackups.contains(tag)) {
                 try {
                     this.cli.deleteBackup(tag);
+                    descParams = this.cli.getDescParams(tag);
+                    this.cli.auditBackup(OperationTypeEnum.DELETE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
                 } catch (BackupException e) {
                     log.error("Failed to delete scheduled backup from cluster", e);
+                    descParams = this.cli.getDescParams(tag);
+                    descParams.add(e.getLocalizedMessage());
+                    this.cli.auditBackup(OperationTypeEnum.DELETE_BACKUP,AuditLogManager.AUDITLOG_FAILURE,null,descParams.toArray());
                 }
             }
         }

@@ -71,13 +71,14 @@ public class RPVolumeIngestionContext extends BlockVolumeIngestionContext implem
 
     
     
-    
-    
-    
-    private Volume ingestedVolume;
     private UnManagedProtectionSet unManagedProtectionSet;
-    private ProtectionSet ingestedProtectionSet;
-    private BlockConsistencyGroup ingestedBlockConsistencyGroup;
+    
+    
+    
+    private Volume managedVolume;
+    
+    private ProtectionSet managedProtectionSet;
+    private BlockConsistencyGroup managedBlockConsistencyGroup;
 
     public RPVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient,
             IngestionRequestContext parentRequestContext) {
@@ -88,15 +89,15 @@ public class RPVolumeIngestionContext extends BlockVolumeIngestionContext implem
     /**
      * @return the ingestedVolume
      */
-    public Volume getIngestedVolume() {
-        return ingestedVolume;
+    public Volume getManagedVolume() {
+        return managedVolume;
     }
 
     /**
-     * @param ingestedVolume the ingestedVolume to set
+     * @param managedVolume the ingestedVolume to set
      */
-    public void setIngestedVolume(Volume ingestedVolume) {
-        this.ingestedVolume = ingestedVolume;
+    public void setManagedVolume(Volume managedVolume) {
+        this.managedVolume = managedVolume;
     }
 
     /**
@@ -122,15 +123,15 @@ public class RPVolumeIngestionContext extends BlockVolumeIngestionContext implem
     /**
      * @param ingestedProtectionSet the ingestedProtectionSet to set
      */
-    public void setIngestedProtectionSet(ProtectionSet ingestedProtectionSet) {
-        this.ingestedProtectionSet = ingestedProtectionSet;
+    public void setManagedProtectionSet(ProtectionSet ingestedProtectionSet) {
+        this.managedProtectionSet = ingestedProtectionSet;
     }
 
     /**
      * @param ingestedBlockConsistencyGroup the ingestedBlockConsistencyGroup to set
      */
-    public void setIngestedBlockConsistencyGroup(BlockConsistencyGroup ingestedBlockConsistencyGroup) {
-        this.ingestedBlockConsistencyGroup = ingestedBlockConsistencyGroup;
+    public void setManagedBlockConsistencyGroup(BlockConsistencyGroup ingestedBlockConsistencyGroup) {
+        this.managedBlockConsistencyGroup = ingestedBlockConsistencyGroup;
     }
 
     @Override
@@ -156,6 +157,25 @@ public class RPVolumeIngestionContext extends BlockVolumeIngestionContext implem
 
     
     
+    
+
+    public void commitBackend() {
+
+        _dbClient.createObject(getIngestedObjects());
+        _dbClient.createObject(getCreatedObjectMap().values());
+
+        for (List<DataObject> dos : getUpdatedObjectMap().values()) {
+            _dbClient.updateObject(dos);
+        }
+        _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
+    }
+
+    public void rollbackBackend() {
+        getIngestedObjects().clear();
+        getCreatedObjectMap().clear();
+        getUpdatedObjectMap().clear();
+        getUnManagedVolumesToBeDeleted().clear();
+    }
     
     
     
@@ -239,25 +259,6 @@ public class RPVolumeIngestionContext extends BlockVolumeIngestionContext implem
         return getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
     }
 
-    public void commitBackend() {
-
-        _dbClient.createObject(getIngestedObjects());
-        _dbClient.createObject(getCreatedObjectMap().values());
-
-        for (List<DataObject> dos : getUpdatedObjectMap().values()) {
-            _dbClient.updateObject(dos);
-        }
-        _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
-    }
-
-    public void rollbackBackend() {
-        getIngestedObjects().clear();
-        getCreatedObjectMap().clear();
-        getUpdatedObjectMap().clear();
-        getUnManagedVolumesToBeDeleted().clear();
-    }
-    
-    
     /*
      * (non-Javadoc)
      * 
@@ -557,21 +558,6 @@ public class RPVolumeIngestionContext extends BlockVolumeIngestionContext implem
         return getCreatedObjectMap().get(objectGUID);
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#rollbackAll()
-     */
-    @Override
-    public void rollbackAll() {
-        try {
-            for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
-                volumeContext.rollback();
-            }
-        } catch (Exception ex) {
-            _logger.error("failure during rollback", ex);
-        }
-    }
 
     /**
      * Returns the Map of created objects, used

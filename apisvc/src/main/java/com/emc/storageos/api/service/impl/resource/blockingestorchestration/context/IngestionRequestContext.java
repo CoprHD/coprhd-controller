@@ -190,6 +190,4 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      */
     public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid);
 
-    public void rollbackAll();
-
 }

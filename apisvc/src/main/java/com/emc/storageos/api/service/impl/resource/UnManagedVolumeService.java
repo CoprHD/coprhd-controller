@@ -348,15 +348,9 @@ public class UnManagedVolumeService extends TaskResourceService {
                         Status.ready, volume.getId());
             }
         } catch (InternalException e) {
-            if (null != requestContext) {
-                requestContext.rollbackAll();
-            }
             throw e;
         } catch (Exception e) {
             _logger.debug("Unexpected ingestion exception:", e);
-            if (null != requestContext) {
-                requestContext.rollbackAll();
-            }
             throw APIException.internalServerErrors.genericApisvcError(ExceptionUtils.getExceptionMessage(e), e);
         }
         return taskList;
@@ -620,15 +614,9 @@ public class UnManagedVolumeService extends TaskResourceService {
             }
         } catch (InternalException e) {
             _logger.debug("InternalException occurred due to: {}", e);
-            if (null != requestContext) {
-                requestContext.rollbackAll();
-            }
             throw e;
         } catch (Exception e) {
             _logger.debug("Unexpected exception occurred due to: {}", e);
-            if (null != requestContext) {
-                requestContext.rollbackAll();
-            }
             throw APIException.internalServerErrors.genericApisvcError(ExceptionUtils.getExceptionMessage(e), e);
         } finally {
             // if we created an ExportGroup, but no volumes were ingested into

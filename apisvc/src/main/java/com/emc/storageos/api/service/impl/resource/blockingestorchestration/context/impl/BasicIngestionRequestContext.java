@@ -468,18 +468,4 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return getCreatedObjectMap().get(objectGUID);
     }
     
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#rollbackAll()
-     */
-    @Override
-    public void rollbackAll() {
-        try {
-            for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
-                volumeContext.rollback();
-            }
-        } catch (Exception ex) {
-            _logger.error("failure during rollback", ex);
-        }
-    }
-
 }

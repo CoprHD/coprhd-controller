@@ -628,22 +628,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         return getCreatedObjectMap().get(objectGUID);
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#rollbackAll()
-     */
-    @Override
-    public void rollbackAll() {
-        try {
-            for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
-                volumeContext.rollback();
-            }
-        } catch (Exception ex) {
-            _logger.error("failure during rollback", ex);
-        }
-    }
-
     /**
      * Returns the Map of created objects, used
      * by the general ingestion framework.

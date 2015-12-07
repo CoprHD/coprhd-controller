@@ -613,7 +613,7 @@ public class DisasterRecoveryService {
             }
             if (!state.equals(SiteState.STANDBY_SYNCED)) {
                 log.error("Unable to pause this site {}. It is in state {}", siteId, state);
-                throw APIException.badRequests.operationOnlyAllowedOnSyncedSite(siteId, state.toString());
+                throw APIException.badRequests.operationOnlyAllowedOnSyncedSite(site.getName(), state.toString());
             }
             toBePausedSites.add(site);
             siteNameList.add(site.getName());

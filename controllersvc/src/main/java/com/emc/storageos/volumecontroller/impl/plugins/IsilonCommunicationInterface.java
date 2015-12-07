@@ -13,18 +13,15 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.CifsServerMap;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -346,7 +343,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         // filesystems count & used Capacity
         IsilonList<IsilonSmartQuota> quotas = null;
-        Long provisioned = 0L;
+
         do {
             quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
 
@@ -356,13 +353,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     totalProvCap = totalProvCap + quota.getUsagePhysical();
                     totalFsCount++;
                 }
-                // sum snap cap and add to fs capacity
-                if (provisioned > GB_IN_BYTES) {
-                    provisioned = (provisioned / GB_IN_BYTES);
-                    totalProvCap = totalProvCap + provisioned;
-                    provisioned = 0L;
-                }
-                resumeToken = quotas.getToken();
             }
             resumeToken = quotas.getToken();
 
@@ -725,12 +715,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // by default all version support CIFS and version above 7.2 NFS also
             StringSet protocols = new StringSet();
             protocols.add(CIFS);
+            boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
             if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, storageSystem.getFirmwareVersion()) >= 0) {
                 protocols.add(NFS);
-            }
-            boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
-            if (isNfsV4Enabled) {
-                protocols.add(NFSv4);
+                if (isNfsV4Enabled) {
+                    protocols.add(NFSv4);
+                }
             }
 
             StoragePort storagePort = null;
@@ -801,6 +791,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     if (isNfsV4Enabled) {
                         protocolSet.add(NFSv4);
                     }
+
                     physicalNAS = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                     if (physicalNAS == null) {
                         physicalNAS = createPhysicalNas(storageSystem, isilonAccessZone);
@@ -1251,7 +1242,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                         URI.create(nasServer.getStoragePorts().iterator().next()));
                             }
                         } else {
-                            _log.info("fs path {} and vnas server not found", fs.getPath());
+                            _log.info("fs path {} and vnas server not found", fs.getPath(), nasServer.toString());
                         }
 
                         boolean alreadyExist = unManagedFs == null ? false : true;
@@ -1507,7 +1498,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
         }
     }
-    
+
     /**
      * Get all SMB shares of storagesystem
      * 
@@ -2112,7 +2103,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return isilonSMBShare;
     }
-    
+
     /**
      * check Storage fileSystem exists in DB
      * 

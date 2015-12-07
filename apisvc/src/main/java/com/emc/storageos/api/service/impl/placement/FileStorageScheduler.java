@@ -261,20 +261,24 @@ public class FileStorageScheduler {
             List<StoragePort> ports = getStorageSystemPortsInVarray(
                     fs.getStorageDevice(), fs.getVirtualArray());
             
-            if (ports != null && !ports.isEmpty()) {
-	            //Check if these ports are associated with vNAS
-	            for (Iterator<StoragePort> iterator = ports.iterator(); iterator.hasNext();) {
-					StoragePort storagePort =  iterator.next();
-					List<VirtualNAS> vNASList = StoragePortAssociationHelper.getStoragePortVirtualNAS(storagePort, _dbClient);
-					if (vNASList != null && !vNASList.isEmpty()) {
-						/* Remove the associated port. Because during file system placement,
-						 * storage port will already be assigned to FS. In that case, this block won't
-						 * be executed.  
-						 */
-						_log.info("Removing port {} as it is assigned to a vNAS.", storagePort.getNativeGuid());
-						iterator.remove();
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+            
+            if(Type.isilon.name().equals(storageSystem.getSystemType())) {
+	            if (ports != null && !ports.isEmpty()) {
+		            //Check if these ports are associated with vNAS
+		            for (Iterator<StoragePort> iterator = ports.iterator(); iterator.hasNext();) {
+						StoragePort storagePort =  iterator.next();
+						List<VirtualNAS> vNASList = StoragePortAssociationHelper.getStoragePortVirtualNAS(storagePort, _dbClient);
+						if (vNASList != null && !vNASList.isEmpty()) {
+							/* Remove the associated port. Because during file system placement,
+							 * storage port will already be assigned to FS. In that case, this block won't
+							 * be executed.
+							 */
+							_log.info("Removing port {} as it is assigned to a vNAS.", storagePort.getNativeGuid());
+							iterator.remove();
+						}
 					}
-				}
+	            }
             }
 
             // Filter ports based on protocol (for example, if CIFS or NFS is

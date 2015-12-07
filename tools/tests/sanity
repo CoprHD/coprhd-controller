@@ -1824,7 +1824,8 @@ vplexexport_setup() {
 }
 vplexexport_tests() {
     echo "************* Running export-tests/vplexexport.sh  *****************"
-    run export-tests/vplexexport.sh test1
+#    run export-tests/vplexexport.sh test1
+    run /workspace/coprhd-controller/tools/tests/export-tests/vplexexport.sh $CONFIG_FILE test1
 }
 
 sanzoning_setup()

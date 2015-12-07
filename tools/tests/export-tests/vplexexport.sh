@@ -35,6 +35,7 @@ ARGV=$*
 CWD=$(pwd)
 export PATH=$CWD:$CWD/..:$PATH
 echo "PATH: " $PATH
+CONFIG_FILE=$1
 
 # Virtual arrays
 VACC1=VAcc1		# cross connected VPlex cluster-1
@@ -43,7 +44,7 @@ VANC1=VAnc1		# non-cross connected VPlex cluster-1
 VANC2=VAnc2		# non-cross connected VPlex cluster-2
 
 # Configuration file to be used  
-source ../conf/sanity.conf
+source $CONFIG_FILE
 
 # Variables that should be inherited from sanity
 BLK_SIZE=${BLK_SIZE:-1073741824}

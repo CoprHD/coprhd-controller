@@ -19,10 +19,8 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -31,17 +29,17 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
-public class BasicIngestionRequestContext implements IngestionRequestContext {
+public class BaseIngestionRequestContext implements IngestionRequestContext {
 
-    private static Logger _logger = LoggerFactory.getLogger(BasicIngestionRequestContext.class);
+    private static Logger _logger = LoggerFactory.getLogger(BaseIngestionRequestContext.class);
     private DbClient _dbClient;
 
     private Iterator<URI> unManagedVolumeUrisToProcessIterator;
     private Map<String, VolumeIngestionContext> processedUnManagedVolumeMap;
 
-    private VirtualPool vpool; 
-    private VirtualArray virtualArray; 
-    private Project project; 
+    private VirtualPool vpool;
+    private VirtualArray virtualArray;
+    private Project project;
     private TenantOrg tenant;
     private String vplexIngestionMethod;
     private Map<String, StringBuffer> taskStatusMap;
@@ -50,10 +48,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
     private List<URI> systemCache;
     private List<URI> poolCache;
 
-//     private List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed;  (think this is confusing wording for to be deleted)
     private List<UnManagedVolume> unManagedVolumesToBeDeleted;
-    private Map<String, BlockObject> createdObjectMap; 
-    private Map<String, List<DataObject>> updatedObjectMap; 
+    private Map<String, BlockObject> createdObjectMap;
+    private Map<String, List<DataObject>> updatedObjectMap;
 
     private VolumeIngestionContext currentVolumeIngestionContext;
     private URI currentUnManagedVolumeUri;
@@ -66,7 +63,7 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
     private List<Initiator> deviceInitiators;
     List<BlockObject> ingestedObjects;
 
-    public BasicIngestionRequestContext(DbClient dbClient, List<URI> unManagedVolumeUrisToProcess, VirtualPool vpool, 
+    public BaseIngestionRequestContext(DbClient dbClient, List<URI> unManagedVolumeUrisToProcess, VirtualPool vpool,
             VirtualArray virtualArray, Project project, TenantOrg tenant, String vplexIngestionMethod) {
         this._dbClient = dbClient;
         this.unManagedVolumeUrisToProcessIterator = unManagedVolumeUrisToProcess.iterator();
@@ -102,13 +99,13 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
      * for the current volume, based on the UnManagedVolume type.
      */
     protected static class VolumeIngestionContextFactory {
-        
-        public static VolumeIngestionContext getVolumeIngestionContext(UnManagedVolume unManagedVolume, 
+
+        public static VolumeIngestionContext getVolumeIngestionContext(UnManagedVolume unManagedVolume,
                 DbClient dbClient, IngestionRequestContext parentRequestContext) {
             if (null == unManagedVolume) {
                 return null;
             }
-            
+
             if (VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
                 return new RecoverPointVolumeIngestionContext(unManagedVolume, dbClient, parentRequestContext);
             } else if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
@@ -117,37 +114,43 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
                 return new BlockVolumeIngestionContext(unManagedVolume, dbClient);
             }
         }
-        
-    }
-    
 
+    }
 
     protected void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
-        currentVolumeIngestionContext = 
+        currentVolumeIngestionContext =
                 VolumeIngestionContextFactory.getVolumeIngestionContext(unManagedVolume, _dbClient, this);
     }
-    
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getCurrentUnmanagedVolume()
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getCurrentUnmanagedVolume()
      */
     @Override
     public UnManagedVolume getCurrentUnmanagedVolume() {
         if (currentVolumeIngestionContext == null) {
             return null;
         }
-        
+
         return currentVolumeIngestionContext.getUnmanagedVolume();
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getCurrentUnManagedVolumeUri()
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getCurrentUnManagedVolumeUri()
      */
     @Override
     public URI getCurrentUnManagedVolumeUri() {
         return currentUnManagedVolumeUri;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getVolumeContext()
      */
     @Override
@@ -155,15 +158,21 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return currentVolumeIngestionContext;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getVolumeContext(java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getVolumeContext(java.lang.
+     * String)
      */
     @Override
     public VolumeIngestionContext getVolumeContext(String unmanagedVolumeGuid) {
         return getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getStorageSystem()
      */
     @Override
@@ -179,7 +188,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return storageSystem;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getVpool()
      */
     @Override
@@ -187,7 +198,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return vpool;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getVarray()
      */
     @Override
@@ -195,7 +208,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return virtualArray;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getProject()
      */
     @Override
@@ -203,7 +218,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return project;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getTenant()
      */
     @Override
@@ -211,7 +228,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return tenant;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getVplexIngestionMethod()
      */
     @Override
@@ -219,7 +238,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return vplexIngestionMethod;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getSystemMap()
      */
     @Override
@@ -227,11 +248,13 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         if (null == systemMap) {
             systemMap = new HashMap<String, StorageSystem>();
         }
-        
+
         return systemMap;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getSystemCache()
      */
     @Override
@@ -239,11 +262,13 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         if (null == systemCache) {
             systemCache = new ArrayList<URI>();
         }
-        
+
         return systemCache;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getPoolCache()
      */
     @Override
@@ -251,23 +276,28 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         if (null == poolCache) {
             poolCache = new ArrayList<URI>();
         }
-        
+
         return poolCache;
     }
-//
-//    /**
-//     * @return the unManagedVolumesSuccessfullyProcessed
-//     */
-//    public List<UnManagedVolume> getUnManagedVolumesSuccessfullyProcessed() {
-//        if (null == unManagedVolumesSuccessfullyProcessed) {
-//            unManagedVolumesSuccessfullyProcessed = new ArrayList<UnManagedVolume>();
-//        }
-//        
-//        return unManagedVolumesSuccessfullyProcessed;
-//    }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getUnManagedVolumesToBeDeleted()
+    //
+    // /**
+    // * @return the unManagedVolumesSuccessfullyProcessed
+    // */
+    // public List<UnManagedVolume> getUnManagedVolumesSuccessfullyProcessed() {
+    // if (null == unManagedVolumesSuccessfullyProcessed) {
+    // unManagedVolumesSuccessfullyProcessed = new ArrayList<UnManagedVolume>();
+    // }
+    //
+    // return unManagedVolumesSuccessfullyProcessed;
+    // }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getUnManagedVolumesToBeDeleted
+     * ()
      */
     @Override
     public List<UnManagedVolume> getUnManagedVolumesToBeDeleted() {
@@ -278,7 +308,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return unManagedVolumesToBeDeleted;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getCreatedObjectMap()
      */
     @Override
@@ -286,11 +318,13 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         if (null == createdObjectMap) {
             createdObjectMap = new HashMap<String, BlockObject>();
         }
-        
+
         return createdObjectMap;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getUpdatedObjectMap()
      */
     @Override
@@ -298,11 +332,13 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         if (null == updatedObjectMap) {
             updatedObjectMap = new HashMap<String, List<DataObject>>();
         }
-        
+
         return updatedObjectMap;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getTaskStatusMap()
      */
     @Override
@@ -310,24 +346,32 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         if (null == taskStatusMap) {
             taskStatusMap = new HashMap<String, StringBuffer>();
         }
-        
+
         return taskStatusMap;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getProcessedUnManagedVolumeMap()
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getProcessedUnManagedVolumeMap
+     * ()
      */
     @Override
     public Map<String, VolumeIngestionContext> getProcessedUnManagedVolumeMap() {
         if (null == processedUnManagedVolumeMap) {
             processedUnManagedVolumeMap = new HashMap<String, VolumeIngestionContext>();
         }
-        
+
         return processedUnManagedVolumeMap;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getProcessedUnManagedVolume(java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getProcessedUnManagedVolume
+     * (java.lang.String)
      */
     @Override
     public UnManagedVolume getProcessedUnManagedVolume(String nativeGuid) {
@@ -335,19 +379,25 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         if (null != volumeContext) {
             return volumeContext.getUnmanagedVolume();
         }
-        
+
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getProcessedVolumeContext(java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getProcessedVolumeContext(java
+     * .lang.String)
      */
     @Override
     public VolumeIngestionContext getProcessedVolumeContext(String nativeGuid) {
         return getProcessedUnManagedVolumeMap().get(nativeGuid);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getIngestedObjects()
      */
     @Override
@@ -355,11 +405,13 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         if (null == ingestedObjects) {
             ingestedObjects = new ArrayList<BlockObject>();
         }
-        
+
         return ingestedObjects;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#isExportGroupCreated()
      */
     @Override
@@ -367,15 +419,20 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return exportGroupCreated;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setExportGroupCreated(boolean)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setExportGroupCreated(boolean)
      */
     @Override
     public void setExportGroupCreated(boolean exportGroupCreated) {
         this.exportGroupCreated = exportGroupCreated;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getExportGroup()
      */
     @Override
@@ -383,15 +440,21 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return exportGroup;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setExportGroup(com.emc.storageos.db.client.model.ExportGroup)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setExportGroup(com.emc.storageos
+     * .db.client.model.ExportGroup)
      */
     @Override
     public void setExportGroup(ExportGroup exportGroup) {
         this.exportGroup = exportGroup;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getHost()
      */
     @Override
@@ -399,7 +462,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return host;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setHost(java.net.URI)
      */
     @Override
@@ -407,7 +472,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         this.host = host;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getCluster()
      */
     @Override
@@ -415,7 +482,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return cluster;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setCluster(java.net.URI)
      */
     @Override
@@ -423,7 +492,9 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         this.cluster = cluster;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getDeviceInitiators()
      */
     @Override
@@ -431,21 +502,29 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
         return deviceInitiators;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setDeviceInitiators(java.util.List)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#setDeviceInitiators(java.util
+     * .List)
      */
     @Override
-    public void setDeviceInitiators(List<Initiator>  deviceInitiators) {
+    public void setDeviceInitiators(List<Initiator> deviceInitiators) {
         this.deviceInitiators = deviceInitiators;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getProcessedBlockObject(java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getProcessedBlockObject(java
+     * .lang.String)
      */
     @Override
     public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid) {
         String objectGUID = unmanagedVolumeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
         return getObjectsToBeCreatedMap().get(objectGUID);
     }
-    
+
 }

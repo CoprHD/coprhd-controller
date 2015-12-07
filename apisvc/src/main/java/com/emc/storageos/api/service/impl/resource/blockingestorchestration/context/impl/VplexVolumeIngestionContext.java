@@ -16,7 +16,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Bloc
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BasicIngestionRequestContext.VolumeIngestionContextFactory;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BaseIngestionRequestContext.VolumeIngestionContextFactory;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;

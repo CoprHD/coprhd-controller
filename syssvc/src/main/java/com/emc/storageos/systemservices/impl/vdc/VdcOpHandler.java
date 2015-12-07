@@ -252,9 +252,9 @@ public abstract class VdcOpHandler {
             if (ntpServers == null) {
                 return;
             }
-            PropertyInfoExt ntpProp = new PropertyInfoExt();
-            ntpProp.addProperty(NTPSERVERS, ntpServers);
-            localRepository.setOverrideProperties(ntpProp);
+            PropertyInfoExt localProps = localRepository.getOverrideProperties();
+            localProps.addProperty(NTPSERVERS, ntpServers);
+            localRepository.setOverrideProperties(localProps);
         }
     }
 

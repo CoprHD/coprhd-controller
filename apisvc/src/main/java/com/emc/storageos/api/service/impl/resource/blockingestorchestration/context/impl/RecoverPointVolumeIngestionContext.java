@@ -10,115 +10,115 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestOrchestrator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BaseIngestionRequestContext.VolumeIngestionContextFactory;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VplexMirror;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
+/**
+ * A combined implementation of VolumeIngestionContext (by extending BlockVolumeIngestionContext)
+ * and IngestionRequestContext for RecoverPoint volumes.
+ * 
+ * The VolumeIngestionContext implementation serves as context for ingestion of the
+ * parent RecoverPort volume. The IngestionRequestContext implementation serves
+ * as context for processing the RecoverPoint volume's backend structure.
+ */
 public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionContext implements IngestionRequestContext {
 
     private static final Logger _logger = LoggerFactory.getLogger(RecoverPointVolumeIngestionContext.class);
 
-    
-    
-    
-    private Map<String, VolumeIngestionContext> processedUnManagedVolumeMap;
-    private Map<String, BlockObject> createdObjectMap;
-    private Map<String, List<DataObject>> updatedObjectMap;
-    private List<UnManagedVolume> unManagedVolumesToBeDeleted;
-
-    private List<Volume> managedSourceVolumesToUpdate;
-    private List<UnManagedVolume> unmanagedSourceVolumesToUpdate;
-    private List<UnManagedVolume> unmanagedTargetVolumesToUpdate;
-
-    private List<String> errorMessages;
-    
-    private IngestionRequestContext parentRequestContext;
+    private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
+    private Map<String, BlockObject> _objectsToBeCreatedMap;
+    private Map<String, List<DataObject>> _objectsToBeUpdatedMap;
+    private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
+    private List<String> _errorMessages;
+    private IngestionRequestContext _parentRequestContext;
 
     // export ingestion related items
-    private boolean exportGroupCreated = false;
-    private ExportGroup exportGroup;
-    private List<Initiator> deviceInitiators;
-    private List<BlockObject> ingestedObjects;
+    private boolean _exportGroupCreated = false;
+    private ExportGroup _exportGroup;
+    private List<Initiator> _deviceInitiators;
+    private List<BlockObject> _objectsIngestedByExportProcessing;
 
-    
-    
-    private UnManagedProtectionSet unManagedProtectionSet;
-    
-    
-    
-    private Volume managedBlockObject;
-    
-    private ProtectionSet managedProtectionSet;
-    private BlockConsistencyGroup managedBlockConsistencyGroup;
+    // RecoverPoint backend related items
+    private UnManagedProtectionSet _unManagedProtectionSet;
+    private List<Volume> _managedSourceVolumesToUpdate;
+    private List<UnManagedVolume> _unmanagedSourceVolumesToUpdate;
+    private List<UnManagedVolume> _unmanagedTargetVolumesToUpdate;
+    private Volume _managedBlockObject;
+    private ProtectionSet _managedProtectionSet;
+    private BlockConsistencyGroup _managedBlockConsistencyGroup;
 
+    /**
+     * Constructor.
+     * 
+     * @param unManagedVolume the parent UnManagedVolume for this context
+     * @param dbClient a reference to the database client
+     * @param parentRequestContext the parent IngestionRequestContext
+     */
     public RecoverPointVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient,
             IngestionRequestContext parentRequestContext) {
         super(unManagedVolume, dbClient);
-        this.parentRequestContext = parentRequestContext;
+        this._parentRequestContext = parentRequestContext;
     }
-    
+
     /**
-     * @return the ingestedVolume
+     * Returns the managed BlockObject for this RecoverPoint ingestion
+     * context, or null if it doesn't exist yet in the database and
+     * hasn't yet been created by this ingestion process.
+     * 
+     * @return the managed BlockObject object for this RecoverPoint ingestion context
      */
     public BlockObject getManagedBlockObject() {
 
-        if (null == managedBlockObject) {
-            String volumeNativeGuid = 
+        if (null == _managedBlockObject) {
+            String volumeNativeGuid =
                     getUnmanagedVolume().getNativeGuid().replace(
                             VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-            managedBlockObject = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
+            _managedBlockObject = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
         }
-        
-        return managedBlockObject;
+
+        return _managedBlockObject;
     }
 
     /**
-     * @param managedBlockObject the ingestedVolume to set
+     * Sets the managed BlockObject for this RecoverPoint ingestion context.
+     * 
+     * @param managedBlockObject the managed BlockObject for this RecoverPoint ingestion context
      */
     public void setManagedBlockObject(Volume managedBlockObject) {
-        this.managedBlockObject = managedBlockObject;
+        this._managedBlockObject = managedBlockObject;
     }
 
     /**
-     * @return the unManagedProtectionSet
+     * Returns the UnManagedProtectionSet for this UnManagedVolume, or null
+     * if none could be found.
+     * 
+     * @return the UnManagedProtectionSet for this UnManagedVolume
      */
     public UnManagedProtectionSet getUnManagedProtectionSet() {
-        
+
         // Find the UnManagedProtectionSet associated with this unmanaged volume
-        List<UnManagedProtectionSet> umpsets = 
+        List<UnManagedProtectionSet> umpsets =
                 CustomQueryUtility.getUnManagedProtectionSetByUnManagedVolumeId(_dbClient, getUnmanagedVolume().getId().toString());
         Iterator<UnManagedProtectionSet> umpsetsItr = umpsets.iterator();
         if (!umpsetsItr.hasNext()) {
@@ -126,40 +126,94 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
             // caller will throw exception
             return null;
         }
-        
-        unManagedProtectionSet = umpsetsItr.next();
 
-        return unManagedProtectionSet;
+        _unManagedProtectionSet = umpsetsItr.next();
+
+        return _unManagedProtectionSet;
     }
 
     /**
-     * @return the managedProtectionSet
+     * Returns the managed ProtectionSet for this context, or null
+     * if it hasn't been set yet by ingestion.
+     * 
+     * @return the managed ProtectionSet for this context
      */
     public ProtectionSet getManagedProtectionSet() {
-        return managedProtectionSet;
+        return _managedProtectionSet;
     }
-    
+
     /**
-     * @param ingestedProtectionSet the ingestedProtectionSet to set
+     * Sets the managed ProtectionSet for this context once it has been created.
+     * 
+     * @param ingestedProtectionSet the managed ProtectionSet to set
      */
     public void setManagedProtectionSet(ProtectionSet ingestedProtectionSet) {
-        this.managedProtectionSet = ingestedProtectionSet;
+        this._managedProtectionSet = ingestedProtectionSet;
     }
 
     /**
-     * @return the managedBlockConsistencyGroup
+     * Returns the managed BlockConsistencyGroup for this context, or null
+     * if it hasn't been set yet by ingestion.
+     * 
+     * @return the managed BlockConsistencyGroup for this context
      */
     public BlockConsistencyGroup getManagedBlockConsistencyGroup() {
-        return managedBlockConsistencyGroup;
+        return _managedBlockConsistencyGroup;
     }
 
     /**
-     * @param ingestedBlockConsistencyGroup the ingestedBlockConsistencyGroup to set
+     * Sets the managed BlockConsistencyGroup for this context once it has been created.
+     * 
+     * @param ingestedBlockConsistencyGroup the managed ProtectionSet to set
      */
     public void setManagedBlockConsistencyGroup(BlockConsistencyGroup ingestedBlockConsistencyGroup) {
-        this.managedBlockConsistencyGroup = ingestedBlockConsistencyGroup;
+        this._managedBlockConsistencyGroup = ingestedBlockConsistencyGroup;
     }
 
+    /**
+     * Adds a source Volume to the list of Volumes that should be updated
+     * when this RecoverPoint ingestion process is committed.
+     * 
+     * @param volume the Volume to update
+     */
+    public void addManagedSourceVolumeToUpdate(Volume volume) {
+        if (null == _managedSourceVolumesToUpdate) {
+            _managedSourceVolumesToUpdate = new ArrayList<Volume>();
+        }
+        _managedSourceVolumesToUpdate.add(volume);
+    }
+
+    /**
+     * Adds a target Volume to the list of Volumes that should be updated
+     * when this RecoverPoint ingestion process is committed.
+     * 
+     * @param volume the Volume to update
+     */
+    public void addUnmanagedTargetVolumeToUpdate(UnManagedVolume volume) {
+        if (null == _unmanagedTargetVolumesToUpdate) {
+            _unmanagedTargetVolumesToUpdate = new ArrayList<UnManagedVolume>();
+        }
+        _unmanagedTargetVolumesToUpdate.add(volume);
+    }
+
+    /**
+     * Adds a source UnManagedVolume to the list of UnManagedVolumes that should be updated
+     * when this RecoverPoint ingestion process is committed.
+     * 
+     * @param volume the UnManagedVolume to update
+     */
+    public void addUnmanagedSourceVolumeToUpdate(UnManagedVolume volume) {
+        if (null == _unmanagedSourceVolumesToUpdate) {
+            _unmanagedSourceVolumesToUpdate = new ArrayList<UnManagedVolume>();
+        }
+        _unmanagedSourceVolumesToUpdate.add(volume);
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext#commit()
+     */
     @Override
     public void commit() {
 
@@ -171,39 +225,43 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
         _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
 
-        _dbClient.updateObject(managedSourceVolumesToUpdate);
-        _dbClient.updateObject(unmanagedSourceVolumesToUpdate);
-        _dbClient.updateObject(unmanagedTargetVolumesToUpdate);
-        
-        
-        if (null != managedProtectionSet) {
-            
-            managedProtectionSet.getVolumes().add(managedBlockObject.getId().toString());
-            _dbClient.createObject(managedProtectionSet);
-            
+        _dbClient.updateObject(_managedSourceVolumesToUpdate);
+        _dbClient.updateObject(_unmanagedSourceVolumesToUpdate);
+        _dbClient.updateObject(_unmanagedTargetVolumesToUpdate);
+
+        if (null != _managedProtectionSet) {
+
+            _managedProtectionSet.getVolumes().add(_managedBlockObject.getId().toString());
+            _dbClient.createObject(_managedProtectionSet);
+
             // the protection set was created, so deleted the unmanaged one
-            _dbClient.removeObject(unManagedProtectionSet);
+            _dbClient.removeObject(_unManagedProtectionSet);
         }
-        
-        if (null != managedBlockConsistencyGroup) {
-            _dbClient.createObject(managedBlockConsistencyGroup);
+
+        if (null != _managedBlockConsistencyGroup) {
+            _dbClient.createObject(_managedBlockConsistencyGroup);
         }
     }
 
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext#rollback()
+     */
     @Override
     public void rollback() {
         getObjectsIngestedByExportProcessing().clear();
         getObjectsToBeCreatedMap().clear();
         getObjectsToBeUpdatedMap().clear();
         getUnManagedVolumesToBeDeleted().clear();
-        managedSourceVolumesToUpdate.clear();
-        unmanagedSourceVolumesToUpdate.clear();
-        unmanagedTargetVolumesToUpdate.clear();
-        managedProtectionSet = null;
-        managedBlockConsistencyGroup = null;
-        managedBlockObject = null;
-        if (exportGroupCreated) {
-            _dbClient.removeObject(exportGroup);
+        _managedSourceVolumesToUpdate.clear();
+        _unmanagedSourceVolumesToUpdate.clear();
+        _unmanagedTargetVolumesToUpdate.clear();
+        _managedProtectionSet = null;
+        _managedBlockConsistencyGroup = null;
+        _managedBlockObject = null;
+        if (_exportGroupCreated) {
+            _dbClient.removeObject(_exportGroup);
         }
     }
 
@@ -214,6 +272,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public boolean hasNext() {
+        // no-op, a RecoverPoint volume will not have any child volumes to iterate
         return false;
     }
 
@@ -224,6 +283,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public UnManagedVolume next() {
+        // no-op, a RecoverPoint volume will not have any child volumes to iterate
         return null;
     }
 
@@ -234,7 +294,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public void remove() {
-        // nothin'
+        // no-op, a RecoverPoint volume will not have any child volumes to iterate
     }
 
     protected void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
@@ -307,7 +367,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public VirtualPool getVpool() {
-        return parentRequestContext.getVpool();
+        return _parentRequestContext.getVpool();
     }
 
     /*
@@ -317,7 +377,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public VirtualArray getVarray() {
-        return parentRequestContext.getVarray();
+        return _parentRequestContext.getVarray();
     }
 
     /*
@@ -327,7 +387,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public Project getProject() {
-        return parentRequestContext.getProject();
+        return _parentRequestContext.getProject();
     }
 
     /*
@@ -337,7 +397,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public TenantOrg getTenant() {
-        return parentRequestContext.getTenant();
+        return _parentRequestContext.getTenant();
     }
 
     /*
@@ -347,37 +407,38 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public String getVplexIngestionMethod() {
-        return parentRequestContext.getVplexIngestionMethod();
+        return _parentRequestContext.getVplexIngestionMethod();
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getSystemMap()
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getStorageSystemCache()
      */
     @Override
     public Map<String, StorageSystem> getStorageSystemCache() {
-        return parentRequestContext.getStorageSystemCache();
+        return _parentRequestContext.getStorageSystemCache();
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getSystemCache()
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getExhaustedStorageSystems()
      */
     @Override
     public List<URI> getExhaustedStorageSystems() {
-        return parentRequestContext.getExhaustedStorageSystems();
+        return _parentRequestContext.getExhaustedStorageSystems();
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getPoolCache()
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getExhaustedPools()
      */
     @Override
     public List<URI> getExhaustedPools() {
-        return parentRequestContext.getExhaustedPools();
+        return _parentRequestContext.getExhaustedPools();
     }
 
     /*
@@ -388,11 +449,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public List<UnManagedVolume> getUnManagedVolumesToBeDeleted() {
-        if (null == unManagedVolumesToBeDeleted) {
-            unManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
+        if (null == _unManagedVolumesToBeDeleted) {
+            _unManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
         }
 
-        return unManagedVolumesToBeDeleted;
+        return _unManagedVolumesToBeDeleted;
     }
 
     /*
@@ -402,7 +463,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public Map<String, StringBuffer> getTaskStatusMap() {
-        return parentRequestContext.getTaskStatusMap();
+        return _parentRequestContext.getTaskStatusMap();
     }
 
     /*
@@ -414,11 +475,24 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public Map<String, VolumeIngestionContext> getProcessedUnManagedVolumeMap() {
-        if (null == processedUnManagedVolumeMap) {
-            processedUnManagedVolumeMap = new HashMap<String, VolumeIngestionContext>();
+        if (null == _processedUnManagedVolumeMap) {
+            _processedUnManagedVolumeMap = new HashMap<String, VolumeIngestionContext>();
         }
 
-        return processedUnManagedVolumeMap;
+        return _processedUnManagedVolumeMap;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getProcessedBlockObject(java
+     * .lang.String)
+     */
+    @Override
+    public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid) {
+        String objectGUID = unmanagedVolumeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+        return getObjectsToBeCreatedMap().get(objectGUID);
     }
 
     /*
@@ -457,11 +531,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public List<BlockObject> getObjectsIngestedByExportProcessing() {
-        if (null == ingestedObjects) {
-            ingestedObjects = new ArrayList<BlockObject>();
+        if (null == _objectsIngestedByExportProcessing) {
+            _objectsIngestedByExportProcessing = new ArrayList<BlockObject>();
         }
 
-        return ingestedObjects;
+        return _objectsIngestedByExportProcessing;
     }
 
     /*
@@ -471,7 +545,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public boolean isExportGroupCreated() {
-        return exportGroupCreated;
+        return _exportGroupCreated;
     }
 
     /*
@@ -482,7 +556,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public void setExportGroupCreated(boolean exportGroupCreated) {
-        this.exportGroupCreated = exportGroupCreated;
+        this._exportGroupCreated = exportGroupCreated;
     }
 
     /*
@@ -492,7 +566,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public ExportGroup getExportGroup() {
-        return exportGroup;
+        return _exportGroup;
     }
 
     /*
@@ -504,7 +578,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public void setExportGroup(ExportGroup exportGroup) {
-        this.exportGroup = exportGroup;
+        this._exportGroup = exportGroup;
     }
 
     /*
@@ -514,6 +588,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public URI getHost() {
+        // the backend ingestion request context for RecoverPoint only consists of device initiator (i.e., the RP device)
         return null;
     }
 
@@ -524,7 +599,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public void setHost(URI host) {
-        // no-op; vplex ingestion only uses device initiators for export
+        // no-op; RecoverPoint backend ingestion request context only uses device initiators (i.e., the RP device) for export
     }
 
     /*
@@ -534,6 +609,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public URI getCluster() {
+        // the backend ingestion request context for RecoverPoint only consists of device initiator (i.e., the RP device)
         return null;
     }
 
@@ -544,7 +620,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public void setCluster(URI cluster) {
-        // no-op; vplex ingestion only uses device initiators for export
+        // no-op; RecoverPoint backend ingestion request context only uses device initiators (i.e., the RP device) for export
     }
 
     /*
@@ -554,7 +630,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public List<Initiator> getDeviceInitiators() {
-        return deviceInitiators;
+        return _deviceInitiators;
     }
 
     /*
@@ -566,91 +642,56 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public void setDeviceInitiators(List<Initiator> deviceInitiators) {
-        this.deviceInitiators = deviceInitiators;
+        this._deviceInitiators = deviceInitiators;
     }
 
-    
-    
-    
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getProcessedBlockObject(java
-     * .lang.String)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsToBeCreatedMap()
      */
     @Override
-    public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid) {
-        String objectGUID = unmanagedVolumeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-        return getObjectsToBeCreatedMap().get(objectGUID);
-    }
-
-
-    /**
-     * Returns the Map of created objects, used
-     * by the general ingestion framework.
-     * 
-     * @return the created object Map
-     */
     public Map<String, BlockObject> getObjectsToBeCreatedMap() {
-        if (null == createdObjectMap) {
-            createdObjectMap = new HashMap<String, BlockObject>();
+        if (null == _objectsToBeCreatedMap) {
+            _objectsToBeCreatedMap = new HashMap<String, BlockObject>();
         }
-        
-        return createdObjectMap;
+
+        return _objectsToBeCreatedMap;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsToBeUpdatedMap()
+     */
+    @Override
+    public Map<String, List<DataObject>> getObjectsToBeUpdatedMap() {
+        if (null == _objectsToBeUpdatedMap) {
+            _objectsToBeUpdatedMap = new HashMap<String, List<DataObject>>();
+        }
+
+        return _objectsToBeUpdatedMap;
     }
 
     /**
-     * Returns the Map of updated objects, used
-     * by the general ingestion framework.
+     * Adds a BlockObject to the objectsToBeCreated Map by its native GUID.
      * 
-     * @return the updated object Map
+     * @param blockObject the BlockObject to add for creation in the database
      */
-    public Map<String, List<DataObject>> getObjectsToBeUpdatedMap() {
-        if (null == updatedObjectMap) {
-            updatedObjectMap = new HashMap<String, List<DataObject>>();
-        }
-        
-        return updatedObjectMap;
-    }
-
     public void addObjectToCreate(BlockObject blockObject) {
-        getObjectsToBeCreatedMap().put(getUnmanagedVolume().getNativeGuid(), blockObject);
+        getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
     }
 
+    /**
+     * Adds a DataObjects to the objectsToBeUpdated Map for the current UnManagedVolume.
+     * 
+     * @param dataObject the DataObject that needs to be updated in the database
+     */
     public void addObjectToUpdate(DataObject dataObject) {
-        List<DataObject> objectsToUpdate = getObjectsToBeUpdatedMap().get(getUnmanagedVolume().getNativeGuid());
+        List<DataObject> objectsToUpdate = getObjectsToBeUpdatedMap().get(getCurrentUnmanagedVolume().getNativeGuid());
         if (null == objectsToUpdate) {
             objectsToUpdate = new ArrayList<DataObject>();
         }
         objectsToUpdate.add(dataObject);
     }
-
-    
-    
-
-    
-    
-    public void addManagedSourceVolumeToUpdate(Volume volume) {
-        if (null == managedSourceVolumesToUpdate) {
-            managedSourceVolumesToUpdate = new ArrayList<Volume>();
-        }
-        managedSourceVolumesToUpdate.add(volume);
-    }
-    
-    public void addUnmanagedSourceVolumeToUpdate(UnManagedVolume volume) {
-        if (null == unmanagedSourceVolumesToUpdate) {
-            unmanagedSourceVolumesToUpdate = new ArrayList<UnManagedVolume>();
-        }
-        unmanagedSourceVolumesToUpdate.add(volume);
-    }
-    
-    public void addUnmanagedTargetVolumeToUpdate(UnManagedVolume volume) {
-        if (null == unmanagedTargetVolumesToUpdate) {
-            unmanagedTargetVolumesToUpdate = new ArrayList<UnManagedVolume>();
-        }
-        unmanagedTargetVolumesToUpdate.add(volume);
-    }
-    
-    
 }

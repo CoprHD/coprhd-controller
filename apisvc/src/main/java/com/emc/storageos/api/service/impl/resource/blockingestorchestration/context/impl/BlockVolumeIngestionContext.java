@@ -22,6 +22,12 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
     private UnManagedVolume _unManagedVolume;
     private List<String> _errorMessages;
 
+    /**
+     * Constructor.
+     * 
+     * @param unManagedVolume the parent UnManagedVolume for this context
+     * @param dbClient a reference to the database client
+     */
     public BlockVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient) {
         this._unManagedVolume = unManagedVolume;
         this._dbClient = dbClient;

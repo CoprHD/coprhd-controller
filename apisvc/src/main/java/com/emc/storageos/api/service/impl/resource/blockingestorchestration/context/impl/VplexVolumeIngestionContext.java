@@ -73,6 +73,13 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     private List<Initiator> _deviceInitiators;
     private List<BlockObject> _objectsIngestedByExportProcessing;
 
+    /**
+     * Constructor.
+     * 
+     * @param unManagedVolume the parent UnManagedVolume for this context
+     * @param dbClient a reference to the database client
+     * @param parentRequestContext the parent IngestionRequestContext
+     */
     public VplexVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient, IngestionRequestContext parentRequestContext) {
         super(unManagedVolume, dbClient);
         this._parentRequestContext = parentRequestContext;
@@ -105,8 +112,8 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public void commit() {
-        setFlags();
 
+        setFlags();
         createVplexMirrorObjects();
         _dbClient.createObject(getCreatedVplexMirrors());
 

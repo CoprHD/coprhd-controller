@@ -536,5 +536,4 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     public void setDeviceInitiators(List<Initiator> deviceInitiators) {
         this._deviceInitiators = deviceInitiators;
     }
-
 }

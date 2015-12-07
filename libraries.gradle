@@ -71,13 +71,13 @@ ext {
         "org.apache.commons:commons-math3:3.2",
         "com.google.guava:guava:16.0",
         "com.ning:compress-lzf:0.8.4",
-        "com.boundary:high-scale-lib:1.0.6",
-        "org.codehaus.jackson:jackson-mapper-asl:1.9.2",
-        "org.codehaus.jackson:jackson-core-asl:1.9.2",
-        "com.github.jbellis:jamm:0.3.0",
-        "org.mindrot:jbcrypt:0.3m",
+        "com.github.stephenc.high-scale-lib:high-scale-lib:1.1.2",
+        "org.codehaus.jackson:jackson-mapper-asl:1.9.2", 
+        "org.codehaus.jackson:jackson-core-asl:1.9.2", 
+        "com.github.jbellis:jamm:0.3.0", 
+        "org.mindrot:jbcrypt:0.3m", 
         "jline:jline:1.0",
-        "com.googlecode.json-simple:json-simple:1.1",
+        "com.googlecode.json-simple:json-simple:1.1", 
         "net.jpountz.lz4:lz4:1.2.0",
         "com.yammer.metrics:metrics-core:2.2.0",
         "javax.servlet:servlet-api:2.5",
@@ -103,7 +103,6 @@ ext {
     zookeeper = [
         slf4j,
         log4j,
-        "jline:jline:0.9.94",
         "org.jboss.netty:netty:3.2.8.Final",
         "org.apache.zookeeper:zookeeper:3.4.6"
     ]
@@ -155,12 +154,12 @@ ext {
 
     ]
     curator_client = [
-        "org.apache.curator:curator-client:2.7.0",
-        "org.apache.curator:curator-framework:2.7.0",
-        "org.apache.curator:curator-recipes:2.7.0",
-        "org.apache.curator:curator-test:2.7.0",
-        "org.apache.curator:curator-x-discovery:2.7.0",
-        "org.apache.curator:curator-x-discovery-server:2.7.0",
+        "org.apache.curator:curator-client:2.9.1",
+        "org.apache.curator:curator-framework:2.9.1",
+        "org.apache.curator:curator-recipes:2.9.1",
+        "org.apache.curator:curator-test:2.9.1",
+        "org.apache.curator:curator-x-discovery:2.9.1",
+        "org.apache.curator:curator-x-discovery-server:2.9.1",
     ]
     google_gson = [
         "com.google.code.gson:gson:2.1",

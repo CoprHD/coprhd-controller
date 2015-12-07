@@ -270,6 +270,8 @@ seed_provider:
       parameters:
           - coordinators: "coordinator://localhost:2181"
             id: "db-standalone"
+            seeds: ""
+            siteid: "a6cbcc20-99a8-4461-a3f6-0a8aa4433646"
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from
@@ -694,7 +696,7 @@ cross_node_timeout: false
 #
 # You can use a custom Snitch by setting this to the full class name
 # of the snitch, which will be assumed to be on your classpath.
-endpoint_snitch: SimpleSnitch
+endpoint_snitch: GossipingPropertyFileSnitch
 
 # controls how often to perform the more expensive part of host score
 # calculation

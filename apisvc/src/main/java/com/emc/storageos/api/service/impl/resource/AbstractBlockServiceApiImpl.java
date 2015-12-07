@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -70,6 +71,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.ApplicationUpdateParam.ApplicationVolumeList;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -1727,4 +1729,15 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     desc.getVolumeURI(), task));
         }
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void updateVolumesInApplication(ApplicationVolumeList addVolumes, 
+            List<Volume> removeVolumes, 
+            URI applicationId, String taskId) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+    
 }

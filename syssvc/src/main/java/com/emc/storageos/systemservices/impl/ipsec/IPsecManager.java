@@ -81,7 +81,7 @@ public class IPsecManager {
         String[] disconnectedIPs = localRepository.checkIpsecConnection();
         if (disconnectedIPs[0].isEmpty()) {
             log.info("IPsec runtime status is good.");
-            return null;
+            return new ArrayList<String>(); // return empty list to avoid null pointer in java client.
         } else {
             log.info("Some nodes disconnected over IPsec {}", disconnectedIPs);
             return Arrays.asList(disconnectedIPs);

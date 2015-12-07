@@ -213,5 +213,5 @@ public interface IngestionExceptions {
     public IngestionException unManagedProtectionSetNotSync(String cgName, String unmanagedVolume);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
-    public IngestionException rpUnManagedTargetVolumeLoggedAccess(String nativeGuid);
+    public IngestionException rpUnManagedTargetVolumeInImageAccessState(String nativeGuid, String rpAccessState);
 }

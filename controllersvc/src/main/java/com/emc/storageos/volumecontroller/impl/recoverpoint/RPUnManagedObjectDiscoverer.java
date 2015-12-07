@@ -94,7 +94,6 @@ public class RPUnManagedObjectDiscoverer {
         for (GetCGsResponse cg : cgs) {
             log.info("Processing returned CG: " + cg.getCgName());
             boolean newCG = false;
-            boolean isLoggedAccess = false;
 
             // UnManagedProtectionSet native GUID is protection system GUID + consistency group ID
             String nativeGuid = protectionSystem.getNativeGuid() + Constants.PLUS + cg.getCgId();
@@ -157,11 +156,9 @@ public class RPUnManagedObjectDiscoverer {
             if (!newCG) {
                 cleanUpUnManagedResources(unManagedProtectionSet, unManagedVolumesToUpdateByWwn, dbClient);
             }
+            Map<String, String> rpCopyAccessStateMap = new HashMap<String, String>();
             for (GetCopyResponse copy : cg.getCopies()) {
                 String accessState = copy.getAccessState();
-                if (GetCopyResponse.GetCopyAccessStateResponse.LOGGED_ACCESS.name().equals(accessState)) {
-                    isLoggedAccess = true;
-                }
                 for (GetVolumeResponse volume : copy.getJournals()) {
                     // Find this volume in UnManagedVolumes based on wwn
                     UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
@@ -200,6 +197,9 @@ public class RPUnManagedObjectDiscoverer {
 
                     // at this point, we have an legitimate UnManagedVolume whose RP properties should be updated
                     log.info("Processing Journal UnManagedVolume {}", unManagedVolume.forDisplay());
+
+                    // Capture the access state
+                    rpCopyAccessStateMap.put(volume.getRpCopyName(), accessState);
 
                     // Add the unmanaged volume to the list (if it's not there already)
                     if (!unManagedProtectionSet.getUnManagedVolumeIds().contains(unManagedVolume.getId().toString())) {
@@ -296,15 +296,13 @@ public class RPUnManagedObjectDiscoverer {
                         personality.add(Volume.PersonalityTypes.SOURCE.name());
                     } else {
                         personality.add(Volume.PersonalityTypes.TARGET.name());
-                        // populate rp access state for targets if CG is in Test copy mode
-                        if (isLoggedAccess) {
-                            StringSet rpAccessState = new StringSet();
-                            rpAccessState.add(GetCopyResponse.GetCopyAccessStateResponse.LOGGED_ACCESS.name());
-                            unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_ACCESS_STATE.toString(), rpAccessState);
-                        }
                     }
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PERSONALITY.toString(),
                             personality);
+
+                    StringSet rpAccessState = new StringSet();
+                    rpAccessState.add(rpCopyAccessStateMap.get(volume.getRpCopyName()));
+                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_ACCESS_STATE.toString(), rpAccessState);
 
                     StringSet rpCopyName = new StringSet();
                     rpCopyName.add(volume.getRpCopyName());

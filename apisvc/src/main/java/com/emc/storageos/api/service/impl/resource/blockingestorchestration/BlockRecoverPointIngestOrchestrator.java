@@ -59,7 +59,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
-import com.emc.storageos.recoverpoint.responses.GetCopyResponse;
 import com.emc.storageos.util.ExportUtils;
 
 /**
@@ -640,13 +639,13 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      */
     private void decorateUpdatesForRPTarget(Volume volume, UnManagedVolume unManagedVolume) {
         StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
-        String rpAccessState = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.RP_ACCESS_STATE.toString(),
-                unManagedVolumeInformation);
-        // check for LOGGED_ACCESS state for unexported target volumes
-        if (VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)
-                && GetCopyResponse.GetCopyAccessStateResponse.LOGGED_ACCESS.name().equals(rpAccessState)) {
-            _logger.error("RP target unmanaged volume is not exported and is in LOGGED_ACCESS state.");
-            throw IngestionException.exceptions.rpUnManagedTargetVolumeLoggedAccess(unManagedVolume.getNativeGuid());
+        // If the target volume is unexported, check if it is in image access state
+        if (!VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)
+                && VolumeIngestionUtil.isRPUnManagedVolumeInImageAccessState(unManagedVolume)) {
+            String rpAccessState = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.RP_ACCESS_STATE.toString(),
+                    unManagedVolume.getVolumeInformation());
+            _logger.error("RP target unmanaged volume is not exported and is in image access state: " + rpAccessState);
+            throw IngestionException.exceptions.rpUnManagedTargetVolumeInImageAccessState(unManagedVolume.getNativeGuid(), rpAccessState);
         }
         volume.setPersonality(PersonalityTypes.TARGET.toString());
         volume.setAccessState(Volume.VolumeAccessState.NOT_READY.toString());
@@ -658,8 +657,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // 3. If there is a source Unmanaged volume, the unmanaged target volume is removed from the RP_UNMANAGED_TARGET_VOLUMES list
         //
         // This ensures that we don't lose track of sources and targets, regardless of the order volumes are ingested and unmanaged volumes
-        // are
-        // deleted during the ingestion process.
+        // are deleted during the ingestion process.
 
         // First check to see if there's a managed volume out there with this blockObject's ID in its RP target list.
 

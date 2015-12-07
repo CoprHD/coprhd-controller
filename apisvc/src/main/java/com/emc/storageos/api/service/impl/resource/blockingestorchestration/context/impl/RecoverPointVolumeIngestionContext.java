@@ -545,6 +545,9 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         this.deviceInitiators = deviceInitiators;
     }
 
+    
+    
+    
     /*
      * (non-Javadoc)
      * 
@@ -587,6 +590,12 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         return updatedObjectMap;
     }
 
-    
+    public void addObjectToUpdate(DataObject dataObject) {
+        List<DataObject> objectsToUpdate = getUpdatedObjectMap().get(getUnmanagedVolume().getNativeGuid());
+        if (null == objectsToUpdate) {
+            objectsToUpdate = new ArrayList<DataObject>();
+        }
+        objectsToUpdate.add(dataObject);
+    }
     
 }

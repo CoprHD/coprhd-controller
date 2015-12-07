@@ -39,8 +39,8 @@
 <target name="adg-security"                        depends="adg-security-10-8_1"/>
 <target name="adg-tools"                           depends="adg-tools-4-3_1"/>
 <target name="adg-vami25"                          depends="adg-vami25-1-2"/>
-<target name="adg_platform"                        depends="adg_platform_12_0_6_0"/>
-<target name="adg_minimal"                         depends="adg_minimal_12_0_6_0"/>
+<target name="adg_platform"                        depends="adg_platform_12_0_7_1"/>
+<target name="adg_minimal"                         depends="adg_minimal_12_0_7_0"/>
 <target name="adg_web-demo-conf"                   depends="adg_web-demo-conf-2-1_1"/>
 <target name="adobe-flex-dev-rt"                   depends="adobe-flex-dev-rt-3.5.0.12683-1"/>
 <target name="ant"                                 depends="ant-1.9.4-1.31_1"/>
@@ -198,10 +198,10 @@
 <target name="glib2-lang"                          depends="glib2-lang-2.38.2-5.12_1"/>
 <target name="glib2-tools"                         depends="glib2-tools-2.38.2"/>
 <target name="glib2-tools-2.38.2"                  depends="glib2-tools-2.38.2-5.12_2"/>
-<target name="glibc"                               depends="glibc-2.19-20.3_1"/>
-<target name="glibc-32bit"                         depends="glibc-32bit-2.19-20.3_1"/>
-<target name="glibc-devel"                         depends="glibc-devel-2.19-20.3_1"/>
-<target name="glibc-locale"                        depends="glibc-locale-2.19-20.3_1"/>
+<target name="glibc"                               depends="glibc-2.19-22.7.1_1"/>
+<target name="glibc-32bit"                         depends="glibc-32bit-2.19-22.7.1_1"/>
+<target name="glibc-devel"                         depends="glibc-devel-2.19-22.7.1_1"/>
+<target name="glibc-locale"                        depends="glibc-locale-2.19-22.7.1_1"/>
 <target name="google-collections"                  depends="google-collections-1.0"/>
 <target name="gpg2"                                depends="gpg2-2.0.24-1.5_1"/>
 <target name="gpg2-lang"                           depends="gpg2-lang-2.0.24-1.5_1"/>
@@ -424,8 +424,8 @@
 <target name="libpcrecpp0-8.33"                    depends="libpcrecpp0-8.33-3.314_1"/>
 <target name="libpcreposix0"                       depends="libpcreposix0-8.33"/>
 <target name="libpcreposix0-8.33"                  depends="libpcreposix0-8.33-3.314_1"/>
-<target name="libpng16-16"                         depends="libpng16-16-1.6.8-5.1_1"/>
-<target name="libpolkit0"                          depends="libpolkit0-0.112-2.189_1"/>
+<target name="libpng16-16"                         depends="libpng16-16-1.6.8-8.1_1"/>
+<target name="libpolkit0"                          depends="libpolkit0-0.113-4.1_1"/>
 <target name="libpq5"                              depends="libpq5-9.3.8-8.1_1"/>
 <target name="libprotobuf-lite8"                   depends="libprotobuf-lite8-2.5.0-3"/>
 <target name="libprotobuf8"                        depends="libprotobuf8-2.5.0-3"/>
@@ -438,7 +438,7 @@
 <target name="libruby2_1-2_1"                      depends="libruby2_1-2_1-2.1.2-9.1_1"/>
 <target name="libserf-1-1"                         depends="libserf-1-1-1.3.7-1.37_1"/>
 <target name="libsmartcols1"                       depends="libsmartcols1-2.25-10.1_1"/>
-<target name="libsndfile1"                         depends="libsndfile1-1.0.25-21.1_2"/>
+<target name="libsndfile1"                         depends="libsndfile1-1.0.25-24.1_1"/>
 <target name="libspeex1"                           depends="libspeex1-1.1.999_1.2rc1-22.64_1"/>
 <target name="libsqlite3-0"                        depends="libsqlite3-0-3.8.3.1-1.14_1"/>
 <target name="libtasn1"                            depends="libtasn1-3.7-4.1_1"/>
@@ -491,7 +491,7 @@
 <target name="mingetty"                            depends="mingetty-1.0.8s-19.63_1"/>
 <target name="mod_auth_cas"                        depends="emc-mod_auth_cas"/>
 <target name="mon"                                 depends="mon-1.2.0"/>
-<target name="mozilla-nspr"                        depends="mozilla-nspr-4.10.8-3.1_1"/>
+<target name="mozilla-nspr"                        depends="mozilla-nspr-4.10.10-9.1_1"/>
 <target name="mpt-firmware"                        depends="mpt-firmware-1.0-258.8_1"/>
 <target name="mtools"                              depends="mtools-4.0.18-4.379_1"/>
 <target name="ncurses-devel"                       depends="ncurses-devel-5.9-40.124_1"/>
@@ -573,7 +573,7 @@
 <target name="php5-xmlwriter"                      depends="php5-xmlwriter-5.5.14-33.2_1"/>
 <target name="pigz"                                depends="pigz-2.3-5.1_1"/>
 <target name="pkg-config"                          depends="pkg-config-0.28-6.98_1"/>
-<target name="polkit"                              depends="polkit-0.112-2.189_1"/>
+<target name="polkit"                              depends="polkit-0.113-4.1_1"/>
 <target name="polkit-default-privs"                depends="polkit-default-privs-13.2-8.1_1"/>
 <target name="postgresql"                          depends="postgresql93"/>
 <target name="postgresql-init"                     depends="postgresql-init-9.3-16.13_1"/>
@@ -628,7 +628,7 @@
 <target name="restlet"                             depends="restlet-1.1.10"/>
 <target name="restlet2"                            depends="restlet2-2.1.1-1"/>
 <target name="rome"                                depends="rome-1.0RC2"/>
-<target name="rpcbind"                             depends="rpcbind-0.2.1_rc4-8.6_1"/>
+<target name="rpcbind"                             depends="rpcbind-0.2.1_rc4-13.3.1_1"/>
 <target name="rpm"                                 depends="rpm-4.11.2-10.1_1"/>
 <target name="rpm-build"                           depends="rpm-build-4.11.2-10.1_1"/>
 <target name="rsync"                               depends="rsync-3.1.0-2.7_1"/>
@@ -658,6 +658,9 @@
 <target name="sshpass"                             depends="sshpass-1.05-2.1_1"/>
 <target name="stax-api"                            depends="stax-api-1.0.1-2"/>
 <target name="strace"                              depends="strace-4.8-6.15_1"/>
+<target name="strongswan"                          depends="strongswan-5.1.3-4.1_1"/>
+<target name="strongswan-ipsec"                    depends="strongswan-ipsec-5.1.3-4.1_1"/>
+<target name="strongswan-libs0"                    depends="strongswan-libs0-5.1.3-4.1_1"/>
 <target name="subscription-tools"                  depends="subscription-tools-1.1.5-1.39_1"/>
 <target name="subversion"                          depends="subversion-1.8.10-12.1_1"/>
 <target name="sudo"                                depends="sudo-1.8.10p3-1.62_1"/>
@@ -704,7 +707,7 @@
 <target name="vim"                                 depends="vim-7.4.326-2.62_1"/>
 <target name="vim-data"                            depends="vim-data-7.4.326-2.62_1"/>
 <target name="vlan"                                depends="vlan-1.9-138.1_1"/>
-<target name="vorbis-tools"                        depends="vorbis-tools-1.4.0-23.1_1"/>
+<target name="vorbis-tools"                        depends="vorbis-tools-1.4.0-26.1_1"/>
 <target name="vsphere_mgmt_sdk"                    depends="vsphere_mgmt_sdk-5.0.0-2"/>
 <target name="wallpaper-branding-SLE"              depends="wallpaper-branding-SLE-12-10.41_1"/>
 <target name="web-servlet"                         depends="web-servlet-2.5.6.A"/>

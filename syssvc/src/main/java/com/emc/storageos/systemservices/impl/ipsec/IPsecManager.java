@@ -9,7 +9,6 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.model.ipsec.IPsecNodeState;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
@@ -17,8 +16,10 @@ import com.emc.storageos.security.exceptions.SecurityException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -46,32 +47,15 @@ public class IPsecManager {
 
         String vdcConfigVersion = loadVdcConfigVersionFromZK();
 
-        boolean runtimeGood = checkIPsecStatus();
-
-        boolean configGood = false;
-        List<IPsecNodeState> problemNodeStatus = null;
-        if (vdcConfigVersion.equals("0")) {
-            configGood = true;
-        } else {
-            List<IPsecNodeState> nodeStatus = getIPsecVersionsOnAllNodes();
-            problemNodeStatus = checkConfigurations(vdcConfigVersion, nodeStatus);
-            configGood = problemNodeStatus.isEmpty();
-        }
-        log.info("IPsec configuration check is done. The result is {}", configGood);
+        List<String> disconnectedNodes = checkIPsecStatus();
 
         IPsecStatus status = new IPsecStatus();
-
-        boolean allGood = runtimeGood && configGood;
-
-        status.setIsGood(allGood);
+        status.setIsGood(disconnectedNodes == null);
         status.setVersion(vdcConfigVersion);
-        if (allGood) {
-            return status;
+        if (disconnectedNodes != null) {
+            status.setDisconnectedNodes(disconnectedNodes);
         }
 
-        // Send back more details if something error.
-        status.setNodeStatus(problemNodeStatus);
-        log.info("ipsec status is {}", allGood);
         return status;
     }
 
@@ -92,51 +76,16 @@ public class IPsecManager {
         }
     }
 
-    private List<IPsecNodeState> checkConfigurations(String vdcConfigVersion, List<IPsecNodeState> nodeStatus) {
-        List<IPsecNodeState> unreachableNodes = new ArrayList<>();
-
-        for (IPsecNodeState node : nodeStatus) {
-            log.info("vdcVersion = {}, node version = {}", vdcConfigVersion, node.getVersion());
-            if ( (node.getVersion() == null) || ! vdcConfigVersion.equals(node.getVersion()) ) {
-                log.info("Found problem on the node {} where the config version is {}", node.getIp(), node.getVersion());
-                unreachableNodes.add(node);
-            }
-        }
-
-        return unreachableNodes;
-    }
-
-    private boolean checkIPsecStatus() {
+    private List<String> checkIPsecStatus() {
         LocalRepository localRepository = new LocalRepository();
-        String[] problemIPs = localRepository.checkIpsecConnection();
-        boolean runtimeGood = problemIPs[0].isEmpty();
-        log.info("Checked IPsec local runtime status which is {}", runtimeGood);
-        return runtimeGood;
-    }
-
-    private List<IPsecNodeState> getIPsecVersionsOnAllNodes() {
-        List<IPsecNodeState> nodeStatus = new ArrayList<>();
-
-        LocalRepository localRepository = new LocalRepository();
-
-        for (Site site : drUtil.listSites()) {
-            for (String ip : site.getHostIPv4AddressMap().values()) {
-                log.info("Collecting ipsec config version from {}", ip);
-                IPsecNodeState nodeState = new IPsecNodeState();
-                nodeState.setIp(ip);
-                try {
-                    Map<String, String> ipsecProps = localRepository.getIpsecProperties(ip);
-                    nodeState.setVersion(ipsecProps.get(Constants.VDC_CONFIG_VERSION));
-                    log.info("Collected ipsec config version from {}, which is {}", ip, ipsecProps.get(Constants.VDC_CONFIG_VERSION));
-                } catch (Exception e) {
-                    log.info("Failed to collect ipsec config version from {}. Just set to null", ip);
-                    nodeState.setVersion(null);
-                }
-                nodeStatus.add(nodeState);
-            }
+        String[] disconnectedIPs = localRepository.checkIpsecConnection();
+        if (disconnectedIPs[0].isEmpty()) {
+            log.info("IPsec runtime status is good.");
+            return new ArrayList<String>(); // return empty list to avoid null pointer in java client.
+        } else {
+            log.info("Some nodes disconnected over IPsec {}", disconnectedIPs);
+            return Arrays.asList(disconnectedIPs);
         }
-
-        return nodeStatus;
     }
 
     private String loadVdcConfigVersionFromZK() {

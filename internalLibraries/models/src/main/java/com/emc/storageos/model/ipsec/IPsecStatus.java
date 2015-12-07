@@ -5,6 +5,7 @@
 package com.emc.storageos.model.ipsec;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
@@ -12,7 +13,7 @@ import java.util.List;
 public class IPsecStatus {
 
     private boolean isGood;
-    private List<IPsecNodeState> nodeStatus;
+    private List<String> disconnectedNodes;
 
     @XmlElement(name = "version")
     public String getVersion() {
@@ -34,12 +35,13 @@ public class IPsecStatus {
         this.isGood = isGood;
     }
 
-    @XmlElement(name = "node_status")
-    public List<IPsecNodeState> getNodeStatus() {
-        return nodeStatus;
+    @XmlElementWrapper(name = "disconnected_nodes")
+    @XmlElement(name = "ip")
+    public List<String> getDisconnectedNodes() {
+        return disconnectedNodes;
     }
 
-    public void setNodeStatus(List<IPsecNodeState> nodeStatus) {
-        this.nodeStatus = nodeStatus;
+    public void setDisconnectedNodes(List<String> nodes) {
+        this.disconnectedNodes = nodes;
     }
 }

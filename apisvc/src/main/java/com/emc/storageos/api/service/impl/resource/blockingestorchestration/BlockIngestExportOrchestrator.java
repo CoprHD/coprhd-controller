@@ -51,19 +51,13 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
     private static final Logger _logger = LoggerFactory.getLogger(BlockIngestExportOrchestrator.class);
 
     /**
-     * Ingest list of masks, this unmanaged volume is associated with.
+     * Ingests UnManagedExportMasks associated with the current UnManagedVolume being processed.
      * 
+     * @param requestContext the IngestionRequestContext for this ingestion process
      * @param unManagedVolume unManagedVolume to ingest
-     * @param unManagedMasks list of unmanaged masks this unmanaged volume is associated with
-     * @param param ingest param object
-     * @param exportGroup exportGroup
      * @param blockObject created BlockObject
-     * @param system StorageSystem of unmanaged volume
-     * @param exportGroupCreated boolean indicating whether exportGroup is created/reused
+     * @param unManagedMasks list of unmanaged masks this unmanaged volume is associated with
      * @param masksIngestedCount number of export masks ingested
-     * @param deviceInitiators collection of initiators from a device 
-     *                         (such as VPLEX) rather than a Host or Cluster
-     * @param errorMessages a List of error message strings collected during processing
      */
     protected <T extends BlockObject> void ingestExportMasks(IngestionRequestContext requestContext, 
             UnManagedVolume unManagedVolume, T blockObject,

@@ -29,6 +29,11 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
+/**
+ * Base implementation of IngestionRequestContext.
+ * 
+ * @see IngestionRequestContext
+ */
 public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     private static Logger _logger = LoggerFactory.getLogger(BaseIngestionRequestContext.class);
@@ -63,6 +68,17 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     private List<Initiator> _deviceInitiators;
     List<BlockObject> _objectsIngestedByExportProcessing;
 
+    /**
+     * Constructor. 
+     * 
+     * @param dbClient a reference to the database client
+     * @param unManagedVolumeUrisToProcess the UnmanagedVolumes to be processed by this request
+     * @param vpool the VirtualPool to use for ingestion from the client request
+     * @param virtualArray the VirtualArray to use for ingestion from the client request
+     * @param project the Project to use for ingestion from the client request
+     * @param tenant the TenantOrg to use for ingestion from the client request
+     * @param vplexIngestionMethod the VPLEX ingestion method from the client request
+     */
     public BaseIngestionRequestContext(DbClient dbClient, List<URI> unManagedVolumeUrisToProcess, VirtualPool vpool,
             VirtualArray virtualArray, Project project, TenantOrg tenant, String vplexIngestionMethod) {
         this._dbClient = dbClient;
@@ -110,8 +126,8 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     }
 
     /**
-     * Instantiates the correct VolumeIngestionContext type
-     * for the current volume, based on the UnManagedVolume type.
+     * Instantiates the correct VolumeIngestionContext type for the 
+     * current UnManagedVolume being processed, based on the UnManagedVolume type.
      */
     protected static class VolumeIngestionContextFactory {
 
@@ -134,7 +150,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /**
      * Private setter for the current UnManagedVolume, used by this class' implementation
-     * of Iterator<UnManagedVolume>. Will also set the current VolumeIngestionContext.
+     * of Iterator<UnManagedVolume>. This method will set the current VolumeIngestionContext.
      * 
      * @param unManagedVolume the UnManagedVolume to set
      */

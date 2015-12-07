@@ -46,26 +46,28 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
     private static final Logger _logger = LoggerFactory.getLogger(RecoverPointVolumeIngestionContext.class);
 
+    // these members are part of the IngestionRequestContext 
+    // for the RecoverPoint volume's backend ingestion processing
     private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
     private Map<String, BlockObject> _objectsToBeCreatedMap;
     private Map<String, List<DataObject>> _objectsToBeUpdatedMap;
     private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
     private IngestionRequestContext _parentRequestContext;
 
-    // export ingestion related items
+    // members related to RecoverPoint backend export mask ingestion
     private boolean _exportGroupCreated = false;
     private ExportGroup _exportGroup;
     private List<Initiator> _deviceInitiators;
     private List<BlockObject> _objectsIngestedByExportProcessing;
 
-    // RecoverPoint backend related items
-    private UnManagedProtectionSet _unManagedProtectionSet;
-    private List<Volume> _managedSourceVolumesToUpdate;
-    private List<UnManagedVolume> _unmanagedSourceVolumesToUpdate;
-    private List<UnManagedVolume> _unmanagedTargetVolumesToUpdate;
+    // other RecoverPoint backend tracking members, used for commit and rollback
     private Volume _managedBlockObject;
     private ProtectionSet _managedProtectionSet;
     private BlockConsistencyGroup _managedBlockConsistencyGroup;
+    private List<Volume> _managedSourceVolumesToUpdate;
+    private List<UnManagedVolume> _unmanagedSourceVolumesToUpdate;
+    private List<UnManagedVolume> _unmanagedTargetVolumesToUpdate;
+    private UnManagedProtectionSet _unManagedProtectionSet;
 
     /**
      * Constructor.
@@ -216,27 +218,29 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public void commit() {
 
+        // commit the basic IngestionRequestContext collections
         _dbClient.createObject(getObjectsIngestedByExportProcessing());
         _dbClient.createObject(getObjectsToBeCreatedMap().values());
-
         for (List<DataObject> dos : getObjectsToBeUpdatedMap().values()) {
             _dbClient.updateObject(dos);
         }
         _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
 
+        // now commit the RecoverPoint specific data
         _dbClient.updateObject(_managedSourceVolumesToUpdate);
         _dbClient.updateObject(_unmanagedSourceVolumesToUpdate);
         _dbClient.updateObject(_unmanagedTargetVolumesToUpdate);
 
+        // commit the ProtectionSet, if created, and remove the UnManagedProtectionSet
         if (null != _managedProtectionSet) {
-
             _managedProtectionSet.getVolumes().add(_managedBlockObject.getId().toString());
             _dbClient.createObject(_managedProtectionSet);
 
-            // the protection set was created, so deleted the unmanaged one
+            // the protection set was created, so delete the unmanaged one
             _dbClient.removeObject(_unManagedProtectionSet);
         }
 
+        // commit the BlockConsistencyGroup, if created
         if (null != _managedBlockConsistencyGroup) {
             _dbClient.createObject(_managedBlockConsistencyGroup);
         }
@@ -249,6 +253,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public void rollback() {
+        // basically dereferenced everything so that it won't be saved
         getObjectsIngestedByExportProcessing().clear();
         getObjectsToBeCreatedMap().clear();
         getObjectsToBeUpdatedMap().clear();
@@ -259,8 +264,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         _managedProtectionSet = null;
         _managedBlockConsistencyGroup = null;
         _managedBlockObject = null;
+        
+        // the ExportGroup was created by this ingestion 
+        // process, make sure it gets cleaned up
         if (_exportGroupCreated) {
-            _dbClient.removeObject(_exportGroup);
+            _dbClient.markForDeletion(_exportGroup);
         }
     }
 
@@ -294,9 +302,6 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public void remove() {
         // no-op, a RecoverPoint volume will not have any child volumes to iterate
-    }
-
-    protected void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
     }
 
     /*

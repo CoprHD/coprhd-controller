@@ -73,20 +73,11 @@ public abstract class BlockIngestOrchestrator {
     }
 
     /**
-     * Ingest Block Objects Volumes,Snap,Clones.
-     * All Replica subclasses should extend this.
-     * 
-     * @param systemCache- StorageSystems exceeding resource limits
-     * @param poolCache- StoragePools exceeding resource limits
-     * @param unManagedVolume- unManaged volume to ingest
-     * @param vPool- Virtual Pool used in ingest
-     * @param virtualArray- Virtual Array used in ingest
-     * @param project- Project used in ingest
-     * @param tenant-Tenant used in ingest
-     * @param unManagedVolumesSuccessfullyProcessed- list of successfully ingested unmanaged volumes
-     * @param unManagedVolumeExported- if true, ingest is requested for exported volumes else for unexported
-     * @param clazz
-     * @return BlockObject
+     * Ingesta BlockObjects Volume, Snapshot, or Clone. All Replica subclasses should extend this.
+     *
+     * @param requestContext the IngestionRequestContext for this ingestion process
+     * @param clazz the type Class of the current UnManagedVolume being ingested
+     * @return BlockObject the ingestd BlockObject
      */
     protected abstract <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
             throws IngestionException;

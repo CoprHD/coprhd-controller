@@ -11,7 +11,7 @@
            <property name="storageSystemsMap">
               <map>
                  <entry key="Simulator" value="driversystem"/>
-                 <entry key="ScaleioDriver" value="scaleioSO"/>
+                 <entry key="ScaleioDriver" value="scaleiosystem"/>
                  <entry key="CloudArrayDriver" value="cloudarray"/>
               </map>
            </property>
@@ -19,7 +19,7 @@
            <property name="blockSystems">
                <set>
                    <value>driversystem</value> <!-- simulator -->
-                   <value>scaleioSO</value>
+                   <value>scaleiosystem</value>
                    <value>cloudarray</value>
                </set>
            </property>
@@ -32,7 +32,7 @@
 
            <property name="providerManaged">
                <set>
-                   <value>scaleioSO</value>
+                   <value>scaleiosystem</value>
                </set>
            </property>
 

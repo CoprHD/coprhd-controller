@@ -2,7 +2,7 @@ package com.emc.storageos.model.vasa;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name="capability_profile")
+@XmlRootElement(name="capability_profile_create")
 public class CapabilityProfileCreateRequestParam extends VasaCommonRestRequest{
 
     private String storageProfileId;

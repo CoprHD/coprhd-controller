@@ -60,7 +60,8 @@ public class DiscoveredDataObject extends DataObject {
         }
 
         static public boolean isBlockStorageSystem(Type type) {
-            return (type == vnxblock || type == vmax || type == vnxe || type == hds || type == ibmxiv || type == xtremio);
+            return (type == vnxblock || type == vmax || type == vnxe || type == hds || type == ibmxiv || type == xtremio ||
+                    type == scaleio);
         }
 
         static public boolean isHDSStorageSystem(Type type) {

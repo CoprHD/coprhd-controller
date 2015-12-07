@@ -1,0 +1,91 @@
+#{extends 'main.html'/}
+#{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
+#{set 'title'}&{'disasterRecovery.switchover'}#{/set}
+
+
+#{Form.header titleKey:'disasterRecovery.title' /}
+#{alerts/}
+
+<div>
+   	<b style="font-size:13px">&{'disasterRecovery.switchover.active'}:</b>
+   	<span id="bourne-version">${active_name}</span><br/>
+</div>
+<br/>
+<div>
+   	<b style="font-size:13px">&{'disasterRecovery.switchover.standby'}:</b>
+   	<span id="bourne-version">${standby_name}</span><br/>
+</div>
+<br/>
+<br/>
+
+#{Form.subheader titleKey:"disasterRecovery.failover.subtitile" /}
+<br/>
+<br/>
+<div id="switchdesc">
+	<span> &{'disasterRecovery.switchover.setting'} <b style="font-size:13px">${standby_name}</b> &{'disasterRecovery.switchover.active.to'}
+	 <b style="font-size:13px">${active_name}</b> &{'disasterRecovery.switchover.standby.to'}</span>
+	<br/>
+	<br/>
+	<table class="database-check-progress-table">
+		<tr><td width="300">
+                    %{
+                        style = "success"
+                        if (site_state.equals("STANDBY_ERROR")) {
+                        style="danger"
+                        }
+                      }%
+                      #{progressBar name:"Status", percentage:checkProgress, style:style/}</td>
+         <td style="padding-right: 10px">
+         <span id="checkFailoverStatus">
+			#{if site_state.equals("STANDBY_ERROR")}
+				&{'renderFunctions.disasterRecovery.status.standby.error'}
+			#{/if}
+		</span>
+		</td>
+		</tr>
+	</table>
+	<br/>
+	<span id="redirectSite">
+		&{'disasterRecovery.switchover.login.instruction'} <a href="https://${standby_vip}" >${standby_name}</a>
+	</span>
+</div>
+
+
+<script>
+$(document).ready(function() {
+	checkFailoverStatusUpdates();
+});
+
+function checkFailoverStatusUpdates() {
+	window.setInterval(function() {
+		checkFailoverProgressUpdate()
+    }, 6000); // Check every 6 seconds
+}
+
+var checkFailoverProgress = #{jsAction @checkFailoverProgress(':uuid')/};
+function checkFailoverProgressUpdate() {
+	$.ajax({
+        method: "get",
+        url: checkFailoverProgress(({"uuid": "${site_uuid}"})),
+        dataType: "json",
+
+        success: function(result) {
+        	updateProgressBar("Status",10);
+			if(result.state == "ACTIVE" || result.state == "STANDBY_SYNCED" ) {
+				updateProgressBar("Status",100);
+				$("#checkFailoverStatus").text('&{'disasterRecovery.failover.success'}');
+			}
+			else if(result.state == "STANDBY_ERROR") {
+				$("#checkFailoverStatus").text('&{'renderFunctions.disasterRecovery.status.standby.error'}');
+				updateProgressBar("Status",100);
+				updateProgressBarStyle("Status", "danger")
+			}
+			else {
+				$("#checkFailoverStatus").text('&{'disasterRecovery.failover.progress'}');
+			}
+        },
+        error: function() {
+        }
+	});
+}
+</script>

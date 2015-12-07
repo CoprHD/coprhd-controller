@@ -360,7 +360,7 @@ public class RemoteRepositoryTest {
 
         @SuppressWarnings("unchecked")
         @Override
-        public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+        public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorClientException {
 
             if (clazz.isAssignableFrom(PropertyInfoExt.class)) {
                 Map<String, String> repoProperties = new HashMap<String, String>();

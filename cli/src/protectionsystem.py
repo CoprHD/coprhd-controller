@@ -440,7 +440,7 @@ def update_parser(subcommand_parsers, common_parser):
                     description='ViPR Protection system update cli usage',
                     parents=[common_parser],
                     conflict_handler='resolve',
-                    help='Update attributes (such as port and credentials) of a Protection system')
+                    help='update a Protection system')
 
     mandatory_args = update_parser.add_argument_group('mandatory arguments')
 
@@ -570,11 +570,13 @@ def discover_parser(subcommand_parsers, common_parser):
                 description='ViPR Protection system discover CLI usage',
                 parents=[common_parser],
                 conflict_handler='resolve',
-                help='Discover a Protection system')
-    discover_parser.add_argument('-name', '-n',
-                                 help='name of Protection system',
-                                 dest='name',
-                                 metavar='<psname>')
+                help='discover a Protection system')
+    mandatory_args = discover_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='name of Protection system',
+                                dest='name',
+                                metavar='<psname>',
+                                required=True)
 
     discover_parser.set_defaults(func=ps_discover)
 
@@ -603,13 +605,14 @@ def um_cgs_discover_parser(subcommand_parsers, common_parser):
         description='ViPR Protection system discover unmanaged CG CLI usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Discover unmanaged RecoverPoint CG details for ingestion operations')
+        help='Discover unmanaged CG details')
+    mandatory_args = um_cg_discover_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='name of Protection system',
+                                dest='name',
+                                metavar='<psname>',
+                                required=True)
         
-    um_cg_discover_parser.add_argument('-name', '-n',
-                                 help='name of Protection system',
-                                 dest='name',
-                                 metavar='<psname>')
-
     um_cg_discover_parser.set_defaults(func=ps_discover_unmanaged_cgs)
 
 
@@ -633,7 +636,7 @@ def connectivity_parser(subcommand_parsers, common_parser):
         description='ViPR Protection system connectivity CLI usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Show connectivity information of a Protection system and its associated storage systems')
+        help='connectivity a Protection system')
     connectivity_parser.add_argument('-name', '-n',
                                      help='name of Protection system',
                                      dest='name',

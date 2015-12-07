@@ -478,7 +478,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
                     // Good time to update the backing volume with it's new CG
                     assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
-                    s_dbClient.persistObject(assocVolume);
+                    s_dbClient.updateObject(assocVolume);
 
                     s_logger.info(
                             String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].",
@@ -494,7 +494,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     "postRPChangeVpoolCreateCG");
 
             // Add a step to update the local array consistency group with the volumes to add
-            waitFor = _blockDeviceController.addStepsForAddToConsistencyGroup(workflow, waitFor, blockDataDescriptors);
+            waitFor = _blockDeviceController.addStepsForUpdateConsistencyGroup(workflow, waitFor, blockDataDescriptors, null);
         }
 
         return waitFor;

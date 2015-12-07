@@ -50,7 +50,6 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     private Map<String, BlockObject> _objectsToBeCreatedMap;
     private Map<String, List<DataObject>> _objectsToBeUpdatedMap;
     private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
-    private List<String> _errorMessages;
     private IngestionRequestContext _parentRequestContext;
 
     // export ingestion related items

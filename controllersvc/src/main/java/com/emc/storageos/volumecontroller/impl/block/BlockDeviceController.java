@@ -1844,6 +1844,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             boolean isListReplicaFlow = false;
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshotList.get(0));
+            URI cgURI = null;
+            completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
 
             /**
              * VPLEX/RP CG volumes may not be having back end Array Group.
@@ -1851,18 +1853,20 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
              * We should not use createGroup replica as backend cg will not be available in this case.
              */
             if (snapshotObj != null && !NullColumnValueGetter.isNullURI(snapshotObj.getConsistencyGroup())) {
+                cgURI = snapshotObj.getConsistencyGroup();
                 BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
-                        snapshotObj.getConsistencyGroup());
+                        cgURI);
                 if (!ControllerUtils.checkCGCreatedOnBackEndArray(consistencyGroup, storageObj.getId(), _dbClient)) {
                     isListReplicaFlow = true;
                 }
             }
+
             if (!isListReplicaFlow) {
-                completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
                 getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
             } else {
                 // List Replica
-                createListSnapshot(storage, snapshotList, createInactive, readOnly, opId);
+                completer.addConsistencyGroupId(cgURI);
+                getDevice(storageObj.getSystemType()).doCreateListReplica(storageObj, snapshotList, createInactive, completer);
             }
 
         } catch (Exception e) {

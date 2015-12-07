@@ -4,17 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.scaleio;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -26,9 +17,16 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSnapshotVolumeRespo
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.DefaultSnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.util.*;
 
 public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
 
@@ -40,6 +38,7 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
         this.dbClient = dbClient;
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public void setScaleIOHandleFactory(ScaleIOHandleFactory scaleIOHandleFactory) {
         this.scaleIOHandleFactory = scaleIOHandleFactory;
     }

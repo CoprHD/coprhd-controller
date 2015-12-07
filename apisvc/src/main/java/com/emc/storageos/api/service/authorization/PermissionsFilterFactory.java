@@ -14,12 +14,16 @@ import javax.ws.rs.core.UriInfo;
 
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.sun.jersey.spi.container.ContainerRequest;
+import com.sun.jersey.spi.container.ContainerRequestFilter;
+import com.sun.jersey.spi.container.ContainerResponseFilter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.impl.resource.*;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.DataObject.Flag;
@@ -42,6 +46,9 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
     private @Context
     UriInfo uriInfo;
 
+    @Autowired
+    private DrUtil drUtil;
+    
     /**
      * PermissionsFilter for apisvc
      */
@@ -363,7 +370,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
 
     @Override
     protected ResourceFilter getPreFilter() {
-        return null;
+        return new StandbyApisvcFilter();
     }
 
     @Override
@@ -380,5 +387,42 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
     @Override
     protected AbstractLicenseFilter getLicenseFilter() {
         return new ApisvcLicenseFilter();
+    }
+    
+    /**
+     * Request filter for apisvc on standby node. We disable all post request except bulk API and DR API
+     */
+    private class StandbyApisvcFilter implements ResourceFilter, ContainerRequestFilter {
+        @Override
+        public ContainerRequest filter(ContainerRequest request) {
+            // allow all request on active site
+            if (drUtil.isActiveSite()) {
+                return request;
+            }
+            String path = request.getPath();
+            // allow all requests for DR
+            if (path.startsWith("site")) {
+                return request;
+            }
+            String method = request.getMethod();
+            // allow all GET request or bulk request
+            if (method.equalsIgnoreCase("GET") || path.endsWith("/bulk")) {
+                return request;
+            }
+            // disallowed operation
+            String siteId = drUtil.getActiveSiteId();
+            Site activeSite = drUtil.getSiteFromLocalVdc(siteId);
+            throw APIException.forbidden.disallowOperationOnDrStandby(activeSite.getVip());
+        }
+        
+        @Override
+        public ContainerRequestFilter getRequestFilter() {
+            return this;
+        }
+
+        @Override
+        public ContainerResponseFilter getResponseFilter() {
+            return null;
+        }
     }
 }

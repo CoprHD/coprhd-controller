@@ -8,6 +8,7 @@ import static util.BourneUtil.getSysClient;
 
 import java.util.Map;
 
+import com.emc.vipr.client.ViPRCoreClient;
 import org.apache.commons.lang.StringUtils;
 
 import play.Logger;
@@ -68,6 +69,10 @@ public class ConfigPropertyUtils {
         if (containsSmtpSettings(updatedProperties)) {
             loadSmtpSettingsIntoPlay();
         }
+    }
+
+    public static String rotateIpsecKey(ViPRSystemClient client) {
+        return client.ipsec().rotateIpsecKey();
     }
 
     public static void loadCoordinatorProperties() {

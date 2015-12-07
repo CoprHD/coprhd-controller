@@ -68,6 +68,7 @@ import computeimageserver
 import bucket
 import warnings
 import application
+import ipsecmanager
 
 warnings.filterwarnings(
     'ignore',
@@ -176,6 +177,7 @@ truststore.truststore_parser(module_parsers, common_parser)
 vnasserver.vnasserver_parser(module_parsers, common_parser)
 computeimageserver.computeimageserver_parser(module_parsers, common_parser)
 bucket.bucket_parser(module_parsers, common_parser)
+ipsecmanager.ipsec_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
 
 

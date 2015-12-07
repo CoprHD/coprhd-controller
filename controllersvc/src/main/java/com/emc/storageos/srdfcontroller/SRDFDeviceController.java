@@ -362,6 +362,14 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         }
 
+        if ((group.getVolumes().isEmpty() && !volumesInRDFGroupsOnProvider.isEmpty())
+                || (!group.getVolumes().isEmpty() && volumesInRDFGroupsOnProvider.isEmpty())) {
+            log.info("RDF Group {} in ViPR DB is not sync with the one on the provider. ", group.getNativeGuid());
+            clearSourceAndTargetVolumes(sourceDescriptors, targetDescriptors);
+            throw DeviceControllerException.exceptions.rdfGroupInViprDBNotInSyncWithArray(group
+                    .getNativeGuid());
+        }
+
         if (volumesInRDFGroupsOnProvider.isEmpty() && !SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
             log.info("RDF Group {} is empty and supported copy mode is {} ", group.getNativeGuid(), group.getSupportedCopyMode());
             clearSourceAndTargetVolumes(sourceDescriptors, targetDescriptors);
@@ -374,7 +382,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             waitFor = createNonCGSrdfPairStepsOnEmptyGroup(sourceDescriptors, targetDescriptors, group, waitFor, workflow);
         } else {
             log.info("RA Group {} not empty", group.getId());
-            // TODO : add steps to be able to add more pairs to a populated RDF group dependent on OPT 489689.
+            waitFor = createNonCGSrdfPairStepsOnPopulatedGroup(sourceDescriptors, targetDescriptors, group, waitFor, workflow);
         }
         // Generate workflow step to refresh target system after CG creation.
         if (null != system) {
@@ -1246,7 +1254,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return stepId;
 
     }
-
+    
     private String refreshVolumeProperties(List<VolumeDescriptor> volumeDescriptors, StorageSystem system,
             String waitFor, Workflow workflow) {
 

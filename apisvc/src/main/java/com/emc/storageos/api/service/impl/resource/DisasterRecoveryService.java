@@ -264,7 +264,7 @@ public class DisasterRecoveryService {
         // It's because time inconsistency between primary and standby will cause db rebuild issue: COP-17965
         PropertyInfoExt targetPropInfo = coordinator.getTargetInfo(PropertyInfoExt.class);
         String ntpServers = targetPropInfo.getProperty(NTPSERVERS);
-        log.info("    priamry site ntp servers: {}", ntpServers);
+        log.info("    active site ntp servers: {}", ntpServers);
         configParam.setNtpServers(ntpServers);
 
         return configParam;

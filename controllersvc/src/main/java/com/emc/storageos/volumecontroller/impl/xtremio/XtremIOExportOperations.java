@@ -538,7 +538,13 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         // Deleting the initiator automatically removes the initiator from lun map
                         for (Initiator initiator : initiators) {
                             try {
-                                client.deleteInitiator(initiator.getLabel(), xioClusterName);
+                                // check if Initiator has already been deleted during previous volume processing
+                                XtremIOInitiator initiatorObj = client.getInitiator(initiator.getLabel(), xioClusterName);
+                                if (null != initiatorObj) {
+                                    client.deleteInitiator(initiator.getLabel(), xioClusterName);
+                                } else {
+                                    _log.info("Initiator {} already deleted", initiator.getLabel());
+                                }
                             } catch (Exception e) {
                                 failedIGs.add(initiator.getLabel());
                                 _log.warn("Removal of Initiator {} from IG failed", initiator.getLabel(), e);

@@ -170,10 +170,10 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
     public StorageSystem getStorageSystem() {
 
         URI storageSystemUri = getCurrentUnmanagedVolume().getStorageSystemUri();
-        StorageSystem storageSystem = getSystemMap().get(storageSystemUri.toString());
+        StorageSystem storageSystem = getStorageSystemCache().get(storageSystemUri.toString());
         if (null == storageSystem) {
             storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
-            getSystemMap().put(storageSystemUri.toString(), storageSystem);
+            getStorageSystemCache().put(storageSystemUri.toString(), storageSystem);
         }
 
         return storageSystem;
@@ -223,7 +223,7 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getSystemMap()
      */
     @Override
-    public Map<String, StorageSystem> getSystemMap() {
+    public Map<String, StorageSystem> getStorageSystemCache() {
         if (null == systemMap) {
             systemMap = new HashMap<String, StorageSystem>();
         }
@@ -235,7 +235,7 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getSystemCache()
      */
     @Override
-    public List<URI> getSystemCache() {
+    public List<URI> getExhaustedStorageSystems() {
         if (null == systemCache) {
             systemCache = new ArrayList<URI>();
         }
@@ -247,7 +247,7 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getPoolCache()
      */
     @Override
-    public List<URI> getPoolCache() {
+    public List<URI> getExhaustedPools() {
         if (null == poolCache) {
             poolCache = new ArrayList<URI>();
         }
@@ -282,7 +282,7 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getCreatedObjectMap()
      */
     @Override
-    public Map<String, BlockObject> getCreatedObjectMap() {
+    public Map<String, BlockObject> getObjectsToBeCreatedMap() {
         if (null == createdObjectMap) {
             createdObjectMap = new HashMap<String, BlockObject>();
         }
@@ -294,7 +294,7 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getUpdatedObjectMap()
      */
     @Override
-    public Map<String, List<DataObject>> getUpdatedObjectMap() {
+    public Map<String, List<DataObject>> getObjectsToBeUpdatedMap() {
         if (null == updatedObjectMap) {
             updatedObjectMap = new HashMap<String, List<DataObject>>();
         }
@@ -351,7 +351,7 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getIngestedObjects()
      */
     @Override
-    public List<BlockObject> getIngestedObjects() {
+    public List<BlockObject> getObjectsIngestedByExportProcessing() {
         if (null == ingestedObjects) {
             ingestedObjects = new ArrayList<BlockObject>();
         }
@@ -445,7 +445,7 @@ public class BasicIngestionRequestContext implements IngestionRequestContext {
     @Override
     public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid) {
         String objectGUID = unmanagedVolumeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-        return getCreatedObjectMap().get(objectGUID);
+        return getObjectsToBeCreatedMap().get(objectGUID);
     }
     
 }

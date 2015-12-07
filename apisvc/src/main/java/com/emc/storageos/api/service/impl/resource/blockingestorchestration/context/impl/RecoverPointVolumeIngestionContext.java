@@ -187,10 +187,10 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
     public void commitBackend() {
 
-        _dbClient.createObject(getIngestedObjects());
-        _dbClient.createObject(getCreatedObjectMap().values());
+        _dbClient.createObject(getObjectsIngestedByExportProcessing());
+        _dbClient.createObject(getObjectsToBeCreatedMap().values());
 
-        for (List<DataObject> dos : getUpdatedObjectMap().values()) {
+        for (List<DataObject> dos : getObjectsToBeUpdatedMap().values()) {
             _dbClient.updateObject(dos);
         }
         _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
@@ -215,9 +215,9 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     }
 
     public void rollbackBackend() {
-        getIngestedObjects().clear();
-        getCreatedObjectMap().clear();
-        getUpdatedObjectMap().clear();
+        getObjectsIngestedByExportProcessing().clear();
+        getObjectsToBeCreatedMap().clear();
+        getObjectsToBeUpdatedMap().clear();
         getUnManagedVolumesToBeDeleted().clear();
         managedSourceVolumesToUpdate.clear();
         unmanagedSourceVolumesToUpdate.clear();
@@ -317,10 +317,10 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public StorageSystem getStorageSystem() {
         URI storageSystemUri = getCurrentUnmanagedVolume().getStorageSystemUri();
-        StorageSystem storageSystem = getSystemMap().get(storageSystemUri.toString());
+        StorageSystem storageSystem = getStorageSystemCache().get(storageSystemUri.toString());
         if (null == storageSystem) {
             storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
-            getSystemMap().put(storageSystemUri.toString(), storageSystem);
+            getStorageSystemCache().put(storageSystemUri.toString(), storageSystem);
         }
 
         return storageSystem;
@@ -382,8 +382,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getSystemMap()
      */
     @Override
-    public Map<String, StorageSystem> getSystemMap() {
-        return parentRequestContext.getSystemMap();
+    public Map<String, StorageSystem> getStorageSystemCache() {
+        return parentRequestContext.getStorageSystemCache();
     }
 
     /*
@@ -392,8 +392,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getSystemCache()
      */
     @Override
-    public List<URI> getSystemCache() {
-        return parentRequestContext.getSystemCache();
+    public List<URI> getExhaustedStorageSystems() {
+        return parentRequestContext.getExhaustedStorageSystems();
     }
 
     /*
@@ -402,8 +402,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getPoolCache()
      */
     @Override
-    public List<URI> getPoolCache() {
-        return parentRequestContext.getPoolCache();
+    public List<URI> getExhaustedPools() {
+        return parentRequestContext.getExhaustedPools();
     }
 
     /*
@@ -482,7 +482,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getIngestedObjects()
      */
     @Override
-    public List<BlockObject> getIngestedObjects() {
+    public List<BlockObject> getObjectsIngestedByExportProcessing() {
         if (null == ingestedObjects) {
             ingestedObjects = new ArrayList<BlockObject>();
         }
@@ -608,7 +608,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid) {
         String objectGUID = unmanagedVolumeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-        return getCreatedObjectMap().get(objectGUID);
+        return getObjectsToBeCreatedMap().get(objectGUID);
     }
 
 
@@ -618,7 +618,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * 
      * @return the created object Map
      */
-    public Map<String, BlockObject> getCreatedObjectMap() {
+    public Map<String, BlockObject> getObjectsToBeCreatedMap() {
         if (null == createdObjectMap) {
             createdObjectMap = new HashMap<String, BlockObject>();
         }
@@ -632,7 +632,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * 
      * @return the updated object Map
      */
-    public Map<String, List<DataObject>> getUpdatedObjectMap() {
+    public Map<String, List<DataObject>> getObjectsToBeUpdatedMap() {
         if (null == updatedObjectMap) {
             updatedObjectMap = new HashMap<String, List<DataObject>>();
         }
@@ -641,11 +641,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     }
 
     public void addObjectToCreate(BlockObject blockObject) {
-        getCreatedObjectMap().put(getUnmanagedVolume().getNativeGuid(), blockObject);
+        getObjectsToBeCreatedMap().put(getUnmanagedVolume().getNativeGuid(), blockObject);
     }
 
     public void addObjectToUpdate(DataObject dataObject) {
-        List<DataObject> objectsToUpdate = getUpdatedObjectMap().get(getUnmanagedVolume().getNativeGuid());
+        List<DataObject> objectsToUpdate = getObjectsToBeUpdatedMap().get(getUnmanagedVolume().getNativeGuid());
         if (null == objectsToUpdate) {
             objectsToUpdate = new ArrayList<DataObject>();
         }

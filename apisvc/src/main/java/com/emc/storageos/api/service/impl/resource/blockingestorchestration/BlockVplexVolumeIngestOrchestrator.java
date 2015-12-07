@@ -424,7 +424,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 // the BlockSnapshot instance and only the Volume would get created. So,
                 // we first move the snapshot to the created snapshots list before adding
                 // the volume to the created objects list.
-                Map<String, BlockObject> createdObjectMap = backendRequestContext.getCreatedObjectMap();
+                Map<String, BlockObject> createdObjectMap = backendRequestContext.getObjectsToBeCreatedMap();
                 String blockObjectNativeGuid = blockObject.getNativeGuid();
                 if (createdObjectMap.containsKey(blockObjectNativeGuid)) {
                     BlockObject createdBlockObject = createdObjectMap.get(blockObjectNativeGuid);
@@ -503,7 +503,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             String createdObjectGuid = unManagedVolumeGUID.replace(
                     VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-            BlockObject processedBlockObject = backendRequestContext.getCreatedObjectMap().get(createdObjectGuid);
+            BlockObject processedBlockObject = backendRequestContext.getObjectsToBeCreatedMap().get(createdObjectGuid);
 
             if (processedBlockObject == null) {
                 String reason = "The ingested block object is null. Skipping ingestion of export masks.";
@@ -582,7 +582,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         throw IngestionException.exceptions.generalVolumeException(
                                 processedUnManagedVolume.getLabel(), "check the logs for more details");
                     } else {
-                        backendRequestContext.getIngestedObjects().add(blockObject);
+                        backendRequestContext.getObjectsIngestedByExportProcessing().add(blockObject);
                     }
 
                     /** TODO verify persistence - this should be handled by context.commitBackend

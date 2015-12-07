@@ -666,7 +666,7 @@ public abstract class BlockIngestOrchestrator {
                         rootBlockObject = VolumeIngestionUtil.getBlockObject(blockObjectNativeGUID, _dbClient);
                         // If the volumeobject is not found in DB. check in locally createdObjects.
                         if (rootBlockObject == null) {
-                            rootBlockObject = requestContext.getCreatedObjectMap().get(blockObjectNativeGUID);
+                            rootBlockObject = requestContext.getObjectsToBeCreatedMap().get(blockObjectNativeGUID);
                         }
                         // Get the parent unmanagedvolume for the current unmanagedvolume.
                         List<String> parents = getParentVolumeNativeGUIDByRepType(unManagedVolumeInformation);
@@ -742,15 +742,15 @@ public abstract class BlockIngestOrchestrator {
                 _logger.info("Running algorithm to check all replicas ingested for parent");
                 runReplicasIngestedCheck(rootUnManagedVolume, rootBlockObject, currentUnmanagedVolume, currentBlockObject,
                         processedUnManagedGUIDS,
-                        requestContext.getCreatedObjectMap(), parentReplicaMap, requestContext.getTaskStatusMap());
+                        requestContext.getObjectsToBeCreatedMap(), parentReplicaMap, requestContext.getTaskStatusMap());
                 _logger.info("Ended algorithm to check all replicas ingested for parent");
                 List<UnManagedVolume> processedUnManagedVolumes = _dbClient.queryObject(UnManagedVolume.class,
                         VolumeIngestionUtil.getUnManagedVolumeUris(processedUnManagedGUIDS, _dbClient));
 
                 if (!parentReplicaMap.isEmpty()) {
                     setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap, 
-                            requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getCreatedObjectMap(),
-                            requestContext.getUpdatedObjectMap(),
+                            requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getObjectsToBeCreatedMap(),
+                            requestContext.getObjectsToBeUpdatedMap(),
                             processedUnManagedVolumes);
                     allGood = true;
                 }
@@ -775,15 +775,15 @@ public abstract class BlockIngestOrchestrator {
             _logger.info("Running algorithm to check all replicas ingested for parent");
             runReplicasIngestedCheck(rootUnManagedVolume, rootBlockObject, currentUnmanagedVolume, currentBlockObject,
                     processedUnManagedGUIDS,
-                    requestContext.getCreatedObjectMap(), parentReplicaMap, requestContext.getTaskStatusMap());
+                    requestContext.getObjectsToBeCreatedMap(), parentReplicaMap, requestContext.getTaskStatusMap());
             _logger.info("Ended algorithm to check all replicas ingested for parent");
             List<UnManagedVolume> processedUnManagedVolumes = _dbClient.queryObject(UnManagedVolume.class,
                     VolumeIngestionUtil.getUnManagedVolumeUris(processedUnManagedGUIDS, _dbClient));
 
             if (!parentReplicaMap.isEmpty()) {
                 setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap, 
-                        requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getCreatedObjectMap(), 
-                        requestContext.getUpdatedObjectMap(), processedUnManagedVolumes);
+                        requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getObjectsToBeCreatedMap(), 
+                        requestContext.getObjectsToBeUpdatedMap(), processedUnManagedVolumes);
                 return true;
             }
         }

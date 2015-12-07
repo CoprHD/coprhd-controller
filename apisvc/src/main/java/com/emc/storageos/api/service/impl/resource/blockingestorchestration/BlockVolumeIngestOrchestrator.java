@@ -72,8 +72,8 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             StoragePool pool = validateAndReturnStoragePoolInVAarray(unManagedVolume, requestContext.getVarray());
 
             // validate quota is exceeded for storage systems and pools
-            checkSystemResourceLimitsExceeded(requestContext.getStorageSystem(), unManagedVolume, requestContext.getSystemCache());
-            checkPoolResourceLimitsExceeded(requestContext.getStorageSystem(), pool, unManagedVolume, requestContext.getPoolCache());
+            checkSystemResourceLimitsExceeded(requestContext.getStorageSystem(), unManagedVolume, requestContext.getExhaustedStorageSystems());
+            checkPoolResourceLimitsExceeded(requestContext.getStorageSystem(), pool, unManagedVolume, requestContext.getExhaustedPools());
             String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, requestContext.getStorageSystem(), requestContext.getVpool());
             validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, requestContext.getVpool());
 
@@ -115,7 +115,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             String strategyKey = ReplicationStrategy.LOCAL.name() + "_" + VolumeType.SNAPSHOT.name();
             IngestStrategy ingestStrategy = ingestStrategyFactory.getIngestStrategy(IngestStrategyEnum.getIngestStrategy(strategyKey));
             snapshot = ingestStrategy.ingestBlockObjects(requestContext, BlockSnapshot.class);
-            requestContext.getCreatedObjectMap().put(snapshot.getNativeGuid(), snapshot);
+            requestContext.getObjectsToBeCreatedMap().put(snapshot.getNativeGuid(), snapshot);
         }
 
         // Run this always when volume NO_PUBLIC_ACCESS

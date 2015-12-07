@@ -45,94 +45,144 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
 
     /**
-     * @return the current UnManagedVolume via the current VolumeIngestionContext
+     * Returns the UnManagedVolume currently being processed by ingestion.
+     * 
+     * @return the UnManagedVolume currently being processed
      */
     public UnManagedVolume getCurrentUnmanagedVolume();
 
     /**
-     * @return the currentUnManagedVolumeUri
+     * Returns the UnManagedVolume URI currently being processed by ingestion.
+     * 
+     * @return the UnManagedVolume URI currently being processed 
      */
     public URI getCurrentUnManagedVolumeUri();
 
     /**
-     * @return the current VolumeIngestionContext
+     * Returns the VolumeIngestionContext currently being processed by ingestion.
+     * 
+     * @return the VolumeIngestionContext currently being processed
      */
     public VolumeIngestionContext getVolumeContext();
 
     /**
+     * Finds and returns a VolumeIngestionContext for the given UnManagedVolume
+     * nativeGuid, or null if none was found.
      * 
-     * @param unmanagedVolumeGuid
-     * @return
+     * @param unmanagedVolumeGuid the UnManagedVolume nativeGuid to check
+     * @return a VolumeIngestionContext for the UnManagedVolume nativeGuid
      */
     public VolumeIngestionContext getVolumeContext(String unmanagedVolumeGuid);
 
     /**
-     * @return the storageSystem
+     * Returns the StorageSystem for the UnManagedVolume currently being processed.
+     * 
+     * @return the StorageSystem for the UnManagedVolume currently being processed
      */
     public StorageSystem getStorageSystem();
 
     /**
-     * @return the vpool
+     * Returns the VirtualPool for the UnManagedVolume currently being processed.
+     * 
+     * @return the VirtualPool for the UnManagedVolume currently being processed
      */
     public VirtualPool getVpool();
 
     /**
-     * @return the virtualArray
+     * Returns the VirtualArray for the UnManagedVolume currently being processed.
+     * 
+     * @return the VirtualArray for the UnManagedVolume currently being processed
      */
     public VirtualArray getVarray();
 
     /**
-     * @return the project
+     * Returns the Project for the UnManagedVolume currently being processed.
+     * 
+     * @return the Project for the UnManagedVolume currently being processed
      */
     public Project getProject();
 
     /**
-     * @return the tenant
+     * Returns the TenantOrg for the UnManagedVolume currently being processed.
+     * 
+     * @return the TenantOrg for the UnManagedVolume currently being processed
      */
     public TenantOrg getTenant();
 
     /**
-     * @return the vplexIngestionMethod
+     * Returns the VPLEX ingestion method for all the UnManagedVolumes currently
+     * being processed in this ingestion request.
+     * 
+     * @return the VPLEX ingestion method String
      */
     public String getVplexIngestionMethod();
 
     /**
-     * @return the systemMap
+     * Returns a cache of loaded StorageSystems mapped to their URI Strings.
+     * 
+     * @return a cache Map of StorageSystem URI String to StorageSystem Objects
      */
-    public Map<String, StorageSystem> getSystemMap();
+    public Map<String, StorageSystem> getStorageSystemCache();
 
     /**
-     * @return the systemCache
+     * Returns a List of URIs for StorageSystems whose capacity limits have been
+     * exceeded before or during this ingestion request.
+     * 
+     * @return a List of StorageSystem URIs
      */
-    public List<URI> getSystemCache();
+    public List<URI> getExhaustedStorageSystems();
 
     /**
-     * @return the poolCache
+     * Returns a List of URIs for StoragePools whose capacity limits have been
+     * exceeded before or during this ingestion request.
+     * 
+     * @return a List of StoragePool URIs
      */
-    public List<URI> getPoolCache();
+    public List<URI> getExhaustedPools();
 
     /**
-     * @return the unManagedVolumesToBeDeleted
+     * Returns a List of UnManagedVolumes that have been
+     * successfully processed and can be marked for deletion
+     * at the end of this whole ingestion request.
+     * 
+     * @return a List of UnManagedVolumes
      */
     public List<UnManagedVolume> getUnManagedVolumesToBeDeleted();
 
     /**
-     * @return the createdObjectMap
+     * Returns a Map of BlockObjects created by ingestion
+     * as mapped by their native GUID for the key.
+     * 
+     * @return a Map of native GUID Strings to BlockObjects
      */
-    public Map<String, BlockObject> getCreatedObjectMap();
+    public Map<String, BlockObject> getObjectsToBeCreatedMap();
 
     /**
-     * @return the updatedObjectMap
+     * Returns a Map of a List of DataObjects updated by ingestion
+     * as mapped to the native GUID of the UnManagedVolume Object
+     * for which they were updated.
+     * 
+     * @return a Map of UnManagedVolume native GUID Strings to a 
+     *          List of associated updated DataObjects 
      */
-    public Map<String, List<DataObject>> getUpdatedObjectMap();
+    public Map<String, List<DataObject>> getObjectsToBeUpdatedMap();
 
     /**
-     * @return the taskStatusMap
+     * Returns a Map of UnManagedVolume native GUID Strings to 
+     * StringBuffer for its task status to be returned in the
+     * response to this ingestion request.
+     * 
+     * @return a Map of UnManagedVolume native GUID Strings to
+     *          task status StringBuffers
      */
     public Map<String, StringBuffer> getTaskStatusMap();
 
     /**
-     * @return the processedUnManagedVolumeMap
+     * Returns a Map of UnManagedVolume native GUID Strings to 
+     * its associated VolumeIngestionContext. 
+     * 
+     * @return a Map of UnManagedVolume native GUID Strings to
+     *          VolumeIngestionContext objects
      */
     public Map<String, VolumeIngestionContext> getProcessedUnManagedVolumeMap();
 
@@ -146,6 +196,15 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public UnManagedVolume getProcessedUnManagedVolume(String nativeGuid);
 
     /**
+     * Returns the BlockObject that has been processed for the given nativeGuid,
+     * or null if none was found.
+     * 
+     * @param nativeGuid the BlockObject to check
+     * @return a BlockObject
+     */
+    public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid);
+
+    /**
      * Returns the VolumeIngestionContext for the given nativeGuid,
      * or null if none was found in the processed UnManagedVolume Map.
      * 
@@ -155,65 +214,86 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public VolumeIngestionContext getProcessedVolumeContext(String nativeGuid);
 
     /**
-     * @return the ingestedObjects
+     * Returns a List of BlockObjects that were completely ingested at
+     * the end of Export Mask ingestion.
+     * 
+     * @return a List of BlockObjects ingested after export processing
      */
-    public List<BlockObject> getIngestedObjects();
+    public List<BlockObject> getObjectsIngestedByExportProcessing();
 
     /**
-     * @return the exportGroupCreated
+     * Returns true if the ExportGroup in this IngestionRequestContext
+     * was created by it, rather than being fetched from the database
+     * as an already existing ExportGroup.
+     * 
+     * @return true if the ExportGroup was created during this ingestion request
      */
     public boolean isExportGroupCreated();
 
     /**
-     * @param exportGroupCreated the exportGroupCreated to set
+     * Sets the status of ExportGroupCreated, which represents whether 
+     * the ExportGroup in this IngestionRequestContext
+     * was created by it, rather than being fetched from the database
+     * as an already existing ExportGroup.
+     * 
+     * @param exportGroupCreated boolean representing the ExportGroup creation status
      */
     public void setExportGroupCreated(boolean exportGroupCreated);
 
     /**
-     * @return the exportGroup
+     * Returns the ExportGroup for this ingestion request.
+     * 
+     * @return the ExportGroup for this ingestion request
      */
     public ExportGroup getExportGroup();
 
     /**
-     * @param exportGroup the exportGroup to set
+     * Sets the ExportGroup for this ingestion request.
+     * 
+     * @param exportGroup the ExportGroup to set for this ingestion request
      */
     public void setExportGroup(ExportGroup exportGroup);
 
     /**
-     * @return the host
+     * Returns the Host URI for this ingestion request.
+     * 
+     * @return the Host URI for this ingestion request
      */
     public URI getHost();
 
     /**
-     * @param host the host to set
+     * Sets the Host URI for this ingestion request
+     * 
+     * @param host the Host URI for this ingestion request
      */
     public void setHost(URI host);
 
     /**
-     * @return the cluster
+     * Returns the Cluster URI for this ingestion request.
+     * 
+     * @return the Cluster URI for this ingestion request
      */
     public URI getCluster();
 
     /**
-     * @param cluster the cluster to set
+     * Sets the Cluster URI for this ingestion request
+     * 
+     * @param cluster the Cluster URI for this ingestion request
      */
     public void setCluster(URI cluster);
 
     /**
-     * @return the deviceInitiators
+     * Returns a List of Initiator Objects for this ingestion request.
+     * 
+     * @return the List of Initiator objects for this ingestion request
      */
     public List<Initiator> getDeviceInitiators();
 
     /**
-     * @param deviceInitiators the deviceInitiators to set
+     * Sets the List of Initiator Objects for this ingestion request
+     * 
+     * @param deviceInitiators the List of Initiator objects for this ingestion request 
      */
     public void setDeviceInitiators(List<Initiator> deviceInitiators);
-
-    /**
-     * 
-     * @param unmanagedVolumeGuid
-     * @return
-     */
-    public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid);
 
 }

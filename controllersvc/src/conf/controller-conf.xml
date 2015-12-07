@@ -548,6 +548,7 @@
 
     <bean id="auditLogManager" class="com.emc.storageos.security.audit.AuditLogManager">
       <property name="dbClient" ref="dbclient"/>
+      <property name="coordinator" ref="coordinator" />
     </bean>
 
     <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
@@ -1247,6 +1248,7 @@
         <property name="configInfo" ref="configinfo" />
         <property name="dataObjectScanner" ref="dataObjectScanner"/>
         <property name="controlRequestTaskConsumer" ref="controlRequestTaskConsumer"/>
+        <property name="drUtil" ref="drUtil" />
     </bean>
 
 	<bean id="monitoringJobConsumer"
@@ -1381,5 +1383,9 @@
     </bean>
     <bean id="controlRequestTaskConsumer" class="com.emc.storageos.volumecontroller.impl.ControlRequestTaskConsumer">
         <property name="dispatcher" ref="dispatcher"/>
+    </bean>
+    
+    <bean id="drUtil" class="com.emc.storageos.coordinator.client.service.DrUtil">
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 </beans>

@@ -47,7 +47,7 @@ public class IPsecManager {
 
         String vdcConfigVersion = loadVdcConfigVersionFromZK();
 
-        String[] disconnectedNodes = checkIPsecStatus();
+        List<String> disconnectedNodes = checkIPsecStatus();
 
         IPsecStatus status = new IPsecStatus();
         status.setIsGood(disconnectedNodes == null);

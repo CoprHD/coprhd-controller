@@ -13,7 +13,7 @@ import java.util.List;
 public class IPsecStatus {
 
     private boolean isGood;
-    private String[] disconnectedNodes;
+    private List<String> disconnectedNodes;
 
     @XmlElement(name = "version")
     public String getVersion() {
@@ -37,11 +37,11 @@ public class IPsecStatus {
 
     @XmlElementWrapper(name = "disconnected_nodes")
     @XmlElement(name = "ip")
-    public String[] getDisconnectedNodes() {
+    public List<String> getDisconnectedNodes() {
         return disconnectedNodes;
     }
 
-    public void setDisconnectedNodes(String[] nodes) {
+    public void setDisconnectedNodes(List<String> nodes) {
         this.disconnectedNodes = nodes;
     }
 }

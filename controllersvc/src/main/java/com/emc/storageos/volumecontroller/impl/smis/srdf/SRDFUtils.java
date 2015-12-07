@@ -262,6 +262,15 @@ public class SRDFUtils implements SmisConstants {
         return dbClient.queryObject(Volume.class, volumeURIs);
     }
 
+    public Predicate<? super Volume> volumePersonalityPredicate(final PersonalityTypes personality) {
+        return new Predicate<Volume>() {
+            @Override
+            public boolean apply(Volume input) {
+                return personality.toString().equalsIgnoreCase(input.getPersonality());
+            }
+        };
+    }
+
     /**
      * return the targetSystem of the targetvolume.
      * 

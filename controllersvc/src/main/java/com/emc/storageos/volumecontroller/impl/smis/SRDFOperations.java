@@ -1540,8 +1540,8 @@ public class SRDFOperations implements SmisConstants {
         try {
             List<Volume> volumes = utils.getAssociatedVolumes(system, target);
 
-            Collection<Volume> srcVolumes = newArrayList(filter(volumes, volumePersonalityPredicate(SOURCE)));
-            Collection<Volume> tgtVolumes = newArrayList(filter(volumes, volumePersonalityPredicate(TARGET)));
+            Collection<Volume> srcVolumes = newArrayList(filter(volumes, utils.volumePersonalityPredicate(SOURCE)));
+            Collection<Volume> tgtVolumes = newArrayList(filter(volumes, utils.volumePersonalityPredicate(TARGET)));
 
             ctxFactory.build(SRDFOperation.SUSPEND, target).perform();
             if (target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString())) {
@@ -1550,7 +1550,7 @@ public class SRDFOperations implements SmisConstants {
                 log.info("Source: {}", source.getNativeId());
                 log.info("Target: {}", target.getNativeId());
 
-                // Remove the source and target form the list that will be stopped.
+                // Remove the source and target from the list that will be stopped.
                 // If tgtVolumes is not empty then after stop(deletepair) resume(establish) will be done
                 // on rest of the volumes in the SRDF group.
                 Iterator<Volume> srcIter = srcVolumes.iterator();
@@ -2039,15 +2039,6 @@ public class SRDFOperations implements SmisConstants {
         factory.setUtils(utils);
 
         return factory;
-    }
-
-    private Predicate<? super Volume> volumePersonalityPredicate(final PersonalityTypes personality) {
-        return new Predicate<Volume>() {
-            @Override
-            public boolean apply(Volume input) {
-                return personality.toString().equalsIgnoreCase(input.getPersonality());
-            }
-        };
     }
 
     private void invokeFailOverStrategy(StorageSystem sourceSystem, Volume target) throws Exception {

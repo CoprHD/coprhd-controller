@@ -5,13 +5,17 @@
 package com.emc.storageos.srdfcontroller;
 
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.model.Volume.PersonalityTypes.TARGET;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
+import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -96,6 +100,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String SUSPEND_SRDF_MIRRORS_STEP_DESC = "Suspend SRDF Link";
     public static final String SPLIT_SRDF_MIRRORS_STEP_DESC = "Split SRDF Link ";
     private static final String DETACH_SRDF_MIRRORS_STEP_DESC = "Detach SRDF Link";
+    private static final String RESUME_SRDF_MIRRORS_STEP_DESC = "Resume SRDF Link";
     private static final String UPDATE_SRDF_PAIRING_STEP_GROUP = "UPDATE_SRDF_PAIRING_STEP_GROUP";
     private static final String UPDATE_SRDF_PAIRING = "updateSRDFPairingStep";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
@@ -862,8 +867,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
                 if (!source.hasConsistencyGroup()) {
                     // No CG, so suspend single link (cons_exempt used in case of Asynchronous)
+                	boolean consExempt = true;
+                	boolean activeMode = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
+                	if (activeMode){
+                		consExempt = false;
+                	}
                     Workflow.Method suspendMethod = suspendSRDFLinkMethod(system.getId(),
-                            source.getId(), targetURI, true);
+                            source.getId(), targetURI, consExempt);
                     String suspendStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                             SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
                             system.getSystemType(), getClass(), suspendMethod, null, null);
@@ -873,6 +883,29 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             DETACH_SRDF_MIRRORS_STEP_DESC, suspendStep, system.getId(),
                             system.getSystemType(), getClass(), detachMethod, null, null);
                     waitFor = detachStep;
+                    if(activeMode){
+                        List<Volume> volumes = utils.getAssociatedVolumes(system, target);
+                        Collection<Volume> tgtVolumes = newArrayList(filter(volumes, utils.volumePersonalityPredicate(TARGET)));
+                        // Remove the target from the list that will be detached.
+                        // If tgtVolumes is not empty then after detach(deletepair) add a step to resume(establish) will be done
+                        // on rest of the volumes in the SRDF group.
+                        Iterator<Volume> tgtIter = tgtVolumes.iterator();
+                        while (tgtIter.hasNext()) {
+                            if (tgtIter.next().getId().equals(target.getId())) {
+                                tgtIter.remove();
+                                break;
+                            }
+                        }
+
+                        if (!tgtVolumes.isEmpty() && tgtVolumes.iterator().hasNext()) {
+                            Workflow.Method resumeSyncPairMethod = resumeSyncPairMethod(system.getId(),
+                                    source.getId(), target.getId());
+                            String resumeStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                                    RESUME_SRDF_MIRRORS_STEP_DESC, detachStep, system.getId(),
+                                    system.getSystemType(), getClass(), resumeSyncPairMethod, null, null);
+                            waitFor = resumeStep;
+                        }
+                    }
 
                 } else {
                     // Defensive steps to prevent orphaned SRDF Volumes, which cannot be deleted.

@@ -28,7 +28,10 @@ public abstract class QueryResultList<T extends DataObject> implements List<T> {
         this.dbClient = dbClient;
         this.clazz = clazz;
         this.activeOnly = activeOnly;
-        this.ids = new ArrayList<URI>(ids);
+        this.ids = new ArrayList<URI>();
+        for (URI id : ids) {
+            this.ids.add(id);
+        }
     }
     
     @Override

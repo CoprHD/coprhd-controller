@@ -74,11 +74,21 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         this._vplexIngestionMethod = vplexIngestionMethod;
     }
 
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.util.Iterator#hasNext()
+     */
     @Override
     public boolean hasNext() {
         return _unManagedVolumeUrisToProcessIterator.hasNext();
     }
 
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.util.Iterator#next()
+     */
     @Override
     public UnManagedVolume next() {
         _currentUnManagedVolumeUri = _unManagedVolumeUrisToProcessIterator.next();
@@ -89,6 +99,11 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         return currentVolume;
     }
 
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.util.Iterator#remove()
+     */
     @Override
     public void remove() {
         _unManagedVolumeUrisToProcessIterator.remove();

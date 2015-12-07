@@ -41,6 +41,7 @@ import com.emc.vipr.client.core.ObjectVirtualPools;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
+import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StoragePools;
 import com.emc.vipr.client.core.StoragePorts;
 import com.emc.vipr.client.core.StorageProviders;

@@ -677,10 +677,6 @@
         <property name="localUsers" ref="localUserMap"/>
     </bean>
 
-    <bean id="permissionsFilterFactory" class="com.emc.storageos.api.service.authorization.PermissionsFilterFactory">
-        <property name="permissionsHelper" ref="permissionsHelper"/>
-    </bean>
-
     <bean id="responseFilter" class="com.emc.storageos.api.errorhandling.filters.TaskResponseFilter"/>
 
     <bean id="geohelper" class="com.emc.storageos.security.geo.GeoServiceHelper" init-method="startJobQueue" destroy-method="stopJobQueue">

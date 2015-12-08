@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
@@ -25,16 +26,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.NasCifsServer;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualNAS;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,6 +95,12 @@ public class ProjectService extends TaggedResource {
     // Constants for Events
     private static final String EVENT_SERVICE_TYPE = "project";
     private static final String EVENT_SERVICE_SOURCE = "ProjectService";
+    
+    private CustomConfigHandler customConfigHandler;
+    
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        this.customConfigHandler = customConfigHandler;
+    }
 
     @Override
     public String getServiceType() {
@@ -905,6 +906,11 @@ public class ProjectService extends TaggedResource {
         Set<String> vNasIds = param.getVnasServers();
         StringSet validNas = new StringSet();
         
+        boolean shareVNASWithMultipleProjects = Boolean.valueOf(customConfigHandler.getComputedCustomConfigValue(
+                CustomConfigConstants.SHARE_VNAS_WITH_MULTIPLE_PROJECTS, "global", null));
+        
+        _log.info("Can vNAS be shared with multiple projects? : {}", shareVNASWithMultipleProjects);
+        
         if (vNasIds != null && !vNasIds.isEmpty() && project != null) {
 
             // Get list of domains associated with the project
@@ -927,7 +933,7 @@ public class ProjectService extends TaggedResource {
                 ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
                 
                 // Validate the VNAS is assigned to project!!!
-                if (!vnas.isNotAssignedToProject()) {
+                if (!shareVNASWithMultipleProjects && !vnas.isNotAssignedToProject()) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is associated to project " + project.getLabel());
                     _log.error(errorMsg.toString());
                     continue;
@@ -968,49 +974,53 @@ public class ProjectService extends TaggedResource {
                     _log.error(errorMsg.toString());
                     continue;
                 }
-
-                // Get list of file systems and associated project of VNAS server and validate with Project
-                URIQueryResultList fsList = new URIQueryResultList();
-                boolean projectMatched = true;
-                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vnas.getStorageDeviceURI());
-                for (String storagePort : vnas.getStoragePorts()) {
-                    _dbClient.queryByConstraint(
-                            ContainmentConstraint.Factory.getStoragePortFileshareConstraint(URI.create(storagePort)), fsList);
-                    Iterator<URI> fsItr = fsList.iterator();
-                    while (fsItr.hasNext()) {
-                        FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
-                        if (fileShare != null && !fileShare.getInactive()) {
-                            //if fs contain vNAS uri, then compare uri of vNAS assgined to project
-                            if (fileShare.getVirtualNAS() != null && 0 == fileShare.getVirtualNAS().compareTo(vnas.getId())) {                                
-                                _log.debug("Validation of assigned vNAS URI: {} and file system path : {} ",
-                                                                                fileShare.getVirtualNAS(), fileShare.getPath());
-                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
-                                    projectMatched = false;
-				                    break;
-                                }
-                            } else { //for isilon, if fs don't have vNAS uri, compare fspath with base path of AZ
-                                if (storageSystem.getSystemType().equals(StorageSystem.Type.isilon.name())) {
-                                    if (fileShare.getPath().startsWith(vnas.getBaseDirPath() + "/") == false) {
-                                        continue;
-                                    }
-                                }
-                                _log.debug("Validation of assigned vNAS base path {} and file path : {} ",
-                                                                    vnas.getBaseDirPath(), fileShare.getPath());
-                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
-                                    projectMatched = false;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    if (!projectMatched) {
-                        break;
-                    }
-                }
-                if (!projectMatched) {
-                    errorMsg.append(" vNas " + vnas.getNasName() + " has file systems belongs to other project");
-                    _log.error(errorMsg.toString());
-                    continue;
+                
+                if (!shareVNASWithMultipleProjects) {
+	                /* Get list of file systems and associated project of VNAS server and validate with Project
+	                 * If the FS is on a vNAS associated with a project, then validation fails
+                	*/
+	                URIQueryResultList fsList = new URIQueryResultList();
+	                boolean projectMatched = true;
+	                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vnas.getStorageDeviceURI());
+	                for (String storagePort : vnas.getStoragePorts()) {
+	                    _dbClient.queryByConstraint(
+	                            ContainmentConstraint.Factory.getStoragePortFileshareConstraint(URI.create(storagePort)), fsList);
+	                    Iterator<URI> fsItr = fsList.iterator();
+	                    while (fsItr.hasNext()) {
+	                        FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
+	                        if (fileShare != null && !fileShare.getInactive()) {
+	                            //if fs contain vNAS uri, then compare uri of vNAS assgined to project
+	                            if (fileShare.getVirtualNAS() != null && 0 == fileShare.getVirtualNAS().compareTo(vnas.getId())) {                                
+	                                _log.debug("Validation of assigned vNAS URI: {} and file system path : {} ",
+	                                                                                fileShare.getVirtualNAS(), fileShare.getPath());
+	                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
+	                                    projectMatched = false;
+					                    break;
+	                                }
+	                            } else { //for isilon, if fs don't have vNAS uri, compare fspath with base path of AZ
+	                                if (storageSystem.getSystemType().equals(StorageSystem.Type.isilon.name())) {
+	                                    if (fileShare.getPath().startsWith(vnas.getBaseDirPath() + "/") == false) {
+	                                        continue;
+	                                    }
+	                                }
+	                                _log.debug("Validation of assigned vNAS base path {} and file path : {} ",
+	                                                                    vnas.getBaseDirPath(), fileShare.getPath());
+	                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
+	                                    projectMatched = false;
+	                                    break;
+	                                }
+	                            }
+	                        }
+	                    }
+	                    if (!projectMatched) {
+	                        break;
+	                    }
+	                }
+	                if (!projectMatched) {
+	                    errorMsg.append(" vNas " + vnas.getNasName() + " has file systems belongs to other project");
+	                    _log.error(errorMsg.toString());
+	                    continue;
+	                }
                 }
 
                 validNas.add(id);

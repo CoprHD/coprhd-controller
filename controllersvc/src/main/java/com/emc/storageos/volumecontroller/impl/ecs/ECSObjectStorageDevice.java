@@ -284,6 +284,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         List<ECSBucketACL.UserAcl> user_acl = Lists.newArrayList();
         List<ECSBucketACL.GroupAcl> group_acl = Lists.newArrayList();
         List<ECSBucketACL.CustomGroupAcl> customgroup_acl = Lists.newArrayList();
+        String PERMISSION_DELEMITER = ",";
 
         for (BucketACE aceToAdd : aclToAdd) {
             ECSBucketACL.UserAcl userAcl = ecsBucketAcl.new UserAcl();
@@ -303,17 +304,23 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             switch (type) {
                 case "user":
                     userAcl.setUser(userOrGroupOrCustomgroup);
-                    userAcl.setPermission(aceToAdd.getPermissions());
+                    if (aceToAdd.getPermissions() != null) {
+                        userAcl.setPermission(aceToAdd.getPermissions().split(PERMISSION_DELEMITER));
+                    }
                     user_acl.add(userAcl);
                     break;
                 case "group":
                     groupAcl.setGroup(userOrGroupOrCustomgroup);
-                    groupAcl.setPermission(aceToAdd.getPermissions());
+                    if (aceToAdd.getPermissions() != null) {
+                        groupAcl.setPermission(aceToAdd.getPermissions().split(PERMISSION_DELEMITER));
+                    }
                     group_acl.add(groupAcl);
                     break;
                 case "customgroup":
                     customgroupAcl.setCustomgroup(userOrGroupOrCustomgroup);
-                    customgroupAcl.setPermission(aceToAdd.getPermissions());
+                    if (aceToAdd.getPermissions() != null) {
+                        customgroupAcl.setPermission(aceToAdd.getPermissions().split(PERMISSION_DELEMITER));
+                    }
                     customgroup_acl.add(customgroupAcl);
                     break;
 
@@ -339,17 +346,23 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             switch (type) {
                 case "user":
                     userAcl.setUser(userOrGroupOrCustomgroup);
-                    userAcl.setPermission(aceToModify.getPermissions());
+                    if (aceToModify.getPermissions() != null) {
+                        userAcl.setPermission(aceToModify.getPermissions().split(PERMISSION_DELEMITER));
+                    }
                     user_acl.add(userAcl);
                     break;
                 case "group":
                     groupAcl.setGroup(userOrGroupOrCustomgroup);
-                    groupAcl.setPermission(aceToModify.getPermissions());
+                    if (aceToModify.getPermissions() != null) {
+                        groupAcl.setPermission(aceToModify.getPermissions().split(PERMISSION_DELEMITER));
+                    }
                     group_acl.add(groupAcl);
                     break;
                 case "customgroup":
                     customgroupAcl.setCustomgroup(userOrGroupOrCustomgroup);
-                    customgroupAcl.setPermission(aceToModify.getPermissions());
+                    if (aceToModify.getPermissions() != null) {
+                        customgroupAcl.setPermission(aceToModify.getPermissions().split(PERMISSION_DELEMITER));
+                    }
                     customgroup_acl.add(customgroupAcl);
                     break;
 

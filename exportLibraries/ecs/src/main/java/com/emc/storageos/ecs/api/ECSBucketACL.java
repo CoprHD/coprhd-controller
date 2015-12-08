@@ -50,7 +50,7 @@ public class ECSBucketACL {
 
     public class UserAcl {
         String user;
-        String permission;
+        String[] permission;
 
         public String getUser() {
             return user;
@@ -60,16 +60,22 @@ public class ECSBucketACL {
             this.user = user;
         }
 
-        public String getPermission() {
+        public String[] getPermission() {
             return permission;
         }
 
-        public void setPermission(String permission) {
+        public void setPermission(String[] permission) {
             this.permission = permission;
         }
+
+        
     }
 
     public class GroupAcl {
+        
+        String group;
+        String[] permission;
+        
         public String getGroup() {
             return group;
         }
@@ -78,21 +84,19 @@ public class ECSBucketACL {
             this.group = group;
         }
 
-        public String getPermission() {
+        public String[] getPermission() {
             return permission;
         }
 
-        public void setPermission(String permission) {
+        public void setPermission(String[] permission) {
             this.permission = permission;
         }
 
-        String group;
-        String permission;
     }
 
     public class CustomGroupAcl {
         String customgroup;
-        String permission;
+        String[] permission;
 
         public String getCustomgroup() {
             return customgroup;
@@ -102,11 +106,11 @@ public class ECSBucketACL {
             this.customgroup = customgroup;
         }
 
-        public String getPermission() {
+        public String[] getPermission() {
             return permission;
         }
 
-        public void setPermission(String permission) {
+        public void setPermission(String[] permission) {
             this.permission = permission;
         }
 

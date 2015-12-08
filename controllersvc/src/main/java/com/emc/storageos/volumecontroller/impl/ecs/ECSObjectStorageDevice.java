@@ -359,7 +359,16 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
         ecsBucketAcl.setBucket(objectArgs.getName());
         ecsBucketAcl.setNamespace(objectArgs.getNamespace());
-        ECSBucketACL.Acl acl = ecsBucketAcl.new Acl(user_acl, group_acl, customgroup_acl, "");
+        ECSBucketACL.Acl acl = ecsBucketAcl.new Acl();
+        if (!user_acl.isEmpty()) {
+            acl.setUserAcl(user_acl);
+        }
+        if (!group_acl.isEmpty()) {
+            acl.setGroupAcl(group_acl);
+        }
+        if (!customgroup_acl.isEmpty()) {
+            acl.setCustomgroupAcl(customgroup_acl);
+        }
         ecsBucketAcl.setAcl(acl);
 
         return new Gson().toJson(ecsBucketAcl);

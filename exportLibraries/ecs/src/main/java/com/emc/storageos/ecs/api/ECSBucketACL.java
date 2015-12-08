@@ -10,22 +10,40 @@ public class ECSBucketACL {
 
     String bucket;
     String namespace;
-    String permission;
     Acl acl;
 
     public class Acl {
-        String owner;
+
         List<UserAcl> user_acl;
         List<GroupAcl> group_acl;
         List<CustomGroupAcl> customgroup_acl;
 
-        public Acl(List<UserAcl> user_acl, List<GroupAcl> group_acl,
-                List<CustomGroupAcl> customgroup_acl, String owner) {
-            super();
+        public Acl() {
+
+        }
+
+        public List<UserAcl> getUseAcl() {
+            return user_acl;
+        }
+
+        public void setUserAcl(List<UserAcl> user_acl) {
             this.user_acl = user_acl;
+        }
+
+        public List<GroupAcl> getGroupAcl() {
+            return group_acl;
+        }
+
+        public void setGroupAcl(List<GroupAcl> group_acl) {
             this.group_acl = group_acl;
+        }
+
+        public List<CustomGroupAcl> getCustomgroupAcl() {
+            return customgroup_acl;
+        }
+
+        public void setCustomgroupAcl(List<CustomGroupAcl> customgroup_acl) {
             this.customgroup_acl = customgroup_acl;
-            this.owner = owner;
         }
 
     }
@@ -108,14 +126,6 @@ public class ECSBucketACL {
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
-    }
-
-    public String getPermission() {
-        return permission;
-    }
-
-    public void setPermission(String permission) {
-        this.permission = permission;
     }
 
     public Acl getAcl() {

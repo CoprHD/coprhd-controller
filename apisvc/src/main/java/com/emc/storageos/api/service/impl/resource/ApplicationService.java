@@ -27,7 +27,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +41,9 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -58,6 +59,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
@@ -217,6 +219,7 @@ public class ApplicationService extends TaskResourceService {
         if (application.getInactive()) {
             throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(), "The application has been deleted");
         }
+        checkForApplicationPendingTasks(application);
         boolean isChanged = false;
         String apname = param.getName();
         if (apname != null && !apname.isEmpty()) {
@@ -272,10 +275,11 @@ public class ApplicationService extends TaskResourceService {
         addTasksForVolumesAndCGs(addVols, removeVols, removeVolumeCGs, taskId, taskList);
         try {
             serviceAPI.updateVolumesInApplication(param.getAddVolumesList(), removeVols, id, taskId);
-        } catch (InternalException e) {
-            op = application.getOpStatus().get(taskId);
+        }  catch (InternalException | APIException e) {
+            Application app = (Application) queryResource(id);
+            op = app.getOpStatus().get(taskId);
             op.error(e);
-            application.getOpStatus().updateTaskStatus(taskId, op);
+            app.getOpStatus().updateTaskStatus(taskId, op);
             if (param.hasVolumesToAdd()) {
                 List<URI> addURIs = param.getAddVolumesList().getVolumes();
                 updateFailedVolumeTasks(addURIs, taskId, e);
@@ -285,7 +289,6 @@ public class ApplicationService extends TaskResourceService {
                 updateFailedVolumeTasks(removeURIs, taskId, e);
                 updateFailedCGTasks(removeVolumeCGs, taskId, e);
             }
-            throw e;
         }
         auditOp(OperationTypeEnum.UPDATE_APPLICATION, true, null, application.getId().toString(),
                 application.getLabel());
@@ -484,7 +487,7 @@ public class ApplicationService extends TaskResourceService {
         }
     }
 
-    private void updateFailedVolumeTasks(List<URI> uriList, String taskId, InternalException e) {
+    private void updateFailedVolumeTasks(List<URI> uriList, String taskId, ServiceCoded e) {
         for (URI uri : uriList) {
             Volume vol = _dbClient.queryObject(Volume.class, uri);
             Operation op = vol.getOpStatus().get(taskId);
@@ -495,13 +498,27 @@ public class ApplicationService extends TaskResourceService {
         }
     }
 
-    private void updateFailedCGTasks(Set<URI> uriList, String taskId, InternalException e) {
+    private void updateFailedCGTasks(Set<URI> uriList, String taskId, ServiceCoded e) {
         for (URI uri : uriList) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, uri);
             Operation op = cg.getOpStatus().get(taskId);
             if (op != null) {
                 op.error(e);
                 cg.getOpStatus().updateTaskStatus(taskId, op);
+            }
+        }
+    }
+    
+    
+    /**
+     * Check if the application has any pending task        
+     * @param application
+     */
+    private void checkForApplicationPendingTasks(Application application) {
+        List<Task> newTasks = TaskUtils.findResourceTasks(_dbClient, application.getId());
+        for (Task task : newTasks) {
+            if (task.isPending()) {
+                throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(application.getLabel());
             }
         }
     }

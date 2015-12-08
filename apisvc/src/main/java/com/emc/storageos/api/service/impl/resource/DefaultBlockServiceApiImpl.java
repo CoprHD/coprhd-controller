@@ -408,8 +408,29 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                     firstVolLabel = volume.getLabel();
                 }
             } else {
-                volumesNotInCG.getVolumes().add(voluri);
-                volumesNotInCG.setConsistencyGroup(volumeList.getConsistencyGroup());
+                URI addingCgURI = volumeList.getConsistencyGroup();
+                if(NullColumnValueGetter.isNullURI(cgUri)) {
+                    throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(), 
+                            "Consistency group needs specified when adding volumes not in a consistency group");
+                }
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, addingCgURI);
+                if (cg == null || cg.getInactive()) {
+                    throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(), 
+                            String.format("The specified consistency group %s is not valid", addingCgURI.toString()));
+                }
+                // Check if all volumes not in CG are in the same storage system
+                List<URI> checkedVolumes = volumesNotInCG.getVolumes();
+                if (!checkedVolumes.isEmpty()) {
+                    Volume firstVol = _dbClient.queryObject(Volume.class, checkedVolumes.get(0));
+                    if (!volume.getStorageController().toString().equals(firstVol.getStorageController().toString())) {
+                        throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(),
+                                "The volumes in the add volume list are not from the same storage system");
+                    }
+                }
+                checkedVolumes.add(voluri);
+                if (volumesNotInCG.getConsistencyGroup()== null) {
+                    volumesNotInCG.setConsistencyGroup(addingCgURI);
+                }
             }
             
         }
@@ -433,9 +454,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             volume.getOpStatus().updateTaskStatus(taskId, op);
             _dbClient.updateObject(volume);
         }
-        
-        // TODO handle the volumes that not in CG yet
-        _log.info("Added volumes to the application" );
+        _log.info("Added volumes in CG to the application" );
         return volumesNotInCG;
     }
     

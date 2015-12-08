@@ -24,6 +24,7 @@
         <property name="maxConnections" value="300"/>
         <property name="maxConnectionsPerHost" value="100"/>
         <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="connManagerTimeout" value="60000" />
         <property name="needCertificateManager" value="true"/>
     </bean>
 </beans>

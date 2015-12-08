@@ -4,7 +4,11 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
-		factory-method="getInstance" />
+		factory-method="getInstance">
+		<property name="connectionTimeoutMs" value="30000"/>
+		<property name="connManagerTimeout" value="60000"/>
+        <property name="socketConnectionTimeoutMs" value="7200000" />
+    </bean>
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager"/>
 

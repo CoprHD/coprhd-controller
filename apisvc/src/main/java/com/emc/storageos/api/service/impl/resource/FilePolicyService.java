@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.file.FilePolicyBulkRep;
+import com.emc.storageos.model.file.FilePolicyExpireParam;
 import com.emc.storageos.model.file.FilePolicyParam;
 import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FilePolicyScheduleParam;
@@ -243,7 +244,7 @@ public class FilePolicyService extends TaggedResource {
      * @param expireParam - file policy expire parameters
      * @return valid policy expire duration
      */
-    private Long validatePolicyExpire(FilePolicyScheduleParam expireParam) {
+    private Long validatePolicyExpire(FilePolicyExpireParam expireParam) {
 
         if (expireParam != null) {
             long seconds = 0;
@@ -304,6 +305,7 @@ public class FilePolicyService extends TaggedResource {
             if (policyExpire == 0) {
                 // throw APIException.badRequests.vNasServersNotAssociatedToProject();
             }
+            filePolicy.setLabel(param.getPolicyName());
             filePolicy.setPolicyName(param.getPolicyName());
             filePolicy.setPolicySchedule(schedule);
             filePolicy.setPolicyExpire(policyExpire);

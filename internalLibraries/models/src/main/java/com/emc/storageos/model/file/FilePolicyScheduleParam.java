@@ -14,7 +14,6 @@ import javax.xml.bind.annotation.XmlRootElement;
  * @author prasaa9
  * 
  */
-
 @XmlRootElement
 public class FilePolicyScheduleParam {
 
@@ -32,12 +31,6 @@ public class FilePolicyScheduleParam {
 
     // Day when policy run
     private String scheduleDay;
-
-    // File Policy expire type - hours, days, weeks, months, years
-    private String expireType;
-
-    // Policy expire after
-    private int expireValue;
 
     @XmlElement(required = true, name = "scheduleType")
     public String getScheduleType() {
@@ -82,24 +75,6 @@ public class FilePolicyScheduleParam {
 
     public void setScheduleDay(String scheduleDay) {
         this.scheduleDay = scheduleDay;
-    }
-
-    @XmlElement(name = "expireType")
-    public String getExpireType() {
-        return expireType;
-    }
-
-    public void setExpireType(String expireType) {
-        this.expireType = expireType;
-    }
-
-    @XmlElement(name = "expireValue")
-    public int getExpireValue() {
-        return expireValue;
-    }
-
-    public void setExpireValue(int expireValue) {
-        this.expireValue = expireValue;
     }
 
 }

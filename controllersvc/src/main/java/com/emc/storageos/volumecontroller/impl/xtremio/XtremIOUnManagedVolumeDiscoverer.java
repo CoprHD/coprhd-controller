@@ -109,7 +109,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         for (List<Object> snapDetail : snapDetails) {
             // This can't be null
         	snapNameToProcess = snapDetail.get(1);
-            if ((null == snapNameToProcess || snapNameToProcess.toString().length() == 0) || null == snapDetail.get(1) || null == snapDetail.get(2)) {
+            if ((null == snapNameToProcess || snapNameToProcess.toString().length() == 0)  || null == snapDetail.get(2)) {
                 log.warn("Skipping snapshot as it is null for volume {}", parentGUID);
                 continue;
             }

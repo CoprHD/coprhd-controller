@@ -14,6 +14,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 public class CifsShareCreateForSnapParam extends ParamBase {
     private String path;
     private VNXeBase filesystemSnap;
+    private VNXeBase snap;
     private String description;
     private Boolean isReadOnly;
     private Boolean isContinuousAvailabilityEnabled;
@@ -33,6 +34,14 @@ public class CifsShareCreateForSnapParam extends ParamBase {
 
     public void setFilesystemSnap(VNXeBase filesystemSnap) {
         this.filesystemSnap = filesystemSnap;
+    }
+
+    public VNXeBase getSnap() {
+        return snap;
+    }
+
+    public void setSnap(VNXeBase snap) {
+        this.snap = snap;
     }
 
     public String getDescription() {

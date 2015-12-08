@@ -5,6 +5,21 @@
 
 package com.emc.storageos.coordinator.client.service;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import org.apache.curator.framework.recipes.leader.LeaderLatch;
+import org.apache.curator.framework.recipes.leader.LeaderSelector;
+import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
+import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreMutex;
+import org.apache.curator.framework.recipes.queue.QueueConsumer;
+import org.apache.curator.framework.recipes.queue.QueueSerializer;
+
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
@@ -16,20 +31,6 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.ClusterInfo;
-import org.apache.curator.framework.recipes.leader.LeaderLatch;
-import org.apache.curator.framework.recipes.leader.LeaderSelector;
-import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
-import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreMutex;
-import org.apache.curator.framework.recipes.queue.QueueConsumer;
-import org.apache.curator.framework.recipes.queue.QueueSerializer;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * The main client API for service information lookup, distributed lock/queue, controller
@@ -101,6 +102,19 @@ public interface CoordinatorClient {
     public List<Service> locateAllServices(String name, String version, String tag, String endpointKey)
             throws CoordinatorException;
 
+    /**
+     * Look up all services with site uuid, given name, version, tag, and endpointKey
+     * 
+     * @param uuid site uuid
+     * @param name service name
+     * @param version service version
+     * @param tag service tag. if null, does not filter on tag
+     * @param endpointKey endpoint key. if null, does not filter on endpoint key
+     * @return matching services
+     */
+    public List<Service> locateAllServices(String uuid, String name, String version, String tag, String endpointKey)
+            throws CoordinatorException;
+    
     /**
      * Look up all services of all versions with given name
      * 
@@ -181,15 +195,24 @@ public interface CoordinatorClient {
 
     /**
      * Retrieves/creates a distributed mutex
-     * 
+     *
      * @param name mutex name
      * @return mutex
      */
     public InterProcessLock getLock(String name) throws CoordinatorException;
 
     /**
+     * Retrieves/creates a distributed mutex for local site
+     *
+     * @param name
+     * @return
+     * @throws CoordinatorException
+     */
+    public InterProcessLock getSiteLocalLock(String name) throws CoordinatorException;
+
+    /**
      * Retrieves/creates a distributed read write lock
-     * 
+     *
      * @param name read write lock name
      * @return read write lock
      */
@@ -234,23 +257,39 @@ public interface CoordinatorClient {
     public boolean isConnected();
 
     /**
-     * Permanently persists configuration information. Note that most (if not all) services do not
+     * Permanently persists configuration information in global area. Note that most (if not all) services do not
      * need to persist their configuration information. This is used for services (such as dbsvc) that need
      * to adjust cluster configuration using existing configuration of other nodes.
      * 
      * @param config
      */
     public void persistServiceConfiguration(Configuration... config) throws CoordinatorException;
+    
+    /**
+     * Persist service configuration to site specific area
+     * 
+     * @param siteId
+     * @param config
+     * @throws CoordinatorException
+     */
+    public void persistServiceConfiguration(String siteId, Configuration... config) throws CoordinatorException;
 
     /**
-     * Removes configured service information. See above notes about when this feature may be used.
+     * Removes configured service information in global area. See above notes about when this feature may be used.
      * 
      * @param config
      */
     public void removeServiceConfiguration(Configuration... config) throws CoordinatorException;
+    
+    /**
+     * Removes configured service information from site specific area.
+     * 
+     * @param config
+     */
+    public void removeServiceConfiguration(String siteId, Configuration... config) throws CoordinatorException;
 
     /**
-     * Queries all configuration with given kind
+     * Queries all configuration with given kind in zk global config area(/config)
      * 
      * @param kind
      * @return
@@ -258,7 +297,15 @@ public interface CoordinatorClient {
     public List<Configuration> queryAllConfiguration(String kind) throws CoordinatorException;
 
     /**
-     * Queries configuration with given kind and id
+     * Queries all configuration with given kind in site specific area(/config/<site id>/)
+     * 
+     * @param kind
+     * @return
+     */
+    public List<Configuration> queryAllConfiguration(String siteId, String kind) throws CoordinatorException;
+    
+    /**
+     * Queries configuration with given kind and id in zk global config area(/config)
      * 
      * @param kind
      * @param id
@@ -267,6 +314,17 @@ public interface CoordinatorClient {
      */
     public Configuration queryConfiguration(String kind, String id) throws CoordinatorException;
 
+    /**
+     * Query configuration for a site in site specific area(/config/<site id>/)
+     * 
+     * @param siteId
+     * @param kind
+     * @param id
+     * @return
+     * @throws CoordinatorException
+     */
+    public Configuration queryConfiguration(String siteId, String kind, String id) throws CoordinatorException;
+    
     /**
      * Registers a connection listener
      * 
@@ -359,13 +417,41 @@ public interface CoordinatorClient {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception;
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws CoordinatorException;
 
+    /**
+     * Set Target info
+     * 
+     * @param info
+     * @param id
+     * @param kind
+     * @throws CoordinatorException
+     */
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException;
+    
+    /**
+     * Set target info for specific site
+     * 
+     * @param siteId
+     * @param info
+     * @throws CoordinatorException
+     */
+    public void setTargetInfo(String siteId, final CoordinatorSerializable info) throws CoordinatorException;
+    
     /**
      * Get control nodes' state
      */
     public ClusterInfo.ClusterState getControlNodesState();
 
+    /**
+     * Get control nodes state for specified site
+     * 
+     * @param siteId
+     * @param nodeCount
+     * @return
+     */
+    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount);
+    
     /**
      * Get target info
      * 
@@ -374,7 +460,9 @@ public interface CoordinatorClient {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception;
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException;
+    
+    public <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz) throws CoordinatorException;
 
     /**
      * Get all Node Infos.
@@ -503,6 +591,33 @@ public interface CoordinatorClient {
      * @param listener
      */
     public void removeNodeListener(NodeListener listener);
+    
+    /**
+     * Get a unique id for current site, which is used to access site specific area in ZK
+     * @return site uuid
+     */
+    public String getSiteId();
+    
+    /**
+     * Add a site ZNode in ZK
+     * This should only be used by the add standby site API
+     */
+    public void addSite(String siteId) throws Exception;
+
+    /**
+     * Update the active site pointer in ZK
+     * This should only be used by the sync site API
+     */
+    public void setActiveSite(String siteId) throws Exception;
+    
+    /**
+     * Create a Curator recipe - double barrier 
+     * 
+     * @param barrierPath Znode path for this barrier
+     * @param memberQty - number of members that plan to wait on the barrier
+     * @return
+     */
+    public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty);
 
     /**
      * Checks for the existence of a lock (znode) at the given path.  The lock is available
@@ -528,4 +643,11 @@ public interface CoordinatorClient {
      * @return An instance to help with owner lock management.
      */
     DistributedAroundHook getDistributedOwnerLockAroundHook();
+    
+    /**
+     * Delete a ZK path recursively
+     * 
+     * @param path full path on zk tree
+     */
+    void deletePath(String path);
 }

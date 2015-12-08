@@ -36,7 +36,6 @@ public class ExtendVmfsDatastoreService extends VMwareHostService {
         volume = BlockStorageUtils.getVolume(volumeId);
         acquireHostLock();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
-        vmware.refreshStorage(host, cluster);
         vmware.verifySupportedMultipathPolicy(host, multipathPolicy);
         vmware.disconnect();
     }

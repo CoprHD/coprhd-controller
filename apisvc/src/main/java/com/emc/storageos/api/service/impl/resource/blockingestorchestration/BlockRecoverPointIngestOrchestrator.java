@@ -1114,13 +1114,15 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         if (personality.equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString())) {
             String rpSync = umpset.getCGCharacteristics()
                     .get(SupportedCGCharacteristics.IS_SYNC.toString());
-            if (Boolean.valueOf(rpSync.toUpperCase()) && vpool.getRpCopyMode().equalsIgnoreCase(VirtualPool.RPCopyMode.ASYNCHRONOUS.toString())) {
+            // rpCopyMode is allowed to be blank, and blank defaults to ASYNC on the RP appliance.
+            String rpCopyMode = (vpool.getRpCopyMode() != null) ? vpool.getRpCopyMode() : VirtualPool.RPCopyMode.ASYNCHRONOUS.toString();
+            if (Boolean.valueOf(rpSync.toUpperCase()) && rpCopyMode.equalsIgnoreCase(VirtualPool.RPCopyMode.ASYNCHRONOUS.toString())) {
                 _logger.error("The RecoverPoint consistency group " + umpset.getCgName() + " associated with unmanaged volume: " + unManagedVolume.getNativeGuid() + " "
                         + "is running in synchronous mode, but the virtual pool requires asynchronous mode.  Modify virtual pool settings or create a new virtual pool and re-attempt operation");
                 throw IngestionException.exceptions.unManagedProtectionSetNotAsync(umpset.getCgName(), unManagedVolume.getNativeGuid());
             }
 
-            if (!Boolean.valueOf(rpSync.toUpperCase()) && vpool.getRpCopyMode().equalsIgnoreCase(VirtualPool.RPCopyMode.SYNCHRONOUS.toString())) {
+            if (!Boolean.valueOf(rpSync.toUpperCase()) && rpCopyMode.equalsIgnoreCase(VirtualPool.RPCopyMode.SYNCHRONOUS.toString())) {
                 _logger.error("The RecoverPoint consistency group " + umpset.getCgName() + " associated with unmanaged volume: " + unManagedVolume.getNativeGuid() + " "
                         + "is running in asynchronous mode, but the virtual pool requires synchronous mode.  Modify virtual pool settings or create a new virtual pool and re-attempt operation");
                 throw IngestionException.exceptions.unManagedProtectionSetNotSync(umpset.getCgName(), unManagedVolume.getNativeGuid());

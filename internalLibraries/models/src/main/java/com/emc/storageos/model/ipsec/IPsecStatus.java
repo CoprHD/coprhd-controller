@@ -13,6 +13,7 @@ import java.util.List;
 public class IPsecStatus {
 
     private boolean isGood;
+    private boolean isEnabled;
     private List<String> disconnectedNodes;
 
     @XmlElement(name = "version")
@@ -33,6 +34,15 @@ public class IPsecStatus {
 
     public void setIsGood(boolean isGood) {
         this.isGood = isGood;
+    }
+
+    @XmlElement(name = "is_enabled")
+    public boolean getIsEnabled() {
+        return isEnabled;
+    }
+
+    public void setIsEnabled(boolean isEnabled) {
+        this.isEnabled = isEnabled;
     }
 
     @XmlElementWrapper(name = "disconnected_nodes")

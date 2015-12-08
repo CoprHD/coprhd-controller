@@ -44,16 +44,21 @@ public class IPsecManager {
      */
     public IPsecStatus checkStatus() {
         log.info("Checking ipsec status ...");
+        IPsecStatus status = new IPsecStatus();
 
         String vdcConfigVersion = loadVdcConfigVersionFromZK();
-
-        List<String> disconnectedNodes = checkIPsecStatus();
-
-        IPsecStatus status = new IPsecStatus();
-        status.setIsGood(CollectionUtils.isEmpty(disconnectedNodes));
         status.setVersion(vdcConfigVersion);
-        if (disconnectedNodes != null) {
-            status.setDisconnectedNodes(disconnectedNodes);
+
+        String ipsecState = ipsecConfig.getIpsecState();
+        if (ipsecState != null && ipsecState.equals("disabled")) {
+            status.setIsEnabled(false);
+            status.setIsGood(true);
+        } else {
+            List<String> disconnectedNodes = checkIPsecStatus();
+            status.setIsGood(CollectionUtils.isEmpty(disconnectedNodes));
+            if (disconnectedNodes != null) {
+                status.setDisconnectedNodes(disconnectedNodes);
+            }
         }
 
         return status;

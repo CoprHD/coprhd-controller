@@ -576,7 +576,7 @@ class Fileshare(object):
         fileshare_uri = self.fileshare_query(name)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "DELETE",
-            Fileshare.URI_NFS_ACL.format(fileshare_uri),
+            uri_nfs_qp.format(fileshare_uri),
             None)
         return 
     

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Set;
 
 import models.datatable.ApplicationSupportDataTable;
-
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import org.apache.commons.lang.StringUtils;
 
 import play.data.binding.As;
@@ -24,6 +24,7 @@ import play.mvc.Controller;
 import play.mvc.With;
 import util.AppSupportUtil;
 import util.MessagesUtils;
+import util.StringOption;
 import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.model.application.ApplicationRestRep;
@@ -57,21 +58,36 @@ public class ApplicationSupport extends Controller {
     }
     
     public static void create() {
+        renderArgs.put("roleOptions",StringOption.options(new String[] { "COPY", "DR",}));
         render();
     }
 
     public static void cancel() {
         list();
     }
-    
-    public static void edit(URI id) {
-        
+
+    public static void edit(String id) {
+       ApplicationRestRep application = AppSupportUtil.getApplication(uri(id));
+       if (application != null) {
+           ApplicationForm applicationForm = new ApplicationForm(application);
+           edit(applicationForm);
+       }
+       else {
+           flash.error(MessagesUtils.get(UNKNOWN, id));
+           list();
+       }
     }
-    public static void delete(@As(",") URI[] ids) {
+    
+    private static void edit(ApplicationForm applicationForm) {
+        renderArgs.put("roleOptions",StringOption.options(new String[] { "COPY", "DR",}));
+        render("@create",applicationForm);
+    }
+
+    public static void delete(@As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
             boolean deleteExecuted = false;
-            for (URI application : ids) {
-                AppSupportUtil.deleteApplication(application);
+            for (String application : ids) {
+                AppSupportUtil.deleteApplication(uri(application));
                 deleteExecuted = true;
             }
             if (deleteExecuted == true) {
@@ -81,9 +97,9 @@ public class ApplicationSupport extends Controller {
         list();
     }
     
-    @FlashException(keep = true, referrer = { "create" })
-    public static void save(@Valid ApplicationForm applicationForm) {
-        applicationForm.validate("name");
+    @FlashException(keep = true, referrer = { "create", "edit" })
+    public static void save(ApplicationForm applicationForm) {
+        applicationForm.validate("applicationForm");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
@@ -114,6 +130,7 @@ public class ApplicationSupport extends Controller {
     
     public static class ApplicationForm {
 
+        public String id;
         @MaxSize(128)
         @MinSize(2)
         @Required
@@ -124,8 +141,15 @@ public class ApplicationSupport extends Controller {
         public Set<String> roles;
         
 
-        public ApplicationForm(ApplicationRestRep application) {
-            
+        public ApplicationForm(ApplicationRestRep applicationForm) {
+            this.id = applicationForm.getId().toString();
+            this.name = applicationForm.getName();
+            this.description = applicationForm.getDescription();
+            this.roles = applicationForm.getRoles();
+        }
+
+        public boolean isNew() {
+            return StringUtils.isBlank(id);
         }
 
         public void validate(String fieldname) {
@@ -133,11 +157,13 @@ public class ApplicationSupport extends Controller {
         }
 
         public void save() throws ViPRException {
-            AppSupportUtil.createApplication(name, description, roles);
+            if (isNew()) {
+                AppSupportUtil.createApplication(name, description, roles);
+            } else {
+                AppSupportUtil.updateApplication(name, description, uri(id));
+            }
+
         }
         
-        public void update(URI id) throws ViPRException {
-            AppSupportUtil.updateApplication(name, description, id);
-        }
     }
 }

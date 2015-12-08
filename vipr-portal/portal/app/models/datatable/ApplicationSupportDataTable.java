@@ -4,7 +4,6 @@
  */
 package models.datatable;
 
-import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -20,7 +19,6 @@ import util.datatable.DataTable;
 public class ApplicationSupportDataTable extends DataTable {
     
     public ApplicationSupportDataTable() {
-        addColumn("id").hidden();
         addColumn("name").setRenderFunction("renderLink");
         setDefaultSort("name", "asc");
         setRowCallback("createRowLink");
@@ -35,11 +33,11 @@ public class ApplicationSupportDataTable extends DataTable {
     }
     
     public static class ApplicationSupport {
-        public URI id;
+        public String id;
         public String name;
         
         public ApplicationSupport(NamedRelatedResourceRep application) {
-            id = application.getId();
+            id = application.getId().toString();
             name = application.getName();
         }
     }

@@ -8,6 +8,8 @@ import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DELETE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.HOST_BY_TENANT_URL;
+
 import java.net.URI;
 
 import javax.ws.rs.core.Response;
@@ -62,8 +64,9 @@ public class ApplicationSupport {
      * API call: PUT /applications/block/{id}
      * 
      */
-    public ApplicationRestRep updateApplication(ApplicationUpdateParam input, URI id) {
-        return client.put(ApplicationRestRep.class, APP_SUPPORT_UPDATE_APP_URL, id);
+    public ApplicationRestRep updateApplication(URI id, ApplicationUpdateParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_UPDATE_APP_URL);
+        return client.putURI(ApplicationRestRep.class, input, uriBuilder.build(id));
     }
     
     /**
@@ -71,6 +74,6 @@ public class ApplicationSupport {
      * 
      */
     public ApplicationRestRep getApplication(URI id) {
-        return client.getURI(ApplicationRestRep.class, id);
+        return client.get(ApplicationRestRep.class, APP_SUPPORT_UPDATE_APP_URL, id);
     }
 }

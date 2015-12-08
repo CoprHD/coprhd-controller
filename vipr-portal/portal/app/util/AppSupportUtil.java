@@ -47,7 +47,7 @@ public class AppSupportUtil {
         ApplicationUpdateParam update = new ApplicationUpdateParam();
         update.setName(name);
         update.setDescription(description);
-        return BourneUtil.getSysClient().application().updateApplication(update, id);
+        return BourneUtil.getSysClient().application().updateApplication(id, update);
     }
     
     public static ApplicationRestRep getApplication(URI id) {

@@ -1,18 +1,25 @@
 %{
-  titleKey = "ApplicationForm.title"
+  titleKey = 'ApplicationForm.' + (applicationForm?.id ? 'edit' : 'create') + '.title';
   descriptionKey = "application.create.description"
 }%
 
 #{extends 'main.html' /}
-#{set 'title'}&{'ApplicationForm.title'}#{/set}
-  #{set 'moreScripts'}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:applicationForm?.id ? true : false/}
+#{set 'moreScripts'}
     #{get 'moreScripts'/}
-  #{/set}
+#{/set}
   
 #{breadcrumb.container}
   #{breadcrumb.item @list()}&{'Application.list.title'}#{/breadcrumb.item}
   #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
 #{/breadcrumb.container}
+
+<script>
+$(document).ready(function() {
+	var editMode = #{get 'editMode'/};
+});
+</script>
 
 <div class="container">
   #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image  /}
@@ -21,6 +28,12 @@
 
   #{form @save(), id:'applicationForm',class:'form form-horizontal', autocomplete:"off"}
   
+  	#{if applicationForm?.id}
+        #{field 'applicationForm.id'}
+            <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    #{/if}
+    
     #{field "applicationForm.name"}
       %{
         field.cssClass = fieldCssClass
@@ -38,22 +51,14 @@
     #{/field}
     
     #{field 'applicationForm.roles'}
-      %{
-        field.cssClass = "bla";
-        field.cssClassLabel = 'inline'
-        field.required = true
-      }%
-      #{Form.controlGroup field:field }
-        %{
-          field.disabled = false
-        }%
-        <div class="span6" style="margin-left:0px;">
-          #{Form.checkBox field:field, value: "COPY"}Copy#{/Form.checkBox}
-          #{Form.checkBox field:field, value: "DR"}DR#{/Form.checkBox}
-        </div>
-      #{/Form.controlGroup}      
-    #{/field}    
-    
+    	%{
+			field.options = roleOptions
+    		field.required = !editMode
+    		field.disabled = editMode
+    	}%
+    #{Form.selectManyControlGroup field:field /}
+  #{/field}
+
     #{Form.saveCancel cancelHref:@cancel() /}
   #{/form}
 </div>

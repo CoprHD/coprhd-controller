@@ -53,7 +53,6 @@ import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -69,6 +68,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
@@ -6811,6 +6811,7 @@ public class SmisCommandHelper implements SmisConstants {
                     .getReplicationServiceCapabilitiesPath(storageSystem);
             CIMArgument[] inArgs = getReplicationSettingDataInstance();
             CIMArgument[] outArgs = new CIMArgument[5];
+
             invokeMethod(storageSystem, replicationSettingCapabilities,
                     GET_DEFAULT_REPLICATION_SETTING_DATA, inArgs, outArgs);
             for (CIMArgument<?> outArg : outArgs) {
@@ -6827,10 +6828,17 @@ public class SmisCommandHelper implements SmisConstants {
                         CIMProperty<?> targetElementSupplier = new CIMProperty<Object>(TARGET_ELEMENT_SUPPLIER,
                                 UINT16_T, new UnsignedInteger16(CREATE_NEW_TARGET_VALUE));
                         list.add(targetElementSupplier);
+
                         if (null != elementName) {
                             CIMProperty<?> elementNameProp = new CIMProperty<Object>(SmisConstants.CP_ELEMENT_NAME, STRING_T,
                                     elementName);
                             list.add(elementNameProp);
+                        } else {
+
+                            CIMProperty<?> elementNameProp = new CIMProperty<Object>(SmisConstants.CP_ELEMENT_NAME, STRING_T,
+                                    SmisConstants.DEFAULT_REPLICATION_SETTING_DATA_ELEMENT_NAME);
+                            list.add(elementNameProp);
+
                         }
 
                         modifiedInstance = repInstance.deriveInstance(list.toArray(new CIMProperty[] {}));

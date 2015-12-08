@@ -35,6 +35,9 @@ public class HDSApiFactory {
     // Default connection timeout in milliseconds.
     private static final int DEFAULT_CONN_TIMEOUT = 1000 * 30;
 
+    // Default connection manager timeout in milliseconds.
+    private static final int DEFAULT_CONN_MGR_TIMEOUT = 1000 * 60;
+
     // The maximum number of outstanding connections.
     private int _maxConn = DEFAULT_MAX_CONN;
 
@@ -43,6 +46,9 @@ public class HDSApiFactory {
 
     // The connection timeout in milliseconds.
     private int _connTimeoutMs = DEFAULT_CONN_TIMEOUT;
+
+    // Timeout to retrieve the connection from connectionManager.
+    private int connManagerTimeout = DEFAULT_CONN_MGR_TIMEOUT;
 
     // A map of client connections to VPlex Management Stations keyed
     // by the URI of the Management Station.
@@ -79,6 +85,13 @@ public class HDSApiFactory {
     }
 
     /**
+     * @param connManagerTimeout the connManagerTimeout to set
+     */
+    public void setConnManagerTimeout(int connManagerTimeout) {
+        this.connManagerTimeout = connManagerTimeout;
+    }
+
+    /**
      * Initialize HTTP client
      */
     public void init() {
@@ -101,6 +114,7 @@ public class HDSApiFactory {
         // HttpMethod should be retried after a recoverable exception during
         // execution.
         HttpClient client = new HttpClient(mgr);
+        client.getParams().setConnectionManagerTimeout(connManagerTimeout);
         client.getParams().setParameter(HttpMethodParams.RETRY_HANDLER,
                 new HttpMethodRetryHandler() {
                     @Override

@@ -6,6 +6,7 @@
     <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
 		factory-method="getInstance">
 		<property name="connectionTimeoutMs" value="30000"/>
+		<property name="connManagerTimeout" value="60000"/>
         <property name="socketConnectionTimeoutMs" value="7200000" />
     </bean>
 

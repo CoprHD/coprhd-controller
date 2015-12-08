@@ -145,19 +145,19 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException inconsistentZoningAcrossHosts(String messages);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException failedToIngestVplexBackend(String message);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException failedToGetStorageVolumeInfoForDevice(String supportingDeviceName, String reason);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException validationException(String reason);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException exportedVolumeIsMissingWwn(String unManagedVolume);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException vplexBackendVolumeHasNoParent(String unManagedVolume);
 
@@ -211,4 +211,7 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException unManagedProtectionSetNotSync(String cgName, String unmanagedVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException rpUnManagedTargetVolumeInImageAccessState(String nativeGuid, String rpAccessState);
 }

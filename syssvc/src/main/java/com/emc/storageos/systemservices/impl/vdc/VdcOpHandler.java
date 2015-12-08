@@ -5,12 +5,16 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.security.ipsec.IPsecConfig;
+import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +40,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Operation handler for vdc config change. A vdc config change may represent 
@@ -91,6 +96,10 @@ public abstract class VdcOpHandler {
      * Rotate IPSec key
      */
     public static class IPSecRotateOpHandler extends VdcOpHandler {
+
+        @Autowired
+        IPsecConfig iPsecConfig;
+
         public IPSecRotateOpHandler() {
         }
         
@@ -103,34 +112,73 @@ public abstract class VdcOpHandler {
             syncFlushVdcConfigToLocal();
             try {
                 refreshIPsec();
+                iPsecConfig.updateKeyVersionForNode(getLocalIPAddress(), targetVdcPropInfo.getProperty(Constants.VDC_CONFIG_VERSION));
             } catch (Exception ex) {
                 log.warn("Unexpected error happens during applying vdc config to local", ex);
                 resetLocalVdcConfigVersion();
             }
         }
-    };
+
+        private String getLocalIPAddress() {
+            try {
+                InetAddress IP = InetAddress.getLocalHost();
+                String localIP = IP.getHostAddress();
+                log.info("IP of my system is : " + localIP);
+                return localIP;
+            } catch (Exception ex) {
+                log.warn("error in getting local ip: " + ex.getMessage());
+                return null;
+            }
+        }
+    }
 
     /**
      * Transit Cassandra native encryption to IPsec
      */
-    public static class IPSecEnableHandler extends VdcOpHandler{
+    public static class IPSecEnableHandler extends VdcOpHandler {
+        private static String IPSEC_LOCK = "ipsec_enable_lock";
+
+        @Autowired
+        IPsecManager ipsecMgr;
+
         public IPSecEnableHandler() {
         }
         
         @Override
         public void execute() throws Exception {
-            syncFlushVdcConfigToLocal();
+            InterProcessLock lock = acquireIPsecLock();
             try {
-                localRepository.reconfig();
-                localRepository.reload("ipsec");
-                localRepository.restart("db");
-                localRepository.restart("geodb");
-            } catch (Exception ex) {
-                log.warn("Unexpected error happens during applying vdc config to local", ex);
-                resetLocalVdcConfigVersion();
+                if (ipsecKeyExisted()) {
+                    log.info("Real IPsec key already existed, No need to rotate.");
+                    return;
+                }
+                String version = ipsecMgr.rotateKey();
+                log.info("Kicked off IPsec key rotation. The version is {}", version);
+            } finally {
+                releaseIPsecLock(lock);
             }
         }
+
+        private InterProcessLock acquireIPsecLock() throws Exception {
+            InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(IPSEC_LOCK);
+            lock.acquire();
+            log.info("Acquired the lock {}", IPSEC_LOCK);
+            return lock;
+        }
+
+        private void releaseIPsecLock(InterProcessLock lock) {
+            try {
+                lock.release();
+            } catch (Exception e) {
+                log.warn("Fail to release the lock {}", IPSEC_LOCK);
+            }
+        }
+
+        private boolean ipsecKeyExisted() {
+            return !StringUtils.isEmpty(targetVdcPropInfo.getProperty(Constants.IPSEC_KEY));
+        }
     }
+
     /**
      * Process DR config change for add-standby op on all existing sites
      *  - flush vdc config to disk, regenerate config files and reload services for ipsec, firewall, coordinator, db

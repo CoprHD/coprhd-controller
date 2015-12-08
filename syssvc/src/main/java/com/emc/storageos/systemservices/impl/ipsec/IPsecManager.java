@@ -13,6 +13,7 @@ import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.security.exceptions.SecurityException;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +75,23 @@ public class IPsecManager {
             log.warn("Fail to rotate ipsec key due to: {}", e);
             throw SecurityException.fatals.failToRotateIPsecKey(e);
         }
+    }
+
+    public boolean isKeyRotationDoneWithinLocalSite(long targetKeyVersion) throws Exception {
+        Site localSite = drUtil.getLocalSite();
+        Map<String, String> ips = localSite.getHostIPv4AddressMap(); // TODO: should consider ipv6
+        for (String ip : ips.values()) {
+            String nodeVersion = ipsecConfig.getKeyVersionByNode(ip);
+            if (StringUtils.isEmpty(nodeVersion)) {
+                return false;
+            }
+
+            if (!nodeVersion.equals(targetKeyVersion)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private List<String> checkIPsecStatus() {

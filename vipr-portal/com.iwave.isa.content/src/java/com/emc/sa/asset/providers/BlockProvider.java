@@ -879,7 +879,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("blockSnapshotOrConsistencyGroup")
     @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String type, URI consistencyGroupId) {
-        if (NONE_TYPE.equals(type)) {
+        if (isVolumeType(type)) {
             debug("getting blockSnapshots (project=%s)", project);
             return getVolumeSnapshotOptionsForProject(ctx, project);
         } else {

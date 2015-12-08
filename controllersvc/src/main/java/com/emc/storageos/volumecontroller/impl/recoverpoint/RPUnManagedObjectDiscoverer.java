@@ -156,7 +156,9 @@ public class RPUnManagedObjectDiscoverer {
             if (!newCG) {
                 cleanUpUnManagedResources(unManagedProtectionSet, unManagedVolumesToUpdateByWwn, dbClient);
             }
+            Map<String, String> rpCopyAccessStateMap = new HashMap<String, String>();
             for (GetCopyResponse copy : cg.getCopies()) {
+                String accessState = copy.getAccessState();
                 for (GetVolumeResponse volume : copy.getJournals()) {
                     // Find this volume in UnManagedVolumes based on wwn
                     UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
@@ -195,6 +197,9 @@ public class RPUnManagedObjectDiscoverer {
 
                     // at this point, we have an legitimate UnManagedVolume whose RP properties should be updated
                     log.info("Processing Journal UnManagedVolume {}", unManagedVolume.forDisplay());
+
+                    // Capture the access state
+                    rpCopyAccessStateMap.put(volume.getRpCopyName(), accessState);
 
                     // Add the unmanaged volume to the list (if it's not there already)
                     if (!unManagedProtectionSet.getUnManagedVolumeIds().contains(unManagedVolume.getId().toString())) {
@@ -294,6 +299,10 @@ public class RPUnManagedObjectDiscoverer {
                     }
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PERSONALITY.toString(),
                             personality);
+
+                    StringSet rpAccessState = new StringSet();
+                    rpAccessState.add(rpCopyAccessStateMap.get(volume.getRpCopyName()));
+                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_ACCESS_STATE.toString(), rpAccessState);
 
                     StringSet rpCopyName = new StringSet();
                     rpCopyName.add(volume.getRpCopyName());
@@ -423,6 +432,8 @@ public class RPUnManagedObjectDiscoverer {
                     .get(SupportedVolumeInformation.RP_UNMANAGED_SOURCE_VOLUME.toString());
             StringSet rpTargetVols = rpUnManagedVolume.getVolumeInformation()
                     .get(SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString());
+            StringSet rpAccessState = rpUnManagedVolume.getVolumeInformation()
+                    .get(SupportedVolumeInformation.RP_ACCESS_STATE.toString());
 
             if (rpPersonality != null) {
                 rpPersonality.clear();
@@ -441,6 +452,9 @@ public class RPUnManagedObjectDiscoverer {
             }
             if (rpTargetVols != null) {
                 rpTargetVols.clear();
+            }
+            if (rpAccessState != null) {
+                rpAccessState.clear();
             }
             unManagedVolumesToUpdateByWwn.put(rpUnManagedVolume.getWwn(), rpUnManagedVolume);
         }

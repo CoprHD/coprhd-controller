@@ -121,7 +121,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final Long KB_IN_BYTES = 1024L;
     private static final String ONEFS_V8 = "8.0.0.0";
     private static final String ONEFS_V7_2 = "7.2.0.0";
-
     private IsilonApiFactory _factory;
 
     private List<String> _discPathsForUnManaged;
@@ -339,7 +338,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         String zoneName = accessZone.getName();
         String baseDirPath = accessZone.getPath() + "/";
 
-        // filesystems count & Capacity
+        // filesystems count & used Capacity
         IsilonList<IsilonSmartQuota> quotas = null;
 
         do {
@@ -347,45 +346,49 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             if (quotas != null && !quotas.getList().isEmpty()) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
-                    if (quota.getThresholds() != null && quota.getThresholds().getHard() != null) {
-                        totalProvCap = totalProvCap + quota.getThresholds().getHard();
-                        totalFsCount++;
-                    }
+
+                    totalProvCap = totalProvCap + quota.getUsagePhysical();
+                    totalFsCount++;
                 }
-                resumeToken = quotas.getToken();
             }
+            resumeToken = quotas.getToken();
+
         } while (resumeToken != null);
 
-        //get the base dir paths
+        // create a list of access zone for which base dir is not same as system access zone.
+        // we get all snapshot list at once. baseDirPaths list is used to
+        // find snaphot belong to which access zone.
         List<String> baseDirPaths = null;
-        if (baseDirPath.equals(IFS_ROOT)) {
+        if (accessZone.isSystem() == true) {
             List<IsilonAccessZone> isilonAccessZoneList = isilonApi.getAccessZones(resumeToken);
             baseDirPaths = new ArrayList<String>();
-            for (IsilonAccessZone isiAccessZone: isilonAccessZoneList) {
-                if (isiAccessZone.isSystem() == false) {
+            for (IsilonAccessZone isiAccessZone : isilonAccessZoneList) {
+                if (!baseDirPath.equals(IFS_ROOT + "/")) {
                     baseDirPaths.add(isiAccessZone.getPath() + "/");
                 }
             }
         }
-        //snapshots count & snap capacity
+        // snapshots count & snap capacity
         resumeToken = null;
         IsilonList<IsilonSnapshot> snapshots = null;
         do {
             snapshots = isilonApi.listSnapshots(resumeToken);
             if (snapshots != null && !snapshots.getList().isEmpty()) {
-                if (!baseDirPath.equals(IFS_ROOT)) { //if it not system access zone then compare with fs path with base dir path
+                if (!baseDirPath.equals(IFS_ROOT + "/")) {
+                    // if it is not system access zone then compare
+                    // with fs path with base dir path
                     _log.info("access zone base directory path {}", baseDirPath);
-                    for (IsilonSnapshot isilonSnap: snapshots.getList()) {
+                    for (IsilonSnapshot isilonSnap : snapshots.getList()) {
                         if (isilonSnap.getPath().startsWith(baseDirPath)) {
                             totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
-                            totalFsCount ++;
+                            totalFsCount++;
                         }
                     }
-                } else {//process the snapshots for system access zone
+                } else {// process the snapshots for system access zone
                     boolean snapSystem = true;
-                    for (IsilonSnapshot isilonSnap: snapshots.getList()) {
+                    for (IsilonSnapshot isilonSnap : snapshots.getList()) {
                         snapSystem = true;
-                        //first check fs path with user defined AZ's paths
+                        // first check fs path with user defined AZ's paths
                         if (baseDirPaths != null && !baseDirPaths.isEmpty()) {
                             for (String basePath : baseDirPaths) {
                                 if (isilonSnap.getPath().startsWith(basePath)) {
@@ -394,21 +397,22 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 }
                             }
                         }
-                        //if it not matched with any user define AZ's then it is belongs system AZ
+                        // it then it is belongs to access zone with basedir same as system access zone.
                         if (snapSystem) {
                             totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
-                            totalFsCount ++;
-                            _log.info("System access zone base directory path: {}", accessZone.getPath());
+                            totalFsCount++;
+                            _log.info("Access zone base directory path: {}", accessZone.getPath());
 
                         }
                     }
                 }
                 resumeToken = snapshots.getToken();
-               }
+            }
         } while (resumeToken != null);
 
-        if (totalProvCap >= KB_IN_BYTES) {
-            totalProvCap = (totalProvCap/KB_IN_BYTES);
+        if (totalProvCap > 0) {
+
+            totalProvCap = (totalProvCap / KB_IN_BYTES);
         }
         _log.info("Total fs Count {} for access zone : {}", String.valueOf(totalFsCount), accessZone.getName());
         _log.info("Total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());
@@ -666,7 +670,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         VirtualNAS virtualNAS = null;
         PhysicalNAS physicalNAS = null;
-        List<IsilonAccessZone> accessZoneListTemp = null;
 
         List<VirtualNAS> newvNASList = new ArrayList<VirtualNAS>();
         List<VirtualNAS> existingvNASList = new ArrayList<VirtualNAS>();
@@ -680,20 +683,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         try {
             _log.info("discoverAccessZones for storage system {} - start", storageSystemId);
 
-            List<IsilonAccessZone> accessZoneList = new ArrayList<IsilonAccessZone>();
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-
-            // make restapi call to get access zones
-            accessZoneListTemp = isilonApi.getAccessZones(null);
-            if (accessZoneListTemp == null || accessZoneListTemp.isEmpty()) {
-                // No ports defined throw an exception and fail the discovery
+            // Make restapi call to get access zones
+            List<IsilonAccessZone> accessZoneList = isilonApi.getAccessZones(null);
+            if (accessZoneList == null || accessZoneList.isEmpty()) {
+                // No access zones defined. Throw an exception and fail the discovery
                 IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. No Zones defined");
                 throw ice;
-            } else {
-                accessZoneList.addAll(accessZoneListTemp);
             }
 
-            // find the smart connet zones for system
+            // Find the smart connect zones
             IsilonNetworkPool isilonNetworkPoolSystem = null;
             List<IsilonNetworkPool> isilonNetworkPoolsSysAZ = new ArrayList<>();
 
@@ -718,7 +717,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             StoragePort storagePort = null;
             StringSet storagePorts = null;
-            CifsServerMap cifsServersMap = null;
             List<IsilonNetworkPool> isilonNetworkPools = null;
 
             // process the access zones list
@@ -736,9 +734,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             isilonNetworkPools.add(eachNetworkPool);
                         }
                     }
-                    // if the smart connect is null then set default access zone
+                    
+                    // if the smart connect is null then ignore the access zone
                     if (isilonNetworkPools != null && isilonNetworkPools.isEmpty()) {
-                        isilonNetworkPools.addAll(isilonNetworkPoolsSysAZ);
+                    	_log.info("No network pools assigned to this access zone: {}. So ignore it.",
+                    			isilonAccessZone.getName());
+                    	continue;
                     }
 
                     // find virtualNAS in db
@@ -751,11 +752,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         existingvNASList.add(virtualNAS);
                     }
 
-                    // authenticate providers
-                    cifsServersMap = getCifsServerMap(isilonAccessZone);
-                    if (!cifsServersMap.isEmpty()) {
-                        virtualNAS.setCifsServersMap(cifsServersMap);
-                    }
+                    // Set authentication providers
+                    setCifsServerMap(isilonAccessZone, virtualNAS);
+                    
                     // set protocol support
                     virtualNAS.setProtocols(protocols);
                     // set the smart connect
@@ -774,6 +773,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             }
                         }
                         virtualNAS.setStoragePorts(storagePorts);
+                    } else {
+                    	/*
+                    	 * Smart connect zones are dissociated with this access zone.
+                    	 * So mark this access zone as not visible.
+                    	 */
+                    	_log.info("Setting discovery status of vnas {} as NOTVISIBLE", virtualNAS.getNasName());
+                    	virtualNAS.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
+                    	virtualNAS.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
                     }
                 } else {
                     _log.info("Process the System access zone {} ", isilonAccessZone.toString());
@@ -795,11 +802,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         setMaxDbMetricsAz(storageSystem, physicalNAS.getMetrics());
                         existingPhysicalNASList.add(physicalNAS);
                     }
-                    // add authentication providers
-                    cifsServersMap = getCifsServerMap(isilonAccessZone);
-                    if (!cifsServersMap.isEmpty()) {
-                        physicalNAS.setCifsServersMap(cifsServersMap);
-                    }
+                    // Set authentication providers
+                    setCifsServerMap(isilonAccessZone, physicalNAS);
 
                     // set the smart connect
                     if (isilonNetworkPoolsSysAZ != null) {
@@ -1233,7 +1237,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                         URI.create(nasServer.getStoragePorts().iterator().next()));
                             }
                         } else {
-                            _log.info("fs path {} and vnas server not found", fs.getPath(), nasServer.toString());
+                            _log.info("fs path {} and vnas server not found", fs.getPath());
+                            continue; // Skip further ingestion steps on this file share & move to next file share
                         }
 
                         boolean alreadyExist = unManagedFs == null ? false : true;
@@ -2685,32 +2690,47 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     /**
-     * get the cifs servers for accesszone
+     * Set the cifs servers for accesszone
      * 
-     * @param isiAccessZone
-     * @return cifs server map
+     * @param isiAccessZone the Isilon access zone object
+     * @param nasServer the NAS server in which CIF server map will be set
      */
-    CifsServerMap getCifsServerMap(final IsilonAccessZone isiAccessZone) {
-        // add authentication map
+    private void setCifsServerMap(final IsilonAccessZone isiAccessZone, NASServer nasServer) {
+        
+    	_log.info("Set the authentication providers for NAS: {}", nasServer.getNasName());
+    	String providerName = null;
+    	String domain = null;
         ArrayList<String> authArrayList = isiAccessZone.getAuth_providers();
-        CifsServerMap cifsServersMap = new CifsServerMap();
+        CifsServerMap cifsServersMap = nasServer.getCifsServersMap();
+        if (cifsServersMap != null) {
+        	cifsServersMap.clear();
+        } else {
+        	cifsServersMap = new CifsServerMap();
+        }
         if (authArrayList != null && !authArrayList.isEmpty()) {
             for (String authProvider : authArrayList) {
-                NasCifsServer nasCifsServer = new NasCifsServer();
                 String[] providerArray = authProvider.split(":");
-                nasCifsServer.setName(providerArray[0]);
-                nasCifsServer.setDomain(providerArray[1]);
-                cifsServersMap.put(providerArray[0], nasCifsServer);
+                providerName = providerArray[0];
+                domain = providerArray[1];
+                NasCifsServer nasCifsServer = new NasCifsServer();
+                nasCifsServer.setName(providerName);
+                nasCifsServer.setDomain(domain);
+                cifsServersMap.put(providerName, nasCifsServer);
+                _log.info("Setting provider: {} and domain: {}", providerName, domain);
             }
         }
         if (isiAccessZone.isAll_auth_providers() == true) {
-            NasCifsServer nasCifsServer = new NasCifsServer();
             String[] providerArray = isiAccessZone.getSystem_provider().split(":");
-            nasCifsServer.setName(providerArray[0]);
-            nasCifsServer.setDomain(providerArray[1]);
-            cifsServersMap.put(providerArray[0], nasCifsServer);
+            providerName = providerArray[0];
+            domain = providerArray[1];
+            NasCifsServer nasCifsServer = new NasCifsServer();
+            nasCifsServer.setName(providerName);
+            nasCifsServer.setDomain(domain);
+            cifsServersMap.put(providerName, nasCifsServer);
+            _log.info("Setting provider: {} and domain: {}", providerName, domain);
         }
-        return cifsServersMap;
+        
+        nasServer.setCifsServersMap(cifsServersMap);
     }
 
     /**

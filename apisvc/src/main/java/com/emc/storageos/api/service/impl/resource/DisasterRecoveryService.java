@@ -684,7 +684,7 @@ public class DisasterRecoveryService {
         try {
             commonPrecheck(uuid);
         } catch (IllegalStateException e) {
-            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(uuid, e.getMessage());
+            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(standby.getName(), e.getMessage());
         }
 
         InterProcessLock lock = getDROperationLock();
@@ -896,7 +896,7 @@ public class DisasterRecoveryService {
             log.error("Error happened when failover at site %s", uuid, e);
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid, currentSite.getVip(),
                     currentSite.getName());
-            throw APIException.internalServerErrors.failoverFailed(uuid, e.getMessage());
+            throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
         }
     }
     
@@ -1249,10 +1249,11 @@ public class DisasterRecoveryService {
     protected void precheckForFailover() {
         Site standby = drUtil.getLocalSite();
         String standbyUuid = standby.getUuid();
-        
+        String standbyName = standby.getName();
+
         // show be only standby
         if (drUtil.isActiveSite()) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Failover can't be executed in acitve site");
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Failover can't be executed in acitve site");
         }
 
         // should be SYNCED
@@ -1276,7 +1277,7 @@ public class DisasterRecoveryService {
         log.info("Local coordinator mode is {}", coordinatorMode);
         if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
             log.info("Acitve site is available now, can't do failover");
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Acitve site is available now, can't do failover");
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Acitve site is available now, can't do failover");
         }
     }
 

@@ -32,7 +32,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
-import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -405,8 +404,7 @@ public class XtremIOCommunicationInterface extends
                     continue;
                 } else {
                     Initiator initiatorObj = _dbClient.queryObject(Initiator.class, initiatorUris.get(0));
-                    // COP-18937: Use storage system serial number + initiator name as the label
-                    initiatorObj.setLabel(system.getSerialNumber().concat(Constants.HYPHEN).concat(initiator.getName()));
+                    initiatorObj.setLabel(initiator.getName());
                     _dbClient.persistObject(initiatorObj);
                 }
             }

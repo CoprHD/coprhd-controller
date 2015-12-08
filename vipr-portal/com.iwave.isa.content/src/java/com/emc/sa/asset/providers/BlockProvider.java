@@ -883,8 +883,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             debug("getting blockSnapshots (project=%s)", project);
             return getVolumeSnapshotOptionsForProject(ctx, project);
         } else {
-            if (type == null) {
-                error("Consistency type invalid : %s", type);
+            if (consistencyGroupId == null) {
+                error("Consistency type invalid : %s", consistencyGroupId);
                 return new ArrayList<AssetOption>();
             }
             URI consistencyGroup = consistencyGroupId;

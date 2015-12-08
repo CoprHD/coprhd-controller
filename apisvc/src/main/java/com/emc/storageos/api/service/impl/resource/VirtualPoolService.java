@@ -13,6 +13,7 @@ import java.util.*;
 
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -763,6 +764,9 @@ public abstract class VirtualPoolService extends TaggedResource {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();
         }
 
+        // Get the QoS for the VirtualPool, otherwise throw exception
+        QosSpecification qosSpecification = getQos(vpool.getId());
+        
         // make sure vpool is unused by volumes/fileshares
         ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(vpool));
 
@@ -805,8 +809,6 @@ public abstract class VirtualPoolService extends TaggedResource {
             }
         }
 
-        QosSpecification qosSpecification = getQos(vpool);
-
         // Remove Qos associated to this Virtual Pool and record operation
         _dbClient.removeObject(qosSpecification);
         recordOperation(OperationTypeEnum.DELETE_QOS, QOS_DELETED_DESCRIPTION, qosSpecification);
@@ -817,17 +819,85 @@ public abstract class VirtualPoolService extends TaggedResource {
         return Response.ok().build();
     }
 
-    protected QosSpecification getQos(VirtualPool vpool){
+    /**
+     * Get QoS specification associated with provided VirtualPool.
+     *
+     * @param vpoolId the VirtualPool for which QoS specification is required.
+     */
+    protected QosSpecification getQos(URI vpoolId) throws APIException {
         List<URI> qosSpecsURI = _dbClient.queryByType(QosSpecification.class, true);
         Iterator<QosSpecification> qosIter = _dbClient.queryIterativeObjects(QosSpecification.class, qosSpecsURI);
         while (qosIter.hasNext()) {
             QosSpecification activeQos = qosIter.next();
-            if(activeQos != null && activeQos.getVirtualPoolId().equals(vpool.getId())){
-                _log.debug("Qos Specification {} assigned to Virtual Pool {} found", activeQos.getId(), vpool.getId());
+            if(activeQos != null && activeQos.getVirtualPoolId().equals(vpoolId)){
+                _log.debug("Qos Specification {} assigned to Virtual Pool {} found", activeQos.getId(), vpoolId);
                 return activeQos;
             }
         }
-        throw APIException.notFound.unableToFindEntityInURL(vpool.getId());
+        throw APIException.internalServerErrors.noAssociatedQosForVirtualPool(vpoolId);
+    }
+
+    /**
+     * Update QoS specification associated with provided VirtualPool.
+     *
+     * @param vpool the VirtualPool object with updated data.
+     * @param qosSpecification the QosSpecification to update.
+     */
+    protected QosSpecification updateQos(VirtualPool virtualPool, QosSpecification qosSpecification) {
+        _log.debug("Updating Qos Specification, id: " + qosSpecification.getId());
+        StringMap specs = qosSpecification.getSpecs();
+        String systems = virtualPool.getProtocols().toString();
+        if (!qosSpecification.getLabel().equals(virtualPool.getLabel())) {
+            qosSpecification.setLabel(virtualPool.getLabel());
+        }
+        if (!qosSpecification.getName().equals("specs-" + virtualPool.getLabel())) {
+            qosSpecification.setName("specs-" + virtualPool.getLabel());
+        }
+        if (!specs.get("Provisioning Type").equals(virtualPool.getSupportedProvisioningType())) {
+            specs.put("Provisioning Type", virtualPool.getSupportedProvisioningType());
+        }
+        if (!specs.get("Protocol").equals(systems.substring(1, systems.length() - 1))) {
+            specs.put("Protocol", systems.substring(1, systems.length() - 1));
+        }
+        if (!specs.get("Drive Type").equals(virtualPool.getDriveType())) {
+            specs.put("Drive Type", virtualPool.getDriveType());
+        }
+        if (!specs.get("System Type").equals(VirtualPoolService.getSystemType(virtualPool))) {
+            specs.put("System Type", VirtualPoolService.getSystemType(virtualPool));
+        }
+        if (!specs.get("Multi-Volume Consistency").equals(Boolean.toString(virtualPool.getMultivolumeConsistency()))) {
+            specs.put("Multi-Volume Consistency", Boolean.toString(virtualPool.getMultivolumeConsistency()));
+        }
+        if (virtualPool.getArrayInfo().get("raid_level") != null
+                && !specs.get("RAID level").equals(virtualPool.getArrayInfo().get("raid_level").toString())) {
+            specs.put("RAID LEVEL", virtualPool.getArrayInfo().get("raid_level").toString());
+        }
+        if (!specs.get("Expendable").equals(Boolean.toString(virtualPool.getExpandable()))) {
+            specs.put("Expendable", Boolean.toString(virtualPool.getExpandable()));
+        }
+        if (!specs.get("Maximum SAN paths").equals(Integer.toString(virtualPool.getNumPaths()))) {
+            specs.put("Maximum SAN paths", Integer.toString(virtualPool.getNumPaths()));
+        }
+        if (!specs.get("Minimum SAN paths").equals(Integer.toString(virtualPool.getMinPaths()))) {
+            specs.put("Minimum SAN paths", Integer.toString(virtualPool.getMinPaths()));
+        }
+        if (!specs.get("Maximum block mirrors").equals(Integer.toString(virtualPool.getMaxNativeContinuousCopies()))) {
+            specs.put("Maximum block mirrors", Integer.toString(virtualPool.getMaxNativeContinuousCopies()));
+        }
+        if (!specs.get("Paths per Initiator").equals(Integer.toString(virtualPool.getPathsPerInitiator()))) {
+            specs.put("Paths per Initiator", Integer.toString(virtualPool.getPathsPerInitiator()));
+        }
+        if (virtualPool.getHighAvailability() != null && !specs.get("High Availability").equals(virtualPool.getHighAvailability())) {
+            specs.put("High Availability", virtualPool.getHighAvailability());
+        }
+        if (!specs.get("Maximum Snapshots").equals("unlimited") && virtualPool.getMaxNativeSnapshots().equals(CinderApiUtils.UNLIMITED_SNAPSHOTS)) {
+            specs.put("Maximum Snapshots", "unlimited");
+        } else if (!specs.get("Maximum Snapshots").equals("disabled") && virtualPool.getMaxNativeSnapshots().equals(CinderApiUtils.DISABLED_SNAPSHOTS)) {
+            specs.put("Maximum Snapshots", "disabled");
+        } else if (!specs.get("Maximum Snapshots").equals(Integer.toString(virtualPool.getMaxNativeSnapshots()))) {
+            specs.put("Maximum Snapshots", Integer.toString(virtualPool.getMaxNativeSnapshots()));
+        }
+        return qosSpecification;
     }
 
     /**

@@ -63,9 +63,9 @@ public class CinderApiUtils {
 	
 	private static final String JSON_REGULAR_EXP = ".*application/json.*";
 
-    private static final Integer UNLIMITED_SNAPSHOTS = -1;
+    public static final Integer UNLIMITED_SNAPSHOTS = -1;
 
-    private static final Integer DISABLED_SNAPSHOTS = 0;
+    public static final Integer DISABLED_SNAPSHOTS = 0;
 	
     /**
      * Unmodifiable map used to keep key value for the Http Response code

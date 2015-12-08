@@ -381,6 +381,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();
         }
 
+        // Get the QoS for the VirtualPool, otherwise throw exception.
+        QosSpecification qosSpecification = getQos(vpool.getId());
+
         URIQueryResultList resultList = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getVirtualPoolVolumeConstraint(id), resultList);
@@ -511,6 +514,10 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         _dbClient.updateAndReindexObject(vpool);
 
+        // Update VirtualPool and QoS with new parameters
+        qosSpecification = updateQos(vpool, qosSpecification);
+        _dbClient.updateAndReindexObject(qosSpecification);
+        recordOperation(OperationTypeEnum.UPDATE_QOS, QOS_UPDATED_DESCRIPTION, qosSpecification);
         recordOperation(OperationTypeEnum.UPDATE_VPOOL, VPOOL_UPDATED_DESCRIPTION, vpool);
         return toBlockVirtualPool(_dbClient, vpool, VirtualPool.getProtectionSettings(vpool, _dbClient),
                 VirtualPool.getRemoteProtectionSettings(vpool, _dbClient));

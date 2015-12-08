@@ -163,6 +163,9 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException virtualPoolNotMatchingVArray(final URI uri);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException noAssociatedQosForVirtualPool(final URI uri);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException noVolumesIngested();
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)

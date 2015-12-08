@@ -472,14 +472,6 @@ public class MigrationService extends TaskResourceService {
         String migrationName = migration.getLabel();
         URI volId = migration.getVolume();
         Volume vplexVol = _dbClient.queryObject(Volume.class, volId);
-
-        if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
-            throw APIException.badRequests.migrationHasntStarted(id.toString());
-        }
-        if (status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue())){
-            throw APIException.badRequests.migrationCantBeCancelled(migrationName, status);
-        }
-
         if (vplexVol == null || vplexVol.getInactive()) {
             throw APIException.badRequests.cancelMigrationFailed(migrationName, "The migrating volume is not valid");
         }
@@ -489,6 +481,14 @@ public class MigrationService extends TaskResourceService {
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
             throw APIException.badRequests.cancelMigrationFailed(migrationName, "Migration cancellation is not supported for the volumes in Consistency group");
         }
+
+        if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
+            throw APIException.badRequests.migrationHasntStarted(id.toString());
+        }
+        if (status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue())){
+            throw APIException.badRequests.migrationCantBeCancelled(migrationName, status);
+        }
+
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Volume.class,

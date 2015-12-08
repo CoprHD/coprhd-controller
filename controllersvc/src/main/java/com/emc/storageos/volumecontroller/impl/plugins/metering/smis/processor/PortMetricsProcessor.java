@@ -43,6 +43,8 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.ZoneInfo;
+import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -111,9 +113,11 @@ public class PortMetricsProcessor {
 
         // Scale percentBusy to 1/10 percent for computing the averages
         percentBusy *= 10.0;
-        computePercentBusyAverages(percentBusy.longValue(), 1000L, iopsDelta,
-                dbMetrics, haDomain.getNativeGuid(),
-                haDomain.getAdapterName() + " [cpu]", sampleTime, system);
+        if (percentBusy >= 0.0) {
+        	computePercentBusyAverages(percentBusy.longValue(), 1000L, iopsDelta,
+        			dbMetrics, haDomain.getNativeGuid(),
+        			haDomain.getAdapterName() + " [cpu]", sampleTime, system);
+        }
 
         // Save the new values and persist.
         MetricsKeys.putLong(MetricsKeys.iopsValue, iops, dbMetrics);
@@ -1012,6 +1016,8 @@ public class PortMetricsProcessor {
 
     /**
      * Updates the volumes and initiators that are mapped to the port by UnManagedExportMasks.
+     * Note that if there is also a corresponding (managed) ExportMask the unmanaged information is not used.
+     * (COP-16349).
      * This is called only from the processing of the port metrics.
      * 
      * @param sp -- StoragePort
@@ -1029,41 +1035,70 @@ public class PortMetricsProcessor {
         Iterator<URI> maskIt = queryResult.iterator();
         while (maskIt.hasNext()) {
             UnManagedExportMask umask = _dbClient.queryObject(UnManagedExportMask.class, maskIt.next());
-            if (umask != null && umask.getInactive() == false) {
-                // Add knowVolumeUris unmanagedVolumeUris to the volume count
-                StringSet knownVolumeUris = umask.getKnownVolumeUris();
-                Long knownVolumes = (knownVolumeUris != null ? knownVolumeUris.size() : 0L);
+            if (umask != null && umask.getInactive() == false 
+            		&& !checkForMatchingExportMask(umask.getMaskName(), 
+            				umask.getNativeId(), umask.getStorageSystemUri())) {
+            	
                 StringSet unmanagedVolumeUris = umask.getUnmanagedVolumeUris();
                 Long unmanagedVolumes = (unmanagedVolumeUris != null ? unmanagedVolumeUris.size() : 0L);
                 if (countMetaMembers && unmanagedVolumeUris != null) {
-                    unmanagedVolumes = 0L;
-                    // For VMAX2, count the meta-members instead of the volumes.
-                    if (unmanagedVolumeUris != null) {
-                        for (String unmanagedVolumeUri : unmanagedVolumeUris) {
-                            UnManagedVolume uVolume = _dbClient.queryObject(
-                                    UnManagedVolume.class, URI.create(unmanagedVolumeUri));
-                            Long metaMemberCount = getUnManagedVolumeMetaMemberCount(uVolume);
-                            unmanagedVolumes += (metaMemberCount != null ? metaMemberCount : 1L);
+                	unmanagedVolumes = 0L;
+                	// For VMAX2, count the meta-members instead of the volumes.
+                	for (String unmanagedVolumeUri : unmanagedVolumeUris) {
+                		UnManagedVolume uVolume = _dbClient.queryObject(
+                				UnManagedVolume.class, URI.create(unmanagedVolumeUri));
+                		Long metaMemberCount = getUnManagedVolumeMetaMemberCount(uVolume);
+                		unmanagedVolumes += (metaMemberCount != null ? metaMemberCount : 1L);
+                	}
+                }
+                
+                // Determine initiator count from zoning map in unmanaged export mask.
+                // If the zoningInfoMap is empty, assume one initiator.
+                Long unmanagedInitiators = 0L;
+                ZoneInfoMap zoneInfoMap = umask.getZoningMap();
+                if (!zoneInfoMap.isEmpty()) {
+                    for (ZoneInfo info : zoneInfoMap.values()) {
+                        if (info.getPortWwn().equals(sp.getPortNetworkId())) {
+                            unmanagedInitiators += 1L;
                         }
                     }
+                } else {
+                    // Assume one initiator for the unmanaged mask
+                    unmanagedInitiators += 1L;
                 }
 
-                StringSet knownInitiatorNetworkIds = umask.getKnownInitiatorNetworkIds();
-                Long knownInitiators = (knownInitiatorNetworkIds != null
-                        ? knownInitiatorNetworkIds.size() : 0L);
-                StringSet unmanagedInitiatorNetworkIds = umask.getUnmanagedInitiatorNetworkIds();
-                Long unmanagedInitiators = (unmanagedInitiatorNetworkIds != null
-                        ? unmanagedInitiatorNetworkIds.size() : 0L);
                 _log.info(String.format("Port %s UnManagedExportMask %s " +
-                        "knownVolumes %d unmanagedVolumes %d knownInitiators %d unknownInitiators %d",
+                        "unmanagedVolumes %d unmanagedInitiators %d",
                         sp.getPortName(), umask.getMaskName(),
-                        knownVolumes, unmanagedVolumes, knownInitiators, unmanagedInitiators));
-                volumeCount += knownVolumes + unmanagedVolumes;
-                initiatorCount += knownInitiators + unmanagedInitiators;
+                        unmanagedVolumes, unmanagedInitiators));
+                volumeCount += unmanagedVolumes;
+                initiatorCount += unmanagedInitiators;
             }
         }
         MetricsKeys.putLong(MetricsKeys.unmanagedInitiatorCount, initiatorCount, dbMetrics);
         MetricsKeys.putLong(MetricsKeys.unmanagedVolumeCount, volumeCount, dbMetrics);
+    }
+    
+    /**
+     * Checks to see if there is an ExportMask of the given maskName belonging 
+     * to specified device with same nativeId.
+     * @param maskName -- String mask name. It's an alternate index to ExportMask.
+     * @param nativeId -- String native id of mask.
+     * @param device -- URI of device
+     * @return true if there is a matching ExportMask, false otherwise
+     */
+    private boolean checkForMatchingExportMask(String maskName, String nativeId, URI device) {
+    	URIQueryResultList uriQueryList = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getExportMaskByNameConstraint(maskName), uriQueryList);
+        while (uriQueryList.iterator().hasNext()) {
+        	ExportMask exportMask = _dbClient.queryObject(ExportMask.class, uriQueryList.iterator().next());
+        	if (exportMask != null && !exportMask.getInactive() 
+        			&& exportMask.getNativeId().equals(nativeId) && exportMask.getStorageDevice().equals(device)) {
+        		return true;
+        	}
+        }
+    	return false;
     }
 
     /**

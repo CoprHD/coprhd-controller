@@ -103,7 +103,6 @@ public class QosService extends TaskResourceService {
             }
         }
 
-        // TODO: Create a new qos entry in database for each Virtual Pool without a qos specs
         _log.info("END get QoS list");
         return qosListResp;
     }
@@ -159,7 +158,7 @@ public class QosService extends TaskResourceService {
     @Path("/{qos_id}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public CinderQosKeyUpdateRequest setUnsetQosKey(@PathParam("tenant_id") String openstack_tenant_id, @PathParam("qos_id") String qos_id, CinderQosKeyUpdateRequest data) {
+    public CinderQosDetail setUnsetQosKey(@PathParam("tenant_id") String openstack_tenant_id, @PathParam("qos_id") String qos_id, CinderQosKeyUpdateRequest data) {
 
         _log.info("START set or unset QoS keys");
         throw new UnsupportedOperationException();

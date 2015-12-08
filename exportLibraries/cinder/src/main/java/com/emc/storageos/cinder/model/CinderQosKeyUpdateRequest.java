@@ -4,6 +4,9 @@ import com.google.gson.annotations.SerializedName;
 
 import java.util.Map;
 
+/**
+ * Quality of Service object required for "Set or unset keys in QoS specification" call.
+ */
 public class CinderQosKeyUpdateRequest {
 
     /**

@@ -4,6 +4,9 @@ import com.emc.storageos.model.RestLinkRep;
 
 import javax.xml.bind.annotation.XmlElement;
 
+/**
+ * Quality of Service detailed object.
+ */
 public class CinderQosDetail{
 
     private RestLinkRep selfLink;

@@ -159,7 +159,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         try {
             String payload = toJsonString(objectArgs);
             objectAPI.updateBucketACL(objectArgs.getName(), payload);
-            updateBucketACLInDB(param, objectArgs);
+            updateBucketACLInDB(param, objectArgs, bucket);
 
         } catch (ECSException e) {
             _log.error("Retention Update for Bucket : {} failed.", objectArgs.getName(), e);
@@ -172,7 +172,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @SuppressWarnings("deprecation")
-    private void updateBucketACLInDB(BucketACLUpdateParams param, ObjectDeviceInputOutput args) {
+    private void updateBucketACLInDB(BucketACLUpdateParams param, ObjectDeviceInputOutput args, Bucket bucket) {
 
         try {
             // Create new Acl
@@ -182,7 +182,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                 for (BucketACE ace : aclToAdd) {
                     ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
                     dbBucketAcl.setId(URIUtil.createId(ObjectBucketACL.class));
-                    copyToPersistBucketACL(ace, dbBucketAcl, args);
+                    copyToPersistBucketACL(ace, dbBucketAcl, args, bucket.getId());
                     _log.info("Storing new acl in DB: {}", dbBucketAcl);
                     _dbClient.createObject(dbBucketAcl);
                 }
@@ -194,7 +194,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             if (aclToModify != null && !aclToModify.isEmpty()) {
                 for (BucketACE ace : aclToModify) {
                     ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
-                    copyToPersistBucketACL(ace, dbBucketAcl, args);
+                    copyToPersistBucketACL(ace, dbBucketAcl, args, bucket.getId());
                     ObjectBucketACL dbBucketAclTemp = getExistingBucketAclFromDB(dbBucketAcl);
                     if (dbBucketAclTemp != null) {
                         dbBucketAcl.setId(dbBucketAclTemp.getId());
@@ -210,7 +210,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             if (aclToDelete != null && !aclToDelete.isEmpty()) {
                 for (BucketACE ace : aclToDelete) {
                     ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
-                    copyToPersistBucketACL(ace, dbBucketAcl, args);
+                    copyToPersistBucketACL(ace, dbBucketAcl, args, bucket.getId());
                     ObjectBucketACL dbNfsAclTemp = getExistingBucketAclFromDB(dbBucketAcl);
                     if (dbNfsAclTemp != null) {
                         dbBucketAcl.setId(dbNfsAclTemp.getId());
@@ -227,10 +227,11 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         }
     }
 
-    private void copyToPersistBucketACL(BucketACE ace, ObjectBucketACL dbBucketAcl, ObjectDeviceInputOutput args) {
+    private void copyToPersistBucketACL(BucketACE ace, ObjectBucketACL dbBucketAcl, ObjectDeviceInputOutput args, URI bucketId) {
 
         dbBucketAcl.setBucketName(args.getName());
         dbBucketAcl.setNamespace(args.getNamespace());
+        dbBucketAcl.setBucketId(bucketId);
 
         if (ace.getUser() != null) {
             dbBucketAcl.setUser(ace.getUser());

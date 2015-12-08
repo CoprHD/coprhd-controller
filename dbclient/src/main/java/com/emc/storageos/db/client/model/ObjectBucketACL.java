@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
+
 /**
  * BucketACL will contain the details of ACL on Bucket.
  * It will hold information about the user, group, customgroup, domain, bucketId etc. mapped to Bucket ACL
@@ -21,6 +23,7 @@ public class ObjectBucketACL extends DataObject {
     protected String bucketACLIndex;
     protected String bucketName;
     protected String namespace;
+    protected URI bucketId;
 
     @Name("user")
     public String getUser() {
@@ -72,7 +75,6 @@ public class ObjectBucketACL extends DataObject {
         setChanged("bucketACLIndex");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = Bucket.class)
     @Name("bucketName")
     public String getBucketName() {
         return bucketName;
@@ -82,6 +84,18 @@ public class ObjectBucketACL extends DataObject {
         this.bucketName = bucketName;
         calculateACLIndex();
         setChanged("bucketName");
+    }
+
+    @RelationIndex(cf = "RelationIndex", type = Bucket.class)
+    @Name("bucketId")
+    public URI getBucketId() {
+        return bucketId;
+    }
+
+    public void setBucketId(URI bucketId) {
+        this.bucketId = bucketId;
+        calculateACLIndex();
+        setChanged("bucketId");
     }
 
     @Name("namespace")

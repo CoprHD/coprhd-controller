@@ -50,7 +50,7 @@ public class IPsecManager {
         List<String> disconnectedNodes = checkIPsecStatus();
 
         IPsecStatus status = new IPsecStatus();
-        status.setIsGood(disconnectedNodes == null);
+        status.setIsGood(CollectionUtils.isEmpty(disconnectedNodes));
         status.setVersion(vdcConfigVersion);
         if (disconnectedNodes != null) {
             status.setDisconnectedNodes(disconnectedNodes);

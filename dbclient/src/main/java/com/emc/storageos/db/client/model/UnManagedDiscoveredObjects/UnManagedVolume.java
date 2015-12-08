@@ -53,7 +53,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         IS_SNAP_SHOT("Snapshot", "Snapshot"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
         IS_BOUND("EMCSVIsBound", "EMCIsBound"),
-        // Is this volume exported to anything?  (including RP and VPLEX)
+        // Is this volume exported to anything? (including RP and VPLEX)
         IS_VOLUME_EXPORTED("isVolumeExported", "isVolumeExported"),
         // Is this volume export to hosts/clusters? (excluding RP)
         IS_NONRP_EXPORTED("isNonRPExported", "isNonRPExported"),
@@ -122,7 +122,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         VPLEX_BACKEND_CLUSTER_ID("vplexBackendClusterId", "vplexBackendClusterId"),
         // native GUID of the VPLEX virtual volume containing this volume
         VPLEX_PARENT_VOLUME("vplexParentVolume", "vplexParentVolume"),
-        // map of backend clone volume GUID to virtual volume GUID 
+        // map of backend clone volume GUID to virtual volume GUID
         VPLEX_FULL_CLONE_MAP("vplexFullCloneMap", "vplexFullCloneMap"),
         // map of unmanaged volume GUID mirror to vplex device info context path
         VPLEX_MIRROR_MAP("vplexMirrorMap", "vplexMirrorMap"),
@@ -160,7 +160,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         RP_UNMANAGED_TARGET_VOLUMES("rpUnManagedTargetVolumes", "rpUnManagedTargetVolumes"),
         RP_MANAGED_TARGET_VOLUMES("rpManagedTargetVolumes", "rpManagedTargetVolumes"),
         RP_UNMANAGED_SOURCE_VOLUME("rpUnManagedSourceVolume", "rpUnManagedSourceVolume"),
-        RP_MANAGED_SOURCE_VOLUME("rpManagedSourceVolume", "rpManagedSourceVolume");
+        RP_MANAGED_SOURCE_VOLUME("rpManagedSourceVolume", "rpManagedSourceVolume"),
+        RP_ACCESS_STATE("rpAccessState", "rpAccessState");
 
         private final String _infoKey;
         private final String _alternateKey;
@@ -341,7 +342,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
             return REGULAR == types;
         }
     }
-    
+
     @Override
     public String toString() {
         return this.getLabel() + " (" + this.getId() + ")";

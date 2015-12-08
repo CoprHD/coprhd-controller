@@ -135,7 +135,7 @@ public class FilePolicyService extends TaggedResource {
         FilePolicyRestRep policy = new FilePolicyRestRep();
         FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policyId);
         if (filePolicy != null) {
-            policy.setPolicyId(filePolicy.getPolicyId());
+            policy.setPolicyId(filePolicy.getId());
             policy.setPolicyName(filePolicy.getPolicyName());
             policy.setPolicySchedule(filePolicy.getPolicySchedule());
             policy.setPolicyExipration(filePolicy.getPolicyExpire());
@@ -165,11 +165,15 @@ public class FilePolicyService extends TaggedResource {
         if (schedule.contains("invalid input")) {
             // throw APIException.badRequests.vNasServersNotAssociatedToProject();
         }
+        int policyExpire = validatePolicyExpire(param.getPolicyExpire());
+        if (policyExpire == 0) {
+            // throw APIException.badRequests.vNasServersNotAssociatedToProject();
+        }
         filePolicy.setId(URIUtil.createId(FilePolicy.class));
-        filePolicy.setPolicyId(URIUtil.createId(FilePolicy.class));
+        filePolicy.setLabel(param.getPolicyName());
         filePolicy.setPolicyName(param.getPolicyName());
         filePolicy.setPolicySchedule(schedule);
-        filePolicy.setPolicyExpire(param.getPolicyDuration());
+        filePolicy.setPolicyExpire(policyExpire);
         _dbClient.createObject(filePolicy);
         _log.info("File schedule policy {} created successfully", filePolicy);
         return Response.ok().build();
@@ -233,6 +237,38 @@ public class FilePolicyService extends TaggedResource {
         return builder.toString();
     }
 
+    private int validatePolicyExpire(FilePolicyScheduleParam expireParam) {
+
+        if (expireParam != null) {
+            int seconds = 0;
+            int minPeriod = 7200;
+            int maxPeriod = 10 * 365 * 24 * 3600;
+            switch (expireParam.getExpireType().toLowerCase()) {
+                case "hours":
+                    seconds = expireParam.getExpireValue() * 3600;
+                    break;
+                case "days":
+                    seconds = expireParam.getExpireValue() * 24 * 3600;
+                    break;
+                case "weeks":
+                    seconds = expireParam.getExpireValue() * 7 * 24 * 3600;
+                    break;
+                case "months":
+                    seconds = expireParam.getExpireValue() * 30 * 24 * 3600;
+                    break;
+                case "years":
+                    seconds = expireParam.getExpireValue() * 365 * 24 * 3600;
+                    break;
+                default:
+                    break;
+            }
+            if (seconds >= minPeriod && seconds <= maxPeriod) {
+                return seconds;
+            }
+        }
+        return 0;
+    }
+
     /**
      * Update info for file schedule policy including name, schedule etc.
      * 
@@ -258,9 +294,13 @@ public class FilePolicyService extends TaggedResource {
             if (schedule.contains("invalid input")) {
                 // throw APIException.badRequests.vNasServersNotAssociatedToProject();
             }
+            int policyExpire = validatePolicyExpire(param.getPolicyExpire());
+            if (policyExpire == 0) {
+                // throw APIException.badRequests.vNasServersNotAssociatedToProject();
+            }
             filePolicy.setPolicyName(param.getPolicyName());
             filePolicy.setPolicySchedule(schedule);
-            filePolicy.setPolicyExpire(param.getPolicyDuration());
+            filePolicy.setPolicyExpire(policyExpire);
             _dbClient.updateObject(filePolicy);
             _log.info("File schedule policy {} updated successfully", filePolicy.getPolicyName());
         }
@@ -276,8 +316,6 @@ public class FilePolicyService extends TaggedResource {
      * @throws BadRequestException
      */
     @DELETE
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public Response deleteFilePolicy(@PathParam("id") URI policyId) {

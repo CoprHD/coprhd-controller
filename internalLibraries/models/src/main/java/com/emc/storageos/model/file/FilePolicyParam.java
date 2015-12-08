@@ -20,8 +20,8 @@ public class FilePolicyParam {
 
     private String policyName;
     private String policyPattern;
-    private String policyDuration;
     private FilePolicyScheduleParam policySchedule;
+    private FilePolicyScheduleParam policyExpire;
 
     @XmlElement(required = true, name = "policy_name")
     public String getPolicyName() {
@@ -51,11 +51,11 @@ public class FilePolicyParam {
     }
 
     @XmlElement(name = "policy_expire")
-    public String getPolicyDuration() {
-        return policyDuration;
+    public FilePolicyScheduleParam getPolicyExpire() {
+        return policyExpire;
     }
 
-    public void setPolicyDuration(String policyDuration) {
-        this.policyDuration = policyDuration;
+    public void setPolicyExpire(FilePolicyScheduleParam policyExpire) {
+        this.policyExpire = policyExpire;
     }
 }

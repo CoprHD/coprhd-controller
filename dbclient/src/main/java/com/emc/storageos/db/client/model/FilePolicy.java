@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.db.client.model;
 
-import java.net.URI;
-
 /**
  * FilePolicy will contain the details of file schedule policy.
  * It will hold information about the policyId, policyName, policySchedule, policyExpiration
@@ -16,20 +14,15 @@ import java.net.URI;
 
 @Cf("FilePolicy")
 public class FilePolicy extends DiscoveredDataObject {
-    private URI policyId;
+
+    // Name of the policy
     private String policyName;
+
+    // File policy schedule at
     private String policySchedule;
-    private String policyExpire;
 
-    @Name("policyId")
-    public URI getPolicyId() {
-        return policyId;
-    }
-
-    public void setPolicyId(URI policyId) {
-        this.policyId = policyId;
-        setChanged("policyId");
-    }
+    // File policy expire at
+    private int policyExpire;
 
     @Name("policyName")
     public String getPolicyName() {
@@ -52,11 +45,11 @@ public class FilePolicy extends DiscoveredDataObject {
     }
 
     @Name("policyExpire")
-    public String getPolicyExpire() {
+    public int getPolicyExpire() {
         return policyExpire;
     }
 
-    public void setPolicyExpire(String policyExpire) {
+    public void setPolicyExpire(int policyExpire) {
         this.policyExpire = policyExpire;
         setChanged("policyExpire");
     }

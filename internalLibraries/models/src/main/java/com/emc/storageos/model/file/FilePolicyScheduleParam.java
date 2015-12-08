@@ -18,7 +18,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class FilePolicyScheduleParam {
 
-    // File Policy schedule type - daily, weekly, monthly, yearly.
+    // File Policy schedule type - daily, weekly, monthly, yearly
     private String scheduleType;
 
     // Number of times policy run
@@ -32,6 +32,12 @@ public class FilePolicyScheduleParam {
 
     // Day when policy run
     private String scheduleDay;
+
+    // File Policy expire type - hours, days, weeks, months, years
+    private String expireType;
+
+    // Policy expire after
+    private int expireValue;
 
     @XmlElement(required = true, name = "scheduleType")
     public String getScheduleType() {
@@ -76,6 +82,24 @@ public class FilePolicyScheduleParam {
 
     public void setScheduleDay(String scheduleDay) {
         this.scheduleDay = scheduleDay;
+    }
+
+    @XmlElement(name = "expireType")
+    public String getExpireType() {
+        return expireType;
+    }
+
+    public void setExpireType(String expireType) {
+        this.expireType = expireType;
+    }
+
+    @XmlElement(name = "expireValue")
+    public int getExpireValue() {
+        return expireValue;
+    }
+
+    public void setExpireValue(int expireValue) {
+        this.expireValue = expireValue;
     }
 
 }

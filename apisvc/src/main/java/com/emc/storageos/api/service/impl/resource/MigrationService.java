@@ -479,7 +479,7 @@ public class MigrationService extends TaskResourceService {
         // Don't allow cancel operation if the vplex volume is in a CG
         URI cgURI = vplexVol.getConsistencyGroup();
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
-            throw APIException.badRequests.cancelMigrationFailed(migrationName, "Migration cancellation is not supported for the volumes in Consistency group");
+            throw APIException.badRequests.cancelMigrationFailed(migrationName, "Migration cancellation is not supported for the volumes in consistency group");
         }
 
         if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {

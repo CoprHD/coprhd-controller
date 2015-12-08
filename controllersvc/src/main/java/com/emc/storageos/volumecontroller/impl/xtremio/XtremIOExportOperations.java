@@ -892,16 +892,19 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         // get all initiators and see which initiators belong to given IG name.
         // Currently this is the only way to get initiators belonging to IG
         List<Initiator> knownInitiatorsInIG = new ArrayList<Initiator>();
+        List<String> allInitiators = new ArrayList<String>();
         List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo(xioClusterName);
         for (XtremIOInitiator initiator : initiators) {
             String igNameInInitiator = initiator.getInitiatorGroup().get(1);
             if (igName.equals(igNameInInitiator)) {
+                allInitiators.add(initiator.getPortAddress());
                 Initiator knownInitiator = NetworkUtil.getInitiator(initiator.getPortAddress(), dbClient);
                 if (knownInitiator != null) {
                     knownInitiatorsInIG.add(knownInitiator);
                 }
             }
         }
+        _log.info("Initiators present in IG: {}", allInitiators);
         return knownInitiatorsInIG;
     }
 
@@ -914,7 +917,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 CommonTransformerFunctions.fctnInitiatorToPortName());
         Collection<String> requestedInitiators = Collections2.transform(requestedInitiatorsInIG,
                 CommonTransformerFunctions.fctnInitiatorToPortName());
-        _log.info("Initiators present in IG: {}, Initiators requested to be removed: {}",
+        _log.info("ViPR known Initiators present in IG: {}, Initiators requested to be removed: {}",
                 initiatorsInIG, requestedInitiators);
         initiatorsInIG.removeAll(requestedInitiators);
         if (!initiatorsInIG.isEmpty()) {

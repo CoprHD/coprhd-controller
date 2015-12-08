@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
@@ -37,7 +41,13 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
-@Path("/vdc/policy/snapshots")
+/**
+ * FilePolicyService resource implementation
+ * 
+ * @author prasaa9
+ * 
+ */
+@Path("/file/file-policies")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class FilePolicyService extends TaggedResource {
@@ -57,18 +67,6 @@ public class FilePolicyService extends TaggedResource {
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
-    }
-
-    // how many times to retry a procedure before returning failure to the user.
-    // Is used with "system delete" operation.
-    private int _retry_attempts;
-
-    public int get_retry_attempts() {
-        return _retry_attempts;
-    }
-
-    public void set_retry_attempts(int _retry_attempts) {
-        this._retry_attempts = _retry_attempts;
     }
 
     @Override
@@ -137,9 +135,10 @@ public class FilePolicyService extends TaggedResource {
         FilePolicyRestRep policy = new FilePolicyRestRep();
         FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policyId);
         if (filePolicy != null) {
+            policy.setPolicyId(filePolicy.getPolicyId());
             policy.setPolicyName(filePolicy.getPolicyName());
             policy.setPolicySchedule(filePolicy.getPolicySchedule());
-            policy.setPolicyExipration(filePolicy.getPolicyExpiration());
+            policy.setPolicyExipration(filePolicy.getPolicyExpire());
         }
         return policy;
     }
@@ -157,16 +156,20 @@ public class FilePolicyService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public Response createFilePolicy(FilePolicyParam param) {
+        if (param.getPolicyName() != null && !param.getPolicyName().isEmpty()) {
+            checkForDuplicateName(param.getPolicyName(), FilePolicy.class);
+        }
         _log.info("File schedule policy creation started -- ");
         FilePolicy filePolicy = new FilePolicy();
         String schedule = validatePolicySchedule(param.getPolicySchedule());
         if (schedule.contains("invalid input")) {
             // throw APIException.badRequests.vNasServersNotAssociatedToProject();
         }
+        filePolicy.setId(URIUtil.createId(FilePolicy.class));
         filePolicy.setPolicyId(URIUtil.createId(FilePolicy.class));
         filePolicy.setPolicyName(param.getPolicyName());
         filePolicy.setPolicySchedule(schedule);
-        filePolicy.setPolicyExpiration(param.getPolicyDuration());
+        filePolicy.setPolicyExpire(param.getPolicyDuration());
         _dbClient.createObject(filePolicy);
         _log.info("File schedule policy {} created successfully", filePolicy);
         return Response.ok().build();
@@ -181,8 +184,10 @@ public class FilePolicyService extends TaggedResource {
     private String validatePolicySchedule(FilePolicyScheduleParam schedule) {
         StringBuilder builder = new StringBuilder();
         if (schedule != null) {
+            String splitTime[] = schedule.getScheduleTime().split(":");
+            int time = Integer.parseInt(splitTime[0]);
             String period = " PM";
-            if (schedule.getScheduleTime() < 12) {
+            if (time < 12) {
                 period = " AM";
             }
             switch (schedule.getScheduleType().toLowerCase()) {
@@ -244,6 +249,9 @@ public class FilePolicyService extends TaggedResource {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public Response updateFilePolicy(@PathParam("id") URI policyId, FilePolicyParam param) {
         ArgValidator.checkFieldUriType(policyId, FilePolicy.class, "policyId");
+        if (param.getPolicyName() != null && !param.getPolicyName().isEmpty()) {
+            checkForDuplicateName(param.getPolicyName(), FilePolicy.class);
+        }
         FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policyId);
         if (filePolicy != null) {
             String schedule = validatePolicySchedule(param.getPolicySchedule());
@@ -252,9 +260,9 @@ public class FilePolicyService extends TaggedResource {
             }
             filePolicy.setPolicyName(param.getPolicyName());
             filePolicy.setPolicySchedule(schedule);
-            filePolicy.setPolicyExpiration(param.getPolicyDuration());
+            filePolicy.setPolicyExpire(param.getPolicyDuration());
             _dbClient.updateObject(filePolicy);
-            _log.info("Successfully updated the file schedule policy {} ", filePolicy.getPolicyName());
+            _log.info("File schedule policy {} updated successfully", filePolicy.getPolicyName());
         }
         return Response.ok().build();
     }
@@ -276,7 +284,7 @@ public class FilePolicyService extends TaggedResource {
         ArgValidator.checkFieldUriType(policyId, FilePolicy.class, "policyId");
         FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policyId);
         _dbClient.markForDeletion(filePolicy);
-        _log.info("Successfully deleted the file schedule policy {} ", filePolicy.getPolicyName());
+        _log.info("File schedule policy {} deleted successfully", filePolicy.getPolicyName());
         return Response.ok().build();
     }
 

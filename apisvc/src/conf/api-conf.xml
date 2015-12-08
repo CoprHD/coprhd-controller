@@ -476,7 +476,6 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.FilePolicyService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
-                    <property name="retryAttempts" value="5"/>
                 </bean>
                 <ref bean="virtualArrayService"/>
                 <ref bean="networkService"/>

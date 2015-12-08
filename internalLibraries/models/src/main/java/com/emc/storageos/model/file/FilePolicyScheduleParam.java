@@ -1,18 +1,39 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+/**
+ * Attributes associated with a file policy schedule, specified
+ * during file policy creation.
+ * 
+ * @author prasaa9
+ * 
+ */
+
 @XmlRootElement
 public class FilePolicyScheduleParam {
 
+    // File Policy schedule type - daily, weekly, monthly, yearly.
     private String scheduleType;
+
+    // Number of times policy run
     private int scheduleNumber;
-    private int scheduleTime;
+
+    // Time when policy run
+    private String scheduleTime;
+
+    // Month when policy run
     private int scheduleMonth;
+
+    // Day when policy run
     private String scheduleDay;
 
-    @XmlElement(name = "scheduleType")
+    @XmlElement(required = true, name = "scheduleType")
     public String getScheduleType() {
         return scheduleType;
     }
@@ -30,12 +51,12 @@ public class FilePolicyScheduleParam {
         this.scheduleNumber = scheduleNumber;
     }
 
-    @XmlElement(name = "scheduleTime")
-    public int getScheduleTime() {
+    @XmlElement(required = true, name = "scheduleTime")
+    public String getScheduleTime() {
         return scheduleTime;
     }
 
-    public void setScheduleTime(int scheduleTime) {
+    public void setScheduleTime(String scheduleTime) {
         this.scheduleTime = scheduleTime;
     }
 

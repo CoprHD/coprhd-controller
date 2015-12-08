@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file;
 
 import java.net.URI;
@@ -5,15 +9,26 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+/**
+ * File Policy and returned as a response to a REST request.
+ * 
+ * @author prasaa9
+ * 
+ */
+
 @XmlRootElement(name = "file_policy")
 public class FilePolicyRestRep {
 
+    // File policy id
     private URI policyId;
 
+    // File policy name
     private String policyName;
 
+    // File policy schedule at
     private String policySchedule;
 
+    // File policy expire at
     private String policyExipration;
 
     @XmlElement(name = "policy_id")

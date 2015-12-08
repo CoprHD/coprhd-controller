@@ -1,7 +1,19 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
+/**
+ * Attributes associated with a file policy, specified
+ * during file policy creation.
+ * 
+ * @author prasaa9
+ * 
+ */
 
 @XmlRootElement(name = "file_system_policy")
 public class FilePolicyParam {
@@ -11,7 +23,7 @@ public class FilePolicyParam {
     private String policyDuration;
     private FilePolicyScheduleParam policySchedule;
 
-    @XmlElement(name = "policy_name")
+    @XmlElement(required = true, name = "policy_name")
     public String getPolicyName() {
         return policyName;
     }
@@ -20,7 +32,7 @@ public class FilePolicyParam {
         this.policyName = policyName;
     }
 
-    @XmlElement(name = "policy_schedule")
+    @XmlElement(required = true, name = "policy_schedule")
     public FilePolicyScheduleParam getPolicySchedule() {
         return policySchedule;
     }
@@ -38,7 +50,7 @@ public class FilePolicyParam {
         this.policyPattern = policyPattern;
     }
 
-    @XmlElement(name = "policy_duration")
+    @XmlElement(name = "policy_expire")
     public String getPolicyDuration() {
         return policyDuration;
     }

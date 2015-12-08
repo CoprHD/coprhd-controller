@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file;
 
 import java.util.ArrayList;
@@ -28,8 +32,8 @@ public class FilePolicyBulkRep extends BulkRestRep {
     }
 
     /**
-     * List of Virtual NAS Servers. A VNAS Server represents a
-     * virtual NAS server of a storage device.
+     * List of File Policies. A file policy represents a
+     * file schedule policy.
      * 
      * @valid none
      */
@@ -42,7 +46,7 @@ public class FilePolicyBulkRep extends BulkRestRep {
     }
 
     /**
-     * @param vnasServers the vnasServers to set
+     * @param filePolicies the filePolicies to set
      */
     public void setFilePolicies(List<FilePolicyRestRep> filePolicies) {
         this.filePolicies = filePolicies;

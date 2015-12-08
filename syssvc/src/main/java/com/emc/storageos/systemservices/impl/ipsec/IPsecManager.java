@@ -99,14 +99,13 @@ public class IPsecManager {
      * @return
      */
     public String changeIpsecState(String state) {
-
-        String oldState = ipsecConfig.getIpsecState();
-        if (oldState.equalsIgnoreCase(state)) {
-            log.info("ipsec already in state: " + state + ", skip the operation.");
-            return oldState;
-        }
-        log.info("change Ipsec State from " + oldState + " to " + state);
         if (state != null && (state.equalsIgnoreCase("enabled") || state.equalsIgnoreCase("disabled"))) {
+            String oldState = ipsecConfig.getIpsecState();
+            if (state.equalsIgnoreCase(oldState)) {
+                log.info("ipsec already in state: " + oldState + ", skip the operation.");
+                return oldState;
+            }
+            log.info("change Ipsec State from " + oldState + " to " + state);
             ipsecConfig.setIpsecState(state);
         } else {
             throw SecurityException.fatals.failToChangeIPsecState("invalid value");

@@ -68,9 +68,11 @@ public class IPSecMonitor implements Runnable {
             log.info("step 3: compare the latest ipsec properties with local, to determine if sync needed");
             if (isSyncNeeded(latest)) {
                 String latestKey = latest.get(Constants.IPSEC_KEY);
+                String latestState = latest.get(Constants.IPSEC_STATE);
                 LocalRepository localRepository = LocalRepository.getInstance();
-                log.info("syncing latest ipsec key to local: " + latestKey);
+                log.info("syncing latest properties to local: key=" + latestKey + ", state=" + latestState);
                 localRepository.syncIpsecKeyToLocal(latestKey);
+                localRepository.syncIpsecStateToLocal(latestState);
                 log.info("reloading ipsec");
                 localRepository.reconfigProperties("ipsec");
                 localRepository.reload("ipsec");
@@ -121,7 +123,9 @@ public class IPSecMonitor implements Runnable {
 
                 log.info("checking " + node + ": " + " configVersion=" + configVersion
                     + ", ipsecKey=" + props.get(Constants.IPSEC_KEY)
-                    + ", lastestKey=" + latest.get(Constants.IPSEC_KEY));
+                    + ", ipsecState=" + props.get(Constants.IPSEC_STATE)
+                    + ", latestKey=" + latest.get(Constants.IPSEC_KEY)
+                    + ", latestState=" + latest.get(Constants.IPSEC_STATE));
             }
         }
 
@@ -172,20 +176,42 @@ public class IPSecMonitor implements Runnable {
 
         String localIP = getLocalIPAddress();
         Map<String, String> localIpsecProp = LocalRepository.getInstance().getIpsecProperties(localIP);
-        log.info("local ipsec properties: ipsecKey=" + localIpsecProp.get(IPSEC_KEY)
+        String localKey = localIpsecProp.get(IPSEC_KEY);
+        String localState = localIpsecProp.get(IPSEC_STATE);
+        log.info("local ipsec properties: ipsecKey=" + localKey
+                + ", ipsecState=" + localState
                 + ", vdcConfigVersion=" + localIpsecProp.get(VDC_CONFIG_VERSION));
-        if (localIpsecProp.get(IPSEC_KEY).equals(props.get(IPSEC_KEY))) {
+
+        boolean bKeyEqual = false;
+        boolean bStateEqual = false;
+
+        if (localKey == null && props.get(IPSEC_KEY) == null) {
+            bKeyEqual = true;
+        } else if (localKey != null && localKey.equals(props.get(IPSEC_KEY))) {
+            bKeyEqual = true;
+        }
+        log.info("IPsec key equals or not: " + bKeyEqual);
+
+        if (localState == null && props.get(IPSEC_STATE) == null) {
+            bStateEqual = true;
+        } else if (localState != null && localState.equals(props.get(IPSEC_STATE))) {
+            bStateEqual = true;
+        }
+        log.info("IPsec state equals or not: " + bStateEqual);
+
+        if (bKeyEqual && bStateEqual) {
+            return false;
+        }
+
+        int result = compareVdcConfigVersion(
+                localIpsecProp.get(VDC_CONFIG_VERSION),
+                props.get(VDC_CONFIG_VERSION));
+        if (result > 0) {
             return false;
         } else {
-            int result = compareVdcConfigVersion(
-                    localIpsecProp.get(VDC_CONFIG_VERSION),
-                    props.get(VDC_CONFIG_VERSION));
-            if (result > 0) {
-                return false;
-            } else {
-                return true;
-            }
+            return true;
         }
+
     }
 
     /**

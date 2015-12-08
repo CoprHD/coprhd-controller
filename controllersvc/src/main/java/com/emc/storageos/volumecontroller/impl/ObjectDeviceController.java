@@ -153,7 +153,7 @@ public class ObjectDeviceController implements ObjectController {
         objectArgs.setName(bucketObj.getName());
         objectArgs.setNamespace(bucketObj.getNamespace());
 
-        BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucketACL(storageObj, objectArgs, param, opId);
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucketACL(storageObj, bucketObj, objectArgs, param, opId);
 
         if (result.getCommandPending()) {
             return;

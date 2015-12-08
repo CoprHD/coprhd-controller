@@ -29,6 +29,7 @@ public class ObjectBucketACL extends DataObject {
 
     public void setUser(String user) {
         this.user = user;
+        setChanged("user");
     }
 
     @Name("group")
@@ -38,6 +39,7 @@ public class ObjectBucketACL extends DataObject {
 
     public void setGroup(String group) {
         this.group = group;
+        setChanged("group");
     }
 
     @Name("domain")
@@ -47,6 +49,7 @@ public class ObjectBucketACL extends DataObject {
 
     public void setDomain(String domain) {
         this.domain = domain;
+        setChanged("domain");
     }
 
     @Name("permissions")
@@ -56,6 +59,7 @@ public class ObjectBucketACL extends DataObject {
 
     public void setPermissions(String permissions) {
         this.permissions = permissions;
+        setChanged("permissions");
     }
 
     @Name("bucketACLIndex")
@@ -65,6 +69,7 @@ public class ObjectBucketACL extends DataObject {
 
     public void setBucketACLIndex(String bucketACLIndex) {
         this.bucketACLIndex = bucketACLIndex;
+        setChanged("bucketACLIndex");
     }
 
     @RelationIndex(cf = "RelationIndex", type = Bucket.class)
@@ -86,6 +91,7 @@ public class ObjectBucketACL extends DataObject {
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
+        setChanged("namespace");
     }
 
     @Name("customGroup")
@@ -95,12 +101,13 @@ public class ObjectBucketACL extends DataObject {
 
     public void setCustomGroup(String customGroup) {
         this.customGroup = customGroup;
+        setChanged("customGroup");
     }
 
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("BucketACL [user=");
+        builder.append("ObjectBucketACL [user=");
         builder.append(user);
         builder.append(", group=");
         builder.append(group);

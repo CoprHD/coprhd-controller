@@ -56,5 +56,5 @@ public interface ObjectStorageDevice {
      * @return
      * @throws ControllerException
      */
-    BiosCommandResult doUpdateBucketACL(StorageSystem storageObj, ObjectDeviceInputOutput objectArgs, BucketACLUpdateParams param, String taskId) throws ControllerException;
+    BiosCommandResult doUpdateBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, BucketACLUpdateParams param, String taskId) throws ControllerException;
 }

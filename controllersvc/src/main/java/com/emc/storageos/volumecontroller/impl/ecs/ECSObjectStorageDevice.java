@@ -153,10 +153,9 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
     
     @Override
-    public BiosCommandResult doUpdateBucketACL(StorageSystem storageObj, ObjectDeviceInputOutput objectArgs, BucketACLUpdateParams param,
+    public BiosCommandResult doUpdateBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, BucketACLUpdateParams param,
             String taskId) throws ControllerException {
         ECSApi objectAPI = getAPI(storageObj);
-        URI bucketUri = URI.create(objectArgs.getName());
         try {
             String payload = toJsonString(objectArgs);
             objectAPI.updateBucketACL(objectArgs.getName(), payload);
@@ -164,11 +163,11 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
         } catch (ECSException e) {
             _log.error("Retention Update for Bucket : {} failed.", objectArgs.getName(), e);
-            completeTask(bucketUri, taskId, e);
+            completeTask(bucket.getId(), taskId, e);
             return BiosCommandResult.createErrorResult(e);
         }
 
-        completeTask(bucketUri, taskId, "Successfully updated Bucket ACL.");
+        completeTask(bucket.getId(), taskId, "Successfully updated Bucket ACL.");
         return BiosCommandResult.createSuccessfulResult();
     }
 
@@ -181,11 +180,11 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
             if (aclToAdd != null && !aclToAdd.isEmpty()) {
                 for (BucketACE ace : aclToAdd) {
-                    ObjectBucketACL dbBicketAcl = new ObjectBucketACL();
-                    dbBicketAcl.setId(URIUtil.createId(ObjectBucketACL.class));
-                    copyToPersistBucketACL(ace, dbBicketAcl, args);
-                    _log.info("Storing new acl in DB: {}", dbBicketAcl);
-                    _dbClient.createObject(dbBicketAcl);
+                    ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
+                    dbBucketAcl.setId(URIUtil.createId(ObjectBucketACL.class));
+                    copyToPersistBucketACL(ace, dbBucketAcl, args);
+                    _log.info("Storing new acl in DB: {}", dbBucketAcl);
+                    _dbClient.createObject(dbBucketAcl);
                 }
             }
 

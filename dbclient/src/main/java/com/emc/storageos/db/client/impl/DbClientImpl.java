@@ -525,7 +525,7 @@ public class DbClientImpl implements DbClient {
                         currentIt = null;
                         getNextBatch();
                         while (!nextBatch.isEmpty()) {
-                            currentIt = queryObjectFields(clazz, fieldNames, nextBatch).iterator();
+                            currentIt = internalQueryObjectFields(clazz, fieldNames, nextBatch).iterator();
 
                             if (currentIt.hasNext()) {
                                 break;

@@ -35,7 +35,6 @@ import util.VirtualPoolUtils;
 import util.builders.BlockVirtualPoolBuilder;
 import util.builders.BlockVirtualPoolUpdateBuilder;
 
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
@@ -428,14 +427,10 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             } else {
                 if (activeProtectionAtSourceSite) {
                     builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
-                } else {
-                    builder.setJournalVarrayAndVpool(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI());
                 }
 
                 if (activeProtectionAtHASite) {
                     builder.setStandByJournalVArrayVpool(uri(haJournalVArray), uri(haJournalVPool));
-                } else {
-                    builder.setStandByJournalVArrayVpool(null, null);
                 }
             }
             builder.setHighAvailability(highAvailability, enableAutoCrossConnExport, virtualArrayId, virtualPoolId,
@@ -506,14 +501,10 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
                 } else {
                     if (activeProtectionAtSourceSite) {
                         builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
-                    } else {
-                        builder.setJournalVarrayAndVpool(null, null);
                     }
 
                     if (activeProtectionAtHASite) {
                         builder.setStandByJournalVArrayVpool(uri(haJournalVArray), uri(haJournalVPool));
-                    } else {
-                        builder.setStandByJournalVArrayVpool(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullURI());
                     }
                 }
                 builder.setHighAvailability(highAvailability, enableAutoCrossConnExport, uri(haVirtualArray), uri(haVirtualPool),

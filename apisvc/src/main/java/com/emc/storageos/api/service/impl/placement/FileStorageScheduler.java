@@ -52,6 +52,7 @@ import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -254,12 +255,32 @@ public class FileStorageScheduler {
         StoragePort sp;
 
         if (fs.getStoragePort() == null) {
-            _log.debug("placement for file system {} with no assigned port.",
+            _log.info("Placement for file system {} with no assigned port.",
                     fs.getName());
             // if no storage port is selected yet, select one and record the
             // selection
             List<StoragePort> ports = getStorageSystemPortsInVarray(
                     fs.getStorageDevice(), fs.getVirtualArray());
+            
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+            
+            if(Type.isilon.name().equals(storageSystem.getSystemType())) {
+	            if (ports != null && !ports.isEmpty()) {
+		            //Check if these ports are associated with vNAS
+		            for (Iterator<StoragePort> iterator = ports.iterator(); iterator.hasNext();) {
+						StoragePort storagePort =  iterator.next();
+						List<VirtualNAS> vNASList = StoragePortAssociationHelper.getStoragePortVirtualNAS(storagePort, _dbClient);
+						if (vNASList != null && !vNASList.isEmpty()) {
+							/* Remove the associated port. Because during file system placement,
+							 * storage port will already be assigned to FS. In that case, this block won't
+							 * be executed.
+							 */
+							_log.info("Removing port {} as it is assigned to a vNAS.", storagePort.getNativeGuid());
+							iterator.remove();
+						}
+					}
+	            }
+            }
 
             // Filter ports based on protocol (for example, if CIFS or NFS is
             // required)
@@ -285,7 +306,7 @@ public class FileStorageScheduler {
             // if a storage port is already selected for the fileshare, use that
             // port for all exports
             sp = _dbClient.queryObject(StoragePort.class, fs.getStoragePort());
-            _log.debug("placement for file system {} with port {}.",
+            _log.info("Placement for file system {} with port {}.",
                     fs.getName(), sp.getPortName());
 
             // verify port supports new request.

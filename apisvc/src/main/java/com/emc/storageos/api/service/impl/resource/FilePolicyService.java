@@ -165,7 +165,7 @@ public class FilePolicyService extends TaggedResource {
         if (schedule.contains("invalid input")) {
             // throw APIException.badRequests.vNasServersNotAssociatedToProject();
         }
-        int policyExpire = validatePolicyExpire(param.getPolicyExpire());
+        Long policyExpire = validatePolicyExpire(param.getPolicyExpire());
         if (policyExpire == 0) {
             // throw APIException.badRequests.vNasServersNotAssociatedToProject();
         }
@@ -237,12 +237,18 @@ public class FilePolicyService extends TaggedResource {
         return builder.toString();
     }
 
-    private int validatePolicyExpire(FilePolicyScheduleParam expireParam) {
+    /**
+     * validates whether the policy expire duration is valid or not
+     * 
+     * @param expireParam - file policy expire parameters
+     * @return valid policy expire duration
+     */
+    private Long validatePolicyExpire(FilePolicyScheduleParam expireParam) {
 
         if (expireParam != null) {
-            int seconds = 0;
-            int minPeriod = 7200;
-            int maxPeriod = 10 * 365 * 24 * 3600;
+            long seconds = 0;
+            long minPeriod = 7200;
+            long maxPeriod = 10 * 365 * 24 * 3600;
             switch (expireParam.getExpireType().toLowerCase()) {
                 case "hours":
                     seconds = expireParam.getExpireValue() * 3600;
@@ -266,7 +272,7 @@ public class FilePolicyService extends TaggedResource {
                 return seconds;
             }
         }
-        return 0;
+        return 0L;
     }
 
     /**
@@ -294,7 +300,7 @@ public class FilePolicyService extends TaggedResource {
             if (schedule.contains("invalid input")) {
                 // throw APIException.badRequests.vNasServersNotAssociatedToProject();
             }
-            int policyExpire = validatePolicyExpire(param.getPolicyExpire());
+            Long policyExpire = validatePolicyExpire(param.getPolicyExpire());
             if (policyExpire == 0) {
                 // throw APIException.badRequests.vNasServersNotAssociatedToProject();
             }

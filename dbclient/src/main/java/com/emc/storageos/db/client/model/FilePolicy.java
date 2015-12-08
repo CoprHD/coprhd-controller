@@ -22,7 +22,7 @@ public class FilePolicy extends DiscoveredDataObject {
     private String policySchedule;
 
     // File policy expire at
-    private int policyExpire;
+    private Long policyExpire;
 
     @Name("policyName")
     public String getPolicyName() {
@@ -45,11 +45,11 @@ public class FilePolicy extends DiscoveredDataObject {
     }
 
     @Name("policyExpire")
-    public int getPolicyExpire() {
+    public Long getPolicyExpire() {
         return policyExpire;
     }
 
-    public void setPolicyExpire(int policyExpire) {
+    public void setPolicyExpire(Long policyExpire) {
         this.policyExpire = policyExpire;
         setChanged("policyExpire");
     }

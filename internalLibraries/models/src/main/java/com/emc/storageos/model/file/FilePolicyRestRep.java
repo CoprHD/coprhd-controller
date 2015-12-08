@@ -29,7 +29,7 @@ public class FilePolicyRestRep {
     private String policySchedule;
 
     // File policy expire at
-    private int policyExipration;
+    private Long policyExipration;
 
     @XmlElement(name = "policy_id")
     public URI getPolicyId() {
@@ -59,11 +59,11 @@ public class FilePolicyRestRep {
     }
 
     @XmlElement(name = "policy_expire")
-    public int getPolicyExipration() {
+    public Long getPolicyExipration() {
         return policyExipration;
     }
 
-    public void setPolicyExipration(int policyExipration) {
+    public void setPolicyExipration(Long policyExipration) {
         this.policyExipration = policyExipration;
     }
 }

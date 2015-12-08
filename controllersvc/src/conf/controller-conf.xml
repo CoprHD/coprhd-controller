@@ -553,8 +553,8 @@
 
     <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
           factory-method="getInstance">
-    	<property name="connectionTimeoutMs" value="60000"/>
-        <property name="socketConnectionTimeoutMs" value="3600000" />
+    	<property name="connectionTimeoutMs" value="30000"/>
+        <property name="socketConnectionTimeoutMs" value="7200000" />
     </bean>
 
     <bean id="blockExportController"
@@ -584,7 +584,7 @@
     <bean id="isilonapifactory" class="com.emc.storageos.isilon.restapi.IsilonApiFactory"
           init-method="init" destroy-method="shutdown">
         <property name="connectionTimeoutMs" value="30000"/>
-        <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="socketConnectionTimeoutMs" value="7200000" />
     </bean>
           
     <bean id="isilonDevice" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonFileStorageDevice">
@@ -604,7 +604,7 @@
 	<bean id="ecsapifactory" class="com.emc.storageos.ecs.api.ECSApiFactory"
 		init-method="init" destroy-method="shutdown">
 	   <property name="connectionTimeoutMs" value="30000"/>
-        <property name="socketConnectionTimeoutMs" value="3600000" />	
+        <property name="socketConnectionTimeoutMs" value="7200000" />	
 	</bean>
 
 	<bean id="ecsDevice"
@@ -619,7 +619,7 @@
         <property name="connectionTimeoutMs" value="30000"/>
         <property name="maxConnections" value="300"/>
         <property name="maxConnectionsPerHost" value="100"/>
-        <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="socketConnectionTimeoutMs" value="7200000" />
         <property name="needCertificateManager" value="true"/>
     </bean>
 

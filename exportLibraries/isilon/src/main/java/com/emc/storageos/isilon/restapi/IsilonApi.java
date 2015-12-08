@@ -8,6 +8,7 @@ package com.emc.storageos.isilon.restapi;
 import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -50,7 +51,7 @@ public class IsilonApi {
     private static final URI URI_CLUSTER = URI.create("/platform/1/cluster/identity");
     private static final URI URI_CLUSTER_CONFIG = URI.create("/platform/1/cluster/config");
     private static final URI URI_STATS = URI.create("/platform/1/statistics/");
-    private static final URI URI_STORAGE_POOLS = URI.create("/platform/1/diskpool/diskpools");
+    private static final URI URI_STORAGE_POOLS = URI.create("/platform/1/storagepool/storagepools");
     private static final URI URI_ARRAY_GLOBAL_STATUS = URI.create("/platform/1/protocols/nfs/settings/global");
     private static final URI URI_ARRAY_GLOBAL_STATUS_ONEFS8 = URI.create("/platform/3/protocols/nfs/settings/global");
     private static final URI URI_STORAGE_PORTS = URI
@@ -1123,7 +1124,19 @@ public class IsilonApi {
      */
     public List<IsilonStoragePool> getStoragePools() throws IsilonException {
         IsilonList<IsilonStoragePool> pools = list(_baseUrl.resolve(URI_STORAGE_POOLS),
-                "diskpools", IsilonStoragePool.class, null);
+        		"storagepools", IsilonStoragePool.class, null);
+        return pools.getList();
+    }
+    
+    /**
+     * Get storage pools.
+     * 
+     * @return storage pools
+     * @throws IsilonException
+     */
+    public List<IsilonStoragePool> getDiskPools() throws IsilonException {
+        IsilonList<IsilonStoragePool> pools = list(_baseUrl.resolve(URI_STORAGE_POOLS),
+        		"diskpools", IsilonStoragePool.class, null);
         return pools.getList();
     }
 
@@ -1539,5 +1552,13 @@ public class IsilonApi {
         buffer.append(accesszoneName);
     	return buffer.toString();
     }
+    
+    public static void main(String[] args) throws URISyntaxException {
+    	IsilonApiFactory factory = new IsilonApiFactory();
+    	factory.init();
+    	URI deviceURI = new URI("https", null, "10.247.96.132", 8080, "/", null, null);
+		IsilonApi api = factory.getRESTClient(deviceURI, "root", "Is1l0n");
+		System.out.println(api.getStoragePools());
+	}
 
 }

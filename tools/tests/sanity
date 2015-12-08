@@ -2946,15 +2946,17 @@ recoverpoint_simulator_setup()
     run cos update block rp_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
     run cos update block rp_clr --storage $VMAX1_SIMULATOR_NATIVEGUID
     run cos update block rp_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
-    run cos update block rpvplex_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
-    run cos update block rpvplex_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
-    run cos update block rpvplex_targets --storage $VMAX3_SIMULATOR_NATIVEGUID
-    run cos update block rpvplex_ha --storage $VMAX1_SIMULATOR_NATIVEGUID
-    run cos update block rpvplex_ha --storage $VMAX2_SIMULATOR_NATIVEGUID
-    run cos update block rpvplex_ha --storage $VMAX3_SIMULATOR_NATIVEGUID
-    run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
-    run cos update block rpvplex_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
-    run cos update block rpvplex_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
+    if [ "${RPVPLEX_TESTS}" = "1" ]; then
+	run cos update block rpvplex_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
+	run cos update block rpvplex_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
+	run cos update block rpvplex_targets --storage $VMAX3_SIMULATOR_NATIVEGUID
+	run cos update block rpvplex_ha --storage $VMAX1_SIMULATOR_NATIVEGUID
+	run cos update block rpvplex_ha --storage $VMAX2_SIMULATOR_NATIVEGUID
+	run cos update block rpvplex_ha --storage $VMAX3_SIMULATOR_NATIVEGUID
+	run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
+	run cos update block rpvplex_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
+	run cos update block rpvplex_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
+    fi
 
 }
 
@@ -7733,7 +7735,7 @@ fail(){
 
 trap _failure ERR INT
 set -E
-if [ "$3" != "recoverpoint" ] && [ "$3" != "vdc" ] && [ "$3" != "dr" ]; then
+if [ "$3" != "vdc" ] && [ "$3" != "dr" ]; then
     common_setup	
 fi
 

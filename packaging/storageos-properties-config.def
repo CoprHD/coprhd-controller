@@ -1519,6 +1519,7 @@
         rebootRequired : true,
         hidden : true,
         value : "0",
+        siteSpecific : true,
     },
     {
         key : "controller_vplex_firmware_version",

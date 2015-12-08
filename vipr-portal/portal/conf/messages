@@ -8,8 +8,8 @@ CERT_OPTIONS_1=options
 #
 application.name=EMC ViPR
 # Validation messages
-#   Most of these are exact copies from the play framework and are here to make
-#   it easier to find and change validation messages for the entire application.
+# Most of these are exact copies from the play framework and are here to make
+# it easier to find and change validation messages for the entire application.
 validation.required=Required
 validation.minSize=Minimum size is %2$d
 validation.maxSize=Maximum size is %2$d
@@ -855,6 +855,7 @@ disasterRecovery.testButton=Test
 disasterRecovery.pauseButton=Pause
 disasterRecovery.resumeButton=Resume
 disasterRecovery.FailoverButton=Failover
+disasterRecovery.SwitchoverButton=Switchover
 disasterRecovery.save.success=Added standby: '%s'
 disasterRecovery.pause.success=Pause request initiated...
 disasterRecovery.resume.success=Resume request initiated for site: '%s'
@@ -885,19 +886,20 @@ disasterRecovery.edit.title=Edit Standby
 disasterRecovery.list.title=Disaster Recovery
 disasterRecovery.edit.title=Edit Standby
 disasterRecovery.add.title=Enter the information needed to discover standby cluster.
-disasterRecovery.switchover=Switchover Site
-disasterRecovery.Failover=Failover Site
+disasterRecovery.switchover=Switchover
+disasterRecovery.Failover=Failover
 disasterRecovery.switchover.active=Active Site
 disasterRecovery.switchover.standby=Standby Site
-disasterRecovery.switchover.subtitle=Site Switchover
-disasterRecovery.failover.subtitile=Site Failover
+disasterRecovery.switchover.subtitle=Switchover Status
+disasterRecovery.failover.subtitile=Failover Status
 disasterRecovery.switchover.description=Switching over to %s as the Active site...
 disasterRecovery.switchover.setting=Setting site
 disasterRecovery.switchover.active.to=as Active site and
 disasterRecovery.switchover.standby.to= as Standby site
 disasterRecovery.switchover.login.instruction=Please click here for login to new Active site:
 disasterRecovery.switchover.standby.vip= with site VIP:
-disasterRecovery.confirm.switchover=Are you sure you want to Failover?
+disasterRecovery.confirm.switchover=WARNING: Are you sure you want to Switchover to Standby site ?
+disasterRecovery.confirm.failover=WARNING: Are you sure you want to Failover to Standby site ?
 disasterRecovery.error.code=Error Code
 disasterRecovery.error.code.name=Error Code Name
 disasterRecovery.error.message=Error Message
@@ -1245,7 +1247,7 @@ keystores.title=Update Keystore
 keystores.description=Enter the information needed to update the Keystore.
 keystore.saved=Keystore updated successfully.
 keystore.saved.reboot=Keystore updated successfully.  ViPR will reboot for the change to take effect.
-keystore.rebootRequiredMessage=ViPR will be rebooted automatically after save and will not be operational for few minutes. 
+keystore.rebootRequiredMessage=ViPR will be rebooted automatically after save.
 keystore.certChain=Certificate Chain
 keystore.certKey=Private Key
 keystore.viewChain = View Certificate Chain

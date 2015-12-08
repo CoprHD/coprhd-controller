@@ -18,7 +18,7 @@
 			<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
 			<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
 			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
-			<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.FailoverButton' | t}}</a>
+			<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.failover'}')){return false;}")>{{'disasterRecovery.FailoverButton' | t}}</a>
 		#{/deadbolt.restrict}
     </div>
 </script>
@@ -38,11 +38,11 @@ angular.module('tags').directive({
         	 scope.pauseUrl = standbypauseUrl({'uuid': scope.row.id});
         	 scope.resumeUrl = standbyresumeUrl({'uuid': scope.row.id});
         	 scope.testUrl = standbytestUrl({'uuid': scope.row.id});
-			scope.failoverUrl = standbyfailoverUrl({'uuid': scope.row.id});
-			scope.isPauseSite = false;
-			scope.isResumeSite = false;
-			scope.isTestSite = false;
-			scope.isFailover = false;
+			 scope.failoverUrl = standbyfailoverUrl({'uuid': scope.row.id});
+			 scope.isPauseSite = false;
+			 scope.isResumeSite = false;
+			 scope.isTestSite = false;
+			 scope.isFailover = false;
 
         	 if(scope.row.status.toUpperCase() == "STANDBY_SYNCED"){
 				scope.isPauseSite = true;

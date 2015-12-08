@@ -1,8 +1,6 @@
 #{extends 'main.html'/}
 #{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
-#{set 'title'}&{'disasterRecovery.switchover'}#{/set}
-
-
+#{set 'title'}&{'disasterRecovery.failover'}#{/set}
 #{Form.header titleKey:'disasterRecovery.title' /}
 #{alerts/}
 
@@ -20,14 +18,14 @@
 
 #{Form.subheader titleKey:"disasterRecovery.failover.subtitile" /}
 <br/>
-<br/>
 <div id="switchdesc">
 	<span> &{'disasterRecovery.switchover.setting'} <b style="font-size:13px">${standby_name}</b> &{'disasterRecovery.switchover.active.to'}
 	 <b style="font-size:13px">${active_name}</b> &{'disasterRecovery.switchover.standby.to'}</span>
 	<br/>
 	<br/>
 	<table class="database-check-progress-table">
-		<tr><td width="300">
+		<tr>
+			<td width="300">
                     %{
                         style = "success"
                         if (site_state.equals("STANDBY_ERROR")) {
@@ -49,7 +47,6 @@
 		&{'disasterRecovery.switchover.login.instruction'} <a href="https://${standby_vip}" >${standby_name}</a>
 	</span>
 </div>
-
 
 <script>
 $(document).ready(function() {

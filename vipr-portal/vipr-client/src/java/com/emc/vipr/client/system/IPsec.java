@@ -8,12 +8,17 @@ import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.system.impl.PathConstants;
 
+import javax.ws.rs.core.UriBuilder;
+
+import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
+
 /**
  * IPsec relevant APIs
  */
 public class IPsec {
 
     private RestClient client;
+    private static final String STATE_PARAM = "state";
 
     public IPsec(RestClient client) {
         this.client = client;
@@ -39,5 +44,20 @@ public class IPsec {
      */
     public IPsecStatus checkStatus() {
         return client.get(IPsecStatus.class, PathConstants.IPSEC_KEY_URL);
+    }
+
+    /**
+     * change ipsec state
+     * <p>
+     * API Call: <tt>PUT /ipsec/state</tt>
+     *
+     * valid values: enabled, disabled
+     *
+     * @return the ipsec state.
+     */
+    public String changeState(String state) {
+        UriBuilder builder = client.uriBuilder(PathConstants.IPSEC_KEY_URL);
+        addQueryParam(builder, STATE_PARAM, state);
+        return client.postURI(String.class, builder.build());
     }
 }

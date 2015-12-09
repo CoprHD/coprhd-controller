@@ -11,6 +11,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.security.ipsec.IPsecConfig;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.security.exceptions.SecurityException;
 import org.slf4j.Logger;
@@ -97,7 +98,7 @@ public class IPsecManager {
             log.info("change Ipsec State from " + oldState + " to " + state);
             ipsecConfig.setIpsecState(state);
         } else {
-            throw SecurityException.fatals.failToChangeIPsecState("invalid value");
+            throw APIException.badRequests.invalidIpsecState();
         }
         String version = updateTargetSiteInfo();
         log.info("ipsec state changed, and new config version is {}", version);

@@ -181,10 +181,6 @@ _get_props() {
     echo "ipsec_state=${ipsec_state}"
 }
 
-_update_or_add_to_vdcconfig() {
-
-}
-
 #
 # write/update property to vdcconfig.properties
 # input:
@@ -197,7 +193,7 @@ _sync_ipsec_property() {
     local vdcconfig_file="/.volumes/bootfs/etc/vdcconfig.properties"
 
     /etc/systool --remount-rw
-    ${GREP} "${name}" ${vdcconfig_file}
+    ${GREP} "${name}" ${vdcconfig_file} 2>/dev/null
     if [ $? -eq 0 ] ; then
         ${SED} -i -- "s/${name}=.*/${name}=${value}/" ${vdcconfig_file}
     else
@@ -226,7 +222,7 @@ _sync_key() {
 
 
 case ${#} in
-    0) ;;
+    0) _usage ;;
     1) case ${1} in
         check-connection)  _check_connection ;;
         *)                 _usage

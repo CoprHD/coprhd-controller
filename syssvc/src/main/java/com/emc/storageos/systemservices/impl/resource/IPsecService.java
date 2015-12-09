@@ -68,7 +68,7 @@ public class IPsecService {
      * @param state - valid values [ enabled | disabled ] (case insensitive)
      * @return the new IPsec state
      */
-    @PUT
+    @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)

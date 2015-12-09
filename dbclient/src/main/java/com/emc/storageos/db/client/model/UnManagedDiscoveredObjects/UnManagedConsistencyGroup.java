@@ -17,8 +17,7 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 	private int _numberOfVols;  
 	//The name of this Consistency Group
 	private String _name; 
-	//The volumes that are associated to this CG
-	private StringSet _associatedVolumes; 
+
 	//Number of Volumes ingested
 	private static int _ingestedVolumes; 
 	
@@ -60,13 +59,7 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 		this._name = _name;
 	}
 
-	public StringSet get_associatedVolumes() {
-		return _associatedVolumes;
-	}
 
-	public void set_associatedVolumes(StringSet _associatedVolumes) {
-		this._associatedVolumes = _associatedVolumes;
-	}
 	
 	
 

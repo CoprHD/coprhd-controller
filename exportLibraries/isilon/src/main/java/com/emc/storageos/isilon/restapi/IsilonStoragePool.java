@@ -107,7 +107,7 @@ public class IsilonStoragePool extends IsilonPool {
     }
     
     public Long getUsedBytes() {
-    	return (getTotalBytes() - getFreeBytes());
+    	return (getTotalBytes() - getAvailableBytes());
     }
 
     public String getNativeId() {

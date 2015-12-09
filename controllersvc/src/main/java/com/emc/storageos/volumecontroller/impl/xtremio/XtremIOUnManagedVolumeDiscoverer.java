@@ -307,13 +307,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
     		XtremIOConsistencyGroupVolInfo cgVol = xtremIOClient.getXtremIOConsistencyGroupInfo(cg, xioClusterName);
     		//For the number of volumes that are associated to the CG, associate CGs to Volumes	
     		
-            String managedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(
+            String unManagedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(
                     storageSystem.getNativeGuid(), cgVol.getContent().getName());
             
             unManagedConsistencyGroup = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient,
-            		managedCGNativeGuid);
-
+            		unManagedCGNativeGuid);
             
+            createUnManagedCG(unManagedConsistencyGroup, unManagedCGNativeGuid, cgVol, storageSystem, dbClient);
+
     		for (int i =0; i < (Integer.parseInt(cgVol.getContent().getNumOfVols())); i++) {
     			volumesToCgs.put((String) cgVol.getContent().getVolList().get(i).get(0), cgVol.getContent().getName());			
     		}   		
@@ -576,6 +577,25 @@ public class XtremIOUnManagedVolumeDiscoverer {
             unManagedExportMasksToCreate.add(uem);
         }
         return uem;
+    }
+    
+    /**
+     * Creates UnManagedConsistencyGroup
+     */
+    private UnManagedConsistencyGroup createUnManagedCG(UnManagedConsistencyGroup unManagedCG, String unManagedCGNativeGuid,
+    		XtremIOConsistencyGroupVolInfo consistencyGroup, StorageSystem system, DbClient dbClient){
+    	if (null == unManagedCG){
+    		unManagedCG = new UnManagedConsistencyGroup();
+    		unManagedCG.setId(URIUtil.createId(UnManagedConsistencyGroup.class));
+    		unManagedCG.setNativeGuid(unManagedCGNativeGuid);
+    		unManagedCG.set_storageSystemUri(system.getId());
+    	}
+    	
+    	unManagedCG.set_name(consistencyGroup.getContent().getName());
+    	unManagedCG.set_numberOfVols(Integer.parseInt(consistencyGroup.getNumOfVols()));
+    	
+    	
+    	return unManagedCG; 
     }
 
     /**

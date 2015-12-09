@@ -518,8 +518,8 @@ public class DiscoveryUtils {
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getCGInfoNativeIdConstraint(nativeGuid), unManagedCGList);
         if (unManagedCGList.iterator().hasNext()) {
-            URI unManagedVolumeURI = unManagedCGList.iterator().next();
-            UnManagedConsistencyGroup cgInfo = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedVolumeURI);
+            URI unManagedCGURI = unManagedCGList.iterator().next();
+            UnManagedConsistencyGroup cgInfo = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedCGURI);
             if (!cgInfo.getInactive()) {
                 return cgInfo;
             }

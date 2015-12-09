@@ -74,6 +74,7 @@ public class IPsecConfig {
     public void updateKeyVersionForNode(String ip, String version) throws Exception {
         String key = String.format("%s%s", IPSEC_KEY_PREFIX, ip);
         coordinatorHelper.createOrUpdateConfig(version, IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, key);
+        log.info("Updated ipsec key version {} for the node {}", version, key);
     }
 
     public String getKeyVersionByNode(String ip) throws Exception {

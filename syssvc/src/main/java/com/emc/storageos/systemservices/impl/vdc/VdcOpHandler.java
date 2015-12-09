@@ -98,7 +98,7 @@ public abstract class VdcOpHandler {
     public static class IPSecRotateOpHandler extends VdcOpHandler {
 
         @Autowired
-        IPsecConfig iPsecConfig;
+        private IPsecConfig iPsecConfig;
 
         public IPSecRotateOpHandler() {
         }
@@ -112,7 +112,7 @@ public abstract class VdcOpHandler {
             syncFlushVdcConfigToLocal();
             try {
                 refreshIPsec();
-                iPsecConfig.updateKeyVersionForNode(getLocalIPAddress(), targetVdcPropInfo.getProperty(Constants.VDC_CONFIG_VERSION));
+                // iPsecConfig.updateKeyVersionForNode(getLocalIPAddress(), targetVdcPropInfo.getProperty(Constants.VDC_CONFIG_VERSION));
             } catch (Exception ex) {
                 log.warn("Unexpected error happens during applying vdc config to local", ex);
                 resetLocalVdcConfigVersion();
@@ -154,6 +154,9 @@ public abstract class VdcOpHandler {
                 }
                 String version = ipsecMgr.rotateKey();
                 log.info("Kicked off IPsec key rotation. The version is {}", version);
+
+                syncFlushVdcConfigToLocal();
+                refreshIPsec();
             } finally {
                 releaseIPsecLock(lock);
             }

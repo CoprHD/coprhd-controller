@@ -534,7 +534,8 @@ public class VdcManager extends AbstractManager {
         backCompatPreYoda = false;
 
         // Then do rolling reboot if ready
-        if (ipsecMgr.isKeyRotationDoneWithinLocalSite(targetSiteInfo.getVdcConfigVersion())) {
+        if (ipsecMgr.isKeyRotationDone()) {
+            log.info("IPsec key rotation for upgrade is done. Starting rolling reboot.");
             final String svcId = coordinator.getMySvcId();
             if (!getVdcLock(svcId)) {
                 retrySleep();

@@ -78,20 +78,29 @@ public class IPsecManager {
     }
 
     public boolean isKeyRotationDoneWithinLocalSite(long targetKeyVersion) throws Exception {
+        log.info("Checking ipsec key rotation is done ...");
         Site localSite = drUtil.getLocalSite();
         Map<String, String> ips = localSite.getHostIPv4AddressMap(); // TODO: should consider ipv6
         for (String ip : ips.values()) {
             String nodeVersion = ipsecConfig.getKeyVersionByNode(ip);
             if (StringUtils.isEmpty(nodeVersion)) {
+                log.info("The node {} is not done", ip);
                 return false;
             }
 
             if (!nodeVersion.equals(targetKeyVersion)) {
+                log.info("The node {} is not done. Target version is {}, The local version is {}", new Object[] {ip, targetKeyVersion, nodeVersion});
                 return false;
             }
+
+            log.info("The node {} is done", ip);
         }
 
         return true;
+    }
+
+    public boolean isKeyRotationDone() throws Exception {
+        return CollectionUtils.isEmpty(checkIPsecStatus());
     }
 
     private List<String> checkIPsecStatus() {

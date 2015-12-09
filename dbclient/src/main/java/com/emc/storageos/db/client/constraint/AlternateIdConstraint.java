@@ -617,6 +617,11 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemNfsACLIndex"), fileSystemNfsACLIndex);
         }
+        
+        public static AlternateIdConstraint getVolumesByApplicationId(String applicationId) {
+            DataObjectType doType = TypeMap.getDoType(Volume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("applicationIds"), applicationId);
+        }
     }
 
 }

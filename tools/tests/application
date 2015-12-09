@@ -1,0 +1,161 @@
+#!/bin/bash
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+# ==============================================================
+# Uncomment the below line to get tracing output for this script
+#set -x
+
+VIPRCLI_CMD=/opt/storageos/cli/bin/viprcli
+LOCAL_LDAP_AUTHN_MANAGER_PWD=secret
+LOCAL_LDAP_AUTHN_DOMAINS=VIPRSANITY.COM
+LOCAL_LDAP_SUPERUSER_USERNAME=ldapViPRUser1@${LOCAL_LDAP_AUTHN_DOMAINS}
+
+usage()
+{
+    echo "Usage: application [create | list | show | delete | update]"
+    echo "           create <name> <description> <role>"
+    echo "           list"
+    echo "           show <name>"
+    echo "           delete <name>"
+    echo "           update <name> <newname> <description>"
+    exit 2
+}
+
+viprcli_authenticate()
+{
+    echo "**** authenticating viprcli"
+    echo $LOCAL_LDAP_AUTHN_MANAGER_PWD | $VIPRCLI_CMD authenticate -u $LOCAL_LDAP_SUPERUSER_USERNAME -d /tmp
+}
+
+#
+# application list
+#
+application_list()
+{
+    echo "list all applications"
+    #viprcli_authenticate >$ dev/null
+    viprcli_authenticate >$ dev/null
+    $VIPRCLI_CMD application list
+    retval=$?
+    echo "list all applications completed with return code ${retval}"
+    return $retval
+}
+
+#
+# application_show <appname>
+#
+application_show()
+{
+    echo "show application ${1}"
+    viprcli_authenticate >$ dev/null
+    $VIPRCLI_CMD application show -n $1
+    retval=$?
+    echo "show application ${1} completed with return code ${retval}"
+    return $retval
+}
+
+#
+# application_create <appname> <description> <role>
+#
+application_create()
+{
+    echo "creating application ${1}"
+    viprcli_authenticate >$ dev/null
+    $VIPRCLI_CMD application create -n $1 -d $2 -r $3
+    retval=$?
+    echo "application ${1} created with return code ${retval}"
+    return $retval
+}
+
+#
+# application_update <appname> <newappname> <description>
+#
+application_update()
+{
+    echo "updating application ${1}"
+    viprcli_authenticate >$ dev/null
+    $VIPRCLI_CMD application update -n $1 -newname $2 -d $3
+    retval=$?
+    echo "application ${1} updated with return code ${retval}"
+    return $retval
+}
+
+#
+# application_delete <appname>
+#
+application_delete()
+{
+    echo "deleting application ${1}"
+    viprcli_authenticate >$ dev/null
+    $VIPRCLI_CMD application delete -n $1
+    retval=$?
+    echo "application ${1} delete with return code ${retval}"
+    return $retval
+}
+
+#
+# application_verify <appname> <fieldname> <expected value>
+#
+application_verify()
+{
+    echo "verifying field $2 is $3 for application ${1}"
+    viprcli_authenticate >$ dev/null
+    appname=$1
+    field=$2
+    expected=$3
+
+    searchstr="\"${field}\": \"${expected}\""
+
+    viprcli_authenticate >$ dev/null
+    show=$( $VIPRCLI_CMD application show -n $1 )
+    if [[ $show == *"${searchstr}"* ]]
+    then
+        echo "matched";
+        retval=0
+    else
+        echo "no match";
+        retval=1
+    fi
+
+    return $retval
+}
+
+[ $# -ge 1 ] || usage
+
+if [ $1 == 'create' ]; then
+    echo "create"
+    [ $# -ge 4 ] || usage
+    shift
+    application_create "$@"
+elif [ $1 == 'update' ]; then
+    echo "update"
+    [ $# -ge 4 ] || usage
+    shift
+    application_update "$@"
+elif [ $1 == 'delete' ]; then
+    echo "delete"
+    [ $# -ge 2 ] || usage
+    shift
+    application_delete "$@"
+elif [ $1 == 'show' ]; then
+    echo "show"
+    [ $# -ge 2 ] || usage
+    shift
+    application_show "$@"
+elif [ $1 == 'list' ]; then
+    echo "list"
+    shift
+    application_list "$@"
+elif [ $1 == 'verify' ]; then
+    echo "verify"
+    [ $# -ge 3 ] || usage
+    shift
+    application_verify "$@"
+else
+   usage
+fi
+
+

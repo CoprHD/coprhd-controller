@@ -24,6 +24,7 @@
         </property>
         <!-- 9 minutes timeout -->
         <property name="timeoutMs" value="540000"/>
+        <property name="siteId" value="a6cbcc20-99a8-4461-a3f6-0a8aa4433646"/>
     </bean>
 
     <context:property-placeholder location="classpath:syssvc-info.properties" />
@@ -45,5 +46,9 @@
 
     <bean id="productName" class="com.emc.storageos.coordinator.client.model.ProductName">
         <property name="name" value="vipr" />
+    </bean>
+    
+    <bean id="drUtil" class="com.emc.storageos.coordinator.client.service.DrUtil">
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 </beans>

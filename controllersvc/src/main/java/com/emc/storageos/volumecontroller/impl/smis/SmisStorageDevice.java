@@ -2050,12 +2050,24 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 Set<String> blockObjectsToAdd = _helper.filterVolumesAlreadyPartOfReplicationGroup(
                         forProvider, cgPath, blockObjectNames);
                 if (!blockObjectsToAdd.isEmpty()) {
+                    CIMArgument[] output = new CIMArgument[5];
                     CIMObjectPath[] members = _cimPath.getVolumePaths(storage,
                             blockObjectsToAdd.toArray(new String[blockObjectsToAdd.size()]));
-                    CIMArgument[] addMembersInput = _helper.getAddMembersInputArguments(cgPath, members);
-                    CIMArgument[] output = new CIMArgument[5];
-                    _helper.invokeMethod(forProvider, replicationSvc, SmisConstants.ADD_MEMBERS,
-                            addMembersInput, output);
+                    boolean cgHasGroupRelationship = ControllerUtils.checkCGHasGroupRelationship(consistencyGroup.getId(), _dbClient);
+                    if (!cgHasGroupRelationship) {
+                        CIMArgument[] addMembersInput = _helper.getAddMembersInputArguments(cgPath, members);
+                        _helper.invokeMethod(forProvider, replicationSvc, SmisConstants.ADD_MEMBERS,
+                                addMembersInput, output);
+                    } else {
+                        final CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
+                                SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+                        _log.info("Adding volumes {} to device masking group {}", StringUtils.join(blockObjectsToAdd, ", "),
+                                maskingGroupPath.toString());
+                        final CIMArgument[] inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath,
+                                members, true);
+                        _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                                SmisConstants.ADD_MEMBERS, inArgs, output, null);
+                    }
                 } else {
                     _log.info("Requested volumes {} are already part of the Replication Group {}, hence skipping AddMembers call..",
                             Joiner.on(", ").join(blockObjectNames), groupName);
@@ -2184,24 +2196,37 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 return;
             }
 
-            CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
-            CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
-            // If there is no consistency group with the given name, set the
-            // operation to error
-            if (cgPathInstance == null) {
-                taskCompleter.error(_dbClient, DeviceControllerException.exceptions
-                        .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
-                return;
-            }
-            CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             String[] blockObjectNames = _helper.getBlockObjectAlternateNames(blockObjects);
             CIMObjectPath[] members = _cimPath.getVolumePaths(storage, blockObjectNames);
-            CIMArgument[] removeMembersInput = _helper.getRemoveMembersInputArguments(cgPath,
-                    members);
             CIMArgument[] output = new CIMArgument[5];
-            _helper.invokeMethod(storage, replicationSvc, SmisConstants.REMOVE_MEMBERS,
-                    removeMembersInput, output);
+            if (ControllerUtils.checkCGHasGroupRelationship(consistencyGroupId, _dbClient)) {
+                // remove from DeviceMaskingGroup
+                CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
+                        SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+                _log.info("Removing volumes {} from device masking group {}", blockObjectNames, maskingGroupPath.toString());
+                CIMArgument[] inArgs = _helper.getRemoveAndUnmapMaskingGroupMembersInputArguments(maskingGroupPath,
+                        members, storage, true);
+                _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                        SmisConstants.REMOVE_MEMBERS, inArgs, output, null);
+            } else {
+                CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
+                CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
+                // If there is no consistency group with the given name, set the
+                // operation to error
+                if (cgPathInstance == null) {
+                    taskCompleter.error(_dbClient, DeviceControllerException.exceptions
+                            .consistencyGroupNotFound(consistencyGroup.getLabel(),
+                                    consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
+                    return;
+                }
+                CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
+                CIMArgument[] removeMembersInput = _helper.getRemoveMembersInputArguments(cgPath,
+                        members);
+
+                _helper.invokeMethod(storage, replicationSvc, SmisConstants.REMOVE_MEMBERS,
+                        removeMembersInput, output);
+            }
+
             // Remove any references to the consistency group
             for (URI blockObjectURI : blockObjects) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);

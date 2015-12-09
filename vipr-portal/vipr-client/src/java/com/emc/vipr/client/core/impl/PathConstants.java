@@ -146,7 +146,7 @@ public class PathConstants {
     public static final String USER_GROUP_URL = "/vdc/admin/user-groups";
     public static final String CHECK_COMPATIBLE_VDC_URL = "/vdc/check-compatibility";
     public static final String CHECK_IS_GEO_DISTRIBUTED_VDC_URL = "/vdc/check-geo-distributed";
-
+    public static final String SITE_URL = "/site";
     public static final String VIRTUAL_NAS_SERVER_URL = "/vdc/vnas-servers";
     public static final String VIRTUAL_NAS_SERVER_BY_STORAGE_SYSTEM_URL = "/vdc/storage-systems/{storage-system-id}/vnasservers";
     public static final String VIRTUAL_NAS_SERVER_BY_VARRAY_URL = VIRTUAL_NAS_SERVER_URL + "/varray/{varray-id}";

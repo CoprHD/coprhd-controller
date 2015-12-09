@@ -1,6 +1,11 @@
 #{extends 'main.html'/}
 #{set navSelected: ['nav.settings', 'nav.disasterRecovery'] /}
-#{set 'title'}&{'disasterRecovery.failover'}#{/set}
+#{if iamPrimary }
+	#{set 'title'}&{'disasterRecovery.switchover'}#{/set}
+#{/if}
+#{else}
+	#{set 'title'}&{'disasterRecovery.failover'}#{/set}
+#{/else}
 #{Form.header titleKey:'disasterRecovery.title' /}
 #{alerts/}
 
@@ -15,8 +20,12 @@
 </div>
 <br/>
 <br/>
-
-#{Form.subheader titleKey:"disasterRecovery.failover.subtitile" /}
+#{if iamPrimary }
+	#{Form.subheader titleKey:"disasterRecovery.switchover.subtitle" /}
+#{/if}
+#{else}
+	#{Form.subheader titleKey:"disasterRecovery.failover.subtitile" /}
+#{/else}
 <br/>
 <div id="switchdesc">
 	<span> &{'disasterRecovery.switchover.setting'} <b style="font-size:13px">${standby_name}</b> &{'disasterRecovery.switchover.active.to'}

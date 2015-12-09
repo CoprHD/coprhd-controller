@@ -330,6 +330,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("pwwnKey"), altId);
         }
 
+        public static AlternateIdConstraint getFCZoneReferenceLabelConstraint(String label) {
+            DataObjectType doType = TypeMap.getDoType(FCZoneReference.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("label"), label);
+        }
+
         public static AlternateIdConstraint getFCEndpointRemotePortNameConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(FCEndpoint.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("remotePortName"), altId);
@@ -423,7 +428,8 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getIpInterfaceIpAddressConstraint(String ipAddress) {
             DataObjectType doType = TypeMap.getDoType(IpInterface.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("ipAddress"), EndpointUtility.changeCase(ipAddress));
+            return new AlternateIdConstraintImpl(doType.getColumnField("ipAddress"),
+                    EndpointUtility.changeCase(ipAddress));
         }
 
         public static AlternateIdConstraint getExportGroupInitiatorConstraint(String initiatorId) {
@@ -498,8 +504,7 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(columnField), queryCond);
         }
 
-        public static AlternateIdConstraint
-                getExportMaskByNameConstraint(String maskName) {
+        public static AlternateIdConstraint getExportMaskByNameConstraint(String maskName) {
             DataObjectType doType = TypeMap.getDoType(ExportMask.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("maskName"),
                     maskName);
@@ -605,7 +610,8 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getFileSystemShareACLConstraint(String fileSystemShareACLIndex) {
             DataObjectType doType = TypeMap.getDoType(CifsShareACL.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemShareACLIndex"), fileSystemShareACLIndex);
+            return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemShareACLIndex"),
+                    fileSystemShareACLIndex);
         }
 
         public static AlternateIdConstraint getSnapshotNfsACLConstraint(String snapshotNfsACLIndex) {

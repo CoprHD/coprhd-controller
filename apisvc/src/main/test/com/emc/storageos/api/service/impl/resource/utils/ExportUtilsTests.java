@@ -158,11 +158,10 @@ public class ExportUtilsTests extends DbsvcTestBase {
         // Populate the database
         populateDb();
 
-        Volume volume = _dbClient.queryObject(Volume.class, URI.create("volume0"));
-
         // Start a timer
         long startTime = System.currentTimeMillis();
         ITLBulkRep list = new ITLBulkRep();
+
         for (URI volumeId : _volumeIds) {
             queryResource(volumeId);
             list.getExportList().addAll(
@@ -172,8 +171,7 @@ public class ExportUtilsTests extends DbsvcTestBase {
         // End a timer
         long endTime = System.currentTimeMillis();
 
-        System.out.println("Time elapsed: " + (endTime - startTime) + "ms");
-        // Assert the ITL entries
+        System.out.println("Time elapsed: " + (endTime - startTime));
 
     }
 

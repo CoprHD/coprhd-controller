@@ -227,6 +227,7 @@ public class ExportUtilsTestUtils {
         volume.setId(URIUtil.createId(Volume.class));
         volume.setLabel(label);
         volume.setVirtualArray(varray.getId());
+        volume.setNativeGuid(label);
         _dbClient.createObject(volume);
 
         return volume;
@@ -277,8 +278,12 @@ public class ExportUtilsTestUtils {
                     FCZoneReference zr = new FCZoneReference();
                     String key = FCZoneReference.makeEndpointsKey(
                             Arrays.asList(new String[] { initiator.getInitiatorPort(), sp.getPortNetworkId() }));
+                    String fclabel = FCZoneReference.makeLabel(
+                            Arrays.asList(
+                                    new String[] { initiator.getInitiatorPort(), sp.getPortNetworkId(),
+                                            v.getId().toString() }));
                     zr.setId(URIUtil.createId(FCZoneReference.class));
-                    zr.setLabel(key);
+                    zr.setLabel(fclabel);
                     zr.setPwwnKey(key);
                     zr.setVolumeUri(v.getId());
                     _dbClient.createObject(zr);

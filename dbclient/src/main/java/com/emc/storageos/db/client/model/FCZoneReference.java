@@ -15,13 +15,14 @@ import org.apache.commons.lang.StringUtils;
 public class FCZoneReference extends DataObject {
     private static String NULL_KEY = "_no_pwwns_";
 
-    private String _pwwnKey;			// the port wwpn key (concatenated xxxx_yyyy
-    private String _zoneName;			// the zone name
-    private URI _networkSystemUri;		// network system last used for zoning
-    private String _fabricId;			// the fabric or Vsan ID
-    private URI volumeUri;				// a volume reference
-    private URI _groupUri;				// export group reference
-    private Boolean _existingZone = false;  // true when the zone was found on the switch and not created by the application.
+    private String _pwwnKey; // the port wwpn key (concatenated xxxx_yyyy
+    private String _zoneName; // the zone name
+    private URI _networkSystemUri; // network system last used for zoning
+    private String _fabricId; // the fabric or Vsan ID
+    private URI volumeUri; // a volume reference
+    private URI _groupUri; // export group reference
+    private Boolean _existingZone = false; // true when the zone was found on the switch and not created by the
+                                           // application.
 
     @Name("pwwnKey")
     @AlternateId("KeyAltIdIndex")
@@ -139,6 +140,16 @@ public class FCZoneReference extends DataObject {
             key.append("_").append(iter.next().replaceAll(":", "").toUpperCase());
         }
         return key.toString();
+    }
+
+    /**
+     * Generate a label
+     * 
+     * @param asList
+     * @return
+     */
+    public static String makeLabel(List<String> asList) {
+        return FCZoneReference.makeEndpointsKey(asList.get(0), asList.get(1)) + "_" + asList.get(2);
     }
 
 }

@@ -10,10 +10,11 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import javax.ws.rs.core.Response;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.application.ApplicationCreateParam;
 import com.emc.storageos.model.application.ApplicationRestRep;
 import com.emc.storageos.model.application.ApplicationUpdateParam;
@@ -43,11 +44,11 @@ public class AppSupportUtil {
         BourneUtil.getSysClient().application().deleteApplication(id);
     }
     
-    public static ApplicationRestRep updateApplication(String name, String description, URI id) {
+    public static TaskList updateApplication(String name, String description, String id) {
         ApplicationUpdateParam update = new ApplicationUpdateParam();
         update.setName(name);
         update.setDescription(description);
-        return BourneUtil.getSysClient().application().updateApplication(id, update);
+        return BourneUtil.getSysClient().application().updateApplication(uri(id), update);
     }
     
     public static ApplicationRestRep getApplication(URI id) {

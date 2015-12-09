@@ -15,6 +15,7 @@ import java.net.URI;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.application.ApplicationCreateParam;
 import com.emc.storageos.model.application.ApplicationList;
 import com.emc.storageos.model.application.ApplicationRestRep;
@@ -64,9 +65,9 @@ public class ApplicationSupport {
      * API call: PUT /applications/block/{id}
      * 
      */
-    public ApplicationRestRep updateApplication(URI id, ApplicationUpdateParam input) {
+    public TaskList updateApplication(URI id, ApplicationUpdateParam input) {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_UPDATE_APP_URL);
-        return client.putURI(ApplicationRestRep.class, input, uriBuilder.build(id));
+        return client.putURI(TaskList.class, input, uriBuilder.build(id));
     }
     
     /**

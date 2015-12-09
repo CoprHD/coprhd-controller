@@ -160,7 +160,7 @@ public class ApplicationSupport extends Controller {
             if (isNew()) {
                 AppSupportUtil.createApplication(name, description, roles);
             } else {
-                AppSupportUtil.updateApplication(name, description, uri(id));
+                AppSupportUtil.updateApplication(name, description, id);
             }
 
         }

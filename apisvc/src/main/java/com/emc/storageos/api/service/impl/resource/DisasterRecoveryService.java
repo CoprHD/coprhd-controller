@@ -1356,7 +1356,7 @@ public class DisasterRecoveryService {
 
         Site site = drUtil.getSiteFromLocalVdc(siteId);
         site.setState(SiteState.STANDBY_ERROR);
-        coordinator.persistServiceConfiguration(siteId, site.toConfiguration());
+        coordinator.persistServiceConfiguration(site.toConfiguration());
 
         SiteError error = new SiteError(exception);
         coordinator.setTargetInfo(site.getUuid(), error);

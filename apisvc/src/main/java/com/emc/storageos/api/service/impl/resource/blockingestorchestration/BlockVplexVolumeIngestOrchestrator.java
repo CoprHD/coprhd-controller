@@ -139,9 +139,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 validateContext(requestContext.getVpool(), requestContext.getTenant(), volumeContext);
 
-                ingestBackendVolumes(volumeContext);
+                ingestBackendVolumes(requestContext, volumeContext);
 
-                ingestBackendExportMasks(volumeContext);
+                ingestBackendExportMasks(requestContext, volumeContext);
 
             } catch (Exception ex) {
                 _logger.error("error during VPLEX backend ingestion: ", ex);
@@ -356,30 +356,23 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * Calls ingestBlockObjects by getting a nested IngestStrategy
      * for each backend volume or replica from the IngestStrategyFactory.
      * 
-     * @param vplex the VPLEX StorageSystem
-     * @param systemCache the cache of storage system URIs
-     * @param poolCache the cache of storage pool URIs
-     * @param sourceVpool the virtual pool for ingestion
-     * @param sourceVarray the virtual array for ingestion
-     * @param tenant the tenant for ingestion
-     * @param unManagedVolumesToBeDeleted unmanaged volumes that will be marked for deletion
-     * @param taskStatusMap a map of task statuses
      * @param backendRequestContext the VplexBackendIngestionContext for the parent virtual volume
-     * @param vplexIngestionMethod the ingestion method (full or virtual volume only)
      * 
      * @throws IngestionException
      */
-    private void ingestBackendVolumes(VplexVolumeIngestionContext backendRequestContext) throws IngestionException {
-
-        String sourceClusterId = getClusterNameForVarray(backendRequestContext.getVarray(), backendRequestContext.getStorageSystem());
-        String haClusterId = getClusterNameForVarray(backendRequestContext.getHaVarray(), backendRequestContext.getStorageSystem());
-        _logger.info("the source cluster id is {} and the high availability cluster id is {}",
-                sourceClusterId, haClusterId);
-        backendRequestContext.setHaClusterId(haClusterId);
+    private void ingestBackendVolumes(IngestionRequestContext requestContext, 
+            VplexVolumeIngestionContext backendRequestContext) throws IngestionException {
 
         while (backendRequestContext.hasNext()) {
 
             UnManagedVolume associatedVolume = backendRequestContext.next();
+
+            String sourceClusterId = getClusterNameForVarray(backendRequestContext.getVarray(), requestContext.getStorageSystem());
+            String haClusterId = getClusterNameForVarray(backendRequestContext.getHaVarray(), requestContext.getStorageSystem());
+            _logger.info("the source cluster id is {} and the high availability cluster id is {}",
+                    sourceClusterId, haClusterId);
+            backendRequestContext.setHaClusterId(haClusterId);
+
             _logger.info("Ingestion started for vplex backend volume {}", associatedVolume.getNativeGuid());
 
             try {
@@ -466,7 +459,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private void ingestBackendExportMasks(VplexVolumeIngestionContext backendRequestContext)
+    private void ingestBackendExportMasks(IngestionRequestContext requestContext, 
+            VplexVolumeIngestionContext backendRequestContext)
             throws IngestionException {
 
         VirtualArray virtualArray = backendRequestContext.getVarray();
@@ -537,7 +531,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                     // find the associated storage system
                     URI storageSystemUri = processedUnManagedVolume.getStorageSystemUri();
-                    StorageSystem associatedSystem = _systemMap.get(storageSystemUri.toString());
+                    StorageSystem associatedSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
 
                     // collect the initiators in this backend mask
                     List<URI> initUris = new ArrayList<URI>();
@@ -549,7 +543,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                     // find or create the backend export group
                     ExportGroup exportGroup = this.findOrCreateExportGroup(
-                            backendRequestContext.getStorageSystem(), associatedSystem, initiators,
+                            requestContext.getStorageSystem(), associatedSystem, initiators,
                             virtualArray.getId(), backendRequestContext.getBackendProject().getId(),
                             backendRequestContext.getTenant().getId(), DEFAULT_BACKEND_NUMPATHS, uem);
                     if (null == exportGroup.getId()) {
@@ -831,7 +825,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         String varrayClusterId = getVarrayToClusterIdMap(vplex).get(varray.getId().toString());
         if (null == varrayClusterId) {
             varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(varray.getId(), vplex.getId(), _dbClient);
-            getVarrayToClusterIdMap(vplex).put(varray.getId().toString(), varrayClusterId);
+            if (!varrayClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
+                getVarrayToClusterIdMap(vplex).put(varray.getId().toString(), varrayClusterId);
+            }
         }
 
         if (varrayClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {

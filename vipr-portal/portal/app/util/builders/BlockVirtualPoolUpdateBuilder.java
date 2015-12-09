@@ -247,26 +247,22 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
     }
 
     public BlockVirtualPoolUpdateBuilder setJournalVarrayAndVpool(URI journalVarray, URI journalVpool) {
-        // if (journalVarray != null) {
         if (getProtectionSourcePolicy() == null) {
             getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
         }
 
         getProtectionSourcePolicy().setJournalVarray(journalVarray);
         getProtectionSourcePolicy().setJournalVpool(journalVpool);
-        // }
         return this;
     }
 
     public BlockVirtualPoolUpdateBuilder setStandByJournalVArrayVpool(URI standbyJournalVarray, URI standbyJournalVpool) {
-        // if (standbyJournalVarray != null) {
         if (getProtectionSourcePolicy() == null) {
             getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
         }
 
         getProtectionSourcePolicy().setStandbyJournalVarray(standbyJournalVarray);
         getProtectionSourcePolicy().setStandbyJournalVpool(standbyJournalVpool);
-        // }
         return this;
     }
 

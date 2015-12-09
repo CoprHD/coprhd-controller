@@ -113,7 +113,6 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             }
 
             // Create snapshot sessions for each synchronization aspect for the volume.
-            // Not really sure where this goes?
             StringSet syncAspectInfoForVolume = PropertySetterUtil.extractValuesFromStringSet(
                     SupportedVolumeInformation.SNAPSHOT_SESSIONS.toString(), unManagedVolume.getVolumeInformation());
             if ((syncAspectInfoForVolume != null) && (!syncAspectInfoForVolume.isEmpty())) {
@@ -189,7 +188,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             for (BlockSnapshotSession snapSession : snapSessions) {
                 snapSession.addInternalFlags(INTERNAL_VOLUME_FLAGS);
             }
-            _dbClient.updateAndReindexObject(snapSessions);
+            _dbClient.updateObject(snapSessions);
         }
 
         return clazz.cast(volume);

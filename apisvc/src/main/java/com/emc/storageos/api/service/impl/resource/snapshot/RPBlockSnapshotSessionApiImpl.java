@@ -13,7 +13,6 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
-import com.emc.storageos.api.service.impl.resource.RPBlockServiceApiImpl;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -23,6 +22,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
@@ -64,7 +64,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         URI requestedSourceURI = requestedSourceObj.getId();
         if (URIUtil.isType(requestedSourceURI, Volume.class)) {
             Volume sourceVolume = (Volume) requestedSourceObj;
-            boolean protectionBased = RPBlockServiceApiImpl.isProtectionBasedSnapshot(sourceVolume,
+            boolean protectionBased = RPHelper.isProtectionBasedSnapshot(sourceVolume,
                     BlockSnapshot.TechnologyType.NATIVE.name());
             if (protectionBased) {
                 throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();

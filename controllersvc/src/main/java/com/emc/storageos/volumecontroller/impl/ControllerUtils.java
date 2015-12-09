@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1265,17 +1266,16 @@ public class ControllerUtils {
         return error;
     }
 
-    public static boolean checkCGCreatedOnBackEndArray(BlockConsistencyGroup consistencyGroup, URI storageSystemURI, DbClient dbClient) {
-        boolean status = false;
 
-        if (consistencyGroup != null && storageSystemURI != null && consistencyGroup.getSystemConsistencyGroups() != null) {
-            StringSet systemCGs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemURI.toString());
-            if (systemCGs != null && systemCGs.iterator().hasNext()) {
-                status = true;
-            }
-        }
+    /**
+     * Check back end cg created on array or not for the given volume
+     * 
+     * @param volume
+     * @return
+     */
+    public static boolean checkCGCreatedOnBackEndArray(Volume volume) {
 
-        return status;
+        return (volume != null && StringUtils.isNotBlank(volume.getReplicationGroupInstance()));
     }
 
     /*

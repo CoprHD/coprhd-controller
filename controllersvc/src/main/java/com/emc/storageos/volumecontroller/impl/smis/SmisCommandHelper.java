@@ -6797,7 +6797,7 @@ public class SmisCommandHelper implements SmisConstants {
      * @param desiredValue DesiredCopyMethodology value
      */
     @SuppressWarnings("rawtypes")
-    public CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, final String elementName,
+    public CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, String elementName,
             int desiredValue) {
         CIMInstance modifiedInstance = null;
         // only for vmax, otherwise, return null
@@ -6827,17 +6827,19 @@ public class SmisCommandHelper implements SmisConstants {
                                 UINT16_T, new UnsignedInteger16(CREATE_NEW_TARGET_VALUE));
                         list.add(targetElementSupplier);
 
-                        if (null != elementName) {
-                            CIMProperty<?> elementNameProp = new CIMProperty<Object>(SmisConstants.CP_ELEMENT_NAME, STRING_T,
-                                    elementName);
-                            list.add(elementNameProp);
-                        } else {
-
-                            CIMProperty<?> elementNameProp = new CIMProperty<Object>(SmisConstants.CP_ELEMENT_NAME, STRING_T,
-                                    SmisConstants.DEFAULT_REPLICATION_SETTING_DATA_ELEMENT_NAME);
-                            list.add(elementNameProp);
-
+                        /**
+                         * To create SNAPVX snapshot smis uses the ElementName attribute in replicationSettingsInstance.
+                         * By default Element Name of replicationSettingsInstance is "Default ReplicationSettingData".
+                         * Element Name should not be having white space as it accept only alphanumeric value.
+                         * To avoid SNAPVX creation failure i just removed white space as a workaround.
+                         */
+                        if (null == elementName) {
+                            elementName = SmisConstants.DEFAULT_REPLICATION_SETTING_DATA_ELEMENT_NAME;
                         }
+
+                        CIMProperty<?> elementNameProp = new CIMProperty<Object>(SmisConstants.CP_ELEMENT_NAME, STRING_T,
+                                    elementName);
+                        list.add(elementNameProp);
 
                         modifiedInstance = repInstance.deriveInstance(list.toArray(new CIMProperty[] {}));
                         break;

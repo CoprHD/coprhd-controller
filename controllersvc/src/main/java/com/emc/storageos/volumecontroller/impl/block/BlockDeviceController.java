@@ -22,12 +22,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.xml.bind.DataBindingException;
 
 import org.apache.commons.lang.StringUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1953,6 +1951,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             boolean isListReplicaFlow = false;
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshotList.get(0));
+            Volume sourceVolumeObj = _dbClient.queryObject(Volume.class, snapshotObj.getParent().getURI());
             URI cgURI = null;
             completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
 
@@ -1961,14 +1960,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
              * In this case we should create element replica using createListReplica.
              * We should not use createGroup replica as backend cg will not be available in this case.
              */
-            if (snapshotObj != null && !NullColumnValueGetter.isNullURI(snapshotObj.getConsistencyGroup())) {
-                cgURI = snapshotObj.getConsistencyGroup();
-                BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
-                        cgURI);
-                if (!ControllerUtils.checkCGCreatedOnBackEndArray(consistencyGroup, storageObj.getId(), _dbClient)) {
-                    isListReplicaFlow = true;
-                }
-            }
+            isListReplicaFlow = isListReplicaFlow(sourceVolumeObj);
 
             if (!isListReplicaFlow) {
                 getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
@@ -2292,19 +2284,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                  * In this case we should create element replica using createListReplica.
                  * We should not use createGroup replica as backend cg will not be available in this case.
                  */
-                if (sourceVolume != null && !NullColumnValueGetter.isNullURI(sourceVolume.getConsistencyGroup())) {
-                    BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
-                            sourceVolume.getConsistencyGroup());
-                    if (!ControllerUtils.checkCGCreatedOnBackEndArray(consistencyGroup, storageObj.getId(), _dbClient)) {
-                        isListReplicaFlow = true;
-                    }
-                }
+                isListReplicaFlow = isListReplicaFlow(sourceVolume);
+                completer = new BlockMirrorCreateCompleter(mirrorList, opId);
                 if (!isListReplicaFlow) {
-                    completer = new BlockMirrorCreateCompleter(mirrorList, opId);
                     getDevice(storageObj.getSystemType()).doCreateGroupMirrors(storageObj, mirrorList, createInactive, completer);
                 } else {
                     // List Replica
-                    createListMirror(storage, mirrorList, createInactive, opId);
+                    getDevice(storageObj.getSystemType()).doCreateListReplica(storageObj, mirrorList, createInactive, completer);
                 }
             }
         } catch (Exception e) {
@@ -3214,6 +3200,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             TaskCompleter taskCompleter = new CloneCreateCompleter(fullCopyVolumes, taskId);
             WorkflowStepCompleter.stepExecuting(taskId);
+            _log.info("isCG :{}", isCG);
             if (isCG) {
                 boolean isListReplicaFlow = false;
                 StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3224,13 +3211,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                  * In this case we should create element replica using createListReplica.
                  * We should not use createGroup replica as backend cg will not be available in this case.
                  */
-                if (sourceVolumeObj != null && !NullColumnValueGetter.isNullURI(sourceVolumeObj.getConsistencyGroup())) {
-                    BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
-                            sourceVolumeObj.getConsistencyGroup());
-                    if (!ControllerUtils.checkCGCreatedOnBackEndArray(consistencyGroup, storageObj.getId(), _dbClient)) {
-                        isListReplicaFlow = true;
-                    }
-                }
+                isListReplicaFlow = isListReplicaFlow(sourceVolumeObj);
                 if (!isListReplicaFlow) {
                     getDevice(storageSystem.getSystemType()).doCreateGroupClone(storageSystem, fullCopyVolumes,
                             createInactive, taskCompleter);
@@ -3248,6 +3229,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
             doFailTask(Volume.class, fullCopyVolumes, taskId, serviceError);
         }
+    }
+
+    private boolean isListReplicaFlow(Volume sourceVolumeObj) {
+        boolean isListReplicaFlow = false;
+        _log.info("sourceVolumeObj.getReplicationGroupInstance :{}", sourceVolumeObj.getReplicationGroupInstance());
+        if (sourceVolumeObj != null && sourceVolumeObj.isInCG() && !ControllerUtils.checkCGCreatedOnBackEndArray(sourceVolumeObj)) {
+            isListReplicaFlow = true;
+        }
+        _log.info("isListReplicaFlow:{}", isListReplicaFlow);
+        return isListReplicaFlow;
     }
 
     public Workflow.Method rollbackFullCopyVolumeMethod(URI storage, List<URI> fullCopy) {
@@ -3796,19 +3787,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                  * In this case we should create element replica using createListReplica.
                  * We can ignore the wait for sync step in this case.
                  */
-                if (sourceVolumeObj != null && !NullColumnValueGetter.isNullURI(sourceVolumeObj.getConsistencyGroup())) {
-                    BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
-                            sourceVolumeObj.getConsistencyGroup());
-                    if (!ControllerUtils.checkCGCreatedOnBackEndArray(consistencyGroup, storageObj.getId(), _dbClient)) {
-                        canIgnoreThisStep = true;
-                    }
-                }
+                canIgnoreThisStep = isListReplicaFlow(sourceVolumeObj);
                 if (!canIgnoreThisStep) {
                     getDevice(storageObj.getSystemType()).doWaitForGroupSynchronized(storageObj, target, completer);
                 } else {
                     completer.ready(_dbClient); // Workaround
                 }
-
             }
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

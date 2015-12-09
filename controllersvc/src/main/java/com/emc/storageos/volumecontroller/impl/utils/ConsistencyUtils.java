@@ -45,14 +45,12 @@ public class ConsistencyUtils {
                 return null;
             }
             Volume sourceVolume = (Volume) sourceObj;
-            /**
-             * This place needs to change
-             */
+
             if (!isNullURI(sourceVolume.getConsistencyGroup())) {
                 final URI cgId = sourceVolume.getConsistencyGroup();
                 if (cgId != null) {
                     cgResult = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
-                    if (!ControllerUtils.checkCGCreatedOnBackEndArray(cgResult, sourceVolume.getStorageController(), dbClient)) {
+                    if (!ControllerUtils.checkCGCreatedOnBackEndArray(sourceVolume)) {
                         return null;
                     }
                 }

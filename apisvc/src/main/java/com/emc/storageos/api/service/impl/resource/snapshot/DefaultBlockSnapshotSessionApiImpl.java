@@ -4,21 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriInfo;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
@@ -31,6 +16,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -49,6 +35,22 @@ import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriInfo;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 /**
  * 
@@ -102,9 +104,25 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public List<BlockObject> getAllSourceObjectsForSnapshotSessionRequest(BlockObject sourceObj) {
-        // TBD - Future Handle source objects in CGs.
-        List<BlockObject> sourceObjList = new ArrayList<BlockObject>();
-        sourceObjList.add(sourceObj);
+
+        List<BlockObject> sourceObjList = new ArrayList<>();
+        if (URIUtil.isType(sourceObj.getId(), BlockSnapshot.class)) {
+            // For snapshots we only make a fully copy for the
+            // passed snapshot.
+            sourceObjList.add(sourceObj);
+        } else {
+            // Otherwise, if the volume is in a CG, then we create
+            // a snapshot session for each volume in the CG.
+            Volume sourceVolume = (Volume) sourceObj;
+            URI cgURI = sourceVolume.getConsistencyGroup();
+            if (!isNullURI(cgURI)) {
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                sourceObjList.addAll(getActiveCGVolumes(cg));
+            } else {
+                sourceObjList.add(sourceObj);
+            }
+        }
+
         return sourceObjList;
     }
 
@@ -615,5 +633,26 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr
                 .getPlatformSpecificImplForSystem(srcSideBackendSystem);
         return snapSessionImpl;
+    }
+
+    /**
+     * Gets the active volumes in the passed consistency group.
+     *
+     * @param cg A reference to a consistency group.
+     *
+     * @return The active volumes in the passed consistency group.
+     */
+    protected List<Volume> getActiveCGVolumes(BlockConsistencyGroup cg) {
+        List<Volume> volumeList = new ArrayList<>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        _dbClient.queryByConstraint(getVolumesByConsistencyGroup(cg.getId()),
+                uriQueryResultList);
+        Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class,
+                uriQueryResultList, true);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            volumeList.add(volume);
+        }
+        return volumeList;
     }
 }

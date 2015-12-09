@@ -5,6 +5,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -46,6 +47,28 @@ public class ConsistencyUtils {
             Volume sourceVolume = (Volume) sourceObj;
             if (!isNullURI(sourceVolume.getConsistencyGroup())) {
                 final URI cgId = sourceVolume.getConsistencyGroup();
+                if (cgId != null) {
+                    cgResult = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+                }
+            }
+        }
+
+        return cgResult;
+    }
+
+    public static BlockConsistencyGroup getSnapshotSessionConsistencyGroup(URI snapshotSession, DbClient dbClient) {
+        BlockConsistencyGroup cgResult = null;
+        BlockSnapshotSession snapshotSessionObj = dbClient.queryObject(BlockSnapshotSession.class, snapshotSession);
+
+        if (snapshotSessionObj != null) {
+            URI parent = snapshotSessionObj.getParent().getURI();
+            BlockObject parentObj = BlockObject.fetch(dbClient, parent);
+            if (parentObj instanceof BlockSnapshot) {
+                return null;
+            }
+            Volume parentVolumeObj = (Volume) parentObj;
+            if (!isNullURI(parentVolumeObj.getConsistencyGroup())) {
+                URI cgId = parentVolumeObj.getConsistencyGroup();
                 if (cgId != null) {
                     cgResult = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
                 }

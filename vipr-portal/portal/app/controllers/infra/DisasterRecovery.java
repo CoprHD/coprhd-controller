@@ -316,7 +316,6 @@ public class DisasterRecovery extends ViprResourceController {
             if (isNew()) {
                 Validation.valid(fieldName, this);
                 Validation.required(fieldName + ".name", this.name);
-                Validation.required(fieldName + ".description", this.description);
                 Validation.required(fieldName + ".VirtualIP", this.VirtualIP);
                 Validation.required(fieldName + ".userName", this.userName);
                 Validation.required(fieldName + ".userPassword", this.userPassword);

@@ -1662,7 +1662,7 @@ public class NetworkDeviceController implements NetworkController {
             ref.setZoneName(zoneName);
             ref.setId(URIUtil.createId(FCZoneReference.class));
             ref.setInactive(false);
-            ref.setLabel(ref.getPwwnKey());
+            ref.setLabel(ref.getPwwnKey() + "_" + volumeURI.toString());
             ref.setExistingZone(existingZone);
             _dbClient.createObject(ref);
             newOrExisting[0] = "New";
@@ -2554,7 +2554,7 @@ public class NetworkDeviceController implements NetworkController {
         ref.setGroupUri(exportGroup.getId());
         ref.setZoneName(info.getZoneName());
         ref.setId(URIUtil.createId(FCZoneReference.class));
-        ref.setLabel(ref.getPwwnKey());
+        ref.setLabel(ref.getPwwnKey() + "_" + volumeURi.toString());
         ref.setExistingZone(true);
         return ref;
     }

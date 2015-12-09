@@ -141,4 +141,13 @@ public class FCZoneReference extends DataObject {
         return key.toString();
     }
 
+    /**
+     * Generate a label
+     * 
+     * @param asList
+     * @return a label that is unique
+     */
+    public static String makeLabel(List<String> asList) {
+        return FCZoneReference.makeEndpointsKey(asList.get(0), asList.get(1)) + "_" + asList.get(2);
+    }
 }

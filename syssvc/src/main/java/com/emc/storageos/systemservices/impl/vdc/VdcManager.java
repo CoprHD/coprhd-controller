@@ -513,13 +513,11 @@ public class VdcManager extends AbstractManager {
         String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
         String targetDbSchemaVersion = coordinator.getCoordinatorClient().getTargetDbSchemaVersion();
         log.info("Current schema version {}", currentDbSchemaVersion);
-
         if (!targetDbSchemaVersion.equals(currentDbSchemaVersion) || !coordinator.isDBMigrationDone()) {
             log.info("Migration to yoda is not completed. Sleep and retry later. isMigrationDone flag = {}", coordinator.isDBMigrationDone());
             sleep(BACK_UPGRADE_RETRY_MILLIS);
             return;
         }
-
         log.info("Db migration is done. Switch to IPSec mode");
         vdcConfigUtil.setBackCompatPreYoda(false);
         targetVdcPropInfo = loadVdcConfig(); // refresh local vdc config

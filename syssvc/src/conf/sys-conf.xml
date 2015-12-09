@@ -540,7 +540,6 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="service" ref="serviceinfo" />
         <property name="drUtil" ref="drUtil" />
-        <property name="ipsecMgr" ref="ipsecMgr" />
 	</bean>
 
     <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl">

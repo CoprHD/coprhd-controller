@@ -120,7 +120,7 @@ public class BlockMapper {
         to.setLinkStatus(from.getLinkStatus());
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);
-        StorageSystem system = dbClient.queryObject(StorageSystem.class, to.getStorageController());
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
         if (null != system) {
             if (system.checkIfVmax3()) {
                 to.setSupportsSnapshotSessions(Boolean.TRUE);

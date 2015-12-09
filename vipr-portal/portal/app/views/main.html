@@ -22,8 +22,10 @@
     <div class="collapse navbar-collapse" id="navbar-collapse-1">
       <ul class="nav navbar-nav navbar-right">
         #{get 'navBarRight' /}
-        #{viprSystemTasks/}
-	    #{nav.vdcMenu vdcs:vdcs, token:token/}   
+        #{if controllers.infra.DisasterRecovery.isPrimarySite()}
+        	#{viprSystemTasks/}
+	    	#{nav.vdcMenu vdcs:vdcs, token:token/}
+	    #{/if}
         <li id="nav_help">
           #{if customDocLink}
             #{get 'customDocLink'/}

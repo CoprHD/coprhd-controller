@@ -380,7 +380,6 @@ public class InternalDbClient extends DbClientImpl {
         private static final String SSOBJNAME = "org.apache.cassandra.db:type=StorageService";
         private static final int DEFAULTPORT = 7199;
         private static final int DEFAULTGEOPORT = 7299;
-        public static final int DEFAULTTHRIFTPORT = 9260;
         final String host;
         final int port;
         private String username;

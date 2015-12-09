@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
+import com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -98,7 +100,8 @@ public class DbServiceImpl implements DbService {
     private String truststorePath;
     private boolean cassandraInitialized = false;
     private boolean disableScheduledDbRepair = false;
-
+    private Boolean backCompatPreYoda = false;
+    
     @Autowired
     private DbManager dbMgr;
 
@@ -189,7 +192,11 @@ public class DbServiceImpl implements DbService {
     public void setDisableScheduledDbRepair(boolean disableScheduledDbRepair) {
         this.disableScheduledDbRepair = disableScheduledDbRepair;
     }
-
+    
+    public void setBackCompatPreYoda(Boolean backCompatPreYoda) {
+        this.backCompatPreYoda = backCompatPreYoda;
+    }
+    
     /**
      * Check if it is GeoDbSvc
      * 
@@ -210,7 +217,7 @@ public class DbServiceImpl implements DbService {
 
     public String getConfigValue(String key) {
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind,
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind,
                 _serviceInfo.getId());
         if (config != null) {
             return config.getConfig(key);
@@ -220,11 +227,11 @@ public class DbServiceImpl implements DbService {
 
     public void setConfigValue(String key, String value) {
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind,
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind,
                 _serviceInfo.getId());
         if (config != null) {
             config.setConfig(key, value);
-            _coordinator.persistServiceConfiguration(config);
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
         }
     }
 
@@ -234,9 +241,19 @@ public class DbServiceImpl implements DbService {
      */
     private Configuration checkConfiguration() {
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind,
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind,
                 _serviceInfo.getId());
         if (config == null) {
+            // check if it is upgraded from previous version to yoda - configuration may be stored in 
+            // zk global area /config. Since SeedProvider still need access that, so we remove the config 
+            // from global in migration callback after migration is done.  
+            config = _coordinator.queryConfiguration(configKind, _serviceInfo.getId());
+            if (config != null) {
+                _log.info("Upgrade from pre-yoda release, move dbconfig to new location");
+                _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
+                return config;
+            }
+            
             // this is a new node
             // 1. register its configuration with coordinator
             // 2. assume autobootstrap configuration
@@ -261,18 +278,18 @@ public class DbServiceImpl implements DbService {
                 cfg.setConfig(DbConfigConstants.NUM_TOKENS_KEY, DbConfigConstants.DEFUALT_NUM_TOKENS.toString());
             }
             // check other existing db nodes
-            List<Configuration> configs = _coordinator.queryAllConfiguration(configKind);
+            List<Configuration> configs = _coordinator.queryAllConfiguration(_coordinator.getSiteId(), configKind);
             if (configs.isEmpty()) {
                 // we are the first node - turn off autobootstrap
                 cfg.setConfig(DbConfigConstants.AUTOBOOT, Boolean.FALSE.toString());
             }
             // persist configuration
-            _coordinator.persistServiceConfiguration(cfg);
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), cfg);
             config = cfg;
         } else if (config.getConfig(DbConfigConstants.DB_IP) != null) {
             config.removeConfig(DbConfigConstants.DB_IP);
             config.setConfig(DbConfigConstants.NODE_ID, _coordinator.getInetAddessLookupMap().getNodeId());
-            _coordinator.persistServiceConfiguration(config);
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
         }
         return config;
     }
@@ -284,10 +301,10 @@ public class DbServiceImpl implements DbService {
 
     private void removeStaleVersionedDbConfiguration() {
         String configKind = _coordinator.getVersionedDbConfigPath(_serviceInfo.getName(), _serviceInfo.getVersion());
-        List<Configuration> configs = _coordinator.queryAllConfiguration(configKind);
+        List<Configuration> configs = _coordinator.queryAllConfiguration(_coordinator.getSiteId(), configKind);
         for (Configuration config : configs) {
             if (isStaleConfiguration(config)) {
-                _coordinator.removeServiceConfiguration(config);
+                _coordinator.removeServiceConfiguration(_coordinator.getSiteId(), config);
                 _log.info("Remove stale version db config, id: {}", config.getId());
             }
         }
@@ -295,10 +312,10 @@ public class DbServiceImpl implements DbService {
 
     private void removeStaleServiceConfiguration() {
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
-        List<Configuration> configs = _coordinator.queryAllConfiguration(configKind);
+        List<Configuration> configs = _coordinator.queryAllConfiguration(_coordinator.getSiteId(), configKind);
         for (Configuration config : configs) {
             if (isStaleConfiguration(config)) {
-                _coordinator.removeServiceConfiguration(config);
+                _coordinator.removeServiceConfiguration(_coordinator.getSiteId(), config);
                 _log.info("Remove stale config, id: {}", config.getId());
             }
         }
@@ -332,14 +349,24 @@ public class DbServiceImpl implements DbService {
     // check and initialize global configuration
     private Configuration checkGlobalConfiguration() {
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind, Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind, Constants.GLOBAL_ID);
         if (config == null) {
+            // check if it is upgraded from previous version to yoda - configuration may be stored in 
+            // znode /config. Since SeedProvider still need access that, so we remove the config 
+            // from global in migration callback after migration is done.
+            config = _coordinator.queryConfiguration(configKind, Constants.GLOBAL_ID);
+            if (config != null) {
+                _log.info("Upgrade from pre-yoda release, move global config to new location");
+                _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
+                return config;
+            }
+            
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(Constants.GLOBAL_ID);
             cfg.setKind(configKind);
 
             // persist configuration
-            _coordinator.persistServiceConfiguration(cfg);
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), cfg);
             config = cfg;
         }
         return config;
@@ -357,14 +384,23 @@ public class DbServiceImpl implements DbService {
         }
 
         String kind = _coordinator.getVersionedDbConfigPath(_serviceInfo.getName(), _serviceInfo.getVersion());
-        Configuration config = _coordinator.queryConfiguration(kind,
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), kind,
                 _serviceInfo.getId());
         if (config == null) {
+            // check if it is upgraded from previous version to yoda - configuration may be stored in 
+            // znode /config
+            config = _coordinator.queryConfiguration(kind, _serviceInfo.getId());
+            if (config != null) {
+                _log.info("Upgrade from pre-2.5 release, move versioned dbconfig to new location");
+                _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
+                return config;
+            }
+            
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(_serviceInfo.getId());
             cfg.setKind(kind);
             // persist configuration
-            _coordinator.persistServiceConfiguration(cfg);
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), cfg);
             config = cfg;
         }
         return config;
@@ -374,7 +410,7 @@ public class DbServiceImpl implements DbService {
      * Check offline event info to see if dbsvc/geodbsvc on this node could get started
      */
     private void checkDBOfflineInfo() {
-        Configuration config = _coordinator.queryConfiguration(Constants.DB_DOWNTIME_TRACKER_CONFIG,
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_DOWNTIME_TRACKER_CONFIG,
                 _serviceInfo.getName());
         DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
 
@@ -383,8 +419,9 @@ public class DbServiceImpl implements DbService {
         long zkTimeStamp = (lastActiveTimestamp == null) ? TimeUtils.getCurrentTime() : lastActiveTimestamp;
 
         File localDbDir = new File(dbDir);
-        boolean isDirEmpty = localDbDir.list().length == 0;
-        long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : getLastModified(localDbDir).getTime();
+        Date lastModified = getLastModified(localDbDir);
+        boolean isDirEmpty =  lastModified == null || localDbDir.list().length == 0;
+        long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : lastModified.getTime();
 
         _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
         long diffTime = (zkTimeStamp > localTimeStamp) ? (zkTimeStamp - localTimeStamp) : 0;
@@ -413,12 +450,12 @@ public class DbServiceImpl implements DbService {
      */
     private void setDbConfigInitDone() {
         String configKind = _coordinator.getVersionedDbConfigPath(_serviceInfo.getName(), _serviceInfo.getVersion());
-        Configuration config = _coordinator.queryConfiguration(configKind,
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind,
                 _serviceInfo.getId());
         if (config != null) {
             if (config.getConfig(DbConfigConstants.INIT_DONE) == null) {
                 config.setConfig(DbConfigConstants.INIT_DONE, Boolean.TRUE.toString());
-                _coordinator.persistServiceConfiguration(config);
+                _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
             }
         } else {
             // we are expecting this to exist, because its initialized from checkVersionedConfiguration
@@ -500,9 +537,11 @@ public class DbServiceImpl implements DbService {
             encryption = InternodeEncryption.none;
             setDisableDbEncryptionFlag();
         }
+        // TODO rethink db encryption after ipsec is finished. Keep all db communication as
+        // unencrypted for now
         DatabaseDescriptor.getServerEncryptionOptions().internode_encryption = encryption;
     }
-
+    
     private boolean setDisableDbEncryptionFlag() {
         File dbEncryptFlag = new File(DB_NO_ENCRYPT_FLAG_FILE);
         try {
@@ -546,13 +585,15 @@ public class DbServiceImpl implements DbService {
         // start() method will be only called one time when startup dbsvc, so it's safe to ignore sonar violation
         instance = this; // NOSONAR ("squid:S2444")
 
-        initKeystoreAndTruststore();
+        if (backCompatPreYoda) {
+            _log.info("Pre-yoda back compatible flag detected. Initialize local keystore/truststore for Cassandra native encryption");
+            initKeystoreAndTruststore();
+        }
         System.setProperty("cassandra.config", _config);
         System.setProperty("cassandra.config.loader", CassandraConfigLoader.class.getName());
 
         InterProcessLock lock = null;
         Configuration config = null;
-        boolean schemaInited = false;
 
         try {
             // we use this lock to discourage more than one node bootstrapping / joining at the same time
@@ -588,7 +629,7 @@ public class DbServiceImpl implements DbService {
             if (!isDbCurrentVersionEncrypted() && !_statusChecker.isMigrationDone()) {
                 setEncryptionOptions();
             }
-
+            
             _service = new CassandraDaemon();
             _service.init(null);
             _service.start();
@@ -610,30 +651,39 @@ public class DbServiceImpl implements DbService {
 
         if (config.getConfig(DbConfigConstants.JOINED) == null) {
             config.setConfig(DbConfigConstants.JOINED, Boolean.TRUE.toString());
-            _coordinator.persistServiceConfiguration(config);
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
         }
 
         _statusChecker.waitForAllNodesJoined();
 
         _svcBeacon.start();
+        if (backCompatPreYoda) {
+            _log.info("Enable duplicated beacon in global area during pre-yoda upgrade");
+            startDupBeacon();
+        }
+        
         setDbInitializedFlag();
         setDbConfigInitDone();
 
         _dbClient.start();
 
+        if (_schemaUtil.isStandby()) {
+            _schemaUtil.rebuildDataOnStandby();
+        }
+        
         // Setup the vdc information, so that login enabled before migration
         if (!isGeoDbsvc()) {
             _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
         }
-
+        
         if (_handler.run()) {
             // Setup the bootstrap info root tenant, if root tenant migrated from local db, then skip it
             if (isGeoDbsvc()) {
                 _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
             }
 
-            // Start dbsvc background tasks
             startBackgroundTasks();
+            
             _log.info("DB service started");
         } else {
             _log.error("DB migration failed. Skipping starting background tasks.");
@@ -644,7 +694,7 @@ public class DbServiceImpl implements DbService {
         InterProcessLock lock = null;
         while (true) {
             try {
-                lock = _coordinator.getLock(name);
+                lock = _coordinator.getSiteLocalLock(name);
                 lock.acquire();
                 break; // got lock
             } catch (Exception e) {
@@ -654,6 +704,14 @@ public class DbServiceImpl implements DbService {
             }
         }
         return lock;
+    }
+    
+    private void startDupBeacon() {
+        ServiceBeaconImpl dupBeacon = new ServiceBeaconImpl();
+        dupBeacon.setService(((ServiceBeaconImpl)_svcBeacon).getService());
+        dupBeacon.setZkConnection(((ServiceBeaconImpl)_svcBeacon).getZkConnection());
+        dupBeacon.setSiteSpecific(false);
+        dupBeacon.start();
     }
 
     /**
@@ -802,19 +860,20 @@ public class DbServiceImpl implements DbService {
      * Kick off background jobs
      */
     private void startBackgroundTasks() {
-        if (!disableScheduledDbRepair) {
-            startBackgroundNodeRepairTask();
+        if (!_schemaUtil.isStandby()) {
+            if (!disableScheduledDbRepair) {
+                startBackgroundNodeRepairTask();
+            }
+    
+            if (_gcExecutor != null) {
+                _gcExecutor.setDbServiceId(_serviceInfo.getId());
+                _gcExecutor.start();
+            }
+    
+            if (_taskScrubber != null) {
+                _taskScrubber.start();
+            }
         }
-
-        if (_gcExecutor != null) {
-            _gcExecutor.setDbServiceId(_serviceInfo.getId());
-            _gcExecutor.start();
-        }
-
-        if (_taskScrubber != null) {
-            _taskScrubber.start();
-        }
-
         startBackgroundDetectorTask();
     }
 

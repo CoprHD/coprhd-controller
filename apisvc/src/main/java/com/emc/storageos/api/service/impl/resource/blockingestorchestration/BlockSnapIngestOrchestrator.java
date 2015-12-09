@@ -69,7 +69,6 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             snapShot = createSnapshot(system, snapNativeGuid, virtualArray, vPool, unManagedVolume, project);
 
             // See if this is a linked target for existing block snapshot sessions.
-            // Not really sure where this goes?
             URIQueryResultList queryResults = new URIQueryResultList();
             _dbClient.queryByConstraint(
                     AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance(snapShot.getSettingsInstance()),
@@ -85,7 +84,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                     linkedTargets.add(snapShot.getId().toString());
                     snapSession.setLinkedTargets(linkedTargets);
                 }
-                _dbClient.updateAndReindexObject(snapSession);
+                _dbClient.updateObject(snapSession);
             }
         }
 

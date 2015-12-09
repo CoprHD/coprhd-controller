@@ -192,6 +192,8 @@ public class BlockSnapshotSessionManager {
             snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.xtremio.name());
         } else if (DiscoveredDataObject.Type.ibmxiv.name().equals(systemType)) {
             snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.xiv.name());
+        } else if (DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
+            snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.vplex.name());
         } else {
             snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.dflt.name());
         }

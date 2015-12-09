@@ -1016,7 +1016,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, volumeToValidate.getStorageController());
             if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
                 // VPLEX volumes were passed rather than the backend volumes themselves
-                // so get the system for the source side backend volume.
+                // so get the system for the source side backend volume. We only need the
+                // source side backend volume as that is the only volume that is snapped
+                // in the case of distributed VPLEX volumes.
                 volumeToValidate = VPlexUtil.getVPLEXBackendVolume(volumeToSnap, true, _dbClient);
                 system = _dbClient.queryObject(StorageSystem.class, volumeToValidate.getStorageController());
             }

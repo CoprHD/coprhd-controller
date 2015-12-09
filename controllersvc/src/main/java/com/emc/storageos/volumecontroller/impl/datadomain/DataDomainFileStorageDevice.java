@@ -461,7 +461,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
 
     private void ddCreateExports(DataDomainClient ddClient, String storagePoolId,
             FSExportMap exportMap, List<FileExport> createFileExports)
-            throws DataDomainApiException {
+                    throws DataDomainApiException {
         for (FileExport fileExport : createFileExports) {
             // Build export map for export create
             String exportName;
@@ -873,7 +873,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-            throws ControllerException {
+                    throws ControllerException {
         try {
             _log.info("DataDomainFileStorageDevice doDeleteShare: {} - start");
             DataDomainClient ddClient = getDataDomainClient(storage);
@@ -986,7 +986,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doDeleteSnapshot(StorageSystem storage,
             FileDeviceInputOutput args)
-            throws ControllerException {
+                    throws ControllerException {
 
         String message = "Data Domain snapshots not supported yet, delete operation failed";
         _log.error(message);
@@ -1034,7 +1034,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-            throws ControllerException {
+                    throws ControllerException {
         // TODO To be implemented once Data Domain provides snapshot APIs
         String message = "Data Domain snapshots not supported yet, get list operation failed";
         _log.error(message);
@@ -1281,6 +1281,20 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
                     }
                 }
                 try {
+                    for (ExportRule modifyRule : exportModify) {
+                        if ((modifyRule.getReadOnlyHosts() == null)
+                                && (modifyRule.getReadWriteHosts() == null) && (modifyRule.getRootHosts() == null)) {
+                            // In this case only one export rule is there and we are modifying it with zero client this
+                            // is invalid operation from DDMC perspective.
+                            String message = "NFS export with zero client is not supported by DDMC"
+                                    + ", Modify Export Rule operation failed";
+                            _log.error(message);
+                            ServiceError serviceError = DeviceControllerErrors.datadomain.operationNotSupported();
+                            serviceError.setMessage(message);
+                            serviceError.setRetryable(false);
+                            return BiosCommandResult.createErrorResult(serviceError);
+                        }
+                    }
                     doDeleteFsExport(ddClient, storagePool.getNativeId(), deviceExportId);
                 } catch (DataDomainApiException dde) {
                     _log.error("Export update failed, device error.", dde);

@@ -131,6 +131,8 @@ public class ObjectBucketACL extends DataObject {
         builder.append(permissions);
         builder.append(", buckectName=");
         builder.append(bucketName);
+        builder.append(", buckectId=");
+        builder.append(bucketId);
         builder.append(", namespace=");
         builder.append(namespace);
         builder.append("]");
@@ -145,8 +147,8 @@ public class ObjectBucketACL extends DataObject {
         StringBuffer aclIndexBuffer = new StringBuffer();
 
         if (userOrGroupOrCustom != null) {
-            if (this.bucketName != null) {
-                aclIndexBuffer.append(this.bucketName)
+            if (this.bucketId != null) {
+                aclIndexBuffer.append(this.bucketId)
                         .append(this.domain == null ? "" : this.domain)
                         .append(userOrGroupOrCustom);
                 this.setBucketACLIndex(aclIndexBuffer.toString());

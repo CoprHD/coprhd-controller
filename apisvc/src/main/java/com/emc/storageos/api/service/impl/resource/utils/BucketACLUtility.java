@@ -33,7 +33,7 @@ public class BucketACLUtility {
             .getLogger(BucketACLUtility.class);
 
     private DbClient dbClient;
-    private String bucketName;
+    private URI bucketId;
 
     private List<String> usersGroupsCustomGroups;
 
@@ -47,10 +47,10 @@ public class BucketACLUtility {
 
     // ("Suppressing Sonar violation for variable name should be in camel case")
 
-    public BucketACLUtility(DbClient dbClient, String bucketName) {
+    public BucketACLUtility(DbClient dbClient, URI bucketId) {
         super();
         this.dbClient = dbClient;
-        this.bucketName = bucketName;
+        this.bucketId = bucketId;
         this.usersGroupsCustomGroups = new ArrayList<String>();
     }
 
@@ -476,9 +476,9 @@ public class BucketACLUtility {
             while (dbAclIterator.hasNext()) {
 
                 ObjectBucketACL dbBucketAce = dbAclIterator.next();
-                if (bucketName.equals(dbBucketAce.getBucketName())) {
+                if (bucketId.equals(dbBucketAce.getBucketId())) {
                     BucketACE ace = new BucketACE();
-                    ace.setBucketName(bucketName);
+                    ace.setBucketName(dbBucketAce.getBucketName());
                     ace.setDomain(dbBucketAce.getDomain());
                     ace.setUser(dbBucketAce.getUser());
                     ace.setGroup(dbBucketAce.getGroup());
@@ -502,9 +502,9 @@ public class BucketACLUtility {
             ContainmentConstraint containmentConstraint = null;
 
             _log.info("Querying DB for ACL of bucket {} ",
-                    this.bucketName);
+                    this.bucketId);
             containmentConstraint = ContainmentConstraint.Factory
-                    .getBucketAclsConstraint(new URI(this.bucketName));
+                    .getBucketAclsConstraint(this.bucketId);
 
             List<ObjectBucketACL> dbBucketShareAcl = CustomQueryUtility
                     .queryActiveResourcesByConstraint(this.dbClient,
@@ -538,7 +538,7 @@ public class BucketACLUtility {
 
         // Construct ACL Index
         StringBuffer aclIndex = new StringBuffer();
-        aclIndex.append(this.bucketName).append(domainOfReqAce).append(userOrGroupOrCustomGroup);
+        aclIndex.append(this.bucketId).append(domainOfReqAce).append(userOrGroupOrCustomGroup);
 
         acl = this.queryACLByIndex(aclIndex.toString());
 

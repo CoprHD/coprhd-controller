@@ -517,7 +517,7 @@ public class BucketService extends TaskResourceService {
         ArgValidator.checkEntity(bucket, id, isIdEmbeddedInURL(id));
 
         BucketACL bucketAcl = new BucketACL();
-        BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getName());
+        BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getId());
         List<BucketACE> bucketAces = bucketACLUtil.queryExistingBucketACL();
         _log.info("Number of existing ACLs found : {} ", bucketAces.size());
         if (!bucketAces.isEmpty()) {

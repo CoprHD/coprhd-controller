@@ -2070,8 +2070,8 @@ public class RecoverPointScheduler implements Scheduler {
         if (!NullColumnValueGetter.isNullURI(sourceVolume.getSecondaryRpJournalVolume())) {
             Volume standbyJournal = dbClient.queryObject(Volume.class, sourceVolume.getSecondaryRpJournalVolume());
             RPRecommendation standbyJournalRecommendation = new RPRecommendation();
-            VirtualPool standbyJournalVpool = vpool.getStandbyJournalVpool() != null ? dbClient.queryObject(VirtualPool.class,
-                    URI.create(vpool.getStandbyJournalVpool())) : vpool;
+            VirtualPool standbyJournalVpool = NullColumnValueGetter.isNotNullValue(vpool.getStandbyJournalVpool()) ? dbClient.queryObject(
+                    VirtualPool.class, URI.create(vpool.getStandbyJournalVpool())) : vpool;
             standbyJournalRecommendation.setSourceStorageSystem(standbyJournal.getStorageController());
             standbyJournalRecommendation.setSourceStoragePool(standbyJournal.getPool());
             standbyJournalRecommendation.setVirtualArray(standbyJournal.getVirtualArray());

@@ -189,8 +189,7 @@ public class NetworkDeviceController implements NetworkController {
             failed = true;
             // To Do - mark device inactive or take in status to set failure.
         } else {
-            String msg = MessageFormat.format("Connected to Network Device {0} at {1}", result.getMessage(),
-                    new Date());
+            String msg = MessageFormat.format("Connected to Network Device {0} at {1}", result.getMessage(), new Date());
             _log.info(msg);
         }
         // Update status on the NetworkSystem
@@ -278,8 +277,7 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     @Override
-    public List<Zoneset> getZonesets(URI uri, String fabricId, String fabricWwn, String zoneName,
-            boolean excludeMembers,
+    public List<Zoneset> getZonesets(URI uri, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
             boolean excludeAliases) throws ControllerException {
         NetworkSystem device = getDeviceObject(uri);
         // Get the file device reference for the type of file device managed
@@ -289,8 +287,7 @@ public class NetworkDeviceController implements NetworkController {
             throw NetworkDeviceControllerException.exceptions.getZonesetsFailedNull(device.getSystemType());
         }
         try {
-            List<Zoneset> zonesets = networkDevice.getZonesets(device, fabricId, fabricWwn, zoneName, excludeMembers,
-                    excludeAliases);
+            List<Zoneset> zonesets = networkDevice.getZonesets(device, fabricId, fabricWwn, zoneName, excludeMembers, excludeAliases);
             // NOTE! The RMI infrastructure doesn't know how to deal with CIMObjectPaths, even if they are in
             // Object pointers, so remove them here!
             for (Zoneset zs : zonesets) {
@@ -329,8 +326,7 @@ public class NetworkDeviceController implements NetworkController {
                     OperationTypeEnum.ADD_SAN_ZONE, System.currentTimeMillis(),
                     AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,
                     device.getId().toString(), device.getLabel(), device.getPortNumber(), device.getUsername(),
-                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(),
-                    device.getSmisUseSSL());
+                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(), device.getSmisUseSSL());
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.addSanZonesFailedExc(
                     device.getSystemType(), ex);
@@ -380,15 +376,13 @@ public class NetworkDeviceController implements NetworkController {
                 keySet.add(key);
                 // neither create nor delete zones found on the switch
                 if (fabricInfo.isExistingZone()) {
-                    _log.info("Zone {} will not be created or removed on {}, as it is not vipr created. ",
-                            fabricInfo.getZoneName(),
+                    _log.info("Zone {} will not be created or removed on {}, as it is not vipr created. ", fabricInfo.getZoneName(),
                             fabricInfo.toString());
                     continue; // neither create nor delete zones found on the switch
                 }
                 // Don't actually remove the zone if it's not the last reference
                 if (doRemove && !fabricInfo._isLastReference) {
-                    _log.info(
-                            "Zone {} will not be removed on {}, as still the zone is used to expose other volumes in export groups ",
+                    _log.info("Zone {} will not be removed on {}, as still the zone is used to expose other volumes in export groups ",
                             fabricInfo.getZoneName(), fabricInfo.toString());
                     continue;
                 }
@@ -418,8 +412,7 @@ public class NetworkDeviceController implements NetworkController {
                     String refKey = null;
                     try {
                         for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
-                            FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class,
-                                    fabricInfo.getFcZoneReferenceId());
+                            FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fabricInfo.getFcZoneReferenceId());
                             if (ref != null) {
                                 refKey = ref.getPwwnKey();
                                 _dbClient.markForDeletion(ref);
@@ -477,8 +470,7 @@ public class NetworkDeviceController implements NetworkController {
             if (altUri != null && retryAltNetworkDevice) {
                 NetworkFabricLocker.unlockFabric(fabricId, fabricLock);
                 fabricLock = null;
-                _log.error("Zone operation failed using device: " + primaryUri + " retrying with alternate device: "
-                        + altUri);
+                _log.error("Zone operation failed using device: " + primaryUri + " retrying with alternate device: " + altUri);
                 fabricInfo.setNetworkDeviceId(altUri);
                 device = getDeviceObject(altUri);
                 return addRemoveZones(device, fabricId, fabricWwn, exportGroupUri, fabricInfos, doRemove, false);
@@ -573,8 +565,7 @@ public class NetworkDeviceController implements NetworkController {
                 List<NetworkFCZoneInfo> singleFabricInfos = fabric2FabricInfos.get(key);
                 String fabricId = singleFabricInfos.get(0).getFabricId();
                 String fabricWwn = singleFabricInfos.get(0).getFabricWwn();
-                BiosCommandResult rslt = addRemoveZones(device, fabricId, fabricWwn, exportGroupUri, singleFabricInfos,
-                        doRemove, true);
+                BiosCommandResult rslt = addRemoveZones(device, fabricId, fabricWwn, exportGroupUri, singleFabricInfos, doRemove, true);
                 if (messageBuffer.length() > 0) {
                     messageBuffer.append("; ");
                 }
@@ -643,8 +634,7 @@ public class NetworkDeviceController implements NetworkController {
                     OperationTypeEnum.REMOVE_SAN_ZONE, System.currentTimeMillis(),
                     AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,
                     device.getId().toString(), device.getLabel(), device.getPortNumber(), device.getUsername(),
-                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(),
-                    device.getSmisUseSSL());
+                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(), device.getSmisUseSSL());
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.removeSanZonesFailedExc(
                     device.getSystemType(), ex);
@@ -663,8 +653,7 @@ public class NetworkDeviceController implements NetworkController {
      *            NetworkFabricInfo generated by NetworkScheduler
      * @return BiosCommandResult
      */
-    public BiosCommandResult removeZone(URI volUri, NetworkFCZoneInfo fabricInfo, boolean activateZones)
-            throws ControllerException {
+    public BiosCommandResult removeZone(URI volUri, NetworkFCZoneInfo fabricInfo, boolean activateZones) throws ControllerException {
         ServiceError serviceError = NetworkDeviceControllerException.errors.zoningFailedArgs(
                 volUri.toString());
         BiosCommandResult result = BiosCommandResult.createErrorResult(serviceError);
@@ -687,8 +676,7 @@ public class NetworkDeviceController implements NetworkController {
                 throw NetworkDeviceControllerException.exceptions.removeZoneFailedNull(device.getSystemType());
             }
             if (fabricInfo.isLastReference() == true && !fabricInfo.isExistingZone()) {
-                result = networkDevice.removeZones(device, zones, fabricInfo.getFabricId(), fabricInfo.getFabricWwn(),
-                        activateZones);
+                result = networkDevice.removeZones(device, zones, fabricInfo.getFabricId(), fabricInfo.getFabricWwn(), activateZones);
             } else {
                 // This is not the last reference, just mark our FCZoneReference for deletion
                 result = BiosCommandResult.createSuccessfulResult();
@@ -696,8 +684,7 @@ public class NetworkDeviceController implements NetworkController {
             if (result.isCommandSuccess()) {
                 if (fabricInfo.getFcZoneReferenceId() != null) {
                     try { // Mark our FcZoneReference object for removal
-                        FCZoneReference reference = _dbClient.queryObject(FCZoneReference.class,
-                                fabricInfo.getFcZoneReferenceId());
+                        FCZoneReference reference = _dbClient.queryObject(FCZoneReference.class, fabricInfo.getFcZoneReferenceId());
                         if (reference != null) {
                             _dbClient.markForDeletion(reference);
                             recordZoneEvent(reference, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
@@ -721,8 +708,7 @@ public class NetworkDeviceController implements NetworkController {
             if (altUri != null && altUri != primaryUri) {
                 NetworkFabricLocker.unlockFabric(fabricInfo.getFabricId(), fabricLock);
                 fabricLock = null;
-                _log.error("Remove Zone failed using device: " + primaryUri + " retrying with alternate device: "
-                        + altUri);
+                _log.error("Remove Zone failed using device: " + primaryUri + " retrying with alternate device: " + altUri);
                 fabricInfo.setNetworkDeviceId(altUri);
                 return removeZone(volUri, fabricInfo, activateZones);
             } else {
@@ -738,8 +724,7 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     @Override
-    public void updateSanZones(URI uri, String fabricId, String fabricWwn, List<ZoneUpdate> zones,
-            boolean activateZones,
+    public void updateSanZones(URI uri, String fabricId, String fabricWwn, List<ZoneUpdate> zones, boolean activateZones,
             String taskId) throws ControllerException {
         NetworkSystem device = getDeviceObject(uri);
         // Lock to prevent concurrent operations on the same VSAN / FABRIC.
@@ -758,8 +743,7 @@ public class NetworkDeviceController implements NetworkController {
                     OperationTypeEnum.UPDATE_SAN_ZONE, System.currentTimeMillis(),
                     AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,
                     device.getId().toString(), device.getLabel(), device.getPortNumber(), device.getUsername(),
-                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(),
-                    device.getSmisUseSSL());
+                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(), device.getSmisUseSSL());
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.updateSanZonesFailedExc(
                     device.getSystemType(), ex);
@@ -790,8 +774,7 @@ public class NetworkDeviceController implements NetworkController {
                     OperationTypeEnum.ACTIVATE_SAN_ZONE, System.currentTimeMillis(),
                     AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,
                     device.getId().toString(), device.getLabel(), device.getPortNumber(), device.getUsername(),
-                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(),
-                    device.getSmisUseSSL());
+                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(), device.getSmisUseSSL());
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.activateSanZonesFailedExc(
                     device.getSystemType(), ex);
@@ -863,13 +846,11 @@ public class NetworkDeviceController implements NetworkController {
                         OperationTypeEnum.DELETE_NETWORK_SYSTEM, System.currentTimeMillis(),
                         AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,
                         networkDevice.getId().toString(), networkDevice.getLabel(), networkDevice.getPortNumber(),
-                        networkDevice.getUsername(), networkDevice.getSmisProviderIP(),
-                        networkDevice.getSmisPortNumber(),
+                        networkDevice.getUsername(), networkDevice.getSmisProviderIP(), networkDevice.getSmisPortNumber(),
                         networkDevice.getSmisUserName(), networkDevice.getSmisUseSSL());
             }
         } catch (Exception ex) {
-            String msg = MessageFormat.format(
-                    "Exception encountered while removing FC Port Connection for {0} because: {1}", network,
+            String msg = MessageFormat.format("Exception encountered while removing FC Port Connection for {0} because: {1}", network,
                     ex.getLocalizedMessage());
             _log.error(msg);
             if (taskId != null) {
@@ -1049,8 +1030,8 @@ public class NetworkDeviceController implements NetworkController {
                 zonesMap = getExistingZonesMap(exportMaskURIs, token);
             }
 
-            List<NetworkFCZoneInfo> zones = _networkScheduler.getZoningTargetsForExportMasks(exportGroup,
-                    exportMaskURIs, volumeURIs, zonesMap, checkZones, _dbClient);
+            List<NetworkFCZoneInfo> zones = _networkScheduler.getZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs,
+                    zonesMap, checkZones, _dbClient);
             context.getZoneInfos().addAll(zones);
             logZones(zones);
 
@@ -1103,8 +1084,7 @@ public class NetworkDeviceController implements NetworkController {
 
         // get existing zones from the switch, first check if the zones were retrieved by previous steps and cached in
         // the workflow
-        Map<String, List<Zone>> zonesMap = (Map<String, List<Zone>>) WorkflowService.getInstance()
-                .loadWorkflowData(token, "zonemap");
+        Map<String, List<Zone>> zonesMap = (Map<String, List<Zone>>) WorkflowService.getInstance().loadWorkflowData(token, "zonemap");
 
         // if the existing zones were not already retrieved and cached by other steps, retrieve them now
         if (zonesMap == null) {
@@ -1187,8 +1167,7 @@ public class NetworkDeviceController implements NetworkController {
             _log.info("Config handler returned null for value so going by default value {}", addZoneOnDeviceOperation);
         }
 
-        _log.info(
-                "zoneExportAddVolumes checking for custom config value {} to skip zoning checks : (Custom Config) : {}",
+        _log.info("zoneExportAddVolumes checking for custom config value {} to skip zoning checks : (Custom Config) : {}",
                 addZoneWhileAddingVolume, addZoneOnDeviceOperation);
 
         return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token,
@@ -1247,8 +1226,8 @@ public class NetworkDeviceController implements NetworkController {
             Map<String, List<Zone>> zonesMap = getExistingZonesMap(exportMasksToInitiators.keySet(), token);
 
             // Compute zones that are required.
-            List<NetworkFCZoneInfo> zoneInfos = _networkScheduler.getZoningTargetsForInitiators(exportGroup,
-                    exportMasksToInitiators, zonesMap, _dbClient);
+            List<NetworkFCZoneInfo> zoneInfos = _networkScheduler.getZoningTargetsForInitiators(exportGroup, exportMasksToInitiators,
+                    zonesMap, _dbClient);
             context.getZoneInfos().addAll(zoneInfos);
             logZones(zoneInfos);
 
@@ -1339,8 +1318,7 @@ public class NetworkDeviceController implements NetworkController {
 
             // Compute the zones for the ExportGroup
             context.setAddingZones(false);
-            List<NetworkFCZoneInfo> zones = _networkScheduler.getRemoveZoningTargetsForExportMasks(exportGroup,
-                    exportMaskURIs, volumeURIs);
+            List<NetworkFCZoneInfo> zones = _networkScheduler.getRemoveZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs);
             context.getZoneInfos().addAll(zones);
             logZones(zones);
 
@@ -1362,8 +1340,7 @@ public class NetworkDeviceController implements NetworkController {
             status = result.isCommandSuccess();
 
             if (status && !lastReferenceZoneInfo.isEmpty()) {
-                _log.info(
-                        "There seems to be last reference zones that were removed, clean those zones from the zoning map.");
+                _log.info("There seems to be last reference zones that were removed, clean those zones from the zoning map.");
                 updateZoningMap(lastReferenceZoneInfo, exportGroup.getId(), exportMaskURIs);
             }
             // Update the workflow state.
@@ -1401,8 +1378,7 @@ public class NetworkDeviceController implements NetworkController {
      * @param exportMaskURIs
      *            list of reference to exportMask
      */
-    private void updateZoningMap(List<NetworkFCZoneInfo> lastReferenceZoneInfo, URI exportGroupURI,
-            List<URI> exportMaskURIs) {
+    private void updateZoningMap(List<NetworkFCZoneInfo> lastReferenceZoneInfo, URI exportGroupURI, List<URI> exportMaskURIs) {
 
         if (exportMaskURIs == null || exportMaskURIs.isEmpty()) {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
@@ -1429,8 +1405,7 @@ public class NetworkDeviceController implements NetworkController {
                             && zoneInfo.getEndPoints().size() == 2) {
 
                         Initiator initiator = NetworkUtil.findInitiatorInDB(zoneInfo.getEndPoints().get(0), _dbClient);
-                        List<StoragePort> storagePorts = NetworkUtil
-                                .findStoragePortsInDB(zoneInfo.getEndPoints().get(1), _dbClient);
+                        List<StoragePort> storagePorts = NetworkUtil.findStoragePortsInDB(zoneInfo.getEndPoints().get(1), _dbClient);
 
                         for (StoragePort storagePort : storagePorts) {
                             if (initiator != null && storagePort != null) {
@@ -1442,8 +1417,7 @@ public class NetworkDeviceController implements NetworkController {
                                                 ports.remove(storagePort.getId().toString());
                                                 if (ports.isEmpty()) {
                                                     exportMask.removeZoningMapEntry(initiatorId);
-                                                    _log.info(
-                                                            "Removing zoning map entry for initiator {}, in exportmask {}",
+                                                    _log.info("Removing zoning map entry for initiator {}, in exportmask {}",
                                                             initiatorId, exportMaskURI);
                                                 } else {
                                                     exportMask.addZoningMapEntry(initiatorId, ports);
@@ -1648,8 +1622,7 @@ public class NetworkDeviceController implements NetworkController {
             completeWorkflowState(taskId, "ZoneRollback", result);
 
             if (result.isCommandSuccess() && !lastReferenceZoneInfo.isEmpty()) {
-                _log.info(
-                        "There seems to be last reference zones that were removed, clean those zones from the zoning map.");
+                _log.info("There seems to be last reference zones that were removed, clean those zones from the zoning map.");
                 updateZoningMap(lastReferenceZoneInfo, exportGroupURI, null);
             }
 
@@ -1755,7 +1728,7 @@ public class NetworkDeviceController implements NetworkController {
             ref.setZoneName(zoneName);
             ref.setId(URIUtil.createId(FCZoneReference.class));
             ref.setInactive(false);
-            ref.setLabel(refKey + "_" + volumeURI.toString());
+            ref.setLabel(ref.getPwwnKey() + "_" + volumeURI.toString());
             ref.setExistingZone(existingZone);
             _dbClient.createObject(ref);
             newOrExisting[0] = "New";
@@ -1778,8 +1751,7 @@ public class NetworkDeviceController implements NetworkController {
      *            whether a New FCZoneReference was persisted.
      * @return The zone reference instance if found, null otherwise
      */
-    private FCZoneReference findFCZoneReferenceForVolGroupKey(URI exportGroupURI, URI volumeURI, String refKey,
-            String[] newOrExisting) {
+    private FCZoneReference findFCZoneReferenceForVolGroupKey(URI exportGroupURI, URI volumeURI, String refKey, String[] newOrExisting) {
         Map<String, FCZoneReference> volRefMap = _networkScheduler.makeExportToReferenceMap(refKey);
         String volExportKey = make2UriKey(volumeURI, exportGroupURI);
         if (volRefMap.containsKey(volExportKey)) {
@@ -1874,8 +1846,7 @@ public class NetworkDeviceController implements NetworkController {
                     OperationTypeEnum.ADD_ALIAS, System.currentTimeMillis(),
                     AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,
                     device.getId().toString(), device.getLabel(), device.getPortNumber(), device.getUsername(),
-                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(),
-                    device.getSmisUseSSL());
+                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(), device.getSmisUseSSL());
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.addAliasesFailedExc(
                     device.getSystemType(), ex);
@@ -1905,8 +1876,7 @@ public class NetworkDeviceController implements NetworkController {
                     OperationTypeEnum.REMOVE_ALIAS, System.currentTimeMillis(),
                     AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,
                     device.getId().toString(), device.getLabel(), device.getPortNumber(), device.getUsername(),
-                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(),
-                    device.getSmisUseSSL());
+                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(), device.getSmisUseSSL());
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.removeAliasesFailedExc(
                     device.getSystemType(), ex);
@@ -1917,9 +1887,8 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     @Override
-    public void updateAliases(URI uri, String fabricId, String fabricWwn, List<ZoneWwnAliasUpdate> updateAliases,
-            String taskId)
-                    throws ControllerException {
+    public void updateAliases(URI uri, String fabricId, String fabricWwn, List<ZoneWwnAliasUpdate> updateAliases, String taskId)
+            throws ControllerException {
         NetworkSystem device = getDeviceObject(uri);
         // Lock to prevent concurrent operations on the same VSAN / FABRIC.
         InterProcessLock fabricLock = NetworkFabricLocker.lockFabric(fabricId, _coordinator);
@@ -1937,8 +1906,7 @@ public class NetworkDeviceController implements NetworkController {
                     OperationTypeEnum.UPDATE_ALIAS, System.currentTimeMillis(),
                     AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,
                     device.getId().toString(), device.getLabel(), device.getPortNumber(), device.getUsername(),
-                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(),
-                    device.getSmisUseSSL());
+                    device.getSmisProviderIP(), device.getSmisPortNumber(), device.getSmisUserName(), device.getSmisUseSSL());
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.updateAliasesFailedExc(
                     device.getSystemType(), ex);
@@ -2166,8 +2134,7 @@ public class NetworkDeviceController implements NetworkController {
         List<Zone> zones = null;
         for (String initiatorWwn : wwnToZones.keySet()) {
             for (String portWwn : initiatorPortsMap.keySet()) {
-                zone = _networkScheduler.selectExistingZoneForInitiatorPort(network, initiatorWwn, portWwn,
-                        wwnToZones.get(initiatorWwn));
+                zone = _networkScheduler.selectExistingZoneForInitiatorPort(network, initiatorWwn, portWwn, wwnToZones.get(initiatorWwn));
                 if (zone != null) {
                     zones = filteredMap.get(initiatorWwn);
                     if (zones == null) {
@@ -2222,16 +2189,14 @@ public class NetworkDeviceController implements NetworkController {
      */
     public ZoneInfoMap getInitiatorsZoneInfoMap(List<Initiator> initiators, List<StoragePort> storagePorts) {
         ZoneInfoMap zoningMap = new ZoneInfoMap();
-        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators,
-                _dbClient);
+        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
             if (!Transport.FC.toString().equals(entry.getKey().getTransportType())) {
                 continue;
             }
             Map<String, StoragePort> initiatorPortsMap = NetworkUtil.getPortsInNetworkMap(entry.getKey(), storagePorts);
             if (initiatorPortsMap.size() > 0) {
-                zoningMap
-                        .putAll(getInitiatorsInNetworkZoneInfoMap(entry.getKey(), entry.getValue(), initiatorPortsMap));
+                zoningMap.putAll(getInitiatorsInNetworkZoneInfoMap(entry.getKey(), entry.getValue(), initiatorPortsMap));
             }
         }
         return zoningMap;
@@ -2248,8 +2213,7 @@ public class NetworkDeviceController implements NetworkController {
      */
     public Map<String, List<Zone>> getInitiatorsZones(Collection<Initiator> initiators) {
         Map<String, List<Zone>> zonesMap = new HashMap<String, List<Zone>>();
-        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators,
-                _dbClient);
+        Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
             if (!entry.getValue().isEmpty()) {
                 zonesMap.putAll(getInitiatorsInNetworkZones(entry.getKey(), entry.getValue()));
@@ -2326,19 +2290,16 @@ public class NetworkDeviceController implements NetworkController {
                 // possibly the first time this export mask is processed, populate from existing zones
                 List<StoragePort> storagePorts = ExportUtils.getStoragePorts(exportMask, _dbClient);
                 List<Initiator> initiators = ExportUtils.getExportMaskExistingInitiators(exportMask, _dbClient);
-                Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil
-                        .getInitiatorsByNetwork(initiators, _dbClient);
+                Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
 
                 StringSetMap zoningMap = new StringSetMap();
                 for (NetworkLite network : initiatorsByNetworkMap.keySet()) {
                     if (!Transport.FC.toString().equals(network.getTransportType())) {
                         continue;
                     }
-                    Map<String, StoragePort> initiatorPortsMap = NetworkUtil.getPortsInNetworkMap(network,
-                            storagePorts);
+                    Map<String, StoragePort> initiatorPortsMap = NetworkUtil.getPortsInNetworkMap(network, storagePorts);
                     if (!initiatorPortsMap.isEmpty()) {
-                        zoningMap.putAll(
-                                getZoningMap(network, initiatorsByNetworkMap.get(network), initiatorPortsMap, null));
+                        zoningMap.putAll(getZoningMap(network, initiatorsByNetworkMap.get(network), initiatorPortsMap, null));
                     }
                 }
                 exportMask.setZoningMap(zoningMap);
@@ -2415,13 +2376,11 @@ public class NetworkDeviceController implements NetworkController {
             // Get the full sets of initiators and ports affected. They will be used to find the FCZoneReferences to
             // refresh
             // These sets include new initiators and ports, existing ones that did not change, as well as removed ones
-            List<StoragePort> allStoragePorts = DataObjectUtils
-                    .iteratorToList(_dbClient.queryIterativeObjects(StoragePort.class,
-                            StringSetUtil.stringSetToUriList(removedPorts)));
+            List<StoragePort> allStoragePorts = DataObjectUtils.iteratorToList(_dbClient.queryIterativeObjects(StoragePort.class,
+                    StringSetUtil.stringSetToUriList(removedPorts)));
             allStoragePorts.addAll(storagePorts);
-            List<Initiator> allInitiators = DataObjectUtils
-                    .iteratorToList(_dbClient.queryIterativeObjects(Initiator.class,
-                            StringSetUtil.stringSetToUriList(removedInitiators)));
+            List<Initiator> allInitiators = DataObjectUtils.iteratorToList(_dbClient.queryIterativeObjects(Initiator.class,
+                    StringSetUtil.stringSetToUriList(removedInitiators)));
             allInitiators.addAll(initiators);
 
             // Make a copy of the zoning mask - Zones have already been removed for removed initiators, put them back
@@ -2442,8 +2401,7 @@ public class NetworkDeviceController implements NetworkController {
                 }
             }
             // get all the zone references that exist in the database for this export mask.
-            Map<String, List<FCZoneReference>> existingRefs = getZoneReferences(allZonesMap, allInitiators,
-                    allStoragePorts);
+            Map<String, List<FCZoneReference>> existingRefs = getZoneReferences(allZonesMap, allInitiators, allStoragePorts);
 
             // initialize results collections
             List<ZoneInfo> addedZoneInfos = new ArrayList<ZoneInfo>();
@@ -2515,12 +2473,10 @@ public class NetworkDeviceController implements NetworkController {
                         } else {
                             _log.info("The zone between initiator {} and port {} was removed from " +
                                     " the network system but the zoningMap entry will be kept because it was" +
-                                    " a ViPR initiator-port assignment", initiator.getInitiatorPort(),
-                                    port.getPortNetworkId());
+                                    " a ViPR initiator-port assignment", initiator.getInitiatorPort(), port.getPortNetworkId());
                         }
                         if (port != null && initiator != null) {
-                            removedZonesKeys.add(FCZoneReference.makeEndpointsKey(initiator.getInitiatorPort(),
-                                    port.getPortNetworkId()));
+                            removedZonesKeys.add(FCZoneReference.makeEndpointsKey(initiator.getInitiatorPort(), port.getPortNetworkId()));
                         }
                     }
                 }
@@ -2726,7 +2682,7 @@ public class NetworkDeviceController implements NetworkController {
         ref.setGroupUri(exportGroup.getId());
         ref.setZoneName(info.getZoneName());
         ref.setId(URIUtil.createId(FCZoneReference.class));
-        ref.setLabel(ref.getPwwnKey());
+        ref.setLabel(ref.getPwwnKey() + "_" + volumeURi.toString());
         ref.setExistingZone(true);
         return ref;
     }

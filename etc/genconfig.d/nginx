@@ -123,7 +123,7 @@ EOF
     network_vip6=${_GENCONFIG_network_vip6}
     network_nic_name=${_GENCONFIG_network_nic_name}
     cat <<EOF
-    [ -n "\$(ip -6 addr show to ${network_vip6} 2>/dev/null)" ] && ip addr change ${network_vip6} dev \${network_nic_name} preferred_lft 0
+    [ -n "\$(ip -6 addr show to ${network_vip6} 2>/dev/null)" ] && ip addr change ${network_vip6} dev ${network_nic_name} preferred_lft 0
 fi
 EOF
 }

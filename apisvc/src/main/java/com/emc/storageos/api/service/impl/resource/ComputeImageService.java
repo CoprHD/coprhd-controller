@@ -31,10 +31,12 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageServer;
+import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -46,6 +48,7 @@ import com.emc.storageos.model.compute.ComputeImageList;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
 import com.emc.storageos.model.compute.ComputeImageUpdate;
 import com.emc.storageos.imageservercontroller.ImageServerController;
+import com.emc.storageos.imageservercontroller.impl.ImageServerControllerImpl;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -55,6 +58,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * Compute image service handles create, update, and remove of compute images.
@@ -157,7 +161,9 @@ public class ComputeImageService extends TaskResourceService {
 
         ArgValidator.checkFieldNotEmpty(param.getImageUrl(), "image_url");
         ArgValidator.checkUrl(param.getImageUrl(), "image_url");
-
+        if (!checkForImageServers()) {
+            throw APIException.badRequests.cannotAddImageWithoutImageServer();
+        }
         ComputeImage ci = new ComputeImage();
         ci.setId(URIUtil.createId(ComputeImage.class));
 
@@ -165,7 +171,7 @@ public class ComputeImageService extends TaskResourceService {
         ci.setComputeImageStatus(ComputeImageStatus.IN_PROGRESS.name());
 
         ci.setLabel(param.getName());
-        ci.setImageUrl(param.getImageUrl());
+        ci.setImageUrl(encryptImageURLPassword(param.getImageUrl(), false));
 
         _dbClient.createObject(ci);
 
@@ -176,7 +182,7 @@ public class ComputeImageService extends TaskResourceService {
             return doImportImage(ci);
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-            _dbClient.persistObject(ci);
+            _dbClient.updateObject(ci);
             throw e;
         }
     }
@@ -246,8 +252,23 @@ public class ComputeImageService extends TaskResourceService {
             ArgValidator.checkUrl(param.getImageUrl(), "image_url");
 
             // URL can only be update if image not successfully loaded
-            if (ci.getComputeImageStatus().equals(ComputeImageStatus.NOT_AVAILABLE.name())) {
-                ci.setImageUrl(param.getImageUrl());
+            if (ci.getComputeImageStatus().equals(
+                    ComputeImageStatus.NOT_AVAILABLE.name())) {
+                String prevImageUrl = ci.getImageUrl();
+                boolean isEncrypted = false;
+                String oldPassword = ImageServerControllerImpl
+                        .extractPasswordFromImageUrl(prevImageUrl);
+                String newPassword = ImageServerControllerImpl
+                        .extractPasswordFromImageUrl(param.getImageUrl());
+
+                if (StringUtils.isNotBlank(oldPassword)
+                        && StringUtils.isNotBlank(newPassword)
+                        && oldPassword.equals(newPassword)) {
+                    isEncrypted = true;
+                }
+                ci.setImageUrl(encryptImageURLPassword(param.getImageUrl(),
+                        isEncrypted));
+
                 ci.setComputeImageStatus(ComputeImageStatus.IN_PROGRESS.name());
                 reImport = true;
             } else {
@@ -255,7 +276,7 @@ public class ComputeImageService extends TaskResourceService {
             }
         }
 
-        _dbClient.persistObject(ci);
+        _dbClient.updateObject(ci);
 
         auditOp(OperationTypeEnum.UPDATE_COMPUTE_IMAGE, true, null,
                 ci.getId().toString(), ci.getImageUrl());
@@ -319,12 +340,14 @@ public class ComputeImageService extends TaskResourceService {
                 throw APIException.badRequests.resourceCannotBeDeleted(ci
                         .getLabel());
             } else { // delete is forced
+                deleteImageFromImageServers(ci);
                 _dbClient.markForDeletion(ci);
                 auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci
                         .getId().toString(), ci.getImageUrl());
                 return getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE);
             }
         } else { // NOT_AVAILABLE
+            deleteImageFromImageServers(ci);
             _dbClient.markForDeletion(ci);
             auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci
                     .getId().toString(), ci.getImageUrl());
@@ -385,7 +408,10 @@ public class ComputeImageService extends TaskResourceService {
     private class ComputeImageMapper implements Function<ComputeImage, ComputeImageRestRep> {
         @Override
         public ComputeImageRestRep apply(final ComputeImage ci) {
-            return ComputeMapper.map(ci);
+            List<ComputeImageServer> successfulServers = new ArrayList<ComputeImageServer>();
+            List<ComputeImageServer> failedServers = new ArrayList<ComputeImageServer>();
+            getImageImportStatus(ci, successfulServers, failedServers);
+            return ComputeMapper.map(ci, successfulServers, failedServers);
         }
     }
 
@@ -454,8 +480,72 @@ public class ComputeImageService extends TaskResourceService {
             }
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-            _dbClient.persistObject(ci);
+            _dbClient.updateObject(ci);
             throw e;
         }
     }
+
+    /**
+     * Delete any image references or associations from all existing ImageServers.
+     * @param ci {@link ComputeImage}
+     */
+    private void deleteImageFromImageServers(ComputeImage ci) {
+        List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
+        for (URI imageServerId : ids) {
+            ComputeImageServer imageServer = _dbClient.queryObject(
+                    ComputeImageServer.class, imageServerId);
+
+            if (imageServer.getFailedComputeImages() != null
+                    && imageServer.getFailedComputeImages().contains(
+                            ci.getId().toString())) {
+                imageServer.getFailedComputeImages().remove(
+                        ci.getId().toString());
+            } else if (imageServer.getComputeImages() != null
+                    && imageServer.getComputeImages().contains(
+                            ci.getId().toString())) {
+                imageServer.getComputeImages().remove(
+                        ci.getId().toString());
+            }
+            _dbClient.updateObject(imageServer);
+        }
+    }
+
+    /**
+     * Check if there are image Servers in the system
+     */
+    private boolean checkForImageServers() {
+        boolean imageServerExists = true;
+        List<URI> imageServerURIList = _dbClient.queryByType(
+                ComputeImageServer.class, true);
+        ArrayList<URI> tempList = Lists.newArrayList(imageServerURIList
+                .iterator());
+
+        if (tempList.isEmpty()) {
+            imageServerExists = false;
+        }
+        return imageServerExists;
+    }
+
+    /**
+     * Method to mask/encrypt password of the ImageUrl
+     * @param imageUrl {@link String} compute image URL string
+     * @param isEncrypted boolean indicating if password is already encrypted.
+     * @return
+     */
+    private String encryptImageURLPassword(String imageUrl, boolean isEncrypted) {
+        String password = ImageServerControllerImpl
+                .extractPasswordFromImageUrl(imageUrl);
+        String encryptedPassword = password;
+        if (!isEncrypted && StringUtils.isNotBlank(password)) {
+            EncryptionProviderImpl encryptionProviderImpl = new EncryptionProviderImpl();
+            encryptionProviderImpl.setCoordinator(_coordinator);
+            encryptionProviderImpl.start();
+            EncryptionProvider encryptionProvider = encryptionProviderImpl;
+            encryptedPassword = encryptionProvider.getEncryptedString(password);
+            imageUrl = StringUtils.replace(imageUrl, ":" + password + "@", ":"
+                    + encryptedPassword + "@");
+        }
+        return imageUrl;
+    }
+
 }

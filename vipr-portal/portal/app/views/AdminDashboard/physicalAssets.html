@@ -10,7 +10,7 @@
       #{/if}
     #{if storageArrayCount != null}
       <ul class="list-group">
-        #{if controllers.security.Security.isSystemAdminOrRestrictedSystemAdmin()}
+        #{if controllers.security.Security.isSystemAdminOrRestrictedSystemAdmin() && controllers.infra.DisasterRecovery.isPrimarySite()}
           #{license.ifController}
             <a class="list-group-item" href="@{arrays.StorageSystems.list()}">&{'adminDashboard.storageArrays'} #{badgeNumber storageArrayCount/}</a>
             <a class="list-group-item" href="@{arrays.StorageProviders.list()}">&{'adminDashboard.smisProviders'} #{badgeNumber smisProviderCount/}</a>
@@ -18,6 +18,7 @@
             <a class="list-group-item" href="@{arrays.SanSwitches.list()}">&{'adminDashboard.fabricManagers'} #{badgeNumber fabricManagerCount/}</a>
             <a class="list-group-item" href="@{arrays.Networks.list()}">&{'adminDashboard.networks'} #{badgeNumber networksCount/}</a>
             <a class="list-group-item" href="@{compute.ComputeImages.list()}">&{'adminDashboard.computeImages'} #{badgeNumber computeImageCount/}</a>
+            <a class="list-group-item" href="@{compute.ComputeImageServers.list()}">&{'adminDashboard.computeImageServers'} #{badgeNumber computeImageServerCount/}</a>
             <a class="list-group-item" href="@{compute.ComputeSystems.list()}">&{'adminDashboard.computeSystems'} #{badgeNumber computeSystemCount/}</a>
             #{/license.ifController}
         #{/if}
@@ -29,11 +30,12 @@
             <li class="list-group-item">&{'adminDashboard.fabricManagers'} #{badgeNumber fabricManagerCount/}</li>
             <li class="list-group-item">&{'adminDashboard.networks'} #{badgeNumber networksCount/}</li>
             <li class="list-group-item">&{'adminDashboard.computeImages'} #{badgeNumber computeImageCount/}</a>
+            <li class="list-group-item">&{'adminDashboard.computeImageServers'} #{badgeNumber computeImageServerCount/}</a>
             <li class="list-group-item">&{'adminDashboard.computeSystems'} #{badgeNumber computeSystemCount/}</a>
           #{/license.ifController}
         #{/else}
         #{license.ifController}
-          #{if controllers.security.Security.isTenantAdmin()}
+          #{if controllers.security.Security.isTenantAdmin() && controllers.infra.DisasterRecovery.isPrimarySite()}
             <a class="list-group-item" href="@{compute.Hosts.list()}">&{'adminDashboard.hosts'} #{badgeNumber hostCount/}</a>
             <a class="list-group-item" href="@{compute.HostClusters.list()}">&{'adminDashboard.clusters'} #{badgeNumber clusterCount/}</a>
             <a class="list-group-item" href="@{compute.VCenters.list()}">&{'adminDashboard.vcenters'} #{badgeNumber vcenterCount/}</a>

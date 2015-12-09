@@ -1,0 +1,45 @@
+%{
+  titleKey = "BackupForm.title"
+  descriptionKey = "backup.create.description"
+  image = '/public/img/assets/DataBackup.png'
+  
+  
+}%
+
+#{extends 'main.html' /}
+#{set 'title'}&{'BackupForm.title'}#{/set}
+  #{set 'moreScripts'}
+    #{get 'moreScripts'/}
+  #{/set}
+  
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'Backup.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+  #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image  /}
+
+  #{alerts/}
+
+  #{form @save(), id:'backupForm',class:'form form-horizontal', autocomplete:"off"}
+  
+    #{field "backupForm.name"}
+      %{
+        field.cssClass = fieldCssClass
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field/}
+    #{/field}
+   
+     #{field 'backupForm.force'}
+        %{
+          field.cssClass = 'span0'
+          field.required = false
+        }%
+      #{Form.booleanCheckBoxControlGroup field:field/}
+    #{/field}
+    
+    #{Form.saveCancel cancelHref:@cancel() /}
+  #{/form}
+</div>

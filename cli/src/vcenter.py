@@ -279,8 +279,7 @@ class VCenter(object):
                         self.__ipAddr, self.__port, "POST", VCenter.URI_TENANTS_VCENTERS.format(str(tenant_uri)), body)
 
                 o = common.json_decode(s)
-                uri = None
-                if sys_admin and uri is not None:
+                if sys_admin and tenant is not None:
                     tenant_uri = None
                     if tenant is not None:
                         from tenant import Tenant
@@ -452,6 +451,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-cascade_tenancy', '-cascade',
                                dest='cascade_tenancy',
                                metavar='<cascade_tenancy>',
+                               choices=['true', 'false'],
                                help='Whether to cascade the vCenter tenancy to its datacenters, clusters and hosts or not')
 
     create_parser.set_defaults(func=vcenter_create)

@@ -4,6 +4,23 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.fast;
 
+import static com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.AutoTieringPolicyProcessorHelper.getAutoTieringPolicyByNameFromDB;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -14,21 +31,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.google.common.base.Strings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.AutoTieringPolicyProcessorHelper.getAutoTieringPolicyByNameFromDB;
 
 /**
  * Processor used in retrieving FAST Policies for both
@@ -124,7 +126,7 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
                  */
                 if (!Constants.SYMMETRIX.equalsIgnoreCase(array[0])
                         && !Constants.CLARIION.equalsIgnoreCase(array[0])) {
-                    _logger.info("Unsupported FAST Policy :" + policyID);
+                    _logger.info("Unsupported FAST Policy :{}", policyID);
                     return;
                 }
                 String fastPolicyServiceConstant = getFASTPolicyServiceConstant(array[0], policyRuleName);
@@ -197,7 +199,11 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
              */
             if (!policyNames.contains(policyName)) {
                 policyObject.setPolicyEnabled(false);
-                policyObject.getPools().clear();
+                if (policyObject.getPools() != null) {
+                    policyObject.getPools().clear();
+                } else {
+                    _logger.info("Policy {} does not have pools", policyObject.getId());
+                }
                 policyObject.setInactive(true);
                 _dbClient.updateAndReindexObject(policyObject);
             }
@@ -231,14 +237,14 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
                 .get(Constants.USED_IN_CHECKING_GROUPNAMES_EXISTENCE);
         if (AutoTieringPolicy.ProvisioningType.ThicklyProvisioned.toString().equalsIgnoreCase(
                 provisioningType)) {
-            deviceNamesExistence.add(policyRuleName + Constants.HYPEN + Constants.THICKDEVICEGROUP);
+            deviceNamesExistence.add(policyRuleName + Constants.HYPHEN + Constants.THICKDEVICEGROUP);
         } else if (AutoTieringPolicy.ProvisioningType.ThinlyProvisioned.toString()
                 .equalsIgnoreCase(provisioningType)) {
-            deviceNamesExistence.add(policyRuleName + Constants.HYPEN + Constants.THINDEVICEGROUP);
+            deviceNamesExistence.add(policyRuleName + Constants.HYPHEN + Constants.THINDEVICEGROUP);
         } else if (AutoTieringPolicy.ProvisioningType.All.toString()
                 .equalsIgnoreCase(provisioningType)) {
             deviceNamesExistence
-                    .add(policyRuleName + Constants.HYPEN + Constants.THINANDTHICKDEVICEGROUP);
+                    .add(policyRuleName + Constants.HYPHEN + Constants.THINANDTHICKDEVICEGROUP);
         }
     }
 
@@ -256,15 +262,15 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
                 .get(Constants.USED_IN_CHECKING_GROUPNAMES_TO_FASTPOLICY);
         if (AutoTieringPolicy.ProvisioningType.ThicklyProvisioned.toString().equalsIgnoreCase(
                 provisioningType)) {
-            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPEN
+            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPHEN
                     + Constants.THICKDEVICEGROUP);
         } else if (AutoTieringPolicy.ProvisioningType.ThinlyProvisioned.toString()
                 .equalsIgnoreCase(provisioningType)) {
-            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPEN
+            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPHEN
                     + Constants.THINDEVICEGROUP);
         } else if (AutoTieringPolicy.ProvisioningType.All.toString()
                 .equalsIgnoreCase(provisioningType)) {
-            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPEN
+            deviceNamesPolicyRelationExistence.add(policyRuleName + Constants.HYPHEN
                     + Constants.THINANDTHICKDEVICEGROUP);
         }
     }

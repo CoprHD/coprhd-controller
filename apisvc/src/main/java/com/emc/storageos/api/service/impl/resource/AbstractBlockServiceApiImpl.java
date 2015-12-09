@@ -7,7 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolChangeRep;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
-import static com.emc.storageos.db.client.model.BlockMirror.SynchronizationState.FRACTURED;
+import static com.emc.storageos.db.client.model.SynchronizationState.FRACTURED;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.google.common.collect.Collections2.transform;
 
@@ -85,6 +85,7 @@ import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
@@ -338,7 +339,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
         // Get volume descriptor for all volumes to be deleted.
         List<VolumeDescriptor> volumeDescriptors = getDescriptorsForVolumesToBeDeleted(
-                systemURI, volumeURIs);
+                systemURI, volumeURIs, deletionType);
 
         // Mark the volumes for deletion for a VIPR only delete, otherwise get
         // the controller and delete the volumes.
@@ -395,7 +396,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return The list of volume descriptors.
      */
     abstract protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(
-            URI systemURI, List<URI> volumeURIs);
+            URI systemURI, List<URI> volumeURIs, String deletionType);
 
     /**
      * Get the volume descriptors for all volumes to be deleted given the passed
@@ -476,9 +477,19 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // system and all other storage systems to which this storage system
         // is connected.
         URI volumeSystemURI = volume.getStorageController();
+        
+        // If the volume storage system is a vplex, we want to find storage systems
+        // associated by network connectivity with the vplex backend ports
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volumeSystemURI);
+        StoragePort.PortType portType = getSystemConnectivityPortType();
+        if (ConnectivityUtil.isAVPlex(storageSystem)) {
+        	s_logger.info("Volume Storage System is a VPLEX, setting port type to backend for storage systems network association check.");
+        	portType = StoragePort.PortType.backend;
+        }
+        
         Set<URI> connectedSystemURIs = ConnectivityUtil
-                .getStorageSystemAssociationsByNetwork(_dbClient, volumeSystemURI,
-                        getSystemConnectivityPortType());
+                .getStorageSystemAssociationsByNetwork(_dbClient, volumeSystemURI, portType);
+                                
         connectedSystemURIs.add(volumeSystemURI);
         Iterator<URI> systemURIsIter = connectedSystemURIs.iterator();
         while (systemURIsIter.hasNext()) {
@@ -540,7 +551,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             StringBuffer notSuppReasonBuff) {
 
         // The base class implementation just determines if the new
-        // vpool is the current vpool or if this is a path param change.
+        // vpool is the current vpool or if this is a path param or auto-tiering policy change.
         List<VirtualPoolChangeOperationEnum> allowedOperations = new ArrayList<VirtualPoolChangeOperationEnum>();
 
         if (!VirtualPoolChangeAnalyzer.isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
@@ -564,6 +575,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 // technology specific reason prevented the vpool change.
                 notSuppReasonBuff.append(pathChangeReasonBuff.toString());
                 notSuppReasonBuff.append(autoTieringPolicyChangeReasonBuff.toString());
+            }
+
+            // If a VPLEX vPool is eligible for both AUTO_TIERING_POLICY and VPLEX_DATA_MIGRATION operations,
+            // remove the VPLEX_DATA_MIGRATION operation from the supported list of operations.
+            // Reason: Current 'vPool change' design executes the first satisfying operation irrespective of what user chooses in the UI.
+            // Also when a Policy change can be performed by AUTO_TIERING_POLICY operation, why would the same needs VPLEX_DATA_MIGRATION?
+            if (allowedOperations.contains(VirtualPoolChangeOperationEnum.AUTO_TIERING_POLICY) &&
+                    allowedOperations.contains(VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION)) {
+                s_logger.info("Removing VPLEX_DATA_MIGRATION operation from supported operations list for vPool {} "
+                        + "as the same can be accomplished via AUTO_TIERING_POLICY_IO_LIMITS change operation", newVpool.getLabel());
+                allowedOperations.remove(VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION);
             }
         }
 
@@ -714,13 +736,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void verifyVolumeExpansionRequest(Volume volume, long newSize) {
-        // VMAX3 arrays do not support volume expansion as of Q2-2015. They
-        // will be able to support this later in 2015. Until then, we shall
-        // return that this is not supported.
-        if (isVMAX3Volume(volume)) {
-            throw APIException.badRequests.expansionNotSupportedForVMAX3Volumes();
-        }
-
         // Verify the passed volume is not a meta volume w/mirrors.
         // Expansion is not supported in this case.
         if (isMetaVolumeWithMirrors(volume)) {
@@ -1543,6 +1558,100 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
         // Don't allow partially ingested volume to be added to CG.
         BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG) {
+        /*
+         * For VMAX, volumes to be added can have replicas only if
+         *    1. CG has no existing volumes, and
+         *    2. SMI-S 8.x
+         * For other arrays, or VMAX (CG has existing volumes, or non SMI-S 8.x), volumes to be added cannot have replicas
+         */
+        boolean isReplicaAllowed = false;
+        if ((volsAlreadyInCG || cgVolumes.isEmpty()) && ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient)) {
+            isReplicaAllowed = true;
+        }
+
+        int knownSnapCount = -1;
+        int knownCloneCount = -1;
+        int knownMirrorCount = -1;
+        for (Volume volume : volumes) {
+            // snapshot check
+            URIQueryResultList list = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
+                    list);
+            Iterator<URI> it = list.iterator();
+            int snapCount = 0;
+            while (it.hasNext()) {
+                it.next();
+                snapCount++;
+            }
+
+            if (!isReplicaAllowed && snapCount > 0) {
+                throw APIException.badRequests
+                        .volumesWithReplicaCannotBeAdded(volume.getLabel(), "snapshots");
+            }
+
+            // Don't allow volume with multiple replicas
+            // Currently we do not have a way to group replicas based on their time stamp
+            // and put them into different groups on array.
+            if (snapCount > 1) {
+                throw APIException.badRequests
+                        .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "snapshots");
+            }
+
+            // Volume should have same number of replicas with other volumes
+            if (knownSnapCount != -1 && snapCount != knownSnapCount) {
+                throw APIException.badRequests
+                        .volumeWithDifferentNumberOfReplicasCannotBeAdded(volume.getLabel(), "snapshots");
+            }
+
+            // clone check
+            StringSet fullCopies = volume.getFullCopies();
+            int cloneCount = fullCopies == null ? 0 : fullCopies.size();
+
+            if (!isReplicaAllowed && cloneCount > 0) {
+                throw APIException.badRequests
+                        .volumesWithReplicaCannotBeAdded(volume.getLabel(), "full copies");
+            }
+
+            if (cloneCount > 1) {
+                throw APIException.badRequests
+                        .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "full copies");
+            }
+
+            if (knownCloneCount != -1 && cloneCount != knownCloneCount) {
+                throw APIException.badRequests
+                        .volumeWithDifferentNumberOfReplicasCannotBeAdded(volume.getLabel(), "full copies");
+            }
+
+            // mirror check
+            StringSet mirrors = volume.getMirrors();
+            int mirrorCount = mirrors == null ? 0 : mirrors.size();
+
+            if (!isReplicaAllowed && mirrorCount > 0) {
+                throw APIException.badRequests
+                        .volumesWithReplicaCannotBeAdded(volume.getLabel(), "mirrors");
+            }
+
+            if (mirrorCount > 1) {
+                throw APIException.badRequests
+                        .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "mirrors");
+            }
+
+            if (knownMirrorCount != -1 && mirrorCount != knownMirrorCount) {
+                throw APIException.badRequests
+                        .volumeWithDifferentNumberOfReplicasCannotBeAdded(volume.getLabel(), "mirrors");
+            }
+
+            knownSnapCount = snapCount;
+            knownCloneCount = cloneCount;
+            knownMirrorCount = mirrorCount;
+        }
     }
 
     /**

@@ -143,4 +143,38 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
         return VPlexDeviceController.getInstance().validateStorageProviderConnection(ipAddress, portNumber);
     }
+    
+    @Override
+    public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId) {
+        queueRequest("establishVolumeAndFullCopyGroupRelation", storage, sourceVolume, fullCopy, opId);
+    }
+
+    @Override
+    public void resyncSnapshot(URI vplexURI, URI snapshotURI, String opId) throws InternalException {
+        queueRequest("resyncSnapshot", vplexURI, snapshotURI, opId);
+    }
+
+    @Override
+    public void pauseMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("pauseMigration", vplexURI, migrationURI, opId);
+        
+    }
+
+    @Override
+    public void resumeMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("resumeMigration", vplexURI, migrationURI, opId);
+        
+    }
+    
+    @Override
+    public void cancelMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("cancelMigration", vplexURI, migrationURI, opId);
+        
+    }
+    
+    @Override
+    public void deleteMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("deleteMigration", vplexURI, migrationURI, opId);
+        
+    }
 }

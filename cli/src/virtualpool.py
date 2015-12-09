@@ -984,8 +984,8 @@ def create_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 required=True)
     mandatory_args.add_argument('-protocol', '-pl',
-                                help='Protocol used {NFS,CIFS for file; ' +
-                                'FC, iSCSI for block',
+                                help='Protocol used {NFS,NFSv4,CIFS for file; ' +
+                                'FC, iSCSI for block,S3/Atmos/Swift for object',
                                 metavar='<protocol>',
                                 dest='protocol',
                                 nargs='+',
@@ -1018,10 +1018,10 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument(
         '-maxcontinuouscopies', '-mcc',
         help='Maximum number of native continuous copies',
-        metavar='<max_continous_copies>',
+        metavar='<max_continuous_copies>',
         dest='maxcontinuouscopies')
     create_parser.add_argument('-continuouscopiesvpool', '-ccv',
-                               help='vpool for continous copies',
+                               help='vpool for continuous copies',
                                metavar='<continuouscopies_vpool>',
                                dest='continuouscopiesvpool')
     create_parser.add_argument('-ha',

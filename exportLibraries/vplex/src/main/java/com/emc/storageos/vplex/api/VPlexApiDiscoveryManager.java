@@ -263,18 +263,19 @@ public class VPlexApiDiscoveryManager {
         int status = response.getStatus();
         response.close();
 
-        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+        if (status == VPlexApiConstants.SUCCESS_STATUS) {
+            try {
+                return VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                        responseStr, VPlexPortInfo.class);
+            } catch (Exception e) {
+                throw VPlexApiException.exceptions.errorProcessingPortInformation(e.getLocalizedMessage());
+            }
+        } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
+            // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
+            return new ArrayList<VPlexPortInfo>();
+        } else {
             throw VPlexApiException.exceptions.failedGettingPortInfo(String.valueOf(status));
-        }
-
-        // Successful Response
-        try {
-            List<VPlexPortInfo> portInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
-                    responseStr, VPlexPortInfo.class);
-
-            return portInfoList;
-        } catch (Exception e) {
-            throw VPlexApiException.exceptions.errorProcessingPortInformation(e.getLocalizedMessage());
         }
     }
 
@@ -1593,19 +1594,21 @@ public class VPlexApiDiscoveryManager {
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
-        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+
+        if (status == VPlexApiConstants.SUCCESS_STATUS) {
+            try {
+                return VPlexApiUtils.getResourcesFromResponseContext(
+                        uriBuilder.toString(), responseStr, VPlexInitiatorInfo.class);
+            } catch (Exception e) {
+                throw VPlexApiException.exceptions.errorProcessingInitiatorInformation(e.getLocalizedMessage());
+            }
+        } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
+            // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
+            return new ArrayList<VPlexInitiatorInfo>();
+        } else {
             throw VPlexApiException.exceptions
-                    .failedGettingInitiatorInfoForCluster(clusterName, String.valueOf(status));
-        }
-
-        // Successful Response
-        try {
-            List<VPlexInitiatorInfo> initiatorInfoList = VPlexApiUtils.getResourcesFromResponseContext(
-                    uriBuilder.toString(), responseStr, VPlexInitiatorInfo.class);
-
-            return initiatorInfoList;
-        } catch (Exception e) {
-            throw VPlexApiException.exceptions.errorProcessingInitiatorInformation(e.getLocalizedMessage());
+                .failedGettingInitiatorInfoForCluster(clusterName, String.valueOf(status));
         }
     }
 
@@ -1729,18 +1732,20 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
-        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+
+        if (status == VPlexApiConstants.SUCCESS_STATUS) {
+            try {
+                return VPlexApiUtils.getResourcesFromResponseContext(
+                        uriBuilder.toString(), responseStr, VPlexTargetInfo.class);
+            } catch (Exception e) {
+                throw VPlexApiException.exceptions.errorProcessingTargetPortInformation(String.valueOf(status));
+            }
+        } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
+            // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
+            return new ArrayList<VPlexTargetInfo>();
+        } else {
             throw VPlexApiException.exceptions.failedGettingTargetPortInfo(String.valueOf(status));
-        }
-
-        // Successful Response
-        try {
-            List<VPlexTargetInfo> targetInfoList = VPlexApiUtils.getResourcesFromResponseContext(
-                    uriBuilder.toString(), responseStr, VPlexTargetInfo.class);
-
-            return targetInfoList;
-        } catch (Exception e) {
-            throw VPlexApiException.exceptions.errorProcessingTargetPortInformation(String.valueOf(status));
         }
     }
 
@@ -2132,27 +2137,33 @@ public class VPlexApiDiscoveryManager {
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
-        if (status != VPlexApiConstants.SUCCESS_STATUS) {
-            throw VPlexApiException.exceptions.failedGettingStorageViewInfo(String.valueOf(status));
-        }
 
-        try {
-            List<VPlexStorageViewInfo> storageViews = VPlexApiUtils
-                    .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
-                            VPlexStorageViewInfo.class);
+        if (status == VPlexApiConstants.SUCCESS_STATUS) {
+            try {
+                List<VPlexStorageViewInfo> storageViews = VPlexApiUtils
+                        .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
+                                VPlexStorageViewInfo.class);
 
-            // update storage views with wwpn info
-            Map<String, String> initInfoMap = getInitiatorNameToWwnMap(clusterName);
-            for (VPlexStorageViewInfo sv : storageViews) {
-                for (String initName : sv.getInitiators()) {
-                    String initWwn = initInfoMap.get(initName);
-                    sv.getInitiatorPwwns().add(initWwn);
+                // update storage views with wwpn info
+                Map<String, String> initInfoMap = getInitiatorNameToWwnMap(clusterName);
+                for (VPlexStorageViewInfo sv : storageViews) {
+                    for (String initName : sv.getInitiators()) {
+                        String initWwn = initInfoMap.get(initName);
+                        sv.getInitiatorPwwns().add(initWwn);
+                    }
+                    sv.refreshMaps();
                 }
-            }
 
-            return storageViews;
-        } catch (Exception e) {
-            throw VPlexApiException.exceptions.errorProcessingStorageViewInformation(e.getLocalizedMessage());
+                return storageViews;
+            } catch (Exception e) {
+                throw VPlexApiException.exceptions.errorProcessingStorageViewInformation(e.getLocalizedMessage());
+            }
+        } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
+            // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
+            return new ArrayList<VPlexStorageViewInfo>();
+        } else {
+            throw VPlexApiException.exceptions.failedGettingStorageViewInfo(String.valueOf(status));
         }
     }
 
@@ -2462,17 +2473,21 @@ public class VPlexApiDiscoveryManager {
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
-        if (status != VPlexApiConstants.SUCCESS_STATUS) {
-            throw VPlexApiException.exceptions.failedGettingConsistencyGroupInfo(String.valueOf(status));
-        }
 
-        try {
-            List<VPlexConsistencyGroupInfo> clusterCGInfoList = VPlexApiUtils
-                    .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
-                            VPlexConsistencyGroupInfo.class);
-            return clusterCGInfoList;
-        } catch (Exception e) {
-            throw VPlexApiException.exceptions.errorProcessingConsistencyGroupInformation(e.getLocalizedMessage());
+        if (status == VPlexApiConstants.SUCCESS_STATUS) {
+            try {
+                return VPlexApiUtils
+                        .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
+                                VPlexConsistencyGroupInfo.class);
+            } catch (Exception e) {
+                throw VPlexApiException.exceptions.errorProcessingConsistencyGroupInformation(e.getLocalizedMessage());
+            }
+        } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
+            // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
+            return new ArrayList<VPlexConsistencyGroupInfo>();
+        } else {
+            throw VPlexApiException.exceptions.failedGettingConsistencyGroupInfo(String.valueOf(status));
         }
     }
 
@@ -2798,21 +2813,21 @@ public class VPlexApiDiscoveryManager {
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
-        if (status != VPlexApiConstants.SUCCESS_STATUS) {
 
+        if (status == VPlexApiConstants.SUCCESS_STATUS) {
+            try {
+                return VPlexApiUtils.getResourcesFromResponseContext(
+                        uriBuilder.toString(), responseStr, VPlexVirtualVolumeInfo.class);
+            } catch (Exception e) {
+                throw VPlexApiException.exceptions.errorProcessingVirtualVolumeInformation(e.getLocalizedMessage());
+            }
+        } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
+            // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
+            return new ArrayList<VPlexVirtualVolumeInfo>();
+        } else {
             throw VPlexApiException.exceptions.failedGettingVirtualVolumeInfo(String.valueOf(status));
         }
-
-        List<VPlexVirtualVolumeInfo> virtualVolumeInfoList;
-        try {
-            virtualVolumeInfoList = VPlexApiUtils
-                    .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
-                            VPlexVirtualVolumeInfo.class);
-        } catch (Exception e) {
-            throw VPlexApiException.exceptions.errorProcessingVirtualVolumeInformation(e.getLocalizedMessage());
-        }
-
-        return virtualVolumeInfoList;
     }
 
     /**
@@ -3387,24 +3402,6 @@ public class VPlexApiDiscoveryManager {
                     VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
                             responseStr, VPlexStorageVolumeInfo.class);
 
-            StringBuilder badComponentTypeMessage = new StringBuilder();
-            if (!storageVolumeInfoList.isEmpty()) {
-                s_logger.info("found these storage volumes for VPLEX device {}:", deviceName);
-                for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
-                    s_logger.info(info.toString());
-                    if (!VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
-                        badComponentTypeMessage.append("Unexpected component type ")
-                                .append(info.getComponentType()).append(" found for volume ")
-                                .append(info.getName()).append(". ");
-                    }
-                }
-            }
-
-            if (badComponentTypeMessage.length() > 0) {
-                s_logger.error(badComponentTypeMessage.toString());
-                throw VPlexApiException.exceptions.failedGettingStorageVolumeInfoForIngestion(badComponentTypeMessage.toString());
-            }
-
             s_logger.info("TIMER: getStorageVolumesForDevice took {}ms",
                     System.currentTimeMillis() - start);
 
@@ -3427,6 +3424,7 @@ public class VPlexApiDiscoveryManager {
      * @return the name of the top level device for the given storage volume
      * @throws VPlexApiException
      */
+    @Deprecated
     public String getDeviceForStorageVolume(String volumeNativeId,
             String wwn, String backendArraySerialNum) throws VPlexApiException {
 
@@ -3524,6 +3522,7 @@ public class VPlexApiDiscoveryManager {
      * @param backendArraySerialNum the backend array serial number
      * @return
      */
+    @Deprecated
     private String getVolumeNamePattern(int i, String volumeNativeId,
             String wwn, String backendArraySerialNum) {
         String pattern = "";
@@ -3614,10 +3613,12 @@ public class VPlexApiDiscoveryManager {
         for (VPlexDeviceInfo componentDevice : deviceInfoList) {
             switch (componentDevice.getGeometry().toLowerCase()) {
                 case VPlexApiConstants.ARG_GEOMETRY_RAID0:
-                    s_logger.info("top-level device geometry is raid-0, no further info needed");
+                    s_logger.info("top-level device geometry is raid-0 for component {}, no further info needed",
+                            componentDevice.getName());
                     break;
                 case VPlexApiConstants.ARG_GEOMETRY_RAID1:
-                    s_logger.info("top-level device geometry is raid-1, need to find mirror info");
+                    s_logger.info("top-level device geometry is raid-1 for component {}, need to find mirror info",
+                            componentDevice.getName());
                     List<VPlexDeviceInfo> childDeviceInfos =
                             getDeviceComponentInfoForIngestion(componentDevice);
                     componentDevice.setChildDeviceInfo(childDeviceInfos);
@@ -3631,6 +3632,7 @@ public class VPlexApiDiscoveryManager {
             }
         }
 
+        parentDevice.setGeometry(VPlexApiConstants.ARG_GEOMETRY_RAID1);
         parentDevice.setLocalDeviceInfo(deviceInfoList);
         if (!deviceInfoList.isEmpty()) {
             s_logger.info("found these distributed component devices for VPLEX device {}:", parentDevice.getName());
@@ -3662,7 +3664,7 @@ public class VPlexApiDiscoveryManager {
             String deviceName) throws VPlexApiException {
 
         long start = System.currentTimeMillis();
-        s_logger.info("Getting device structure info for {} device {} from VPLEX at "
+        s_logger.info("Getting device structure info for device {} from VPLEX at "
                 + _vplexApiClient.getBaseURI().toString(), deviceName);
 
         StringBuilder uriBuilder = new StringBuilder();
@@ -3697,10 +3699,12 @@ public class VPlexApiDiscoveryManager {
 
             switch (device.getGeometry().toLowerCase()) {
                 case VPlexApiConstants.ARG_GEOMETRY_RAID0:
-                    s_logger.info("top-level device geometry is raid-0, no further info needed");
+                    s_logger.info("top-level device geometry is raid-0 for device {}, no further info needed",
+                            device.getName());
                     break;
                 case VPlexApiConstants.ARG_GEOMETRY_RAID1:
-                    s_logger.info("top-level device geometry is raid-1, finding children");
+                    s_logger.info("top-level device geometry is raid-1 for device {}, finding children",
+                            device.getName());
                     List<VPlexDeviceInfo> componentDeviceInfoList =
                             getDeviceComponentInfoForIngestion(device);
                     device.setChildDeviceInfo(componentDeviceInfoList);
@@ -3779,7 +3783,8 @@ public class VPlexApiDiscoveryManager {
         for (VPlexDeviceInfo device : deviceInfoList) {
             switch (device.getGeometry().toLowerCase()) {
                 case VPlexApiConstants.ARG_GEOMETRY_RAID0:
-                    s_logger.info("component device geometry is raid-0, no further info needed");
+                    s_logger.info("component device geometry is raid-0 for device {}, no further info needed",
+                            device.getName());
                     break;
                 case VPlexApiConstants.ARG_GEOMETRY_RAID1:
                 case VPlexApiConstants.ARG_GEOMETRY_RAIDC:
@@ -3857,4 +3862,43 @@ public class VPlexApiDiscoveryManager {
         return distributedDevicePathToClusterMap;
     }
 
+    /**
+     * Calls the VPLEX CLI "drill-down" command for the given device name.
+     * 
+     * @param deviceName a device name to check with the drill-down command
+     * @return the String drill-down command response from the VPLEX API
+     * @throws VPlexApiException if the device structure is incompatible with ViPR
+     */
+    public String getDrillDownInfoForDevice(String deviceName) throws VPlexApiException {
+
+        ClientResponse response = null;
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(
+                VPlexApiConstants.URI_DRILL_DOWN);
+        s_logger.info("Drill-down command URI is {}", requestURI.toString());
+
+        Map<String, String> argsMap = new HashMap<String, String>();
+        argsMap.put(VPlexApiConstants.ARG_DASH_R, deviceName);
+        JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
+        s_logger.info("Drill-down command POST data is {}", postDataObject.toString());
+
+        response = _vplexApiClient.post(requestURI, postDataObject.toString());
+        String responseStr = response.getEntity(String.class);
+        s_logger.info("Drill-down command response is {}", responseStr);
+
+        int status = response.getStatus();
+        response.close();
+
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
+                s_logger.info("Drill-down command is completing asynchronously");
+                responseStr = _vplexApiClient.waitForCompletion(response);
+                s_logger.info("Task Response is {}", responseStr);
+            } else {
+                throw VPlexApiException.exceptions.failedToExecuteDrillDownCommand(deviceName, responseStr);
+            }
+        }
+
+        String customData = VPlexApiUtils.getCustomDataFromResponse(responseStr);
+        return customData;
+    }
 }

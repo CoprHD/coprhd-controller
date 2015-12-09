@@ -416,13 +416,6 @@ class HostInitiator(object):
                     self.__ipAddr, self.__port)
             )
 
-    def list_tasks(self, project_name, initiatorportwwn=None, task_id=None):
-        return (
-            common.list_tasks(self.__ipAddr, self.__port, "initiator",
-                              project_name, initiatorportwwn, task_id)
-        )
-
-
     # Indentation END for the class
 # Start Parser definitions
 def create_parser(subcommand_parsers, common_parser):
@@ -482,13 +475,13 @@ def initiator_create(args):
         raise SOSError(
             SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
             " " + sys.argv[2] + ": error:" +
-            "-inititorwwn is required for FC type initiator")
+            "-initiatorwwn is required for FC type initiator")
 
     if(args.protocol == "iSCSI" and args.initiatorwwn):
         raise SOSError(
             SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
             " " + sys.argv[2] + ": error:" +
-            "-inititorwwn is not required for iSCSI type initiator")
+            "-initiatorwwn is not required for iSCSI type initiator")
 
     initiatorObj = HostInitiator(args.ip, args.port)
     try:
@@ -793,7 +786,7 @@ def task_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-pwwn', '-initiatorportwwn',
                                 metavar='<initiatorportwwn>',
                                 dest='initiatorportwwn',
-                                help='Port WWN of the Initiator to be deleted',
+                                help='Port WWN of the Initiator to be searched',
                                 required=True)
     mandatory_args.add_argument('-hl', '-hostlabel',
                                 dest='hostlabel',
@@ -836,7 +829,7 @@ def host_initiator_list_tasks(args):
                     return common.format_json_object(res)
                 else:
                     from common import TableGenerator
-                    TableGenerator(res, ["module/id", "name",
+                    TableGenerator(res, ["module/id",
                                          "state"]).printTable()
 
     except SOSError as e:

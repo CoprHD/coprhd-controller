@@ -16,17 +16,29 @@ import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileUtils {
     private static final Logger log = LoggerFactory.getLogger(FileUtils.class);
+    private static final String tmpDir;
+
+    static {
+        // Initialize tmp directory, remove possible existing separator at last position.
+        String rawDir = System.getProperty("java.io.tmpdir");
+        tmpDir = rawDir.endsWith(File.separator) ? rawDir.substring(0, rawDir.length() - 1) : rawDir;
+    }
+
+    public static String generateTmpFileName(String fileName) {
+        if (fileName == null || fileName.contains(File.separator)) {
+            throw new RuntimeException("File name can't be null or contain file separator");
+        }
+        return StringUtils.join(new String[] {tmpDir, fileName}, File.separator);
+    }
 
     /**
      * Read serialized object from a file
@@ -205,5 +217,45 @@ public class FileUtils {
         });
 
         return Collections.unmodifiableList(Arrays.asList(files));
+    }
+
+    /**
+     * Get the latest modified date of files under a directory.
+     *
+     * @param directory the directory which file resides in
+     */
+    public static Date getLastModified(File directory) {
+        File[] files = listAllFiles(directory);
+        if (files.length == 0) {
+            return null;
+        }
+        Arrays.sort(files, new Comparator<File>() {
+            public int compare(File o1, File o2) {
+                return new Long(o2.lastModified()).compareTo(o1.lastModified()); //latest 1st
+            }
+        });
+        log.info("Last modified file:{}, time:{}", files[0], files[0].lastModified());
+        return new Date(files[0].lastModified());
+    }
+
+    /**
+     * Returns an array of abstract pathnames denoting the files in the
+     * directory denoted by this abstract pathname and it's sub directories
+     *
+     * @param directory the directory which file resides in
+     */
+    private static File[] listAllFiles(File directory) {
+        if (directory == null || !directory.exists()) {
+            return new File[0];
+        }
+        List<File> fileList = new ArrayList<File>();
+        for (File file : directory.listFiles()) {
+            if (file.isDirectory()) {
+                fileList.addAll(Arrays.asList(listAllFiles(file)));
+            } else {
+                fileList.add(file);
+            }
+        }
+        return fileList.toArray(new File[0]);
     }
 }

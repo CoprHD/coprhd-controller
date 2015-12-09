@@ -62,6 +62,10 @@ public class ProcessHostChangesCompleter extends TaskCompleter {
                     _logger.info("do not delete provisioned host {} - disassociate it from vcenter", host.getLabel());
                     host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
                     dbClient.persistObject(host);
+                } else if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+                    _logger.info("do not delete host with boot volume {} - disassociate it from vcenter", host.getLabel());
+                    host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
+                    dbClient.persistObject(host);
                 } else {
                     ComputeSystemHelper.doDeactivateHost(dbClient, host);
                     _logger.info("Deactivating Host: " + host.getId());
@@ -71,8 +75,10 @@ public class ProcessHostChangesCompleter extends TaskCompleter {
             for (URI clusterId : deletedClusters) {
                 Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
                 List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
-                // don't delete cluster if all hosts weren't deleted (ex: hosts provisioned by ViPR)
-                if (!clusterHosts.isEmpty()) {
+                // don't delete cluster if auto-exports are disabled or all hosts weren't deleted (ex: hosts provisioned by ViPR)
+                if (!cluster.getAutoExportEnabled()) {
+                    _logger.info("do not delete cluster {} - auto exports are disabled", cluster.getLabel());
+                } else if (!clusterHosts.isEmpty()) {
                     _logger.info("do not delete cluster {} - it still has hosts - disassociate it from vcenter", cluster.getLabel());
                     cluster.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
                     cluster.setExternalId(NullColumnValueGetter.getNullStr());

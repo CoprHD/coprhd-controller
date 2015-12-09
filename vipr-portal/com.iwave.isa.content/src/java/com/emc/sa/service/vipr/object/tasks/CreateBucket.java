@@ -6,6 +6,8 @@ package com.emc.sa.service.vipr.object.tasks;
 
 import java.net.URI;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.model.object.BucketRestRep;
@@ -50,7 +52,7 @@ public class CreateBucket extends WaitForTask<BucketRestRep> {
         if (retention != null) {
             create.setRetention(retention);
         }
-        if (owner != null) {
+        if (!StringUtils.isEmpty(owner)) {
             create.setOwner(owner);
         }
 

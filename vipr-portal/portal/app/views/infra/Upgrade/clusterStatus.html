@@ -4,13 +4,11 @@
         &nbsp;&nbsp;#{loading /}
     #{/if}
 <div>&nbsp;</div>
-
 #{if newVersions.size() > 0}
     <div class="alert alert-info">
         &{'upgrade.newVersionAvailable', newVersions[0]}
     </div>
 #{/if}
-
 
 #{if isDownloading}
 <div id="downloadProgress">
@@ -20,6 +18,7 @@
         </button>
     </form>
 <br/>
+
 #{Form.subheader titleKey:"upgrade.downloadProgress", descriptionKey:"upgrade.downloadProgress.description"/}
     <table class="download-progress-table">
         #{list items:downloadStatus.entrySet(), as:'nodeEntry'}
@@ -52,33 +51,65 @@
     </table>
 </div>
 #{/if}
+
 #{elseif isStable}
-<form class="form form-horizontal" method="GET" action="@{downloadImage()}" onsubmit="downloadImage(); return true" id="downloadImage" style="margin:0px">
 #{if isStable}
   #{if repositoryVersions?.size() >= 4}
         <div class="alert alert-warning">&{'upgrade.tooMany'}</div>
   #{/if}
-  #{elseif newVersions.size() > 0}
-    <div class="control-group">
-      <label class="control-label">&{'upgrade.downloadNew'}:</label>
-      <div class="controls">
+ #{if newVersions.size() <= 0}
+    <div class="alert alert-info">&{'upgrade.noVersions'}</div>
+ #{/if}
+
+   	  %{
+   	  	isRepoVersionIsInstalled = false;
+   	  	len = repositoryVersions.size();
+   	  	if(repositoryVersions.get(len-1) == clusterInfo.targetState.current){
+   	  		isRepoVersionIsInstalled = true;
+   	  		
+   	  	}
+   	  }% 
+  #{if (!isRepoVersionIsInstalled || newVersions.size() > 0) }
+  <legend>&{'upgrade.steps'}</legend>
+  	<form id=backup action="@{Backup.create()}" onsubmit="return true">
+  	<div class="text"><b>&{'upgrade.backupDB'}</b>
+		<button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.backup'}</button>
+  	</div>
+  	</form>
+  	<br/>
+  	<form id=checkDB action="@{checkDbStatus()}" onsubmit="return true">
+  	<div class="text"><b>&{'upgrade.checkDB'}</b>
+		<button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.check'}</button>
+  	</div>
+  	</form>
+  	<br/>
+  	#{if newVersions.size() > 0}
+  	<form class="form form-horizontal" method="GET" action="@{downloadImage()}" onsubmit="downloadImage(); return true" id="downloadImage" style="margin:0px"> 
+    <div class="text"><b>&{'upgrade.downloadNew'}</b>
+      <span class="text">
         <select id="downloadImageVersion" name="version" style="margin-bottom: 0px">
           #{list items:newVersions, as:'version'}
             <option value="${version}">${version}</option>
           #{/list}
         </select>
-        <button type="submit" class="btn btn-primary btn-sm"  style="margin-bottom: 0px">
+        <button type="submit" class="btn btn-primary btn-sm" style="margin-bottom: 0px">
           #{icon 'download'/} &{'upgrade.downloadImage'}
         </button>
-      </div>
+      </span>
     </div>
-  #{/elseif}
-  #{else}
-    <div class="alert alert-info">&{'upgrade.noVersions'}</div>
-  #{/else}
+    </form>
+    <br/>
+    #{/if}
+    <div class="text"><b>&{'upgrade.installRemove'}</b></div>
   <br/>
+  #{/if}
+  #{else}
+    <legend>&{'upgrade.installedImages'}</legend>
+    <br/>
+  #{/else}
 #{/if}
-<legend>&{'upgrade.installedImages'}</legend>
+
+
 <table class="table table-striped">
   #{list items:repositoryVersions, as:'repositoryVersion'}
     <tr>
@@ -103,7 +134,6 @@
   #{/list}
 </table>
 
-</form>
 #{/elseif}
 <script>
     startStatusChecks("${clusterState}");

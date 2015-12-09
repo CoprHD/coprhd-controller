@@ -7,8 +7,11 @@ package com.emc.sa.service.vipr.block;
 import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEMS;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
+import com.emc.sa.asset.providers.BlockProviderUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
@@ -30,6 +33,18 @@ public class DiscoverUnmanagedVolumesService extends ViPRService {
 
         List<StorageSystemRestRep> systemRestReps =
                 execute(new GetStorageSystems(uris));
+
+        // remove any VPLEX systems and add them back at the end of the systems list
+        List<StorageSystemRestRep> vplexSystems = new ArrayList<StorageSystemRestRep>();
+        Iterator<StorageSystemRestRep> it = systemRestReps.iterator();
+        while (it.hasNext()) {
+            StorageSystemRestRep system = it.next();
+            if (BlockProviderUtils.isVplex(system)) {
+                vplexSystems.add(system);
+                it.remove();
+            }
+        }
+        systemRestReps.addAll(vplexSystems);
 
         for (StorageSystemRestRep storageSystem : systemRestReps) {
 

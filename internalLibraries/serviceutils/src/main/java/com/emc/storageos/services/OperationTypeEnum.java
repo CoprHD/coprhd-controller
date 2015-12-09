@@ -143,7 +143,7 @@ public enum OperationTypeEnum {
     ASSIGN_FILE_SNAPSHOT_TAG("TAG A FILESYSTEM SNAPSHOT", "", "tag a fileshare snapshot"),
     DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed", "FileSystem snapshot share deleted"),
     RESTORE_FILE_SNAPSHOT("FileSystemRestored", "FileSystemRestoreFailed", "FileSystem restored"),
-    
+
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
     UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),
@@ -387,6 +387,10 @@ public enum OperationTypeEnum {
     UPDATE_FILE_SNAPSHOT_SHARE_ACL("UPDATE SNAPSHOT SHARE ACL", "", "operation to update snapshot share ACL"),
     DELETE_FILE_SYSTEM_SHARE_ACL("DELETE FILE SHARE ACL", "", "operation to delete filesystem share ACL"),
     DELETE_FILE_SNAPSHOT_SHARE_ACL("DELETE SNAPSHOT SHARE ACL", "", "operation to delete snapshot share ACL"),
+    UPDATE_FILE_SYSTEM_NFS_ACL("UPDATE FILE NFS ACL", "", "operation to update filesystem nfs ACL"),
+    UPDATE_FILE_SNAPSHOT_NFS_ACL("UPDATE SNAPSHOT NFS ACL", "", "operation to update snapshot nfs ACL"),
+    DELETE_FILE_SYSTEM_NFS_ACL("DELETE FILE NFS ACL", "", "operation to delete filesystem nfs ACL"),
+    DELETE_FILE_SNAPSHOT_NFS_ACL("DELETE SNAPSHOT NFS ACL", "", "operation to delete snapshot nfs ACL"),
     CREATE_BACKUP("CREATE BACKUP", "", "operation to create ViPR backup"),
     UPLOAD_BACKUP("UPLOAD BACKUP", "", "operation to upload ViPR backup to external location"),
     RECOVER_NODES("RECOVER NODES", "", "operation to recover corrupted nodes"),
@@ -398,7 +402,17 @@ public enum OperationTypeEnum {
     ArrayGeneric("", "", ""),
     IMAGESERVER_VERIFY_IMPORT_IMAGES("IMAGESERVER_VERIFY_IMPORT_IMAGES", "", "operation to verify a compute image server and import images."),
     UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "", "operation to update and verify a compute image server."),
-    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),;
+    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
+
+    /* Disaster Recovery Operations */
+    ADD_STANDBY("ADD STANDBY", "", "operation to add a new standby to ensemble"),
+    REMOVE_STANDBY("REMOVE STANDBY", "", "operation to remove an existing standby from ensemble"),
+    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to pause replication between acitve site and standby site"),
+    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to resume replication between acitve site and standby site"),
+    IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
+    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to switchover from acitve site to a standby site"),
+    FAILOVER("FAILOVER TO A STANDBY", "", "operation to failover to a standby site"),
+    UPDATE_SITE("UPDATE SITE", "", "operation to update site information");
 
     private final String _evType;
     private final String _fail_evType;

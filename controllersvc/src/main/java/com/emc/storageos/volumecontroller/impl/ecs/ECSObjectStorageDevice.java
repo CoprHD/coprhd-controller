@@ -57,13 +57,19 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             throws ControllerException {
         ECSApi ecsApi = getAPI(storageObj);
         BiosCommandResult result = null;
-        String bktNativeId = null;
+        String bktNativeId = null, currentOwner=null;
         try {
-            _log.info("Initiated for Bucket createion. Name : {} Namespace : {}", args.getName(), args.getNamespace());
+            _log.info("Initiated for Bucket creation. Name : {} Namespace : {}", args.getName(), args.getNamespace());
             bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool());
             ecsApi.updateBucketRetention(args.getName(), args.getNamespace(), args.getRetentionPeriod());
             ecsApi.updateBucketQuota(args.getName(), args.getNamespace(), args.getNotSizeSQ(), args.getBlkSizeHQ());
-            ecsApi.updateBucketOwner(args.getName(), args.getNamespace(), args.getOwner());
+            currentOwner = ecsApi.getBucketOwner(args.getName(), args.getNamespace());
+            
+            //ECS throws error if we try to set new owner which is same as current owner
+            //This would lead to confusion as if there is an error
+            if (!currentOwner.equals(args.getOwner())) {
+            	ecsApi.updateBucketOwner(args.getName(), args.getNamespace(), args.getOwner());
+            }
             _log.info("Successfully created Bucket. Name : {} Namespace : {}", args.getName(), args.getNamespace());
             bucket.setNativeId(bktNativeId);
             completeTask(bucket.getId(), taskId, "Successfully created Bucket.");
@@ -73,10 +79,10 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             bucket.setInactive(true);
             if (null != bktNativeId) {
                 try {
-                    ecsApi.deleteBucket(bucket.getLabel(), bucket.getNamespace());
+                    ecsApi.deleteBucket(args.getName(), args.getNamespace());
                 } catch (Exception del) {
-                    _log.error("Unable to delete the Bucket at source. Name : {} Storage : {}", bucket.getLabel(),
-                            bucket.getStorageDevice());
+                    _log.error("Could not clean up orphan bucket : {} Storage : {} from ECS, Please remove manully",
+                            bucket.getLabel(), bucket.getStorageDevice());
                 }
             }
             completeTask(bucket.getId(), taskId, e);
@@ -87,26 +93,27 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota, Integer retention,
+    public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota,
+            Integer retention,
             String taskId) {
         // Update Quota
         ECSApi objectAPI = getAPI(storageObj);
         try {
-            objectAPI.updateBucketQuota(bucket.getLabel(), bucket.getNamespace(), softQuota, hardQuota);
+            objectAPI.updateBucketQuota(bucket.getName(), bucket.getNamespace(), softQuota, hardQuota);
             bucket.setHardQuota(hardQuota);
             bucket.setSoftQuota(softQuota);
         } catch (ECSException e) {
-            _log.error("Quota Update for Bucket : {} failed.", bucket.getLabel(), e);
+            _log.error("Quota Update for Bucket : {} failed.", bucket.getName(), e);
             completeTask(bucket.getId(), taskId, e);
             return BiosCommandResult.createErrorResult(e);
         }
 
         // Update Retention
         try {
-            objectAPI.updateBucketRetention(bucket.getLabel(), bucket.getNamespace(), retention);
+            objectAPI.updateBucketRetention(bucket.getName(), bucket.getNamespace(), retention);
             bucket.setRetention(retention);
         } catch (ECSException e) {
-            _log.error("Retention Update for Bucket : {} failed.", bucket.getLabel(), e);
+            _log.error("Retention Update for Bucket : {} failed.", bucket.getName(), e);
             completeTask(bucket.getId(), taskId, e);
             return BiosCommandResult.createErrorResult(e);
         }
@@ -121,13 +128,13 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         BiosCommandResult result;
         try {
             ECSApi objectAPI = getAPI(storageObj);
-            objectAPI.deleteBucket(bucket.getLabel(), bucket.getNamespace());
+            objectAPI.deleteBucket(bucket.getName(), bucket.getNamespace());
             bucket.setInactive(true);
             _dbClient.persistObject(bucket);
             result = BiosCommandResult.createSuccessfulResult();
             completeTask(bucket.getId(), taskId, "Bucket deleted successfully!");
         } catch (ECSException e) {
-            _log.error("Delete Bucket : {} failed.", bucket.getLabel(), e);
+            _log.error("Delete Bucket : {} failed.", bucket.getName(), e);
             result = BiosCommandResult.createErrorResult(e);
             completeTask(bucket.getId(), taskId, e);
         }

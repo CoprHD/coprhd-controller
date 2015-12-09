@@ -564,7 +564,7 @@ public class ExportService extends VolumeService {
 		StorageSystem storage = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
 		if (storage.checkIfVmax3()) {
 			_log.error("Volume expansion is not supported for VMAX V3 array {}", storage.getSerialNumber());
-			throw APIException.badRequests.unsupportedVolumeExpansion();
+			throw APIException.badRequests.volumeNotExpandable(vol.getLabel());
 		}
 
 		// Verify that the volume is 'expandable'

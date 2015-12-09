@@ -10,8 +10,9 @@ import java.util.Map;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ControllerException;
 
 public interface VPlexController extends Controller {
 
@@ -248,5 +249,60 @@ public interface VPlexController extends Controller {
      * @return true if the Storage Provider connection is valid
      */
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber);
+    
+    /**
+     * Pause a migration that is in progress.
+     * 
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param migrationURI The URI of the migration.
+     * @param opId the opId for the operation
+     */
+    public void pauseMigration(URI vplexURI, URI migrationURI, String opId);
+    
+    /**
+     * Resume a migration that is paused.
+     * @param vplexURI
+     * @param migrationURI
+     * @param opId
+     */
+    public void resumeMigration(URI vplexURI, URI migrationURI, String opId);
+    
+    /**
+     * Cancel a migration
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param migrationURI The URI of the migration.
+     * @param opId the opId for the operation
+     */
+    public void cancelMigration(URI vplexURI, URI migrationURI, String opId);
+    
+    /**
+     * Delete a migration
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param migrationURI The URI of the migration.
+     * @param opId the opId for the operation
+     */
+    public void deleteMigration(URI vplexURI, URI migrationURI, String opId);
 
+    /**
+     * Establishes group relation between volume group and full copy group.
+     * 
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param fullCopy the full copy
+     * @param opId the op id
+     * @throws ControllerException the controller exception
+     */
+    public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId)
+            throws InternalException;
+
+    /**
+     * Resynchronizes a snapshot of a VPLEX volume.
+     * 
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param snapshotURI The URI of the snapshot.
+     * @param opId The unique operation identifier.
+     * 
+     * @throws InternalException
+     */
+    public void resyncSnapshot(URI vplexURI, URI snapshotURI, String opId) throws InternalException;
 }

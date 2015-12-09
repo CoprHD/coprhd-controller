@@ -50,6 +50,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
+
 @Path("/v2/{tenant_id}/os-quota-sets")
 		
 @DefaultPermissions( readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
@@ -83,7 +84,7 @@ public class QuotaService extends TaskResourceService {
      *
      * @param tenant_id the URN of the tenant asking for quotas 
      * @param target_tenant_id 
-     * @brief 
+     * @brief Get the summary list of all Quotas
      * @return Quota details of target_tenant_id
      */
     @GET    
@@ -169,6 +170,33 @@ public class QuotaService extends TaskResourceService {
     	
     }
     
+
+    /**
+     * Get the summary list of all Default Quotas for the given tenant
+     *     
+     *
+     * @prereq none
+     *
+     * @param tenant_id the URN of the tenant asking for quotas 
+     * @param target_tenant_id 
+     * @brief 
+     * @return Default Quota details of target_tenant_id
+     */
+    @GET    
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    
+    @Path("/{target_tenant_id}/defaults")
+    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    public Response getDeafultQuotaDetails(
+    		@PathParam("target_tenant_id") String openstack_target_tenant_id, @Context HttpHeaders header) {
+    	
+    	//ToDo
+    	//Implement system Defaults like  VCPUs, RM, Fixed IP's etc.
+    	CinderQuotaDetails	respCinderDefaultQuota  = new CinderQuotaDetails();
+    	    	    
+    	return getQuotaDetailFormat(header, respCinderDefaultQuota);
+    	
+    }
     
     
     /**
@@ -344,9 +372,6 @@ public class QuotaService extends TaskResourceService {
     	
     }
     
-    
-       
-   
     private boolean isVpoolQuotaUpdate(Map<String, String> updateMap){
     	for(String iter : updateMap.keySet()){
     		if(iter.startsWith("volumes_") || iter.startsWith("snapshots_") || iter.startsWith("gigabytes_") ){

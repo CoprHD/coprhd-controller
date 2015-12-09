@@ -11,7 +11,9 @@ import com.emc.storageos.management.backup.BackupType;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.systemservices.TestProductName;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -73,12 +75,12 @@ public class BackupSchedulerTest {
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
             Assert.assertTrue(
                     String.format("Missing backup: %s in %s", aliveBackupsAt20141231[i],
-                            Strings.join(",", cli.localBackups.toArray(new String[1]))),
+                            StringUtils.join(cli.localBackups, ',')),
                     cli.localBackups.contains(aliveBackupsAt20141231[i]));
         }
 
         Set<String> tags = cli.getClusterBackupTags(false);
-        Assert.assertEquals(String.format("Incorrect local backup copies: {%s}", Strings.join(",", tags.toArray(new String[tags.size()]))),
+        Assert.assertEquals(String.format("Incorrect local backup copies: {%s}", StringUtils.join(tags, ',')),
                 aliveBackupsAt20141231.length, cli.localBackups.size());
     }
 
@@ -109,7 +111,9 @@ public class BackupSchedulerTest {
             cfg.retainedBackups.add(aliveBackupsAt20141231[i]);
         }
 
-        FakeUploadExecutor upExec = new FakeUploadExecutor(cfg, cli);
+        UploadExecutor upExec = new UploadExecutor(cfg, cli);
+        FakeUploader uploader = new FakeUploader(cfg, cli);
+        upExec.setUploader(uploader);
 
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
@@ -119,8 +123,8 @@ public class BackupSchedulerTest {
         // Verify the backups are uploaded
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
             Assert.assertTrue(String.format("Backup %s is not uploaded: %s", aliveBackupsAt20141231[i],
-                    Strings.join(",", upExec.fileMap.keySet().toArray(new String[upExec.fileMap.size()]))),
-                    upExec.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1-1.zip")
+                    StringUtils.join(uploader.fileMap.keySet(),',')),
+                    uploader.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1-1.zip")
                     );
         }
     }
@@ -164,7 +168,9 @@ public class BackupSchedulerTest {
         cli.localBackups.add(aliveBackupsAt20141231[0]);
         cli.localBackups.add(aliveBackupsAt20141231[1]);
 
-        FakeUploadExecutor upExec = new FakeUploadExecutor(cfg, cli);
+        UploadExecutor upExec = new UploadExecutor(cfg, cli);
+        FakeUploader uploader = new FakeUploader(cfg, cli);
+        upExec.setUploader(uploader);
 
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
@@ -177,10 +183,10 @@ public class BackupSchedulerTest {
     }
 }
 
-class FakeUploadExecutor extends UploadExecutor {
+class FakeUploader extends Uploader {
     public Map<String, Long> fileMap = new HashMap<>();
 
-    public FakeUploadExecutor(SchedulerConfig cfg, BackupScheduler cli) {
+    public FakeUploader(SchedulerConfig cfg, BackupScheduler cli) {
         super(cfg, cli);
     }
 
@@ -212,6 +218,26 @@ class FakeUploadExecutor extends UploadExecutor {
                 fileMap.put(fileName, offset + this.written);
             }
         };
+    }
+
+    @Override
+    public List<String> listFiles(String prefix) throws Exception {
+        if (prefix == null) {
+            return null;
+        }
+        List<String> fileNames = new ArrayList<>();
+        for (String key : this.fileMap.keySet()) {
+            if (key.startsWith(prefix)) {
+                fileNames.add(key);
+            }
+        }
+       return fileNames;
+    }
+
+    @Override
+    public void rename(String sourceFileName,String destFileName) {
+        this.fileMap.put(destFileName,this.fileMap.get(sourceFileName));
+        this.fileMap.remove(sourceFileName);
     }
 }
 
@@ -277,7 +303,7 @@ class FakeBackupClient extends BackupScheduler {
     @Override
     public String generateZipFileName(String tag, BackupFileSet files) {
         Set<String> availableNodes = files.uniqueNodes();
-        return ScheduledBackupTag.toZipFileName(tag, 1, availableNodes.size());
+        return ScheduledBackupTag.toZipFileName(tag, 1, availableNodes.size(), "");
     }
 
     @Override
@@ -293,6 +319,7 @@ class FakeBackupClient extends BackupScheduler {
 
 class FakeConfiguration extends SchedulerConfig {
     public Calendar currentTime;
+    public BackupUploadStatus uploadStatus = new BackupUploadStatus();
 
     public FakeConfiguration() {
         super(null, null, null);
@@ -315,6 +342,16 @@ class FakeConfiguration extends SchedulerConfig {
 
     @Override
     public void persist() {
+    }
+
+    @Override
+    public BackupUploadStatus queryBackupUploadStatus() {
+        return uploadStatus;
+    }
+
+    @Override
+    public void persistBackupUploadStatus(BackupUploadStatus status) {
+        uploadStatus.update(status.getBackupName(), status.getStatus(), status.getProgress(), status.getErrorCode());
     }
 
     @Override

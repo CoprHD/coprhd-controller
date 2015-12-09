@@ -56,6 +56,9 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
+import com.emc.storageos.cinder.model.CinderOsVolumeTransferRestResp;
+import com.emc.storageos.cinder.model.CinderOsServicesRestResp;
+
 
 @Path("/v2/{tenant_id}")
 @DefaultPermissions( readRoles = {Role.TENANT_ADMIN, Role.SYSTEM_MONITOR},
@@ -80,6 +83,7 @@ public class MiscService extends TaskResourceService {
      *     
      * @prereq none
      * @param tenant_id the URN of the tenant 
+     * @brief Get Limits
      * @return limits	
      */
     @GET
@@ -146,7 +150,8 @@ public class MiscService extends TaskResourceService {
      * Get extensions
      *     
      * @prereq none
-     * @param tenant_id the URN of the tenant 
+     * @param tenant_id the URN of the tenant
+     * @brief Get extensions
      * @return extensions	
      */
     @GET
@@ -169,13 +174,56 @@ public class MiscService extends TaskResourceService {
         return CinderApiUtils.getCinderResponse(extResp, header, false);
     }
     
-    
-    
+ 
+    /**
+     * Get os-volume-transfer details
+     *     
+     * @prereq none
+     * @param tenant_id the URN of the tenant 
+     * @return transfers	
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})    
+    @Path("/os-volume-transfer/detail")	
+    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})        
+    public Response getVolumeTransfers(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
+        _log.info("RAG START getVolumeTransfers");
+        CinderOsVolumeTransferRestResp volTransferResp = new CinderOsVolumeTransferRestResp();
+        //Todo
+        // need to support You can transfer a volume from one owner to another by using the cinder transfer* commands
+        // this involves Create a volume transfer request,  Accept a volume transfer request
+        // and Delete a volume transfer
+
+        
+        return CinderApiUtils.getCinderResponse(volTransferResp, header, false);
+    }
+
+    /**
+     * Get os-services
+     *     
+     * @prereq none
+     * @param tenant_id the URN of the tenant 
+     * @return services	
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})    
+    @Path("/os-services")	
+    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})        
+    public Response getOsServices(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
+        _log.info("RAG START getOsServices");       
+        //ToDo
+        // need to support system Information os-service
+
+        CinderOsServicesRestResp osServicesResp = new CinderOsServicesRestResp();
+        return CinderApiUtils.getCinderResponse(osServicesResp, header, false);
+    }    
+       
     /**
      * Get availability zones
      *     
      * @prereq none
      * @param tenant_id the URN of the tenant 
+     * @brief Get availability zones 
      * @return availability zones
      */
     

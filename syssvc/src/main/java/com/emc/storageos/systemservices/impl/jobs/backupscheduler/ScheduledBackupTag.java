@@ -27,7 +27,7 @@ public class ScheduledBackupTag {
 
     private static final String DATE_PATTERN = "yyyyMMddHHmmss";
     private static final String BACKUP_TAG_TEMPLATE = "%s-%d-%s";
-    private static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s-%s-%s%s";
+    private static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s-%s-%s-%s%s";
     private static final String SCHEDULED_BACKUP_TAG_REGEX_PATTERN = "^%s-(\\w+|\\.)*\\d+-\\d+-\\d{%d}$";
     private static final ThreadLocal<SimpleDateFormat> dateFormat = new ThreadLocal<SimpleDateFormat>() {
         @Override
@@ -36,7 +36,9 @@ public class ScheduledBackupTag {
         }
     };
     private static final Date MIN_DATE = new Date(0);
-    private static final String ZIP_FILE_SURFIX = ".zip";
+    protected static final String ZIP_FILE_SURFIX = ".zip";
+    protected static final String BACKUP_TAG_SEPERATOR = "-";
+    private static final String INVALID_ZIP_FILE_SURFIX = "-invalid.zip";
 
     public static Date parseTimestamp(String timestampStr) throws ParseException {
         return dateFormat.get().parse(timestampStr);
@@ -88,7 +90,8 @@ public class ScheduledBackupTag {
             try {
                 return ScheduledBackupTag.parseBackupTag(tag);
             } catch (ParseException e) {
-                log.warn("{}, errorOffset is at {}, set backup date as minimal for comparison", e.getMessage(), e.getErrorOffset());
+                log.info("Can't parse timestamp from the tag of non-scheduled backup({}, errorOffset is at {})",
+                        e.getMessage(), e.getErrorOffset());
                 return MIN_DATE;
             }
         }
@@ -103,7 +106,11 @@ public class ScheduledBackupTag {
         }
     }
 
-    public static String toZipFileName(String tag, int totalNodes, int backupNodes) {
-        return String.format(UPLOAD_ZIP_FILENAME_FORMAT, tag, totalNodes, backupNodes, ZIP_FILE_SURFIX);
+    public static String toZipFileName(String tag, int totalNodes, int backupNodes, String siteName) {
+        return String.format(UPLOAD_ZIP_FILENAME_FORMAT, tag, totalNodes, backupNodes, siteName, ZIP_FILE_SURFIX);
+    }
+
+    public static String toInvalidFileName(String fileName) {
+        return fileName.replaceFirst(ZIP_FILE_SURFIX + "$", INVALID_ZIP_FILE_SURFIX);
     }
 }

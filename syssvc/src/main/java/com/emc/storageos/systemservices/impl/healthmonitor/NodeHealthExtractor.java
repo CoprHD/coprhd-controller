@@ -43,7 +43,7 @@ public class NodeHealthExtractor implements StatConstants {
      * @throws Exception
      */
     public static List<ServiceHealth> getServiceHealth(
-            List<ServiceStats> serviceStatsList, CoordinatorClient coordinator, String nodeId, String nodeIP) {
+            List<ServiceStats> serviceStatsList, CoordinatorClient coordinator, String nodeId) {
         // Get running services from stats service
         if (serviceStatsList != null) {
             List<ServiceHealth> serviceHealthList = new ArrayList<ServiceHealth>();
@@ -53,7 +53,7 @@ public class NodeHealthExtractor implements StatConstants {
                     continue;
                 }
                 serviceHealthList.add(new ServiceHealth(sName,
-                        getServiceStatusFromStats(serviceStats, coordinator, nodeId, nodeIP).toString()));
+                        getServiceStatusFromStats(serviceStats, coordinator, nodeId).toString()));
             }
             return serviceHealthList;
         } else {
@@ -71,7 +71,7 @@ public class NodeHealthExtractor implements StatConstants {
      * @param serviceStats service statistics
      * @return service status
      */
-    private static Status getServiceStatusFromStats(ServiceStats serviceStats, CoordinatorClient coordinator, String nodeId, String nodeIP) {
+    private static Status getServiceStatusFromStats(ServiceStats serviceStats, CoordinatorClient coordinator, String nodeId) {
         String svcName = serviceStats.getServiceName();
         // If service status is not available..
         if (serviceStats.getProcessStatus() == null || serviceStats.getProcessStatus()
@@ -83,7 +83,6 @@ public class NodeHealthExtractor implements StatConstants {
             // Check service beacon to know service status. make it work for dbsvc/geodbsvc first, then rest of other
             // after we unified beacon format
             String svcVersion = coordinator.getTargetDbSchemaVersion();
-            String endpointName = null;
             List<Service> svcs;
             try {
                 svcs = coordinator.locateAllServices(svcName, svcVersion, null, null);
@@ -95,10 +94,11 @@ public class NodeHealthExtractor implements StatConstants {
             // In case we cannot find the service in ZK, the service is DEGRADED. It's not UNAVAILABLE
             // because we still see its process as GOOD
             Status status = Status.DEGRADED;
-            for (Service svc : svcs) {
-                if (svc.getEndpoint(null).getHost().equals(nodeId) || svc.getEndpoint(endpointName).getHost().equals(nodeIP)) { // Found our
-                                                                                                                                // service
-                    status = Status.GOOD;
+            if (nodeId != null) {
+                for (Service svc : svcs) {
+                    if (nodeId.equals(svc.getNodeId())) {
+                        status = Status.GOOD;
+                    }
                 }
             }
             return status;

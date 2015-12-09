@@ -523,6 +523,10 @@ public interface VPlexApiExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedExpandVolumeStatusAfterRetries(final String volumeName,
+            final String retries, final String wait);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException claimVolumeFailureStatus(final String volumeWWN,
             final String status, final String cause);
 
@@ -741,4 +745,31 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedToValidateExportMask(String exporURI, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedDeviceCollapse(final String deviceName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedDeviceCollapseStatus(final String deviceName, String msg, String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedSettingDeviceVisibility(final String deviceName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedSettingDeviceVisibilityStatus(final String deviceName, String msg, String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException establishVolumeFullCopyGroupRelationFailed(String fullCopyId, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedToExecuteDrillDownCommand(String deviceName, String response);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException cantRenameDevice(String originalDeviceName, String newName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException cantRenameDeviceBackToOriginalName(String originalDeviceName, String newName, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException cantUseBackendExportMaskNotAllPortsInVarray(final String maskName, final String varray, final String listOfPorts);
 }

@@ -1,0 +1,58 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+import time
+
+def ipsec_key_rotate(vip):
+    """ a test on ipsec key rotation """
+    bourne.connect(vip)
+    version = bourne.ipsc_rotate_key()
+    print "Key rotation is submitted successfully at version %s" % version
+
+def ipsec_check(vip):
+    """ a test on ipsec key checking status """
+    bourne.connect(vip)
+    ipsec_status = bourne.ipsc_check()
+    bourne.pretty_print_json(ipsec_status)
+    if ipsec_status['is_good'] == False:
+        raise Exception("ipsec check failed")
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# dr <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
+parser.add_argument('cmd', help = 'cmd = (keyrotate)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+if (len(sys.argv) > 1):
+    cmd = sys.argv[1]
+else:
+    cmd = None
+
+bourne = Bourne()
+
+if (cmd == "keyrotate"):
+    ipsec_key_rotate(bourne_ip)
+elif (cmd == "check"):
+    ipsec_check(bourne_ip)
+else:
+    parser.print_help()

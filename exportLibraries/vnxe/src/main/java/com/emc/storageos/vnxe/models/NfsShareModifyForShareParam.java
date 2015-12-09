@@ -12,11 +12,12 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class NfsShareModifyForShareParam extends ParamBase {
     private String description;
-    private int defaultAccessLevel;
     private List<VNXeBase> noAccessHosts;
     private List<VNXeBase> readOnlyHosts;
     private List<VNXeBase> readWriteHosts;
     private List<VNXeBase> rootAccessHosts;
+    private NFSShareDefaultAccessEnum defaultAccess;
+    private NFSShareDefaultAccessEnum defaultAccessLevel; // for older software version
 
     public String getDescription() {
         return description;
@@ -24,14 +25,6 @@ public class NfsShareModifyForShareParam extends ParamBase {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public int getDefaultAccessLevel() {
-        return defaultAccessLevel;
-    }
-
-    public void setDefaultAccessLevel(int defaultAccessLevel) {
-        this.defaultAccessLevel = defaultAccessLevel;
     }
 
     public List<VNXeBase> getNoAccessHosts() {
@@ -64,6 +57,29 @@ public class NfsShareModifyForShareParam extends ParamBase {
 
     public void setRootAccessHosts(List<VNXeBase> rootAccessHosts) {
         this.rootAccessHosts = rootAccessHosts;
+    }
+
+    public NFSShareDefaultAccessEnum getDefaultAccess() {
+        return defaultAccess;
+    }
+
+    public void setDefaultAccess(NFSShareDefaultAccessEnum defaultAccess) {
+        this.defaultAccess = defaultAccess;
+    }
+
+    public NFSShareDefaultAccessEnum getDefaultAccessLevel() {
+        return defaultAccessLevel;
+    }
+
+    public void setDefaultAccessLevel(NFSShareDefaultAccessEnum defaultAccessLevel) {
+        this.defaultAccessLevel = defaultAccessLevel;
+    }
+
+    public static enum NFSShareDefaultAccessEnum {
+        NONE,
+        READONLY,
+        READWRITE,
+        ROOT;
     }
 
 }

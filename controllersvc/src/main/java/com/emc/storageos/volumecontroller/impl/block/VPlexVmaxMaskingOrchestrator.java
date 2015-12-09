@@ -18,13 +18,13 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
@@ -98,11 +98,11 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     static final Integer MAX_PORTS_PER_NETWORK = 24;
 
     @Override
-    public Set<Map<URI, List<StoragePort>>> getPortGroups(
+    public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups) {
 
-        Set<Map<URI, List<StoragePort>>> portGroups = new HashSet<Map<URI, List<StoragePort>>>();
+        Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
 
         StringSet netNames = new StringSet();
         // Order the networks from those with fewest ports to those with the most ports.
@@ -235,13 +235,16 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
 
         StoragePortsAllocator allocator = new StoragePortsAllocator();
         for (int i = 0; i < numPG; i++) {
-            Map<URI, List<StoragePort>> portGroup = new HashMap<URI, List<StoragePort>>();
+            Map<URI, List<List<StoragePort>>> portGroup = new HashMap<URI, List<List<StoragePort>>>();
             StringSet portNames = new StringSet();
             for (URI netURI : allocatablePorts.keySet()) {
                 NetworkLite net = networkMap.get(netURI);
                 List<StoragePort> allocatedPorts = allocatePorts(allocator, allocatablePorts.get(netURI),
                         portsAllocatedPerNetwork.get(netURI), net, varrayURI);
-                portGroup.put(netURI, allocatedPorts);
+                if (portGroup.get(netURI) == null) {
+                    portGroup.put(netURI, new ArrayList<List<StoragePort>>());
+                }
+                portGroup.get(netURI).add(allocatedPorts);
                 allocatablePorts.get(netURI).removeAll(allocatedPorts);
                 for (StoragePort port : allocatedPorts) {
                     portNames.add(port.getPortName());
@@ -276,7 +279,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             numPortsToNetworkSet.get(numPorts).add(networkURI);
         }
 
-        for (Integer numPorts = 1; numPorts < MAX_PORTS_PER_NETWORK; numPorts++) {
+        for (Integer numPorts = 1; numPorts <= MAX_PORTS_PER_NETWORK; numPorts++) {
             Set<URI> networkURIs = numPortsToNetworkSet.get(numPorts);
             if (networkURIs == null) {
                 continue;
@@ -320,7 +323,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     }
 
     @Override
-    public StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
+    public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
         return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
@@ -469,6 +472,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
         return _workflowService;
     }
 
+    @Override
     public void setWorkflowService(WorkflowService _workflowService) {
         this._workflowService = _workflowService;
     }

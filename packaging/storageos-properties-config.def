@@ -1494,6 +1494,7 @@
         reconfigRequired : true,
         rebootRequired : true,
         controlNodeOnly : false,
+        siteSpecific: true,
         value : "You are accessing ViPR. By using this system you consent to the owning organization's terms and conditions.", 
     },
     {
@@ -1543,6 +1544,7 @@
         allowedValues : ( "Only During Discovery", "Only During Ingestion", "During Discovery and Ingestion" ),
         userConfigurable : false,
         userMutable : true,
+        hidden : true,
         advanced : true,
         tag : "Controller",
         reconfigRequired : false,
@@ -1553,11 +1555,12 @@
     {
         key : "controller_vplex_volume_discovery_filter",
         label : "VPLEX volume discovery filter",
-        description : "Regex filter to place on the virtual volume name.  Only those matching will be discovered. E.g.: '(.*VAPM00140844981-017.*|.*V000198700406.*)'. (NOTE: will remove this from final product, just for help in testing)",
+        description : "Regex filter to place on the virtual volume name.  Only those matching will be discovered. E.g.: '(.*VAPM00140844981-017.*|.*V000198700406.*)'.",
         type : "string",
         maxLen : 63,
         userConfigurable : false,
         userMutable : true,
+        hidden : true,
         advanced : true,
         tag : "Controller",
         reconfigRequired : false,
@@ -1567,16 +1570,47 @@
     {
         key : "controller_vplex_volume_discovery_kill_switch",
         label : "VPLEX volume discovery kill switch",
-        description : "Set to 'stop' to cancel current VPLEX volume discovery operation.  Be sure to set back to 'run' in order for volume discovery to start next time. (NOTE: will remove this from final product, just for help in testing)",
+        description : "Set to 'stop' to cancel current VPLEX volume discovery operation.  Be sure to set back to 'run' in order for volume discovery to start next time.",
         type : "string",
         allowedValues : ( "run", "stop" ),
         userConfigurable : false,
         userMutable : true,
+        hidden : true,
         advanced : true,
         tag : "Controller",
         reconfigRequired : false,
         rebootRequired : false,
         value : "run",
+    },
+    {
+        key : "controller_vplex_volume_expansion_status_check_retry_count",
+        label : "VPLEX volume expansion status check retry count",
+        description : "Retry count to check vplex volume expansion status",
+        type : "uint32",
+        userConfigurable : false,
+        userMutable : true,
+        hidden : true,
+        advanced : true,
+        tag : "Controller",
+        reconfigRequired : false,
+        rebootRequired : false,
+        controlNodeOnly : true,
+        value : "60",
+    },
+    {
+        key : "controller_vplex_volume_expansion_status_check_retry_max_wait",
+        label : "VPLEX volume expansion status check retry max wait",
+        description : "Max wait before next retry to check vplex volume expansion status",
+        type : "uint64",
+        userConfigurable : false,
+        userMutable : true,
+        hidden : true,
+        advanced : true,
+        tag : "Controller",
+        reconfigRequired : false,
+        rebootRequired : false,
+        controlNodeOnly : true,
+        value : "60000",
     },
     {
         key : "compute_windows_version",
@@ -2231,6 +2265,7 @@
         value : "",
         controlNodeOnly : true,
         notifiers : ( "backupscheduler" ),
+        siteSpecific : true,
     },
     {
         key : "backup_external_location_username",
@@ -2245,6 +2280,7 @@
         rebootRequired : false,
         value : "",
         controlNodeOnly : true,
+        siteSpecific : true,
     },
     {
         key : "backup_external_location_password",
@@ -2259,6 +2295,7 @@
         rebootRequired : false,
         value : "",
         controlNodeOnly : true,
+        siteSpecific: true,
     },
     {
         key : "backup_scheduler_enable",
@@ -2272,6 +2309,7 @@
         rebootRequired : false,
         value : "true",
         controlNodeOnly : true,
+        siteSpecific: true,
         notifiers : ( "backupscheduler" ),
     },
     {
@@ -2289,6 +2327,7 @@
         value : "1day",
         controlNodeOnly : true,
         notifiers : ( "backupscheduler" ),
+        siteSpecific : true,
     },
     {
         key : "backup_scheduler_time",
@@ -2304,6 +2343,7 @@
         value : "100",
         controlNodeOnly : true,
         notifiers : ( "backupscheduler" ),
+        siteSpecific : true,
     },
     {
         key : "backup_scheduler_copies_to_keep",
@@ -2318,6 +2358,7 @@
         rebootRequired : false,
         value : "5",
         controlNodeOnly : true,
+        siteSpecific : true,
     },
     {
         key : "backup_max_used_disk_percentage",
@@ -2332,6 +2373,7 @@
         rebootRequired : false,
         value : "30",
         controlNodeOnly : true,
+        siteSpecific : true,
     },
     {
         key : "backup_threshold_disk_percentage",
@@ -2346,6 +2388,7 @@
         rebootRequired : false,
         value : "80",
         controlNodeOnly : true,
+        siteSpecific: true,
     },
     {
         key : "ldap_connection_timeout",
@@ -2609,5 +2652,6 @@
      rebootRequired : true,
      value : "false",
      controlNodeOnly : true,
-    }
+     siteSpecific : true,
+    },
 ]

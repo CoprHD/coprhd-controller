@@ -92,6 +92,10 @@
           "baseService": "RestoreBlockSnapshot"
         },
         {
+          "image": "Service_Resynchronize_Block_Snapshot.png",
+          "baseService": "ResynchronizeBlockSnapshot"
+        },
+        {
           "image": "Service_Remove_Block_Snapshot.png",
           "baseService": "RemoveBlockSnapshot"
         },
@@ -138,6 +142,10 @@
         {
           "image": "Service_Add_Journal_Capacity.png",
           "baseService": "AddJournalCapacity"
+        },
+        {
+          "image": "icon_CreateVplexVolumeSnapshot.png",
+          "baseService": "CreateVplexVolumeFromSnapshot"
         }
       ]
     },

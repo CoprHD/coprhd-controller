@@ -115,7 +115,7 @@ public class ConsistencyUtils {
         Volume source = dbClient.queryObject(Volume.class, mirror.getSource().getURI());
         BlockConsistencyGroup cgResult = null;
 
-        if (source != null && !isNullURI(source.getConsistencyGroup())) {
+        if (source != null && source.isInCG() && ControllerUtils.checkCGCreatedOnBackEndArray(source)) {
             cgResult = dbClient.queryObject(BlockConsistencyGroup.class, source.getConsistencyGroup());
         }
         return cgResult;

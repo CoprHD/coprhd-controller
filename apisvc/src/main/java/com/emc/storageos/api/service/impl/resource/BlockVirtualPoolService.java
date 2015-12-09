@@ -818,9 +818,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                     // RP protection so remove it.
                     deleteVPoolProtectionVArraySettings(virtualPool);
                 } else {
-                    // If the source policy is omitted, do nothing. If it is provided with
-                    // no journal size (i.e. <source_policy/>) we remove the source policy
-                    // from the virtual pool.
+                    // If the source policy is omitted, do nothing.
                     ProtectionSourcePolicy sourcePolicy = param.getRecoverPoint().getSourcePolicy();
                     if (sourcePolicy != null) {
                         String nullValue = NullColumnValueGetter.getNullStr();
@@ -832,6 +830,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                             // If the journal varray is null, the journal vpool has to be null too.
                             virtualPool.setJournalVpool(nullValue);
                         } else {
+                            // Set the journal virtual pool. In none is specified, default to the parent
+                            // virtual pool
                             virtualPool.setJournalVpool(!NullColumnValueGetter.isNullURI(sourcePolicy.getJournalVpool()) ? sourcePolicy
                                     .getJournalVpool().toString()
                                     : virtualPool.getId().toString());
@@ -846,10 +846,21 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                                 // If the ha journal varray is null, the ha journal vpool has to be null too.
                                 virtualPool.setStandbyJournalVpool(nullValue);
                             } else {
+
+                                String defaultHaVpool = nullValue;
+                                // Obtain the default HA virtual pool
+                                Map<String, String> haVarrayVpoolMap = virtualPool.getHaVarrayVpoolMap();
+                                if (haVarrayVpoolMap != null && !haVarrayVpoolMap.isEmpty()) {
+                                    if (NullColumnValueGetter.isNotNullValue(haVarrayVpoolMap.get(virtualPool.getStandbyJournalVarray()))) {
+                                        defaultHaVpool = haVarrayVpoolMap.get(virtualPool.getStandbyJournalVarray());
+                                    }
+                                }
+
+                                // By default, if no standby vpool is set, set the HA journal vpool to the HA vpool.
                                 virtualPool.setStandbyJournalVpool(
                                         !NullColumnValueGetter.isNullURI(sourcePolicy.getStandbyJournalVpool()) ? sourcePolicy
                                                 .getStandbyJournalVpool().toString()
-                                                : nullValue);
+                                                : defaultHaVpool);
                             }
                         }
                         virtualPool.setRpCopyMode(StringUtils.defaultString(sourcePolicy.getRemoteCopyMode(), nullValue));
@@ -1485,9 +1496,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                         } else {
                             vpool.setJournalVpool(vpool.getId().toString());
                         }
-                    } //else {
-                      //  vpool.setJournalVpool(NullColumnValueGetter.getNullStr());
-                    //}
+                    } // else {
+                      // vpool.setJournalVpool(NullColumnValueGetter.getNullStr());
+                      // }
 
                     if (param.getHighAvailability() != null) {
                         if (!NullColumnValueGetter.isNullURI(sourcePolicy.getStandbyJournalVarray())) {
@@ -1496,9 +1507,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                             if (!NullColumnValueGetter.isNullURI(sourcePolicy.getStandbyJournalVpool())) {
                                 vpool.setStandbyJournalVpool(sourcePolicy.getStandbyJournalVpool().toString());
                             }
-                        } //else {
-                          //  vpool.setStandbyJournalVpool(NullColumnValueGetter.getNullStr());
-                        //}
+                        } // else {
+                          // vpool.setStandbyJournalVpool(NullColumnValueGetter.getNullStr());
+                          // }
                     }
                 }
 

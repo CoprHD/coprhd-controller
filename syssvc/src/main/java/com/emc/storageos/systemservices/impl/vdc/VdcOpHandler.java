@@ -148,6 +148,7 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
+            boolean rotated = false;
             InterProcessLock lock = acquireIPsecLock();
             try {
                 if (ipsecKeyExisted()) {
@@ -155,12 +156,15 @@ public abstract class VdcOpHandler {
                     return;
                 }
                 String version = ipsecMgr.rotateKey();
+                rotated = true;
                 log.info("Kicked off IPsec key rotation. The version is {}", version);
-
-                syncFlushVdcConfigToLocal();
-                refreshIPsec();
             } finally {
                 releaseIPsecLock(lock);
+            }
+
+            if (rotated) { // put out of lock to avoid dead lock
+                syncFlushVdcConfigToLocal();
+                refreshIPsec();
             }
         }
 

@@ -34,6 +34,12 @@ $(document).ready(function() {
         #{/field}
     #{/if}
     
+    #{if applicationForm?.roles}
+        #{field 'applicationForm.roles'}
+           <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    #{/if}
+
     #{field "applicationForm.name"}
       %{
         field.cssClass = fieldCssClass

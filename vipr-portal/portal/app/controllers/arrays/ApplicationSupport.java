@@ -125,7 +125,7 @@ public class ApplicationSupport extends Controller {
     private static void error(ApplicationForm applicationForm) {
         params.flash();
         Validation.keep();
-        create();
+        edit(applicationForm);
     }
     
     public static class ApplicationForm {

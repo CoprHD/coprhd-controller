@@ -898,6 +898,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         String isExported = info.isExported() ? TRUE : FALSE;
         unManagedVolumeCharacteristics.put(
                 SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isExported);
+        unManagedVolumeCharacteristics.put(
+                SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), isExported);
 
         // Set up default MAXIMUM_IO_BANDWIDTH and MAXIMUM_IOPS
         StringSet bwValues = new StringSet();

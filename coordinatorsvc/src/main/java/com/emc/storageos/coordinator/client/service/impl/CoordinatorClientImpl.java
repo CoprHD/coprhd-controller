@@ -208,7 +208,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private void createSiteSpecificSection() throws Exception {
         addSite(siteId);
-        setActiveSite(siteId);
     }
 
     @Override
@@ -230,27 +229,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             log.error("Failed to set site info of {}. Error {}", sitePath, e);
             throw e;
         }
-    }
-
-    @Override
-    public void setActiveSite(String siteId) throws Exception {
-        Configuration localVdcConfig = queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
-                Constants.CONFIG_GEO_LOCAL_VDC_ID);
-        if (localVdcConfig == null) {
-            log.info("initializing local VDC pointer to vdc1");
-            ConfigurationImpl localVdcConfigImpl = new ConfigurationImpl();
-            localVdcConfigImpl.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
-            localVdcConfigImpl.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
-            localVdcConfigImpl.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID);
-            persistServiceConfiguration(localVdcConfigImpl);
-            localVdcConfig = localVdcConfigImpl;
-        }
-        String localVdcShortId = localVdcConfig.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
-        ConfigurationImpl config = new ConfigurationImpl();
-        config.setKind(Constants.CONFIG_DR_ACTIVE_KIND);
-        config.setId(localVdcShortId);
-        config.setConfig(Constants.CONFIG_DR_ACTIVE_SITEID, siteId);
-        persistServiceConfiguration(config);
     }
 
     /**

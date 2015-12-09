@@ -142,7 +142,6 @@ public class DisasterRecoveryServiceTest {
         primarySite = new Site();
         primarySite.setUuid("primary-site-uuid");
         primarySite.setVip("127.0.0.1");
-        primarySite.setSecretKey("secret-key");
         primarySite.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
         primarySite.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
         primarySite.setVdcShortId("vdc1");

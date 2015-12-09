@@ -107,7 +107,7 @@ public class DisasterRecoveryService {
     private CoordinatorClient coordinator;
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
-    private Properties _dbCommonInfo;
+    private Properties dbCommonInfo;
     private DrUtil drUtil;
 
     private InternalSiteServiceClient internalSiteServiceClient;
@@ -184,7 +184,6 @@ public class DisasterRecoveryService {
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
             standbySite.setNodeCount(standbyConfig.getNodeCount());
-            standbySite.setSecretKey(standbyConfig.getSecretKey());
             standbySite.setUuid(standbyConfig.getUuid());
             String shortId = generateShortId(drUtil.listSites());
             standbySite.setStandbyShortId(shortId);
@@ -252,6 +251,8 @@ public class DisasterRecoveryService {
         for (Site standby : drUtil.listStandbySites()) {
             SiteParam standbyParam = new SiteParam();
             siteMapper.map(standby, standbyParam);
+            SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
+            standbyParam.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
             if (standby.getUuid().equals(targetStandbyUUID)) {
                 log.info("Set data revision for site {} to {}", standby.getUuid(), targetStandbyDataRevision);
                 standbyParam.setDataRevision(targetStandbyDataRevision);
@@ -691,7 +692,7 @@ public class DisasterRecoveryService {
             for (Site site : drUtil.listStandbySites()) {
                 if (site.getUuid().equals(uuid)) {
                     int gcGracePeriod = DEFAULT_GC_GRACE_PERIOD;
-                    String strVal = _dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
+                    String strVal = dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
                     if (strVal != null) {
                         gcGracePeriod = Integer.parseInt(strVal);
                     }
@@ -1203,7 +1204,7 @@ public class DisasterRecoveryService {
         }
 
         if (standbyUuid.equals(drUtil.getActiveSiteId())) {
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Can't switchover to a acitve site");
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Can't switchover to an active site");
         }
 
         if (!drUtil.isSiteUp(standbyUuid)) {
@@ -1392,6 +1393,6 @@ public class DisasterRecoveryService {
 
     // DBSVC config parameters
     public void setDbCommonInfo(Properties dbCommonInfo) {
-        _dbCommonInfo = dbCommonInfo;
+        this.dbCommonInfo = dbCommonInfo;
     }
 }

@@ -238,7 +238,7 @@ public class BlockProviderUtils {
     }
     
     public static boolean isSnapshotSessionSupportedForVolume(VolumeRestRep volume) {        
-        return true;
+        return ((volume.getSupportsSnapshotSessions() != null) && volume.getSupportsSnapshotSessions());
     }
 
     public static RecoverPointRestRep getVolumeRPRep(VolumeRestRep volume) {

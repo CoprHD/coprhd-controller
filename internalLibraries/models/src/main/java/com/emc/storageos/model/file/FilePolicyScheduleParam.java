@@ -32,7 +32,7 @@ public class FilePolicyScheduleParam {
     // Day when policy run
     private String scheduleDay;
 
-    @XmlElement(required = true, name = "scheduleType")
+    @XmlElement(required = true, name = "schedule_type")
     public String getScheduleType() {
         return scheduleType;
     }
@@ -41,7 +41,7 @@ public class FilePolicyScheduleParam {
         this.scheduleType = scheduleType;
     }
 
-    @XmlElement(name = "scheduleNumber")
+    @XmlElement(name = "schedule_number")
     public int getScheduleNumber() {
         return scheduleNumber;
     }
@@ -50,7 +50,7 @@ public class FilePolicyScheduleParam {
         this.scheduleNumber = scheduleNumber;
     }
 
-    @XmlElement(required = true, name = "scheduleTime")
+    @XmlElement(required = true, name = "schedule_time")
     public String getScheduleTime() {
         return scheduleTime;
     }
@@ -59,7 +59,7 @@ public class FilePolicyScheduleParam {
         this.scheduleTime = scheduleTime;
     }
 
-    @XmlElement(name = "scheduleMonth")
+    @XmlElement(name = "schedule_month")
     public int getScheduleMonth() {
         return scheduleMonth;
     }
@@ -68,7 +68,7 @@ public class FilePolicyScheduleParam {
         this.scheduleMonth = scheduleMonth;
     }
 
-    @XmlElement(name = "scheduleDay")
+    @XmlElement(name = "schedule_day")
     public String getScheduleDay() {
         return scheduleDay;
     }

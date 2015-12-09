@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.FileMapper.map;
 
 import java.net.URI;
 import java.util.Iterator;
@@ -28,18 +29,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.api.mapper.functions.MapFilePolicy;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.file.FilePolicyBulkRep;
-import com.emc.storageos.model.file.FilePolicyExpireParam;
 import com.emc.storageos.model.file.FilePolicyParam;
 import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FilePolicyScheduleParam;
 import com.emc.storageos.model.file.FileSchedulePolicyList;
+import com.emc.storageos.model.file.FileSnapshotExpireParam;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
 /**
@@ -82,7 +83,7 @@ public class FilePolicyService extends TaggedResource {
     }
 
     @Override
-    protected DataObject queryResource(URI id) {
+    protected FilePolicy queryResource(URI id) {
         ArgValidator.checkUri(id);
         FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, id);
         ArgValidator.checkEntity(filePolicy, id, isIdEmbeddedInURL(id));
@@ -133,15 +134,8 @@ public class FilePolicyService extends TaggedResource {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public FilePolicyRestRep getFilePolicy(@PathParam("id") URI policyId) {
         ArgValidator.checkFieldUriType(policyId, FilePolicy.class, "policyId");
-        FilePolicyRestRep policy = new FilePolicyRestRep();
-        FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policyId);
-        if (filePolicy != null) {
-            policy.setPolicyId(filePolicy.getId());
-            policy.setPolicyName(filePolicy.getPolicyName());
-            policy.setPolicySchedule(filePolicy.getPolicySchedule());
-            policy.setPolicyExipration(filePolicy.getPolicyExpire());
-        }
-        return policy;
+        FilePolicy filePolicy = queryResource(policyId);
+        return map(filePolicy);
     }
 
     /**
@@ -164,17 +158,18 @@ public class FilePolicyService extends TaggedResource {
         FilePolicy filePolicy = new FilePolicy();
         String schedule = validatePolicySchedule(param.getPolicySchedule());
         if (schedule.contains("invalid input")) {
-            // throw APIException.badRequests.vNasServersNotAssociatedToProject();
+            throw APIException.badRequests.invalidFilePolicyScheduleValue();
         }
-        Long policyExpire = validatePolicyExpire(param.getPolicyExpire());
-        if (policyExpire == 0) {
-            // throw APIException.badRequests.vNasServersNotAssociatedToProject();
+        Long snapshotExpire = validatePolicyExpire(param.getSnapshotExpire());
+        if (snapshotExpire == 0) {
+            _log.error("Snapshot expire value should not less than 2 hours and more than 10 years");
+            throw APIException.badRequests.invalidFileSnapshotExpireValue();
         }
         filePolicy.setId(URIUtil.createId(FilePolicy.class));
         filePolicy.setLabel(param.getPolicyName());
         filePolicy.setPolicyName(param.getPolicyName());
         filePolicy.setPolicySchedule(schedule);
-        filePolicy.setPolicyExpire(policyExpire);
+        filePolicy.setSnapshotExpire(snapshotExpire);
         _dbClient.createObject(filePolicy);
         _log.info("File schedule policy {} created successfully", filePolicy);
         return Response.ok().build();
@@ -239,12 +234,12 @@ public class FilePolicyService extends TaggedResource {
     }
 
     /**
-     * validates whether the policy expire duration is valid or not
+     * validates whether the snapshot expire duration is valid or not
      * 
-     * @param expireParam - file policy expire parameters
-     * @return valid policy expire duration
+     * @param expireParam - file snapshot expire parameters
+     * @return snapshot expire duration
      */
-    private Long validatePolicyExpire(FilePolicyExpireParam expireParam) {
+    private Long validatePolicyExpire(FileSnapshotExpireParam expireParam) {
 
         if (expireParam != null) {
             long seconds = 0;
@@ -299,16 +294,17 @@ public class FilePolicyService extends TaggedResource {
         if (filePolicy != null) {
             String schedule = validatePolicySchedule(param.getPolicySchedule());
             if (schedule.contains("invalid input")) {
-                // throw APIException.badRequests.vNasServersNotAssociatedToProject();
+                throw APIException.badRequests.invalidFilePolicyScheduleValue();
             }
-            Long policyExpire = validatePolicyExpire(param.getPolicyExpire());
-            if (policyExpire == 0) {
-                // throw APIException.badRequests.vNasServersNotAssociatedToProject();
+            Long snapshotExpire = validatePolicyExpire(param.getSnapshotExpire());
+            if (snapshotExpire == 0) {
+                _log.error("Snapshot expire value should not less than 2 hours and more than 10 years");
+                throw APIException.badRequests.invalidFileSnapshotExpireValue();
             }
             filePolicy.setLabel(param.getPolicyName());
             filePolicy.setPolicyName(param.getPolicyName());
             filePolicy.setPolicySchedule(schedule);
-            filePolicy.setPolicyExpire(policyExpire);
+            filePolicy.setSnapshotExpire(snapshotExpire);
             _dbClient.updateObject(filePolicy);
             _log.info("File schedule policy {} updated successfully", filePolicy.getPolicyName());
         }

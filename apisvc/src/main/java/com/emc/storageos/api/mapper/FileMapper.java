@@ -4,29 +4,31 @@
  */
 package com.emc.storageos.api.mapper;
 
-import java.net.URI;
+import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.model.file.FileObjectRestRep;
-import com.emc.storageos.model.file.FileShareRestRep;
-import com.emc.storageos.model.file.FileSnapshotRestRep;
-import com.emc.storageos.model.file.QuotaDirectoryRestRep;
-import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
-import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.db.client.model.FileObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.adapters.StringMapAdapter;
 import com.emc.storageos.model.adapters.StringSetMapAdapter;
-
-import static com.emc.storageos.api.mapper.DbObjectMapper.*;
+import com.emc.storageos.model.file.FileObjectRestRep;
+import com.emc.storageos.model.file.FilePolicyRestRep;
+import com.emc.storageos.model.file.FileShareRestRep;
+import com.emc.storageos.model.file.FileSnapshotRestRep;
+import com.emc.storageos.model.file.QuotaDirectoryRestRep;
+import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 
 public class FileMapper {
     private static final Logger _log = LoggerFactory.getLogger(FileMapper.class);
@@ -94,7 +96,7 @@ public class FileMapper {
             List<String> supportedVPoolList = new ArrayList<String>(from.getSupportedVpoolUris());
             to.setSupportedVPoolUris(supportedVPoolList);
         }
-        
+
         return to;
     }
 
@@ -120,6 +122,22 @@ public class FileMapper {
         }
         if (from.getOpLock() != null) {
             to.setOpLock(from.getOpLock());
+        }
+        return to;
+    }
+
+    public static FilePolicyRestRep map(FilePolicy from) {
+        if (from == null) {
+            return null;
+        }
+        FilePolicyRestRep to = new FilePolicyRestRep();
+        to.setPolicyId(from.getId());
+        to.setPolicyName(from.getPolicyName());
+        if (from.getPolicySchedule() != null) {
+            to.setPolicySchedule(from.getPolicySchedule());
+        }
+        if (from.getSnapshotExpire() != null) {
+            to.setSnapshotExpire(from.getSnapshotExpire());
         }
         return to;
     }

@@ -15,13 +15,20 @@ import javax.xml.bind.annotation.XmlRootElement;
  * 
  */
 
-@XmlRootElement(name = "file_system_policy")
+@XmlRootElement(name = "file_schedule_policy")
 public class FilePolicyParam {
 
+    // File schedule policy name
     private String policyName;
+
+    // File schedule policy pattern
     private String policyPattern;
+
+    // File schedule policy param
     private FilePolicyScheduleParam policySchedule;
-    private FilePolicyExpireParam policyExpire;
+
+    // File snapshot expire param
+    private FileSnapshotExpireParam snapshotExpire;
 
     @XmlElement(required = true, name = "policy_name")
     public String getPolicyName() {
@@ -50,12 +57,12 @@ public class FilePolicyParam {
         this.policyPattern = policyPattern;
     }
 
-    @XmlElement(name = "policy_expire")
-    public FilePolicyExpireParam getPolicyExpire() {
-        return policyExpire;
+    @XmlElement(name = "snapshot_expire")
+    public FileSnapshotExpireParam getSnapshotExpire() {
+        return snapshotExpire;
     }
 
-    public void setPolicyExpire(FilePolicyExpireParam policyExpire) {
-        this.policyExpire = policyExpire;
+    public void setSnapshotExpire(FileSnapshotExpireParam snapshotExpire) {
+        this.snapshotExpire = snapshotExpire;
     }
 }

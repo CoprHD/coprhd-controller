@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file;
 
 import java.util.ArrayList;
@@ -8,6 +12,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 
+/**
+ * List of file policies and returned as a response to a REST request.
+ * 
+ * @author prasaa9
+ * 
+ */
 @XmlRootElement(name = "file_schedule_policies")
 public class FileSchedulePolicyList {
     private List<NamedRelatedResourceRep> schedulePolicies;

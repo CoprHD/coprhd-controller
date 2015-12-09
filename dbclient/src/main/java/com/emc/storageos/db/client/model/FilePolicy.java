@@ -21,8 +21,8 @@ public class FilePolicy extends DiscoveredDataObject {
     // File policy schedule at
     private String policySchedule;
 
-    // File policy expire at
-    private Long policyExpire;
+    // File snapshot expire after
+    private Long snapshotExpire;
 
     @Name("policyName")
     public String getPolicyName() {
@@ -44,14 +44,14 @@ public class FilePolicy extends DiscoveredDataObject {
         setChanged("policySchedule");
     }
 
-    @Name("policyExpire")
-    public Long getPolicyExpire() {
-        return policyExpire;
+    @Name("snapshotExpire")
+    public Long getSnapshotExpire() {
+        return snapshotExpire;
     }
 
-    public void setPolicyExpire(Long policyExpire) {
-        this.policyExpire = policyExpire;
-        setChanged("policyExpire");
+    public void setSnapshotExpire(Long snapshotExpire) {
+        this.snapshotExpire = snapshotExpire;
+        setChanged("snapshotExpire");
     }
 
     @Override
@@ -61,8 +61,8 @@ public class FilePolicy extends DiscoveredDataObject {
         builder.append(policyName);
         builder.append(", schedule at=");
         builder.append(policySchedule);
-        builder.append(", expire at=");
-        builder.append(policyExpire);
+        builder.append(", snapshot expire after=");
+        builder.append(snapshotExpire);
         builder.append("]");
         return builder.toString();
     }

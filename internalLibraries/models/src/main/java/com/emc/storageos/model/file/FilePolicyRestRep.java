@@ -16,7 +16,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * 
  */
 
-@XmlRootElement(name = "file_policy")
+@XmlRootElement(name = "file_schedule_policy")
 public class FilePolicyRestRep {
 
     // File policy id
@@ -28,8 +28,8 @@ public class FilePolicyRestRep {
     // File policy schedule at
     private String policySchedule;
 
-    // File policy expire at
-    private Long policyExipration;
+    // File snapshot expire after
+    private Long snapshotExpire;
 
     @XmlElement(name = "policy_id")
     public URI getPolicyId() {
@@ -58,12 +58,12 @@ public class FilePolicyRestRep {
         this.policySchedule = policySchedule;
     }
 
-    @XmlElement(name = "policy_expire")
-    public Long getPolicyExipration() {
-        return policyExipration;
+    @XmlElement(name = "snapshot_expire")
+    public Long getSnapshotExpire() {
+        return snapshotExpire;
     }
 
-    public void setPolicyExipration(Long policyExipration) {
-        this.policyExipration = policyExipration;
+    public void setSnapshotExpire(Long snapshotExpire) {
+        this.snapshotExpire = snapshotExpire;
     }
 }

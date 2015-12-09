@@ -1240,6 +1240,17 @@ public class ControllerUtils {
         return false;
     }
 
+    public static boolean checkSnapshotSessionConsistencyGroup(URI snapshotSession, DbClient dbClient, TaskCompleter completer) {
+        BlockConsistencyGroup group = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapshotSession, dbClient);
+        if (group != null) {
+            if (completer != null) {
+                completer.addConsistencyGroupId(group.getId());
+            }
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
      *

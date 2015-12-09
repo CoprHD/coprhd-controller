@@ -4432,6 +4432,16 @@ public class SmisCommandHelper implements SmisConstants {
         };
     }
 
+    public CIMArgument[] getCreateSynchronizationAspectForGroupInput(CIMObjectPath replicationGroup, boolean skipRefresh,
+                                                                     String name, Integer mode) {
+        return getCreateSynchronizationAspectInput(replicationGroup, skipRefresh, name, mode, CP_SOURCE_GROUP);
+    }
+
+    public CIMArgument[] getCreateSynchronizationAspectInput(CIMObjectPath sourcePath, boolean skipRefresh,
+                                                                     String name, Integer mode) {
+        return getCreateSynchronizationAspectInput(sourcePath, skipRefresh, name, mode, CP_SOURCE_ELEMENT);
+    }
+
     /**
      * Get the SMI-S input arguments when creating a CIM_SynchronizedAspectForSource, i.e,
      * an array snapshot point-in-time copy, for the source with the passed path.
@@ -4440,13 +4450,15 @@ public class SmisCommandHelper implements SmisConstants {
      * @param skipRefresh true if the skipRefresh argument should be included.
      * @param name The name for the array snapshot, or null for no name.
      * @param mode The update mode, or null.
+     * @param sourceParameter Parameter specifying either SourceElement or SourceGroup
      *
      * @return An array of CIMArgument
      */
-    public CIMArgument[] getCreateSynchronizationAspectInput(CIMObjectPath sourcePath, boolean skipRefresh, String name, Integer mode) {
+    public CIMArgument[] getCreateSynchronizationAspectInput(CIMObjectPath sourcePath, boolean skipRefresh, String name,
+                                                             Integer mode, String sourceParameter) {
         List<CIMArgument> argList = new ArrayList<CIMArgument>();
         argList.add(_cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE));
-        argList.add(_cimArgument.reference(CP_SOURCE_ELEMENT, sourcePath));
+        argList.add(_cimArgument.reference(sourceParameter, sourcePath));
 
         // If skip refresh, add argument.
         if (skipRefresh) {

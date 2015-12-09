@@ -4,27 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
-import static com.emc.storageos.api.mapper.BlockMapper.map;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-import static com.emc.storageos.api.mapper.TaskMapper.toTask;
-import static java.lang.String.format;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriInfo;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.ResourceService;
@@ -59,6 +38,25 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriInfo;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static com.emc.storageos.api.mapper.BlockMapper.map;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static java.lang.String.format;
 
 /**
  * Class that implements all block snapshot session requests.
@@ -259,14 +257,14 @@ public class BlockSnapshotSessionManager {
 
         // Populate the preparedObjects list and create tasks for each snapshot session.
         TaskList response = new TaskList();
-        List<DataObject> preparedObjects = new ArrayList<DataObject>();
-        Map<URI, List<URI>> snapSessionSnapshotURIMap = new HashMap<URI, List<URI>>();
+        List<DataObject> preparedObjects = new ArrayList<>();
+        Map<URI, List<URI>> snapSessionSnapshotURIMap = new HashMap<>();
         preparedObjects.addAll(snapSessions);
         for (BlockSnapshotSession snapSession : snapSessions) {
             URI snapSessionURI = snapSession.getId();
             response.getTaskList().add(toTask(snapSession, taskId));
             preparedObjects.addAll(snapSessionSnapshotMap.get(snapSessionURI).values());
-            List<URI> snapSessionSnapshotURIs = new ArrayList<URI>();
+            List<URI> snapSessionSnapshotURIs = new ArrayList<>();
             snapSessionSnapshotURIs.addAll(snapSessionSnapshotMap.get(snapSessionURI).keySet());
             snapSessionSnapshotURIMap.put(snapSessionURI, snapSessionSnapshotURIs);
         }

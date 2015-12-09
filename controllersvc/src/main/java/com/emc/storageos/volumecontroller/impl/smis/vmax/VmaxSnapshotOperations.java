@@ -4,44 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
-import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_MIXED_INT_VALUE;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_UNIQUE_ID;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_STORAGE_EXTENT_INITIAL_USAGE;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_SETTING;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELETE_GROUP;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELTA_REPLICA_TARGET_VALUE;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.NEW_SETTING;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.PS_COPY_STATE_AND_DESC;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SE_GROUP_SYNCHRONIZED_RG_RG;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SE_REPLICATION_GROUP;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_SNAP_STORAGE_POOL;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_STORAGE_POOL_CAPABILITIES;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_STORAGE_POOL_SETTING;
-import static com.google.common.collect.Collections2.filter;
-import static java.text.MessageFormat.format;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.cim.CIMArgument;
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -69,7 +31,7 @@ import com.emc.storageos.volumecontroller.impl.smis.AbstractSnapshotOperations;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJob;
@@ -85,6 +47,28 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSession
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.google.common.base.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.cim.CIMArgument;
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
+import static com.google.common.collect.Collections2.filter;
+import static java.text.MessageFormat.format;
 
 public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     private static final Logger _log = LoggerFactory.getLogger(VmaxSnapshotOperations.class);
@@ -1406,8 +1390,33 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
             throws DeviceControllerException {
         if (system.checkIfVmax3()) {
-            ServiceCoded sc = DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-            completer.error(_dbClient, sc);
+            _log.info("Create snapshot session group operation START");
+
+            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIs.get(0));
+            URI sourceObjURI = snapSession.getParent().getURI();
+            BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceObjURI);
+
+            String groupName = _helper.getConsistencyGroupName(sourceObj, system);
+            CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(system, groupName);
+
+
+            try {
+                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+                CIMArgument[] inArgs = null;
+                CIMArgument[] outArgs = new CIMArgument[5];
+                inArgs = _helper.getCreateSynchronizationAspectForGroupInput(groupPath, false, groupName, new Integer(
+                        SmisConstants.MODE_SYNCHRONOUS));
+                _helper.invokeMethod(system, replicationSvcPath, SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs);
+                CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+                _log.info("Job has been submitted: {}", jobPath);
+                completer.ready(_dbClient);
+            } catch (Exception e) {
+                _log.info("Exception creating group snapshot session ", e);
+                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+                completer.error(_dbClient, error);
+            }
+
+            _log.info("Create snapshot session group operation FINISH");
         } else {
             throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         }

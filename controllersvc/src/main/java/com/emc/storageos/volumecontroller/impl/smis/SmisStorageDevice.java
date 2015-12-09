@@ -2814,7 +2814,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 // Because RP+VPLEX requires groups, even if we aren't really doing
                 // a group operation, it will be determined this is a group operation.
                 // For now we just call the single snapshot session create.
-                _snapshotOperations.createSnapshotSession(system, snapSessionURIs.get(0), completer);
+                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURIs, completer);
             } else {
                 URI snapSessionURI = snapSessionURIs.get(0);
                 _snapshotOperations.createSnapshotSession(system, snapSessionURI, completer);

@@ -8,6 +8,7 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalMirrorSupport
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
@@ -964,13 +965,19 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             VolumeRestRep volume = client.blockVolumes().get(blockVolume);
             BlockVirtualPoolRestRep virtualPool = client.blockVpools().get(volume.getVirtualPool());
 
-            if (isLocalSnapshotSupported(virtualPool)) {
-                options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
+            // Session Type trumps other types
+            if (isSnapshotSessionSupportedForVolume(volume)) {
+                options.add(SESSION_SNAPSHOT_TYPE_OPTION);
+            } else {
+                if (isLocalSnapshotSupported(virtualPool)) {
+                    options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
+                }
+    
+                if (isRPSourceVolume(volume)) {
+                    options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
+                }
             }
-
-            if (isRPSourceVolume(volume)) {
-                options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
-            }
+                        
             return options;
         }
     }

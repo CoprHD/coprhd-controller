@@ -27,6 +27,16 @@
                 <value>vdc1</value>
             </list>
         </property>
+        <property name="drUtil" ref="drUtil"/>
+    </bean>
+
+    <bean id="dbRebuildRunnable" class="com.emc.storageos.db.server.impl.DbRebuildRunnable">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="nodeCount" value="1"/>
+        <property name="service" ref="serviceinfo"/>
     </bean>
     
+    <bean id="backCompatPreYoda" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="false" />
+    </bean>
 </beans>

@@ -16,9 +16,12 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
+import com.emc.vipr.model.sys.ClusterInfo;
+import com.emc.storageos.systemservices.impl.util.DbRepairStatusHandler;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +48,7 @@ import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import com.emc.storageos.systemservices.impl.vdc.VdcManager;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
 
 /**
@@ -67,12 +71,18 @@ public class ControlService {
     private RecoveryManager recoveryManager;
 
     @Autowired
+    private DbRepairStatusHandler dbRepairStatusHandler;
+
+    @Autowired
     private IpReconfigManager ipreconfigManager;
 
     @Autowired
     private PropertyManager propertyManager;
     private final static String FORCE = "1";
 
+    @Autowired
+    private VdcManager vdcManager;
+    
     @Context
     protected SecurityContext sc;
 
@@ -300,7 +310,7 @@ public class ControlService {
     @Produces({ MediaType.APPLICATION_JSON })
     public Response receivePoweroffAgreement(@QueryParam("sender") String svcId) {
         _log.info("Receiving poweroff agreement");
-        propertyManager.getPoweroffAgreementsKeeper().add(svcId);
+        vdcManager.getPoweroffAgreementsKeeper().add(svcId);
         return Response.ok().build();
     }
 
@@ -341,7 +351,7 @@ public class ControlService {
         // set target poweroff state to START or FORCESTART
         try {
             _coordinator.setTargetInfo(poweroffState, false);
-            propertyManager.wakeupOtherNodes();
+            vdcManager.wakeupOtherNodes();
             _alertsLog.warn("power off start");
         } catch (ClientHandlerException e) {
             if (!FORCE.equals(forceSet)) {
@@ -353,12 +363,15 @@ public class ControlService {
         } catch (Exception e) {
             throw APIException.internalServerErrors.setObjectToError("target poweroff state", "coordinator", e);
         }
-
-        auditControl(OperationTypeEnum.POWER_OFF_CLUSTER, AuditLogManager.AUDITLOG_SUCCESS, null);
+        
+        // ignore audit log for internal calls
+        if (sc != null && sc.getUserPrincipal() != null) {
+            auditControl(OperationTypeEnum.POWER_OFF_CLUSTER, AuditLogManager.AUDITLOG_SUCCESS, null);
+        }
         try {
             return Response.status(Response.Status.ACCEPTED).build();
         } finally {
-            propertyManager.wakeup();
+            vdcManager.wakeup();
         }
     }
 
@@ -374,6 +387,29 @@ public class ControlService {
         return Response.status(Response.Status.ACCEPTED).build(); // Return the accepted status code
     }
 
+    /**
+     * Internal call to power off current cluster for DR. Use trusted HMAC key to authenticate.
+     */
+    @POST
+    @Path("internal/cluster/poweroff")
+    @Produces({ MediaType.APPLICATION_JSON })
+    public Response internalPowerOffCluster(@QueryParam("force") String forceSet) throws Exception {
+        _log.info("Poweroff cluster");
+        return powerOffCluster(forceSet);
+    }
+
+    /**
+     * Internal call to get cluster info for DR. Remote site could use this call the check cluster state
+     */
+    @GET
+    @Path("internal/cluster/info")
+    @Produces({ MediaType.APPLICATION_JSON })
+    public ClusterInfo internalGetClusterInfo() {
+        ClusterInfo clusterInfo = _coordinator.getClusterInfo();
+        _log.info("Get cluster info {}", clusterInfo);
+        return clusterInfo;
+    }
+    
     /**
      * Trigger minority node recovery
      */
@@ -456,7 +492,7 @@ public class ControlService {
     @Produces({ MediaType.APPLICATION_JSON })
     public DbRepairStatus getDbRepairStatusFromLocalNode() throws Exception {
         _log.info("Check db repair status");
-        return recoveryManager.getDbRepairStatus();
+        return dbRepairStatusHandler.getDbRepairStatus();
     }
 
     /**

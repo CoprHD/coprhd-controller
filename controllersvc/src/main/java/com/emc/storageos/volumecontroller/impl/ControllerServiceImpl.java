@@ -10,9 +10,9 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.coordinator.client.service.*;
-import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueItemNameGenerator;
-import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
+import org.apache.curator.framework.recipes.leader.LeaderSelector;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -21,6 +21,16 @@ import org.springframework.context.ApplicationContext;
 
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
+import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
+import com.emc.storageos.coordinator.client.service.DistributedQueue;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
@@ -54,9 +64,6 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisCommandHelper;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.workflow.WorkflowService;
-
-import org.apache.curator.framework.recipes.leader.LeaderSelector;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 /**
  * Default controller service implementation
@@ -130,6 +137,7 @@ public class ControllerServiceImpl implements ControllerService {
     private DataObjectScanner _doScanner;
     private DistributedLockQueueManager _lockQueueManager;
     private ControlRequestTaskConsumer _controlRequestTaskConsumer;
+    private DrUtil _drUtil;
 
     ManagedCapacityImpl _capacityCompute;
     LeaderSelector _capacityService;
@@ -490,6 +498,7 @@ public class ControllerServiceImpl implements ControllerService {
 
         startCapacityService();
         loadCustomConfigDefaults();
+        checkSiteStateForFailover();
     }
 
     @Override
@@ -722,4 +731,21 @@ public class ControllerServiceImpl implements ControllerService {
         _controlRequestTaskConsumer = consumer;
     }
 
+    public void setDrUtil(DrUtil drUtil) {
+        this._drUtil = drUtil;
+    }
+    
+    private void checkSiteStateForFailover() {
+        try {
+            Site site = _drUtil.getLocalSite();
+            
+            if (site.getState().equals(SiteState.STANDBY_FAILING_OVER)) {
+                _log.info("Site state is STANDBY_FAILING_OVER, set it to PRIMARY");
+                site.setState(SiteState.ACTIVE);
+                _coordinator.persistServiceConfiguration(site.toConfiguration());
+            }
+        } catch (Exception e) {
+            _log.error("Failed to check site state for failover");
+        }
+    }
 }

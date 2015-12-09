@@ -174,7 +174,7 @@ public class FileSystems extends ResourceController {
         renderArgs.put("fileSystemSubDirAndPath", fileSystemId + "~~~" + subDir
                 + "~~~" + fsMountPath);
         renderArgs.put("permissionOptions", StringOption.options(new String[] {
-                "read", "write", "execute" }));
+                "read", "write", "execute", "fullControl" }));
         ViPRCoreClient client = BourneUtil.getViprClient();
         NfsACLForm nfsACL = new NfsACLForm();
         FileShareRestRep restRep = client.fileSystems().get(uri(fileSystemId));
@@ -244,7 +244,7 @@ public class FileSystems extends ResourceController {
         nfsACL.permissions = new HashSet<String>(Arrays.asList(strPerm));
         nfsACL.permissionType = permissionType;
         renderArgs.put("permissionOptions", StringOption.options(new String[] {
-                "read", "write", "execute" }));
+                "read", "write", "execute", "fullControl" }));
         renderArgs.put("permissionTypeOptions", StringOption.options(new String[] {
                 "allow", "deny" }));
         renderArgs.put("fileSystemId", uri(fileSystem));
@@ -310,6 +310,7 @@ public class FileSystems extends ResourceController {
                 String name = NfsACLForm.extractNameFromId(id);
                 String domain = NfsACLForm.extractDomainFromId(id);
                 String permissions = NfsACLForm.extractPermissionsFromId(id);
+                String permissionType = NfsACLForm.extractPermissionTypeFromId(id);
                 fileSystem = NfsACLForm.extractFileSystemFromId(id);
                 subDir = NfsACLForm.extractSubDirFromId(id);
                 fsMountPath = NfsACLForm.extractMounPathFromId(id);
@@ -317,7 +318,7 @@ public class FileSystems extends ResourceController {
                 ace.setUser(name);
                 ace.setType(type);
                 ace.setPermissions(permissions.replaceAll("/", ","));
-                ace.setPermissionType("allow");
+                ace.setPermissionType(permissionType);
                 if (domain != null && !"".equals(domain)
                         && !"null".equals(domain)) {
                     ace.setDomain(domain);
@@ -356,6 +357,9 @@ public class FileSystems extends ResourceController {
             listNfsAcl(fileSystem, fsMountPath, subDir);
         }
         NfsACLUpdateParams input = createNfsAclParams(formAccessControlList);
+        if (subDir != null && !"null".equals(subDir) && !subDir.isEmpty()) {
+            input.setSubDir(subDir);
+        }
         ViPRCoreClient client = BourneUtil.getViprClient();
         try {
             client.fileSystems().updateNfsACL(uri(fileSystem), input);

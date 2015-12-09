@@ -197,14 +197,12 @@ public class BackupService {
     public Response createBackup(@QueryParam("tag") String backupTag,
             @QueryParam("force") @DefaultValue("false") boolean forceCreate) {
         log.info("Received create backup request, backup tag={}", backupTag);
-        List<String> descParams = null;
+        List<String> descParams = getDescParams(backupTag);
         try {
             backupOps.createBackup(backupTag, forceCreate);
-            descParams = getDescParams(backupTag);
             auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         } catch (BackupException e) {
             log.error("Failed to create backup(tag={}), e=", backupTag, e);
-            descParams = getDescParams(backupTag);
             descParams.add(e.getLocalizedMessage());
             auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             throw APIException.internalServerErrors.createObjectError("Backup files", e);
@@ -228,14 +226,12 @@ public class BackupService {
         if (backupTag == null) {
             throw APIException.badRequests.parameterIsNotValid(backupTag);
         }
-        List<String> descParams = null;
+        List<String> descParams = getDescParams(backupTag);
         try {
             backupOps.deleteBackup(backupTag);
-            descParams = getDescParams(backupTag);
             auditBackup(OperationTypeEnum.DELETE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         } catch (BackupException e) {
             log.error("Failed to delete backup(tag= {}), e=", backupTag, e);
-            descParams = getDescParams(backupTag);
             descParams.add(e.getLocalizedMessage());
             auditBackup(OperationTypeEnum.DELETE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             throw APIException.internalServerErrors.updateObjectError("Backup files", e);

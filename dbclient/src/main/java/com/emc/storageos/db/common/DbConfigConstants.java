@@ -48,4 +48,7 @@ public abstract class DbConfigConstants {
     public static final Integer DEFUALT_NUM_TOKENS = 16;
     public static final String DEFAULT_VDC_DB_VERSION = "2.2";
     public static final String VERSION_PART_SEPERATOR = ".";
+
+    // Timestamp for the last data sync with the acitve site
+    public static final String LAST_DATA_SYNC_TIME = "lastDataSyncTime";
 }

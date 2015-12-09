@@ -5,8 +5,35 @@
 
 package com.emc.storageos.db.server;
 
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+
+import java.beans.Introspector;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+
+import org.apache.cassandra.config.Schema;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.db.client.DbClient;
@@ -25,24 +52,12 @@ import com.emc.storageos.db.server.impl.MigrationHandlerImpl;
 import com.emc.storageos.db.server.impl.SchemaUtil;
 import com.emc.storageos.db.server.util.StubBeaconImpl;
 import com.emc.storageos.db.server.util.StubCoordinatorClientImpl;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.LoggingUtils;
-
-import org.apache.cassandra.config.Schema;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
-import java.beans.Introspector;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.URI;
-import java.util.*;
 
 /**
  * Dbsvc unit test base
@@ -69,6 +84,8 @@ public class DbsvcTestBase {
     protected static DbServiceStatusChecker statusChecker = null;
     protected static GeoDependencyChecker _geoDependencyChecker;
     protected static SchemaUtil schemaUtil;
+    protected  static final String dataDir="./dbtest";
+    private static InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
 
     // This controls whether the JMX server is started with DBSVC or not. JMX server is used to snapshot Cassandra
     // DB files and dump SSTables to JSON files. However, current JmxServerWrapper.start() implementation blindly
@@ -102,10 +119,12 @@ public class DbsvcTestBase {
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("dbversion-info.xml");
 
         _dbVersionInfo = (DbVersionInfo)ctx.getBean("dbVersionInfo");
-        _dataDir = new File("./dbtest");
+        _dataDir = new File(dataDir);
         if (_dataDir.exists() && _dataDir.isDirectory()) {
             cleanDirectory(_dataDir);
         }
+        _dataDir.mkdir();
+        
         startDb(_dbVersionInfo.getSchemaVersion(), null);
     }
 
@@ -187,6 +206,19 @@ public class DbsvcTestBase {
         statusChecker.setClusterNodeCount(1);
         statusChecker.setDbVersionInfo(_dbVersionInfo);
         statusChecker.setServiceName(service.getName());
+        
+        apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
+        
+        SecretKey key = null;
+        try {
+            KeyGenerator keyGenerator = null;
+            keyGenerator = KeyGenerator.getInstance("HmacSHA256");
+            key = keyGenerator.generateKey();
+        } catch (NoSuchAlgorithmException e) {
+            fail("generate key fail");
+        }
+        
+        doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
 
         schemaUtil  = new MockSchemaUtil();
         schemaUtil.setKeyspaceName("Test");
@@ -195,9 +227,11 @@ public class DbsvcTestBase {
         schemaUtil.setService(service);
         schemaUtil.setStatusChecker(statusChecker);
         schemaUtil.setCoordinator(_coordinator);
-        schemaUtil.setVdcShortId("vdc1");
+        schemaUtil.setVdcShortId("datacenter1");
+        schemaUtil.setDrUtil(new DrUtil(_coordinator));
+        schemaUtil.setApiSignatureGenerator(apiSignatureGeneratorMock);
 
-        DbClientContext dbctx = new DbClientContext();
+        DbClientContext dbctx = new MockDbClientContext();
         dbctx.setClusterName("Test");
         dbctx.setKeyspaceName("Test");
         schemaUtil.setClientContext(dbctx);
@@ -253,7 +287,7 @@ public class DbsvcTestBase {
         _dbsvc.setJmxServerWrapper(jmx);
         _dbsvc.setDbClient(_dbClient);
         _dbsvc.setBeacon(beacon);
-        _dbsvc.setDbDir(".");
+        _dbsvc.setDbDir(dataDir);
         _dbsvc.setMigrationHandler(handler);
         _dbsvc.setDisableScheduledDbRepair(true);
         _dbsvc.start();
@@ -288,7 +322,7 @@ public class DbsvcTestBase {
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
 
-        DbClientContext localCtx = new DbClientContext();
+        DbClientContext localCtx = new MockDbClientContext();
         localCtx.setClusterName("Test");
         localCtx.setKeyspaceName("Test");
         dbClient.setLocalContext(localCtx);
@@ -306,6 +340,13 @@ public class DbsvcTestBase {
         @Override
         public void insertVdcVersion(final DbClient dbClient) {
             // Do nothing
+        }
+    }
+    
+    static class MockDbClientContext extends DbClientContext {
+        @Override
+        public int getThriftPort() {
+            return 9160;
         }
     }
     

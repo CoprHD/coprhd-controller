@@ -105,6 +105,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
             Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap, Map<String, StringSet> igKnownVolumesMap) throws Exception {
 
         StringSet snaps = new StringSet();
+        Object snapNameToProcess;
 
         Object snapNameToProcess;
 

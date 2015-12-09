@@ -6,6 +6,7 @@
 package com.emc.storageos.systemservices.impl.upgrade;
 
 import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
+import static com.emc.storageos.coordinator.client.model.Constants.DBSVC_NAME;
 import static com.emc.storageos.coordinator.client.model.Constants.NEW_VERSIONS_LOCK;
 import static com.emc.storageos.coordinator.client.model.Constants.NODE_INFO;
 import static com.emc.storageos.coordinator.client.model.Constants.REMOTE_DOWNLOAD_LEADER;
@@ -13,54 +14,69 @@ import static com.emc.storageos.coordinator.client.model.Constants.REMOTE_DOWNLO
 import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
 import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO_LOCK;
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterInfo;
-import static com.emc.storageos.coordinator.client.model.Constants.DBSVC_NAME;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
-import com.emc.storageos.coordinator.common.impl.ZkConnection;
-import com.emc.storageos.db.common.DbConfigConstants;
-
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.ConfigVersion;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.services.util.Strings;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.common.impl.ServiceImpl;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
-import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.CoordinatorClassInfo;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
-import com.emc.storageos.db.common.DbServiceStatusChecker;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
+import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.common.impl.ServiceImpl;
+import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.db.common.DbConfigConstants;
+import com.emc.storageos.db.common.DbServiceStatusChecker;
+import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.storageos.model.property.PropertyMetadata;
+import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.SysSvcBeaconImpl;
+import com.emc.storageos.systemservices.impl.client.SysClientFactory;
+import com.emc.storageos.systemservices.impl.client.SysClientFactory.SysClient;
 import com.emc.vipr.model.sys.ClusterInfo;
+import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.google.common.collect.ImmutableSet;
-
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 public class CoordinatorClientExt {
     private static final Logger _log = LoggerFactory.getLogger(CoordinatorClientExt.class);
@@ -69,7 +85,14 @@ public class CoordinatorClientExt {
             new ImmutableSet.Builder<String>().add("sys").add("control").build();
     private static final Set<String> EXTRA_NODE_ROLES =
             new ImmutableSet.Builder<String>().add("sys").add("object").build();
-
+    
+    private static final String URI_INTERNAL_GET_CLUSTER_INFO = "/control/internal/cluster/info";
+    private static final int COODINATOR_MONITORING_INTERVAL = 60; // in seconds
+    private static final String DR_SWITCH_TO_ZK_OBSERVER_BARRIER = "/config/disasterRecoverySwitchToZkObserver";
+    private static final int DR_SWITCH_BARRIER_TIMEOUT = 180; // barrier timeout in seconds
+    private static final int ZK_LEADER_ELECTION_PORT = 2888;
+    private static final int DUAL_ZK_LEADER_ELECTION_PORT = 2898;
+    
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
     private ServiceImpl _svc;
@@ -84,6 +107,9 @@ public class CoordinatorClientExt {
     // EX: syssvc-1, syssvc-2, syssvc-10_247_100_15
     private String mySvcId = null;
     private int _nodeCount = 0;
+    private DrUtil drUtil;
+    private volatile boolean stopCoordinatorSvcMonitor; // default to false
+    
     private DbServiceStatusChecker statusChecker = null;
 
     public CoordinatorClient getCoordinatorClient() {
@@ -109,6 +135,14 @@ public class CoordinatorClientExt {
         _coordinator = coordinator;
     }
 
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
+    
+    public DrUtil getDrUtil() {
+        return this.drUtil;
+    }
+    
     /**
      * Get property
      * 
@@ -130,7 +164,7 @@ public class CoordinatorClientExt {
     public int getNodeCount() {
         return _nodeCount;
     }
-
+    
     public void setStatusChecker(DbServiceStatusChecker checker) {
         statusChecker = checker;
     }
@@ -248,22 +282,13 @@ public class CoordinatorClientExt {
             return;
         }
 
-        final CoordinatorClassInfo coordinatorInfo = info.getCoordinatorClassInfo();
-        String id = coordinatorInfo.id;
-        String kind = coordinatorInfo.kind;
-
         if (getTargetInfoLock()) {
             try {
                 // check we are in stable state if checkState = true specified
                 if (checkClusterUpgradable && !isClusterUpgradable()) {
                     throw APIException.serviceUnavailable.clusterStateNotStable();
                 }
-                ConfigurationImpl cfg = new ConfigurationImpl();
-                cfg.setId(id);
-                cfg.setKind(kind);
-                cfg.setConfig(TARGET_INFO, info.encodeAsString());
-                _coordinator.persistServiceConfiguration(cfg);
-                _log.info("Target info set: {}", info);
+                _coordinator.setTargetInfo(info);
             } catch (Exception e) {
                 throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target state. " + e.getMessage());
             } finally {
@@ -296,7 +321,6 @@ public class CoordinatorClientExt {
                 cfg.setKind(kind);
                 cfg.setConfig(TARGET_INFO, info.encodeAsString());
                 _coordinator.persistServiceConfiguration(cfg);
-                _log.info("Target info set: {}", info);
             } catch (Exception e) {
                 throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target state. " + e.getMessage());
             } finally {
@@ -389,7 +413,7 @@ public class CoordinatorClientExt {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException {
         return _coordinator.getTargetInfo(clazz);
     }
 
@@ -402,10 +426,114 @@ public class CoordinatorClientExt {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
+            throws CoordinatorException {
         return _coordinator.getTargetInfo(clazz,id,kind);
     }
 
+    /**
+     * Get all target properties - include global(shared by active/standby), or site specific properties
+     * 
+     * @return
+     * @throws Exception
+     */
+    public PropertyInfoExt getTargetProperties() throws Exception {
+        PropertyInfoExt targetPropInfo = _coordinator.getTargetInfo(PropertyInfoExt.class);
+        PropertyInfoExt siteScopePropInfo = _coordinator.getTargetInfo(PropertyInfoExt.class, _coordinator.getSiteId(), PropertyInfoExt.TARGET_PROPERTY);
+        if (targetPropInfo != null && siteScopePropInfo != null) {
+            PropertyInfoExt combinedProps = new PropertyInfoExt();
+            for (Entry<String, String> entry : targetPropInfo.getAllProperties().entrySet()) {
+                combinedProps.addProperty(entry.getKey(), entry.getValue());
+            }
+            for (Entry<String, String> entry : siteScopePropInfo.getAllProperties().entrySet()) {
+                combinedProps.addProperty(entry.getKey(), entry.getValue());
+            }
+            return combinedProps;
+        }
+        else if (targetPropInfo != null) {
+            return targetPropInfo;
+        }
+        else if (siteScopePropInfo != null) {
+            return siteScopePropInfo;
+        }
+        else {
+            return null;
+        }
+    }
+    
+    /**
+     * Update system properties to zookeeper
+     * 
+     * @param currentProps
+     * @throws CoordinatorClientException
+     */
+    public void setTargetProperties(Map<String, String> currentProps) throws CoordinatorClientException{
+        Map<String, PropertyMetadata> propsMetadata = PropertiesMetadata.getGlobalMetadata();
+        // split properties as global, or site specific
+        HashMap<String, String> globalProps = new HashMap<String, String>();
+        HashMap<String, String> siteProps = new HashMap<String, String>();
+        for (Map.Entry<String, String> prop : currentProps.entrySet()) {
+            String key = prop.getKey();
+            PropertyMetadata metadata = propsMetadata.get(key);
+            if (metadata.getSiteSpecific()) {
+                siteProps.put(key, prop.getValue());
+            } else {
+                globalProps.put(key, prop.getValue());
+            }
+        }
+        // update properties to zk
+        if (getTargetInfoLock()) {
+            try {
+                // check we are in stable state if checkState = true specified
+                if (!isClusterUpgradable()) {
+                    throw APIException.serviceUnavailable.clusterStateNotStable();
+                }
+                ConfigurationImpl globalCfg = new ConfigurationImpl();
+                globalCfg.setId(PropertyInfoExt.TARGET_PROPERTY_ID);
+                globalCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+                PropertyInfoExt globalPropInfo = new PropertyInfoExt(globalProps);
+                globalCfg.setConfig(TARGET_INFO, globalPropInfo.encodeAsString());
+                _coordinator.persistServiceConfiguration(globalCfg);
+                _log.info("target properties changed successfully. target properties {}", globalPropInfo.toString());
+
+                if (siteProps.size() > 0) {
+                    setSiteSpecificProperties(siteProps, _coordinator.getSiteId());
+                    _log.info("site scope target properties changed successfully. target properties {}",siteProps.toString());
+                }
+            } catch (Exception e) {
+                throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target info. " + e.getMessage());
+            } finally {
+                releaseTargetVersionLock();
+            }
+        } else {
+            throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target state. Unable to obtain target lock");
+        }
+    }
+
+    /**
+     * Set site specific properties
+     * 
+     * @param props
+     * @param siteId
+     */
+    public void setSiteSpecificProperties(Map<String, String> props, String siteId) {
+        PropertyInfoExt siteScopeInfo = new PropertyInfoExt(props);
+        ConfigurationImpl siteCfg = new ConfigurationImpl();
+        siteCfg.setId(siteId);
+        siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+        siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
+        _coordinator.persistServiceConfiguration( siteCfg);
+    }
+    
+    /**
+     * Get site specific properties
+     *
+     * @param siteId
+     */
+    public PropertyInfoExt getSiteSpecificProperties(String siteId) {
+        return _coordinator.getTargetInfo(PropertyInfoExt.class, siteId, PropertyInfoExt.TARGET_PROPERTY);
+    }
+    
     /**
      * Get all Node Infos.
      * 
@@ -473,7 +601,7 @@ public class CoordinatorClientExt {
     public PropertyInfoExt getConfigFromCoordinator(String kind, String id) {
         Configuration config = _coordinator.queryConfiguration(kind, id);
         if (config != null) {
-            String str = config.getConfig(PropertyInfoExt.TARGET_INFO);
+            String str = config.getConfig(TARGET_INFO);
             return new PropertyInfoExt(new PropertyInfoExt().decodeFromString(str).getAllProperties());
         }
 
@@ -542,7 +670,7 @@ public class CoordinatorClientExt {
      */
     public URI getNodeEndpoint(String nodeId) {
         try {
-            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),(String)null,null);
+            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(),(String)null,null);
             for (Service svc : svcs) {
                 if (svc.getNodeId().equals(nodeId)) {
                     return svc.getEndpoint();
@@ -1201,7 +1329,11 @@ public class CoordinatorClientExt {
         }
         String dbSvcId = "db" + this.mySvcId.substring(this.mySvcId.lastIndexOf("-"));
 
-        Configuration config = this._coordinator.queryConfiguration(Constants.DB_CONFIG, dbSvcId);
+        Configuration config = this._coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_CONFIG, dbSvcId);
+        if (config == null) {
+            _log.warn("dbconfig not initialized");
+            return true;
+        }
 
         String numToken = config.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
         if (numToken == null) {
@@ -1283,6 +1415,121 @@ public class CoordinatorClientExt {
         }
         return null;
     }
+    
+    /**
+     * Initialization method. On standby site, start a thread to monitor local coordinatorsvc status
+     */
+    public void start() {
+        if (drUtil.isStandby()) {
+            _log.info("Start monitoring local coordinatorsvc status on standby site");
+            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+            exe.scheduleAtFixedRate(coordinatorSvcMonitor, 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+        }
+    }
+
+    public void stopCoordinatorSvcMonitor() {
+        stopCoordinatorSvcMonitor = true;
+    }
+    
+    /**
+     * Monitor local coordinatorsvc on standby site
+     */
+    private Runnable coordinatorSvcMonitor = new Runnable(){
+        private String initZkMode; // ZK mode during syssvc startup
+        
+        public void run() {
+            if (stopCoordinatorSvcMonitor) {
+                return;
+            }
+
+            try {
+                checkLocalZKMode();
+            } catch (Exception e) {
+                //try catch exception to make sure next scheduled run can be launched.
+                _log.error("Error occurs when monitor local zookeeper mode", e);
+            }
+        }
+
+        private void checkLocalZKMode() {
+            String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
+            if (initZkMode == null) {
+                initZkMode = state;
+            }
+            
+            if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
+                return; // expected situation. Standby zookeeper should be observer mode normally
+            }
+            
+            _log.info("Local zookeeper mode {}", state);
+            if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
+                // if zk is switched from observer mode to participant, reload syssvc
+                reconfigZKToWritable(!DrUtil.ZOOKEEPER_MODE_READONLY.equals(initZkMode));
+            } else {
+                if (isActiveSiteStable()) {
+                    _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
+                    reconnectZKToActiveSite();
+                } else {
+                    _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", state);
+                }
+            }
+        }
+
+        /**
+         * Reconnect to zookeeper in active site. 
+         */
+        private void reconnectZKToActiveSite() {
+            DistributedDoubleBarrier barrier = null;
+            barrier = _coordinator.getDistributedDoubleBarrier(DR_SWITCH_TO_ZK_OBSERVER_BARRIER, getNodeCount());
+            LocalRepository localRepository = LocalRepository.getInstance();
+            try {
+                boolean allEntered = barrier.enter(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+                if (allEntered) {
+                    try {
+                        localRepository.reconfigCoordinator("observer");
+                    } finally {
+                        _log.info("Leaving the barrier.");
+                        boolean leaved = barrier.leave(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+                        if (!leaved) {
+                            _log.warn("Unable to leave barrier for {}", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                        }
+                    }
+                    localRepository.reload("reset-coordinator");
+                } else {
+                    _log.warn("Unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                }
+            } catch (Exception ex) {
+                _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);
+            } 
+        }
+    };
+
+    /**
+     * reconfigure ZooKeeper to participant mode within the local site
+     *
+     * @param reloadSyssvc if syssvc needs to be reloaded
+     */
+    public void reconfigZKToWritable(boolean reloadSyssvc) {
+        _log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
+        try {
+            LocalRepository localRepository = LocalRepository.getInstance();
+            localRepository.reconfigCoordinator("participant");
+            localRepository.restart("coordinatorsvc");
+            if (reloadSyssvc) {
+                localRepository.restart("syssvc");
+            }
+        } catch (Exception ex) {
+            _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
+        }
+    }
+    
+    /**
+      * Get current ZK connection state
+      * @return state
+      * @throws Exception
+      */
+    public States getConnectionState() throws Exception {
+        return ((CoordinatorClientImpl)getCoordinatorClient()).getZkConnection().curator().getZookeeperClient().getZooKeeper().getState();
+    }
 
     /**
      * Get the nodes list on which specific service are available
@@ -1300,5 +1547,99 @@ public class CoordinatorClientExt {
         }
         _log.info("Get available nodes by check {}: {}", serviceName, availableNodes);
         return availableNodes;
+    }
+    
+    public void blockUntilZookeeperIsWritableConnected(long sleepInterval) {
+        while (true) {
+            try {
+                States state = getConnectionState();
+                if (state.equals(States.CONNECTED))
+                    return;
+                
+                _log.info("ZK connection state is {}, wait for connected", state);
+            } catch (Exception e) {
+                _log.error("Can't get Zk state {}", e);
+            } 
+            
+            try {
+                Thread.sleep(sleepInterval);
+            } catch (InterruptedException e) {
+                //Ingore
+            }
+        }
+    }
+
+    /**
+     * Check if DR active site is stable
+     *
+     * @return true for stable, otherwise false
+     */
+    public boolean isActiveSiteStable() {
+        DrUtil drUtil = new DrUtil(_coordinator);
+        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+
+        // Check alive coordinatorsvc on active site
+        Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();
+        if (nodeAddrList.isEmpty()) {
+            nodeAddrList = activeSite.getHostIPv6AddressMap().values();
+        }
+
+        if (nodeAddrList.size() > 1) {
+            boolean isLeaderAlive = false;
+            for (String nodeAddr : nodeAddrList) {
+                if (isZookeeperLeader(nodeAddr, ZK_LEADER_ELECTION_PORT)){
+                    isLeaderAlive = true;
+                    break;
+                }
+            }
+            if (!isLeaderAlive) {
+                _log.info("No zookeeper leader alive on active site.");
+                return false;
+            }
+        } else { // standalone
+            String nodeAddr = nodeAddrList.iterator().next();
+            // check both election ports on the active site.
+            if (!isZookeeperLeader(nodeAddr, ZK_LEADER_ELECTION_PORT) &&
+                    !isZookeeperLeader(nodeAddr, DUAL_ZK_LEADER_ELECTION_PORT)) {
+                _log.info("No zookeeper leader alive on active site.");
+                return false;
+            }
+        }
+
+        // check if cluster state is stable
+        String vip = activeSite.getVip();
+        int port = _svc.getEndpoint().getPort();
+        String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, vip, port);
+        try {
+            SysClient client = SysClientFactory.getSysClient(URI.create(baseNodeURL));
+            ClusterInfo clusterInfo = client.get(URI.create(URI_INTERNAL_GET_CLUSTER_INFO), ClusterInfo.class, null);
+            _log.info("Get cluster info from active site {}", clusterInfo.getCurrentState());
+            if (ClusterState.STABLE.equals(ClusterState.valueOf(clusterInfo.getCurrentState()))) {
+                return true;
+            }
+        } catch (Exception ex) {
+            _log.warn("Encounter error when call Sys API on active site{} ", ex.toString());
+        }
+        return false;
+    }
+
+    /**
+     * Zookeeper leader nodes listens on 2888(see coordinator-var.xml) for follower/observers.
+     *  We depends on this behaviour to check if leader election is started
+     *
+     * @param nodeIP
+     * @param port
+     * @return
+     */
+    private boolean isZookeeperLeader(String nodeIP, int port) {
+        try {
+            Socket sock = new Socket();
+            sock.connect(new InetSocketAddress(nodeIP, port), 10000); // 10 seconds timeout
+            sock.close();
+            return true;
+        } catch(IOException ex) {
+            _log.warn("Unexpected IO errors when checking local coordinator state. {}", ex.toString());
+        }
+        return false;
     }
 }

@@ -140,6 +140,8 @@ public abstract class VdcOpHandler {
 
         @Autowired
         IPsecManager ipsecMgr;
+        @Autowired
+        IPsecConfig ipsecConfig;
 
         public IPSecEnableHandler() {
         }
@@ -177,8 +179,8 @@ public abstract class VdcOpHandler {
             }
         }
 
-        private boolean ipsecKeyExisted() {
-            return !StringUtils.isEmpty(targetVdcPropInfo.getProperty(Constants.IPSEC_KEY));
+        private boolean ipsecKeyExisted() throws Exception {
+            return !StringUtils.isEmpty(ipsecConfig.getPreSharedKey());
         }
     }
 

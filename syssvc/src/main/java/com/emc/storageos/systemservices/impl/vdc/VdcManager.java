@@ -8,16 +8,11 @@ package com.emc.storageos.systemservices.impl.vdc;
 import java.net.URI;
 import java.util.Map;
 
+import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.PowerOffState;
-import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteError;
-import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
@@ -305,7 +300,7 @@ public class VdcManager extends AbstractManager {
      */
     private PropertyInfoExt loadVdcConfig() throws Exception {
         targetVdcPropInfo = new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
-        targetVdcPropInfo.addProperty("ipsec_key", ipsecConfig.getPreSharedKey());
+        targetVdcPropInfo.addProperty(Constants.IPSEC_KEY, ipsecConfig.getPreSharedKey());
         return targetVdcPropInfo;
     }
 

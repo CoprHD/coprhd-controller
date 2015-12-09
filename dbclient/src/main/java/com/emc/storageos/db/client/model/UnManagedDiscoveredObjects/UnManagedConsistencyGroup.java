@@ -31,5 +31,17 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 	private StringSet _associatedVolumes; 
 	//Number of Volumes ingested
 	private static int _ingestedVolumes; 
+	
+	public enum SupportedConsistencyGroupInformation {
+		NATIVE_GUID("NativeGuid", "NativeGuid");
+		
+        private final String _infoKey;
+        private final String _alternateKey;
+
+        SupportedConsistencyGroupInformation(String infoKey, String alterateKey) {
+            _infoKey = infoKey;
+            _alternateKey = alterateKey;
+        }
+	}
 
 }

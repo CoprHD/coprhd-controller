@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.Types;
@@ -504,6 +505,29 @@ public class DiscoveryUtils {
         return null;
     }
 
+    /**
+     * check UnManagedConsistencyGroup exists in DB
+     * 
+     * @param nativeGuid
+     * @param dbClient
+     * @return
+     * @throws IOException
+     */
+    public static UnManagedConsistencyGroup checkUnManagedCGExistsInDB(DbClient dbClient, String nativeGuid) {
+        URIQueryResultList unManagedCGList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getCGInfoNativeIdConstraint(nativeGuid), unManagedCGList);
+        if (unManagedCGList.iterator().hasNext()) {
+            URI unManagedVolumeURI = unManagedCGList.iterator().next();
+            UnManagedConsistencyGroup cgInfo = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedVolumeURI);
+            if (!cgInfo.getInactive()) {
+                return cgInfo;
+            }
+        }
+        return null;
+    }
+    
+    
     /**
      * This method cleans up UnManaged Volumes in DB, which had been deleted manually from the Array
      * 1. Get All UnManagedVolumes from DB

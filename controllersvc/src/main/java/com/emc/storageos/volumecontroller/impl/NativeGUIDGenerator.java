@@ -58,6 +58,8 @@ public class NativeGUIDGenerator {
     public static final String FILESYSTEM = "FILESYSTEM";
 
     public static final String VOLUME = "VOLUME";
+    
+    public static final String CONSISTENCY_GROUP = "CONSISTENCYGROUP";
 
     public static final String SNAPSHOT = "SNAPSHOT";
 
@@ -626,6 +628,11 @@ public class NativeGUIDGenerator {
 
     }
 
+    public static String generateNativeGuidForCG(String systemNativeGuid, String snapShotId) {
+        return String.format("%s+" + CONSISTENCY_GROUP + "+%s", systemNativeGuid, snapShotId);
+
+    }
+    
     public static String generateNativeGuidForExportMask(String systemNativeGuid, String maskName) {
         return String.format("%s+" + MASKINGVIEW + "+%s", systemNativeGuid, maskName);
 

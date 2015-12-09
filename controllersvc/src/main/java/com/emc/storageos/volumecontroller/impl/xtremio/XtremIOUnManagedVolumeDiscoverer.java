@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
@@ -105,8 +106,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
             Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap, Map<String, StringSet> igKnownVolumesMap) throws Exception {
 
         StringSet snaps = new StringSet();
-        Object snapNameToProcess;
-
         Object snapNameToProcess;
 
         for (List<Object> snapDetail : snapDetails) {
@@ -180,7 +179,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         	//Get the Consistency group details 
         	List<XtremIOObjectInfo> consistencyGroupVolInfo = xtremIOClient.getXtremIOConsistencyGroupVolumes(xioClusterName);
         	//Get the volumes associated to the Consistency Group
-        	volumesToCgs = getConsistencyGroupVolumeDetails(xtremIOClient, consistencyGroupVolInfo, xioClusterName);
+        	volumesToCgs = getConsistencyGroupVolumeDetails(xtremIOClient, storageSystem, dbClient, consistencyGroupVolInfo, xioClusterName);
         }
         // Get the volume details
         List<List<XtremIOObjectInfo>> volume_partitions = Lists.partition(volLinks, Constants.DEFAULT_PARTITION_SIZE);
@@ -300,12 +299,21 @@ public class XtremIOUnManagedVolumeDiscoverer {
      * @param xioClusterName
      */
 
-    private Map<String, String> getConsistencyGroupVolumeDetails(XtremIOClient xtremIOClient, List<XtremIOObjectInfo>consistencyGroupInfo, String xioClusterName) throws Exception {
+    private Map<String, String> getConsistencyGroupVolumeDetails(XtremIOClient xtremIOClient, StorageSystem storageSystem, DbClient dbClient, List<XtremIOObjectInfo>consistencyGroupInfo, String xioClusterName) throws Exception {
     	Map<String, String> volumesToCgs = new HashMap<String, String>();
     	for (XtremIOObjectInfo cg : consistencyGroupInfo){
+    		UnManagedConsistencyGroup unManagedConsistencyGroup = null; 
     		//Retrieve details of Consistency Group
     		XtremIOConsistencyGroupVolInfo cgVol = xtremIOClient.getXtremIOConsistencyGroupInfo(cg, xioClusterName);
     		//For the number of volumes that are associated to the CG, associate CGs to Volumes	
+    		
+            String managedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(
+                    storageSystem.getNativeGuid(), cgVol.getContent().getName());
+            
+            unManagedConsistencyGroup = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient,
+            		managedCGNativeGuid);
+
+            
     		for (int i =0; i < (Integer.parseInt(cgVol.getContent().getNumOfVols())); i++) {
     			volumesToCgs.put((String) cgVol.getContent().getVolList().get(i).get(0), cgVol.getContent().getName());			
     		}   		

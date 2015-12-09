@@ -1495,7 +1495,12 @@ public class CoordinatorClientExt {
                     }
                     localRepository.reload("reset-coordinator");
                 } else {
-                    _log.warn("Unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                    _log.warn("All nodes unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                    _log.info("Leaving the barrier.");
+                    boolean leaved = barrier.leave(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+                    if (!leaved) {
+                        _log.warn("Unable to leave barrier for {}", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                    }
                 }
             } catch (Exception ex) {
                 _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);

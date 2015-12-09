@@ -3200,7 +3200,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             TaskCompleter taskCompleter = new CloneCreateCompleter(fullCopyVolumes, taskId);
             WorkflowStepCompleter.stepExecuting(taskId);
-            _log.info("isCG :{}", isCG);
             if (isCG) {
                 boolean isListReplicaFlow = false;
                 StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3233,7 +3232,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     private boolean isListReplicaFlow(Volume sourceVolumeObj) {
         boolean isListReplicaFlow = false;
-        _log.info("sourceVolumeObj.getReplicationGroupInstance :{}", sourceVolumeObj.getReplicationGroupInstance());
         if (sourceVolumeObj != null && sourceVolumeObj.isInCG() && !ControllerUtils.checkCGCreatedOnBackEndArray(sourceVolumeObj)) {
             isListReplicaFlow = true;
         }

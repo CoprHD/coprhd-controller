@@ -320,11 +320,6 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _rpDeviceController.addStepsForChangeVirtualPool(
                     workflow, waitFor, volumes, taskId);
 
-            // This step is currently used to ensure that any existing resources get added to native
-            // CGs. Mainly used for VPLEX->RP+VPLEX change vpool. The existing VPLEX volume would not be
-            // in any CG and we now need it's backing volume(s) to be added to their local array CG.
-            waitFor = postRPChangeVpoolSteps(workflow, waitFor, volumes, taskId);
-
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
             String successMessage = "Change Virtual Pool suceeded for volumes: " + volURIs.toString();
@@ -478,7 +473,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
                     // Good time to update the backing volume with it's new CG
                     assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
-                    s_dbClient.persistObject(assocVolume);
+                    s_dbClient.updateObject(assocVolume);
 
                     s_logger.info(
                             String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].",
@@ -494,7 +489,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     "postRPChangeVpoolCreateCG");
 
             // Add a step to update the local array consistency group with the volumes to add
-            waitFor = _blockDeviceController.addStepsForAddToConsistencyGroup(workflow, waitFor, blockDataDescriptors);
+            waitFor = _blockDeviceController.addStepsForUpdateConsistencyGroup(workflow, waitFor, blockDataDescriptors, null);
         }
 
         return waitFor;

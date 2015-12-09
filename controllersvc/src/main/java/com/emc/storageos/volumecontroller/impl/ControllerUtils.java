@@ -1277,4 +1277,30 @@ public class ControllerUtils {
 
         return status;
     }
+
+    /*
+     * Check CG contains all and only volumes provided
+     *
+     * Assumption - all volumes provided are in the CG
+     *
+     * @param dbClient
+     * @param cg
+     * @param volumes
+     * @return boolean
+     */
+    public static boolean cgHasNoOtherVolume(DbClient dbClient, URI cg, List<?> volumes) {
+        URIQueryResultList cgVolumeList = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getVolumesByConsistencyGroup(cg), cgVolumeList);
+        int totalVolumeCount = 0;
+        while (cgVolumeList.iterator().hasNext()) {
+            Volume cgSourceVolume = dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
+            if (cgSourceVolume != null) {
+                totalVolumeCount++;
+            }
+        }
+
+        s_logger.info("totalVolumeCount {} volume size {}", totalVolumeCount, volumes.size());
+        return totalVolumeCount == volumes.size();
+    }
 }

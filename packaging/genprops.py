@@ -52,8 +52,8 @@ def lines2text(lines):
 
 # Read and evaluate property definition file
 def getprops(path):
-    _keys = ( "key", "label", "description", "type", "minLen", "maxLen", "allowedValues", "tag", "advanced", "hidden", "userMutable", "userConfigurable", "rebootRequired", "reconfigRequired", "value", "controlNodeOnly", "notifiers" )
-    _types = ( "uint8", "int8", "uint16", "int16", "uint32", "int32", "uint64", "int64", "real32", "real64", "string", "boolean" )
+    _keys = ( "key", "label", "description", "type", "minLen", "maxLen", "allowedValues", "tag", "advanced", "hidden", "userMutable", "userConfigurable", "rebootRequired", "reconfigRequired", "value", "controlNodeOnly", "notifiers", "siteSpecific" )
+    _types = ( "uint8", "int8", "uint16", "int16", "uint32", "int32", "uint64", "int64", "real32", "real64", "string", "boolean")
     _bools = ( False, True )
     _globals = {}
     _globals.update(zip(_keys, _keys))
@@ -133,7 +133,7 @@ METAMAP_MAP_END    = '</map>'
 METAMAP_END        = '</bean>'
 
 # Valid fields of the property metadata class
-BEAN_KEYS = ( "key", "label", "description", "type", "minLen", "maxLen", "allowedValues", "tag", "hidden", "advanced", "userMutable", "userConfigurable", "reconfigRequired", "rebootRequired", "value", "controlNodeOnly", "notifiers")
+BEAN_KEYS = ( "key", "label", "description", "type", "minLen", "maxLen", "allowedValues", "tag", "hidden", "advanced", "userMutable", "userConfigurable", "reconfigRequired", "rebootRequired", "value", "controlNodeOnly", "notifiers", "siteSpecific")
 
 def emit_ovf(iter_props, ovf_props, config_props, props_vars, pattern, subst, loop):
     def ovf_encode(s, qdollar = True):

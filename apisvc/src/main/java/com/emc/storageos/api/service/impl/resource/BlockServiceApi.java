@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.ApplicationUpdateParam.ApplicationVolumeList;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -485,4 +486,15 @@ public interface BlockServiceApi {
      * @param volsAlreadyInCG Volumes to be added are the same with those already in CG
      */
     public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG);
+    
+    /**
+     * Validate and add/remove volumes to the application
+     * @param addVolumes The volumes to be added to the application
+     * @param removeVolumes The map of volumes to be removed from the application by CG URI
+     * @param application The application that the volumes to be updated
+     * @param taskList The task list
+     */
+    public void updateVolumesInApplication(ApplicationVolumeList addVolumes, List<Volume> removeVolumes, 
+            URI applicationId, String taskId);
+    
 }

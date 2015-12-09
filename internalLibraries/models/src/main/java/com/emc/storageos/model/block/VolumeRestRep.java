@@ -39,6 +39,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
     private String linkStatus;
     private Boolean hasXIO3XVolumes;
     private RelatedResourceRep pool;
+    private List<RelatedResourceRep> applications;
 
     // Fields in a Volume that are specific to RecoverPoint
     public static class RecoverPointRestRep {
@@ -607,6 +608,23 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     public void setPool(RelatedResourceRep pool) {
         this.pool = pool;
+    }
+    
+    @XmlElementWrapper(name = "applications")
+    /**
+     * List of applications that the volume assigned to.
+     * @valid none
+     */
+    @XmlElement(name = "application")
+    public List<RelatedResourceRep> getApplications() {
+        if (applications == null) {
+            applications = new ArrayList<RelatedResourceRep>();
+        }
+        return applications;
+    }
+
+    public void setApplications(List<RelatedResourceRep> applications) {
+        this.applications = applications;
     }
 
 }

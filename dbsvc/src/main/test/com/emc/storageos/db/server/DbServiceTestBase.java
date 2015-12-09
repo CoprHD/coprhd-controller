@@ -148,6 +148,7 @@ public abstract class DbServiceTestBase {
         dbsvc.setCoordinator(coordinator);
         dbsvc.setStatusChecker(statusChecker);
         dbsvc.setService(service);
+        dbsvc.setDbDir(".");
 
         JmxServerWrapper jmx = new JmxServerWrapper();
         jmx.setEnabled(false);
@@ -191,7 +192,7 @@ public abstract class DbServiceTestBase {
         dbClient.setBypassMigrationLock(true);
         dbClient.setLocalContext(createLocalContext());
         VdcUtil.setDbClient(dbClient);
-
+        
         return dbClient;
     }
 

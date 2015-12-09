@@ -95,7 +95,7 @@ public class ComputeImageServerMigrationTest extends DbSimpleMigrationTestBase {
         config.setId(PropertyInfoExt.TARGET_PROPERTY_ID);
         config.setConfig(PropertyInfoExt.TARGET_INFO, str);
 
-        _coordinator.persistServiceConfiguration(config);
+        _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
 
         String imageServerIP = _coordinator.getPropertyInfo().getProperty(
                 "image_server_address");

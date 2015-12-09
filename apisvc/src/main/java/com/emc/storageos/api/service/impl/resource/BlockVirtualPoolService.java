@@ -830,7 +830,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                             // If the journal varray is null, the journal vpool has to be null too.
                             virtualPool.setJournalVpool(nullValue);
                         } else {
-                            // Set the journal virtual pool. In none is specified, default to the parent
+                            // Set the journal virtual pool. If none is specified, default to the parent
                             // virtual pool
                             virtualPool.setJournalVpool(!NullColumnValueGetter.isNullURI(sourcePolicy.getJournalVpool()) ? sourcePolicy
                                     .getJournalVpool().toString()

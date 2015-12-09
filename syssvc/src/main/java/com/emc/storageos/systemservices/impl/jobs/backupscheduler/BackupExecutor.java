@@ -10,6 +10,7 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 
 import com.emc.storageos.services.util.Strings;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,10 +130,8 @@ public class BackupExecutor {
                 this.cfg.retainedBackups.add(tag);
                 this.cfg.persist();
 
-                descParams = this.cli.getDescParams(tag);
-                this.cli.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
                 return;
-            } catch (BackupException e) {
+            } catch (InternalServerErrorException e) {
                 lastException = e;
                 log.error(String.format("Exception when creating backup %s (retry #%d)",
                         tag, retryCount), e);
@@ -146,9 +145,6 @@ public class BackupExecutor {
         }
 
         if (lastException != null) {
-            descParams = this.cli.getDescParams(tag);
-            descParams.add(lastException.getLocalizedMessage());
-            this.cli.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             this.cfg.sendBackupFailureToRoot(tag, lastException.getMessage());
         }
     }
@@ -169,18 +165,12 @@ public class BackupExecutor {
         // Actually delete backups from disk that not in master list
         // NOTE: Down nodes are ignored, because once quorum nodes agree a backup is deleted, it is deleted even it still exists
         // in minority nodes.
-        List<String> descParams = null;
         for (String tag : ScheduledBackupTag.pickScheduledBackupTags(this.cli.getClusterBackupTags(true))) {
             if (!this.cfg.retainedBackups.contains(tag)) {
                 try {
                     this.cli.deleteBackup(tag);
-                    descParams = this.cli.getDescParams(tag);
-                    this.cli.auditBackup(OperationTypeEnum.DELETE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
-                } catch (BackupException e) {
+                } catch (InternalServerErrorException e) {
                     log.error("Failed to delete scheduled backup from cluster", e);
-                    descParams = this.cli.getDescParams(tag);
-                    descParams.add(e.getLocalizedMessage());
-                    this.cli.auditBackup(OperationTypeEnum.DELETE_BACKUP,AuditLogManager.AUDITLOG_FAILURE,null,descParams.toArray());
                 }
             }
         }

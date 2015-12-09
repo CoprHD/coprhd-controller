@@ -26,6 +26,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
+import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.management.backup.BackupFile;
 import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -49,6 +50,8 @@ import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 
 /**
@@ -62,6 +65,12 @@ public class BackupService {
     private BackupScheduler backupScheduler;
     private JobProducer jobProducer;
     private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
+
+    @Autowired
+    private AuditLogManager auditMgr;
+
+    @Autowired
+    private Service serviceinfo;
 
     /**
      * Sets backup client
@@ -191,13 +200,13 @@ public class BackupService {
         List<String> descParams = null;
         try {
             backupOps.createBackup(backupTag, forceCreate);
-            descParams = backupScheduler.getDescParams(backupTag);
-            backupScheduler.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
+            descParams = getDescParams(backupTag);
+            auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         } catch (BackupException e) {
             log.error("Failed to create backup(tag={}), e=", backupTag, e);
-            descParams = backupScheduler.getDescParams(backupTag);
+            descParams = getDescParams(backupTag);
             descParams.add(e.getLocalizedMessage());
-            backupScheduler.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
+            auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             throw APIException.internalServerErrors.createObjectError("Backup files", e);
         }
         return Response.ok().build();
@@ -222,13 +231,13 @@ public class BackupService {
         List<String> descParams = null;
         try {
             backupOps.deleteBackup(backupTag);
-            descParams = backupScheduler.getDescParams(backupTag);
-            backupScheduler.auditBackup(OperationTypeEnum.DELETE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
+            descParams = getDescParams(backupTag);
+            auditBackup(OperationTypeEnum.DELETE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         } catch (BackupException e) {
             log.error("Failed to delete backup(tag= {}), e=", backupTag, e);
-            descParams = backupScheduler.getDescParams(backupTag);
+            descParams = getDescParams(backupTag);
             descParams.add(e.getLocalizedMessage());
-            backupScheduler.auditBackup(OperationTypeEnum.DELETE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
+            auditBackup(OperationTypeEnum.DELETE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             throw APIException.internalServerErrors.updateObjectError("Backup files", e);
         }
         return Response.ok().build();
@@ -469,5 +478,28 @@ public class BackupService {
         }
         in.close();
         zos.closeEntry();
+    }
+
+    private void auditBackup(OperationTypeEnum auditType,
+                            String operationalStatus,
+                            String description,
+                            Object... descparams) {
+        this.auditMgr.recordAuditLog(null, null,
+                BackupConstants.EVENT_SERVICE_TYPE,
+                auditType,
+                System.currentTimeMillis(),
+                operationalStatus,
+                description,
+                descparams);
+    }
+
+    private List<String> getDescParams(final String tag) {
+        final String nodeId = this.serviceinfo.getNodeId();
+        return new ArrayList<String>() {
+            {
+                add(tag);
+                add(nodeId);
+            }
+        };
     }
 }

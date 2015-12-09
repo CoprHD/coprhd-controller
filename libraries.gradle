@@ -71,7 +71,7 @@ ext {
         "org.apache.commons:commons-math3:3.2",
         "com.google.guava:guava:16.0",
         "com.ning:compress-lzf:0.8.4",
-        "com.github.stephenc.high-scale-lib:high-scale-lib:1.1.2",
+        "com.boundary:high-scale-lib:1.0.6",
         "org.codehaus.jackson:jackson-mapper-asl:1.9.2", 
         "org.codehaus.jackson:jackson-core-asl:1.9.2", 
         "com.github.jbellis:jamm:0.3.0", 

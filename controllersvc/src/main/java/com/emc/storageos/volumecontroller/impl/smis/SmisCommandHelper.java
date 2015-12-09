@@ -2296,6 +2296,7 @@ public class SmisCommandHelper implements SmisConstants {
             tagSet = setRecoverPointTag(storageSystem, volumePathList, flag);
         } else {
             _log.info(String.format("Volume [%s](%s) is not valid for RP tagging operation", volume.getLabel(), volume.getId()));
+            tagSet = true;
         }
         return tagSet;
     }

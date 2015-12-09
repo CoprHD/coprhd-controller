@@ -60,14 +60,12 @@
           #{nav.menuSection 'nav.adminDashboard'}
             #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
               #{nav.item 'adminDashboardPage', href: @AdminDashboard.dashboard()/}
-              #{if controllers.infra.DisasterRecovery.isPrimarySite()}
               	#{nav.item 'systemHealthDashboard', href: @SystemHealth.systemHealth()/}
               	#{nav.item 'backup', href: @Backup.list()/}
               	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
                 	#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
               	#{/if}
               	#{nav.item 'dbHealthDashboard', href: @SystemHealth.dbHealth()/}
-              #{/if}
             #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}  
             #{/deadbolt.restrict}
             #{deadbolt.restrict roles:[['SYSTEM_AUDITOR']]}
@@ -264,18 +262,20 @@
             	#{nav.item 'clusterInfo', href: @infra.ClusterInfo.clusterIpInfo()/}
             #{/if}
           #{/deadbolt.restrict}
-          #{if controllers.infra.DisasterRecovery.isPrimarySite()}
-          	#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
+	       	#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
             	#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
               		#{nav.separator/}
             	#{/deadbolt.restrict}
-            	#{nav.item 'upgrade', href: @infra.Upgrade.index()/}
+            	#{if controllers.infra.DisasterRecovery.isPrimarySite()}
+            		#{nav.item 'upgrade', href: @infra.Upgrade.index()/}
+            	#{/if}
             	#{if !util.SetupUtils.isOssBuild()}
-                	#{nav.item 'license', href: @infra.Licensing.index()/}
+            		#{if controllers.infra.DisasterRecovery.isPrimarySite()}
+                		#{nav.item 'license', href: @infra.Licensing.index()/}
+                	#{/if}
                		#{nav.item 'supportRequest', href: @infra.SupportRequest.createSupportRequest()/}
             	#{/if}
         	#{/deadbolt.restrict}
-        #{/if}
       #{/nav.menuSection} 
     #{/nav.menu}
   #{/deadbolt.restrict}

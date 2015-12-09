@@ -290,23 +290,15 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
                     rpRemoteCopyMode = sourcePolicy.getRemoteCopyMode();
                     rpRpoValue = sourcePolicy.getRpoValue();
                     rpRpoType = sourcePolicy.getRpoType();
-                    if (protectHASite != null && protectSourceSite != null && protectHASite && protectSourceSite) {
-                        // Backend will take care of swapping
-                        // if(activeSite.equalsIgnoreCase(HighAvailability.VPLEX_SOURCE)){
-                        sourceJournalVArray = asString(sourcePolicy.getJournalVarray());
-                        sourceJournalVPool = asString(sourcePolicy.getJournalVpool());
+
+                    if (protectHASite != null && protectHASite) {
                         haJournalVArray = asString(sourcePolicy.getStandbyJournalVarray());
                         haJournalVPool = asString(sourcePolicy.getStandbyJournalVpool());
                     }
-                    else {
-                        if (protectHASite != null && protectHASite) {
-                            haJournalVArray = asString(sourcePolicy.getJournalVarray());
-                            haJournalVPool = asString(sourcePolicy.getJournalVpool());
-                        }
-                        else if (protectSourceSite != null && protectSourceSite) {
-                            sourceJournalVArray = asString(sourcePolicy.getJournalVarray());
-                            sourceJournalVPool = asString(sourcePolicy.getJournalVpool());
-                        }
+
+                    if (protectSourceSite != null && protectSourceSite) {
+                        sourceJournalVArray = asString(sourcePolicy.getJournalVarray());
+                        sourceJournalVPool = asString(sourcePolicy.getJournalVpool());
                     }
                 }
 

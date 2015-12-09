@@ -180,7 +180,7 @@ public abstract class VdcOpHandler {
         }
 
         private boolean ipsecKeyExisted() throws Exception {
-            return !StringUtils.isEmpty(ipsecConfig.getPreSharedKey());
+            return !StringUtils.isEmpty(ipsecConfig.getPreSharedKeyFromZK());
         }
     }
 

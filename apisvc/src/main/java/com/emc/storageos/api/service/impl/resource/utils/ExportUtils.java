@@ -62,10 +62,8 @@ public class ExportUtils {
      * Returns initiators-to-target-storage-ports pairing for all initiators to which
      * the block object (volume or snapshot) was exported.
      * 
-     * @param id
-     *            the URN of a ViPR block object
-     * @param dbClient
-     *            dbClient an instance of {@link DbClient}
+     * @param id the URN of a ViPR block object
+     * @param dbClient dbClient an instance of {@link DbClient}
      * @param idEmbeddedInURL
      * @return initiators-to-target-storage-ports pairing for all initiators to which
      *         the block object (volume or snapshot) was exported.
@@ -74,7 +72,7 @@ public class ExportUtils {
         BlockObject blockObject = getBlockObject(id, dbClient);
         ArgValidator.checkEntityNotNull(blockObject, id, idEmbeddedInURL);
         ITLRestRepList list = new ITLRestRepList();
-        Map<ExportMask, List<ExportGroup>> exportMasks = getBlockObjectExportMasks(null, null, blockObject, null,
+        Map<ExportMask, List<ExportGroup>> exportMasks = getBlockObjectExportMasks(blockObject, null,
                 dbClient);
         Collection<Initiator> initiators = null;
         List<StoragePort> ports = null;
@@ -85,9 +83,9 @@ public class ExportUtils {
             Map<StoragePort, List<FCZoneReference>> zoneRefs = null;
             for (ExportMask exportMask : exportMasks.keySet()) {
                 // now process the initiators - Every initiator must see the volume
-                initiators = getInitiators(null, null, exportMask, dbClient);
+                initiators = getInitiators(exportMask, dbClient);
                 _log.debug("Found {} initiators in export mask {}", initiators.size(), exportMask.getMaskName());
-                ports = getStoragePorts(null, exportMask, dbClient);
+                ports = getStoragePorts(exportMask, dbClient);
                 _log.debug("Found {} storage ports in export mask {}", ports.size(), exportMask.getMaskName());
                 String hlu = exportMask.getVolumes().get(bo.getId().toString());
                 _log.debug("Start pairing initiators and targets in export mask {}.", exportMask.getMaskName());
@@ -134,14 +132,11 @@ public class ExportUtils {
      * have been exported to it together with the target ports and zone name when
      * zoning has been performed.
      * 
-     * @param networkPorts
-     *            a list of initiator WWNs or IQNs
-     * @param dbClient
-     *            dbClient an instance of {@link DbClient}
-     * @param permissionsHelper
-     *            an instance of {@link PermissionsHelper}
-     * @param user
-     *            a pointer to the logged in user
+     * @param networkPorts a list of initiator WWNs or IQNs
+     * @param dbClient dbClient an instance of {@link DbClient}
+     * @param permissionsHelper an instance of {@link PermissionsHelper}
+     * @param user a pointer to the logged in user
+     * 
      * @return all the volumes and snapshots that have been exported to the
      *         initiators together with the target ports and zone name when
      *         zoning has been performed.
@@ -181,14 +176,11 @@ public class ExportUtils {
      * that are exported to the initiator together with the target ports and the zones when zoning
      * was performed.
      * 
-     * @param initiator
-     *            the initiator
-     * @param dbClient
-     *            an instance of {@link DbClient}
-     * @param permissionsHelper
-     *            an instance of {@link PermissionsHelper}
-     * @param user
-     *            a pointer to the logged in user
+     * @param initiator the initiator
+     * @param dbClient an instance of {@link DbClient}
+     * @param permissionsHelper an instance of {@link PermissionsHelper}
+     * @param user a pointer to the logged in user
+     * 
      * @return the list of ITLs for one initiator
      */
     public static ITLRestRepList getItlsForInitiator(Initiator initiator, DbClient dbClient,
@@ -205,7 +197,7 @@ public class ExportUtils {
         for (ExportMask exportMask : exportMasks.keySet()) {
             _log.info("Finding ITLs for initiator {} in export mask {}", initiator.getInitiatorPort(),
                     exportMask.getMaskName());
-            ports = getStoragePorts(null, exportMask, dbClient);
+            ports = getStoragePorts(exportMask, dbClient);
             initiatorPorts = getInitiatorPorts(exportMask, initiator, ports, dbClient);
             zoneRefs = getInitiatorsZoneReferences(initiator, initiatorPorts, dbClient);
             for (String doUri : exportMask.getVolumes().keySet()) {
@@ -265,8 +257,7 @@ public class ExportUtils {
     /**
      * Get an initiator as specified by the initiator's network port.
      * 
-     * @param networkPort
-     *            The initiator's port WWN or IQN.
+     * @param networkPort The initiator's port WWN or IQN.
      * @return A reference to an initiator.
      */
     private static Initiator getInitiator(String networkPort, DbClient dbClient) {
@@ -294,24 +285,16 @@ public class ExportUtils {
      * ports and find the zone name if zoning was performed. Return a list of ITLs for
      * each volume-initiator-target found.
      * 
-     * @param dbClient
-     *            db client
-     * @param exportMask
-     *            the export mask the initiator is in
-     * @param initiator
-     *            the initiator
-     * @param hlu
-     *            the lun Id used by the initiator for the volume
-     * @param groupBlockObject
-     *            the volume or snapshot
-     * @param maskBlockObject
-     *            TODO
-     * @param initiatorPorts
-     *            ports to which the initiator is zoned in the export mask
-     * @param zoneRefs
-     *            a map of port-to-zone-reference
-     * @param exportGroup
-     *            the export groups in this export mask
+     * @param dbClient db client
+     * @param exportMask the export mask the initiator is in
+     * @param initiator the initiator
+     * @param hlu the lun Id used by the initiator for the volume
+     * @param groupBlockObject the volume or snapshot
+     * @param maskBlockObject the block object used in the mask
+     * @param initiatorPorts ports to which the initiator is zoned in the export mask
+     * @param zoneRefs a map of port-to-zone-reference
+     * @param exportGroup the export groups in this export mask
+     * 
      * @return all ITLs for a volume/snapshot-initiator pair.
      */
     private static List<ITLRestRep> getItlsForMaskInitiator(
@@ -389,10 +372,8 @@ public class ExportUtils {
     /**
      * Find the block object, volume or snapshot, for a given URI.
      * 
-     * @param id
-     *            the URN of a ViPR block object, volume or snapshot
-     * @param dbClient
-     *            dbClient an instance of {@link DbClient}
+     * @param id the URN of a ViPR block object, volume or snapshot
+     * @param dbClient dbClient an instance of {@link DbClient}
      * @return the volume or snapshot for the given URI
      */
     private static BlockObject getBlockObject(URI id, DbClient dbClient) {
@@ -406,12 +387,9 @@ public class ExportUtils {
     /**
      * Return the ports that were zoned to an initiator according to the zoningMap.
      * 
-     * @param initiator
-     *            - Initiator
-     * @param ports
-     *            - List of ports in the ExportMask
-     * @param zoningMap
-     *            - zoningMap in the ExportMask
+     * @param initiator - Initiator
+     * @param ports - List of ports in the ExportMask
+     * @param zoningMap - zoningMap in the ExportMask
      * @return
      */
     private static List<StoragePort> getZonedPorts(Initiator initiator,
@@ -434,18 +412,12 @@ public class ExportUtils {
     /**
      * Creates and returns an instance of REST response object.
      * 
-     * @param exportGroup
-     *            the export group the initiator is in
-     * @param blockObject
-     *            the block object
-     * @param hlu
-     *            the lun id used for the block object by the initiator
-     * @param initiator
-     *            the initiator
-     * @param port
-     *            the target port
-     * @param fcZoneReference
-     *            the record of the SAN zone created on the switch when a zone is created.
+     * @param exportGroup the export group the initiator is in
+     * @param blockObject the block object
+     * @param hlu  the lun id used for the block object by the initiator
+     * @param initiator the initiator
+     * @param port  the target port
+     * @param fcZoneReference the record of the SAN zone created on the switch when a zone is created.
      *            Returns null when zoning is not required or when the zone creation failed.
      * @return the export REST response object.
      */
@@ -501,12 +473,9 @@ public class ExportUtils {
      * Find the san zone information for the initiator and storage ports. Returns
      * a map of zone references per port.
      * 
-     * @param initiator
-     *            the initiator
-     * @param ports
-     *            the target ports
-     * @param dbClient
-     *            an instance of {@link DbClient}
+     * @param initiator the initiator
+     * @param ports the target ports
+     * @param dbClient an instance of {@link DbClient}
      * @return a map of san zones created for the initiator grouped by port for
      *         the list of target ports. Otherwise, an returns empty map.
      */
@@ -539,12 +508,9 @@ public class ExportUtils {
      * Find the san zone information for the initiator and storage ports. Returns
      * a map of zone references per port.
      * 
-     * @param initiator
-     *            the initiator
-     * @param ports
-     *            the target ports
-     * @param dbClient
-     *            an instance of {@link DbClient}
+     * @param initiator the initiator
+     * @param ports the target ports
+     * @param dbClient an instance of {@link DbClient}
      * @return a map of san zones created for the initiator grouped by port for
      *         the list of target ports. Otherwise, an returns empty map.
      */
@@ -579,14 +545,10 @@ public class ExportUtils {
     /**
      * Find the san zone information for the initiator/block object.
      * 
-     * @param blockObjectUri
-     *            the block object URI
-     * @param initiator
-     *            the initiator
-     * @param ports
-     *            the target ports
-     * @param refs
-     *            a map of port-to-zone-reference
+     * @param blockObjectUri the block object URI
+     * @param initiator the initiator
+     * @param ports the target ports
+     * @param refs a map of port-to-zone-reference
      * @return the list of san zones created for the initiator if any were created. Otherwise, an returns empty map.
      */
     private static Map<StoragePort, FCZoneReference> getZoneReferences(URI blockObjectUri,
@@ -610,30 +572,18 @@ public class ExportUtils {
     /**
      * Fetches and returns the storage ports for an export mask
      * 
-     * @param storagePortCache
-     *            TODO
-     * @param exportMask
-     *            the export mask
-     * @param dbClient
-     *            an instance of {@link DbClient}
+     * @param exportMask the export mask
+     * @param dbClient an instance of {@link DbClient}
      * 
      * @return a list of active storage ports used by the export mask
      */
-    private static List<StoragePort> getStoragePorts(Map<URI, StoragePort> storagePortCache, ExportMask exportMask,
+    private static List<StoragePort> getStoragePorts(ExportMask exportMask,
             DbClient dbClient) {
         List<StoragePort> ports = new ArrayList<StoragePort>();
         StoragePort port = null;
         if (exportMask.getStoragePorts() != null) {
             for (String initUri : exportMask.getStoragePorts()) {
-                if (storagePortCache != null) {
-                    if (storagePortCache.get(URI.create(initUri)) == null) {
-                        storagePortCache.put(URI.create(initUri),
-                                dbClient.queryObject(StoragePort.class, URI.create(initUri)));
-                    }
-                    port = storagePortCache.get(URI.create(initUri));
-                } else {
-                    port = dbClient.queryObject(StoragePort.class, URI.create(initUri));
-                }
+                port = dbClient.queryObject(StoragePort.class, URI.create(initUri));
                 if (port != null && !port.getInactive()) {
                     ports.add(port);
                 }
@@ -648,34 +598,16 @@ public class ExportUtils {
      * existing initiators are set, they will also be returned if an instance can
      * be found in ViPR for the given initiator port id.
      * 
-     * @param initiatorIdCache
-     *            TODO
-     * @param initiatorPortCache
-     *            TODO
-     * @param exportMask
-     *            the export mask
-     * @param dbClient
-     *            an instance of {@link DbClient}
+     * @param exportMask the export mask
+     * @param dbClient an instance of {@link DbClient}
      * @return a list of active initiators in the export mask
      */
-    private static Collection<Initiator> getInitiators(Map<URI, Initiator> initiatorIdCache,
-            Map<String, Initiator> initiatorPortCache,
-            ExportMask exportMask, DbClient dbClient) {
+    private static Collection<Initiator> getInitiators(ExportMask exportMask, DbClient dbClient) {
         Map<String, Initiator> initiators = new HashMap<String, Initiator>();
         if (exportMask.getInitiators() != null) {
             for (String initUri : exportMask.getInitiators()) {
                 Initiator initiator = null;
-                if (initiatorIdCache != null) {
-                    if (initiatorIdCache.get(initUri) == null) {
-                        Initiator cacheInitiator = dbClient.queryObject(Initiator.class, URI.create(initUri));
-                        initiatorIdCache.put(cacheInitiator.getId(), cacheInitiator);
-                        initiatorPortCache.put(Initiator.toPortNetworkId(cacheInitiator.getInitiatorPort()),
-                                cacheInitiator);
-                    }
-                    initiator = initiatorIdCache.get(URI.create(initUri));
-                } else {
-                    initiator = dbClient.queryObject(Initiator.class, URI.create(initUri));
-                }
+                initiator = dbClient.queryObject(Initiator.class, URI.create(initUri));
                 if (initiator != null && !initiator.getInactive()) {
                     initiators.put(initiator.getInitiatorPort(), initiator);
                 }
@@ -686,19 +618,7 @@ public class ExportUtils {
             for (String initStr : exportMask.getExistingInitiators()) {
                 if (!initiators.containsKey(initStr)) {
                     initStr = Initiator.toPortNetworkId(initStr);
-                    Initiator initiator = null;
-                    if (initiatorPortCache != null) {
-                        if (initiatorPortCache.get(initStr) == null) {
-                            Initiator cacheInitiator = getInitiator(initStr, dbClient);
-                            initiatorIdCache.put(cacheInitiator.getId(), cacheInitiator);
-                            initiatorPortCache.put(Initiator.toPortNetworkId(cacheInitiator.getInitiatorPort()),
-                                    cacheInitiator);
-                        }
-                        initiator = initiatorPortCache.get(initStr);
-                    } else {
-                        initiator = getInitiator(initStr, dbClient);
-                    }
-
+                    Initiator initiator = getInitiator(initStr, dbClient);
                     if (initiator != null) {
                         initiators.put(initStr, initiator);
                     }
@@ -711,21 +631,13 @@ public class ExportUtils {
     /**
      * Fetches all the export masks in which a block object is member
      * 
-     * @param exportGroupCache
-     *            TODO
-     * @param exportMaskCache
-     *            TODO
-     * @param groupBlockObject
-     *            the block object
-     * @param maskBlockObject
-     *            TODO
-     * @param dbClient
-     *            an instance of {@link DbClient}
+     * @param groupBlockObject the block object
+     * @param maskBlockObject the block object used in the mask
+     * @param dbClient an instance of {@link DbClient}
      * 
      * @return a map of export masks in which a block object is member
      */
-    private static Map<ExportMask, List<ExportGroup>> getBlockObjectExportMasks(Map<URI, ExportGroup> exportGroupCache,
-            Map<URI, ExportMask> exportMaskCache, BlockObject groupBlockObject, BlockObject maskBlockObject,
+    private static Map<ExportMask, List<ExportGroup>> getBlockObjectExportMasks(BlockObject groupBlockObject, BlockObject maskBlockObject,
             DbClient dbClient) {
         Map<ExportMask, List<ExportGroup>> exportMasks = new HashMap<ExportMask, List<ExportGroup>>();
         ContainmentConstraint constraint = ContainmentConstraint.Factory
@@ -736,15 +648,7 @@ public class ExportUtils {
         Iterator<URI> egIdIter = egUris.iterator();
         while (egIdIter.hasNext()) {
             URI egId = egIdIter.next();
-            ExportGroup exportGroup = null;
-            if (exportGroupCache != null) {
-                if (exportGroupCache.get(egId) == null) {
-                    exportGroupCache.put(egId, dbClient.queryObject(ExportGroup.class, egId));
-                }
-                exportGroup = exportGroupCache.get(egId);
-            } else {
-                exportGroup = dbClient.queryObject(ExportGroup.class, egId);
-            }
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egId);
             if (exportGroup == null || exportGroup.getInactive() || exportGroup.getExportMasks() == null
                     || !checkUserPermissions(exportGroup, null, null)) {
                 continue;
@@ -754,7 +658,7 @@ public class ExportUtils {
 
         // permission are checked by the API service - no need to check again
         List<ExportGroup> exportGroups = exportGroups1;
-        List<ExportMask> masks = getMasksForExportGroups(exportMaskCache, exportGroups, dbClient);
+        List<ExportMask> masks = getMasksForExportGroups(exportGroups, dbClient);
 
         // Get the actual export block object associated with the snapshot (if applicable)
         if (maskBlockObject == null) {
@@ -784,14 +688,10 @@ public class ExportUtils {
     /**
      * Gets all the export masks that this initiator is member of.
      * 
-     * @param initiator
-     *            the initiator
-     * @param dbClient
-     *            an instance of {@link DbClient}
-     * @param permissionsHelper
-     *            an instance of {@link PermissionsHelper}
-     * @param user
-     *            a pointer to the logged in user
+     * @param initiator the initiator
+     * @param dbClient an instance of {@link DbClient}
+     * @param permissionsHelper an instance of {@link PermissionsHelper}
+     * @param user a pointer to the logged in user
      * @return all the export masks that this initiator is member of
      */
     private static Map<ExportMask, List<ExportGroup>> getInitiatorExportMasks(Initiator initiator,
@@ -800,7 +700,7 @@ public class ExportUtils {
         AlternateIdConstraint constraint = AlternateIdConstraint.Factory
                 .getExportGroupInitiatorConstraint(initiator.getId().toString());
         List<ExportGroup> exportGroups = getExportGroupsByConstraint(constraint, dbClient, permissionsHelper, user);
-        List<ExportMask> masks = getMasksForExportGroups(null, exportGroups, dbClient);
+        List<ExportMask> masks = getMasksForExportGroups(exportGroups, dbClient);
         for (ExportMask exportMask : masks) {
             if (exportMask != null &&
                     !exportMask.getInactive() &&
@@ -829,8 +729,7 @@ public class ExportUtils {
         return uris;
     }
 
-    private static List<ExportMask> getMasksForExportGroups(Map<URI, ExportMask> exportMaskCache,
-            List<ExportGroup> exportGroups, DbClient dbClient) {
+    private static List<ExportMask> getMasksForExportGroups(List<ExportGroup> exportGroups, DbClient dbClient) {
         List<URI> maskUris = new ArrayList<URI>();
         for (ExportGroup exportGroup : exportGroups) {
             List<URI> uris = StringSetUtil.stringSetToUriList(exportGroup.getExportMasks());
@@ -843,14 +742,7 @@ public class ExportUtils {
 
         List<ExportMask> exportMasks = new ArrayList<ExportMask>();
         for (URI uri : maskUris) {
-            if (exportMaskCache != null) {
-                if (exportMaskCache.get(uri) == null) {
-                    exportMaskCache.put(uri, dbClient.queryObject(ExportMask.class, uri));
-                }
-                exportMasks.add(exportMaskCache.get(uri));
-            } else {
-                exportMasks.add(dbClient.queryObject(ExportMask.class, uri));
-            }
+            exportMasks.add(dbClient.queryObject(ExportMask.class, uri));
         }
         return exportMasks;
     }
@@ -874,14 +766,10 @@ public class ExportUtils {
     /**
      * Gets all the export masks that this initiator is member of.
      * 
-     * @param networkPort
-     *            The initiator's port WWN or IQN.
-     * @param dbClient
-     *            an instance of {@link DbClient}
-     * @param permissionsHelper
-     *            an instance of {@link PermissionsHelper}
-     * @param user
-     *            a pointer to the logged in user
+     * @param networkPort The initiator's port WWN or IQN.
+     * @param dbClient an instance of {@link DbClient}
+     * @param permissionsHelper an instance of {@link PermissionsHelper}
+     * @param user a pointer to the logged in user
      * @return all the export masks that this initiator is member of
      */
     public static Map<ExportMask, List<ExportGroup>> getInitiatorExportMasks(
@@ -903,12 +791,9 @@ public class ExportUtils {
      * <li>The user has any permission to the export group's project.</li>
      * </ul>
      * 
-     * @param group
-     *            the export group
-     * @param permissionsHelper
-     *            a reference to {@link PermissionsHelper}
-     * @param user
-     *            the user
+     * @param group the export group
+     * @param permissionsHelper a reference to {@link PermissionsHelper}
+     * @param user the user
      * @return true if the user has at least read permissions to the export group
      * @throws DatabaseException
      *             when a DB error occurs

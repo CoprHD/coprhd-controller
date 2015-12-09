@@ -4,19 +4,17 @@
  */
 package com.emc.storageos.api.mapper;
 
-import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
-import static com.emc.storageos.api.mapper.DbObjectMapper.mapDiscoveredSystemObjectFields;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
-
 import org.apache.commons.lang.StringUtils;
 
-import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
-import com.emc.storageos.db.client.model.NetworkSystem;
-import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.network.FCEndpointRestRep;
 import com.emc.storageos.model.network.FCZoneReferenceRestRep;
 import com.emc.storageos.model.network.NetworkSystemRestRep;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.NetworkSystem;
+
+import static com.emc.storageos.api.mapper.DbObjectMapper.*;
 
 public class NetworkMapper {
     public static NetworkSystemRestRep map(NetworkSystem from) {

@@ -137,7 +137,7 @@ nav.computeImageServers=Compute Image Servers
 nav.sites=Sites
 nav.userGroups=User Groups
 nav.object.buckets=Buckets
-nav.disasterRecovery=Disaster Recovery
+nav.disasterRecovery=System Disaster Recovery
 nav.ipsec=IPsec
 # Override messages in the Secure plugin
 secure.title=
@@ -838,9 +838,9 @@ datetime.units.s=Seconds
 datetime.dayOfMonth.L=Last
 
 #DisasterRecovery
-disasterRecovery.title=Disaster Recovery
+disasterRecovery.title=System Disaster Recovery
 disasterRecovery.name=Site Name
-disasterRecovery.VirtualIP=Site Virtual IP
+disasterRecovery.VirtualIP=Site Virtual IP or FQDN
 disasterRecovery.status=Status
 disasterRecovery.id=Site UUId
 disasterRecovery.actions=Actions
@@ -883,7 +883,7 @@ disasterRecovery.standby.stopConfirm=Are you sure you want to pause standby sync
 
 disasterRecovery.create.title=Add Standby
 disasterRecovery.edit.title=Edit Standby
-disasterRecovery.list.title=Disaster Recovery
+disasterRecovery.list.title=System Disaster Recovery
 disasterRecovery.edit.title=Edit Standby
 disasterRecovery.add.title=Enter the information needed to discover standby cluster.
 disasterRecovery.switchover=Switchover
@@ -2504,7 +2504,7 @@ adminDashboard.fileCapacity=File
 adminDashboard.blockCapacity=Block
 adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File/Object
-adminDashboard.disasterRecovery=Disaster Recovery
+adminDashboard.disasterRecovery=System Disaster Recovery
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object

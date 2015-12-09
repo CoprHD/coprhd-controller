@@ -91,6 +91,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public static final String SHARED_STORAGE = "shared";
     public static final String RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE = "rp";
     public static final String LOCAL_ARRAY_SNAPSHOT_TYPE_VALUE = "local";
+    public static final String SESSION_SNAPSHOT_TYPE_VALUE = "session";
 
     public static final String VOLUME_OPTION_KEY = "volume";
     public static final String CONSISTENCY_GROUP_OPTION_KEY = "consistencygroup";
@@ -105,6 +106,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             "block.snapshot.type.rp_bookmark");
     private static final AssetOption LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION = newAssetOption(LOCAL_ARRAY_SNAPSHOT_TYPE_VALUE,
             "block.snapshot.type.local");
+    private static final AssetOption SESSION_SNAPSHOT_TYPE_OPTION = newAssetOption(SESSION_SNAPSHOT_TYPE_VALUE,
+            "block.snapshot.type.session");
 
     private static List<AssetOption> NTFS_OPTIONS = Lists.newArrayList(newAssetOption("DEFAULT", "Default"),
             newAssetOption("512", "512"),
@@ -916,6 +919,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
         options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
+        options.add(SESSION_SNAPSHOT_TYPE_OPTION);
         return options;
     }
 

@@ -9,6 +9,8 @@ import static com.emc.sa.service.ServiceParams.READ_ONLY;
 import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
+import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_NAME;
+import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_COUNT;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +19,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshotSession;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.vipr.client.Tasks;
@@ -38,6 +41,12 @@ public class CreateBlockSnapshotService extends ViPRService {
 
     @Param(value = READ_ONLY, required = false)
     protected Boolean readOnly;
+    
+    @Param(LINKED_SNAPSHOT_NAME)
+    public String linkedSnapshotName;
+    
+    @Param(LINKED_SNAPSHOT_COUNT)
+    public Integer linkedSnapshotCount;
 
     private List<BlockObjectRestRep> volumes;
 
@@ -54,7 +63,12 @@ public class CreateBlockSnapshotService extends ViPRService {
         Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {
-                tasks = execute(new CreateBlockSnapshot(volume.getId(), type, nameParam, readOnly));
+                if (type.equals("session")) {
+                    tasks = execute(new CreateBlockSnapshotSession(volume.getId(), nameParam, 
+                                                                    linkedSnapshotName, linkedSnapshotCount, "nocopy"));
+                } else {
+                    tasks = execute(new CreateBlockSnapshot(volume.getId(), type, nameParam, readOnly));
+                }
                 addAffectedResources(tasks);
             }
         } else {

@@ -17,14 +17,16 @@ public class CreateBlockSnapshotSession extends WaitForTasks<BlockSnapshotSessio
     private String name;
     private SnapshotSessionNewTargetsParam linkedTargetsParam; //Not sure if this is right way...I think no.
     
-    public CreateBlockSnapshotSession(String volumeId, String name, SnapshotSessionNewTargetsParam linkedTargetsParam) {
-        this(uri(volumeId), name, linkedTargetsParam);
+    public CreateBlockSnapshotSession(String volumeId, String name, String linkedSnapshotName, Integer linkedSnapshotCount, String copyMode) {
+        this(uri(volumeId), name, linkedSnapshotName, linkedSnapshotCount, copyMode);
     }
 
-    public CreateBlockSnapshotSession(URI volumeId, String name, SnapshotSessionNewTargetsParam linkedTargetsParam) {
+    public CreateBlockSnapshotSession(URI volumeId, String name, String linkedSnapshotName, Integer linkedSnapshotCount, String copyMode) {
         this.volumeId = volumeId;
         this.name = name;
-        this.linkedTargetsParam = linkedTargetsParam;
+        if (linkedSnapshotName != null && !linkedSnapshotName.isEmpty()) {
+            this.linkedTargetsParam = new SnapshotSessionNewTargetsParam(linkedSnapshotCount, linkedSnapshotName, copyMode);
+        }
         provideDetailArgs(volumeId, name);
     }
 

@@ -105,61 +105,6 @@ public class ExportUtils {
         return list;
     }
 
-    /*
-     * public static ITLRestRepList getBlockObjectInitiatorTargetsNew2(List<BlockObject> egBlockObjects, DbClient
-     * dbClient,
-     * boolean idEmbeddedInURL) {
-     * ITLRestRepList list = new ITLRestRepList();
-     * Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
-     * Map<URI, ExportMask> exportMaskCache = new HashMap<URI, ExportMask>();
-     * Map<URI, ExportGroup> exportGroupCache = new HashMap<URI, ExportGroup>();
-     * Map<URI, Initiator> initiatorIdCache = new HashMap<URI, Initiator>();
-     * Map<String, Initiator> initiatorPortCache = new HashMap<String, Initiator>();
-     * Map<URI, StoragePort> storagePortCache = new HashMap<URI, StoragePort>();
-     * 
-     * for (BlockObject egBlockObject : egBlockObjects) {
-     * ArgValidator.checkEntityNotNull(egBlockObject, egBlockObject.getId(), idEmbeddedInURL);
-     * ITLRestRepList boItls = new ITLRestRepList();
-     * Collection<Initiator> initiators = null;
-     * List<StoragePort> ports = null;
-     * List<StoragePort> initiatorPorts = null;
-     * 
-     * blockObjectCache.put(egBlockObject.getId(), egBlockObject);
-     * BlockObject emBlockObject = Volume.fetchExportMaskBlockObject(dbClient, egBlockObject.getId());
-     * blockObjectCache.put(emBlockObject.getId(), emBlockObject);
-     * 
-     * Map<ExportMask, List<ExportGroup>> exportMasks = getBlockObjectExportMasks(exportGroupCache,
-     * exportMaskCache,
-     * egBlockObject, emBlockObject, dbClient);
-     * 
-     * if (emBlockObject != null) {
-     * Map<StoragePort, List<FCZoneReference>> zoneRefs = null;
-     * for (ExportMask exportMask : exportMasks.keySet()) {
-     * // now process the initiators - Every initiator must see the volume
-     * initiators = getInitiators(initiatorIdCache, initiatorPortCache, exportMask, dbClient);
-     * // _log.info("Found {} initiators in export mask {}", initiators.size(), exportMask.getMaskName());
-     * ports = getStoragePorts(storagePortCache, exportMask, dbClient);
-     * // _log.info("Found {} storage ports in export mask {}", ports.size(), exportMask.getMaskName());
-     * String hlu = exportMask.getVolumes().get(emBlockObject.getId().toString());
-     * // _log.info("Start pairing initiators and targets in export mask {}.", exportMask.getMaskName());
-     * for (Initiator initiator : initiators) {
-     * initiatorPorts = getInitiatorPorts(exportMask, initiator, ports, dbClient);
-     * zoneRefs = getInitiatorsZoneReferencesForBlockObject(initiator, initiatorPorts, egBlockObject,
-     * dbClient);
-     * boItls.getExportList().addAll(getItlsForMaskInitiator(dbClient,
-     * exportMasks.get(exportMask), exportMask, initiator, hlu, egBlockObject, emBlockObject,
-     * initiatorPorts, zoneRefs));
-     * }
-     * }
-     * }
-     * list.getExportList().addAll(boItls.getExportList());
-     * _log.info("{} ITLs were found for block object {}.", boItls.getExportList().size(),
-     * egBlockObject.getLabel());
-     * }
-     * return list;
-     * }
-     */
-
     private static List<StoragePort> getInitiatorPorts(ExportMask exportMask, Initiator initiator,
             List<StoragePort> ports, DbClient dbClient) {
         List<StoragePort> initiatorPorts = new ArrayList<StoragePort>();

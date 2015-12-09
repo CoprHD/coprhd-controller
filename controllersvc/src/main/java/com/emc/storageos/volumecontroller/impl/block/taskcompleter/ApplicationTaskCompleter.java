@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.Application;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
@@ -31,8 +31,8 @@ public class ApplicationTaskCompleter extends TaskCompleter{
     private List<URI> volumes;
     private List<URI> consistencyGroups;
     
-    public ApplicationTaskCompleter(URI applicationId, List<URI> volumes, List<URI> consistencyGroups, String opId) {
-        super(Application.class, applicationId, opId);
+    public ApplicationTaskCompleter(URI volumeGroupId, List<URI> volumes, List<URI> consistencyGroups, String opId) {
+        super(VolumeGroup.class, volumeGroupId, opId);
         this.volumes = volumes; 
         this.consistencyGroups = consistencyGroups;
     }

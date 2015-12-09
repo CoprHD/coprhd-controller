@@ -24,7 +24,7 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.db.client.model.Application;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -39,7 +39,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.application.ApplicationUpdateParam.ApplicationVolumeList;
+import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
@@ -341,18 +341,18 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * {@inheritDoc}
      */
     @Override
-    public void updateVolumesInApplication(ApplicationVolumeList addVolumes, 
+    public void updateVolumesInVolumeGroup(VolumeGroupVolumeList addVolumes, 
                                            List<Volume>removeVolumes, 
-                                           URI applicationId,
+                                           URI volumeGroupId,
                                            String taskId) {
-        Application application = _dbClient.queryObject(Application.class, applicationId);
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
         ApplicationAddVolumeList addVolumesNotInCG = null;
         List<URI> removeVolumesURI = null;
         BlockController controller = null;
         URI systemURI = null;
         
         if (addVolumes != null && addVolumes.getVolumes() != null && !addVolumes.getVolumes().isEmpty()) {
-            addVolumesNotInCG = addVolumesToApplication(addVolumes, application, taskId);
+            addVolumesNotInCG = addVolumesToApplication(addVolumes, volumeGroup, taskId);
         }
 
         if (removeVolumes != null && !removeVolumes.isEmpty()) {
@@ -368,23 +368,23 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         } 
         if ((addVolumesNotInCG != null && !addVolumesNotInCG.getVolumes().isEmpty()) ||
                 (removeVolumesURI != null && !removeVolumesURI.isEmpty())){
-            controller.updateApplication(systemURI, addVolumesNotInCG, removeVolumesURI, application.getId(), taskId);
+            controller.updateApplication(systemURI, addVolumesNotInCG, removeVolumesURI, volumeGroup.getId(), taskId);
         } else {
             // No need to call to controller. update the application task
-            Operation op = application.getOpStatus().get(taskId);
+            Operation op = volumeGroup.getOpStatus().get(taskId);
             op.ready();
-            application.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(application);
+            volumeGroup.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.updateObject(volumeGroup);
         }
     }
 
     /**
-     * Update volumes with application Id, if the volumes are in the CG
+     * Update volumes with volumeGroup Id, if the volumes are in the CG
      * @param volumesList The add volume list
      * @param application The application that the volumes are added to
      * @return ApplicationVolumeList The volumes that are in the add volume list, but not in any consistency group yet.
      */
-    private ApplicationAddVolumeList addVolumesToApplication(ApplicationVolumeList volumeList, Application application, String taskId) {
+    private ApplicationAddVolumeList addVolumesToApplication(VolumeGroupVolumeList volumeList, VolumeGroup application, String taskId) {
         Set<URI> cgVolumes = new HashSet<URI>();
         String firstVolLabel = null;
         List<URI> addVolumeURIs = volumeList.getVolumes();
@@ -416,18 +416,18 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         // Check if all CG volumes are adding into the application
         if(!volumesInCG.isEmpty() && !cgVolumes.containsAll(volumesInCG) || volumesInCG.size() != cgVolumes.size()) {
-            throw APIException.badRequests.volumeCantBeAddedToApplication(firstVolLabel, 
+            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel, 
                     "Not all volumes in consistency group are in the to be added volume list");
         }
         
         for (URI volumeUri : volumesInCG) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
-            StringSet applications = volume.getApplicationIds();
+            StringSet applications = volume.getVolumeGroupIds();
             if (applications == null) {
                 applications = new StringSet();
             }
             applications.add(application.getId().toString());
-            volume.setApplicationIds(applications);
+            volume.setVolumeGroupIds(applications);
             Operation op = volume.getOpStatus().get(taskId);
             op.ready();
             volume.getOpStatus().updateTaskStatus(taskId, op);

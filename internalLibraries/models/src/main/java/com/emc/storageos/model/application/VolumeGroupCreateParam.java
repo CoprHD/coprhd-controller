@@ -16,23 +16,23 @@ import com.emc.storageos.model.valid.Length;
 /**
  * Application creation parameters
  */
-@XmlRootElement(name = "application_create")
-public class ApplicationCreateParam {
+@XmlRootElement(name = "volume_group_create")
+public class VolumeGroupCreateParam {
     private String name;
     private String description;
     private Set<String> roles;
 
-    public ApplicationCreateParam() {
+    public VolumeGroupCreateParam() {
     }
 
-    public ApplicationCreateParam(String name, String description, Set<String> roles) {
+    public VolumeGroupCreateParam(String name, String description, Set<String> roles) {
         this.name = name;
         this.description = description;
         this.roles = roles;
     }
 
     /**
-     * Application unique name
+     * volume group unique name
      * 
      * @valid minimum of 2 characters
      * @valid maximum of 128 characters
@@ -48,7 +48,7 @@ public class ApplicationCreateParam {
     }
 
     /**
-     * Application description
+     * volume group description
      */
     @XmlElement
     public String getDescription() {
@@ -61,7 +61,7 @@ public class ApplicationCreateParam {
 
     @XmlElementWrapper(name = "roles", required = true)
     /**
-     * The set of supported roles for the application.
+     * The set of supported roles for the volume group.
      * 
      * @valid COPY
      * @valid DR

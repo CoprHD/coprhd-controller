@@ -4755,7 +4755,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 workflow.createStep(UPDATE_VOLUMES_STEP_GROUP,
                         "update volume for application", REMOVE_VOLUMES_FROM_CG_STEP_GROUP, storage,
                         system.getSystemType(), getClass(), 
-                        removeVolumeForApplicationMethod(removeVolumeList, application), null, null);
+                        removeVolumeForVolumeGroupMethod(removeVolumeList, application), null, null);
             }
             completer = new ApplicationTaskCompleter(application, removeVolumeList, cgs, opId);
             // Finish up and execute the plan.
@@ -4772,23 +4772,23 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         
     }
     
-    public Workflow.Method removeVolumeForApplicationMethod(List<URI> volumes, URI application) {
-        return new Workflow.Method("removeVolumeForApplication", volumes, application);
+    public Workflow.Method removeVolumeForVolumeGroupMethod(List<URI> volumes, URI volumeGroupId) {
+        return new Workflow.Method("removeVolumeForVolumeGroup", volumes, volumeGroupId);
     } 
     
     /**
      * Remove the application from the volume applicationIds attribute
      * @param volumes The volumes that will be updated
-     * @param application The application URI
+     * @param volumeGroupId The application URI
      * @param opId
      */
-    public void removeVolumeForApplication(List<URI>volumes, URI application, String opId) {
+    public void removeVolumeForVolumeGroup(List<URI>volumes, URI volumeGroupId, String opId) {
         for (URI voluri : volumes) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
-            String appId = application.toString();
-            StringSet appIds = volume.getApplicationIds();
-            if(appIds != null) {
-                appIds.remove(appId);
+            String vgId = volumeGroupId.toString();
+            StringSet vgIds = volume.getVolumeGroupIds();
+            if(vgIds != null) {
+                vgIds.remove(vgId);
             }
             _dbClient.updateObject(volume);
         }

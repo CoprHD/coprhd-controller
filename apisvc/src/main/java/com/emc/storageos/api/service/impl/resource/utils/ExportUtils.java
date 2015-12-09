@@ -295,10 +295,10 @@ public class ExportUtils {
         // Find the block object that would appear in the Export Mask
         BlockObject bo = Volume.fetchExportMaskBlockObject(dbClient, blockObject.getId());
         if (bo != null) {
-            _log.info("Finding target ports for initiator {} and block object {}",
+            _log.debug("Finding target ports for initiator {} and block object {}",
                     initiator.getInitiatorPort(), bo.getNativeGuid());
             initiatorZoneRefs = getZoneReferences(bo.getId(), initiator, initiatorPorts, zoneRefs);
-            _log.info("{} target ports and {} SAN zones were found for initiator {} and block object {}",
+            _log.debug("{} target ports and {} SAN zones were found for initiator {} and block object {}",
                     new Object[] { initiatorPorts.size(), initiatorZoneRefs.size(),
                             initiator.getInitiatorPort(), bo.getNativeGuid() });
             // TODO - Should we add special handling of iscsi initiators?
@@ -508,7 +508,7 @@ public class ExportUtils {
                 }
             }
         }
-        _log.info("Found {} san zone references for initiator {} and block object {}", new Object[]
+        _log.debug("Found {} san zone references for initiator {} and block object {}", new Object[]
         { targetPortReferences.size(), initiator.getInitiatorPort(), blockObjectUri });
         return targetPortReferences;
     }

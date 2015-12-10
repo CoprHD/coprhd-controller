@@ -87,7 +87,8 @@ public class ApplicationService extends TaskResourceService {
             DiscoveredDataObject.Type.vmax.name(),
             DiscoveredDataObject.Type.xtremio.name(),
             DiscoveredDataObject.Type.scaleio.name(),
-            DiscoveredDataObject.Type.ibmxiv.name()));
+            DiscoveredDataObject.Type.ibmxiv.name(),
+            DiscoveredDataObject.Type.srdf.name()));
     private static final String BLOCK = "block";
     
     static final Logger log = LoggerFactory.getLogger(ApplicationService.class);

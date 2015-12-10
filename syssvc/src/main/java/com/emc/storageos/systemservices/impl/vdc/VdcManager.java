@@ -447,7 +447,7 @@ public class VdcManager extends AbstractManager {
                 coordinatorClient.setTargetInfo(site.getUuid(), error);
 
                 site.setState(SiteState.STANDBY_ERROR);
-                coordinatorClient.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+                coordinatorClient.persistServiceConfiguration(site.toConfiguration());
             }
         }
     }

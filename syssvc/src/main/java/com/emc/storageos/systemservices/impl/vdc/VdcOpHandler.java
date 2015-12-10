@@ -880,7 +880,7 @@ public abstract class VdcOpHandler {
         coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
 
         site.setState(SiteState.STANDBY_ERROR);
-        coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
     }
     
     /**

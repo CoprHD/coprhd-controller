@@ -544,7 +544,7 @@ public class VdcManager extends AbstractManager {
             // update backCompatPreYoda to false everywhere
             vdcConfigUtil.setBackCompatPreYoda(false);
             backCompatPreYoda = false;
-            targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(backCompatPreYoda));
+            targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
             localRepository.setVdcPropertyInfo(targetVdcPropInfo);
 
             log.info("Reboot");

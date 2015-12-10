@@ -2500,6 +2500,14 @@ public class RecoverPointScheduler implements Scheduler {
         return null;
     }
 
+	/**
+	 * This method takes the passed in capabilities and returns back a capabilies object that contains information needed for 
+	 * RP journal volumes. Calculates the size based on the journal policy and sets the resource count to 1. 
+	 * @param journalPolicy Journal Policy from the VirtualPool
+	 * @param capabilities Capabilities
+	 * @param requestedResourceCount Number of resources requested, used to compute the journal size. 
+	 * @return capabilities
+	 */
 	private VirtualPoolCapabilityValuesWrapper getJournalCapabilities(
 			String journalPolicy,
 			VirtualPoolCapabilityValuesWrapper capabilities,

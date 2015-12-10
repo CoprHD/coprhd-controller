@@ -266,9 +266,9 @@ public class DbObjectMapper {
     }
     
     /**
-     * Map an application to ApplicationRestRep
-     * @param from application
-     * @return ApplicationRestRep
+     * Map an VolumeGroup to VolumeGroupRestRep
+     * @param from VolumeGroup
+     * @return VolumeGroupRestRep
      */
     public static VolumeGroupRestRep map(VolumeGroup from) {
         if ( from == null) {

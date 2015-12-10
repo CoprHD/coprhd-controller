@@ -67,7 +67,7 @@ import vnasserver
 import computeimageserver
 import bucket
 import warnings
-import application
+from src import volumegroup
 import ipsecmanager
 
 warnings.filterwarnings(
@@ -129,7 +129,7 @@ def display_version():
 # register module specific parsers with the common_parser
 module_parsers = main_parser.add_subparsers(help='Use One Of Commands')
 
-application.application_parser(module_parsers, common_parser)
+volumegroup.volume_group_parser(module_parsers, common_parser)
 authentication.authenticate_parser(module_parsers, vipr_ip, vipr_port)
 authentication.logout_parser(module_parsers, vipr_ip, vipr_port)
 authentication.authentication_parser(module_parsers, common_parser)

@@ -39,15 +39,15 @@ class AssetOptions(object):
 
         paramsDict = common.toDict(params)
 
-        query = None
+        query_by_name = None
         if (params is not None):
             for key, value in paramsDict.iteritems():
-                if (query is None):
-                    query = "?" + key + "=" + value
+                if (query_by_name is None):
+                    query_by_name = "?" + key + "=" + value
                 else:
-                    query = query + "&" + key + "=" + value
-            if (query is not None):
-                requestUrl = requestUrl + query
+                    query_by_name = query_by_name + "&" + key + "=" + value
+            if (query_by_name is not None):
+                requestUrl = requestUrl + query_by_name
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
                                              requestUrl,

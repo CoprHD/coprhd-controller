@@ -41,7 +41,7 @@ public class FCZoneReferenceMigration extends BaseCustomMigrationCallback {
             // Criteria to switch over the label that is that it does not contain a second underscore
             if (label == null || !label.matches(".*_.*_.*")) {
                 log.info("Resetting label:", label);
-                ref.setLabel(label);
+                ref.setLabel(FCZoneReference.makeLabel(label, ref.getVolumeUri().toString()));
                 dbClient.updateObject(ref);
             }
 

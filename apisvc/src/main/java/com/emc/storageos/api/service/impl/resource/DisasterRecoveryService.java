@@ -310,7 +310,6 @@ public class DisasterRecoveryService {
             ipsecConfig.setPreSharedKey(activeSiteParam.getIpsecKey());
 
             coordinator.addSite(activeSiteParam.getUuid());
-            coordinator.setActiveSite(activeSiteParam.getUuid());
             Site activeSite = new Site();
             siteMapper.map(activeSiteParam, activeSite);
             activeSite.setVdcShortId(drUtil.getLocalVdcShortId());
@@ -793,9 +792,6 @@ public class DisasterRecoveryService {
         try {
             newActiveSite = drUtil.getSiteFromLocalVdc(uuid);
 
-            // Set new UUID as active site ID
-            coordinator.setActiveSite(uuid);
-
             // Set old active site's state, short id and key
             oldActiveSite = drUtil.getSiteFromLocalVdc(oldActiveUUID);
             if (StringUtils.isEmpty(oldActiveSite.getStandbyShortId())) {
@@ -871,9 +867,6 @@ public class DisasterRecoveryService {
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
 
-            // set new acitve uuid
-            coordinator.setActiveSite(uuid);
-
             //reconfig other standby sites
             for (Site site : allStandbySites) {
                 if (!site.getUuid().equals(uuid)) {
@@ -947,8 +940,6 @@ public class DisasterRecoveryService {
             Site newActiveSite = drUtil.getSiteFromLocalVdc(newActiveSiteUUID);
             newActiveSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(newActiveSite.toString());
-            
-            coordinator.setActiveSite(newActiveSiteUUID);
             
             drUtil.updateVdcTargetVersion(currentSite.getUuid(), SiteInfo.DR_OP_FAILOVER);
             

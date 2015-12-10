@@ -17,6 +17,7 @@ import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsume
 import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.common.DbSchemaChecker;
 import com.emc.storageos.model.db.DbConsistencyStatusRestRep.Status;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsistencyJob> {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyJobConsumer.class);
@@ -35,6 +36,9 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         } else if (status.isFinished()) {
             log.info("there is finished state, move it to previous");
             status.moveToPrevious();
+        } else if (status.isCancelled()) {
+            log.info("current status is cancel, restart db consistency check");
+            status.init();
         }
         
         try {
@@ -45,6 +49,8 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         } catch (CancellationException ce) {
             log.warn("cancellation:{}", ce.getMessage());
             status = markCancel();
+        } catch (ConnectionException e) {
+            log.warn("ConnectionException:{}", e);
         } catch (Exception e) {
             log.error("failed to check db consistency {}", e);
             status = markFailure();

@@ -14,6 +14,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -107,8 +108,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
         List<BlockObject> sourceObjList = new ArrayList<>();
         if (URIUtil.isType(sourceObj.getId(), BlockSnapshot.class)) {
-            // For snapshots we only make a fully copy for the
-            // passed snapshot.
+            // For snapshots we ignore group semantics.
             sourceObjList.add(sourceObj);
         } else {
             // Otherwise, if the volume is in a CG, then we create
@@ -619,6 +619,12 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj) {
         return CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
                 ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceObj.getId()));
+    }
+
+    @Override
+    public List<BlockSnapshotSession> getSnapshotSessionsBySessionInstance(String instance) {
+        return CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance(instance));
     }
 
     /**

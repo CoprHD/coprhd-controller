@@ -11,6 +11,7 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -21,6 +22,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -38,6 +40,7 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,8 +52,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
@@ -600,6 +605,41 @@ public class BlockSnapshotSessionManager {
         for (BlockSnapshotSession snapSessionForSource : snapSessionsForSource) {
             result.getSnapSessionRelatedResourceList().add(toNamedRelatedResource(snapSessionForSource));
         }
+        return result;
+    }
+
+    /**
+     * @param group
+     * @return
+     */
+    public BlockSnapshotSessionList getSnapshotSessionsForConsistencyGroup(BlockConsistencyGroup group) {
+        BlockSnapshotSessionList result = new BlockSnapshotSessionList();
+        List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(group.getId(), _dbClient);
+
+        if (volumes.isEmpty()) {
+            return result;
+        }
+
+        Volume sourceVolume = volumes.get(0);
+
+        // Get the platform specific block snapshot session implementation.
+        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(sourceVolume);
+
+        // Get the BlockSnapshotSession instances for the source and prepare the result.
+        List<BlockSnapshotSession> snapSessionsForSource = snapSessionApiImpl.getSnapshotSessionsForSource(sourceVolume);
+
+        Set<String> instances = new HashSet<>();
+        for (BlockSnapshotSession session : snapSessionsForSource) {
+            instances.add(session.getSessionInstance());
+        }
+
+        for (String instance : instances) {
+            List<BlockSnapshotSession> sessions = snapSessionApiImpl.getSnapshotSessionsBySessionInstance(instance);
+            for (BlockSnapshotSession session : sessions) {
+                result.getSnapSessionRelatedResourceList().add(toNamedRelatedResource(session));
+            }
+        }
+
         return result;
     }
 

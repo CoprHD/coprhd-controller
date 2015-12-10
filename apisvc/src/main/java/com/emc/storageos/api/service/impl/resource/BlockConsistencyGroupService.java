@@ -54,20 +54,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupBulkRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
-import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
-import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
-import com.emc.storageos.model.block.BlockSnapshotRestRep;
-import com.emc.storageos.model.block.BulkDeleteParam;
-import com.emc.storageos.model.block.CopiesParam;
-import com.emc.storageos.model.block.Copy;
-import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.SnapshotSessionCreateParam;
-import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
-import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
-import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.block.*;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -552,6 +539,32 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         list.getSnapList().addAll(activeSnapshots);
 
         return list;
+    }
+
+    /**
+     * List snapshot sessions in the consistency group
+     *
+     *
+     * @prereq none
+     *
+     * @param consistencyGroupId
+     *            - Consistency group URI
+     *
+     * @brief List snapshot sessions in the consistency group
+     * @return The list of snapshot sessions in the consistency group
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public BlockSnapshotSessionList getConsistencyGroupSnapshotSessions(@PathParam("id") final URI consistencyGroupId) {
+        ArgValidator.checkUri(consistencyGroupId);
+        final BlockConsistencyGroup consistencyGroup = _permissionsHelper.getObjectById(consistencyGroupId,
+                BlockConsistencyGroup.class);
+        ArgValidator.checkEntityNotNull(consistencyGroup, consistencyGroupId,
+                isIdEmbeddedInURL(consistencyGroupId));
+
+        return getSnapshotSessionManager().getSnapshotSessionsForConsistencyGroup(consistencyGroup);
     }
 
     /**

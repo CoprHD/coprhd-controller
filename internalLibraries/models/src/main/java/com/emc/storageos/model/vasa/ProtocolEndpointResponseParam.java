@@ -2,6 +2,8 @@ package com.emc.storageos.model.vasa;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.RelatedResourceRep;
+
 @XmlRootElement(name="protocol_endpoint")
 public class ProtocolEndpointResponseParam extends VasaCommonRestResponse {
 
@@ -11,7 +13,7 @@ public class ProtocolEndpointResponseParam extends VasaCommonRestResponse {
     
     private String ipAddress;
     
-    private String storageSystem;
+    private RelatedResourceRep storageSystem;
     
     private String serverMount;
     
@@ -51,13 +53,6 @@ public class ProtocolEndpointResponseParam extends VasaCommonRestResponse {
         this.ipAddress = ipAddress;
     }
 
-    public String getStorageSystem() {
-        return storageSystem;
-    }
-
-    public void setStorageSystem(String storageSystem) {
-        this.storageSystem = storageSystem;
-    }
 
     public String getServerMount() {
         return serverMount;
@@ -113,6 +108,14 @@ public class ProtocolEndpointResponseParam extends VasaCommonRestResponse {
 
     public void setServerMinor(String serverMinor) {
         this.serverMinor = serverMinor;
+    }
+
+    public RelatedResourceRep getStorageSystem() {
+        return storageSystem;
+    }
+
+    public void setStorageSystem(RelatedResourceRep storageSystem) {
+        this.storageSystem = storageSystem;
     }
 
 

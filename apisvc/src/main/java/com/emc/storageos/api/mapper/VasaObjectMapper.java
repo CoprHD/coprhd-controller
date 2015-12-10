@@ -13,8 +13,11 @@ import com.emc.storageos.db.client.model.StorageContainer;
 import com.emc.storageos.db.client.model.VVol;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.adapters.StringMapAdapter;
 import com.emc.storageos.model.vasa.CapabilityProfileCreateResponse;
+import com.emc.storageos.model.vasa.ProtocolEndpointResponseParam;
 import com.emc.storageos.model.vasa.StorageContainerCreateResponse;
+import com.emc.storageos.model.vasa.VVolResponseParam;
 import com.emc.storageos.model.vasa.VasaCommonRestResponse;
 
 public class VasaObjectMapper {
@@ -65,6 +68,49 @@ public class VasaObjectMapper {
         to.setHighAvailability(from.getHighAvailability());
         
         return mapCommonVasaFields(from, to);
+        
+    }
+    
+    public static ProtocolEndpointResponseParam toProtocolEndpoint(ProtocolEndpoint from){
+        if(from == null){
+            return null;
+        }
+        ProtocolEndpointResponseParam to = new ProtocolEndpointResponseParam();
+        
+        mapCommonVasaFields(from, to);
+        
+        to.setDescription(from.getDescription());
+        to.setProtocolEndpointType(from.getProtocolEndpointType());
+        to.setLunId(from.getLunId());
+        to.setIpAddress(from.getIpAddress());
+        to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystem()));
+        to.setServerMount(from.getServerMount());
+        to.setTransportIpAddress(from.getTransportIpAddress());
+        to.setAuthType(from.getAuthType());
+        to.setInBandCapability(from.getInBandCapability());
+        to.setServerScope(from.getServerScope());
+        to.setServerMajor(from.getServerMajor());
+        to.setServerMinor(from.getServerMinor());
+        
+        return to;
+        
+    }
+    
+    public static VVolResponseParam toVVol(VVol from){
+        if(from == null){
+            return null;
+        }
+        VVolResponseParam to = new VVolResponseParam();
+        mapCommonVasaFields(from, to);
+        
+        to.setDescription(from.getDescription());
+        to.setProtocolEndpoint(toRelatedResource(ResourceTypeEnum.PROTOCOL_ENDPOINT,from.getProtocolEndpoint()));
+        to.setvVolSecondaryId(from.getvVolSecondaryId());
+        to.setExtensions(new StringMapAdapter().marshal(from.getExtensions()));
+        
+        
+        
+        return to;
         
     }
     

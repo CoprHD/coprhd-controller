@@ -10,6 +10,8 @@ public class VVol extends DataObject{
     private String vVolSecondaryId;
     
     private StringMap extensions;
+    
+    private String description;
 
     @RelationIndex(cf = "RelationIndex", type = ProtocolEndpoint.class)
     @IndexByKey
@@ -41,6 +43,16 @@ public class VVol extends DataObject{
     public void setExtensions(StringMap extensions) {
         this.extensions = extensions;
         setChanged("extensions");
+    }
+
+    @Name("description")
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+        setChanged("description");
     }
     
     

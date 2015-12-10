@@ -28,6 +28,8 @@ public class ProtocolEndpoint extends DataObject{
     
     private String serverMinor;
     
+    private String description;
+    
     
     @Name("protocolEndpointType")
     public String getProtocolEndpointType() {
@@ -139,6 +141,16 @@ public class ProtocolEndpoint extends DataObject{
     public void setStorageSystem(URI storageSystem) {
         this.storageSystem = storageSystem;
         setChanged("storageSystem");
+    }
+
+    @Name("description")
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+        setChanged("description");
     }
 
     public static enum ProtocolEndpointTypeEnum{

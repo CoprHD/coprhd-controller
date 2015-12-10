@@ -224,6 +224,13 @@
     <bean id="applicationService" class="com.emc.storageos.api.service.impl.resource.ApplicationService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
+        <property name="blockServiceApis">
+        	<map>
+            	<entry key="block" value-ref="defaultBlockServiceApiImpl" />
+                <entry key="vplex" value-ref="vplexBlockServiceApiImpl" />
+                <entry key="rp" value-ref="rpBlockServiceApiImpl" />
+            </map>
+        </property>
     </bean>
     
     <bean id="defaultBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.DefaultBlockServiceApiImpl">

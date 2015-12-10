@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -91,6 +92,25 @@ public class ApplicationService extends TaskResourceService {
     
     static final Logger log = LoggerFactory.getLogger(ApplicationService.class);
 
+    // Block service implementations
+    private Map<String, BlockServiceApi> _blockServiceApis;
+    
+    public void setBlockServiceApis(final Map<String, BlockServiceApi> serviceInterfaces) {
+        _blockServiceApis = serviceInterfaces;
+    }
+
+    private BlockServiceApi getBlockServiceImpl(final String type) {
+        return _blockServiceApis.get(type);
+    }
+    
+    private BlockServiceApi getBlockServiceImpl(final Volume volume) {
+        URI systemUri = volume.getStorageController();
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemUri);
+        String type = system.getSystemType();
+        String volType = getVolumeType(type);
+        return getBlockServiceImpl(volType);
+    }
+    
     @Override
     protected DataObject queryResource(URI id) {
         ArgValidator.checkUri(id);
@@ -265,7 +285,7 @@ public class ApplicationService extends TaskResourceService {
             }
         }
 
-        BlockServiceApi serviceAPI = BlockService.getBlockServiceImpl(firstVol, _dbClient);
+        BlockServiceApi serviceAPI = getBlockServiceImpl(firstVol);
         op = _dbClient.createTaskOpStatus(Application.class, application.getId(),
                 taskId, ResourceOperationTypeEnum.UPDATE_APPLICATION);
         taskList.getTaskList().add(toTask(application, taskId, op));

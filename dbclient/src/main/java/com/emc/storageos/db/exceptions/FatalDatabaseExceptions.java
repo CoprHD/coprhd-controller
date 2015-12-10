@@ -121,5 +121,5 @@ public interface FatalDatabaseExceptions {
     public FatalDatabaseException disallowedGeoUpdate(String clazzName, String fieldName, String geoVersion, String expectVersion);
     
     @DeclareServiceCode(ServiceCode.DBSVC_FIELD_LENGTH_ERROR)
-    public FatalDatabaseException fieldLengthTooShort(String clazzName, String methodName, int length, int minLength);
+    public FatalDatabaseException fieldLengthTooShort(String clazzName, String id, String methodName, int length, int minLength);
 }

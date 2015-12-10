@@ -143,7 +143,9 @@ public abstract class DataObject implements Serializable {
     private void validateLabel(String label) {
         int minLength = getPrefixIndexMinLength();
         if (label!=null & label.length() < minLength) {
-            throw DatabaseException.fatals.fieldLengthTooShort(this.getClass().getSimpleName(), READ_LABEL_METHOD_NAME, label.length(), minLength);
+            String clazzName = this.getClass().getSimpleName();
+            String id = this.getId().toString();
+            throw DatabaseException.fatals.fieldLengthTooShort(clazzName, id, READ_LABEL_METHOD_NAME, label.length(), minLength);
         }
     }
     

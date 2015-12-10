@@ -92,6 +92,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
         }
         
         if (!remoteSettingsMap.isEmpty()) {
+        	_log.info("Adding file remote replicaition copies to DB ");
             _dbClient.createObject(new ArrayList(remoteSettingsMap.values()));
         }
 
@@ -589,13 +590,14 @@ public class FileVirtualPoolService extends VirtualPoolService {
                         
                         remoteCopiesMap.put(remoteCopySettings.getVirtualArray().toString(), 
                         		remoteCopySettings.getId().toString());
-                        
                         remoteSettingsMap.put(remoteCopySettings.getVirtualArray(), remoteCopySettings);
             		}
             		
             		//vPool.setProtectionRemoteCopySettings(remoteCopiesMap);
             		vPool.setFileRemoteCopySettings(remoteCopiesMap);
             		vPool.setFileReplicationType(FileReplicationType.REMOTE.name());
+            		_log.info("File Replication type {} and number of remote copies {}",
+            				vPool.getFileReplicationType(), remoteCopiesMap.size());
             	}
             }
         }

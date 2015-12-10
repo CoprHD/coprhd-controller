@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.cassandra.thrift.Cassandra.AsyncProcessor.system_add_column_family;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,7 @@ import com.emc.storageos.db.client.model.StoragePool.CopyTypes;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageSystem.SupportedFileReplicationTypes;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
@@ -922,6 +924,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             StoragePool storagePool;
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
             boolean syncServiceEnabled = isilonApi.isSyncIQEnabled(storageSystem.getFirmwareVersion());
+            
+            
+            //Set file replication type for Isilon storage system!!!
+            if (syncServiceEnabled) {
+            	StringSet supportReplicationTypes = new StringSet();
+            	supportReplicationTypes.add(SupportedFileReplicationTypes.REMOTE.name());
+            	supportReplicationTypes.add(SupportedFileReplicationTypes.LOCAL.name());
+            	storageSystem.setSupportedReplicationTypes(supportReplicationTypes);
+            }
+            
             
             List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
             for (IsilonStoragePool isilonPool : isilonStoragePools) {

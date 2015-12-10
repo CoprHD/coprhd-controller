@@ -158,8 +158,6 @@ public class ExportUtilsTests extends DbsvcTestBase {
         // Populate the database
         populateDb();
 
-        Volume volume = _dbClient.queryObject(Volume.class, URI.create("volume0"));
-
         // Start a timer
         long startTime = System.currentTimeMillis();
         ITLBulkRep list = new ITLBulkRep();

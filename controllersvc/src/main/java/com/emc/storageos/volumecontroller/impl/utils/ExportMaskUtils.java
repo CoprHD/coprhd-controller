@@ -697,7 +697,7 @@ public class ExportMaskUtils {
         ref.setGroupUri(exportGroup.getId());
         ref.setZoneName(info.getZoneName());
         ref.setId(URIUtil.createId(FCZoneReference.class));
-        ref.setLabel(ref.getPwwnKey() + "_" + volume.getId().toString());
+        ref.setLabel(FCZoneReference.makeLabel(ref.getPwwnKey(), volume.getId().toString()));
         ref.setExistingZone(true);
         return ref;
     }

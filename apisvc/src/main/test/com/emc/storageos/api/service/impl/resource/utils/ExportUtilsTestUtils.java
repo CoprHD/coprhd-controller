@@ -278,7 +278,7 @@ public class ExportUtilsTestUtils {
                     String key = FCZoneReference.makeEndpointsKey(
                             Arrays.asList(new String[] { initiator.getInitiatorPort(), sp.getPortNetworkId() }));
                     zr.setId(URIUtil.createId(FCZoneReference.class));
-                    zr.setLabel(key);
+                    zr.setLabel(FCZoneReference.makeLabel(zr.getPwwnKey(), v.getId().toString()));
                     zr.setPwwnKey(key);
                     zr.setVolumeUri(v.getId());
                     _dbClient.createObject(zr);

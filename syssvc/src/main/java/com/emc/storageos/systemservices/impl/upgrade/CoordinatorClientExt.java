@@ -1152,6 +1152,23 @@ public class CoordinatorClientExt {
         return nodeName;
     }
 
+    /**
+     * The utility method to get all controller nodes ids
+     * Converts nodeCount to list of nodeIds regardless of availability
+     *
+     * @return List of nodeIds for all nodes in the cluster(get external id like vipr2)
+     */
+    public ArrayList<String> getAllNodeIds() {
+        ArrayList<String> fullList = new ArrayList<String>();
+
+        for (int i = 1; i <= getNodeCount(); i++) {
+            fullList.add("vipr" + i);
+        }
+
+        _log.info("getAllNodeIds(): Node Ids: {}", Strings.repr(fullList));
+        return fullList;
+    }
+
 
     /**
      * The utility method to find all the controller nodes which are not available in the
@@ -1462,6 +1479,22 @@ public class CoordinatorClientExt {
             
             _log.info("Local zookeeper mode {}", state);
             if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
+                //proceed only if all nodes are read only
+                for(String node:getAllNodeIds()){
+                    String nodeState=drUtil.getLocalCoordinatorMode(node);
+                    if (!DrUtil.ZOOKEEPER_MODE_READONLY.equals(nodeState)){
+                        return;
+                    }
+                }
+
+                //block to allow other nodes to realize state (dangerous!)
+                try {
+                    Thread.sleep(COODINATOR_MONITORING_INTERVAL*2);
+                } catch (InterruptedException e) {
+                    //if sleep fails we can't trust that other nodes realized our state
+                    return;
+                }
+
                 // if zk is switched from observer mode to participant, reload syssvc
                 reconfigZKToWritable(!DrUtil.ZOOKEEPER_MODE_READONLY.equals(initZkMode));
             } else {
@@ -1487,26 +1520,39 @@ public class CoordinatorClientExt {
                     try {
                         localRepository.reconfigCoordinator("observer");
                     } finally {
-                        _log.info("Leaving the barrier.");
-                        boolean leaved = barrier.leave(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
-                        if (!leaved) {
-                            _log.warn("Unable to leave barrier for {}", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
-                        }
+                        leaveZKDoubleBarrier(barrier,DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     }
                     localRepository.reload("reset-coordinator");
                 } else {
                     _log.warn("All nodes unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
-                    _log.info("Leaving the barrier.");
-                    boolean leaved = barrier.leave(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
-                    if (!leaved) {
-                        _log.warn("Unable to leave barrier for {}", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
-                    }
+                    leaveZKDoubleBarrier(barrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                 }
             } catch (Exception ex) {
                 _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);
             } 
         }
     };
+
+    /**
+     * reconfigure ZooKeeper to participant mode within the local site
+     *
+     * @param barrier barrier to leave
+     * @param path for logging barrier
+     * @return true for successful, false for success unknown
+     */
+    private boolean leaveZKDoubleBarrier(DistributedDoubleBarrier barrier, String path){
+        try {
+            _log.info("Leaving the barrier {}",path);
+            boolean leaved = barrier.leave(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+            if (!leaved) {
+                _log.warn("Unable to leave barrier for {}", path);
+            }
+            return leaved;
+        } catch (Exception ex) {
+            _log.warn("Unexpected errors during leaving barrier",ex);
+        }
+        return false;
+    }
 
     /**
      * reconfigure ZooKeeper to participant mode within the local site

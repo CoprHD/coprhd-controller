@@ -120,18 +120,20 @@ public class BlockMapper {
         to.setLinkStatus(from.getLinkStatus());
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);
-        StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
-        if (null != system) {
-            if (system.checkIfVmax3()) {
-                to.setSupportsSnapshotSessions(Boolean.TRUE);
-            } 
+        if (dbClient != null) {
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
+            if (system != null) {
+                if (system.checkIfVmax3()) {
+                    to.setSupportsSnapshotSessions(Boolean.TRUE);
+                } 
+            }
         }
         // Extra checks for VPLEX volumes
         if (null != dbClient && null != from.getAssociatedVolumes() && !from.getAssociatedVolumes().isEmpty()) {
             // For snapshot session support of a VPLEX volume, we only need to check the SOURCE side of the
             // volume.
             Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
-            system = dbClient.queryObject(StorageSystem.class, sourceSideBackingVolume.getStorageController());
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, sourceSideBackingVolume.getStorageController());
             if (null != system) {
                 if (system.checkIfVmax3()) {
                     to.setSupportsSnapshotSessions(Boolean.TRUE);

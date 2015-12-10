@@ -19,8 +19,6 @@
     
     type: {
       type: "assetType.vipr.blockSnapshotType",
-      initialValue: "local",
-      required: false,
       lockable: true
     },
         
@@ -46,6 +44,7 @@
       items:{
         linkedSnapshotName:{
           type:"text",
+          required: "false",
           validation:{
             min:2,
             max:128

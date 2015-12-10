@@ -93,6 +93,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public static final String RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE = "rp";
     public static final String LOCAL_ARRAY_SNAPSHOT_TYPE_VALUE = "local";
     public static final String SESSION_SNAPSHOT_TYPE_VALUE = "session";
+    public static final String CG_SNAPSHOT_TYPE_VALUE = "cg";
 
     public static final String VOLUME_OPTION_KEY = "volume";
     public static final String CONSISTENCY_GROUP_OPTION_KEY = "consistencygroup";
@@ -109,6 +110,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             "block.snapshot.type.local");
     private static final AssetOption SESSION_SNAPSHOT_TYPE_OPTION = newAssetOption(SESSION_SNAPSHOT_TYPE_VALUE,
             "block.snapshot.type.session");
+    private static final AssetOption CG_SNAPSHOT_TYPE_OPTION = newAssetOption(CG_SNAPSHOT_TYPE_VALUE,
+            "block.snapshot.type.cg");
 
     private static List<AssetOption> NTFS_OPTIONS = Lists.newArrayList(newAssetOption("DEFAULT", "Default"),
             newAssetOption("512", "512"),
@@ -954,13 +957,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("blockSnapshotType")
     @AssetDependencies("snapshotBlockVolume")
     public List<AssetOption> getBlockSnapshotType(AssetOptionsContext ctx, URI blockVolume) {
-
+        // These are hard coded values for now. In the future, this may be available through an API
+        List<AssetOption> options = Lists.newArrayList();
         if (isConsistencyGroupType(blockVolume)) {
-            return new ArrayList<AssetOption>();
+            options.add(CG_SNAPSHOT_TYPE_OPTION);
         } else {
-            debug("getting blockSnapshotTypes (blockVolume=%s)", blockVolume);
-            // These are hard coded values for now. In the future, this may be available through an API
-            List<AssetOption> options = Lists.newArrayList();
+            debug("getting blockSnapshotTypes (blockVolume=%s)", blockVolume);            
             ViPRCoreClient client = api(ctx);
             VolumeRestRep volume = client.blockVolumes().get(blockVolume);
             BlockVirtualPoolRestRep virtualPool = client.blockVpools().get(volume.getVirtualPool());
@@ -976,10 +978,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 if (isRPSourceVolume(volume)) {
                     options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
                 }
-            }
-                        
-            return options;
+            }                                    
         }
+        return options;
     }
 
     private List<AssetOption> getBlockVolumesForHost(ViPRCoreClient client, URI tenant, URI host, boolean mounted) {

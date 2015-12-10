@@ -14,7 +14,7 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr | ipsec} [local|ldap] [<timeslot>] | sanzoning'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
@@ -130,7 +130,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -7518,6 +7518,113 @@ vplexsnap_tests()
     hosts delete $hostLbl
 
     echo "**** Completed VPLEX snapshot export tests"
+}
+
+snapvx_vpool_setup()
+{
+    echo "**** Creating snapvx virtual pools"
+    cos create block $COS_VMAX3BLOCK_FC true \
+			 --description 'CoS for VMAX3 block FC' \
+                      --protocols FC \
+                      --numpaths 2 \
+                      --max_snapshots 10 \
+	               --system_type vmax \
+                      --provisionType 'Thin' \
+			 --neighborhoods $NH
+}
+
+snapvx_setup_once()
+{
+    # Do this only once
+    echo "**** Checking for the existance of the VMAX3 provider"
+    smisprovider show $VMAX3_SMIS_DEV &> /dev/null && return $?
+
+    # Create provider for VMAX3 array.
+    echo "**** Creating VMAX3 provider"
+    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+
+    # Discover the vmax3 array.
+    echo "**** Discovering VMAX3 array"
+    storagedevice discover_all --ignore_error
+
+    # Set up virtual pools
+    echo "**** Setting up virtual pools"
+    snapvx_vpool_setup
+
+    # Assign the storage pools of the VMAX3 array to our virtual array.
+    echo "**** Assiging storage pools to virtual array"
+    storagepool update $VMAX3_NATIVEGUID --nhadd $NH
+ 
+    # Assign storage ports if necessary.     
+    if [ $DISCOVER_SAN -eq 0 ]; then
+        echo "**** Updating storage port networks"
+        for porta in ${VMAX3_PORTS_A}
+            do
+	         storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
+            done
+
+	 for portb in ${VMAX3_PORTS_B}
+            do
+              storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_B --group ${portb}
+           done
+    fi
+
+    # Update virtual pool to use mathcing pools on the system.
+    echo "**** Assiging system storage pools to virtual pool"
+    cos update block $COS_VMAX3BLOCK_FC --storage $VMAX3_NATIVEGUID
+}
+
+
+snapvx_setup()
+{
+    echo "**** Executing snapvx setup"
+    snapvx_setup_once
+    cos allow $COS_VMAX3BLOCK_FC block $TENANT
+}
+
+snapvx_tests()
+{
+    echo "**** Executing snapvx tests"
+    VOLUME_NAME=SnapVxTest-${RANDOM}
+    SNAP_SESSION_NAME1=SnapSession-${RANDOM}
+    SNAP_SESSION_NAME2=SnapSession-${RANDOM}
+    SNAP_SESSION_TGT_NAME=SnapSessionTgt-${RANDOM}
+
+    # Create a VMAX3 volume to serve as the snapshot session source.
+    echo "**** Creating VMAX3 source volume"
+    volume create $VOLUME_NAME $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE
+
+    # Create snapvx sessions with no linked targets.
+    echo "**** Creating SnapVx sessions"
+    snapshotsession create $PROJECT/$VOLUME_NAME $SNAP_SESSION_NAME1
+    snapshotsession show $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
+    snapshotsession create $PROJECT/$VOLUME_NAME $SNAP_SESSION_NAME2
+    snapshotsession show $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2
+
+    # Restore the snapvx session.
+    echo "**** Restoring SnapVx session 1"
+    snapshotsession restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
+
+    # Link target to the snapvx session 1.
+    echo "**** Linking target to SnapVx session 1"
+    snapshotsession link_targets $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME
+
+    # Relink target to the snapvx session 2.
+    echo "**** Relinking target to SnapVx session 2"
+    snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME
+
+    # Unlink target from the snapvx session and delete target volume.
+    echo "**** unlinking target from SnapVx session 2"
+    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME --delete_target true
+
+    # Delete the snapvx session with no linked targets.
+    echo "**** Deleting SnapVx sessions"
+    snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
+    snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2
+
+    # Delete the snapshot session source volume.
+    echo "**** Deleting the VMAX3 source volume"
+    volume delete $PROJECT/$VOLUME_NAME --wait
 }
 
 ${SS}_setup

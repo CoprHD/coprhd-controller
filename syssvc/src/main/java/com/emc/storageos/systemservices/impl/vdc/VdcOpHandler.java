@@ -97,9 +97,6 @@ public abstract class VdcOpHandler {
      */
     public static class IPSecRotateOpHandler extends VdcOpHandler {
 
-        @Autowired
-        private IPsecConfig iPsecConfig;
-
         public IPSecRotateOpHandler() {
         }
         
@@ -112,22 +109,9 @@ public abstract class VdcOpHandler {
             syncFlushVdcConfigToLocal();
             try {
                 refreshIPsec();
-                // iPsecConfig.updateKeyVersionForNode(getLocalIPAddress(), targetVdcPropInfo.getProperty(Constants.VDC_CONFIG_VERSION));
             } catch (Exception ex) {
                 log.warn("Unexpected error happens during applying vdc config to local", ex);
                 resetLocalVdcConfigVersion();
-            }
-        }
-
-        private String getLocalIPAddress() {
-            try {
-                InetAddress IP = InetAddress.getLocalHost();
-                String localIP = IP.getHostAddress();
-                log.info("IP of my system is : " + localIP);
-                return localIP;
-            } catch (Exception ex) {
-                log.warn("error in getting local ip: " + ex.getMessage());
-                return null;
             }
         }
     }

@@ -547,8 +547,19 @@ public class VdcManager extends AbstractManager {
             targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
             localRepository.setVdcPropertyInfo(targetVdcPropInfo);
 
+            /*
             log.info("Reboot");
             reboot();
+            */
+
+            log.info("Rolling restart the db and geodb");
+            restartdb();
         }
+    }
+
+    private void restartdb() {
+        localRepository.reconfig();
+        localRepository.restart("db");
+        localRepository.restart("geodb");
     }
 }

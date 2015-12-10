@@ -8522,7 +8522,7 @@ class Bourne:
         params['name'] = name
         if (target_count) :
             target_params = dict()
-            param['new_linked_targets'] = target_params
+            params['new_linked_targets'] = target_params
             target_params['count'] = target_count
             target_params['target_name'] = target_name
             if (target_copymode) :

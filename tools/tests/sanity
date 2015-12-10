@@ -7520,6 +7520,13 @@ vplexsnap_tests()
     echo "**** Completed VPLEX snapshot export tests"
 }
 
+COS_VMAX3BLOCK_FC=COS_VMAX3BLOCK_FC
+VMAX3_SMIS_DEV=VMAX3_SMIS_DEV
+VMAX3_SMIS_IP=10.247.100.7
+VMAX3_NATIVEGUID=SYMMETRIX+000196701035
+VMAX3_PORTS_A="FA-2D FA-4D"
+VMAX3_PORTS_B=""
+
 snapvx_vpool_setup()
 {
     echo "**** Creating snapvx virtual pools"
@@ -7588,14 +7595,17 @@ snapvx_tests()
     VOLUME_NAME=SnapVxTest-${RANDOM}
     SNAP_SESSION_NAME1=SnapSession-${RANDOM}
     SNAP_SESSION_NAME2=SnapSession-${RANDOM}
-    SNAP_SESSION_TGT_NAME=SnapSessionTgt-${RANDOM}
+    SNAP_SESSION_NAME3=SnapSession-${RANDOM}
+    SNAP_SESSION_TGT_NAME1=SnapSessionTgt-${RANDOM}
+    SNAP_SESSION_TGT_NAME2=SnapSessionTgt-${RANDOM}
+    SNAP_SESSION_TGT_NAME3=SnapSessionTgt-${RANDOM}
 
     # Create a VMAX3 volume to serve as the snapshot session source.
     echo "**** Creating VMAX3 source volume"
     volume create $VOLUME_NAME $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE
 
     # Create snapvx sessions with no linked targets.
-    echo "**** Creating SnapVx sessions"
+    echo "**** Creating SnapVx sessions 1 and 2 with no linked targets"
     snapshotsession create $PROJECT/$VOLUME_NAME $SNAP_SESSION_NAME1
     snapshotsession show $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
     snapshotsession create $PROJECT/$VOLUME_NAME $SNAP_SESSION_NAME2
@@ -7607,20 +7617,38 @@ snapvx_tests()
 
     # Link target to the snapvx session 1.
     echo "**** Linking target to SnapVx session 1"
-    snapshotsession link_targets $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME
+    snapshotsession link_targets $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
 
     # Relink target to the snapvx session 2.
     echo "**** Relinking target to SnapVx session 2"
-    snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME
+    snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1
 
     # Unlink target from the snapvx session and delete target volume.
     echo "**** unlinking target from SnapVx session 2"
-    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME --delete_target true
+    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1 --delete_target true
 
-    # Delete the snapvx session with no linked targets.
-    echo "**** Deleting SnapVx sessions"
+    # Delete the snapvx sessions.
+    echo "**** Deleting SnapVx sessions 1 and 2"
     snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
     snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2
+
+    # Create a snapvx session with multiple linked targets in copy mode
+    echo "**** Creating SnapVx session 3 with multiple linked targets"
+    snapshotsession create $PROJECT/$VOLUME_NAME $SNAP_SESSION_NAME3 --target_count 2 --target_name $SNAP_SESSION_TGT_NAME2 --target_copymode copy
+
+    # Link another target to the snapvx session.
+    echo "**** Linking another target to SnapVx session 3 in copy mode"
+    snapshotsession link_targets $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 1 $SNAP_SESSION_TGT_NAME3 --target_copymode copy
+
+    # Unlink target from the snapvx session and delete target volume.
+    echo "**** unlinking all targets from SnapVx session 3"
+    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-1 --delete_target true
+    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-2 --delete_target true
+    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3 --delete_target true
+
+    # Delete the snapvx session.
+    echo "**** Deleting SnapVx sessions 3"
+    snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3
 
     # Delete the snapshot session source volume.
     echo "**** Deleting the VMAX3 source volume"

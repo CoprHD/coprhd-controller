@@ -885,18 +885,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     @Asset("blockSnapshotOrConsistencyGroup")
     @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType" })
-    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String storageType, URI consistencyGroupId) {
-        if (NONE_TYPE.equals(storageType)) {
+    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String cg, URI consistencyGroupId) {
+        if (NONE_TYPE.equals(cg)) {
             debug("getting blockSnapshots (project=%s)", project);
             return getVolumeSnapshotOptionsForProject(ctx, project);
         } else {
-            if (storageType == null) {
-                error("Consistency type invalid : %s", storageType);
+            if (cg == null) {
+                error("Consistency type invalid : %s", cg);
                 return new ArrayList<AssetOption>();
             }
-            URI consistencyGroup = uri(storageType);
+            URI consistencyGroup = uri(cg);
             if (!BlockProviderUtils.isType(consistencyGroup, BLOCK_CONSISTENCY_GROUP_TYPE)) {
-                error("Consistency Group field is required for Storage Type [%s, %s]", storageType, consistencyGroupId);
+                error("Consistency Group field is required for Storage Type [%s, %s]", cg, consistencyGroupId);
                 return new ArrayList<AssetOption>();
             }
             return getConsistencyGroupSnapshots(ctx, consistencyGroup);

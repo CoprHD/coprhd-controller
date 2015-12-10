@@ -59,6 +59,7 @@ angular.module('tags').directive({
         	 
         	 if(scope.row.status.toUpperCase() == "STANDBY_PAUSED"){
 				scope.isResumeSite = true;
+				scope.isFailover = true;
              }
         	 
         	 if(scope.row.status.toUpperCase() == "ACTIVE"){

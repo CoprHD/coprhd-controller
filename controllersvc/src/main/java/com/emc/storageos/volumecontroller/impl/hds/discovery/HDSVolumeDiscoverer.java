@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.hds.discovery;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,7 +27,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -88,7 +88,7 @@ public class HDSVolumeDiscoverer extends AbstractDiscoverer {
             luList = volumeManager.getLogicalUnitsInBatch(systemObjectId, String.valueOf(startElement), String.valueOf(batchSize), "ALL");
             if (!luList.isEmpty()) {
                 processVolumesInBatch(luList, dbClient, pools, storageSystem, newUnManagedVolumeList, updateUnManagedVolumeList,
-                        allDiscoveredUnManagedVolumes, volumeMasks, partitionManager);
+                        allDiscoveredUnManagedVolumes, partitionManager);
                 // reset count when there are no volumes in between batches.
                 retryCount = 0;
             } else {
@@ -120,7 +120,7 @@ public class HDSVolumeDiscoverer extends AbstractDiscoverer {
      */
     private void processVolumesInBatch(List<LogicalUnit> luList, DbClient dbClient, HashMap<String, StoragePool> pools,
             StorageSystem storageSystem, List<UnManagedVolume> newUnManagedVolumeList, List<UnManagedVolume> updateUnManagedVolumeList,
-            Set<URI> allDiscoveredUnManagedVolumes, Map<String, Set<UnManagedExportMask>> volumeMasks, PartitionManager partitionManager) {
+            Set<URI> allDiscoveredUnManagedVolumes, PartitionManager partitionManager) {
         try {
             log.info("Processing {} volumes received from HiCommand server.", luList.size());
 
@@ -171,7 +171,7 @@ public class HDSVolumeDiscoverer extends AbstractDiscoverer {
                         Constants.DEFAULT_PARTITION_SIZE);
                 // Perform this only for exported volumes.
                 if (logicalUnit.getPath() == 1) {
-                    updateVolumeMaskInformation(unManagedVolumeNativeGuid, volumeMasks);
+                    updateVolumeMaskInformation(unManagedVolumeNativeGuid, unManagedVolume);
                 }
 
             }
@@ -190,12 +190,14 @@ public class HDSVolumeDiscoverer extends AbstractDiscoverer {
      * @param umvNativeGuid
      * @param volumeMasks
      */
-    private void updateVolumeMaskInformation(String umvNativeGuid, Map<String, Set<UnManagedExportMask>> volumeMasks) {
-        Set<UnManagedExportMask> masks = volumeMasks.get(umvNativeGuid);
-        if (null == masks) {
-            masks = new HashSet<UnManagedExportMask>();
+    private void updateVolumeMaskInformation(String umvNativeGuid,
+            UnManagedVolume unManagedVolume) {
+        Collection<String> masks = volumeMasks.get(umvNativeGuid);
+        if (null != masks && !masks.isEmpty()) {
+            StringSet maskSet = new StringSet(masks);
+            unManagedVolume.getUnmanagedExportMasks().replace(maskSet);
         }
-        volumeMasks.put(umvNativeGuid, masks);
+
     }
 
     /**

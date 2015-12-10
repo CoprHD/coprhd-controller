@@ -52,8 +52,6 @@ import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.hds.HDSConstants;
@@ -275,7 +273,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
                                 .toString()))) {
-            Map<String, Set<UnManagedExportMask>> volumeToUems = new HashMap<String, Set<UnManagedExportMask>>();
+            Map<String, Set<String>> volumeToUems = new HashMap<String, Set<String>>();
             boolean umvDiscoveryStatus = false;
 
             if (umvDiscoveryStatus && null != this.exportDiscoverer) {
@@ -288,11 +286,6 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 this.volumeDiscoverer.setVolumeMasks(volumeToUems);
                 umvDiscoveryStatus = discoverUnManagedVolumes(accessProfile);
             }
-
-            if (null != volumeToUems && !volumeToUems.isEmpty()) {
-                processUnManagedVolumesAndItsMasks(volumeToUems);
-            }
-
         } else {
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());
 
@@ -350,41 +343,6 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
             _logger.info("Discovery Ended for system {}", accessProfile.getSystemId());
         }
-    }
-
-    /**
-     * Process the UnManagedVolume & set its corresponding UnManagedExportMasks in it.
-     * 
-     * @param volumeToUems
-     */
-    private void processUnManagedVolumesAndItsMasks(Map<String, Set<UnManagedExportMask>> volumeToUems) {
-        List<UnManagedVolume> umvsToUpdate = new ArrayList<UnManagedVolume>();
-        for (Map.Entry<String, Set<UnManagedExportMask>> entry : volumeToUems.entrySet()) {
-            String unManagedVolumeNativeGuid = entry.getKey();
-            Set<UnManagedExportMask> masks = entry.getValue();
-            UnManagedVolume umv = null;
-            URIQueryResultList unManagedVolumesList = new URIQueryResultList();
-            _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeInfoNativeIdConstraint(unManagedVolumeNativeGuid),
-                    unManagedVolumesList);
-            if (unManagedVolumesList.iterator().hasNext()) {
-                umv = _dbClient.queryObject(UnManagedVolume.class, unManagedVolumesList.iterator().next());
-            }
-            if (!masks.isEmpty() && null != umv) {
-                for (UnManagedExportMask mask : masks) {
-                    umv.getUnmanagedExportMasks().add(mask.getId().toString());
-                }
-                umvsToUpdate.add(umv);
-            }
-            if (umvsToUpdate.size() > BATCH_SIZE) {
-                _partitionManager.updateAndReIndexInBatches(umvsToUpdate, BATCH_SIZE, _dbClient, UNMANAGED_VOLUMES);
-                umvsToUpdate.clear();
-            }
-        }
-        if (umvsToUpdate.size() > 0) {
-            _partitionManager.updateAndReIndexInBatches(umvsToUpdate, BATCH_SIZE, _dbClient, UNMANAGED_VOLUMES);
-            umvsToUpdate.clear();
-        }
-
     }
 
     /**

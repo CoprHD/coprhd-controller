@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
@@ -142,7 +143,7 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
             if (null != pathList && !pathList.isEmpty()) {
                 processVolumes(storageSystem, umExportMask, knownVolumeSet, pathList);
             }
-            updateZoningMap(umExportMask, matchedInitiators, matchedPorts);
+            updateZoningMap(umExportMask, matchedInitiators, matchedPorts, hsd.getObjectID(), pathList);
             updateMaskInfo(umExportMask, knownIniSet, knownIniWwnSet, knownVolumeSet, knownPortSet);
         }
 
@@ -191,14 +192,22 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
      * @param initiators
      * @param storagePorts
      */
-    private void updateZoningMap(UnManagedExportMask mask, List<Initiator> initiators, List<StoragePort> storagePorts) {
+    private void updateZoningMap(UnManagedExportMask mask, List<Initiator> initiators, List<StoragePort> storagePorts, String hsdId,
+            List<Path> pathList) {
         try {
             ZoneInfoMap zoningMap = networkController.getInitiatorsZoneInfoMap(initiators, storagePorts);
+            StringSet itlSet = new StringSet();
             for (ZoneInfo zoneInfo : zoningMap.values()) {
                 log.info("Found zone: {} for initiator {} and port {}", new Object[] { zoneInfo.getZoneName(),
                         zoneInfo.getInitiatorWwn(), zoneInfo.getPortWwn() });
+                for (Path path : pathList) {
+                    StringBuffer itl = new StringBuffer(zoneInfo.getInitiatorWwn());
+                    itl.append(HDSConstants.COLON).append(zoneInfo.getPortWwn()).append(HDSConstants.COLON).append(path.getDevNum());
+                    itlSet.add(itl.toString());
+                }
             }
             mask.getZoningMap().putAll(zoningMap);
+            mask.getDeviceDataMap().put(hsdId, itlSet);
         } catch (Exception ex) {
             log.error("Failed to get the zoning map for mask {}", mask.getMaskName());
             mask.setZoningMap(null);
@@ -258,11 +267,11 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
 
             String umvNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingVolume(storageSystem.getNativeGuid(),
                     path.getDevNum());
-            Set<UnManagedExportMask> umvMasks = volumeMasks.get(umvNativeGuid);
+            Set<String> umvMasks = volumeMasks.get(umvNativeGuid);
             if (null == umvMasks) {
-                umvMasks = new HashSet<UnManagedExportMask>();
+                umvMasks = new HashSet<String>();
             }
-            umvMasks.add(umExportMask);
+            umvMasks.add(umExportMask.getId().toString());
         }
 
     }
@@ -304,6 +313,7 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
     private UnManagedExportMask processFCInitiators(StorageSystem storageSystem, UnManagedExportMask umExportMask, HostStorageDomain hsd,
             List<WorldWideName> wwnList, List<Initiator> matchedInitiators, Set<String> knownIniSet, Set<String> knownIniWwnSet,
             List<UnManagedExportMask> newMasks, List<UnManagedExportMask> updateMasks, Set<URI> allMasks) {
+        StringSet unknownIniWwnSet = new StringSet();
         for (WorldWideName wwn : wwnList) {
             String initiatorWwn = wwn.getWwn().replaceAll(HDSConstants.DOT_OPERATOR, HDSConstants.EMPTY_STR);
             if (WWNUtility.isValidWWN(initiatorWwn)) {
@@ -327,11 +337,49 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
                 }
             } else {
                 log.info("No host in ViPR found configured for initiator {} ", initiatorWwn);
-                umExportMask.getUnmanagedInitiatorNetworkIds().add(initiatorWwn);
+                unknownIniWwnSet.add(initiatorWwn);
             }
-            allMasks.add(umExportMask.getId());
         }
+        // If the mask is processing first time then cleanup the mask.
+        // This is required during multiple rediscoveries to update the latest information.
+        if (!allMasks.contains(umExportMask.getId())) {
+            cleanupUnManagedExportMaskInfo(umExportMask);
+        }
+        umExportMask.getUnmanagedInitiatorNetworkIds().addAll(unknownIniWwnSet);
+        allMasks.add(umExportMask.getId());
         return umExportMask;
+    }
+
+    /**
+     * Clear the unmanaged ExportMask information during rediscoveries.
+     * 
+     * @param umExportMask
+     */
+    private void cleanupUnManagedExportMaskInfo(UnManagedExportMask umExportMask) {
+        if (null != umExportMask && !umExportMask.getInactive()) {
+            if (null != umExportMask.getKnownInitiatorUris()) {
+                umExportMask.getKnownInitiatorUris().clear();
+            }
+            if (null != umExportMask.getKnownInitiatorNetworkIds()) {
+                umExportMask.getKnownInitiatorNetworkIds().clear();
+            }
+            if (null != umExportMask.getKnownStoragePortUris()) {
+                umExportMask.getKnownStoragePortUris().clear();
+            }
+            if (null != umExportMask.getKnownVolumeUris()) {
+                umExportMask.getKnownVolumeUris().clear();
+            }
+            if (null != umExportMask.getUnmanagedInitiatorNetworkIds()) {
+                umExportMask.getUnmanagedInitiatorNetworkIds().clear();
+            }
+            if (null != umExportMask.getUnmanagedStoragePortNetworkIds()) {
+                umExportMask.getUnmanagedStoragePortNetworkIds().clear();
+            }
+            if (null != umExportMask.getUnmanagedVolumeUris()) {
+                umExportMask.getUnmanagedVolumeUris().clear();
+            }
+        }
+
     }
 
     private UnManagedExportMask findAnyExistingUnManagedExportMask(StorageSystem storageSystem, String initiatorWwn,

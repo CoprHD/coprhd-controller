@@ -6,8 +6,6 @@ package com.emc.storageos.xtremio.restapi;
 
 import java.net.URI;
 
-import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-
 import com.emc.storageos.services.restutil.RestClientFactory;
 import com.emc.storageos.services.restutil.RestClientItf;
 import com.sun.jersey.api.client.Client;
@@ -34,7 +32,6 @@ public class XtremIOClientFactory extends RestClientFactory {
             xioClient = new XtremIOV1Client(endpoint, username, password, client);
         }
 
-        MultiThreadedHttpConnectionManager 
         return xioClient;
     }
 

@@ -219,6 +219,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     /**
      * @return the deviceDataMap
      */
+    @Name("deviceDataMap")
     public StringSetMap getDeviceDataMap() {
         return deviceDataMap;
     }

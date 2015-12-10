@@ -493,11 +493,6 @@ public class TestCoordinator extends CoordinatorClientImpl {
     }
 
     @Override
-    public void setActiveSite(String siteId) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public void removeRuntimeState(String key) throws CoordinatorException {
         return;
     }

@@ -100,6 +100,19 @@ public class VdcConfigUtil {
 
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
         String activeSiteId = drUtil.getActiveSiteId(vdcShortId);
+        if (activeSiteId == null) {
+            List<Site> failingOverTargetSite = drUtil.listSitesInState(vdcShortId, SiteState.STANDBY_FAILING_OVER);
+            if (!failingOverTargetSite.isEmpty()) {
+                activeSiteId = failingOverTargetSite.iterator().next().getUuid();
+                log.info("Found failover target site {} of vdc {}", activeSiteId, vdcShortId);
+            } else {
+                List<Site> switchOverTargetSite = drUtil.listSitesInState(vdcShortId, SiteState.STANDBY_SWITCHING_OVER);
+                if (!switchOverTargetSite.isEmpty()) {
+                    activeSiteId = switchOverTargetSite.iterator().next().getUuid();
+                    log.info("Found switchover target site {} of vdc {}", activeSiteId, vdcShortId);
+                }
+            }
+        }
         
         Collections.sort(sites, new Comparator<Site>() {
             @Override
@@ -187,7 +200,8 @@ public class VdcConfigUtil {
             // right now we assume that SITE_IDS and SITE_IS_STANDBY only makes sense for local VDC
             // moving forward this may or may not be the case.
             vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
-            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(drUtil.isStandby()));
+            boolean isStandbySite = !drUtil.getLocalSite().getUuid().equals(activeSiteId);
+            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandbySite));
         }
     }
 

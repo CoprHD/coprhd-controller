@@ -603,12 +603,6 @@ public interface CoordinatorClient {
      * This should only be used by the add standby site API
      */
     public void addSite(String siteId) throws Exception;
-
-    /**
-     * Update the active site pointer in ZK
-     * This should only be used by the sync site API
-     */
-    public void setActiveSite(String siteId) throws Exception;
     
     /**
      * Create a Curator recipe - double barrier 

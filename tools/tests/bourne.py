@@ -135,7 +135,8 @@ URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
 
-URI_IPSEC               = '/ipsec'
+URI_IPSEC                   = '/ipsec'
+URI_IPSEC_STATE             = '/ipsec/state?state={0}'
 
 URI_VDCINFO                 =  '/object/vdcs' 
 URI_VDCINFO_GET             = URI_VDCINFO    + '/vdc' + '/{0}'
@@ -3324,6 +3325,10 @@ class Bourne:
 
     def ipsc_check(self):
         resp = self.api('GET', URI_IPSEC)
+        return resp
+
+    def ipsec_change_state(self,state):
+        resp = self.api('POST', URI_IPSEC_STATE.format(state))
         return resp
 
     #

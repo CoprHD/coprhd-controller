@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.systemservices.impl.ipsec;
 
-import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -22,7 +21,6 @@ import org.springframework.util.CollectionUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 /**
  * This class is to handle all ipsec related requests from web app.
@@ -30,6 +28,10 @@ import java.util.Map;
 public class IPsecManager {
 
     private static final Logger log = LoggerFactory.getLogger(IPsecManager.class);
+    private static final String STATUS_ENABLED = "enabled";
+    private static final String STATUS_DISABLED = "disabled";
+    private static final String STATUS_GOOD = "good";
+    private static final String STATUS_DEGRADED = "degraded";
 
     @Autowired
     IPsecConfig ipsecConfig;
@@ -50,15 +52,16 @@ public class IPsecManager {
         String vdcConfigVersion = loadVdcConfigVersionFromZK();
         status.setVersion(vdcConfigVersion);
 
-        String ipsecState = ipsecConfig.getIpsecState();
-        if (ipsecState != null && ipsecState.equals("disabled")) {
-            status.setIsEnabled(false);
-            status.setIsGood(true);
+        String ipsecStatus = ipsecConfig.getIpsecStatus();
+        if (ipsecStatus != null && ipsecStatus.equals(STATUS_DISABLED)) {
+            status.setStatus(ipsecStatus);
         } else {
-            status.setIsEnabled(true);
             List<String> disconnectedNodes = checkIPsecStatus();
-            status.setIsGood(CollectionUtils.isEmpty(disconnectedNodes));
-            if (disconnectedNodes != null) {
+
+            if (CollectionUtils.isEmpty(disconnectedNodes)) {
+                status.setStatus(STATUS_GOOD);
+            } else {
+                status.setStatus(STATUS_DEGRADED);
                 status.setDisconnectedNodes(disconnectedNodes);
             }
         }
@@ -86,24 +89,24 @@ public class IPsecManager {
     /**
      * enable/disable IPSec for the vdc
      *
-     * @param state
+     * @param status
      * @return
      */
-    public String changeIpsecState(String state) {
-        if (state != null && (state.equalsIgnoreCase("enabled") || state.equalsIgnoreCase("disabled"))) {
-            String oldState = ipsecConfig.getIpsecState();
-            if (state.equalsIgnoreCase(oldState)) {
+    public String changeIpsecStatus(String status) {
+        if (status != null && (status.equalsIgnoreCase(STATUS_ENABLED) || status.equalsIgnoreCase(STATUS_DISABLED))) {
+            String oldState = ipsecConfig.getIpsecStatus();
+            if (status.equalsIgnoreCase(oldState)) {
                 log.info("ipsec already in state: " + oldState + ", skip the operation.");
                 return oldState;
             }
-            log.info("change Ipsec State from " + oldState + " to " + state);
-            ipsecConfig.setIpsecState(state);
+            log.info("change Ipsec State from " + oldState + " to " + status);
+            ipsecConfig.setIpsecStatus(status);
         } else {
-            throw APIException.badRequests.invalidIpsecState();
+            throw APIException.badRequests.invalidIpsecStatus();
         }
         String version = updateTargetSiteInfo();
         log.info("ipsec state changed, and new config version is {}", version);
-        return ipsecConfig.getIpsecState();
+        return status;
     }
 
     private List<String> checkIPsecStatus() {

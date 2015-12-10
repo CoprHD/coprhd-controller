@@ -68,11 +68,11 @@ public class IPSecMonitor implements Runnable {
             log.info("step 3: compare the latest ipsec properties with local, to determine if sync needed");
             if (isSyncNeeded(latest)) {
                 String latestKey = latest.get(Constants.IPSEC_KEY);
-                String latestState = latest.get(Constants.IPSEC_STATE);
+                String latestStatus = latest.get(Constants.IPSEC_STATUS);
                 LocalRepository localRepository = LocalRepository.getInstance();
-                log.info("syncing latest properties to local: key=" + latestKey + ", state=" + latestState);
+                log.info("syncing latest properties to local: key=" + latestKey + ", status=" + latestStatus);
                 localRepository.syncIpsecKeyToLocal(latestKey);
-                localRepository.syncIpsecStateToLocal(latestState);
+                localRepository.syncIpsecStatusToLocal(latestStatus);
                 log.info("reloading ipsec");
                 localRepository.reconfigProperties("ipsec");
                 localRepository.reload("ipsec");
@@ -123,9 +123,9 @@ public class IPSecMonitor implements Runnable {
 
                 log.info("checking " + node + ": " + " configVersion=" + configVersion
                     + ", ipsecKey=" + props.get(Constants.IPSEC_KEY)
-                    + ", ipsecState=" + props.get(Constants.IPSEC_STATE)
+                    + ", ipsecStatus=" + props.get(Constants.IPSEC_STATUS)
                     + ", latestKey=" + latest.get(Constants.IPSEC_KEY)
-                    + ", latestState=" + latest.get(Constants.IPSEC_STATE));
+                    + ", latestStatus=" + latest.get(Constants.IPSEC_STATUS));
             }
         }
 
@@ -177,13 +177,13 @@ public class IPSecMonitor implements Runnable {
         String localIP = getLocalIPAddress();
         Map<String, String> localIpsecProp = LocalRepository.getInstance().getIpsecProperties(localIP);
         String localKey = localIpsecProp.get(IPSEC_KEY);
-        String localState = localIpsecProp.get(IPSEC_STATE);
+        String localStatus = localIpsecProp.get(IPSEC_STATUS);
         log.info("local ipsec properties: ipsecKey=" + localKey
-                + ", ipsecState=" + localState
+                + ", ipsecStatus=" + localStatus
                 + ", vdcConfigVersion=" + localIpsecProp.get(VDC_CONFIG_VERSION));
 
         boolean bKeyEqual = false;
-        boolean bStateEqual = false;
+        boolean bStatusEqual = false;
 
         if (localKey == null && props.get(IPSEC_KEY) == null) {
             bKeyEqual = true;
@@ -192,14 +192,14 @@ public class IPSecMonitor implements Runnable {
         }
         log.info("IPsec key equals or not: " + bKeyEqual);
 
-        if (localState == null && props.get(IPSEC_STATE) == null) {
-            bStateEqual = true;
-        } else if (localState != null && localState.equals(props.get(IPSEC_STATE))) {
-            bStateEqual = true;
+        if (localStatus == null && props.get(IPSEC_STATUS) == null) {
+            bStatusEqual = true;
+        } else if (localStatus != null && localStatus.equals(props.get(IPSEC_STATUS))) {
+            bStatusEqual = true;
         }
-        log.info("IPsec state equals or not: " + bStateEqual);
+        log.info("IPsec status equals or not: " + bStatusEqual);
 
-        if (bKeyEqual && bStateEqual) {
+        if (bKeyEqual && bStatusEqual) {
             return false;
         }
 

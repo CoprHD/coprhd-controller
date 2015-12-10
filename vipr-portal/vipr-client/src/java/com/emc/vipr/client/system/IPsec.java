@@ -18,7 +18,7 @@ import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
 public class IPsec {
 
     private RestClient client;
-    private static final String STATE_PARAM = "state";
+    private static final String STATUS_PARAM = "status";
 
     public IPsec(RestClient client) {
         this.client = client;
@@ -27,7 +27,7 @@ public class IPsec {
     /**
      * Rotate ipsec key for the entire system
      * <p>
-     * API Call: <tt>POST /ipsec</tt>
+     * API Call: <tt>POST /ipsec/key</tt>
      *
      * @return VdcConfigVersion
      */
@@ -43,21 +43,19 @@ public class IPsec {
      * @return the ipsec status of entire system.
      */
     public IPsecStatus checkStatus() {
-        return client.get(IPsecStatus.class, PathConstants.IPSEC_KEY_URL);
+        return client.get(IPsecStatus.class, PathConstants.IPSEC_URL);
     }
 
     /**
-     * change ipsec state
+     * change ipsec status, valid values: enabled, disabled
      * <p>
-     * API Call: <tt>PUT /ipsec/state</tt>
+     * API Call: <tt>POST /ipsec</tt>
      *
-     * valid values: enabled, disabled
-     *
-     * @return the ipsec state.
+     * @return the ipsec status.
      */
-    public String changeState(String state) {
-        UriBuilder builder = client.uriBuilder(PathConstants.IPSEC_KEY_URL);
-        addQueryParam(builder, STATE_PARAM, state);
+    public String changeStatus(String status) {
+        UriBuilder builder = client.uriBuilder(PathConstants.IPSEC_URL);
+        addQueryParam(builder, STATUS_PARAM, status);
         return client.postURI(String.class, builder.build());
     }
 }

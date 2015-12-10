@@ -302,7 +302,7 @@ public class VdcManager extends AbstractManager {
     private PropertyInfoExt loadVdcConfig() throws Exception {
         targetVdcPropInfo = new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
         targetVdcPropInfo.addProperty("ipsec_key", ipsecConfig.getPreSharedKey());
-        targetVdcPropInfo.addProperty("ipsec_state",ipsecConfig.getIpsecState());
+        targetVdcPropInfo.addProperty("ipsec_status",ipsecConfig.getIpsecStatus());
         return targetVdcPropInfo;
     }
 

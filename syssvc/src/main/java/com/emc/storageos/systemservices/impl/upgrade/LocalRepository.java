@@ -563,14 +563,14 @@ public class LocalRepository {
     /**
      * write given ipsec state to local file system.
      *
-     * @param ipsecState
+     * @param ipsecStatus
      * @throws LocalRepositoryException
      */
-    public void syncIpsecStateToLocal(String ipsecState) throws LocalRepositoryException {
+    public void syncIpsecStatusToLocal(String ipsecStatus) throws LocalRepositoryException {
         final String prefix = "syncIpsecStateToLocal(): ";
         _log.debug(prefix);
 
-        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_SYNC_STATE, ipsecState };
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_SYNC_STATUS, ipsecStatus };
         exec(prefix, cmd);
         _log.info(prefix + "Success!");
     }

@@ -17,10 +17,10 @@ SED="/usr/bin/sed"
 
 _usage() {
     set +Ex
-    echo "Usage: $0 check-connection         return IPs with NO ipsec connections"      >&2
-    echo "   or: $0 get-props  <ip>          get version and ipsec_key from given node" >&2
-    echo "   or: $0 sync-key   <ipsec-key>   write given key to vdc property file"      >&2
-    echo "   or: $0 sync-state <ipsec-state> write given state to vdc property file"    >&2
+    echo "Usage: $0 check-connection           return IPs with NO ipsec connections"       >&2
+    echo "   or: $0 get-props  <ip>            get version and ipsec_key from given node"  >&2
+    echo "   or: $0 sync-key   <ipsec-key>     write given key to vdc property file"       >&2
+    echo "   or: $0 sync-status <ipsec-status> write given status to vdc property file"    >&2
     exit 0
 }
 
@@ -175,10 +175,10 @@ _get_props() {
     local remote=${1}
     local version=$(_get_remote_prop ${remote} "vdc_config_version")
     local ipsec_key=$(_get_remote_prop ${remote} "ipsec_key")
-    local ipsec_state=$(_get_remote_prop ${remote} "ipsec_state")
+    local ipsec_status=$(_get_remote_prop ${remote} "ipsec_status")
     echo "vdc_config_version=${version}"
     echo "ipsec_key=${ipsec_key}"
-    echo "ipsec_state=${ipsec_state}"
+    echo "ipsec_status=${ipsec_status}"
 }
 
 #
@@ -203,12 +203,12 @@ _sync_ipsec_property() {
 }
 
 #
-# write given ipsec_state to local's vdcconfig.properties
-# input: new ipsec_state
+# write given ipsec_status to local's vdcconfig.properties
+# input: new ipsec_status
 #
-_sync_state() {
-    local ipsec_state=${1}
-    _sync_ipsec_property "ipsec_state" "${ipsec_state}"
+_sync_status() {
+    local ipsec_status=${1}
+    _sync_ipsec_property "ipsec_status" "${ipsec_status}"
 }
 
 #
@@ -230,7 +230,7 @@ case ${#} in
     2) case ${1} in
         get-props)         _get_props   "${2}" ;;
         sync-key)          _sync_key    "${2}" ;;
-        sync-state)        _sync_state  "${2}" ;;
+        sync-status)       _sync_status "${2}" ;;
         *)                 _usage
        esac ;;
     *) _usage

@@ -2634,5 +2634,5 @@ public interface BadRequestExceptions {
     public BadRequestException canNotCanceldbConsistencyCheck();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException invalidIpsecState();
+    public BadRequestException invalidIpsecStatus();
 }

@@ -21,8 +21,13 @@ def ipsec_check(vip):
     bourne.connect(vip)
     ipsec_status = bourne.ipsc_check()
     bourne.pretty_print_json(ipsec_status)
-    if ipsec_status['is_good'] == False:
-        raise Exception("ipsec check failed")
+    return ipsec_status["status"]
+
+def ipsec_change_status(vip, status):
+    """ a test on ipsec changing status """
+    bourne.connect(vip)
+    ipsec_status = bourne.ipsec_change_status(status)
+    print "ipsec status change to %s" % ipsec_status
 
 #----------------------------------------------------------------------
 # command-line parsing
@@ -54,5 +59,9 @@ if (cmd == "keyrotate"):
     ipsec_key_rotate(bourne_ip)
 elif (cmd == "check"):
     ipsec_check(bourne_ip)
+elif (cmd == "enable"):
+    ipsec_change_status(bourne_ip, "enabled")
+elif (cmd == "disable"):
+    ipsec_change_status(bourne_ip, "disabled")
 else:
     parser.print_help()

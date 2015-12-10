@@ -90,7 +90,7 @@ _gen_ipsec_conf() {
     #
     local start_ipsec
     if [ -f "${FIRT_BOOT_FLAG_FILE}" ] ; then 
-        if [ "${_GENCONFIG_ipsec_state}" == "disabled" ] ; then
+        if [ "${_GENCONFIG_ipsec_status}" == "disabled" ] ; then
             rm -f ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
             start_ipsec=false	
         else

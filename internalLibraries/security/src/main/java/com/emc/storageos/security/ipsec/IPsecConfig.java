@@ -33,7 +33,7 @@ public class IPsecConfig {
     private static final String IPSEC_CONFIG_KIND = "ipsec";
     private static final String IPSEC_CONFIG_ID = "ipsec";
     private static final String IPSEC_PSK_KEY = "ipsec_key";
-    private static final String IPSEC_STATE = "ipsec_state";
+    private static final String IPSEC_STATUS = "ipsec_status";
     private static final int KEY_LENGHT = 64;
 
     // Properties injected by spring
@@ -108,30 +108,31 @@ public class IPsecConfig {
     }
 
     /**
-     * get ipsec state of current vdc
+     * get ipsec status of current vdc
      *
      * @return
      * @throws Exception
      */
-    public String getIpsecState() {
+    public String getIpsecStatus() {
         try {
-            return getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATE);
+            return getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATUS);
         } catch (Exception e) {
-            throw SecurityException.fatals.failToChangeIPsecState(e.getMessage());
+            throw SecurityException.fatals.failToChangeIPsecStatus(e.getMessage());
         }
     }
 
     /**
-     * write ipsec state to ZK
+     * write ipsec status to ZK
      *
-     * @param state
+     * @param status
      * @throws Exception
      */
-    public void setIpsecState(String state) {
+    public void setIpsecStatus(String status) {
         try {
-            getCoordinatorHelper().createOrUpdateConfig(state.toLowerCase(), IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATE);
+            getCoordinatorHelper().createOrUpdateConfig(status.toLowerCase(),
+                    IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATUS);
         } catch (Exception e) {
-            throw SecurityException.fatals.failToChangeIPsecState(e.getMessage());
+            throw SecurityException.fatals.failToChangeIPsecStatus(e.getMessage());
         }
     }
 }

@@ -293,10 +293,10 @@ public interface BadRequestExceptions {
     public BadRequestException invalidACLTypeEmptyNotAllowed();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidFilePolicyScheduleValue();
+    public BadRequestException invalidFilePolicyScheduleValue(final String policyName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidFileSnapshotExpireValue();
+    public BadRequestException invalidFileSnapshotExpireValue(int expireValue);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidACLTypeMultipleNotAllowed();

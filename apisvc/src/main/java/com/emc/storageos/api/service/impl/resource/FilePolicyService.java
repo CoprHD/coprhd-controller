@@ -158,12 +158,12 @@ public class FilePolicyService extends TaggedResource {
         FilePolicy filePolicy = new FilePolicy();
         String schedule = validatePolicySchedule(param.getPolicySchedule());
         if (schedule.contains("invalid input")) {
-            throw APIException.badRequests.invalidFilePolicyScheduleValue();
+            throw APIException.badRequests.invalidFilePolicyScheduleValue(param.getPolicyName());
         }
         Long snapshotExpire = validatePolicyExpire(param.getSnapshotExpire());
         if (snapshotExpire == 0) {
             _log.error("Snapshot expire value should not less than 2 hours and more than 10 years");
-            throw APIException.badRequests.invalidFileSnapshotExpireValue();
+            throw APIException.badRequests.invalidFileSnapshotExpireValue(param.getSnapshotExpire().getExpireValue());
         }
         filePolicy.setId(URIUtil.createId(FilePolicy.class));
         filePolicy.setLabel(param.getPolicyName());
@@ -294,12 +294,12 @@ public class FilePolicyService extends TaggedResource {
         if (filePolicy != null) {
             String schedule = validatePolicySchedule(param.getPolicySchedule());
             if (schedule.contains("invalid input")) {
-                throw APIException.badRequests.invalidFilePolicyScheduleValue();
+                throw APIException.badRequests.invalidFilePolicyScheduleValue(param.getPolicyName());
             }
             Long snapshotExpire = validatePolicyExpire(param.getSnapshotExpire());
             if (snapshotExpire == 0) {
                 _log.error("Snapshot expire value should not less than 2 hours and more than 10 years");
-                throw APIException.badRequests.invalidFileSnapshotExpireValue();
+                throw APIException.badRequests.invalidFileSnapshotExpireValue(param.getSnapshotExpire().getExpireValue());
             }
             filePolicy.setLabel(param.getPolicyName());
             filePolicy.setPolicyName(param.getPolicyName());

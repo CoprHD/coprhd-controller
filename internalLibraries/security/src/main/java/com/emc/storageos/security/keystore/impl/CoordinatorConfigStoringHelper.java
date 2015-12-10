@@ -104,7 +104,7 @@ public class CoordinatorConfigStoringHelper {
                 }
                 configImpl.setConfig(ConfigKey,
                         SerializerUtils.serializeAsBase64EncodedString(objToPersist));
-                coordinator.persistServiceConfiguration(configImpl);
+                coordinator.persistServiceConfiguration(siteId, configImpl);
                 log.debug("Updated config successfully");
             }
         } finally {

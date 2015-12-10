@@ -56,6 +56,9 @@ public interface BadRequestExceptions {
     public BadRequestException cannotCreateVolumeAsConsistencyGroupHasSnapshots(String label, URI id);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotCreateVolumeAsConsistencyGroupHasMirrors(String label, URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeactivateStorageSystem();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2416,6 +2419,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException migrationCantBeCancelled(String migrationName, String status);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cancelMigrationFailed(String migrationName, String reason);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException migrationHasntStarted(String migrationId);

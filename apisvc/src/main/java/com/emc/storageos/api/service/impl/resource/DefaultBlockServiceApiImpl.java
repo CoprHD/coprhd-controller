@@ -402,7 +402,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         for (URI voluri : addVolumeURIs) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
             if (volume == null || volume.getInactive()) {
-                _log.info(String.format("the volume %s does not exist or has been deleted", voluri));
+                _log.info(String.format("The volume %s does not exist or has been deleted", voluri));
                 continue;
             }
             URI cgUri = volume.getConsistencyGroup();

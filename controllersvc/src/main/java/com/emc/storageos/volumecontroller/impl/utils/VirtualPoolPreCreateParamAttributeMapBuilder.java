@@ -13,7 +13,6 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
-import com.google.common.base.Joiner;
 
 /**
  * AttributeMapBuilder to construct map using VirtualPool attributes.

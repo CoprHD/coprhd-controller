@@ -119,7 +119,6 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Long _frRpoValue;
     // File Replication RPO type
     private String _frRpoType;
-    // RP Copy Mode
     
     // File Repilcation copies
     private StringMap _fileRemoteCopySettings;

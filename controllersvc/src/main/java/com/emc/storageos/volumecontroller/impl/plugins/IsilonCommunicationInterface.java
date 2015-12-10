@@ -923,9 +923,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             StoragePool storagePool;
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
+            
             boolean syncServiceEnabled = isilonApi.isSyncIQEnabled(storageSystem.getFirmwareVersion());
-            
-            
             //Set file replication type for Isilon storage system!!!
             if (syncServiceEnabled) {
             	StringSet supportReplicationTypes = new StringSet();

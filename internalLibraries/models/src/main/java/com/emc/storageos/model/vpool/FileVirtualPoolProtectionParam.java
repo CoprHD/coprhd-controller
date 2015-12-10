@@ -25,7 +25,7 @@ public class FileVirtualPoolProtectionParam extends VirtualPoolProtectionParam {
      * 
      * @valid none
      */
-    @XmlElement(name = "replicationParam")
+    @XmlElement(name = "replication_params")
     public FileVirtualPoolReplicationParam getReplicationParam() {
         return replicationParam;
     }

@@ -1556,7 +1556,6 @@ public class IsilonApi {
             		isSyncIqEnabled = true;
             	}
             }
-
         } catch (Exception e) {
             throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
         } finally {

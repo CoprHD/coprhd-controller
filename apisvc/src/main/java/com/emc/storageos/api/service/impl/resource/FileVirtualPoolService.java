@@ -183,6 +183,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                 allPools,
                 null,
                 null,
+                VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient),
                 _dbClient,
                 _coordinator);
         for (StoragePool pool : matchedPools) {

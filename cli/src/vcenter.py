@@ -515,6 +515,7 @@ def vcenter_create(args):
     obj = VCenter(args.ip, args.port)
 
     try:
+        validate_tenant = obj.get_tenant_uri_from_name(args.tenant)
         res = obj.vcenter_create(args.name, args.tenant, args.vcenter_ip,
                                  args.vcenter_port, args.user, passwd,
                                  args.osversion, args.usessl, args.cascade_tenancy)

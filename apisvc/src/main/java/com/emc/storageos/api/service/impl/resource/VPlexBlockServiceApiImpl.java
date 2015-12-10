@@ -989,7 +989,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class,
                     vplexRecommendation.getVirtualArray());
             createVolume = prepareVolumeForRequest(getVolumeCapacity(existingVolume), vplexProject,
-                    haVirtualArray, vpool, vplexRecommendation.getSourceStorageSystem(),
+                    haVirtualArray, requestedHaVirtualPool, vplexRecommendation.getSourceStorageSystem(),
                     vplexRecommendation.getSourceStoragePool(), vplexVolume.getLabel() + "-1",
                     ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
@@ -2275,7 +2275,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
                 }
             }
-            
+
             // Check if the volumes have been in the CG, and not ingestion case
             if (consistencyGroup.getTypes().contains(Types.LOCAL.toString()) && !cgVolumes.isEmpty()) {
                 Set<String> cgVolumesURISet = new HashSet<String>();
@@ -2285,20 +2285,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 Iterator<URI> iter = addVolumes.iterator();
                 while (iter.hasNext()) {
                     if (cgVolumesURISet.contains(iter.next().toString())) {
-                         iter.remove();
+                        iter.remove();
                     }
                 }
-                
+
                 if (addVolumes.isEmpty()) {
                     // All volumes in the addVolumes list have been in the CG. return success
                     s_logger.info("The volumes have been added to the CG");
                     Operation op = new Operation();
                     op.setResourceType(ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
                     op.ready("Volumes have been added to the consistency group");
-                    _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(), taskId, op);      
+                    _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(), taskId, op);
                     return toTask(consistencyGroup, taskId, op);
                 }
-                
+
             }
         }
 

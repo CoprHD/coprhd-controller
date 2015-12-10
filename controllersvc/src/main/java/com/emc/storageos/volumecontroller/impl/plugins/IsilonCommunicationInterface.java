@@ -57,13 +57,13 @@ import com.emc.storageos.isilon.restapi.IsilonClusterConfig;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
 import com.emc.storageos.isilon.restapi.IsilonNetworkPool;
+import com.emc.storageos.isilon.restapi.IsilonPool;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfo;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfoV2;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
-import com.emc.storageos.isilon.restapi.IsilonStoragePool;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -921,13 +921,22 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             _log.info("discoverPools for storage system {} - start", storageSystemId);
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-            StoragePool storagePool;
+
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
 
-            List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
-            for (IsilonStoragePool isilonPool : isilonStoragePools) {
+            _log.info("Isilon OneFS version: {}", storageSystem.getFirmwareVersion());
+            List<? extends IsilonPool> isilonPools = null;
+            if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, storageSystem.getFirmwareVersion()) >= 0) {
+            	_log.info("Querying for Isilon storage pools...");
+            	isilonPools = isilonApi.getStoragePools();
+            } else {
+            	_log.info("Querying for Isilon disk pools...");
+            	isilonPools = isilonApi.getDiskPools();
+            }
+            
+            for (IsilonPool isilonPool : isilonPools) {
                 // Check if this storage pool was already discovered
-                storagePool = null;
+            	StoragePool storagePool = null;
                 String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem, isilonPool.getNativeId(),
                         NativeGUIDGenerator.POOL);
@@ -943,8 +952,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     }
                 }
 
-                if (storagePool == null)
-                {
+                if (storagePool == null) {
                     // New storage pool
                     storagePool = new StoragePool();
                     storagePool.setId(URIUtil.createId(StoragePool.class));
@@ -978,9 +986,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
 
                 // scale capacity size
-                storagePool.setFreeCapacity(isilonPool.getAvailable() / BYTESCONVERTER);
-                storagePool.setTotalCapacity(isilonPool.getTotal() / BYTESCONVERTER);
-                storagePool.setSubscribedCapacity(isilonPool.getUsed() / BYTESCONVERTER);
+                storagePool.setFreeCapacity(isilonPool.getAvailableBytes() / BYTESCONVERTER);
+                storagePool.setTotalCapacity(isilonPool.getTotalBytes() / BYTESCONVERTER);
+                storagePool.setSubscribedCapacity(isilonPool.getUsedBytes() / BYTESCONVERTER);
                 if (ImplicitPoolMatcher.checkPoolPropertiesChanged(storagePool.getCompatibilityStatus(),
                         DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name())
                         || ImplicitPoolMatcher.checkPoolPropertiesChanged(storagePool.getDiscoveryStatus(), DiscoveryStatus.VISIBLE.name())) {

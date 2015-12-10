@@ -55,6 +55,7 @@ public class IPsecManager {
             status.setIsEnabled(false);
             status.setIsGood(true);
         } else {
+            status.setIsEnabled(true);
             List<String> disconnectedNodes = checkIPsecStatus();
             status.setIsGood(CollectionUtils.isEmpty(disconnectedNodes));
             if (disconnectedNodes != null) {

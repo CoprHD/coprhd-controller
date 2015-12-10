@@ -16,7 +16,8 @@ class IPsecManager(object):
 
     URI_SERVICES_BASE = ''
     URI_IPSEC = URI_SERVICES_BASE + '/ipsec'
-    
+    URI_IPSEC_STATE = URI_SERVICES_BASE + '/ipsec/state'
+
     def __init__(self, ipAddr, port):
         '''
         Constructor: takes IP address and port of the ViPR instance.
@@ -29,6 +30,13 @@ class IPsecManager(object):
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                     "POST",
                                     IPsecManager.URI_IPSEC,
+                                    None)
+        return s
+
+    def change_ipsec_state(self, state):
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                    "POST",
+                                    IPsecManager.URI_IPSEC_STATE + "?state=" + state,
                                     None)
         return s
 
@@ -69,6 +77,37 @@ def rotate_ipsec_key(args):
     except SOSError as e:
         common.format_err_msg_and_raise("rotate", "IPsec key",
                                         e.err_text, e.err_code)
+
+
+def change_ipsec_state_parser(subcommand_parsers, common_parser):
+    # add command parser
+    change_ipsec_state_parser = subcommand_parsers.add_parser('change-state',
+                    description='ViPR IPsec State Change CLI usage',
+                    parents=[common_parser],
+                    conflict_handler='resolve',
+                    help='change IPSec state to enabled or disabled')
+    mandatory_args = change_ipsec_state_parser.add_argument_group(
+            'mandatory arguments')
+    mandatory_args.add_argument('-s', '-state',
+                                metavar='<state>',
+                                dest='state',
+                                help='ipsec state, valid values: enabled or disabled',
+                                required=True)
+
+    change_ipsec_state_parser.set_defaults(func=change_ipsec_state)
+
+def change_ipsec_state(args):
+    try:
+        res = IPsecManager(args.ip, args.port).change_ipsec_state(args.state)
+        if(not res or res == ''):
+            print 'Failed to change IPsec state. Reason : ' + res
+        else:
+            print 'Successfully changed IPsec state. New IPsec state is ' + res
+
+    except SOSError as e:
+        common.format_err_msg_and_raise("change", "IPsec State",
+                                        e.err_text, e.err_code)
+
 
 def get_ipsec_status_parser(subcommand_parsers, common_parser):
     # add command parser
@@ -115,3 +154,6 @@ def ipsec_parser(parent_subparser, common_parser):
 
     # get IPsec status command parser
     get_ipsec_status_parser(subcommand_parsers, common_parser)
+
+    # change IPsec state command parser
+    change_ipsec_state_parser(subcommand_parsers, common_parser)

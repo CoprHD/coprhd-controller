@@ -59,7 +59,9 @@ public abstract class VdcOpHandler {
     private static final String LOCK_FAILOVER_REMOVE_OLD_ACTIVE="drFailoverRemoveOldActiveLock";
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
     private static final String LOCK_ADD_STANDBY="drAddStandbyLock";
-    
+
+    public static final String NTPSERVERS = "network_ntpservers";
+
     protected CoordinatorClientExt coordinator;
     protected LocalRepository localRepository;
     protected DrUtil drUtil;
@@ -182,6 +184,7 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             flushVdcConfigToLocal();
+            flushNtpConfigToLocal();
             checkDataRevision();
         }
         
@@ -235,7 +238,20 @@ public abstract class VdcOpHandler {
             } catch (Exception ex) {
                 log.warn("Step3. Internal error happens when negotiating data revision change", ex);
             }
-        }    
+        }
+
+        /**
+         * Flush NTP config to local disk, so NTP take effect after reboot
+         */
+        private void flushNtpConfigToLocal() {
+            String ntpServers = coordinator.getTargetInfo(PropertyInfoExt.class).getProperty("network_ntpservers");
+            if (ntpServers == null) {
+                return;
+            }
+            PropertyInfoExt localProps = localRepository.getOverrideProperties();
+            localProps.addProperty(NTPSERVERS, ntpServers);
+            localRepository.setOverrideProperties(localProps);
+        }
     }
 
     /**

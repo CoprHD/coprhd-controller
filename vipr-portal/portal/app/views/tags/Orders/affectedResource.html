@@ -28,3 +28,7 @@
 #{elseif resource?.type == com.emc.sa.util.ResourceType.CLUSTER}
   #{AffectedResources.cluster resource:resource, otherResources:otherResources/}
 #{/elseif}
+#{elseif resource?.type == com.emc.sa.util.ResourceType.CONSISTENCY_GROUP}
+  #{AffectedResources.blockConsistencyGroup resource:resource, otherResources:otherResources/}
+#{/elseif}
+

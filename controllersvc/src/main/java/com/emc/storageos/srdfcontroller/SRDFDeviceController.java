@@ -382,7 +382,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             waitFor = createNonCGSrdfPairStepsOnEmptyGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor, workflow);
         } else {
             log.info("RA Group {} not empty", group.getId());
-            waitFor = createNonCGSrdfPairStepsOnPopulatedGroup(sourceDescriptors, targetDescriptors, group, waitFor, workflow);
+            waitFor = createNonCGSrdfPairStepsOnPopulatedGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor,
+                    workflow);
         }
         // Generate workflow step to refresh target system after CG creation.
         if (null != system) {
@@ -906,8 +907,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                         }
 
                         if (!tgtVolumes.isEmpty() && tgtVolumes.iterator().hasNext()) {
+                            Volume tgtVolume = tgtVolumes.iterator().next();
                             Workflow.Method resumeSyncPairMethod = resumeSyncPairMethod(system.getId(),
-                                    source.getId(), target.getId());
+                                    tgtVolume.getSrdfParent().getURI(), tgtVolume.getId());
                             String resumeStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     RESUME_SRDF_MIRRORS_STEP_DESC, detachStep, system.getId(),
                                     system.getSystemType(), getClass(), resumeSyncPairMethod, null, null);
@@ -1264,6 +1266,14 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
     }
     
+    private String createNonCGSrdfPairStepsOnPopulatedGroup(List<VolumeDescriptor> sourceDescriptors,
+            List<VolumeDescriptor> targetDescriptors, RemoteDirectorGroup group, Map<URI, Volume> uriVolumeMap,
+            String waitFor, Workflow workflow) {
+        String stepId = waitFor;
+
+        return stepId;
+    }
+
     private String refreshVolumeProperties(List<VolumeDescriptor> volumeDescriptors, StorageSystem system,
             String waitFor, Workflow workflow) {
 

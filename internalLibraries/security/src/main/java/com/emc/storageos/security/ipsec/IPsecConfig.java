@@ -30,7 +30,6 @@ public class IPsecConfig {
     private static final String IPSEC_CONFIG_LOCK = "IPsecConfigLock";
     private static final String IPSEC_CONFIG_KIND = "ipsec";
     private static final String IPSEC_CONFIG_ID = "ipsec_config";
-    private static final String IPSEC_KEY_PREFIX = "key_";
     private static final String IPSEC_PSK_KEY = "ipsec_key";
     private static final int KEY_LENGHT = 64;
 
@@ -73,17 +72,6 @@ public class IPsecConfig {
      */
     public String generateKey() {
         return RandomStringUtils.random(KEY_LENGHT, true, true);
-    }
-
-    public void updateKeyVersionForNode(String ip, String version) throws Exception {
-        String key = String.format("%s%s", IPSEC_KEY_PREFIX, ip);
-        coordinatorHelper.createOrUpdateConfig(version, IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, key);
-        log.info("Updated ipsec key version {} for the node {}", version, key);
-    }
-
-    public String getKeyVersionByNode(String ip) throws Exception {
-        String key = String.format("%s%s", IPSEC_KEY_PREFIX, ip);
-        return coordinatorHelper.readConfig(IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, key);
     }
 
     private String loadDefaultIpsecKeyFromFile() throws Exception {

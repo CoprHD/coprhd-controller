@@ -61,7 +61,7 @@ public class CoordinatorConfigStoringHelper {
             String configKind, String configId, String configKey) throws Exception {
         createOrUpdateConfig(objToPersist, lockName, null, configKind, configId, configKey);
     }
-
+    
     /**
      * 
      * Creates or updates a new entry of the specified type in coordinator. If siteId
@@ -79,7 +79,6 @@ public class CoordinatorConfigStoringHelper {
      */
     public void createOrUpdateConfig(Object objToPersist, String lockName,
             String siteId, String configKInd, String configId, String ConfigKey) throws Exception {
-
         InterProcessLock lock = acquireLock(lockName);
         try {
             if (lock != null) {
@@ -103,9 +102,9 @@ public class CoordinatorConfigStoringHelper {
                     log.debug("Updating existing config");
 
                 }
-
-                configImpl.setConfig(ConfigKey, SerializerUtils.serializeAsBase64EncodedString(objToPersist));
-                coordinator.persistServiceConfiguration(siteId, configImpl);
+                configImpl.setConfig(ConfigKey,
+                        SerializerUtils.serializeAsBase64EncodedString(objToPersist));
+                coordinator.persistServiceConfiguration(configImpl);
                 log.debug("Updated config successfully");
             }
         } finally {

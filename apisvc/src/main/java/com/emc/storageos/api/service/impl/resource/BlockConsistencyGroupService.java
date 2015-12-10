@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -1173,6 +1174,16 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     }
                     if (!BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) {
                         blockServiceApiImpl.verifyRemoveVolumeFromCG(volume, cgVolumes);
+                    }
+                    // Check if the volume is assigned to an application
+                    StringSet applications = volume.getApplicationIds();
+                    if (applications != null && !applications.isEmpty()) {
+                        for (String appString : applications) {
+                            Application application = _dbClient.queryObject(Application.class, URI.create(appString));
+                            if(application != null && !application.getInactive()) {
+                                throw APIException.badRequests.removeVolumeFromCGNotAllowed(volume.getLabel(), application.getLabel());
+                            }
+                        }
                     }
                 }
                 removeVolumesList.add(volumeURI);

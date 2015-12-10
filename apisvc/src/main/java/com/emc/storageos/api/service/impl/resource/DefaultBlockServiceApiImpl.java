@@ -350,9 +350,16 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         List<URI> removeVolumesURI = null;
         BlockController controller = null;
         URI systemURI = null;
-        
+        Volume firstVolume = null;
         if (addVolumes != null && addVolumes.getVolumes() != null && !addVolumes.getVolumes().isEmpty()) {
             addVolumesNotInCG = addVolumesToApplication(addVolumes, application, taskId);
+            if (firstVolume == null) {
+                List<URI> vols = addVolumesNotInCG.getVolumes();
+                if (vols != null && !vols.isEmpty()) {
+                    URI voluri = vols.get(0);
+                    firstVolume = _dbClient.queryObject(Volume.class, voluri);
+                }
+            }
         }
 
         if (removeVolumes != null && !removeVolumes.isEmpty()) {
@@ -360,14 +367,16 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             for (Volume vol : removeVolumes) {
                 removeVolumesURI.add(vol.getId());
             }
-            Volume firstVolume = removeVolumes.get(0);
+            if (firstVolume == null) {
+                firstVolume = removeVolumes.get(0);
+            }
                
-            systemURI = firstVolume.getStorageController();
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            controller = getController(BlockController.class, system.getSystemType());
         } 
         if ((addVolumesNotInCG != null && !addVolumesNotInCG.getVolumes().isEmpty()) ||
                 (removeVolumesURI != null && !removeVolumesURI.isEmpty())){
+            systemURI = firstVolume.getStorageController();
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            controller = getController(BlockController.class, system.getSystemType());
             controller.updateApplication(systemURI, addVolumesNotInCG, removeVolumesURI, application.getId(), taskId);
         } else {
             // No need to call to controller. update the application task
@@ -393,7 +402,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         for (URI voluri : addVolumeURIs) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
             if (volume == null || volume.getInactive()) {
-                _log.info(String.format("The volume %s does not exist or has been deleted", voluri));
+                _log.info(String.format("the volume %s does not exist or has been deleted", voluri));
                 continue;
             }
             URI cgUri = volume.getConsistencyGroup();
@@ -409,23 +418,30 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 }
             } else {
                 URI addingCgURI = volumeList.getConsistencyGroup();
-                if(NullColumnValueGetter.isNullURI(cgUri)) {
-                    throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(), 
-                            "Consistency group needs specified when adding volumes not in a consistency group");
-                }
+                
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, addingCgURI);
                 if (cg == null || cg.getInactive()) {
                     throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(), 
                             String.format("The specified consistency group %s is not valid", addingCgURI.toString()));
                 }
-                // Check if all volumes not in CG are in the same storage system
+                // Check if the volume is from the same storage system as others.
                 List<URI> checkedVolumes = volumesNotInCG.getVolumes();
                 if (!checkedVolumes.isEmpty()) {
                     Volume firstVol = _dbClient.queryObject(Volume.class, checkedVolumes.get(0));
                     if (!volume.getStorageController().toString().equals(firstVol.getStorageController().toString())) {
                         throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(),
-                                "The volumes in the add volume list are not from the same storage system");
+                                "the volumes in the add volume list is not from the same storage system");
                     }
+                }
+                // Check if the volume has any replica
+                List<BlockSnapshot> snapshots = getSnapshots(volume);
+                StringSet mirrors = volume.getMirrors();
+                StringSet fullCopyIds = volume.getFullCopies();
+                if ((snapshots != null && !snapshots.isEmpty()) ||
+                        (mirrors != null && !mirrors.isEmpty()) ||
+                        (fullCopyIds != null && !fullCopyIds.isEmpty())) {
+                    throw APIException.badRequests.applicationCantBeUpdated(application.getLabel(),
+                            String.format("the volumes %s has replica. please remove all replicas from the volume", volume.getLabel()));
                 }
                 checkedVolumes.add(voluri);
                 if (volumesNotInCG.getConsistencyGroup()== null) {
@@ -438,7 +454,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         // Check if all CG volumes are adding into the application
         if(!volumesInCG.isEmpty() && !cgVolumes.containsAll(volumesInCG) || volumesInCG.size() != cgVolumes.size()) {
             throw APIException.badRequests.volumeCantBeAddedToApplication(firstVolLabel, 
-                    "Not all volumes in consistency group are in the to be added volume list");
+                    "not all volumes in consistency group are in the add volume list");
         }
         
         for (URI volumeUri : volumesInCG) {

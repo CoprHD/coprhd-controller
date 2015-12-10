@@ -4716,7 +4716,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         List<URI> cgs = new ArrayList<URI>();
         TaskCompleter completer = null;
         String waitFor = null;
-        List<URI> volumesList = null;
+        List<URI> volumesList = new ArrayList<URI>();
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
@@ -4761,10 +4761,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
                 _log.info("Creating workflows for adding volumes to CG and application");
+                List<URI> addVolumesList = addVolList.getVolumes();
+                volumesList.addAll(addVolumesList);
+                URI voluri = addVolumesList.get(0);
+                Volume vol = _dbClient.queryObject(Volume.class, voluri);
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
+                
                 URI cguri = addVolList.getConsistencyGroup();
                 cgs.add(cguri);
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
-                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, cg.getStorageController());
+                
                 // check if cg is created, if not create it
                 if (!cg.created()) {
                     _log.info("Consistency group not created. Creating it");
@@ -4775,8 +4781,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             createConsistencyGroupMethod(storage, cguri),
                             rollbackMethodNullMethod(), null);
                 }
-                List<URI> addVolumesList = addVolList.getVolumes();
-                volumesList.addAll(addVolumesList);
+                
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Adding volumes to consistency group %s", cguri),
                         waitFor, storage, storageSystem.getSystemType(),
@@ -4844,7 +4849,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public void addApplicationToVolume(List<URI>volumes, URI application, String opId) {
         for (URI voluri : volumes) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
-            volume.getApplicationIds().add(application.toString());
+            StringSet applications = volume.getApplicationIds();
+            if (applications == null) {
+                applications = new StringSet();
+            }
+            applications.add(application.toString());
+            volume.setApplicationIds(applications);
             _dbClient.updateObject(volume);
         }
         WorkflowStepCompleter.stepSucceded(opId);

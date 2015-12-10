@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -5691,10 +5692,27 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         workflow, waitFor, volumeDescriptors, opId);
             }
 
+            // Set the project and tenant to those of an underlying volume.
+            Volume firstVolume = volumeMap.values().iterator().next();
+            URI projectURI = firstVolume.getProject().getURI();
+            URI tenantURI = firstVolume.getTenant().getURI();
+
+            Project project = _dbClient.queryObject(Project.class, projectURI);
             // Now we need to do the necessary zoning and export steps to ensure
             // the VPlex can see these new backend volumes.
-            createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
-                    volumeMap, vplexSystemProject, vplexSystemTenant, waitFor);
+            if (!project.checkInternalFlags(Flag.INTERNAL_OBJECT) && vplexSystemProject != null && vplexSystemTenant != null) {
+                // If project is not set as an INTERAL_OBJECT then this is the case
+                // where native volume is moved into VPLEX.
+                // vplexSystemProject and vplexSystemTenant are passed in this case
+                // and we need to use that else backend export group gets visible
+                // in UI as the native volume project at this point is not a VPLEX
+                // project.
+                createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
+                        volumeMap, vplexSystemProject, vplexSystemTenant, waitFor);
+            } else {
+                createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
+                        volumeMap, projectURI, tenantURI, waitFor);
+            }
 
             // Now make a Step to create the VPlex Virtual volumes.
             // This will be done from this controller.

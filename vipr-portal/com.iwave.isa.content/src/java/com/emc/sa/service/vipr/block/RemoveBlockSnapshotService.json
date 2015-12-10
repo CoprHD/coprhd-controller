@@ -12,6 +12,11 @@
       lockable:true,
       initialValue:"volume"
     },
+    
+    type: {
+      type: "assetType.vipr.blockSnapshotType",
+      lockable: true
+    },
 
     consistencyGroup:{
       type:"assetType.vipr.consistencyGroupByProjectAndType"

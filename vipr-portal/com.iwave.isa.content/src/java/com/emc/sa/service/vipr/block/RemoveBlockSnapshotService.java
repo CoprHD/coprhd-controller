@@ -7,15 +7,18 @@ package com.emc.sa.service.vipr.block;
 import static com.emc.sa.service.ServiceParams.CONSISTENCY_GROUP;
 import static com.emc.sa.service.ServiceParams.SNAPSHOTS;
 import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
+import static com.emc.sa.service.ServiceParams.TYPE;
 
 import java.net.URI;
 import java.util.List;
 
+import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshotSession;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.vipr.client.Tasks;
 
@@ -24,6 +27,9 @@ public class RemoveBlockSnapshotService extends ViPRService {
 
     @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;
+    
+    @Param(value = TYPE, required = true)
+    protected String type;
 
     @Param(value = CONSISTENCY_GROUP, required = false)
     protected URI consistencyGroupId;
@@ -46,7 +52,11 @@ public class RemoveBlockSnapshotService extends ViPRService {
         for (String snapshotId : snapshotIds) {
             Tasks<? extends DataObjectRestRep> tasks;
             if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-                tasks = execute(new DeactivateBlockSnapshot(snapshotId));
+                if (type.equals(BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE)) {
+                    tasks = execute(new DeactivateBlockSnapshotSession(snapshotId));
+                } else {
+                    tasks = execute(new DeactivateBlockSnapshot(snapshotId));
+                }
             } else {
                 tasks = ConsistencyUtils.removeSnapshot(consistencyGroupId, uri(snapshotId));
             }

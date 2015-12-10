@@ -6,8 +6,10 @@ package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.READ_ONLY;
+import static com.emc.sa.service.ServiceParams.SNAPSHOTS;
 import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.TYPE;
+import static com.emc.sa.service.ServiceParams.VOLUME;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_NAME;
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_COUNT;
@@ -15,6 +17,8 @@ import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_COUNT;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.sa.asset.providers.BlockProvider;
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
@@ -36,16 +40,16 @@ public class CreateBlockSnapshotService extends ViPRService {
     @Param(NAME)
     protected String nameParam;
 
-    @Param(value = TYPE, required = false)
+    @Param(value = TYPE, required = true)
     protected String type;
 
     @Param(value = READ_ONLY, required = false)
     protected Boolean readOnly;
     
-    @Param(LINKED_SNAPSHOT_NAME)
+    @Param(value = LINKED_SNAPSHOT_NAME, required = false)
     public String linkedSnapshotName;
     
-    @Param(LINKED_SNAPSHOT_COUNT)
+    @Param(value = LINKED_SNAPSHOT_COUNT, required = false)
     public Integer linkedSnapshotCount;
 
     private List<BlockObjectRestRep> volumes;
@@ -55,6 +59,15 @@ public class CreateBlockSnapshotService extends ViPRService {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             volumes = new ArrayList<>();
             volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
+            // If trying to create a Snapshot Session...if the optional linkedSnapshotName 
+            // is populated, ensure linkedSnapshotCount > 0.
+            if (type.equals(BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE)) {               
+                if (linkedSnapshotName != null && !linkedSnapshotName.isEmpty()) {
+                    if (linkedSnapshotCount == null || linkedSnapshotCount.intValue() <= 0) {
+                        ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCount.precheck", new Object[] {}, new Object[] {});
+                    }
+                }
+            }
         }
     }
 
@@ -63,7 +76,7 @@ public class CreateBlockSnapshotService extends ViPRService {
         Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {
-                if (type.equals("session")) {
+                if (type.equals(BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE)) {
                     tasks = execute(new CreateBlockSnapshotSession(volume.getId(), nameParam, 
                                                                     linkedSnapshotName, linkedSnapshotCount, "nocopy"));
                 } else {

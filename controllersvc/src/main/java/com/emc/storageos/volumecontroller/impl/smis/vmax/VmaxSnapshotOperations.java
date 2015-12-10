@@ -1395,7 +1395,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIs.get(0));
             URI sourceObjURI = snapSession.getParent().getURI();
-            BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceObjURI);
+            Volume sourceObj = _dbClient.queryObject(Volume.class, sourceObjURI);
+
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, sourceObj.getTenant().getURI());
+            String tenantName = tenant.getLabel();
+
+            final String label = _nameGenerator.generate(tenantName, snapSession.getLabel(),
+                    snapSessionURIs.get(0).toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
 
             String groupName = _helper.getConsistencyGroupName(sourceObj, system);
             CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(system, groupName);
@@ -1403,10 +1409,9 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             try {
                 CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                CIMArgument[] inArgs = null;
                 CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getCreateSynchronizationAspectForGroupInput(groupPath, false, groupName, new Integer(
-                        SmisConstants.MODE_SYNCHRONOUS));
+                CIMArgument[] inArgs = _helper.getCreateSynchronizationAspectForGroupInput(groupPath, false, label,
+                        new Integer(SmisConstants.MODE_SYNCHRONOUS));
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                 ControllerServiceImpl.enqueueJob(new QueueJob(

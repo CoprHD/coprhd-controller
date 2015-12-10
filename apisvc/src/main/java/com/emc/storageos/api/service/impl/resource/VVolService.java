@@ -2,6 +2,10 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.VasaObjectMapper.toVVol;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.List;
 
@@ -13,18 +17,16 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.VVol;
 import com.emc.storageos.model.vasa.VVolBulkResponse;
 import com.emc.storageos.model.vasa.VVolCreateRequestParam;
-import com.emc.storageos.model.vasa.VVolRequestParam;
+import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.security.authorization.ACL;
 
 
 @Path("/vasa/vvol")
@@ -36,12 +38,14 @@ public class VVolService extends AbstractVasaService{
     private static final Logger _log = LoggerFactory.getLogger(VVolService.class);
     
     @POST
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public Response createVVol(VVolCreateRequestParam param){
-        String soapRequest = param.getCreate_vvol();
-        _log.info("************ SOAP Request : " + soapRequest + " **********************");
+    public Response createVVol(InputStream input){
+        
+        String result = getStringFromInputStream(input);
+        
+        _log.info("************ SOAP Request : " + result +  " **********************");
         return Response.status(201).build();
         
     }
@@ -61,5 +65,34 @@ public class VVolService extends AbstractVasaService{
         }
         return vVolBulkResponse;
         
+    }
+    
+    private static String getStringFromInputStream(InputStream is) {
+
+        BufferedReader br = null;
+        StringBuilder sb = new StringBuilder();
+
+        String line;
+        try {
+
+            br = new BufferedReader(new InputStreamReader(is));
+            while ((line = br.readLine()) != null) {
+                sb.append(line);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return sb.toString();
+
     }
 }

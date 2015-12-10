@@ -29,7 +29,7 @@ public class IPsecConfig {
 
     private static final String IPSEC_CONFIG_LOCK = "IPsecConfigLock";
     private static final String IPSEC_CONFIG_KIND = "ipsec";
-    private static final String IPSEC_CONFIG_ID = "ipsec";
+    private static final String IPSEC_CONFIG_ID = "ipsec_config";
     private static final String IPSEC_PSK_KEY = "ipsec_key";
     private static final int KEY_LENGHT = 64;
 
@@ -45,12 +45,16 @@ public class IPsecConfig {
      * @throws Exception
      */
     public String getPreSharedKey() throws Exception {
-        String preSharedKey = getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
+        String preSharedKey = getPreSharedKeyFromZK();
         if (StringUtil.isBlank(preSharedKey)) {
             log.info("No pre shared key in zk, loading from file ...");
             preSharedKey = loadDefaultIpsecKeyFromFile();
         }
         return preSharedKey;
+    }
+
+    public String getPreSharedKeyFromZK() throws Exception {
+        return getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
     }
 
     /**
@@ -69,7 +73,6 @@ public class IPsecConfig {
     public String generateKey() {
         return RandomStringUtils.random(KEY_LENGHT, true, true);
     }
-
 
     private String loadDefaultIpsecKeyFromFile() throws Exception {
         BufferedReader in = new BufferedReader(new FileReader(new File(defaultPskFile)));

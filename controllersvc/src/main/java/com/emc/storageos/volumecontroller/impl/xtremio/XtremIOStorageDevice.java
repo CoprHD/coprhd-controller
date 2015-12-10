@@ -152,10 +152,14 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                         _log.info("Retrying volume creation with label {}", tempLabel);
                     }
 
-                    // If the volume is a protected Vplex backend volume the capacity has already been
+                    // If the volume is a recoverpoint protected volume, the capacity has already been
                     // adjusted in the RPBlockServiceApiImpl class therefore there is no need to adjust it here.
                     // If it is not, add 1 MB extra to make up the missing bytes due to divide by 1024
-                    int amountToAdjustCapacity = Volume.checkForProtectedVplexBackendVolume(dbClient, volume) ? 0 : 1;
+                    int amountToAdjustCapacity = 1;
+                    if (Volume.checkForProtectedVplexBackendVolume(dbClient, volume) || volume.checkForRp()) {
+                    	amountToAdjustCapacity = 0;
+                    }
+                    
                     Long capacityInMB = new Long(volume.getCapacity() / (1024 * 1024) + amountToAdjustCapacity);
                     String capacityInMBStr = String.valueOf(capacityInMB).concat("m");
                     _log.info("Sending create volume request with name: {}, size: {}",
@@ -271,7 +275,10 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 try {
                     if (null != XtremIOProvUtils.isVolumeAvailableInArray(client, volume.getLabel(), clusterName)) {
                         // If the volume is regular volume & in CG
-                        if (client.isVersion2() && volume.getConsistencyGroup() != null && !volume.checkForRp()) {
+                        // i.e. it's not RP or a backend volume for a RP+VPLEX Target or Journal
+                        if (client.isVersion2() && volume.getConsistencyGroup() != null && !volume.checkForRp()
+                                && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
+                                        PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
                             BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
                                     volume.getConsistencyGroup());
                             if (null != XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroupObj.getLabel(), clusterName)) {

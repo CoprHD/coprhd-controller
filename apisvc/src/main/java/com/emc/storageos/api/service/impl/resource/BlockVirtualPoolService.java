@@ -837,7 +837,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                                     : virtualPool.getId().toString());
                         }
 
-                        if (NullColumnValueGetter.isNotNullValue(virtualPool.getHighAvailability())) {
+                        if (NullColumnValueGetter.isNotNullValue(virtualPool.getHighAvailability())
+                                && (virtualPool.getMetroPoint() != null)
+                                && virtualPool.getMetroPoint()) {
                             virtualPool.setStandbyJournalVarray(
                                     !NullColumnValueGetter.isNullURI(sourcePolicy.getStandbyJournalVarray()) ? sourcePolicy
                                             .getStandbyJournalVarray().toString()
@@ -1496,20 +1498,17 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                         } else {
                             vpool.setJournalVpool(vpool.getId().toString());
                         }
-                    } // else {
-                      // vpool.setJournalVpool(NullColumnValueGetter.getNullStr());
-                      // }
+                    }
 
-                    if (param.getHighAvailability() != null) {
+                    if (param.getHighAvailability() != null && param.getHighAvailability().getMetroPoint() != null
+                            && param.getHighAvailability().getMetroPoint()) {
                         if (!NullColumnValueGetter.isNullURI(sourcePolicy.getStandbyJournalVarray())) {
                             vpool.setStandbyJournalVarray(sourcePolicy.getStandbyJournalVarray().toString());
 
                             if (!NullColumnValueGetter.isNullURI(sourcePolicy.getStandbyJournalVpool())) {
                                 vpool.setStandbyJournalVpool(sourcePolicy.getStandbyJournalVpool().toString());
                             }
-                        } // else {
-                          // vpool.setStandbyJournalVpool(NullColumnValueGetter.getNullStr());
-                          // }
+                        }
                     }
                 }
 

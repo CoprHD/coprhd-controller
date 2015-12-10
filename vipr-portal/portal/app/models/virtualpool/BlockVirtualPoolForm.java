@@ -290,15 +290,23 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
                     rpRemoteCopyMode = sourcePolicy.getRemoteCopyMode();
                     rpRpoValue = sourcePolicy.getRpoValue();
                     rpRpoType = sourcePolicy.getRpoType();
-
-                    if (protectHASite != null && protectHASite) {
+                    if (protectHASite != null && protectSourceSite != null && protectHASite && protectSourceSite) {
+                        // Backend will take care of swapping
+                        // if(activeSite.equalsIgnoreCase(HighAvailability.VPLEX_SOURCE)){
+                        sourceJournalVArray = asString(sourcePolicy.getJournalVarray());
+                        sourceJournalVPool = asString(sourcePolicy.getJournalVpool());
                         haJournalVArray = asString(sourcePolicy.getStandbyJournalVarray());
                         haJournalVPool = asString(sourcePolicy.getStandbyJournalVpool());
                     }
-
-                    if (protectSourceSite != null && protectSourceSite) {
-                        sourceJournalVArray = asString(sourcePolicy.getJournalVarray());
-                        sourceJournalVPool = asString(sourcePolicy.getJournalVpool());
+                    else {
+                        if (protectHASite != null && protectHASite) {
+                            haJournalVArray = asString(sourcePolicy.getJournalVarray());
+                            haJournalVPool = asString(sourcePolicy.getJournalVpool());
+                        }
+                        else if (protectSourceSite != null && protectSourceSite) {
+                            sourceJournalVArray = asString(sourcePolicy.getJournalVarray());
+                            sourceJournalVPool = asString(sourcePolicy.getJournalVpool());
+                        }
                     }
                 }
 
@@ -409,24 +417,18 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             URI virtualArrayId = uri(haVirtualArray);
             URI virtualPoolId = uri(haVirtualPool);
             boolean activeProtectionAtHASite = BooleanUtils.isTrue(protectHASite);
-            boolean activeProtectionAtSourceSite = BooleanUtils.isTrue(protectSourceSite);
             boolean metroPoint = false;
             if (BooleanUtils.isTrue(protectSourceSite) && BooleanUtils.isTrue(protectHASite)) {
                 metroPoint = true;
                 activeProtectionAtHASite = StringUtils.equalsIgnoreCase(activeSite, HighAvailability.VPLEX_HA);
                 builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
                 builder.setStandByJournalVArrayVpool(uri(haJournalVArray), uri(haJournalVPool));
-            } else {
-                if (activeProtectionAtSourceSite) {
-                    builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
-                } else {
-                    builder.setJournalVarrayAndVpool(null, null);
-                }
-
+            }
+            else {
                 if (activeProtectionAtHASite) {
-                    builder.setStandByJournalVArrayVpool(uri(haJournalVArray), uri(haJournalVPool));
+                    builder.setJournalVarrayAndVpool(uri(haJournalVArray), uri(haJournalVPool));
                 } else {
-                    builder.setStandByJournalVArrayVpool(null, null);
+                    builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
                 }
             }
             builder.setHighAvailability(highAvailability, enableAutoCrossConnExport, virtualArrayId, virtualPoolId,
@@ -486,7 +488,6 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             }
 
             if (HighAvailability.isHighAvailability(highAvailability)) {
-                boolean activeProtectionAtSourceSite = BooleanUtils.isTrue(protectSourceSite);
                 boolean activeProtectionAtHASite = BooleanUtils.isTrue(protectHASite);
                 boolean metroPoint = false;
                 if (BooleanUtils.isTrue(protectSourceSite) && BooleanUtils.isTrue(protectHASite)) {
@@ -495,16 +496,10 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
                     builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
                     builder.setStandByJournalVArrayVpool(uri(haJournalVArray), uri(haJournalVPool));
                 } else {
-                    if (activeProtectionAtSourceSite) {
-                        builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
-                    } else {
-                        builder.setJournalVarrayAndVpool(null, null);
-                    }
-
                     if (activeProtectionAtHASite) {
-                        builder.setStandByJournalVArrayVpool(uri(haJournalVArray), uri(haJournalVPool));
+                        builder.setJournalVarrayAndVpool(uri(haJournalVArray), uri(haJournalVPool));
                     } else {
-                        builder.setStandByJournalVArrayVpool(null, null);
+                        builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
                     }
                 }
                 builder.setHighAvailability(highAvailability, enableAutoCrossConnExport, uri(haVirtualArray), uri(haVirtualPool),

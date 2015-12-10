@@ -15,10 +15,13 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 /**
  * Task completer for update application volumes
@@ -28,12 +31,14 @@ public class ApplicationTaskCompleter extends TaskCompleter{
 
     private static final long serialVersionUID = -9188670003331949130L;
     private static final Logger log = LoggerFactory.getLogger(ApplicationTaskCompleter.class);
-    private List<URI> volumes;
+    private List<URI> addVolumes;
+    private List<URI> removeVolumes;
     private List<URI> consistencyGroups;
     
-    public ApplicationTaskCompleter(URI applicationId, List<URI> volumes, List<URI> consistencyGroups, String opId) {
+    public ApplicationTaskCompleter(URI applicationId, List<URI> addVolumes, List<URI>removeVols, List<URI> consistencyGroups, String opId) {
         super(Application.class, applicationId, opId);
-        this.volumes = volumes; 
+        this.addVolumes = addVolumes;
+        this.removeVolumes = removeVols;
         this.consistencyGroups = consistencyGroups;
     }
     
@@ -43,13 +48,24 @@ public class ApplicationTaskCompleter extends TaskCompleter{
         log.info("START ApplicationCompleter complete");
         super.setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
-        for (URI voluri : volumes) {
+        for (URI voluri : addVolumes) {
             switch (status) {
                 case error:
                     setErrorOnDataObject(dbClient, Volume.class, voluri, coded);
                     break;
                 default:
                     setReadyOnDataObject(dbClient, Volume.class, voluri);
+                    addApplicationToVolume(voluri, dbClient);
+            }
+        }
+        for (URI voluri : removeVolumes) {
+            switch (status) {
+                case error:
+                    setErrorOnDataObject(dbClient, Volume.class, voluri, coded);
+                    break;
+                default:
+                    setReadyOnDataObject(dbClient, Volume.class, voluri);
+                    removeApplicationFromVolume(voluri, dbClient);
             }
         }
         if (consistencyGroups != null && !consistencyGroups.isEmpty()) {
@@ -64,5 +80,37 @@ public class ApplicationTaskCompleter extends TaskCompleter{
             }
         }
         log.info("END ApplicationCompleter complete");
+    }
+    
+    /**
+     * Add the application to the volume applicationIds attribute
+     * @param voluri The volumes that will be updated
+     * @param dbClient
+     */
+    private void removeApplicationFromVolume(URI voluri, DbClient dbClient) {
+        Volume volume = dbClient.queryObject(Volume.class, voluri);
+        String appId = getId().toString();
+        StringSet appIds = volume.getApplicationIds();
+        if(appIds != null) {
+            appIds.remove(appId);
+        }
+        dbClient.updateObject(volume);
+    }
+    
+    /**
+     * Add the application to the volume applicationIds attribute
+     * @param voluri The volumes that will be updated
+     * @param dbClient
+     */
+    public void addApplicationToVolume(URI voluri, DbClient dbClient) {
+        Volume volume = dbClient.queryObject(Volume.class, voluri);
+        StringSet applications = volume.getApplicationIds();
+        if (applications == null) {
+            applications = new StringSet();
+        }
+        applications.add(getId().toString());
+        volume.setApplicationIds(applications);
+        dbClient.updateObject(volume);
+        
     }
 }

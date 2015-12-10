@@ -417,6 +417,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                     firstVolLabel = volume.getLabel();
                 }
             } else {
+                // The volume is not in CG
                 URI addingCgURI = volumeList.getConsistencyGroup();
                 
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, addingCgURI);

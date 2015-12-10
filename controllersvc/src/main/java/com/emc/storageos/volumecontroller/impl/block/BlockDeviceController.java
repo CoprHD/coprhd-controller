@@ -4716,7 +4716,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         List<URI> cgs = new ArrayList<URI>();
         TaskCompleter completer = null;
         String waitFor = null;
-        List<URI> volumesList = new ArrayList<URI>();
+        List<URI> addVolumesList = addVolList.getVolumes();
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
@@ -4724,7 +4724,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
 
             if (removeVolumeList!= null && !removeVolumeList.isEmpty()) {
-                volumesList.addAll(removeVolumeList);
                 Map<URI, List<URI>> removeVolsMap = new HashMap<URI, List<URI>>();
                 for (URI voluri : removeVolumeList) {
                     Volume vol = _dbClient.queryObject(Volume.class, voluri);
@@ -4753,16 +4752,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             removeFromConsistencyGroupMethod(storageUri, cguri, removeVolumeList),
                             addToConsistencyGroupMethod(storage, cguri, removeVolumeList), null);
                 }
-                // Update volume applicationIds attribute
-                waitFor = workflow.createStep(UPDATE_VOLUMES_STEP_GROUP,
-                        "update volume for application", REMOVE_VOLUMES_FROM_CG_STEP_GROUP, storage,
-                        system.getSystemType(), getClass(), 
-                        removeApplicationFromVolumeMethod(removeVolumeList, application), null, null);
             }
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
                 _log.info("Creating workflows for adding volumes to CG and application");
-                List<URI> addVolumesList = addVolList.getVolumes();
-                volumesList.addAll(addVolumesList);
                 URI voluri = addVolumesList.get(0);
                 Volume vol = _dbClient.queryObject(Volume.class, voluri);
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
@@ -4791,14 +4783,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     
                 // call ReplicaDeviceController
                 waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, cguri, addVolumesList, opId);
-                // Update volume applicationIds attribute
-                workflow.createStep(UPDATE_VOLUMES_STEP_GROUP,
-                    "update volume for application", waitFor, storage,
-                    system.getSystemType(), getClass(), 
-                    addApplicationToVolumeMethod(addVolumesList, application), null, null);
                 
             }
-            completer = new ApplicationTaskCompleter(application, volumesList, cgs, opId);
+            completer = new ApplicationTaskCompleter(application, addVolumesList, removeVolumeList, cgs, opId);
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);
             String successMessage = String.format(
@@ -4812,53 +4799,5 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
         
     }
-    
-    public Workflow.Method removeApplicationFromVolumeMethod(List<URI> volumes, URI application) {
-        return new Workflow.Method("removeApplicationFromVolume", volumes, application);
-    } 
-    
-    /**
-     * Remove the application from the volume applicationIds attribute
-     * @param volumes The volumes that will be updated
-     * @param application The application URI
-     * @param opId
-     */
-    public void removeApplicationFromVolume(List<URI>volumes, URI application, String opId) {
-        for (URI voluri : volumes) {
-            Volume volume = _dbClient.queryObject(Volume.class, voluri);
-            String appId = application.toString();
-            StringSet appIds = volume.getApplicationIds();
-            if(appIds != null) {
-                appIds.remove(appId);
-            }
-            _dbClient.updateObject(volume);
-        }
-        WorkflowStepCompleter.stepSucceded(opId);
-    }
-    
-    public Workflow.Method addApplicationToVolumeMethod(List<URI> volumes, URI application) {
-        return new Workflow.Method("addApplicationToVolume", volumes, application);
-    } 
-    
-    /**
-     * Add the application to the volume applicationIds attribute
-     * @param volumes The volumes that will be updated
-     * @param application The application URI
-     * @param opId
-     */
-    public void addApplicationToVolume(List<URI>volumes, URI application, String opId) {
-        for (URI voluri : volumes) {
-            Volume volume = _dbClient.queryObject(Volume.class, voluri);
-            StringSet applications = volume.getApplicationIds();
-            if (applications == null) {
-                applications = new StringSet();
-            }
-            applications.add(application.toString());
-            volume.setApplicationIds(applications);
-            _dbClient.updateObject(volume);
-        }
-        WorkflowStepCompleter.stepSucceded(opId);
-    }
-    
     
 }

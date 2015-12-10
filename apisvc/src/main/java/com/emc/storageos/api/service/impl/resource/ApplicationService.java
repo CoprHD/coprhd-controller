@@ -276,9 +276,7 @@ public class ApplicationService extends TaskResourceService {
 
         if (param.hasVolumesToAdd()) {
             addVols = validateAddVolumes(param, application, impactedCGs);
-            if (firstVol == null) {
-                firstVol = addVols.get(0);
-            }
+            firstVol = addVols.get(0);
         }
         if (param.hasVolumesToRemove()) {
             List<URI> removeVolList = param.getRemoveVolumesList().getVolumes();

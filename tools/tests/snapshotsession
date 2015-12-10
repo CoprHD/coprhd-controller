@@ -11,7 +11,7 @@ import time
 from bourne import Bourne
 
 #----------------------------------------------------------------------
-# snapshot session cli functions
+# snapshot session functions
 #----------------------------------------------------------------------
 
 # Create snapshot session.

@@ -78,5 +78,6 @@ public interface BackupConstants {
     public static final String STORAGEOS_USER = "storageos";
     public static final String STORAGEOS_GROUP = "storageos";
 
+    public static final String DB_SYSTEM_TABLE_FOLDER = "system";
     public static final File[] EMPTY_ARRAY = {};
 }

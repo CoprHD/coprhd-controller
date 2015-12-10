@@ -15,6 +15,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -117,17 +119,25 @@ public class RestoreHandler {
     public void replace(final boolean geoRestoreFromScratch) throws IOException {
         String backupName = backupArchive.getName().substring(0,
                 backupArchive.getName().lastIndexOf('.'));
+
         // Check reinit flag for multi vdc env
         checkReinit(backupName, geoRestoreFromScratch);
-        final File tmpDir = new File(viprDataDir.getParentFile(), backupName);
-        log.debug("Temporary backup folder: {}", tmpDir.getAbsolutePath());
+
+        // Replace data base with backup files
+        File tmpBackupDataDir = new File(viprDataDir.getParentFile(), backupName);
+        log.debug("Temporary backup folder: {}", tmpBackupDataDir.getAbsolutePath());
         try {
             ZipUtil.unpack(backupArchive, viprDataDir.getParentFile());
-            tmpDir.renameTo(viprDataDir);
-            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+
+            File backupSystemTableDir = new File (tmpBackupDataDir, BackupConstants.DB_SYSTEM_TABLE_FOLDER);
+            File systemTableDir = new File(viprDataDir.getParentFile(), BackupConstants.DB_SYSTEM_TABLE_FOLDER);
+            Files.move(backupSystemTableDir.toPath(), systemTableDir.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+            tmpBackupDataDir.renameTo(viprDataDir);
+            chown(viprDataDir.getParentFile(), BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
         } finally {
-            if (tmpDir.exists()) {
-                FileUtils.deleteQuietly(tmpDir);
+            if (tmpBackupDataDir.exists()) {
+                FileUtils.deleteQuietly(tmpBackupDataDir);
             }
         }
     }

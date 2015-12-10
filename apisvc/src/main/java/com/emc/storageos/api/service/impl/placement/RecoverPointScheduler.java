@@ -2069,7 +2069,8 @@ public class RecoverPointScheduler implements Scheduler {
         if (!NullColumnValueGetter.isNullURI(sourceVolume.getSecondaryRpJournalVolume())) {
             Volume standbyJournal = dbClient.queryObject(Volume.class, sourceVolume.getSecondaryRpJournalVolume());
             RPRecommendation standbyJournalRecommendation = new RPRecommendation();
-            VirtualPool standbyJournalVpool = vpool.getStandbyJournalVpool() != null ? dbClient.queryObject(VirtualPool.class, URI.create(vpool.getStandbyJournalVpool())) : VirtualPool.getHAVPool(vpool, dbClient);
+            VirtualPool haVpool = (null != VirtualPool.getHAVPool(vpool, dbClient)) ? VirtualPool.getHAVPool(vpool, dbClient) : vpool;  
+            VirtualPool standbyJournalVpool = vpool.getStandbyJournalVpool() != null ? dbClient.queryObject(VirtualPool.class, URI.create(vpool.getStandbyJournalVpool())) : haVpool;
             standbyJournalRecommendation.setSourceStorageSystem(standbyJournal.getStorageController());
             standbyJournalRecommendation.setSourceStoragePool(standbyJournal.getPool());
             standbyJournalRecommendation.setVirtualArray(standbyJournal.getVirtualArray());
@@ -2136,7 +2137,8 @@ public class RecoverPointScheduler implements Scheduler {
                     VPlexRecommendation haVirtualRecommendation = new VPlexRecommendation();
                     haVirtualRecommendation.setVPlexStorageSystem(sourceVolume.getStorageController());
                     haVirtualRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
-                    haVirtualRecommendation.setVirtualPool(VirtualPool.getHAVPool(vpool, dbClient));
+                    VirtualPool haVpool = (null != VirtualPool.getHAVPool(vpool, dbClient)) ? VirtualPool.getHAVPool(vpool, dbClient) : vpool;                    		
+                    haVirtualRecommendation.setVirtualPool(haVpool);
                     haVirtualRecommendation.setSourceStoragePool(haVolume.getPool());
                     haVirtualRecommendation.setSourceStorageSystem(haVolume.getStorageController());
                     // Always force count to 1 for a VPLEX rec for RP. VPLEX uses

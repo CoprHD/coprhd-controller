@@ -7609,7 +7609,7 @@ snapvx_tests()
     echo "**** Restoring SnapVx session 1"
     snapshotsession restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
 
-    # Link target to the snapvx session 1.
+    # Link target to the snapvx session 1 in default nocopy mode.
     echo "**** Linking target to SnapVx session 1"
     snapshotsession link_targets $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
 
@@ -7634,8 +7634,12 @@ snapvx_tests()
     echo "**** Linking another target to SnapVx session 3 in copy mode"
     snapshotsession link_targets $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 1 $SNAP_SESSION_TGT_NAME3 --target_copymode copy
 
+    # Restore the source from a linked target
+    echo "**** Restoring source from linked target"
+    blocksnapshot restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3
+
     # Unlink target from the snapvx session and delete target volume.
-    echo "**** unlinking all targets from SnapVx session 3"
+    echo "**** Unlinking all targets from SnapVx session 3"
     snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-1 --delete_target true
     snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-2 --delete_target true
     snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3 --delete_target true

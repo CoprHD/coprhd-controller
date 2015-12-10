@@ -160,6 +160,13 @@ public class ApplicationSupport extends Controller {
             if (isNew()) {
                 AppSupportUtil.createApplication(name, description, roles);
             } else {
+                ApplicationRestRep oldApplication = AppSupportUtil.getApplication(uri(id));
+                if(oldApplication.getName().equals(name)) {
+                    this.name = "";
+                }
+                if(oldApplication.getDescription().equals(description)) {
+                    this.description = "";
+                }
                 AppSupportUtil.updateApplication(name, description, id);
             }
 

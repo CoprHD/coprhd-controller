@@ -46,8 +46,12 @@ public class AppSupportUtil {
     
     public static TaskList updateApplication(String name, String description, String id) {
         ApplicationUpdateParam update = new ApplicationUpdateParam();
-        update.setName(name);
-        update.setDescription(description);
+        if(!name.isEmpty()) {
+            update.setName(name);
+        }
+        if(!description.isEmpty()) {
+            update.setDescription(description);
+        }
         return BourneUtil.getSysClient().application().updateApplication(uri(id), update);
     }
     

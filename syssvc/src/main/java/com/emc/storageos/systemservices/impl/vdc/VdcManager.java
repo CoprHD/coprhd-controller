@@ -514,7 +514,6 @@ public class VdcManager extends AbstractManager {
             return;
         }
         log.info("Db migration is done. Switch to IPSec mode");
-        vdcConfigUtil.setBackCompatPreYoda(false);
         targetVdcPropInfo = loadVdcConfig(); // refresh local vdc config
 
         // To trigger ipsec key rotation
@@ -523,8 +522,6 @@ public class VdcManager extends AbstractManager {
         opHandler.setTargetSiteInfo(targetSiteInfo);
         opHandler.execute();
         targetSiteInfo = coordinator.getTargetInfo(SiteInfo.class);
-
-        backCompatPreYoda = false;
 
         // Then do rolling reboot if ready
         if (ipsecMgr.isKeyRotationDone()) {
@@ -543,6 +540,9 @@ public class VdcManager extends AbstractManager {
                 retrySleep();
                 return;
             }
+
+            vdcConfigUtil.setBackCompatPreYoda(false);
+            backCompatPreYoda = false;
 
             log.info("Reboot");
             reboot();

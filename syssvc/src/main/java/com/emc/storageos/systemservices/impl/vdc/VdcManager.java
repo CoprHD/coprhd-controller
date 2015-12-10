@@ -541,14 +541,22 @@ public class VdcManager extends AbstractManager {
                 return;
             }
 
-            // update backCompatPreYoda to false everywhere
-            vdcConfigUtil.setBackCompatPreYoda(false);
-            backCompatPreYoda = false;
-            targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
-            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+            try {
+                // update backCompatPreYoda to false everywhere
+                vdcConfigUtil.setBackCompatPreYoda(false);
+                backCompatPreYoda = false;
+                targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
+                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
 
-            log.info("Rolling restart the db and geodb");
-            restartdb();
+                log.info("Rolling restart the db and geodb");
+                restartdb();
+            } finally {
+                try {
+                    coordinator.releasePersistentLock(svcId, vdcLockId);
+                } catch (Exception e) {
+                    log.error("Failed to release the vdc lock:", e);
+                }
+            }
         }
     }
 

@@ -237,4 +237,12 @@ public interface BlockSnapshotSessionApi {
      * @param sourceVolume A reference to the snapshot session source.
      */
     public void verifyActiveMirrors(Volume sourceVolume);
+
+    /**
+     * Gets all snapshot sessions with a common session instance.
+     *
+     * @param instance
+     * @return
+     */
+    public List<BlockSnapshotSession> getSnapshotSessionsBySessionInstance(String instance);
 }

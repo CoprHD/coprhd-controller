@@ -615,6 +615,7 @@ public class DisasterRecoveryService {
         String siteIdStr = StringUtils.join(siteIdList, ",");
         log.info("Begin to pause standby site from local vdc by uuid: {}", siteIdStr);
         List<Site> toBePausedSites = new ArrayList<>();
+        List<String> siteNameList = new ArrayList<>();
         for (String siteId : siteIdList) {
             Site site;
             try {
@@ -630,15 +631,19 @@ public class DisasterRecoveryService {
             }
             if (!state.equals(SiteState.STANDBY_SYNCED)) {
                 log.error("Unable to pause this site {}. It is in state {}", siteId, state);
-                throw APIException.badRequests.operationOnlyAllowedOnSyncedSite(siteId, state.toString());
+                throw APIException.badRequests.operationOnlyAllowedOnSyncedSite(site.getName(), state.toString());
             }
             toBePausedSites.add(site);
+            siteNameList.add(site.getName());
         }
+
+        // This String is only used to output human readable message to user when Exception is thrown
+        String siteNameStr = StringUtils.join(siteNameList, ',');
 
         try {
             commonPrecheck(siteIdList);
         } catch (IllegalStateException e) {
-            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteIdStr, e.getMessage());
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNameStr, e.getMessage());
         }
 
         InterProcessLock lock = getDROperationLock();
@@ -666,7 +671,7 @@ public class DisasterRecoveryService {
         } catch (Exception e) {
             log.error("Failed to pause site {}", siteIdStr, e);
             auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, siteIdStr);
-            throw APIException.internalServerErrors.pauseStandbyFailed(siteIdStr, e.getMessage());
+            throw APIException.internalServerErrors.pauseStandbyFailed(siteNameStr, e.getMessage());
         } finally {
             try {
                 lock.release();
@@ -697,7 +702,7 @@ public class DisasterRecoveryService {
         try {
             commonPrecheck(uuid);
         } catch (IllegalStateException e) {
-            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(uuid, e.getMessage());
+            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(standby.getName(), e.getMessage());
         }
 
         InterProcessLock lock = getDROperationLock();
@@ -909,7 +914,7 @@ public class DisasterRecoveryService {
             log.error("Error happened when failover at site %s", uuid, e);
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid, currentSite.getVip(),
                     currentSite.getName());
-            throw APIException.internalServerErrors.failoverFailed(uuid, e.getMessage());
+            throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
         }
     }
     
@@ -1262,10 +1267,11 @@ public class DisasterRecoveryService {
     protected void precheckForFailover() {
         Site standby = drUtil.getLocalSite();
         String standbyUuid = standby.getUuid();
-        
+        String standbyName = standby.getName();
+
         // show be only standby
         if (drUtil.isActiveSite()) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Failover can't be executed in acitve site");
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Failover can't be executed in acitve site");
         }
 
         // should be SYNCED
@@ -1289,7 +1295,7 @@ public class DisasterRecoveryService {
         log.info("Local coordinator mode is {}", coordinatorMode);
         if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
             log.info("Acitve site is available now, can't do failover");
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyUuid, "Acitve site is available now, can't do failover");
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Acitve site is available now, can't do failover");
         }
     }
 

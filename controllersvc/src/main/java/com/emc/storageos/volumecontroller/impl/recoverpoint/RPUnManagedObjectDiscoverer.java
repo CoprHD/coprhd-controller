@@ -333,6 +333,11 @@ public class RPUnManagedObjectDiscoverer {
 
                 // Now that we've processed all of the sources and targets, we can mark all of the target devices in the source devices.
                 for (GetVolumeResponse volume : rset.getVolumes()) {
+                    // Only process source volumes here.
+                    if (!volume.isProduction()) {
+                        continue;
+                    }
+
                     // Find this volume in UnManagedVolumes based on wwn
                     StringSet rpTargetVolumeIds = new StringSet();
                     UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient);
@@ -340,11 +345,6 @@ public class RPUnManagedObjectDiscoverer {
                     if (null == unManagedVolume) {
                         log.info("Protection Set {} contains unknown volume: {}. Skipping.",
                                 nativeGuid, volume.getWwn());
-                        continue;
-                    }
-
-                    // Only process source volumes here.
-                    if (!volume.isProduction()) {
                         continue;
                     }
 
@@ -367,6 +367,13 @@ public class RPUnManagedObjectDiscoverer {
                             continue;
                         }
 
+                        // Check if this volume is already managed, which would indicate it has already been partially ingested
+                        Volume targetManagedVolume = DiscoveryUtils.checkManagedVolumeExistsInDBByWwn(dbClient, targetVolume.getWwn());
+                        if (null != targetManagedVolume) {
+                            log.info("Protection Set {} has an orphaned unmanaged target volume {}. Skipping.",
+                                    nativeGuid, targetUnManagedVolume.getLabel());
+                            continue;
+                        }
                         log.info("\tfound target volume {}", targetUnManagedVolume.forDisplay());
 
                         // Add the source unmanaged volume ID to the target volume

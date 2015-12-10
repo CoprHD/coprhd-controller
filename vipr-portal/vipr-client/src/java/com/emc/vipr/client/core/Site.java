@@ -9,6 +9,7 @@ import java.util.List;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
+import com.emc.storageos.model.dr.SiteActionsTime;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
@@ -83,6 +84,10 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.get(SiteErrorResponse.class, PathConstants.SITE_URL + "/" + uuid + "/error");
     }
 
+    public SiteActionsTime getSiteTime(String uuid) {
+        return client.get(SiteActionsTime.class, PathConstants.SITE_URL + "/" + uuid + "/time");
+    }
+
     public ClientResponse doSwitchover(String uuid) {
         return client.post(ClientResponse.class, PathConstants.SITE_URL + "/" + uuid + "/switchover");
     }
@@ -90,7 +95,7 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     public ClientResponse doFailover(String uuid) {
         return client.post(ClientResponse.class, PathConstants.SITE_URL + "/" + uuid + "/failover");
     }
-    
+
     public ClientResponse updateSite(String uuid, SiteUpdateParam updateParam) {
         return client.put(ClientResponse.class, updateParam, PathConstants.SITE_URL + "/" + uuid);
     }

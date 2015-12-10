@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,12 +59,22 @@ public class DrUtil {
     }
     
     /**
-     * Check if current site is acitve
+     * Check if current site is active
      * 
-     * @return true for acitve. otherwise false
+     * @return true for active. otherwise false
      */
     public boolean isActiveSite() {
-        return coordinator.getSiteId().equals(getActiveSiteId());
+        try {
+            SiteState state = getSiteFromLocalVdc(coordinator.getSiteId()).getState();
+            return Arrays.asList(SiteState.ACTIVE, SiteState.STANDBY_FAILING_OVER, SiteState.STANDBY_SWITCHING_OVER).contains(state);
+        } catch (RetryableCoordinatorException ex) {
+            // Site no initialized yet 
+            if  (ServiceCode.COORDINATOR_SITE_NOT_FOUND == ex.getServiceCode()) {
+                return true;
+            }
+            log.error("Unexpected error to check active site", ex);
+        }
+        return false;
     }
     
     /**
@@ -76,7 +87,7 @@ public class DrUtil {
     }
     
     /**
-     * Get acitve site in current vdc
+     * Get active site in current vdc
      * 
      * @return
      */

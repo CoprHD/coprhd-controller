@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.net.URI;
@@ -40,6 +41,8 @@ import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.server.DbClientTest.DbClientImplUnitTester;
 import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.model.block.export.ITLBulkRep;
+
+import junit.framework.Assert;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration({ "ExportUtilsTests.xml" })
@@ -172,6 +175,10 @@ public class ExportUtilsTests extends DbsvcTestBase {
 
         System.out.println("Time elapsed: " + (endTime - startTime) + "ms");
         // Assert the ITL entries
+        
+        int numItlsExpected = this.NUM_EXPORT_GROUPS * this.NUM_EXPORT_MASKS * this.NUM_INITIATORS * this.NUM_STORAGE_PORTS * this.NUM_VOLUMES;
+        
+        assertEquals("Number of ITLs returned", numItlsExpected, list.getExportList().size());
 
     }
 

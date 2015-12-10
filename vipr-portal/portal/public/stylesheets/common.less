@@ -16,9 +16,7 @@ a[disabled],a.disabled {
   position: absolute;
   content: '*';
   color: @state-danger-text;
-  font-size: 18px;
   right: 0px;
-  top: 12px;
 }
 .form-group .help-inline {
   display: inline-block;
@@ -56,28 +54,32 @@ a[disabled],a.disabled {
     color: lighten(@text-color, 25%);
 }
 .form-group.has-error .help-inline {
-    color: #fff;
-    background-color:#d9534f;
-    border-radius:4px;
-    font-size:12px;
-    line-height:1.4;
-    display-inline: block;
-    display:block;
-    text-align:center;
+    background-color: #d9534f;
+    border-radius: 4px;
+    color: #ffffff;
+    display: block;
+    font-size: 12px;
+    line-height: 1.4;
     max-width: 300px;
     min-width: 50px;
+    padding: 3px 8px;
+    position: absolute;
+    visibility: visible;
+    z-index: 1030;
 }
 
 .form-group.has-error .help-inline:before {
-	  content: "";
-      position: absolute;
-      width: 0;
-      height: 0;
-      border-width: 12px;
-      border-style: solid;
-      border-color: transparent #d9534f transparent transparent;
-      top: 1px;
-      left: -4px;
+	border-color: transparent #d9534f transparent transparent;
+    border-style: solid;
+    border-width: 5px;
+    content: "";
+    display: inline-block;
+    height: 0;
+    left: 19px;
+    margin-left: -28px;
+    position: absolute;
+    bottom: 8px;
+    width: 0;
  }
 
 

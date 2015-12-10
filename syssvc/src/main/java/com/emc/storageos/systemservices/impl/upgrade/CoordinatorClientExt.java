@@ -1479,6 +1479,12 @@ public class CoordinatorClientExt {
             
             _log.info("Local zookeeper mode {}", state);
             if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
+
+                //vipr1 is default leader in readonly mode and will coordinate transition to participant
+                if(!getMyNodeId().equals("vipr1")){
+                    return;
+                }
+
                 //proceed only if all nodes are read only
                 for(String node:getAllNodeIds()){
                     String nodeState=drUtil.getLocalCoordinatorMode(node);
@@ -1487,16 +1493,8 @@ public class CoordinatorClientExt {
                     }
                 }
 
-                //block to allow other nodes to realize state (dangerous!)
-                try {
-                    Thread.sleep(COODINATOR_MONITORING_INTERVAL*2);
-                } catch (InterruptedException e) {
-                    //if sleep fails we can't trust that other nodes realized our state
-                    return;
-                }
-
                 // if zk is switched from observer mode to participant, reload syssvc
-                reconfigZKToWritable(!DrUtil.ZOOKEEPER_MODE_READONLY.equals(initZkMode));
+                reconfigAllZKToWritable(!DrUtil.ZOOKEEPER_MODE_READONLY.equals(initZkMode));
             } else {
                 if (isActiveSiteStable()) {
                     _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
@@ -1570,6 +1568,28 @@ public class CoordinatorClientExt {
             }
         } catch (Exception ex) {
             _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
+        }
+    }
+
+    /**
+     * reconfigure ZooKeeper to participant mode within the local site
+     *
+     * @param reloadSyssvc if syssvc needs to be reloaded
+     */
+    public void reconfigAllZKToWritable(boolean reloadSyssvc) {
+        _log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
+        for(String node:getAllNodeIds()){
+            try{
+                LocalRepository localRepository=LocalRepository.getInstance();
+                localRepository.remoteReconfigCoordinator(node,"participant");
+                localRepository.remoteRestart(node,"coordinatorsvc");
+                if(reloadSyssvc){
+                    localRepository.remoteRestart(node, "syssvc");
+
+                }
+            }catch(Exception ex){
+                _log.warn("Unexpected errors during switching back to zk observer on node {}. Try again later. {}", node, ex.toString());
+            }
         }
     }
     

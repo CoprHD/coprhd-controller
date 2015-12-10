@@ -7520,13 +7520,6 @@ vplexsnap_tests()
     echo "**** Completed VPLEX snapshot export tests"
 }
 
-COS_VMAX3BLOCK_FC=COS_VMAX3BLOCK_FC
-VMAX3_SMIS_DEV=VMAX3_SMIS_DEV
-VMAX3_SMIS_IP=10.247.100.7
-VMAX3_NATIVEGUID=SYMMETRIX+000196701035
-VMAX3_PORTS_A="FA-2D FA-4D"
-VMAX3_PORTS_B=""
-
 snapvx_vpool_setup()
 {
     echo "**** Creating snapvx virtual pools"

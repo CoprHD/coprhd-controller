@@ -468,7 +468,7 @@ public class ExportUtils {
             List<FCZoneReference> refs = null;
             for (StoragePort port : ports) {
                 String key = FCZoneReference.makeEndpointsKey(
-                        Arrays.asList(new String[] { initiator.getInitiatorPort(), port.getPortNetworkId() }));
+                        Arrays.asList(initiator.getInitiatorPort(), port.getPortNetworkId()));
                 refs = new ArrayList<FCZoneReference>();
                 targetPortReferences.put(port, refs);
                 URIQueryResultList queryList = new URIQueryResultList();
@@ -532,9 +532,8 @@ public class ExportUtils {
             List<FCZoneReference> refs = null;
             for (StoragePort port : ports) {
                 String key = FCZoneReference.makeLabel(
-                        Arrays.asList(
-                                new String[] { initiator.getInitiatorPort(), port.getPortNetworkId(),
-                                        bo.getId().toString() }));
+                        Arrays.asList(initiator.getInitiatorPort(), port.getPortNetworkId(),
+                                        bo.getId().toString()));
                 refs = new ArrayList<FCZoneReference>();
                 targetPortReferences.put(port, refs);
                 URIQueryResultList queryList = new URIQueryResultList();

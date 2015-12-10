@@ -38,6 +38,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJ
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResyncSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionCGCreateJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionCreateJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionDeleteJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionLinkTargetJob;
@@ -1408,8 +1409,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                         SmisConstants.MODE_SYNCHRONOUS));
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                _log.info("Job has been submitted: {}", jobPath);
-                completer.ready(_dbClient);
+                ControllerServiceImpl.enqueueJob(new QueueJob(
+                        new SmisBlockSnapshotSessionCGCreateJob(jobPath, system.getId(), completer)));
             } catch (Exception e) {
                 _log.info("Exception creating group snapshot session ", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());

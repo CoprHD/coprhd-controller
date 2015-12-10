@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.model.dr;
 
+import java.util.Date;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -12,34 +14,34 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "site_actions_time")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class SiteActionsTime {
-    private long creationTime;
-    private long pausedTime;
-    private long lastOperationTime;
+    private Date creationTime;
+    private Date pausedTime;
+    private Date lastOperationTime;
 
     @XmlElement(name = "creationTime")
-    public long getCreationTime() {
+    public Date getCreationTime() {
         return creationTime;
     }
 
-    public void setCreationTime(long creationTime) {
+    public void setCreationTime(Date creationTime) {
         this.creationTime = creationTime;
     }
 
     @XmlElement(name = "pausedTime")
-    public long getPausedTime() {
+    public Date getPausedTime() {
         return pausedTime;
     }
 
-    public void setPausedTime(long pausedTime) {
+    public void setPausedTime(Date pausedTime) {
         this.pausedTime = pausedTime;
     }
 
     @XmlElement(name = "lastOperationTime")
-    public long getLastOperationTime() {
+    public Date getLastOperationTime() {
         return lastOperationTime;
     }
 
-    public void setLastOperationTime(long lastOperationTime) {
+    public void setLastOperationTime(Date lastOperationTime) {
         this.lastOperationTime = lastOperationTime;
     }
 

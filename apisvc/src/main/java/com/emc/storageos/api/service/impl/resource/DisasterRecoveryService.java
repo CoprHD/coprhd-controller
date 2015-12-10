@@ -1057,10 +1057,10 @@ public class DisasterRecoveryService {
         try {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 
-            standbyTimes.setCreationTime(standby.getCreationTime());
+            standbyTimes.setCreationTime(new Date(standby.getCreationTime()));
 
             if (standby.getState().equals(SiteState.STANDBY_PAUSED)) {
-                standbyTimes.setPausedTime(standby.getPausedTime());
+                standbyTimes.setPausedTime(new Date(standby.getPausedTime()));
             }
             // Add last-synced time to lastOperationTime when available
         } catch (CoordinatorException e) {

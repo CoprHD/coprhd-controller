@@ -375,6 +375,12 @@ VNXF_NATIVEGUID=CELERRA+$VNXF_SN
 VNXF_SMBFILESHARE1=smbfileshare1$(date +%Y%m%d%H%M%S) 
 
 #
+# VMAX3 configuration
+#
+VMAX3_SMIS_DEV=VMAX3_SMIS_DEV
+COS_VMAX3BLOCK_FC=COS_VMAX3BLOCK_FC
+
+#
 # XtremIO config
 #
 
@@ -7562,11 +7568,6 @@ snapvx_setup_once()
             do
 	         storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
             done
-
-	 for portb in ${VMAX3_PORTS_B}
-            do
-              storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_B --group ${portb}
-           done
     fi
 
     # Update virtual pool to use mathcing pools on the system.

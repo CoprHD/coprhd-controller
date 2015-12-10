@@ -65,10 +65,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
     private static final Logger log = LoggerFactory.getLogger(XtremIOUnManagedVolumeDiscoverer.class);
     private static final String UNMANAGED_VOLUME = "UnManagedVolume";
     private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
+    private static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
 
     List<UnManagedVolume> unManagedVolumesToCreate = null;
     List<UnManagedVolume> unManagedVolumesToUpdate = null;
     Set<URI> allCurrentUnManagedVolumeUris = new HashSet<URI>();
+    
+    List<UnManagedConsistencyGroup> unManagedCGToCreate = null;
+    List<UnManagedConsistencyGroup> unManagedCGToUpdate = null;
 
     private List<UnManagedExportMask> unManagedExportMasksToCreate = null;
     private List<UnManagedExportMask> unManagedExportMasksToUpdate = null;
@@ -179,7 +183,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         	//Get the Consistency group details 
         	List<XtremIOObjectInfo> consistencyGroupVolInfo = xtremIOClient.getXtremIOConsistencyGroupVolumes(xioClusterName);
         	//Get the volumes associated to the Consistency Group
-        	volumesToCgs = getConsistencyGroupVolumeDetails(xtremIOClient, storageSystem, dbClient, consistencyGroupVolInfo, xioClusterName);
+        	volumesToCgs = getConsistencyGroupVolumeDetails(xtremIOClient, storageSystem, dbClient, partitionManager, consistencyGroupVolInfo, xioClusterName);
         }
         // Get the volume details
         List<List<XtremIOObjectInfo>> volume_partitions = Lists.partition(volLinks, Constants.DEFAULT_PARTITION_SIZE);
@@ -299,7 +303,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
      * @param xioClusterName
      */
 
-    private Map<String, String> getConsistencyGroupVolumeDetails(XtremIOClient xtremIOClient, StorageSystem storageSystem, DbClient dbClient, List<XtremIOObjectInfo>consistencyGroupInfo, String xioClusterName) throws Exception {
+    private Map<String, String> getConsistencyGroupVolumeDetails(XtremIOClient xtremIOClient, StorageSystem storageSystem, DbClient dbClient, PartitionManager partitionManager, List<XtremIOObjectInfo>consistencyGroupInfo, String xioClusterName) throws Exception {
     	Map<String, String> volumesToCgs = new HashMap<String, String>();
     	for (XtremIOObjectInfo cg : consistencyGroupInfo){
     		UnManagedConsistencyGroup unManagedConsistencyGroup = null; 
@@ -313,7 +317,18 @@ public class XtremIOUnManagedVolumeDiscoverer {
             unManagedConsistencyGroup = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient,
             		unManagedCGNativeGuid);
             
-            createUnManagedCG(unManagedConsistencyGroup, unManagedCGNativeGuid, cgVol, storageSystem, dbClient);
+            unManagedConsistencyGroup = createUnManagedCG(unManagedConsistencyGroup, unManagedCGNativeGuid, cgVol, storageSystem, dbClient);
+            
+            if (!unManagedCGToCreate.isEmpty()) {
+                partitionManager.insertInBatches(unManagedCGToCreate,
+                        Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_CONSISTENCY_GROUP);
+                unManagedVolumesToCreate.clear();
+            }
+            if (!unManagedVolumesToUpdate.isEmpty()) {
+                partitionManager.updateAndReIndexInBatches(unManagedVolumesToUpdate,
+                        Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_CONSISTENCY_GROUP);
+                unManagedVolumesToUpdate.clear();
+            }
 
     		for (int i =0; i < (Integer.parseInt(cgVol.getContent().getNumOfVols())); i++) {
     			volumesToCgs.put((String) cgVol.getContent().getVolList().get(i).get(0), cgVol.getContent().getName());			
@@ -584,17 +599,37 @@ public class XtremIOUnManagedVolumeDiscoverer {
      */
     private UnManagedConsistencyGroup createUnManagedCG(UnManagedConsistencyGroup unManagedCG, String unManagedCGNativeGuid,
     		XtremIOConsistencyGroupVolInfo consistencyGroup, StorageSystem system, DbClient dbClient){
+    	
+        unManagedCGToCreate = new ArrayList<UnManagedConsistencyGroup>();
+        unManagedCGToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+    	boolean created = false;
+    	
     	if (null == unManagedCG){
     		unManagedCG = new UnManagedConsistencyGroup();
     		unManagedCG.setId(URIUtil.createId(UnManagedConsistencyGroup.class));
     		unManagedCG.setNativeGuid(unManagedCGNativeGuid);
     		unManagedCG.set_storageSystemUri(system.getId());
+    		created = true; 
     	}
     	
     	unManagedCG.set_name(consistencyGroup.getContent().getName());
-    	unManagedCG.set_numberOfVols(Integer.parseInt(consistencyGroup.getNumOfVols()));
+    	unManagedCG.set_numberOfVols(consistencyGroup.getContent().getNumOfVols());
     	
+    	StringSet associatedVolumes = new StringSet(); 
     	
+    	List<List<Object>> volDetails = consistencyGroup.getContent().getVolList();
+    	for (List<Object> volDetail: volDetails ) {
+    		associatedVolumes.add(volDetail.get(1).toString());
+    	}
+    	
+    	unManagedCG.setAssociatedVolumes(associatedVolumes);
+    	
+        if (created) {
+            unManagedCGToCreate.add(unManagedCG);
+        } else {
+            unManagedCGToUpdate.add(unManagedCG);
+        }
+        
     	return unManagedCG; 
     }
 

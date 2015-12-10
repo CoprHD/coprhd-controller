@@ -20,7 +20,7 @@ public class XtremIOConsistencyGroupVolInfo {
     
     @SerializedName("vol-list")
     @JsonProperty(value = "vol-list")
-    private List<List<Object>> volList; 
+    private List<List<List<Object>>> volList; 
     
     @SerializedName("num-of-vols")
     @JsonProperty(value = "num-of-vols")
@@ -34,11 +34,11 @@ public class XtremIOConsistencyGroupVolInfo {
 		this.numOfVols = numOfVols;
 	}
 
-	public List<List<Object>> getVolList() {
+	public List<List<List<Object>>> getVolList() {
 		return volList;
 	}
 
-	public void setVolList(List<List<Object>> volList) {
+	public void setVolList(List<List<List<Object>>> volList) {
 		this.volList = volList;
 	}
 

@@ -27,7 +27,7 @@ public class CreateBlockSnapshotSession extends WaitForTasks<BlockSnapshotSessio
         if (linkedSnapshotName != null && !linkedSnapshotName.isEmpty()) {
             this.linkedTargetsParam = new SnapshotSessionNewTargetsParam(linkedSnapshotCount, linkedSnapshotName, copyMode);
         }
-        provideDetailArgs(volumeId, name);
+        provideDetailArgs(volumeId, name, linkedSnapshotName, linkedSnapshotCount, copyMode);
     }
 
     @Override

@@ -20,8 +20,10 @@ import com.emc.storageos.api.mapper.functions.MapBlockSnapshotSession;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.api.service.impl.response.BulkList.PermissionsEnforcingResourceFilter;
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
@@ -287,6 +289,28 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.BLOCK_SNAPSHOT_SESSION;
+    }
+    
+    /**
+     * Get search results by project alone.
+     * 
+     * @return SearchedResRepList
+     */
+    @Override
+    protected SearchedResRepList getProjectSearchResults(URI projectId) {
+        SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getProjectBlockSnapshotSessionConstraint(projectId),
+                resRepList);
+        return resRepList;
+    }
+    
+    /**
+     * Block snapshot session is not a zone level resource
+     */
+    @Override
+    protected boolean isZoneLevelResource() {
+        return false;
     }
 
     /**

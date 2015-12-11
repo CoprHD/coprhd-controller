@@ -487,7 +487,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         // Update Protection settings.
         if (null != param.getProtection()) {
-            updateProtectionParamsForVirtualPool(vpool, param.getProtection());
+            updateProtectionParamsForVirtualPool(vpool, param.getProtection(), param.getHighAvailability());
         }
 
         // Validate Block VirtualPool update params.
@@ -749,7 +749,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      * @param param The updates that need to be applied to the virtual pool.
      */
     private void updateProtectionParamsForVirtualPool(VirtualPool virtualPool,
-            BlockVirtualPoolProtectionUpdateParam param) {
+            BlockVirtualPoolProtectionUpdateParam param, VirtualPoolHighAvailabilityParam haParam) {
 
         // If the update specifies protection, we need to process the update.
         if (param != null) {
@@ -830,11 +830,25 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                             // If the journal varray is null, the journal vpool has to be null too.
                             virtualPool.setJournalVpool(nullValue);
                         } else {
-                            // Set the journal virtual pool. If none is specified, default to the parent
-                            // virtual pool
+                            // Set the journal virtual pool. If none is specified, we must determine the default, which
+                            // will be the parent vpool or the ha vpool.
+                            String defaultVpoolId = nullValue;
+                            if (haParam != null && haParam.getHaVirtualArrayVirtualPool() != null
+                                    && haParam.getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite() != null
+                                    && haParam.getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite()) {
+                                // If active protection at HA site is specified, our default vpool should be the HA
+                                // virtual pool.
+                                if (haParam.getHaVirtualArrayVirtualPool().getVirtualPool() != null) {
+                                    defaultVpoolId = haParam.getHaVirtualArrayVirtualPool().getVirtualPool().toString();
+                                }
+                            } else {
+                                // Default the virtual pool to the parent virtual pool
+                                defaultVpoolId = virtualPool.getId().toString();
+                            }
+
                             virtualPool.setJournalVpool(!NullColumnValueGetter.isNullURI(sourcePolicy.getJournalVpool()) ? sourcePolicy
                                     .getJournalVpool().toString()
-                                    : virtualPool.getId().toString());
+                                    : defaultVpoolId);
                         }
 
                         if (NullColumnValueGetter.isNotNullValue(virtualPool.getHighAvailability())

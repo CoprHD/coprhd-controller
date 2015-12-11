@@ -322,8 +322,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         singletonInstance = this;
         this.cfg = new SchedulerConfig(coordinator, this.encryptionProvider, this.dbClient);
 
-        String leaderPath = String.format("%s/%s/%s", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId(), BackupConstants.BACKUP_LEADER_PATH);
-        LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(leaderPath,
+        LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(coordinator.getCoordinatorClient().getSiteId(), BackupConstants.BACKUP_LEADER_PATH,
                 new BackupLeaderSelectorListener());
         leaderSelector.autoRequeue();
         leaderSelector.start();

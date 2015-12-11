@@ -409,6 +409,16 @@ public interface CoordinatorClient {
     public LeaderSelector getLeaderSelector(String leaderPath, LeaderSelectorListener listener) throws CoordinatorException;
 
     /**
+     * Create a leader selector. For local site only
+     * 
+     * @param leaderPath
+     * @param listener
+     * @return
+     * @throws CoordinatorException
+     */
+    public LeaderSelector getLeaderSelector(String siteId, String leaderPath, LeaderSelectorListener listener) throws CoordinatorException;
+
+    /**
      * Get target info
      * 
      * @param clazz

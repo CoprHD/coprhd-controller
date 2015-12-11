@@ -1053,7 +1053,20 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public LeaderSelector getLeaderSelector(String leaderPath, LeaderSelectorListener listener)
             throws CoordinatorException {
-        StringBuilder leaderFullPath = new StringBuilder(ZkPath.LEADER.toString());
+        return getLeaderSelector(leaderPath, listener);
+    }
+
+    @Override
+    public LeaderSelector getLeaderSelector(String siteId, String leaderPath, LeaderSelectorListener listener)
+            throws CoordinatorException {
+        
+        StringBuilder leaderFullPath = new StringBuilder();
+        if (siteId != null) {
+            leaderFullPath.append(ZkPath.SITES);
+            leaderFullPath.append("/");
+            leaderFullPath.append(siteId);
+        }
+        leaderFullPath.append(ZkPath.LEADER);
         leaderFullPath.append("/");
         leaderFullPath.append(leaderPath);
 

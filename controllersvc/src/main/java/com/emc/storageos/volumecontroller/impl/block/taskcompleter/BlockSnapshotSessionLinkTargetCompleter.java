@@ -5,6 +5,9 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +20,11 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_URI_TO_STRING;
+import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Lists.newArrayList;
+
 /**
  * Task completer invoked when SMI-S request to create and link a new target
  * volume to an array snapshot completes.
@@ -27,8 +35,7 @@ public class BlockSnapshotSessionLinkTargetCompleter extends TaskLockingComplete
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionLinkTargetCompleter.class);
 
-    // The URI of the BlockSnapshotSession representing the array snapshot.
-    private final URI _snapSessionURI;
+    private Map<URI, List<URI>> _snapSessionSnapshotMap;
 
     /**
      * Constructor
@@ -39,7 +46,13 @@ public class BlockSnapshotSessionLinkTargetCompleter extends TaskLockingComplete
      */
     public BlockSnapshotSessionLinkTargetCompleter(URI snapSessionURI, URI snapshotURI, String stepId) {
         super(BlockSnapshot.class, snapshotURI, stepId);
-        _snapSessionURI = snapSessionURI;
+        _snapSessionSnapshotMap = new HashMap<>();
+        _snapSessionSnapshotMap.put(snapSessionURI, newArrayList(snapshotURI));
+    }
+
+    public BlockSnapshotSessionLinkTargetCompleter(Map<URI, List<URI>> snapSessionSnapshotMap, String stepId) {
+        super(BlockSnapshot.class, newArrayList(concat(snapSessionSnapshotMap.values())), stepId);
+        _snapSessionSnapshotMap = snapSessionSnapshotMap;
     }
 
     /**
@@ -52,18 +65,30 @@ public class BlockSnapshotSessionLinkTargetCompleter extends TaskLockingComplete
                 case error:
                     break;
                 case ready:
-                    // On success add the URI of the BlockSnapshot instance representing the linked
-                    // target to the linked targets for the session.
-                    URI snapshotURI = getId();
-                    String snapshotId = snapshotURI.toString();
-                    BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, _snapSessionURI);
-                    StringSet linkedTargets = snapSession.getLinkedTargets();
-                    if (linkedTargets == null) {
-                        linkedTargets = new StringSet();
-                        snapSession.setLinkedTargets(linkedTargets);
+                    List<BlockSnapshotSession> sessionsToUpdate = newArrayList();
+                    for (Map.Entry<URI, List<URI>> entry : _snapSessionSnapshotMap.entrySet()) {
+                        URI snapSessionURI = entry.getKey();
+                        List<URI> snapshotTargets = entry.getValue();
+
+                        BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                        StringSet linkedTargets = snapSession.getLinkedTargets();
+
+                        // TODO Remove this START
+                        for (URI snapURI : snapshotTargets) {
+                            s_logger.info("Linking target {} to session {}", snapURI, snapSessionURI);
+                        }
+                        if (true) { continue; }
+                        // TODO Remove this END
+
+
+                        if (linkedTargets == null) {
+                            linkedTargets = new StringSet();
+                            snapSession.setLinkedTargets(linkedTargets);
+                        }
+                        linkedTargets.addAll(transform(snapshotTargets, FCTN_URI_TO_STRING));
+                        sessionsToUpdate.add(snapSession);
                     }
-                    linkedTargets.add(snapshotId);
-                    dbClient.updateObject(snapSession);
+                    dbClient.updateObject(sessionsToUpdate);
                     break;
                 default:
                     String errMsg = String.format("Unexpected status %s for completer for step %s", status.name(), getOpId());

@@ -67,7 +67,7 @@ import vnasserver
 import computeimageserver
 import bucket
 import warnings
-from src import volumegroup
+import volumegroup
 import ipsecmanager
 
 warnings.filterwarnings(

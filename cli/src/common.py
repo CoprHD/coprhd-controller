@@ -128,7 +128,6 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
     Throws: SOSError in case of HTTP errors with err_code 3
     '''
     global COOKIE
-    COOKIE = 'c:\\temp\\rootcookie'
 
     SEC_AUTHTOKEN_HEADER = 'X-SDS-AUTH-TOKEN'
 

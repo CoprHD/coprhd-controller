@@ -354,8 +354,9 @@
             "blockSize": "DEFAULT",
             "hlu": "-1"
           }
-        },
-        {
+        }
+        /*
+        ,{
           "image": "icon_storage_hpux_add.png",
           "baseService": "Hpux-MountBlockVolume",
           "lockFields": {
@@ -375,6 +376,7 @@
           "image": "icon_storage_hpux_expand.png",
           "baseService": "Hpux-ExpandBlockVolume"
         }
+        */
       ]
     }, 
     {

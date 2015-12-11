@@ -1578,21 +1578,29 @@ public class CoordinatorClientExt {
      */
     public void reconfigAllZKToWritable(boolean reloadSyssvc) {
         _log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
-        for(String node:getAllNodeIds()){
-            try{
+
+        try{
+            for(String node:getAllNodeIds()){
+                //The local node cannot reboot itself before others
+                if(node.equals(getMyNodeId())){
+                    continue;
+                }
                 LocalRepository localRepository=LocalRepository.getInstance();
                 localRepository.remoteReconfigCoordinator(node,"participant");
                 localRepository.remoteRestart(node,"coordinatorsvc");
                 if(reloadSyssvc){
                     localRepository.remoteRestart(node, "syssvc");
-
                 }
-            }catch(Exception ex){
-                _log.warn("Unexpected errors during switching back to zk observer on node {}. Try again later. {}", node, ex.toString());
             }
+
+            //reconfigure local node last
+            reconfigZKToWritable(reloadSyssvc);
+
+        }catch(Exception ex){
+            _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
         }
     }
-    
+ 
     /**
       * Get current ZK connection state
       * @return state

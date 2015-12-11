@@ -15,9 +15,9 @@ public class Version {
     public String id;
     public String updated;
     private RestLinkRep selfLink;
-    
+
     @XmlElement(name = "links")
-    public RestLinkRep getLink(){
+    public RestLinkRep getLink() {
         return selfLink;
     }
 

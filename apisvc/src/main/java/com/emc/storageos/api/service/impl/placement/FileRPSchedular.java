@@ -25,7 +25,7 @@ import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
-import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
+import com
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -208,7 +208,7 @@ public class FileRPSchedular implements Scheduler {
      * @return list of volume descriptors
      * @throws ControllerException
      */
-    private List<VolumeDescriptor> createFileDescriptors1(final SRDFRecommendation recommendation,
+    private List<FileDescriptor> createFileDescriptors1(final SRDFRecommendation recommendation,
             final List<URI> fileURIs, final VirtualPoolCapabilityValuesWrapper capabilities)
                     throws ControllerException {
 
@@ -229,11 +229,11 @@ public class FileRPSchedular implements Scheduler {
 //                		fileshare.getId(), fileshare.getPool(), fileshare.getUsedCapacity(), capabilities, null, null);
 //                
 //                Map<String, Object> fileParams = new HashMap<String, Object>();
-//                volumeParams.put(FileDescriptor.PARAM_VPOOL_CHANGE_FILE_ID,
+//                fileParams.put(FileDescriptor.PARAM_VPOOL_CHANGE_FILE_ID,
 //                        recommendation.getVpoolChangeVolume());
 //                volumeParams.put(FileDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID,
 //                        recommendation.getVpoolChangeVpool());
-//                volumeParams.put(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID,
+//                volumeParams.put(FileDescriptor.PARAM_VPOOL_OLD_VPOOL_ID,
 //                        volume.getVirtualPool());
 //
 //                desc.setParameters(volumeParams);
@@ -251,7 +251,7 @@ public class FileRPSchedular implements Scheduler {
 //                	fileType = FileDescriptor.Type.FILE_RP_TARGET;
 //                }
 //                FileDescriptor descriptor = new FileDescriptor(fileType, fileshare.getStorageDevice(), _fsURI, _poolURI, _fileSize, _capabilitiesValues, _migrationId, _suggestedNativeFsId)
-//                VolumeDescriptor desc = new VolumeDescriptor(fileType,
+//                FileDescriptor desc = new FileDescriptor(fileType,
 //                        fileShare., volume.getId(), volume.getPool(), null,
 //                        capabilities, volume.getCapacity());
 //

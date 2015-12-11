@@ -1,12 +1,17 @@
 #!/bin/sh
-#
-# Copyright (c) 2015 EMC Corporation
+# Copyright (c) 2012-2014 EMC Corporation
 # All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
 #
 
 # VPLEX EXPORT Test
 # This can be run from within sanity, or standalone after sanity has initiatlized the system.
-# For loggin in use: user@domain.com Password
+# For loggin in use: super_sanity@sanity.local P@ssw0rd
 #
 # This script sets up two VPLEX environments, a cross-connected one, and non cross-connected on,
 # using four Varrays. The Varrays are: VAcc1, VAcc2,  and  VAnc1, VAnc2.
@@ -31,6 +36,20 @@ ARGC=$#
     echo "usage: vplex_export_test [test1|test2|test3|test4|test5|cleanup]*"
     exit 2;
 }
+
+SANITY_CONFIG_FILE=""
+# ============================================================
+# Check if there is a sanity configuration file specified
+# on the command line. In, which case, we should use that
+# ============================================================
+if [ "$1"x != "x" ]; then
+   if [ -f "$1" ]; then
+      SANITY_CONFIG_FILE=$1
+      echo Using sanity configuration file $SANITY_CONFIG_FILE
+      shift
+   fi
+fi
+
 ARGV=$*
 CWD=$(pwd)
 export PATH=$CWD:$CWD/..:$PATH
@@ -43,7 +62,7 @@ VANC1=VAnc1		# non-cross connected VPlex cluster-1
 VANC2=VAnc2		# non-cross connected VPlex cluster-2
 
 # Configuration file to be used  
-source ../conf/sanity.conf
+source $SANITY_CONFIG_FILE 
 
 # Variables that should be inherited from sanity
 BLK_SIZE=${BLK_SIZE:-1073741824}
@@ -57,7 +76,7 @@ tenant=${tenant:-standalone}
 }
 # The altVipr variable allows use of another ViPR instance for Brownfield scenarios.
 [ "$altVipr" ] || {
-    altVipr="--ip ${ALTERNATE_COPRHD}"
+    altVipr="--ip lglw2213.lss.emc.com"
 }
 [ "$macaddr" ] || {
     macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`

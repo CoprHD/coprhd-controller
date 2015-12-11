@@ -101,6 +101,6 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.FullCopyVolumeDetachedStateMigration"/>
             </list>
         </entry>
-
+        
     </util:map>
 </beans>

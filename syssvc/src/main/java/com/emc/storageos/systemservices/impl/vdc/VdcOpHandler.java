@@ -512,8 +512,8 @@ public abstract class VdcOpHandler {
                 int switchingNodeCount = getSwitchoverNodeCount();
                 log.info("Wait for barrier to reconfig/restart coordinator when switchover");
                 VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, switchingNodeCount, true);
+                barrier.enter();
                 try {
-                    barrier.enter();
                     localRepository.reconfigProperties("coordinator");
                 } finally {
                     barrier.leave();
@@ -530,8 +530,8 @@ public abstract class VdcOpHandler {
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
             
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+            barrier.enter();
             try {
-                barrier.enter();
                 log.info("Set state to ACTIVE");
                 site.setState(SiteState.ACTIVE);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
@@ -549,8 +549,8 @@ public abstract class VdcOpHandler {
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
 
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+            barrier.enter();
             try {
-                barrier.enter();
                 log.info("Set state to SYNCED");
                 site.setState(SiteState.STANDBY_SYNCED);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
@@ -680,9 +680,8 @@ public abstract class VdcOpHandler {
             
             log.info("Wait for barrier to reboot cluster");
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), true);
+            barrier.enter();
             try {
-                barrier.enter();
-            
                 log.info("Reboot this node after failover");
                 localRepository.reboot();
             } finally {
@@ -762,8 +761,8 @@ public abstract class VdcOpHandler {
      */
     protected void syncFlushVdcConfigToLocal() throws Exception {
         VdcPropertyBarrier vdcBarrier = new VdcPropertyBarrier(targetSiteInfo, VDC_RPOP_BARRIER_TIMEOUT);
+        vdcBarrier.enter();
         try {
-            vdcBarrier.enter();
             flushVdcConfigToLocal();
         } finally {
             vdcBarrier.leave();
@@ -912,6 +911,7 @@ public abstract class VdcOpHandler {
                 log.info("All nodes entered VdcPropBarrier");
             } else {
                 log.warn("Only Part of nodes entered within {} seconds", timeout);
+                leave(); // we need clean our double barrier if not all nodes enter it
                 throw new Exception("Only Part of nodes entered within timeout");
             }
         }

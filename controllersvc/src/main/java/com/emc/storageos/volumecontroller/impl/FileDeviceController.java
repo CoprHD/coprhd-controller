@@ -3343,8 +3343,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return storageSystem.getSystemType();
     }
     
-    static final String CREATE_FILESYSTEMS_STEP = "FileDeviceCreateVolumes";
-    static final String MODIFY_FILESYSTEMS_STEP = "FileDeviceModifyVolumes";
+    static final String CREATE_FILESYSTEMS_STEP = "FileDeviceCreateFileShares";
+    static final String MODIFY_FILESYSTEMS_STEP = "FileDeviceModifyFileShares";
+    static final String DELETE_FILESYSTEMS_STEP = "FileDeviceDeleteFileShares";
     static final String CREATE_FS_MIRRORS_STEP = "FileDeviceCreateMirrors";
 
 	@Override
@@ -3407,7 +3408,28 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 			String waitFor, List<FileDescriptor> filesystems, String taskId)
 			throws InternalException {
 		// TODO Auto-generated method stub
-		return null;
+		
+		List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
+                FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE);
+		
+		// Segregate by device.
+        Map<URI, List<FileDescriptor>> deviceMap = FileDescriptor.getDeviceMap(sourceDescriptors);
+        
+        // Add a step to delete the fileshares in each device.
+        for (URI deviceURI : deviceMap.keySet()) {
+        	filesystems = deviceMap.get(deviceURI);
+            List<URI> fileshareURIs = FileDescriptor.getFileSystemURIs(filesystems);
+
+            workflow.createStep(DELETE_FILESYSTEMS_STEP,
+                    String.format("Deleting fileshares:%n%s", fileshareURIs),
+                    waitFor, deviceURI, getDeviceType(deviceURI),
+                    this.getClass(),
+                    deleteFileSharesMethod(workflow, deviceURI, fileshareURIs, 
+                    		filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(),taskId),
+                    null, null);
+        }
+        return DELETE_FILESYSTEMS_STEP;
+
 	}
 
 	@Override
@@ -3443,5 +3465,43 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs) {
         return new Workflow.Method("rollBackCreateFileShares", systemURI, fileURIs);
     }
+    
+    
+    
+    /**
+     * Return a Workflow.Method for deleteVolumes.
+     *
+     * @param systemURI
+     * @param volumeURIs
+     * @return
+     */
+    private Workflow.Method deleteFileSharesMethod(Workflow workflow, URI systemURI, List<URI> fileShareURIs, boolean forceDelete, String deleteType, String taskId) {
+        return new Workflow.Method("deleteFileSystemStep", workflow, systemURI, fileShareURIs, taskId);
+    }
+    
+    /**
+	 * create filesystem call
+	 * @param workflow
+	 * @param waitFor
+	 * @param fileDescriptor
+	 * @param taskId
+	 */
+	private void deleteFileSystemStep(Workflow workflow, URI systemURI, List<URI> fileShareURIs, boolean forceDelete, String deleteType, String taskId) {
+		
+		try {
+			WorkflowStepCompleter.stepExecuting(taskId);
+			FileShare fsObj = _dbClient.queryObject(FileShare.class, fileShareURIs.get(0));
+	       //dummy code
+			this.delete(fsObj.getStorageDevice(), fsObj.getPool(), fsObj.getId(), forceDelete, deleteType, taskId);
+			WorkflowStepCompleter.stepSucceded(taskId); 
+		} catch (Exception e) {
+			 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+	            WorkflowStepCompleter.stepFailed(taskId, serviceError);
+			
+		}
+		
+	}
+	
+
 
 }

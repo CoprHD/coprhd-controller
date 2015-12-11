@@ -54,7 +54,7 @@ public interface FileServiceApi {
      * @throws InternalException
      */
     public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType,
-                              String task) throws InternalException;
+                              boolean forceDelete, String task) throws InternalException;
     
     
     /**

@@ -1,5 +1,6 @@
 package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,8 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.common.DependencyChecker;
+import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -27,7 +30,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 
 
 
-public class AbstractFileServiceApiImpl <T> implements FileServiceApi{
+public abstract class AbstractFileServiceApiImpl <T> implements FileServiceApi{
 	private static final Logger s_logger = LoggerFactory.getLogger(AbstractFileServiceApiImpl.class);
 	
 	@Autowired
@@ -149,10 +152,22 @@ public class AbstractFileServiceApiImpl <T> implements FileServiceApi{
 
 	@Override
 	public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs,
-			String deletionType, String task) throws InternalException {
-		throw APIException.methodNotAllowed.notSupported();
-		
+			String deletionType, boolean forceDelete, String task) throws InternalException {
+		 // Get volume descriptor for all volumes to be deleted.
+        List<FileDescriptor> fileDescriptors = getDescriptorsOfFileShareDeleted(
+                systemURI, fileSystemURIs, deletionType, forceDelete);
+        
+        FileOrchestrationController controller = getController(
+                FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.deleteFileSystems(fileDescriptors, task);
 	}
+	
+	// different constrator to File descriptor delete
+	abstract protected  List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
+            List<URI> fileShareURIs, String deletionType, boolean forceDelete);
+	
+	
 
 
 }

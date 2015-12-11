@@ -10,6 +10,9 @@ import java.io.Serializable;
 
 
 
+
+
+import com.emc.storageos.FileReplicationController.FileReplicationDeviceController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -20,6 +23,7 @@ import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -31,6 +35,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static DbClient s_dbClient;
     private WorkflowService _workflowService;
     private static FileDeviceController _fileDeviceController;
+    private static FileReplicationDeviceController _fileReplicationDeviceController;
     private ControllerLockingService _locker;
 
     static final String CREATE_FILESYSTEMS_WF_NAME = "CREATE_FILESYSTEMS_WORKFLOW";
@@ -61,12 +66,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    CREATE_FILESYSTEMS_WF_NAME, false, taskId);
+                    					CREATE_FILESYSTEMS_WF_NAME, false, taskId);
             String waitFor = null;    // the wait for key returned by previous call
 
             s_logger.info("Generating steps for create FileSystem");
             // First, call the FileDeviceController to add its methods.
             waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, 
+            													fileDescriptors, taskId);
+            //second, call create replication session
+            waitFor = _fileReplicationDeviceController.addStepsForCreateFileSystems(workflow, waitFor, 
             													fileDescriptors, taskId);
 
             // Finish up and execute the plan.
@@ -102,7 +110,38 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 	public void deleteFileSystems(List<FileDescriptor> fileDescriptors,
 			String taskId) throws ControllerException {
 		// TODO Auto-generated method stub
+		 String waitFor = null;    // the wait for key returned by previous call
+		 List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
+		 FileWorkflowCompleter completer = new FileWorkflowCompleter(fileShareUris, taskId);
+		 Workflow workflow = null;
+
+		 try {
+		     // Generate the Workflow.
+		     workflow = _workflowService.getNewWorkflow(this,
+		    		DELETE_FILESYSTEMS_WF_NAME, true, taskId);
+		    
+		     // Call the FileReplicationDeviceController to add its methods if there are Mirror FileShares.
+		     waitFor = _fileReplicationDeviceController.addStepsForDeleteFileSystems(workflow, 
+		    		waitFor, fileDescriptors, taskId);
 		
+		
+		     // Next, call the FileDeviceController to add its methods.
+		     waitFor = _fileDeviceController.addStepsForDeleteFileSystems(workflow, waitFor, fileDescriptors, taskId);
+		  
+		     // Finish up and execute the plan.
+		     // The Workflow will handle the TaskCompleter
+		     String successMessage = "Delete FileShares successful for: " + fileShareUris.toString();
+		     Object[] callbackArgs = new Object[] { fileShareUris };
+		     workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+		
+		 } catch (Exception ex) {
+			 s_logger.error("Could not delete FileShares: " + fileShareUris, ex);
+		     releaseWorkflowLocks(workflow);
+		     String opName = ResourceOperationTypeEnum.DELETE_FILE_SYSTEM.getName();
+		     ServiceError serviceError = DeviceControllerException.errors.deleteVolumesFailed(
+		    		fileShareUris.toString(), opName, ex);
+		     completer.error(s_dbClient, _locker, serviceError);
+		 }
 	}
 	
 	/*
@@ -171,5 +210,13 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
 	    public void setFileDeviceController(FileDeviceController fileDeviceController) {
 	        this._fileDeviceController = fileDeviceController;
+	    }
+	    
+	    public FileReplicationDeviceController getReplicationFileDeviceController() {
+	        return _fileReplicationDeviceController;
+	    }
+
+	    public void setFileReplicationDeviceController(FileReplicationDeviceController fileReplicationDeviceController) {
+	        this._fileReplicationDeviceController = fileReplicationDeviceController;
 	    }
 }

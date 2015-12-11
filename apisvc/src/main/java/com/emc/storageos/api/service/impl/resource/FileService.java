@@ -1430,16 +1430,32 @@ public class FileService extends TaskResourceService {
         if (!param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
         }
+        List<URI> fileShareURIs = new ArrayList<URI>();
+        fileShareURIs.add(id);
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM);
         op.setDescription("Filesystem deactivate");
         // where does pool come from?
-        controller.delete(device.getId(), null, fs.getId(), param.getForceDelete(), param.getDeleteType(), task);
+        //controller.delete(device.getId(), null, fs.getId(), param.getForceDelete(), param.getDeleteType(), task);
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getId().toString(), device.getId().toString());
+        try {
+            fileServiceApi.deleteFileSystems(device.getId(), fileShareURIs, 
+            		param.getDeleteType(), param.getForceDelete(), task);
+        } catch (InternalException e) {
+            if (_log.isErrorEnabled()) {
+                _log.error("Delete error", e);
+            }
+
+            FileShare vol = _dbClient.queryObject(FileShare.class, fs.getId());
+            op = fs.getOpStatus().get(task);
+            op.error(e);
+            vol.getOpStatus().updateTaskStatus(task, op);
+            _dbClient.persistObject(fs);
+            throw e;
+        }
 
         return toTask(fs, task, op);
     }
@@ -2331,6 +2347,17 @@ public class FileService extends TaskResourceService {
         dest.setReadWriteHosts(orig.getReadWriteHosts());
         dest.setRootHosts(orig.getRootHosts());
         dest.setMountPoint(orig.getMountPoint());
+    }
+    
+    /**
+     * Returns the bean responsible for servicing the request
+     *
+     * @param fileshahre
+     * @return file service implementation object
+     */
+    public static FileServiceApi getFileShareServiceImpl(FileShare fileShare, DbClient dbClient) {
+        VirtualPool vPool = dbClient.queryObject(VirtualPool.class, fileShare.getVirtualPool());
+        return getFileServiceImpl(vPool, dbClient);
     }
     
     /**

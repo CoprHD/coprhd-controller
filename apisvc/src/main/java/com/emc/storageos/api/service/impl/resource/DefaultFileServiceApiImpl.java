@@ -11,6 +11,7 @@ import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
+import com.emc.storageos.fileorchestrationcontroller.FileDescriptor.DeleteType;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -43,7 +44,7 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
 		
 		fileShares.addAll(fileList);
 		//prepare the file descriptors
-		final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null, null);
+		final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null, false, null, null);
 		final FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
 
@@ -64,13 +65,14 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
     }
 
     @Override
-    public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType, String task) throws InternalException {
-    	
+    public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType, boolean forceDelete, String task) throws InternalException {
+    	super.deleteFileSystems(systemURI, fileSystemURIs, deletionType, forceDelete, task);
     }
     
     private List<FileDescriptor> prepareFileDescriptors(List<FileShare> filesystems, 
-    		VirtualPoolCapabilityValuesWrapper cosCapabilities, String suggestedId, String migrationId) {
-
+    		VirtualPoolCapabilityValuesWrapper cosCapabilities, String deletionType, 
+    		boolean forceDelete, String suggestedId, String migrationId) {
+    	
     	
         // Build up a list of FileDescriptors based on the fileshares
         final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
@@ -78,9 +80,29 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
             FileDescriptor desc = new FileDescriptor(FileDescriptor.Type.FILE_DATA,
                     filesystem.getStorageDevice(), filesystem.getId(),
                     filesystem.getPool(), filesystem.getCapacity(), cosCapabilities, null, suggestedId);
+            desc.setForceDelete(forceDelete);
+            desc.setDeleteType(deletionType);
             fileDescriptors.add(desc);
         }
 
+        return fileDescriptors;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+	protected  List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
+            List<URI> fileShareURIs, String deletionType, boolean forceDelete) {
+		List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
+        for (URI fileShareURI : fileShareURIs) {
+        	FileShare filesystem = _dbClient.queryObject(FileShare.class, fileShareURI);
+        	
+        	FileDescriptor fileDescriptor = new FileDescriptor(FileDescriptor.Type.FILE_DATA,
+                    filesystem.getStorageDevice(), filesystem.getId(),
+                    filesystem.getPool(), deletionType, forceDelete);
+        	fileDescriptors.add(fileDescriptor);
+        }
         return fileDescriptors;
     }
 

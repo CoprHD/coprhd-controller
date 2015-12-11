@@ -223,7 +223,7 @@ public class BlockServiceUtils {
      * @param volume Volume part of the CG
      * @return true if the operation is supported.
      */
-    public static boolean checkVolumeCanBeAddedOrRemoved(Volume volume, DbClient dbClient) {
+    public static boolean checkCGVolumeCanBeAddedOrRemoved(Volume volume, DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
     }

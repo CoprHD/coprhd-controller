@@ -1,17 +1,12 @@
 #!/bin/sh
-# Copyright (c) 2012-2014 EMC Corporation
-# All Rights Reserved
 #
-# This software contains the intellectual property of EMC Corporation
-# or is licensed to EMC Corporation from third parties.  Use of this
-# software and the intellectual property contained therein is expressly
-# limited to the terms and conditions of the License Agreement under which
-# it is provided by or on behalf of EMC.
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
 #
 
 # VPLEX EXPORT Test
 # This can be run from within sanity, or standalone after sanity has initiatlized the system.
-# For loggin in use: super_sanity@sanity.local P@ssw0rd
+# For loggin in use: user@domain.com Password
 #
 # This script sets up two VPLEX environments, a cross-connected one, and non cross-connected on,
 # using four Varrays. The Varrays are: VAcc1, VAcc2,  and  VAnc1, VAnc2.
@@ -76,7 +71,7 @@ tenant=${tenant:-standalone}
 }
 # The altVipr variable allows use of another ViPR instance for Brownfield scenarios.
 [ "$altVipr" ] || {
-    altVipr="--ip lglw2213.lss.emc.com"
+    altVipr="--ip ${ALTERNATE_COPRHD}"
 }
 [ "$macaddr" ] || {
     macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`

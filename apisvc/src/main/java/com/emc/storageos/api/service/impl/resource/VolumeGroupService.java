@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,7 +28,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +42,9 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -53,11 +55,13 @@ import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
+import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
@@ -86,11 +90,31 @@ public class VolumeGroupService extends TaskResourceService {
             DiscoveredDataObject.Type.vmax.name(),
             DiscoveredDataObject.Type.xtremio.name(),
             DiscoveredDataObject.Type.scaleio.name(),
-            DiscoveredDataObject.Type.ibmxiv.name()));
+            DiscoveredDataObject.Type.ibmxiv.name(),
+            DiscoveredDataObject.Type.srdf.name()));
     private static final String BLOCK = "block";
     
     static final Logger log = LoggerFactory.getLogger(VolumeGroupService.class);
 
+    // Block service implementations
+    private Map<String, BlockServiceApi> _blockServiceApis;
+    
+    public void setBlockServiceApis(final Map<String, BlockServiceApi> serviceInterfaces) {
+        _blockServiceApis = serviceInterfaces;
+    }
+
+    private BlockServiceApi getBlockServiceImpl(final String type) {
+        return _blockServiceApis.get(type);
+    }
+    
+    private BlockServiceApi getBlockServiceImpl(final Volume volume) {
+        URI systemUri = volume.getStorageController();
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemUri);
+        String type = system.getSystemType();
+        String volType = getVolumeType(type);
+        return getBlockServiceImpl(volType);
+    }
+    
     @Override
     protected DataObject queryResource(URI id) {
         ArgValidator.checkUri(id);
@@ -174,6 +198,26 @@ public class VolumeGroupService extends TaskResourceService {
         }
         return volumeGroupList;
     }
+    
+    /**
+     * Get application volumes
+     * 
+     * @param id Application Id
+     * @return NamedVolumesList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/volumes")
+    public NamedVolumesList getVolumes(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, id);
+        NamedVolumesList result = new NamedVolumesList();
+        List<Volume> volumes = getVolumeGroupVolumes(volumeGroup);
+        for (Volume volume: volumes) {
+            result.getVolumes().add(toNamedRelatedResource(volume));
+        }
+        return result;
+    }
 
     /**
      * Delete the volume group.
@@ -223,6 +267,7 @@ public class VolumeGroupService extends TaskResourceService {
         if (volumeGroup.getInactive()) {
             throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), "The Volume Group has been deleted");
         }
+        checkForApplicationPendingTasks(volumeGroup);
         boolean isChanged = false;
         String vgName = param.getName();
         if (vgName != null && !vgName.isEmpty()) {
@@ -253,36 +298,34 @@ public class VolumeGroupService extends TaskResourceService {
         }
         List<Volume> removeVols = null;
         List<Volume> addVols = null;
-        Set<URI> removeVolumeCGs = null;
+        Set<URI> impactedCGs = new HashSet<URI>();
         Volume firstVol = null;
 
         if (param.hasVolumesToAdd()) {
-            addVols = validateAddVolumes(param, volumeGroup);
-            if (firstVol == null) {
-                firstVol = addVols.get(0);
-            }
+            addVols = validateAddVolumes(param, volumeGroup, impactedCGs);
+            firstVol = addVols.get(0);
         }
         if (param.hasVolumesToRemove()) {
-            removeVolumeCGs = new HashSet<URI>();
             List<URI> removeVolList = param.getRemoveVolumesList().getVolumes();
-            removeVols = validateRemoveVolumes(removeVolList, volumeGroup, removeVolumeCGs);
+            removeVols = validateRemoveVolumes(removeVolList, volumeGroup, impactedCGs);
             if (!removeVols.isEmpty() && firstVol == null) {
                 firstVol = removeVols.get(0);
             }
         }
 
-        // TODO add role specific code
-        BlockServiceApi serviceAPI = BlockService.getBlockServiceImpl(firstVol, _dbClient);
+        BlockServiceApi serviceAPI = getBlockServiceImpl(firstVol);
         op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(),
                 taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
         taskList.getTaskList().add(toTask(volumeGroup, taskId, op));
-        addTasksForVolumesAndCGs(addVols, removeVols, removeVolumeCGs, taskId, taskList);
+        addTasksForVolumesAndCGs(addVols, removeVols, impactedCGs, taskId, taskList);
         try {
             serviceAPI.updateVolumesInVolumeGroup(param.getAddVolumesList(), removeVols, id, taskId);
-        } catch (InternalException e) {
-            op = volumeGroup.getOpStatus().get(taskId);
+        }  catch (InternalException | APIException e) {
+            VolumeGroup app = _dbClient.queryObject(VolumeGroup.class, id);
+            op = app.getOpStatus().get(taskId);
             op.error(e);
-            volumeGroup.getOpStatus().updateTaskStatus(taskId, op);
+            app.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.updateObject(app);
             if (param.hasVolumesToAdd()) {
                 List<URI> addURIs = param.getAddVolumesList().getVolumes();
                 updateFailedVolumeTasks(addURIs, taskId, e);
@@ -290,7 +333,9 @@ public class VolumeGroupService extends TaskResourceService {
             if (param.hasVolumesToRemove()) {
                 List<URI> removeURIs = param.getRemoveVolumesList().getVolumes();
                 updateFailedVolumeTasks(removeURIs, taskId, e);
-                updateFailedCGTasks(removeVolumeCGs, taskId, e);
+            }
+            if (!impactedCGs.isEmpty()) {
+                updateFailedCGTasks(impactedCGs, taskId, e);
             }
             throw e;
         }
@@ -308,32 +353,27 @@ public class VolumeGroupService extends TaskResourceService {
      * @param volumes
      * @return The validated volumes
      */
-    private List<Volume> validateAddVolumes(VolumeGroupUpdateParam param, VolumeGroup volumeGroup) {
+    private List<Volume> validateAddVolumes(VolumeGroupUpdateParam param, VolumeGroup volumeGroup, Set<URI> impactedCGs) {
         // TODO add role specific code
         String addedVolType = null;
         String firstVolLabel = null;
         List<URI> addVolList = param.getAddVolumesList().getVolumes();
-        // URI paramCG = param.getAddVolumesList().getConsistencyGroup();
+        URI paramCG = param.getAddVolumesList().getConsistencyGroup();
         List<Volume> volumes = new ArrayList<Volume>();
         for (URI volUri : addVolList) {
             ArgValidator.checkFieldUriType(volUri, Volume.class, "id");
             Volume volume = _dbClient.queryObject(Volume.class, volUri);
             if (volume.getInactive()) {
-                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(), "The volume has been deleted");
+                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(), "the volume has been deleted");
             }
             URI cgUri = volume.getConsistencyGroup();
             if (NullColumnValueGetter.isNullURI(cgUri)) {
-                // Do not support not in CG volumes yet.
-                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                        "The volume is not in CG. Not supported yet");
-                /*
-                 * if (paramCG == null) {
-                 * throw APIException.badRequests.volumeCantBeAddedToApplication(volume.getLabel(),
-                 * "Conssitency group is not specified for the volumes not in a consistency group");
-                 * }
-                 * ArgValidator.checkFieldUriType(paramCG, BlockConsistencyGroup.class, "consistency_group");
-                 */
-
+                 if (paramCG == null) {
+                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                             "Conssitency group is not specified for the volumes not in a consistency group");
+                 }
+                 ArgValidator.checkFieldUriType(paramCG, BlockConsistencyGroup.class, "consistency_group");
+                 impactedCGs.add(paramCG);
             }
             URI systemUri = volume.getStorageController();
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemUri);
@@ -386,8 +426,8 @@ public class VolumeGroupService extends TaskResourceService {
                 log.info(String.format("The volume does not exist or has been deleted", voluri.toString()));
                 continue;
             }
-            StringSet applications = vol.getVolumeGroupIds();
-            if (!applications.contains(volumeGroup.getId().toString())) {
+            StringSet volumeGroups = vol.getVolumeGroupIds();
+            if (volumeGroups == null || !volumeGroups.contains(volumeGroup.getId().toString())) {
                 log.info(String.format("The volume %s is not assigned to the application", vol.getLabel()));
                 continue;
             }
@@ -494,24 +534,40 @@ public class VolumeGroupService extends TaskResourceService {
         }
     }
 
-    private void updateFailedVolumeTasks(List<URI> uriList, String taskId, InternalException e) {
+    private void updateFailedVolumeTasks(List<URI> uriList, String taskId, ServiceCoded e) {
         for (URI uri : uriList) {
             Volume vol = _dbClient.queryObject(Volume.class, uri);
             Operation op = vol.getOpStatus().get(taskId);
             if (op != null) {
                 op.error(e);
                 vol.getOpStatus().updateTaskStatus(taskId, op);
+                _dbClient.updateObject(vol);
             }
         }
     }
 
-    private void updateFailedCGTasks(Set<URI> uriList, String taskId, InternalException e) {
+    private void updateFailedCGTasks(Set<URI> uriList, String taskId, ServiceCoded e) {
         for (URI uri : uriList) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, uri);
             Operation op = cg.getOpStatus().get(taskId);
             if (op != null) {
                 op.error(e);
                 cg.getOpStatus().updateTaskStatus(taskId, op);
+                _dbClient.updateObject(cg);
+            }
+        }
+    }
+    
+    
+    /**
+     * Check if the application has any pending task        
+     * @param application
+     */
+    private void checkForApplicationPendingTasks(VolumeGroup volumeGroup) {
+        List<Task> newTasks = TaskUtils.findResourceTasks(_dbClient, volumeGroup.getId());
+        for (Task task : newTasks) {
+            if (task.isPending()) {
+                throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(volumeGroup.getLabel());
             }
         }
     }

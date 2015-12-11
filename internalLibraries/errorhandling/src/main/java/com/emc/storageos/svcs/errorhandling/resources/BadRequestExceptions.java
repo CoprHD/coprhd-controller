@@ -2641,4 +2641,9 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeCantBeAddedToVolumeGroup(final String volumeName, final String reason);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException removeVolumeFromCGNotAllowed(final String volumeName, final String applicationName);
 }
+
+

@@ -61,7 +61,23 @@ class Authentication(object):
         self.__ipAddr = ipAddr
         self.__port = port
 
-    def authenticate_user(self, username, password, cookiedir, cookiefile):
+
+    def create_secret_file(self, secret_file, username, password):
+        from Crypto.Cipher import ARC4
+        obj1 = ARC4.new('0591325586554389')
+
+        cipher_text = obj1.encrypt(username)
+        print cipher_text
+        secret_file = open(secret_file, 'w+')
+        secret_file.write(cipher_text)
+        secret_file.write("\n")
+        cipher_text = obj1.encrypt(password)
+        secret_file.write(cipher_text)
+        secret_file.write("\n")
+        secret_file.close()
+
+
+    def authenticate_user(self, username, password, cookiedir, cookiefile, secret_file_name=None):
         '''
         Makes REST API call to generate the cookiefile for the
         specified user after validation.
@@ -79,6 +95,21 @@ class Authentication(object):
 
         url = ('https://' + str(self.__ipAddr) + ':' + str(self.__port) +
                self.URI_AUTHENTICATION)
+
+
+        try:
+            if( not (secret_file_name == 'None') and (secret_file_name is not '')):
+                from Crypto.Cipher import ARC4
+                obj1 = ARC4.new('0591325586554389')
+                secret_file = open(secret_file_name, 'r')
+                cipher_text = secret_file.readline().rstrip()
+                username = obj1.decrypt(cipher_text)
+                cipher_text = secret_file.readline().rstrip()
+                password = obj1.decrypt(cipher_text)
+                secret_file.close()
+
+        except Exception as e:
+            raise e
 
         try:
             if(self.__port == APISVC_PORT):
@@ -1938,6 +1969,47 @@ def list_user_group(args):
             else:
                 raise e
 
+def create_secret_file_parser(subcommand_parsers, common_parser):
+    # register command parser
+    create_secret_file_parser = subcommand_parsers.add_parser(
+        'create-secretfile',
+        description='ViPR secret file CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Creates a secret file for user')
+
+    mandatory_args = create_secret_file_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-securityfile',
+                                metavar='<securityfile>',
+                                help='security file',
+                                dest='securityfile',
+                                required=True)
+
+    mandatory_args.add_argument('-username',
+                                metavar='<username>',
+                                help='username',
+                                dest='username',
+                                required=True)
+
+    mandatory_args.add_argument('-password',
+                                metavar='<password>',
+                                help='password',
+                                dest='password',
+                                required=True)
+
+    create_secret_file_parser.set_defaults(func=create_secret_file)
+
+
+def create_secret_file(args):
+    obj = Authentication(args.ip, args.port)
+
+    try:
+        res = obj.create_secret_file(args.securityfile, args.username, args.password)
+    except SOSError as e:
+        raise e
+
 
 def authentication_parser(parent_subparser, common_parser):
     # main authentication parser
@@ -1983,4 +2055,5 @@ def authentication_parser(parent_subparser, common_parser):
 
     list_user_group_parser(subcommand_parsers, common_parser)
 
+    create_secret_file_parser(subcommand_parsers, common_parser)
 

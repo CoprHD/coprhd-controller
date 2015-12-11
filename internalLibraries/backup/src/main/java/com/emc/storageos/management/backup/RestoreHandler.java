@@ -129,9 +129,12 @@ public class RestoreHandler {
         try {
             ZipUtil.unpack(backupArchive, viprDataDir.getParentFile());
 
-            File backupSystemTableDir = new File (tmpBackupDataDir, BackupConstants.DB_SYSTEM_TABLE_FOLDER);
-            File systemTableDir = new File(viprDataDir.getParentFile(), BackupConstants.DB_SYSTEM_TABLE_FOLDER);
-            Files.move(backupSystemTableDir.toPath(), systemTableDir.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            String backupType = backupName.split(BackupConstants.BACKUP_NAME_DELIMITER)[1];
+            if (!BackupType.zk.name().equalsIgnoreCase(backupType)) {
+                File backupSystemTableDir = new File(tmpBackupDataDir, BackupConstants.DB_SYSTEM_TABLE_FOLDER);
+                File systemTableDir = new File(viprDataDir.getParentFile(), BackupConstants.DB_SYSTEM_TABLE_FOLDER);
+                Files.move(backupSystemTableDir.toPath(), systemTableDir.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
 
             tmpBackupDataDir.renameTo(viprDataDir);
             chown(viprDataDir.getParentFile(), BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);

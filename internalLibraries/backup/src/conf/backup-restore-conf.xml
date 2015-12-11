@@ -32,6 +32,7 @@
         <property name="extraCleanDirs">
             <list value-type="java.lang.String">
                 <value>/data/db/1/commitlog</value>
+                <value>/data/db/1/data/system</value>
             </list>
         </property>
     </bean>

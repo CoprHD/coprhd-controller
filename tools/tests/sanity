@@ -6778,7 +6778,7 @@ vdc_common_setup()
 
 ipsec_setup()
 {
-    echo "No setup needed"
+    echo "No ipsec test setup needed"
 }
 
 ipsec_tests() 
@@ -6802,18 +6802,18 @@ ipsec_tests()
 assert_ipsec_status()
 {
     echo "Checking IPsec status"
-    local expect_status=${1}
+    local expect_status="${1}"
     local ipsec_status=""
-    local reuslt=1
+    local result=1
 
     sleep 1
     for i in {1..5}; do
-        ipsec_status=$(ipsec check)
-        [[ ipsec_status == "${expect_status}" ]] && { result=0; break; }
+        ipsec_status=$(./ipsec check)
+        [[ "${ipsec_status}" == *"${expect_status}"* ]] && { result=0; break; }
         sleep 5
     done
 
-    if [[ $result == 1 ]]; then
+    if [[ ${result} == 1 ]]; then
         echo "ipsec status is not right, expect: ${expect_status}, actually is: ${ipsec_status}"
         exit 1
     fi

@@ -12,9 +12,10 @@ import java.io.Serializable;
 
 
 
-import com.emc.storageos.FileReplicationController.FileReplicationDeviceController;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.Controller;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;

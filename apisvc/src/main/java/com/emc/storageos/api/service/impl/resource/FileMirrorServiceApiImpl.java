@@ -158,9 +158,6 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileRPS
     		FileDescriptor fileDescriptor = new FileDescriptor(fileType, fileshare.getStorageDevice(), 
     				fileshare.getId(), fileshare.getPool(), 
     				fileshare.getUsedCapacity(), capabilities, null, null);
-    		
-    		
-    		
     	}
     	
     	return descriptors;
@@ -172,6 +169,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileRPS
 			URI systemURI, List<URI> fileShareURIs, String deletionType,
 			boolean forceDelete) {
 		// TODO Auto-generated method stub
+    	
 		return null;
 	}
 }

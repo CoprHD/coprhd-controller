@@ -1,4 +1,4 @@
-package com.emc.storageos.FileReplicationController;
+package com.emc.storageos.filereplicationcontroller;
 import java.net.URI;
 import java.util.Set;
 

@@ -848,6 +848,7 @@ disasterRecovery.userName=User Name
 disasterRecovery.userPassword=Password
 disasterRecovery.confirmPassword=Confirm Password
 disasterRecovery.description=Description
+disasterRecovery.networkHealth=Network Health
 disasterRecovery.confirmPassword.not.match=User Password and Confirm Password do not match.
 disasterRecovery.deleteConfirm=Are you sure you want to delete this standby cluster?
 
@@ -904,6 +905,8 @@ disasterRecovery.error.code=Error Code
 disasterRecovery.error.code.name=Error Code Name
 disasterRecovery.error.message=Error Message
 disasterRecovery.error.creation.time=Creation Time
+disasterRecovery.paused.time=Paused Time
+disasterRecovery.lastOperation.time=Last Synced Time
 
 # About
 system.about.introspection.title=Discovery

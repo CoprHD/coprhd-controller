@@ -28,7 +28,7 @@ usage()
 viprcli_authenticate()
 {
     echo "**** authenticating viprcli"
-    echo $LOCAL_LDAP_AUTHN_MANAGER_PWD | $VIPRCLI_CMD authenticate -u $LOCAL_LDAP_SUPERUSER_USERNAME -d /tmp
+    echo $LOCAL_LDAP_AUTHN_MANAGER_PWD | $VIPRCLI_CMD authenticate -u $LOCAL_LDAP_SUPERUSER_USERNAME -d /tmp -hostname $BOURNE_IPADDR
 }
 
 #

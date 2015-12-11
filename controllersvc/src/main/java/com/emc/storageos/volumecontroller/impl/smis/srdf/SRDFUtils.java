@@ -208,6 +208,19 @@ public class SRDFUtils implements SmisConstants {
 
         return result;
     }
+    
+    public Collection<CIMObjectPath> getStorageSynchronizationsInRemoteGroup(StorageSystem provider, RemoteDirectorGroup group) {
+        CIMObjectPath remoteGroupPath = cimPath.getRemoteReplicationCollection(provider, group);
+        List<CIMObjectPath> volumePathsInRemoteGroup = getVolumePathsInRemoteGroup(provider, remoteGroupPath);
+
+        List<CIMObjectPath> result = new ArrayList<>();
+        for (CIMObjectPath volumePath : volumePathsInRemoteGroup) {
+            CIMObjectPath storageSync = getStorageSynchronizationFromVolume(provider, volumePath);
+            result.add(storageSync);
+        }
+
+        return result;
+    }
 
     public Collection<CIMObjectPath> getSynchronizations(StorageSystem activeProviderSystem, Volume sourceVolume,
             Volume targetVolume) throws WBEMException {
@@ -261,6 +274,30 @@ public class SRDFUtils implements SmisConstants {
 
         return dbClient.queryObject(Volume.class, volumeURIs);
     }
+    
+    /**
+     * Gets associated ViPR volumes based in the SRDF group
+     * 
+     * @param system The provider system to collect synchronization instances from.
+     * @param target The subject of the association query.
+     * @return A list of Volumes
+     */
+    public List<Volume> getAssociatedVolumesForSRDFGroup(StorageSystem system, RemoteDirectorGroup group) {
+        Collection<CIMObjectPath> syncPaths = getStorageSynchronizationsInRemoteGroup(system, group);
+        Collection<SynchronizedVolumePair> volumePairs = transform(syncPaths, toSynchronizedVolumePairFn());
+
+        Set<URI> volumeURIs = new HashSet<>();
+        URIQueryResultList results = new URIQueryResultList();
+        for (SynchronizedVolumePair pair : volumePairs) {
+            dbClient.queryByConstraint(getVolumeNativeGuidConstraint(pair.getSourceGUID()), results);
+            volumeURIs.add(results.iterator().next());
+            dbClient.queryByConstraint(getVolumeNativeGuidConstraint(pair.getTargetGUID()), results);
+            volumeURIs.add(results.iterator().next());
+        }
+
+        return dbClient.queryObject(Volume.class, volumeURIs);
+    }
+
 
     public Predicate<? super Volume> volumePersonalityPredicate(final PersonalityTypes personality) {
         return new Predicate<Volume>() {

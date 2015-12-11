@@ -121,6 +121,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String RESYNC_SRDF_MIRRORS_STEP_DESC = "Reestablishing SRDF Relationship again";
     private static final String STEP_VOLUME_EXPAND = "EXPAND_VOLUME";
     private static final String CREATE_SRDF_RESUME_PAIR_METHOD = "resumeSyncPairStep";
+    private static final String RESUME_SRDF_GROUP_METHOD = "resumeSrdfGroupStep";
     private static final String CHANGE_SRDF_TO_NONSRDF_STEP_DESC = "Converting SRDF Devices to Non Srdf devices";
     private static final String CONVERT_TO_NONSRDF_DEVICES_METHOD = "convertToNonSrdfDevicesMethodStep";
     private static final String CREATE_LIST_REPLICAS_METHOD = "createListReplicas";
@@ -856,6 +857,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             log.info("Invoking SRDF Consistency Group Deletion with all its volumes");
             return deleteAllSrdfVolumesInCG(sourcesVolumeMap, workflow, waitFor, sourceDescriptors);
         }
+
+        Map<URI, RemoteDirectorGroup> srdfGroupMap = new HashMap<URI, RemoteDirectorGroup>();
+        Map<URI, List<URI>> srdfGroupToSourceVolumeMap = new HashMap<URI, List<URI>>();
+        Map<URI, List<URI>> srdfGroupToTargetVolumeMap = new HashMap<URI, List<URI>>();
+        Map<URI, String> srdfGroupToLastWaitFor = new HashMap<URI, String>();
         // invoke deletion of volume within CG
         for (Volume source : sourcesVolumeMap.values()) {
             StringSet srdfTargets = source.getSrdfTargets();
@@ -893,28 +899,19 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             system.getSystemType(), getClass(), detachMethod, null, null);
                     waitFor = detachStep;
                     if(activeMode){
-                        List<Volume> volumes = utils.getAssociatedVolumes(system, target);
-                        Collection<Volume> tgtVolumes = newArrayList(filter(volumes, utils.volumePersonalityPredicate(TARGET)));
-                        // Remove the target from the list that will be detached.
-                        // If tgtVolumes is not empty then after detach(deletepair) add a step to resume(establish) will be done
-                        // on rest of the volumes in the SRDF group.
-                        Iterator<Volume> tgtIter = tgtVolumes.iterator();
-                        while (tgtIter.hasNext()) {
-                            if (tgtIter.next().getId().equals(target.getId())) {
-                                tgtIter.remove();
-                                break;
-                            }
+                        // We need fill up necessary data to be able to call Resume once on the SRDF
+                        // group when all the requested volumes are removed from the SRDF group.
+                        URI groupId = group.getId();
+                        srdfGroupMap.put(groupId, group);
+                        if (srdfGroupToSourceVolumeMap.get(groupId) == null) {
+                            srdfGroupToSourceVolumeMap.put(groupId, new ArrayList<URI>());
                         }
-
-                        if (!tgtVolumes.isEmpty() && tgtVolumes.iterator().hasNext()) {
-                            Volume tgtVolume = tgtVolumes.iterator().next();
-                            Workflow.Method resumeSyncPairMethod = resumeSyncPairMethod(system.getId(),
-                                    tgtVolume.getSrdfParent().getURI(), tgtVolume.getId());
-                            String resumeStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
-                                    RESUME_SRDF_MIRRORS_STEP_DESC, detachStep, system.getId(),
-                                    system.getSystemType(), getClass(), resumeSyncPairMethod, null, null);
-                            waitFor = resumeStep;
+                        if (srdfGroupToTargetVolumeMap.get(groupId) == null) {
+                            srdfGroupToTargetVolumeMap.put(groupId, new ArrayList<URI>());
                         }
+                        srdfGroupToSourceVolumeMap.get(groupId).add(source.getId());
+                        srdfGroupToTargetVolumeMap.get(groupId).add(targetURI);
+                        srdfGroupToLastWaitFor.put(groupId, waitFor);
                     }
 
                 } else {
@@ -946,6 +943,22 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 }
             }
         }
+
+        if (!srdfGroupMap.isEmpty()) {
+            // Add step to resume each Active SRDF group
+            for (URI srdfGroupURI : srdfGroupMap.keySet()) {
+                RemoteDirectorGroup group = srdfGroupMap.get(srdfGroupURI);
+                List<URI> sourceVolumes = srdfGroupToSourceVolumeMap.get(srdfGroupURI);
+                List<URI> targetVolumes = srdfGroupToTargetVolumeMap.get(srdfGroupURI);
+                waitFor = srdfGroupToLastWaitFor.get(srdfGroupURI);
+                system = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
+                Workflow.Method resumeSRDFGroupMethod = resumeSRDFGroupMethod(system.getId(), group, sourceVolumes, targetVolumes);
+                waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                        RESUME_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                        system.getSystemType(), getClass(), resumeSRDFGroupMethod, null, null);
+            }
+        }
+
         // refresh provider before invoking deleteVolume call
         if (null != targetSystem) {
             addStepToRefreshSystem(DELETE_SRDF_MIRRORS_STEP_GROUP, targetSystem, targetVolumeURIs, waitFor, workflow);
@@ -1057,6 +1070,43 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
             getRemoteMirrorDevice().doRemoveVolumePair(system, sourceURI, targetURI, rollback,
                     completer);
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(dbClient, error);
+            }
+            WorkflowStepCompleter.stepFailed(opId, error);
+            return false;
+        }
+        return true;
+    }
+
+    public Method resumeSRDFGroupMethod(final URI systemURI, final RemoteDirectorGroup group, final List<URI> sourceVolumes,
+            final List<URI> targetVolumes) {
+        return new Workflow.Method(RESUME_SRDF_GROUP_METHOD, systemURI, group, sourceVolumes, targetVolumes);
+    }
+
+    public boolean resumeSrdfGroupStep(final URI systemURI, final RemoteDirectorGroup group, final List<URI> sourceVolumes,
+            final List<URI> targetVolumes, String opId) {
+        log.info("START Resume SRDF group {} for {}", group.getLabel(), systemURI);
+        TaskCompleter completer = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem system = getStorageSystem(systemURI);
+            List<Volume> volumes = utils.getAssociatedVolumesForSRDFGroup(system, group);
+            Collection<Volume> tgtVolumes = newArrayList(filter(volumes, utils.volumePersonalityPredicate(TARGET)));
+
+            if (!tgtVolumes.isEmpty() && tgtVolumes.iterator().hasNext()) {
+                List<URI> combinedVolumeList = new ArrayList<URI>();
+                combinedVolumeList.addAll(sourceVolumes);
+                combinedVolumeList.addAll(targetVolumes);
+                completer = new SRDFTaskCompleter(combinedVolumeList, opId);
+                getRemoteMirrorDevice().doResumeLink(system, tgtVolumes.iterator().next(), completer);
+            } else {
+                log.info("There are no more volumes in the SRDF group {} {}, so no need to call resume.", group.getLabel(), group.getId());
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
+
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {

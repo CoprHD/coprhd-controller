@@ -1482,6 +1482,7 @@ public class CoordinatorClientExt {
 
                 //vipr1 is default leader in readonly mode and will coordinate transition to participant
                 if(!getMyNodeId().equals("vipr1")){
+                    _log.info("Waiting for vipr1 to coordinate or Active site to become available");
                     return;
                 }
 
@@ -1489,11 +1490,13 @@ public class CoordinatorClientExt {
                 for(String node:getAllNodeIds()){
                     String nodeState=drUtil.getLocalCoordinatorMode(node);
                     if (!DrUtil.ZOOKEEPER_MODE_READONLY.equals(nodeState)){
+                        _log.info("All nodes are not read-only, cannot reconfig to participant");
                         return;
                     }
                 }
 
                 // if zk is switched from observer mode to participant, reload syssvc
+                _log.info("All nodes are read-only, reconfig all to participant");
                 reconfigAllZKToWritable(!DrUtil.ZOOKEEPER_MODE_READONLY.equals(initZkMode));
             } else {
                 if (isActiveSiteStable()) {
@@ -1538,18 +1541,16 @@ public class CoordinatorClientExt {
      * @param path for logging barrier
      * @return true for successful, false for success unknown
      */
-    private boolean leaveZKDoubleBarrier(DistributedDoubleBarrier barrier, String path){
+    private void leaveZKDoubleBarrier(DistributedDoubleBarrier barrier, String path){
         try {
             _log.info("Leaving the barrier {}",path);
             boolean leaved = barrier.leave(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
             if (!leaved) {
                 _log.warn("Unable to leave barrier for {}", path);
             }
-            return leaved;
         } catch (Exception ex) {
             _log.warn("Unexpected errors during leaving barrier",ex);
         }
-        return false;
     }
 
     /**
@@ -1577,7 +1578,8 @@ public class CoordinatorClientExt {
      * @param reloadSyssvc if syssvc needs to be reloaded
      */
     public void reconfigAllZKToWritable(boolean reloadSyssvc) {
-        _log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
+        _log.info("Standby is running in read-only mode due to connection loss with active site. " +
+                "Reconfig coordinatorsvc of all nodes to writable");
 
         try{
             for(String node:getAllNodeIds()){

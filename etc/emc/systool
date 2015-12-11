@@ -464,7 +464,7 @@ EOF
 
 _remote_systool() {
     exec /usr/bin/ssh storageos@${1} "sudo /etc/systool ${2} ${3}"
-    _fatal     "Failed to exec /usr/bin/ssh storageos@${1} \"sudo /etc/systool --${2} ${3}\""
+    _fatal     "Failed to exec /usr/bin/ssh storageos@${1} \"sudo /etc/systool ${2} ${3}\""
 }
 
 _restart() {

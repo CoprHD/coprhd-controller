@@ -1266,12 +1266,12 @@ keystore.task.message=Error Details
 keystore.task.code=Error Code
 
 ipsec.title=IPsec
-ipsec.description=Enables secure communication between nodes in a ViPR cluster and between ViPR clusters and uses IPsec Keys to secure the communication.
+ipsec.description=Enables secure communication between nodes in a ViPR cluster and between ViPR clusters and uses IPsec Key to secure the communication.
 ipsec.key.rotation.description=Generates a new IPsec key. The IPsec communication between the nodes in the cluster will be momentarily stopped while restarting the IPsec service.
-ipsec.key.rotation.error=Failed To rotate the IPsec Keys. '%s'.
-ipsec.key.rotation.success=Successfully rotated the IPsec Keys.
+ipsec.key.rotation.error=Failed To rotate the IPsec Key. '%s'.
+ipsec.key.rotation.success=Successfully rotated the IPsec Key.
 ipsec.configuration=IPsec Configuration
-ipsec.configuration.keysGeneratedOn=IPsec Keys Generated On
+ipsec.configuration.keysGeneratedOn=IPsec Key Generated On
 ipsec.status=IPsec Status
 ipsec.status.refresh=Refresh status
 ipsec.auto.refresh=Auto Refresh page
@@ -1280,7 +1280,7 @@ ipsec.status.degraded=Degraded
 ipsecFailure.title=IPsec Failure Nodes
 ipsecFailure.description=List of all the nodes in which the IPsec is currently not working. IPsec service is trying to synchronize with other working nodes to enable the IPsec communication.
 ipsecFailure.node=Node
-ipsecFailure.keysGeneratedOn=IPsec Keys Generated On
+ipsecFailure.keysGeneratedOn=IPsec Key Generated On
 ipsecFailure.status=Status
 
 
@@ -3556,7 +3556,7 @@ button.actions=Actions
 button.associate=Associate Project
 button.dissociate=Dissociate Project
 button.failover=Failover
-button.ipsec.rotate.keys=Rotate IPsec Keys
+button.ipsec.rotate.keys=Rotate IPsec Key
 selectOne.chooseOption=-- Please Choose --
 
 common.yes=Yes

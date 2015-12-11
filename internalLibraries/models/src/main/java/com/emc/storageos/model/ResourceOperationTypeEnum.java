@@ -306,6 +306,7 @@ public enum ResourceOperationTypeEnum {
     CREATE_VPLEX_VOLUME_FROM_SNAPSHOT("CREATE VPLEX VOLUME FROM SNAPSHOT", "Create a VPLEX volume on top of a block snapshot target volume"),
     UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "Update a volume group"),
     CREATE_SNAPSHOT_SESSION("CREATE SNAPSHOT SESSION", "create a snapshot session"),
+    CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION("CREATE CONSISTENCY GROUP SNAPSHOT SESSION", "create a consistency group snapshot session"),
     LINK_SNAPSHOT_SESSION_TARGETS("LINK SNAPSHOT SESSION TARGETS", "links target volumes to a snapshot session"),
     RELINK_SNAPSHOT_SESSION_TARGETS("RELINK SNAPSHOT SESSION TARGETS", "re-links target volumes to a snapshot session"),
     UNLINK_SNAPSHOT_SESSION_TARGETS("UNLINK SNAPSHOT SESSION TARGETS", "unlinks target volumes from a snapshot session"),

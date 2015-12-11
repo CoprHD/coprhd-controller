@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.ResourceService;
@@ -61,6 +62,7 @@ import java.util.UUID;
 import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 import static java.lang.String.format;
 
 /**
@@ -273,6 +275,9 @@ public class BlockSnapshotSessionManager {
             snapSessionSnapshotURIs.addAll(snapSessionSnapshotMap.get(snapSessionURI).keySet());
             snapSessionSnapshotURIMap.put(snapSessionURI, snapSessionSnapshotURIs);
         }
+
+        addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
+                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
 
         // Create the snapshot sessions.
         try {
@@ -786,6 +791,36 @@ public class BlockSnapshotSessionManager {
                 object.setInactive(true);
             }
             _dbClient.updateObject(preparedObjects);
+        }
+    }
+
+    /**
+     * Creates tasks against consistency groups associated with a request and adds them to the given task list.
+     *
+     * @param objects
+     * @param taskList
+     * @param taskId
+     * @param operationTypeEnum
+     * @param <T>
+     */
+    protected <T extends BlockObject> void addConsistencyGroupTasks(List<T> objects, TaskList taskList, String taskId,
+                                                                    ResourceOperationTypeEnum operationTypeEnum) {
+        Set<URI> consistencyGroups = new HashSet<>();
+        for (T object : objects) {
+            if (!isNullURI(object.getConsistencyGroup())) {
+                consistencyGroups.add(object.getConsistencyGroup());
+            }
+        }
+
+        if (consistencyGroups.isEmpty()) {
+            return;
+        }
+
+        List<BlockConsistencyGroup> groups = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroups);
+        for (BlockConsistencyGroup group : groups) {
+            Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
+                    operationTypeEnum);
+            taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
         }
     }
 }

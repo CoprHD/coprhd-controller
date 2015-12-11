@@ -14,7 +14,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import com.emc.storageos.model.valid.Length;
 
 /**
- * Application creation parameters
+ * VolumeGroup creation parameters
  */
 @XmlRootElement(name = "volume_group_create")
 public class VolumeGroupCreateParam {

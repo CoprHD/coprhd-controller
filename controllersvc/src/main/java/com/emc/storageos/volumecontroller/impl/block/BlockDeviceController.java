@@ -2270,7 +2270,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            if (!isCG) {
+            if (!isCG && mirrorList.size() == 1) {
                 completer = new BlockMirrorCreateCompleter(mirrorList.get(0), opId);
                 getDevice(storageObj.getSystemType()).doCreateMirror(storageObj, mirrorList.get(0), createInactive, completer);
             } else {
@@ -3200,7 +3200,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             TaskCompleter taskCompleter = new CloneCreateCompleter(fullCopyVolumes, taskId);
             WorkflowStepCompleter.stepExecuting(taskId);
-            if (isCG) {
+            // if number of clones more than 1 we need to use createListReplica
+            if (isCG || fullCopyVolumes.size() > 1) {
                 boolean isListReplicaFlow = false;
                 StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
                 Volume sourceVolumeObj = _dbClient.queryObject(Volume.class, sourceVolume);

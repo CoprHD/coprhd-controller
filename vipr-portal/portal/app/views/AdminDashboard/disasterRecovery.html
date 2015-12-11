@@ -10,7 +10,6 @@
 					<thead>
 					<tr>
 						<th>&{'disasterRecovery.name'}</th>
-						<th>&{'disasterRecovery.VirtualIP'}</th>
 						<th>&{'disasterRecovery.status'}</th>
 					</tr>
 					</thead>
@@ -18,7 +17,6 @@
         				#{list items:drsites, as:'site'}
         				<tr>
 							<td>${site.name}</td>
-							<td>${site.vip}</td>
 							<td>
 								#{if site.state == "ACTIVE"}
 									<span class="glyphicon glyphicon-ok" style="color:#00FF00"></span><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>

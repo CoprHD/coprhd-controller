@@ -848,6 +848,7 @@ disasterRecovery.userName=User Name
 disasterRecovery.userPassword=Password
 disasterRecovery.confirmPassword=Confirm Password
 disasterRecovery.description=Description
+disasterRecovery.networkHealth= Network Health
 disasterRecovery.confirmPassword.not.match=User Password and Confirm Password do not match.
 disasterRecovery.deleteConfirm=Are you sure you want to delete this standby cluster?
 

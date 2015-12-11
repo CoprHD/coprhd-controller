@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -409,5 +410,16 @@ public class XtremIOProvUtils {
 
     public static boolean is4xXtremIOModel(String model) {
         return (null != model && Integer.valueOf(model.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION);
+    }
+
+    public static String getInitiatorNameForStorageSystem(Initiator initiator, String systemSerialNumber) {
+        String initiatorName = initiator.getInitiatorNames().get(systemSerialNumber);
+        if (initiatorName == null || initiatorName.isEmpty()) {
+            _log.warn("Could not find the initiator name for the initiator {} for the given storage {}", initiator.getLabel(),
+                    systemSerialNumber);
+            initiatorName = initiator.getLabel();
+        }
+
+        return initiatorName;
     }
 }

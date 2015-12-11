@@ -405,6 +405,7 @@ public class XtremIOCommunicationInterface extends
                 } else {
                     Initiator initiatorObj = _dbClient.queryObject(Initiator.class, initiatorUris.get(0));
                     initiatorObj.setLabel(initiator.getName());
+                    initiatorObj.getInitiatorNames().put(system.getSerialNumber(), initiator.getName());
                     _dbClient.persistObject(initiatorObj);
                 }
             }

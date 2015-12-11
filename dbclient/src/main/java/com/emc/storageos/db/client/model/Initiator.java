@@ -20,6 +20,8 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     private String _hostName;
     // to do - This is temporary until initiator service is remove
     private String _clusterName;
+    // COP-18937: Initiator may be registered to multiple storage systems using different names.
+    private StringMap initiatorNames;
 
     /**
      * Default Constructor. This is the constructor used by the API.
@@ -153,6 +155,28 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
         setChanged("clustername");
     }
 
+    /**
+     * Getter for the initiator names
+     * 
+     * @return Map of storage system serial number to initiator name
+     */
+    @Name("initiatorNames")
+    public StringMap getInitiatorNames() {
+        if (initiatorNames == null) {
+            initiatorNames = new StringMap();
+        }
+        return initiatorNames;
+    }
+
+    /**
+     * Setter for the initiatorNames
+     * 
+     * @param initiatorNames - map of storage system to initiator name
+     */
+    public void setInitiatorNames(StringMap initiatorNames) {
+        this.initiatorNames = initiatorNames;
+    }
+
     @Override
     public final String toString() {
         return String.format(
@@ -165,7 +189,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
         String normalizedPort = port;
         if (WWNUtility.isValidWWN(port)) {
             normalizedPort = WWNUtility.getUpperWWNWithNoColons(port);
-        } else if(iSCSIUtility.isValidIQNPortName(port)) {
+        } else if (iSCSIUtility.isValidIQNPortName(port)) {
             normalizedPort = normalizedPort.toLowerCase();
         }
         return normalizedPort;

@@ -1053,7 +1053,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public LeaderSelector getLeaderSelector(String leaderPath, LeaderSelectorListener listener)
             throws CoordinatorException {
-        return getLeaderSelector(leaderPath, listener);
+        return getLeaderSelector(null, leaderPath, listener);
     }
 
     @Override

@@ -18,7 +18,7 @@ import com.iwave.ext.command.CommandOutput;
 public class ListIQNsCommandTest {
 
     static String output =
-            "Initiator Name            : iqn.1986-03.com.hp:LGLAL017.b0b29429-b3d5-11e3-bc62-145e2199962a" + "\n" +
+            "Initiator Name            : iqn.This-Is-A-Test-123456" + "\n" +
                     "Initiator Alias           : " + "\n" +
                     "\n" +
                     "Authentication Method     : " + "\n" +
@@ -47,7 +47,7 @@ public class ListIQNsCommandTest {
         iqnsCommand.parseOutput();
         Set<String> results = iqnsCommand.getResults();
         Assert.assertEquals(1, results.size());
-        Assert.assertEquals("iqn.1986-03.com.hp:LGLAL017.b0b29429-b3d5-11e3-bc62-145e2199962a", results.iterator().next());
+        Assert.assertEquals("iqn.This-Is-A-Test-123456", results.iterator().next());
     }
 
 }

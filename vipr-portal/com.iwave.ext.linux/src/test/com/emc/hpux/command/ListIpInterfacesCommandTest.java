@@ -23,11 +23,11 @@ public class ListIpInterfacesCommandTest {
             "\n" +
             "\n" +
             "lan0: flags=1843<UP,BROADCAST,RUNNING,MULTICAST,CKO>" + "\n" +
-            "        inet 10.247.63.17 netmask ffffff00 broadcast 10.247.63.255" + "\n" +
+            "        inet 10.100.10.10 netmask ffffff00 broadcast 10.100.10.255" + "\n" +
             "\n" +
             "\n" +
             "lan0: flags=1843<UP,BROADCAST,RUNNING,MULTICAST,CKO>" + "\n" +
-            "        inet 10.247.63.17 netmask ffffff00 broadcast 10.247.63.255" + "\n" +
+            "        inet 10.100.10.10 netmask ffffff00 broadcast 10.100.10.255" + "\n" +
             "\n" +
             "\n" +
             "lo0: flags=849<UP,LOOPBACK,RUNNING,MULTICAST>" + "\n" +
@@ -35,7 +35,7 @@ public class ListIpInterfacesCommandTest {
             "\n" +
             "\n" +
             "lan0: flags=1843<UP,BROADCAST,RUNNING,MULTICAST,CKO>" + "\n" +
-            "       inet 10.247.63.17 netmask ffffff00 broadcast 10.247.63.255" + "\n";
+            "       inet 10.100.10.10 netmask ffffff00 broadcast 10.100.10.255" + "\n";
 
     static ListIPInterfacesCommand ipInterfacesCommand = null;
 
@@ -52,9 +52,11 @@ public class ListIpInterfacesCommandTest {
         ipInterfacesCommand.parseOutput();
         List<IPInterface> results = ipInterfacesCommand.getResults();
         Assert.assertEquals(5, results.size());
-        for (IPInterface ip : results) {
-            System.out.println(ip);
-        }
+        Assert.assertEquals("127.0.0.1", results.get(0).getIpAddress());
+        Assert.assertEquals("10.100.10.10", results.get(1).getIpAddress());
+        Assert.assertEquals("10.100.10.10", results.get(2).getIpAddress());
+        Assert.assertEquals("127.0.0.1", results.get(3).getIpAddress());
+        Assert.assertEquals("10.100.10.10", results.get(4).getIpAddress());
     }
 
 }

@@ -10,7 +10,6 @@
  */
 package com.emc.storageos.cinder.model;
 
-import java.util.Map;
 //import VolumeCreateRequest;
 
 public class VolumeCreateRequestGen  extends VolumeCreateRequest{

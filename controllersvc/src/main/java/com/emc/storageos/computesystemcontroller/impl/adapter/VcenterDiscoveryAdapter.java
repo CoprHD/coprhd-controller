@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.computesystemcontroller.exceptions.CompatibilityException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
@@ -42,7 +43,6 @@ import com.vmware.vim25.InvalidLogin;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datacenter;
 import com.vmware.vim25.mo.HostSystem;
-import org.springframework.util.CollectionUtils;
 
 /**
  * Discovery adapter for vCenters.
@@ -54,6 +54,21 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
     @Override
     public boolean isSupportedTarget(String targetId) {
         return URIUtil.isType(URI.create(targetId), Vcenter.class);
+    }
+
+    @Override
+    public void discoveryFailure(DiscoveredSystemObject target, String compatibilityStatus, String errorMessage) {
+        super.discoveryFailure(target, compatibilityStatus, errorMessage);
+        Vcenter vcenter = getModelClient().vcenters().findById(target.getId());
+        Iterable<VcenterDataCenter> dataCenters = getModelClient().datacenters().findByVCenter(vcenter.getId(), true);
+        for (VcenterDataCenter dataCenter : dataCenters) {
+            Iterable<Host> hosts = getModelClient().hosts().findByVcenterDatacenter(dataCenter.getId());
+            for (Host host : hosts) {
+                host.setCompatibilityStatus(compatibilityStatus);
+                host.setLastDiscoveryStatusMessage(errorMessage);
+                save(host);
+            }
+        }
     }
 
     @Override

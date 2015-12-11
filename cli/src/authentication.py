@@ -67,7 +67,6 @@ class Authentication(object):
         obj1 = ARC4.new('0591325586554389')
 
         cipher_text = obj1.encrypt(username)
-        print cipher_text
         secret_file = open(secret_file, 'w+')
         secret_file.write(cipher_text)
         secret_file.write("\n")

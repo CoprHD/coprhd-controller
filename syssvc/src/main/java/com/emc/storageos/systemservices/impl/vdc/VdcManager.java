@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Exec;
@@ -39,7 +38,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class VdcManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(VdcManager.class);
 
-    private DbClient dbClient;
     private IPsecConfig ipsecConfig;
     @Autowired
     private IPsecManager ipsecMgr;
@@ -59,6 +57,7 @@ public class VdcManager extends AbstractManager {
     public static final int PAUSE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
+    public static final int REMOVE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     private static final int BACK_UPGRADE_RETRY_MILLIS = 30 * 1000; // 30 seconds
     
@@ -68,10 +67,6 @@ public class VdcManager extends AbstractManager {
     private VdcConfigUtil vdcConfigUtil;
     private Map<String, VdcOpHandler> vdcOpHandlerMap;
     private Boolean backCompatPreYoda = false;
-    
-    public void setDbClient(DbClient dbClient) {
-        this.dbClient = dbClient;
-    }
     
     public void setDrUtil(DrUtil drUtil) {
         this.drUtil = drUtil;
@@ -453,8 +448,7 @@ public class VdcManager extends AbstractManager {
 
     private SiteError getSiteError(Site site) {
         SiteError error = null;
-        SiteInfo targetSiteInfo = coordinator.getCoordinatorClient().getTargetInfo(site.getUuid(), SiteInfo.class);
-        long lastSiteUpdateTime = targetSiteInfo.getVdcConfigVersion();
+        long lastSiteUpdateTime = site.getLastStateUpdateTime();
         long currentTime = System.currentTimeMillis();
 
         switch(site.getState()) {
@@ -484,6 +478,13 @@ public class VdcManager extends AbstractManager {
                     log.info("Step5: Site {} set to error due to data sync timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.dataSyncFailedTimeout(
                             DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                }
+                break;
+            case STANDBY_REMOVING:
+                if (currentTime - lastSiteUpdateTime > REMOVE_STANDBY_TIMEOUT_MILLIS) {
+                    log.info("Step5: Site {} set to error due to remove standby timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.removeStandbyFailedTimeout(
+                            REMOVE_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
                 }
                 break;
             case ACTIVE_SWITCHING_OVER:

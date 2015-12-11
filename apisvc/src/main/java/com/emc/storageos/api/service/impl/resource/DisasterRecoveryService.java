@@ -653,7 +653,7 @@ public class DisasterRecoveryService {
             log.info("Pausing sites");
             for (Site site : toBePausedSites) {
                 site.setState(SiteState.STANDBY_PAUSING);
-                site.setPausedTime(System.currentTimeMillis());
+                site.setLastStateUpdateTime(System.currentTimeMillis());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
                 // notify the to-be-paused sites before others.
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY);
@@ -708,31 +708,34 @@ public class DisasterRecoveryService {
         InterProcessLock lock = getDROperationLock();
 
         try {
-            standby.setState(SiteState.STANDBY_RESUMING);
-            coordinator.persistServiceConfiguration(standby.toConfiguration());
-
             for (Site site : drUtil.listStandbySites()) {
+                long dataRevision = 0;
                 if (site.getUuid().equals(uuid)) {
                     int gcGracePeriod = DEFAULT_GC_GRACE_PERIOD;
                     String strVal = _dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
                     if (strVal != null) {
                         gcGracePeriod = Integer.parseInt(strVal);
                     }
-                    if ((System.currentTimeMillis() - site.getPausedTime())/1000 >= gcGracePeriod) {
+                    // last state update should be PAUSED
+                    if ((System.currentTimeMillis() - site.getLastStateUpdateTime())/1000 >= gcGracePeriod) {
                         log.error("site {} has been paused for too long, we will re-init the target standby", uuid);
 
                         // init the to-be resumed standby site
-                        long dataRevision = System.currentTimeMillis();
+                        dataRevision = System.currentTimeMillis();
                         SiteConfigParam configParam = prepareSiteConfigParam(ipsecConfig.getPreSharedKey(), uuid, dataRevision);
                         internalSiteServiceClient = new InternalSiteServiceClient();
                         internalSiteServiceClient.setCoordinatorClient(coordinator);
                         internalSiteServiceClient.setServer(site.getVip());
                         internalSiteServiceClient.initStandby(configParam);
-
-                        drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, dataRevision);
-                    } else {
-                        drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY);
                     }
+
+                    // update the site state AFTER checking the last state update time
+                    site.setState(SiteState.STANDBY_RESUMING);
+                    coordinator.persistServiceConfiguration(site.toConfiguration());
+                }
+
+                if (dataRevision != 0) {
+                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, dataRevision);
                 } else {
                     drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY);
                 }

@@ -254,6 +254,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_RECONFIG_FAILED)
     public InternalServerErrorException removeStandbyReconfigFailed(String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
+    InternalServerErrorException removeStandbyFailedTimeout(final long timeoutValue);
+
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_FAILED)
     public InternalServerErrorException pauseStandbyFailed(final String siteName, String errMsg);
 

@@ -1308,6 +1308,11 @@ public class DisasterRecoveryService {
                 throw APIException.internalServerErrors.addStandbyPrecheckFailed("Duplicate site name");
             }
 
+            // COP-18954 Skip stability check for paused sites
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                continue;
+            }
+
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);

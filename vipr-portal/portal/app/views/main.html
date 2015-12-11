@@ -66,8 +66,10 @@
               #{nav.item 'adminDashboardPage', href: @AdminDashboard.dashboard()/}
               	#{nav.item 'systemHealthDashboard', href: @SystemHealth.systemHealth()/}
               	#{nav.item 'backup', href: @Backup.list()/}
-              	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
-                	#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
+              	#{if controllers.infra.DisasterRecovery.isPrimarySite()}
+              		#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
+                		#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
+              		#{/if}
               	#{/if}
               	#{nav.item 'dbHealthDashboard', href: @SystemHealth.dbHealth()/}
             #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}  

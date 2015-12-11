@@ -64,6 +64,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         for (VcenterDataCenter dataCenter : dataCenters) {
             Iterable<Host> hosts = getModelClient().hosts().findByVcenterDatacenter(dataCenter.getId());
             for (Host host : hosts) {
+                host.setDiscoveryStatus(DataCollectionJobStatus.ERROR.name());
+                host.setLastDiscoveryRunTime(System.currentTimeMillis());
                 host.setCompatibilityStatus(compatibilityStatus);
                 host.setLastDiscoveryStatusMessage(errorMessage);
                 save(host);

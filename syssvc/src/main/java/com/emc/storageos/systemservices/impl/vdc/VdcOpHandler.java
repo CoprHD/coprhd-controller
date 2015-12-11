@@ -731,9 +731,12 @@ public abstract class VdcOpHandler {
             log.info("Wait for barrier to reboot cluster");
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), true);
             barrier.enter();
-            
-            log.info("Reboot this node after failover");
-            localRepository.reboot();
+            try {
+                log.info("Reboot this node after failover");
+                localRepository.reboot();
+            } finally {
+                barrier.leave();
+            }
         }
     }
     
@@ -958,6 +961,7 @@ public abstract class VdcOpHandler {
                 log.info("All nodes entered VdcPropBarrier");
             } else {
                 log.warn("Only Part of nodes entered within {} seconds", timeout);
+                leave(); // we need clean our double barrier if not all nodes enter it
                 throw new Exception("Only Part of nodes entered within timeout");
             }
         }

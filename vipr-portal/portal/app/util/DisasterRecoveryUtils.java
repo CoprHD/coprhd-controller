@@ -9,7 +9,7 @@ import static util.BourneUtil.getViprClient;
 
 import java.util.List;
 
-import com.emc.storageos.model.dr.SiteActionsTime;
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
@@ -105,7 +105,7 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().updateSite(uuid, updatesite);
     }
 
-    public static SiteActionsTime getSiteTime(String uuid) {
+    public static SiteDetailRestRep getSiteTime(String uuid) {
         return getViprClient().site().getSiteTime(uuid);
     }
 

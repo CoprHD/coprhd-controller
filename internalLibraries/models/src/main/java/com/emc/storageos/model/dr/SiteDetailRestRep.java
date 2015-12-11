@@ -13,7 +13,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "site_actions_time")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-public class SiteActionsTime {
+public class SiteDetailRestRep {
     private Date creationTime;
     private Date pausedTime;
     private Date lastOperationTime;

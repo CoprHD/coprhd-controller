@@ -58,7 +58,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
-import com.emc.storageos.model.dr.SiteActionsTime;
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
@@ -1050,10 +1050,10 @@ public class DisasterRecoveryService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
             Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     @Path("/{uuid}/time")
-    public SiteActionsTime getSiteTime(@PathParam("uuid") String uuid) {
+    public SiteDetailRestRep getSiteTime(@PathParam("uuid") String uuid) {
         log.info("Begin to get site paused time by uuid {}", uuid);
 
-        SiteActionsTime standbyTimes = new SiteActionsTime();
+        SiteDetailRestRep standbyTimes = new SiteDetailRestRep();
         try {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 

@@ -142,7 +142,6 @@ public class DisasterRecoveryServiceTest {
         primarySite = new Site();
         primarySite.setUuid("primary-site-uuid");
         primarySite.setVip("127.0.0.1");
-        primarySite.setSecretKey("secret-key");
         primarySite.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
         primarySite.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
         primarySite.setVdcShortId("vdc1");
@@ -737,7 +736,6 @@ public class DisasterRecoveryServiceTest {
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         drService.doSwitchover(standbySite2.getUuid());
         
-        verify(coordinator, times(1)).setActiveSite(standbySite2.getUuid());
         verify(coordinator, times(2)).persistServiceConfiguration(any(Configuration.class));
     }
     

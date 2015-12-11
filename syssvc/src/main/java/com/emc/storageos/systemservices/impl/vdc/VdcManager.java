@@ -8,15 +8,11 @@ package com.emc.storageos.systemservices.impl.vdc;
 import java.net.URI;
 import java.util.Map;
 
+import com.emc.storageos.coordinator.client.model.*;
+import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.PowerOffState;
-import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteError;
-import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
@@ -29,6 +25,7 @@ import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
+import org.springframework.beans.factory.annotation.Autowired;
 
 
 /**
@@ -44,6 +41,8 @@ public class VdcManager extends AbstractManager {
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
+    @Autowired
+    private IPsecManager ipsecMgr;
 
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
@@ -301,8 +300,8 @@ public class VdcManager extends AbstractManager {
      */
     private PropertyInfoExt loadVdcConfig() throws Exception {
         targetVdcPropInfo = new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
-        targetVdcPropInfo.addProperty("ipsec_key", ipsecConfig.getPreSharedKey());
-        targetVdcPropInfo.addProperty("ipsec_status",ipsecConfig.getIpsecStatus());
+        targetVdcPropInfo.addProperty(Constants.IPSEC_STATUS,ipsecConfig.getIpsecStatus());
+        targetVdcPropInfo.addProperty(Constants.IPSEC_KEY, ipsecConfig.getPreSharedKey());
         return targetVdcPropInfo;
     }
 
@@ -448,7 +447,7 @@ public class VdcManager extends AbstractManager {
                 coordinatorClient.setTargetInfo(site.getUuid(), error);
 
                 site.setState(SiteState.STANDBY_ERROR);
-                coordinatorClient.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+                coordinatorClient.persistServiceConfiguration(site.toConfiguration());
             }
         }
     }
@@ -510,18 +509,61 @@ public class VdcManager extends AbstractManager {
         String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
         String targetDbSchemaVersion = coordinator.getCoordinatorClient().getTargetDbSchemaVersion();
         log.info("Current schema version {}", currentDbSchemaVersion);
-        if (targetDbSchemaVersion.equals(currentDbSchemaVersion) && coordinator.isDBMigrationDone()) {
-            log.info("Db migration is done. Switch to IPSec mode");
-            vdcConfigUtil.setBackCompatPreYoda(false);
-            targetVdcPropInfo = loadVdcConfig(); // refresh local vdc config
-            VdcOpHandler opHandler = getOpHandler(SiteInfo.IPSEC_OP_ENABLE);
-            opHandler.setTargetSiteInfo(targetSiteInfo);
-            opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
-            opHandler.execute();
-            backCompatPreYoda = false;
-        } else {
+        if (!targetDbSchemaVersion.equals(currentDbSchemaVersion) || !coordinator.isDBMigrationDone()) {
             log.info("Migration to yoda is not completed. Sleep and retry later. isMigrationDone flag = {}", coordinator.isDBMigrationDone());
             sleep(BACK_UPGRADE_RETRY_MILLIS);
+            return;
         }
+        log.info("Db migration is done. Switch to IPSec mode");
+        targetVdcPropInfo = loadVdcConfig(); // refresh local vdc config
+
+        // To trigger ipsec key rotation
+        VdcOpHandler opHandler = getOpHandler(SiteInfo.IPSEC_OP_ENABLE);
+        opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
+        opHandler.setTargetSiteInfo(targetSiteInfo);
+        opHandler.execute();
+        targetSiteInfo = coordinator.getTargetInfo(SiteInfo.class);
+
+        // Then do rolling reboot if ready
+        if (ipsecMgr.isKeyRotationDone()) {
+            log.info("IPsec key rotation for upgrade is done. Starting rolling reboot.");
+            final String svcId = coordinator.getMySvcId();
+            if (!getVdcLock(svcId)) {
+                retrySleep();
+                return;
+            }
+            if (!isQuorumMaintained()) {
+                try {
+                    coordinator.releasePersistentLock(svcId, vdcLockId);
+                } catch (Exception e) {
+                    log.error("Failed to release the vdc lock:", e);
+                }
+                retrySleep();
+                return;
+            }
+
+            try {
+                // update backCompatPreYoda to false everywhere
+                vdcConfigUtil.setBackCompatPreYoda(false);
+                backCompatPreYoda = false;
+                targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
+                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+
+                log.info("Rolling restart the db and geodb");
+                restartdb();
+            } finally {
+                try {
+                    coordinator.releasePersistentLock(svcId, vdcLockId);
+                } catch (Exception e) {
+                    log.error("Failed to release the vdc lock:", e);
+                }
+            }
+        }
+    }
+
+    private void restartdb() {
+        localRepository.reconfig();
+        localRepository.restart("db");
+        localRepository.restart("geodb");
     }
 }

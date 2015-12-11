@@ -24,6 +24,7 @@ import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
@@ -109,6 +110,7 @@ public class DisasterRecovery extends ViprResourceController {
         String standby_name = null;
         String standby_vip = null;
         String active_name = null;
+        Boolean iamPrimary = false;
 
         // Get active site details
         SiteRestRep activesite = DisasterRecoveryUtils.getActiveSite();
@@ -126,9 +128,11 @@ public class DisasterRecovery extends ViprResourceController {
             SiteActive currentSite = DisasterRecoveryUtils.checkPrimary();
             if (currentSite.getIsActive() == true) {
                 DisasterRecoveryUtils.doSwitchover(id);
+                iamPrimary = true;
             }
             else {
                 DisasterRecoveryUtils.doFailover(id);
+                iamPrimary = false;
             }
             standby_name = result.getName();
             standby_vip = result.getVip();
@@ -136,7 +140,7 @@ public class DisasterRecovery extends ViprResourceController {
         String site_uuid = id;
         result = DisasterRecoveryUtils.getSite(id);
         String site_state = result.getState();
-        render(active_name, standby_name, standby_vip, site_uuid, site_state);
+        render(active_name, standby_name, standby_vip, site_uuid, site_state, iamPrimary);
     }
 
     private static DisasterRecoveryDataTable createDisasterRecoveryDataTable() {
@@ -241,9 +245,16 @@ public class DisasterRecovery extends ViprResourceController {
 
     public static void errorDetails(String id) {
         SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
+        Boolean isError = false;
         if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
             SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
-            render(disasterSiteError);
+            isError = true;
+            render(isError, disasterSiteError);
+        }
+        else {
+            SiteDetailRestRep disasterSiteTime = DisasterRecoveryUtils.getSiteTime(id);
+            isError = false;
+            render(isError, disasterSiteTime);
         }
     }
 
@@ -316,7 +327,6 @@ public class DisasterRecovery extends ViprResourceController {
             if (isNew()) {
                 Validation.valid(fieldName, this);
                 Validation.required(fieldName + ".name", this.name);
-                Validation.required(fieldName + ".description", this.description);
                 Validation.required(fieldName + ".VirtualIP", this.VirtualIP);
                 Validation.required(fieldName + ".userName", this.userName);
                 Validation.required(fieldName + ".userPassword", this.userPassword);

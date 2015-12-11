@@ -13,6 +13,7 @@ import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.security.exceptions.SecurityException;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,6 +108,10 @@ public class IPsecManager {
         String version = updateTargetSiteInfo();
         log.info("ipsec state changed, and new config version is {}", version);
         return status;
+    }
+
+    public boolean isKeyRotationDone() throws Exception {
+        return CollectionUtils.isEmpty(checkIPsecStatus());
     }
 
     private List<String> checkIPsecStatus() {

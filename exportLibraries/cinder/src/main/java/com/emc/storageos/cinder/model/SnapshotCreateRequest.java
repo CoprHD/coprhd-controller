@@ -5,6 +5,7 @@
 package com.emc.storageos.cinder.model;
 
 import java.util.Map;
+
 public class SnapshotCreateRequest {
 
     /**
@@ -26,7 +27,7 @@ public class SnapshotCreateRequest {
         public String description;
         public String volume_id;
         public boolean force;
-		public Map<String, String> metadata;
+        public Map<String, String> metadata;
     }
 
 }

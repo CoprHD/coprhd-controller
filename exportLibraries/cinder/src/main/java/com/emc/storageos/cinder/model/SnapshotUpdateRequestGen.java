@@ -10,11 +10,11 @@
  */
 package com.emc.storageos.cinder.model;
 
+public class SnapshotUpdateRequestGen extends SnapshotCreateRequest {
+    public SnapshotGen snapshot;
 
-public class SnapshotUpdateRequestGen extends SnapshotCreateRequest{
-	public SnapshotGen snapshot;
-	public class SnapshotGen extends Snapshot{		
-		public String display_name;
-		public String display_description;
-	}
+    public class SnapshotGen extends Snapshot {
+        public String display_name;
+        public String display_description;
+    }
 }

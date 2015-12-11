@@ -89,781 +89,793 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 
 @Path("/v2/{tenant_id}/volumes")
-@DefaultPermissions( readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-readAcls = {ACL.OWN, ACL.ALL},
-writeRoles = { Role.TENANT_ADMIN },
-writeAcls = {ACL.OWN, ACL.ALL})
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.OWN, ACL.ALL },
+        writeRoles = { Role.TENANT_ADMIN },
+        writeAcls = { ACL.OWN, ACL.ALL })
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class ExportService extends VolumeService {
-	private static final Logger _log = LoggerFactory.getLogger(ExportService.class);	
-	private static final long GB = 1024 * 1024 * 1024;
-	private static final int RETRY_COUNT= 15;
-	private static final String OS_RESERVE = "os-reserve";
-	private static final String OS_UNRESERVE = "os-unreserve";
-	private static final String OS_TERMINATE_CONNECTION = "os-terminate_connection";
-	private static final String OS_BEGIN_DETACHING = "os-begin_detaching";
-	private static final String OS_DETACH = "os-detach";
-	private static final String OS_INITIALIZE_CONNECTION = "os-initialize_connection";
-	private static final String OS_ATTACH = "os-attach";
-	private static final String OS_EXTEND = "os-extend";
-	private static final String OS_RESET_STATUS = "os-reset_status";
-	private static final String STATUS = "status";
-	private static final String OS_SET_BOOTABLE = "os-set_bootable";
-	private static final String OS_UPDATE_READONLY = "os-update_readonly_flag";
+    private static final Logger _log = LoggerFactory.getLogger(ExportService.class);
+    private static final long GB = 1024 * 1024 * 1024;
+    private static final int RETRY_COUNT = 15;
+    private static final String OS_RESERVE = "os-reserve";
+    private static final String OS_UNRESERVE = "os-unreserve";
+    private static final String OS_TERMINATE_CONNECTION = "os-terminate_connection";
+    private static final String OS_BEGIN_DETACHING = "os-begin_detaching";
+    private static final String OS_DETACH = "os-detach";
+    private static final String OS_INITIALIZE_CONNECTION = "os-initialize_connection";
+    private static final String OS_ATTACH = "os-attach";
+    private static final String OS_EXTEND = "os-extend";
+    private static final String OS_RESET_STATUS = "os-reset_status";
+    private static final String STATUS = "status";
+    private static final String OS_SET_BOOTABLE = "os-set_bootable";
+    private static final String OS_UPDATE_READONLY = "os-update_readonly_flag";
 
-	private NameGenerator _nameGenerator;
+    private NameGenerator _nameGenerator;
 
-	public NameGenerator getNameGenerator() {
-		return _nameGenerator;
-	}
+    public NameGenerator getNameGenerator() {
+        return _nameGenerator;
+    }
 
-	public void setNameGenerator(NameGenerator nameGenerator) {
-		_nameGenerator = nameGenerator;
-	}
-	/**
-	 * Action could be either export or unexport volume
-	 * 
-	 * NOTE: This is an asynchronous operation.
-	 * 
-	 * @prereq none
-	 *
-	 * @param param POST data containing the volume action information.
-	 * 
-	 * @brief Export/Unexport volume 
-	 * @return A reference to a BlockTaskList containing a list of
-	 *         TaskResourceRep references specifying the task data for the
-	 *         volume creation tasks.
-	 * @throws InternalException
-	 * @throws InterruptedException 
-	 */
-	@POST
-	@Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-	@Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-	@Path("/{volume_id}/action")
-	public Object actionOnVolume(@PathParam("tenant_id") String openstack_tenant_id,
-			@PathParam("volume_id") String volume_id,
-			 String input
-			) throws InternalException, InterruptedException {
-		// Step 1: Parameter validation
-		// Eventually we should use the project id that comes from the API
-		_log.info("String format input is  = {}", input);
-		_log.info("Action on volume: id = {}", volume_id);		
-		boolean bReserve = false;
-		boolean bUnReserve = false;
-		boolean bTerminate = false;
-		boolean bBeginDetach = false;
-		boolean bDetach = false;
-		boolean bAttach = false;
-		boolean bInitCon = false;
-		boolean bExtend = false;
-		boolean bBootable = false;
-		boolean bReadonly = false;
-					
-		if(input.contains(OS_RESERVE))
-			bReserve = true;
-		if(input.contains(OS_UNRESERVE))
-			bUnReserve = true;
-		if(input.contains(OS_TERMINATE_CONNECTION))
-			bTerminate = true;
-		if(input.contains(OS_BEGIN_DETACHING))
-			bBeginDetach = true;
-		if(input.contains(OS_DETACH))
-			bDetach = true;
-		if(input.contains(OS_ATTACH))
-			bAttach = true;
-		if(input.contains(OS_INITIALIZE_CONNECTION))
-			bInitCon = true;
-		if(input.contains(OS_EXTEND)) //for expand volume
-			bExtend = true;
-		if(input.contains(OS_SET_BOOTABLE))
-			bBootable = true;
-		if(input.contains(OS_UPDATE_READONLY))
-			bReadonly = true;
-		
-		if (input.contains(OS_RESET_STATUS)) {
-			Volume vol = findVolume(volume_id, openstack_tenant_id);
-			if (vol != null) {
-				return changeVolumeStatus(vol, input);
-			} else {
-				return Response.status(404).build();
-			}
-		}
-				
-		_log.info(String.format("bReserve:  %b , bUnReserve:  %b, bTerminate:%b, bBeginDetach:%b , bDetach:%b , " +
-				"bAttach:%b , bInitCon:%b , bExtend:%b, bReadonly:%b", bReserve,bUnReserve,bTerminate,bBeginDetach, bDetach, bAttach,  bInitCon,bExtend, bReadonly) );		
-		
-		//TODO : handle xml format requests also and cater to the operations
-		Gson gson = new Gson();		
-		VolumeActionRequest action = gson.fromJson(input, VolumeActionRequest.class);
-		Volume vol = findVolume(volume_id, openstack_tenant_id);
-		if (vol == null)
-			throw APIException.badRequests.parameterIsNotValid(volume_id);
+    public void setNameGenerator(NameGenerator nameGenerator) {
+        _nameGenerator = nameGenerator;
+    }
 
-		// Step 2: Check if the user has rights for volume modification
-		verifyUserCanModifyVolume(vol);
-		_log.info("User can modify volume");
-
-		// Step 3: Determine action (export/unexport) and process it		
-		//if ( (action.attach.connector!=null) && (action.attach.connector.ip!=null) && (action.attach.connector.ip.length() > 0)){
-		if( (bInitCon) && (action.attach.connector!=null) && (action.attach.connector.ip!=null) && (action.attach.connector.ip.length() > 0)){				
-			String chosenProtocol = getProtocol(vol, action.attach.connector);
-			boolean bIsSuccess = processAttachRequest(vol, action.attach, openstack_tenant_id, chosenProtocol);	
-			
-			if(bIsSuccess){
-				//After the exportt ask is complete, sometimes there is a delay in the info being reflected in ITL's. So, we are adding a small delay here.
-				Thread.sleep(100000);
-				ITLRestRepList listOfItls = ExportUtils.getBlockObjectInitiatorTargets(vol.getId() , _dbClient , isIdEmbeddedInURL(vol.getId()));
-				
-				if(chosenProtocol.equals("iSCSI")){
-					CinderInitConnectionResponse objCinderInit = new CinderInitConnectionResponse();					
-					objCinderInit.connection_info.driver_volume_type="iscsi";
-					objCinderInit.connection_info.data.access_mode="rw";
-					objCinderInit.connection_info.data.target_discovered = "False";
-			
-					for(ITLRestRep itl:listOfItls.getExportList()){
-						
-						//TODO: user setter methods to set the values of object below.
-						objCinderInit.connection_info.data.target_iqn = itl.getStoragePort().getPort();
-						objCinderInit.connection_info.data.target_portal = itl.getStoragePort().getIpAddress() + ":" + itl.getStoragePort().getTcpPort();
-						objCinderInit.connection_info.data.volume_id = getCinderHelper().trimId(vol.getId().toString());
-						objCinderInit.connection_info.data.target_lun = itl.getHlu(); 
-	
-						_log.info(String.format("itl.getStoragePort().getPort() is %s: itl.getStoragePort().getIpAddress():%s,itl.getHlu() :%s, objCinderInit.toString():%s",
-													itl.getStoragePort().getPort(), itl.getStoragePort().getIpAddress() + ":" + itl.getStoragePort().getTcpPort(), itl.getHlu(),  
-													objCinderInit.toString()));
-						
-						return objCinderInit;
-					}
-				}
-				//If the protocol is FC
-				else if(chosenProtocol.equals("FC")){	
-					VolumeAttachResponse objCinderInit = new VolumeAttachResponse();
-					objCinderInit.connection_info = objCinderInit.new ConnectionInfo();	
-					objCinderInit.connection_info.data = objCinderInit.new Data();
-					objCinderInit.connection_info.data.target_wwn = new ArrayList<String>();
-					objCinderInit.connection_info.data.initiator_target_map = new HashMap<String, List<String>>();
-					
-					objCinderInit.connection_info.driver_volume_type="fibre_channel";
-					objCinderInit.connection_info.data.access_mode="rw";
-					objCinderInit.connection_info.data.target_discovered = true;
-					
-					for(ITLRestRep itl:listOfItls.getExportList()){
-						//TODO: user setter methods to set the values of object below.
-						_log.info("itl.getStoragePort().getPort() is {}", itl.getStoragePort().getPort());	
-						
-						if(itl.getStoragePort().getPort() == null)
-							continue;
-																
-						objCinderInit.connection_info.data.target_wwn.add(itl.getStoragePort().getPort().toString().replace(":", "").toLowerCase());						
-						objCinderInit.connection_info.data.volume_id = getCinderHelper().trimId(vol.getId().toString());
-						objCinderInit.connection_info.data.target_lun = itl.getHlu(); 
-						_log.info(String.format("itl.getStoragePort().getPort() is %s: itl.getStoragePort().getIpAddress():%s,itl.getHlu() :%s, objCinderInit.toString():%s",
-								itl.getStoragePort().getPort(), itl.getStoragePort().getIpAddress() + ":" + itl.getStoragePort().getTcpPort(), itl.getHlu(),
-								objCinderInit.connection_info.data.toString()));
-					}
-					
-					List<Initiator> lstInitiators = getListOfInitiators(action.attach.connector, openstack_tenant_id, chosenProtocol, vol);
-					for(Initiator iter:lstInitiators){
-						_log.info("iter.getInitiatorPort() {}", iter.getInitiatorPort());
-						_log.info("objCinderInit.connection_info.data.target_wwn {}", objCinderInit.connection_info.data.target_wwn);
-						objCinderInit.connection_info.data.initiator_target_map.put(iter.getInitiatorPort().replace(":", "").toLowerCase(), objCinderInit.connection_info.data.target_wwn);
-					}										
-					return objCinderInit;
-				}
-			}
-			else{
-				vol.getExtensions().put("status", "OPENSTACK_ATTACHING_TIMED_OUT");
-				_dbClient.persistObject(vol);
-				_log.info("After fifteen tries, the ITLs are not found yet and hence failing initilize connection");
-			}
-								
-			throw APIException.internalServerErrors.genericApisvcError("Export failed", new Exception("Initialize_connection operation failed due to timeout"));
-		}
-		else if(bDetach){			
-			getVolExtensions(vol).put("status" , ComponentStatus.AVAILABLE.getStatus().toLowerCase());
-			_dbClient.persistObject(vol);			
-			return Response.status(202).build();
-		}
-		else if(bBeginDetach){
-			if(getVolExtensions(vol).containsKey("status") && getVolExtensions(vol).get("status").equals(ComponentStatus.IN_USE.getStatus().toLowerCase()))
-			{
-				getVolExtensions(vol).put("status" , ComponentStatus.DETACHING.getStatus().toLowerCase());				
-				_dbClient.persistObject(vol);
-				return Response.status(202).build();	
-			}
-			else{
-				_log.info("Volume is already in detached state.");
-				throw APIException.internalServerErrors.genericApisvcError("Unexport failed", new Exception("Volume not in attached state"));
-			}			
-		}
-		else if (bTerminate){    		
-    		if(getVolExtensions(vol).containsKey("status") && 
-    				getVolExtensions(vol).get("status").equals(ComponentStatus.DETACHING.getStatus().toLowerCase())){  
-    			String chosenProtocol = getProtocol(vol, action.detach.connector);
-    			processDetachRequest(vol, action.detach, openstack_tenant_id, chosenProtocol);
-    			getVolExtensions(vol).put("status" , ComponentStatus.AVAILABLE.getStatus().toLowerCase());
-    			getVolExtensions(vol).remove("OPENSTACK_NOVA_INSTANCE_ID");
-    			getVolExtensions(vol).remove("OPENSTACK_NOVA_INSTANCE_MOUNTPOINT");
-    			getVolExtensions(vol).remove("OPENSTACK_ATTACH_MODE");
-    			_dbClient.persistObject(vol);
-    			return Response.status(202).build();
-    		}
-    		else{
-    			_log.info("Volume not in a state for terminate connection.");
-				throw APIException.internalServerErrors.genericApisvcError("Unexport failed", new Exception("Volume not in state for termination"));    			
-    		}    			
-        }
-		//else if( (action.attachToInstance!=null) && (action.attachToInstance.instance_uuid!=null) && (action.attachToInstance.instance_uuid.length() > 0)){
-		else if(bAttach){
-			_log.info("IN THE IF CONDITION OF THE ATTACH VOLUME TO INSTANCE");
-			if( (action.attachToInstance!=null) && (action.attachToInstance.instance_uuid!=null) && 
-					(action.attachToInstance.instance_uuid.length() > 0)){
-				processAttachToInstance(vol , action.attachToInstance, openstack_tenant_id);
-				return Response.status(202).build();
-			}
-			else{
-				throw APIException.badRequests.parameterIsNullOrEmpty("Instance");
-			}
-		}        	
-		else if(bReserve){
-        	_log.info("IN THE IF CONDITION OF RESERVE");
-        	processReserveRequest(vol, openstack_tenant_id);
-        	return Response.status(202).build();
-        }
-		else if(bUnReserve){
-			processUnReserveRequest(vol, openstack_tenant_id);
-			return Response.status(202).build();			
-		}
-		else if(bBootable){
-			_log.debug("set Volume bootable Flag");
-			if(action.bootVol!=null){
-				setBootable(vol,action.bootVol, openstack_tenant_id);
-				return Response.status(200).build();	
-			}
-			else{
-				throw APIException.badRequests.parameterIsNullOrEmpty("Volume");
-			}    			
-		}
-		else if(bReadonly){
-			_log.debug("Set Readonly Flag for Volume");
-
-			if(action.readonlyVol!=null){
-				setReadOnlyFlag(vol,action.readonlyVol, openstack_tenant_id);
-				return Response.status(200).build();	
-			}
-			else{
-				throw APIException.badRequests.parameterIsNullOrEmpty("Volume");
-			}    			
-		}
-		else if(bExtend){//extend volume size
-        	_log.info("Extend existing volume size");
-   
-			if(action.extendVol!=null){		
-				extendExistingVolume (vol , action.extendVol, openstack_tenant_id, volume_id);
-				return Response.status(202).build();
-			}
-			else{
-				throw APIException.badRequests.parameterIsNullOrEmpty("Volume");
-			}        			
-		}
-		
-		throw APIException.badRequests.parameterIsNotValid("Action Type");
-	}
-	
     /**
-	 * This method is used to change the status of volume on administrator request
-	 * @param vol : Volume created on ViPR
-	 * @param input : json input
-	 * @return Response object if valid then 202 otherwise 404
-	 */
-	private Response changeVolumeStatus(Volume vol, String jsonInput) {
-		String vol_status = getRequestedStatusFromRequest(jsonInput);
-		_log.info("Changing the status of volume : " + vol + " to " + vol_status);
-		StringMap extensions = vol.getExtensions();
-		extensions.put(STATUS,vol_status);
-		_dbClient.persistObject(vol);
-		return Response.status(202).build();
-		}
-       /**
-       * This method take json input, parse the json input and return requested status for volume
-       * @param jsonInput
-       * @return
-       */
-	private String getRequestedStatusFromRequest(String jsonInput) {
-		String jsonString[] = new String[]{OS_RESET_STATUS, STATUS};
-		Gson gson = new GsonBuilder().create();
-		for(int i=0; i < jsonString.length; i++){
-			Map<String,Object> r = gson.fromJson(jsonInput,Map.class);
-			jsonInput = gson.toJson(r.get(jsonString[i]));
-		}
-		jsonInput = jsonInput.replace("\"", "");
-		return jsonInput.trim();
-	}
-	
-	private String getProtocol(Volume vol , Connector connector){
+     * Action could be either export or unexport volume
+     * 
+     * NOTE: This is an asynchronous operation.
+     * 
+     * @prereq none
+     * 
+     * @param param POST data containing the volume action information.
+     * 
+     * @brief Export/Unexport volume
+     * @return A reference to a BlockTaskList containing a list of
+     *         TaskResourceRep references specifying the task data for the
+     *         volume creation tasks.
+     * @throws InternalException
+     * @throws InterruptedException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{volume_id}/action")
+    public Object actionOnVolume(@PathParam("tenant_id") String openstack_tenant_id,
+            @PathParam("volume_id") String volume_id,
+            String input
+            ) throws InternalException, InterruptedException {
+        // Step 1: Parameter validation
+        // Eventually we should use the project id that comes from the API
+        _log.info("String format input is  = {}", input);
+        _log.info("Action on volume: id = {}", volume_id);
+        boolean bReserve = false;
+        boolean bUnReserve = false;
+        boolean bTerminate = false;
+        boolean bBeginDetach = false;
+        boolean bDetach = false;
+        boolean bAttach = false;
+        boolean bInitCon = false;
+        boolean bExtend = false;
+        boolean bBootable = false;
+        boolean bReadonly = false;
 
-		if( (vol.getProtocol().contains(Protocol.iSCSI.name())) && (connector.initiator != null)){
-			return Protocol.iSCSI.name();
-		}
-		else if(vol.getProtocol().contains(Protocol.FC.name())){
-			return Protocol.FC.name();
-		}
-		else{
-			throw APIException.internalServerErrors.genericApisvcError("Unsupported volume protocol", 
-				new Exception("The protocol specified is not supported. The protocols supported are FC and iSCSI"));			
-		}
-	}
-		
-	private StringMap getVolExtensions(Volume vol){
-		StringMap extensions = vol.getExtensions();
-		if (extensions == null) {
-			extensions = new StringMap();
-			vol.setExtensions(extensions);
-		}
-		return vol.getExtensions();		
-	}
-	
+        if (input.contains(OS_RESERVE))
+            bReserve = true;
+        if (input.contains(OS_UNRESERVE))
+            bUnReserve = true;
+        if (input.contains(OS_TERMINATE_CONNECTION))
+            bTerminate = true;
+        if (input.contains(OS_BEGIN_DETACHING))
+            bBeginDetach = true;
+        if (input.contains(OS_DETACH))
+            bDetach = true;
+        if (input.contains(OS_ATTACH))
+            bAttach = true;
+        if (input.contains(OS_INITIALIZE_CONNECTION))
+            bInitCon = true;
+        if (input.contains(OS_EXTEND)) // for expand volume
+            bExtend = true;
+        if (input.contains(OS_SET_BOOTABLE))
+            bBootable = true;
+        if (input.contains(OS_UPDATE_READONLY))
+            bReadonly = true;
 
-	private void processReserveRequest(Volume vol, String openstack_tenant_id) {
-		StringMap extensions = vol.getExtensions();
-		if (extensions == null) {
-			extensions = new StringMap();
-		}
-		extensions.put("status", ComponentStatus.ATTACHING.getStatus().toLowerCase());
-		vol.setExtensions(extensions);		
-		_dbClient.persistObject(vol);		
-	}
+        if (input.contains(OS_RESET_STATUS)) {
+            Volume vol = findVolume(volume_id, openstack_tenant_id);
+            if (vol != null) {
+                return changeVolumeStatus(vol, input);
+            } else {
+                return Response.status(404).build();
+            }
+        }
 
-	
-	private void processUnReserveRequest(Volume vol, String openstack_tenant_id) {
-		StringMap extensions = vol.getExtensions();
-		if (extensions == null) {
-			extensions = new StringMap();
-		}
-		extensions.put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
-		vol.setExtensions(extensions);		
-		_dbClient.persistObject(vol);		
-	}
+        _log.info(String.format("bReserve:  %b , bUnReserve:  %b, bTerminate:%b, bBeginDetach:%b , bDetach:%b , " +
+                "bAttach:%b , bInitCon:%b , bExtend:%b, bReadonly:%b", bReserve, bUnReserve, bTerminate, bBeginDetach, bDetach, bAttach,
+                bInitCon, bExtend, bReadonly));
 
-	private void setBootable(Volume vol, VolumeActionRequest.BootableVolume bootableVol,   String openstack_tenant_id) {
-		_log.info("Set bootable flag");
-		StringMap extensions = vol.getExtensions();
-		if (extensions == null) {
-			extensions = new StringMap();
-		}
-		if (bootableVol.bootable.contains("true")){
-			extensions.put("bootable", "true");
-		} else {
-			extensions.put("bootable", "false");
-		}
-		
-		vol.setExtensions(extensions);		
-		_dbClient.persistObject(vol);		
-	}
-	
-	private void setReadOnlyFlag(Volume vol, VolumeActionRequest.ReadOnlyVolume readonlyVolume,   String openstack_tenant_id) {
-		StringMap extensions = vol.getExtensions();
-		if (extensions == null) {
-			extensions = new StringMap();
-		}
-		if (readonlyVolume.readonly.contains("true")){
-			extensions.put("readonly", "true");
-		} else {
-			extensions.put("readonly", "false");
-		}
-		
-		vol.setExtensions(extensions);		
-		_dbClient.persistObject(vol);		
-	}	
+        // TODO : handle xml format requests also and cater to the operations
+        Gson gson = new Gson();
+        VolumeActionRequest action = gson.fromJson(input, VolumeActionRequest.class);
+        Volume vol = findVolume(volume_id, openstack_tenant_id);
+        if (vol == null)
+            throw APIException.badRequests.parameterIsNotValid(volume_id);
 
+        // Step 2: Check if the user has rights for volume modification
+        verifyUserCanModifyVolume(vol);
+        _log.info("User can modify volume");
 
-	private void processAttachToInstance(Volume vol, VolumeActionRequest.AttachToInstance attachToInst, 
-			String openstack_tenant_id) {
-		_log.info("Attach to the nova instance request");
-		// Step 1: get list of host initiators to be added
-		_log.info("THE ATTACH.INSTANCE IS {}", attachToInst.instance_uuid.toString());
-		_log.info("ID IS {}", vol.getId().toString());
-		_log.info("extensions IS {}", vol.getExtensions());
-		if (vol.getExtensions() == null) {
-			vol.setExtensions(new StringMap());
-		}
-		
-		vol.getExtensions().put("OPENSTACK_NOVA_INSTANCE_ID", attachToInst.instance_uuid.toString());
-		vol.getExtensions().put("OPENSTACK_NOVA_INSTANCE_MOUNTPOINT", attachToInst.mountpoint.toString());
-		vol.getExtensions().put("OPENSTACK_ATTACH_MODE", attachToInst.mode);
-		vol.getExtensions().put("status" , ComponentStatus.IN_USE.getStatus().toLowerCase());
-		_dbClient.persistObject(vol);
-	}
+        // Step 3: Determine action (export/unexport) and process it
+        // if ( (action.attach.connector!=null) && (action.attach.connector.ip!=null) && (action.attach.connector.ip.length() > 0)){
+        if ((bInitCon) && (action.attach.connector != null) && (action.attach.connector.ip != null)
+                && (action.attach.connector.ip.length() > 0)) {
+            String chosenProtocol = getProtocol(vol, action.attach.connector);
+            boolean bIsSuccess = processAttachRequest(vol, action.attach, openstack_tenant_id, chosenProtocol);
 
+            if (bIsSuccess) {
+                // After the exportt ask is complete, sometimes there is a delay in the info being reflected in ITL's. So, we are adding a
+                // small delay here.
+                Thread.sleep(100000);
+                ITLRestRepList listOfItls = ExportUtils.getBlockObjectInitiatorTargets(vol.getId(), _dbClient,
+                        isIdEmbeddedInURL(vol.getId()));
 
-	// INTERNAL FUNCTIONS
-	private boolean  processDetachRequest(Volume vol, 
-			VolumeActionRequest.DetachVolume detach,
-			String openstack_tenant_id, String protocol) throws InterruptedException {
-		_log.info("Detach request");
-		// Step 1: Find export group of volume
-		ExportGroup exportGroup = findExportGroup(vol);
-		
-		if (exportGroup == null)
-			throw APIException.badRequests.parameterIsNotValid("volume_id");
+                if (chosenProtocol.equals("iSCSI")) {
+                    CinderInitConnectionResponse objCinderInit = new CinderInitConnectionResponse();
+                    objCinderInit.connection_info.driver_volume_type = "iscsi";
+                    objCinderInit.connection_info.data.access_mode = "rw";
+                    objCinderInit.connection_info.data.target_discovered = "False";
 
-		// Step 2: Validate initiators are part of export group
-		List<URI> currentURIs = new ArrayList<URI>();
-		List<URI> detachURIs = new ArrayList<URI>();
-		List<Initiator> detachInitiators = getListOfInitiators(detach.connector, openstack_tenant_id, protocol, vol);
-		currentURIs = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-		for (Initiator initiator: detachInitiators){
-			URI uri = initiator.getId();
-			if (!currentURIs.contains(uri)) {
-				throw APIException.badRequests.parameterIsNotValid("volume_id");
-			}
-			detachURIs.add(uri);
-		}
+                    for (ITLRestRep itl : listOfItls.getExportList()) {
 
-		// Step 3: Remove initiators from export group
-		currentURIs.removeAll(detachURIs);
-		exportGroup.setInitiators(StringSetUtil.uriListToStringSet(currentURIs));
-		_dbClient.persistObject(exportGroup);
-		_log.info("updateExportGroup request is submitted.");
-		// get block controller
-		BlockExportController exportController = 
-				getController(BlockExportController.class, BlockExportController.EXPORT);
-		// Now update export group
-		String task = UUID.randomUUID().toString();
-		Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
-		volumeMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
-		
-		initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.DELETE_EXPORT_VOLUME);
-		
-		
+                        // TODO: user setter methods to set the values of object below.
+                        objCinderInit.connection_info.data.target_iqn = itl.getStoragePort().getPort();
+                        objCinderInit.connection_info.data.target_portal = itl.getStoragePort().getIpAddress() + ":"
+                                + itl.getStoragePort().getTcpPort();
+                        objCinderInit.connection_info.data.volume_id = getCinderHelper().trimId(vol.getId().toString());
+                        objCinderInit.connection_info.data.target_lun = itl.getHlu();
+
+                        _log.info(String
+                                .format("itl.getStoragePort().getPort() is %s: itl.getStoragePort().getIpAddress():%s,itl.getHlu() :%s, objCinderInit.toString():%s",
+                                        itl.getStoragePort().getPort(), itl.getStoragePort().getIpAddress() + ":"
+                                                + itl.getStoragePort().getTcpPort(), itl.getHlu(),
+                                        objCinderInit.toString()));
+
+                        return objCinderInit;
+                    }
+                }
+                // If the protocol is FC
+                else if (chosenProtocol.equals("FC")) {
+                    VolumeAttachResponse objCinderInit = new VolumeAttachResponse();
+                    objCinderInit.connection_info = objCinderInit.new ConnectionInfo();
+                    objCinderInit.connection_info.data = objCinderInit.new Data();
+                    objCinderInit.connection_info.data.target_wwn = new ArrayList<String>();
+                    objCinderInit.connection_info.data.initiator_target_map = new HashMap<String, List<String>>();
+
+                    objCinderInit.connection_info.driver_volume_type = "fibre_channel";
+                    objCinderInit.connection_info.data.access_mode = "rw";
+                    objCinderInit.connection_info.data.target_discovered = true;
+
+                    for (ITLRestRep itl : listOfItls.getExportList()) {
+                        // TODO: user setter methods to set the values of object below.
+                        _log.info("itl.getStoragePort().getPort() is {}", itl.getStoragePort().getPort());
+
+                        if (itl.getStoragePort().getPort() == null)
+                            continue;
+
+                        objCinderInit.connection_info.data.target_wwn.add(itl.getStoragePort().getPort().toString().replace(":", "")
+                                .toLowerCase());
+                        objCinderInit.connection_info.data.volume_id = getCinderHelper().trimId(vol.getId().toString());
+                        objCinderInit.connection_info.data.target_lun = itl.getHlu();
+                        _log.info(String
+                                .format("itl.getStoragePort().getPort() is %s: itl.getStoragePort().getIpAddress():%s,itl.getHlu() :%s, objCinderInit.toString():%s",
+                                        itl.getStoragePort().getPort(), itl.getStoragePort().getIpAddress() + ":"
+                                                + itl.getStoragePort().getTcpPort(), itl.getHlu(),
+                                        objCinderInit.connection_info.data.toString()));
+                    }
+
+                    List<Initiator> lstInitiators = getListOfInitiators(action.attach.connector, openstack_tenant_id, chosenProtocol, vol);
+                    for (Initiator iter : lstInitiators) {
+                        _log.info("iter.getInitiatorPort() {}", iter.getInitiatorPort());
+                        _log.info("objCinderInit.connection_info.data.target_wwn {}", objCinderInit.connection_info.data.target_wwn);
+                        objCinderInit.connection_info.data.initiator_target_map.put(iter.getInitiatorPort().replace(":", "").toLowerCase(),
+                                objCinderInit.connection_info.data.target_wwn);
+                    }
+                    return objCinderInit;
+                }
+            }
+            else {
+                vol.getExtensions().put("status", "OPENSTACK_ATTACHING_TIMED_OUT");
+                _dbClient.persistObject(vol);
+                _log.info("After fifteen tries, the ITLs are not found yet and hence failing initilize connection");
+            }
+
+            throw APIException.internalServerErrors.genericApisvcError("Export failed", new Exception(
+                    "Initialize_connection operation failed due to timeout"));
+        }
+        else if (bDetach) {
+            getVolExtensions(vol).put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
+            _dbClient.persistObject(vol);
+            return Response.status(202).build();
+        }
+        else if (bBeginDetach) {
+            if (getVolExtensions(vol).containsKey("status")
+                    && getVolExtensions(vol).get("status").equals(ComponentStatus.IN_USE.getStatus().toLowerCase()))
+            {
+                getVolExtensions(vol).put("status", ComponentStatus.DETACHING.getStatus().toLowerCase());
+                _dbClient.persistObject(vol);
+                return Response.status(202).build();
+            }
+            else {
+                _log.info("Volume is already in detached state.");
+                throw APIException.internalServerErrors
+                        .genericApisvcError("Unexport failed", new Exception("Volume not in attached state"));
+            }
+        }
+        else if (bTerminate) {
+            if (getVolExtensions(vol).containsKey("status") &&
+                    getVolExtensions(vol).get("status").equals(ComponentStatus.DETACHING.getStatus().toLowerCase())) {
+                String chosenProtocol = getProtocol(vol, action.detach.connector);
+                processDetachRequest(vol, action.detach, openstack_tenant_id, chosenProtocol);
+                getVolExtensions(vol).put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
+                getVolExtensions(vol).remove("OPENSTACK_NOVA_INSTANCE_ID");
+                getVolExtensions(vol).remove("OPENSTACK_NOVA_INSTANCE_MOUNTPOINT");
+                getVolExtensions(vol).remove("OPENSTACK_ATTACH_MODE");
+                _dbClient.persistObject(vol);
+                return Response.status(202).build();
+            }
+            else {
+                _log.info("Volume not in a state for terminate connection.");
+                throw APIException.internalServerErrors.genericApisvcError("Unexport failed", new Exception(
+                        "Volume not in state for termination"));
+            }
+        }
+        // else if( (action.attachToInstance!=null) && (action.attachToInstance.instance_uuid!=null) &&
+        // (action.attachToInstance.instance_uuid.length() > 0)){
+        else if (bAttach) {
+            _log.info("IN THE IF CONDITION OF THE ATTACH VOLUME TO INSTANCE");
+            if ((action.attachToInstance != null) && (action.attachToInstance.instance_uuid != null) &&
+                    (action.attachToInstance.instance_uuid.length() > 0)) {
+                processAttachToInstance(vol, action.attachToInstance, openstack_tenant_id);
+                return Response.status(202).build();
+            }
+            else {
+                throw APIException.badRequests.parameterIsNullOrEmpty("Instance");
+            }
+        }
+        else if (bReserve) {
+            _log.info("IN THE IF CONDITION OF RESERVE");
+            processReserveRequest(vol, openstack_tenant_id);
+            return Response.status(202).build();
+        }
+        else if (bUnReserve) {
+            processUnReserveRequest(vol, openstack_tenant_id);
+            return Response.status(202).build();
+        }
+        else if (bBootable) {
+            _log.debug("set Volume bootable Flag");
+            if (action.bootVol != null) {
+                setBootable(vol, action.bootVol, openstack_tenant_id);
+                return Response.status(200).build();
+            }
+            else {
+                throw APIException.badRequests.parameterIsNullOrEmpty("Volume");
+            }
+        }
+        else if (bReadonly) {
+            _log.debug("Set Readonly Flag for Volume");
+
+            if (action.readonlyVol != null) {
+                setReadOnlyFlag(vol, action.readonlyVol, openstack_tenant_id);
+                return Response.status(200).build();
+            }
+            else {
+                throw APIException.badRequests.parameterIsNullOrEmpty("Volume");
+            }
+        }
+        else if (bExtend) {// extend volume size
+            _log.info("Extend existing volume size");
+
+            if (action.extendVol != null) {
+                extendExistingVolume(vol, action.extendVol, openstack_tenant_id, volume_id);
+                return Response.status(202).build();
+            }
+            else {
+                throw APIException.badRequests.parameterIsNullOrEmpty("Volume");
+            }
+        }
+
+        throw APIException.badRequests.parameterIsNotValid("Action Type");
+    }
+
+    /**
+     * This method is used to change the status of volume on administrator request
+     * 
+     * @param vol : Volume created on ViPR
+     * @param input : json input
+     * @return Response object if valid then 202 otherwise 404
+     */
+    private Response changeVolumeStatus(Volume vol, String jsonInput) {
+        String vol_status = getRequestedStatusFromRequest(jsonInput);
+        _log.info("Changing the status of volume : " + vol + " to " + vol_status);
+        StringMap extensions = vol.getExtensions();
+        extensions.put(STATUS, vol_status);
+        _dbClient.persistObject(vol);
+        return Response.status(202).build();
+    }
+
+    /**
+     * This method take json input, parse the json input and return requested status for volume
+     * 
+     * @param jsonInput
+     * @return
+     */
+    private String getRequestedStatusFromRequest(String jsonInput) {
+        String jsonString[] = new String[] { OS_RESET_STATUS, STATUS };
+        Gson gson = new GsonBuilder().create();
+        for (int i = 0; i < jsonString.length; i++) {
+            Map<String, Object> r = gson.fromJson(jsonInput, Map.class);
+            jsonInput = gson.toJson(r.get(jsonString[i]));
+        }
+        jsonInput = jsonInput.replace("\"", "");
+        return jsonInput.trim();
+    }
+
+    private String getProtocol(Volume vol, Connector connector) {
+
+        if ((vol.getProtocol().contains(Protocol.iSCSI.name())) && (connector.initiator != null)) {
+            return Protocol.iSCSI.name();
+        }
+        else if (vol.getProtocol().contains(Protocol.FC.name())) {
+            return Protocol.FC.name();
+        }
+        else {
+            throw APIException.internalServerErrors.genericApisvcError("Unsupported volume protocol",
+                    new Exception("The protocol specified is not supported. The protocols supported are FC and iSCSI"));
+        }
+    }
+
+    private StringMap getVolExtensions(Volume vol) {
+        StringMap extensions = vol.getExtensions();
+        if (extensions == null) {
+            extensions = new StringMap();
+            vol.setExtensions(extensions);
+        }
+        return vol.getExtensions();
+    }
+
+    private void processReserveRequest(Volume vol, String openstack_tenant_id) {
+        StringMap extensions = vol.getExtensions();
+        if (extensions == null) {
+            extensions = new StringMap();
+        }
+        extensions.put("status", ComponentStatus.ATTACHING.getStatus().toLowerCase());
+        vol.setExtensions(extensions);
+        _dbClient.persistObject(vol);
+    }
+
+    private void processUnReserveRequest(Volume vol, String openstack_tenant_id) {
+        StringMap extensions = vol.getExtensions();
+        if (extensions == null) {
+            extensions = new StringMap();
+        }
+        extensions.put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
+        vol.setExtensions(extensions);
+        _dbClient.persistObject(vol);
+    }
+
+    private void setBootable(Volume vol, VolumeActionRequest.BootableVolume bootableVol, String openstack_tenant_id) {
+        _log.info("Set bootable flag");
+        StringMap extensions = vol.getExtensions();
+        if (extensions == null) {
+            extensions = new StringMap();
+        }
+        if (bootableVol.bootable.contains("true")) {
+            extensions.put("bootable", "true");
+        } else {
+            extensions.put("bootable", "false");
+        }
+
+        vol.setExtensions(extensions);
+        _dbClient.persistObject(vol);
+    }
+
+    private void setReadOnlyFlag(Volume vol, VolumeActionRequest.ReadOnlyVolume readonlyVolume, String openstack_tenant_id) {
+        StringMap extensions = vol.getExtensions();
+        if (extensions == null) {
+            extensions = new StringMap();
+        }
+        if (readonlyVolume.readonly.contains("true")) {
+            extensions.put("readonly", "true");
+        } else {
+            extensions.put("readonly", "false");
+        }
+
+        vol.setExtensions(extensions);
+        _dbClient.persistObject(vol);
+    }
+
+    private void processAttachToInstance(Volume vol, VolumeActionRequest.AttachToInstance attachToInst,
+            String openstack_tenant_id) {
+        _log.info("Attach to the nova instance request");
+        // Step 1: get list of host initiators to be added
+        _log.info("THE ATTACH.INSTANCE IS {}", attachToInst.instance_uuid.toString());
+        _log.info("ID IS {}", vol.getId().toString());
+        _log.info("extensions IS {}", vol.getExtensions());
+        if (vol.getExtensions() == null) {
+            vol.setExtensions(new StringMap());
+        }
+
+        vol.getExtensions().put("OPENSTACK_NOVA_INSTANCE_ID", attachToInst.instance_uuid.toString());
+        vol.getExtensions().put("OPENSTACK_NOVA_INSTANCE_MOUNTPOINT", attachToInst.mountpoint.toString());
+        vol.getExtensions().put("OPENSTACK_ATTACH_MODE", attachToInst.mode);
+        vol.getExtensions().put("status", ComponentStatus.IN_USE.getStatus().toLowerCase());
+        _dbClient.persistObject(vol);
+    }
+
+    // INTERNAL FUNCTIONS
+    private boolean processDetachRequest(Volume vol,
+            VolumeActionRequest.DetachVolume detach,
+            String openstack_tenant_id, String protocol) throws InterruptedException {
+        _log.info("Detach request");
+        // Step 1: Find export group of volume
+        ExportGroup exportGroup = findExportGroup(vol);
+
+        if (exportGroup == null)
+            throw APIException.badRequests.parameterIsNotValid("volume_id");
+
+        // Step 2: Validate initiators are part of export group
+        List<URI> currentURIs = new ArrayList<URI>();
+        List<URI> detachURIs = new ArrayList<URI>();
+        List<Initiator> detachInitiators = getListOfInitiators(detach.connector, openstack_tenant_id, protocol, vol);
+        currentURIs = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+        for (Initiator initiator : detachInitiators) {
+            URI uri = initiator.getId();
+            if (!currentURIs.contains(uri)) {
+                throw APIException.badRequests.parameterIsNotValid("volume_id");
+            }
+            detachURIs.add(uri);
+        }
+
+        // Step 3: Remove initiators from export group
+        currentURIs.removeAll(detachURIs);
+        exportGroup.setInitiators(StringSetUtil.uriListToStringSet(currentURIs));
+        _dbClient.persistObject(exportGroup);
+        _log.info("updateExportGroup request is submitted.");
+        // get block controller
+        BlockExportController exportController =
+                getController(BlockExportController.class, BlockExportController.EXPORT);
+        // Now update export group
+        String task = UUID.randomUUID().toString();
+        Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
+        volumeMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
+
+        initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.DELETE_EXPORT_VOLUME);
+
         Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
         List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
         List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
         List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
-        
-		exportController.exportGroupUpdate(exportGroup.getId(),noUpdatesVolumeMap,  noUpdatesVolumeMap,
-				updatedClusters, updatedHosts, updatedInitiators, task);
-				
-		return waitForTaskCompletion(exportGroup.getId() , task);
-	
-		//TODO: If now the list is empty, change volume status to 'not exported'
-		// and delete the exportGroup
-	}
-	
-	private TaskResourceRep extendExistingVolume(Volume vol, VolumeActionRequest.ExtendVolume extendExistVol, 
-			String openstack_tenant_id, String volume_id) {
 
-		// Check if the volume is on VMAX V3 which doesn't support expansion yet
-		StorageSystem storage = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
-		if (storage.checkIfVmax3()) {
-			_log.error("Volume expansion is not supported for VMAX V3 array {}", storage.getSerialNumber());
-			throw APIException.badRequests.volumeNotExpandable(vol.getLabel());
-		}
+        exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
+                updatedClusters, updatedHosts, updatedInitiators, task);
 
-		// Verify that the volume is 'expandable'
-		VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, vol.getVirtualPool());
-		if (!virtualPool.getExpandable()) {
-			throw APIException.badRequests.volumeNotExpandable(vol.getLabel());
-		}
+        return waitForTaskCompletion(exportGroup.getId(), task);
 
-		// Don't operate on VPLEX backend or RP Journal volumes.
-		BlockServiceUtils.validateNotAnInternalBlockObject(vol, false);
+        // TODO: If now the list is empty, change volume status to 'not exported'
+        // and delete the exportGroup
+    }
 
-		// Don't operate on ingested volumes
-		VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(vol,
-				ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME, _dbClient);
+    private TaskResourceRep extendExistingVolume(Volume vol, VolumeActionRequest.ExtendVolume extendExistVol,
+            String openstack_tenant_id, String volume_id) {
 
-		// Get the new size.
-		Long newSize = extendExistVol.new_size * GB;
+        // Check if the volume is on VMAX V3 which doesn't support expansion yet
+        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
+        if (storage.checkIfVmax3()) {
+            _log.error("Volume expansion is not supported for VMAX V3 array {}", storage.getSerialNumber());
+            throw APIException.badRequests.volumeNotExpandable(vol.getLabel());
+        }
 
-		// verify quota in cinder side
-		Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
-		if(!validateVolumeExpand(openstack_tenant_id, null , vol, newSize, project)){
-			_log.info("The volume can not be expanded because of insufficient project quota.");
-			throw APIException.badRequests.insufficientQuotaForProject(project.getLabel(), "volume");
-		} else if(!validateVolumeExpand(openstack_tenant_id, virtualPool , vol, newSize, project)){
-			_log.info("The volume can not be expanded because of insufficient quota for virtual pool.");
-			throw APIException.badRequests.insufficientQuotaForVirtualPool(virtualPool.getLabel(), "virtual pool");
-		}
+        // Verify that the volume is 'expandable'
+        VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, vol.getVirtualPool());
+        if (!virtualPool.getExpandable()) {
+            throw APIException.badRequests.volumeNotExpandable(vol.getLabel());
+        }
 
-		// When newSize is the same as current size of the volume, this can be recovery attempt from failing previous expand to cleanup
-		// dangling meta members created for failed expansion
-		if (newSize.equals(vol.getCapacity()) && vol.getMetaVolumeMembers() != null && !(vol.getMetaVolumeMembers().isEmpty())) {
-			_log.info(String.format(
-					"expandVolume --- Zero capacity expansion: allowed as a recovery to cleanup dangling members from previous expand failure.\n" +
-							"VolumeId id: %s, Current size: %d, New size: %d, Dangling volumes: %s ", volume_id,
-							vol.getCapacity(), newSize, vol.getMetaVolumeMembers()));
-		} else if (newSize <= vol.getCapacity()) {
-			_log.info(String.format(
-					"expandVolume: VolumeId id: %s, Current size: %d, New size: %d ", volume_id, vol.getCapacity(), newSize));
-			throw APIException.badRequests.newSizeShouldBeLargerThanOldSize("volume");
-		}
+        // Don't operate on VPLEX backend or RP Journal volumes.
+        BlockServiceUtils.validateNotAnInternalBlockObject(vol, false);
 
-		_log.info(String.format(
-				"expandVolume --- VolumeId id: %s, Current size: %d, New size: %d", volume_id,
-				vol.getCapacity(), newSize));
+        // Don't operate on ingested volumes
+        VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(vol,
+                ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME, _dbClient);
 
+        // Get the new size.
+        Long newSize = extendExistVol.new_size * GB;
 
-		// Get the Block service implementation for this volume.
-		BlockServiceApi blockServiceApi = BlockService.getBlockServiceImpl(vol, _dbClient);
+        // verify quota in cinder side
+        Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
+        if (!validateVolumeExpand(openstack_tenant_id, null, vol, newSize, project)) {
+            _log.info("The volume can not be expanded because of insufficient project quota.");
+            throw APIException.badRequests.insufficientQuotaForProject(project.getLabel(), "volume");
+        } else if (!validateVolumeExpand(openstack_tenant_id, virtualPool, vol, newSize, project)) {
+            _log.info("The volume can not be expanded because of insufficient quota for virtual pool.");
+            throw APIException.badRequests.insufficientQuotaForVirtualPool(virtualPool.getLabel(), "virtual pool");
+        }
 
-		// Verify that the volume can be expanded.
-		blockServiceApi.verifyVolumeExpansionRequest(vol, newSize);
+        // When newSize is the same as current size of the volume, this can be recovery attempt from failing previous expand to cleanup
+        // dangling meta members created for failed expansion
+        if (newSize.equals(vol.getCapacity()) && vol.getMetaVolumeMembers() != null && !(vol.getMetaVolumeMembers().isEmpty())) {
+            _log.info(String
+                    .format(
+                            "expandVolume --- Zero capacity expansion: allowed as a recovery to cleanup dangling members from previous expand failure.\n"
+                                    +
+                                    "VolumeId id: %s, Current size: %d, New size: %d, Dangling volumes: %s ", volume_id,
+                            vol.getCapacity(), newSize, vol.getMetaVolumeMembers()));
+        } else if (newSize <= vol.getCapacity()) {
+            _log.info(String.format(
+                    "expandVolume: VolumeId id: %s, Current size: %d, New size: %d ", volume_id, vol.getCapacity(), newSize));
+            throw APIException.badRequests.newSizeShouldBeLargerThanOldSize("volume");
+        }
 
-		// verify quota in vipr side
-		if( newSize > vol.getProvisionedCapacity())  {
-			long size = newSize - vol.getProvisionedCapacity();
-			TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, vol.getTenant().getURI());
-			ArgValidator.checkEntity(tenant,vol.getTenant().getURI(), false);
-			ArgValidator.checkEntity(project,vol.getProject().getURI(), false);
-			VirtualPool cos = _dbClient.queryObject(VirtualPool.class, vol.getVirtualPool());
-			ArgValidator.checkEntity(cos,vol.getVirtualPool(), false);
-			CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, size, "volume");
-		}
+        _log.info(String.format(
+                "expandVolume --- VolumeId id: %s, Current size: %d, New size: %d", volume_id,
+                vol.getCapacity(), newSize));
 
-		// Create a task for the volume expansion.
-		String taskId = UUID.randomUUID().toString();
-		Operation op = _dbClient.createTaskOpStatus(Volume.class, vol.getId(), 
-				taskId, ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME);
+        // Get the Block service implementation for this volume.
+        BlockServiceApi blockServiceApi = BlockService.getBlockServiceImpl(vol, _dbClient);
 
-		// Try and expand the volume.
-		try {
-			blockServiceApi.expandVolume(vol, newSize, taskId);
-		} catch (final ControllerException e) {
-			_log.error("Controller Error", e);
-			String errMsg = String.format("Controller Error: %s", e.getMessage());
-			op = new Operation(Operation.Status.error.name(), errMsg);
-			_dbClient.updateTaskOpStatus(Volume.class, URI.create(volume_id), taskId, op);
-			throw e;
-		}
+        // Verify that the volume can be expanded.
+        blockServiceApi.verifyVolumeExpansionRequest(vol, newSize);
 
-		auditOp(OperationTypeEnum.EXPAND_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
-				vol.getId().toString(), vol.getCapacity(), newSize);
+        // verify quota in vipr side
+        if (newSize > vol.getProvisionedCapacity()) {
+            long size = newSize - vol.getProvisionedCapacity();
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, vol.getTenant().getURI());
+            ArgValidator.checkEntity(tenant, vol.getTenant().getURI(), false);
+            ArgValidator.checkEntity(project, vol.getProject().getURI(), false);
+            VirtualPool cos = _dbClient.queryObject(VirtualPool.class, vol.getVirtualPool());
+            ArgValidator.checkEntity(cos, vol.getVirtualPool(), false);
+            CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, size, "volume");
+        }
 
+        // Create a task for the volume expansion.
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Volume.class, vol.getId(),
+                taskId, ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME);
 
-		StringMap extensions = vol.getExtensions();
-		if (extensions == null) {
-			extensions = new StringMap();
-		}
-		extensions.put("status", ComponentStatus.EXTENDING.getStatus().toLowerCase());
-		extensions.put("task_id", taskId);
-		vol.setExtensions(extensions);	
-		_log.debug("Volume  Status ={}",vol.getExtensions().get("status"));
-		_log.debug("Volume creation task_id ={}",vol.getExtensions().get("task_id"));
-		_dbClient.persistObject(vol);
+        // Try and expand the volume.
+        try {
+            blockServiceApi.expandVolume(vol, newSize, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            String errMsg = String.format("Controller Error: %s", e.getMessage());
+            op = new Operation(Operation.Status.error.name(), errMsg);
+            _dbClient.updateTaskOpStatus(Volume.class, URI.create(volume_id), taskId, op);
+            throw e;
+        }
 
-		return toTask(vol, taskId, op);
-	}
-	
-	
-	boolean waitForTaskCompletion(URI resourceId , String task) throws InterruptedException{
-		int tryCnt = 0;
-		Task taskObj = null;
-		//while(tryCnt < RETRY_COUNT){
-		while(true){
-			_log.info("THE TASK var is {}", task);
-			Thread.sleep(40000);
-			taskObj = TaskUtils.findTaskForRequestId(_dbClient,resourceId , task);
-			_log.info("THE TASKOBJ is {}", taskObj.toString());
-			_log.info("THE TASKOBJ.GETSTATUS is {}", taskObj.getStatus().toString());
-			
-            		if (taskObj != null) {
-            			if(taskObj.getStatus().equals("ready")){            			
-            				return true;
-            			}	 
-            			if(taskObj.getStatus().equals("error")){            			
-            				return false;
-            			}	
-            			else{
-                    		tryCnt++;                    		
-            			}
-            		}
-            		else {
-            			return false;
-            		}
-		}				
-	}
+        auditOp(OperationTypeEnum.EXPAND_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
+                vol.getId().toString(), vol.getCapacity(), newSize);
 
-	private boolean processAttachRequest(Volume vol, VolumeActionRequest.AttachVolume attach, 
-			String openstack_tenant_id, String protocol) throws InterruptedException {
-		_log.info("Attach request");
-		Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
-		List<URI> initiatorURIs = new ArrayList<URI>();
-		String task = UUID.randomUUID().toString();
-		// Step 1: get list of host initiators to be added
-		_log.info("THE ATTACH.CONNECTOR IS {}", attach.connector.toString());
-		List<Initiator> newInitiators = getListOfInitiators(attach.connector, openstack_tenant_id, protocol, vol);
+        StringMap extensions = vol.getExtensions();
+        if (extensions == null) {
+            extensions = new StringMap();
+        }
+        extensions.put("status", ComponentStatus.EXTENDING.getStatus().toLowerCase());
+        extensions.put("task_id", taskId);
+        vol.setExtensions(extensions);
+        _log.debug("Volume  Status ={}", vol.getExtensions().get("status"));
+        _log.debug("Volume creation task_id ={}", vol.getExtensions().get("task_id"));
+        _dbClient.persistObject(vol);
 
-		ExportGroup exportGroup = findExportGroup(vol);
+        return toTask(vol, taskId, op);
+    }
 
-		if (exportGroup != null) {
-			// export group exists, we need to add the initiators to it.
-			volumeMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
-			initiatorURIs = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-			for (Initiator initiator: newInitiators){
-				URI uri = initiator.getId();
-				if (!initiatorURIs.contains(uri)) {
-					initiatorURIs.add(uri);
-				}
-			}
-			exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
-			_dbClient.persistObject(exportGroup);
-			_log.info("updateExportGroup request is submitted.");
-			// get block controller
-			initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
-			BlockExportController exportController = 
-					getController(BlockExportController.class, BlockExportController.EXPORT);
-			// Now update export group
-			
-	        Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
+    boolean waitForTaskCompletion(URI resourceId, String task) throws InterruptedException {
+        int tryCnt = 0;
+        Task taskObj = null;
+        // while(tryCnt < RETRY_COUNT){
+        while (true) {
+            _log.info("THE TASK var is {}", task);
+            Thread.sleep(40000);
+            taskObj = TaskUtils.findTaskForRequestId(_dbClient, resourceId, task);
+            _log.info("THE TASKOBJ is {}", taskObj.toString());
+            _log.info("THE TASKOBJ.GETSTATUS is {}", taskObj.getStatus().toString());
 
-	        List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-	        List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
-	        List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
-	        
-			exportController.exportGroupUpdate(exportGroup.getId(),noUpdatesVolumeMap,  noUpdatesVolumeMap,
-					updatedClusters, updatedHosts, updatedInitiators, task);	
-		}
-		else {
-			// Create a new export group with the given list of initiators
-			String name = "eg-"+vol.getLabel();
-			exportGroup = createNewGroup(newInitiators, openstack_tenant_id, name);
-			exportGroup.setVirtualArray(vol.getVirtualArray());
-			// put volume map
-			volumeMap.put(vol.getId(), ExportGroup.LUN_UNASSIGNED);
-			exportGroup.addVolume(vol.getId(), ExportGroup.LUN_UNASSIGNED);
-			// put list of initiators
-			for (Initiator initiator: newInitiators){
-				initiatorURIs.add(initiator.getId());
-			}
-			exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));        
-			_dbClient.createObject(exportGroup);
-			_log.info("createExportGroup request is submitted.");
-			initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);
-			// get block controller
-			BlockExportController exportController = 
-					getController(BlockExportController.class, BlockExportController.EXPORT);				
-			// Now create export group
-			exportController.exportGroupCreate(exportGroup.getId(), volumeMap, initiatorURIs, task);
-		}
-		
-		boolean bTaskComplete = waitForTaskCompletion( exportGroup.getId(), task);				
-		return bTaskComplete;
-	}
-	
-	
-	private Operation initTaskStatus(ExportGroup exportGroup, String task, Operation.Status status, ResourceOperationTypeEnum opType) {
+            if (taskObj != null) {
+                if (taskObj.getStatus().equals("ready")) {
+                    return true;
+                }
+                if (taskObj.getStatus().equals("error")) {
+                    return false;
+                }
+                else {
+                    tryCnt++;
+                }
+            }
+            else {
+                return false;
+            }
+        }
+    }
+
+    private boolean processAttachRequest(Volume vol, VolumeActionRequest.AttachVolume attach,
+            String openstack_tenant_id, String protocol) throws InterruptedException {
+        _log.info("Attach request");
+        Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
+        List<URI> initiatorURIs = new ArrayList<URI>();
+        String task = UUID.randomUUID().toString();
+        // Step 1: get list of host initiators to be added
+        _log.info("THE ATTACH.CONNECTOR IS {}", attach.connector.toString());
+        List<Initiator> newInitiators = getListOfInitiators(attach.connector, openstack_tenant_id, protocol, vol);
+
+        ExportGroup exportGroup = findExportGroup(vol);
+
+        if (exportGroup != null) {
+            // export group exists, we need to add the initiators to it.
+            volumeMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
+            initiatorURIs = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+            for (Initiator initiator : newInitiators) {
+                URI uri = initiator.getId();
+                if (!initiatorURIs.contains(uri)) {
+                    initiatorURIs.add(uri);
+                }
+            }
+            exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
+            _dbClient.persistObject(exportGroup);
+            _log.info("updateExportGroup request is submitted.");
+            // get block controller
+            initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
+            BlockExportController exportController =
+                    getController(BlockExportController.class, BlockExportController.EXPORT);
+            // Now update export group
+
+            Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
+
+            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+            List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
+            List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
+
+            exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
+                    updatedClusters, updatedHosts, updatedInitiators, task);
+        }
+        else {
+            // Create a new export group with the given list of initiators
+            String name = "eg-" + vol.getLabel();
+            exportGroup = createNewGroup(newInitiators, openstack_tenant_id, name);
+            exportGroup.setVirtualArray(vol.getVirtualArray());
+            // put volume map
+            volumeMap.put(vol.getId(), ExportGroup.LUN_UNASSIGNED);
+            exportGroup.addVolume(vol.getId(), ExportGroup.LUN_UNASSIGNED);
+            // put list of initiators
+            for (Initiator initiator : newInitiators) {
+                initiatorURIs.add(initiator.getId());
+            }
+            exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
+            _dbClient.createObject(exportGroup);
+            _log.info("createExportGroup request is submitted.");
+            initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);
+            // get block controller
+            BlockExportController exportController =
+                    getController(BlockExportController.class, BlockExportController.EXPORT);
+            // Now create export group
+            exportController.exportGroupCreate(exportGroup.getId(), volumeMap, initiatorURIs, task);
+        }
+
+        boolean bTaskComplete = waitForTaskCompletion(exportGroup.getId(), task);
+        return bTaskComplete;
+    }
+
+    private Operation initTaskStatus(ExportGroup exportGroup, String task, Operation.Status status, ResourceOperationTypeEnum opType) {
         if (exportGroup.getOpStatus() == null) {
             exportGroup.setOpStatus(new OpStatusMap());
         }
         Operation op = new Operation();
         op.setResourceType(opType);
         if (status == Operation.Status.ready) {
-        	op.ready();
-        } 
+            op.ready();
+        }
         _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup.getId(), task, op);
         return op;
-	}
+    }
 
+    private ExportGroup createNewGroup(List<Initiator> initiators,
+            String openstack_tenant_id, String name) {
+        Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
+        if (project == null)
+            throw APIException.badRequests.parameterIsNotValid(openstack_tenant_id);
+        URI tenantUri = project.getTenantOrg().getURI();
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, tenantUri);
+        if (tenant == null)
+            throw APIException.notFound.unableToFindUserScopeOfSystem();
+        ExportGroup exportGroup = new ExportGroup();
+        // TODO - For temporary backward compatibility
+        exportGroup.setLabel(name);
+        exportGroup.setType(ExportGroupType.Initiator.name());
+        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+        exportGroup.setProject(new NamedURI(project.getId(), name));
+        exportGroup.setTenant(new NamedURI(tenantUri, name));
 
-	private ExportGroup createNewGroup(List<Initiator> initiators,
-			String openstack_tenant_id, String name) {
-		Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
-		if (project == null)
-			throw APIException.badRequests.parameterIsNotValid(openstack_tenant_id);
-		URI tenantUri = project.getTenantOrg().getURI();
-		TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, tenantUri);
-		if (tenant == null)
-			throw APIException.notFound.unableToFindUserScopeOfSystem();
-		ExportGroup exportGroup = new ExportGroup();
-		// TODO - For temporary backward compatibility
-		exportGroup.setLabel(name);
-		exportGroup.setType(ExportGroupType.Initiator.name());
-		exportGroup.setId(URIUtil.createId(ExportGroup.class));
-		exportGroup.setProject(new NamedURI(project.getId(), name));
-		exportGroup.setTenant(new NamedURI(tenantUri, name));
+        String generatedName = _nameGenerator.generate(tenant.getLabel(),
+                exportGroup.getLabel(), exportGroup.getId().toString(), '_', 56);
+        exportGroup.setGeneratedName(generatedName);
+        return exportGroup;
+    }
 
-		String generatedName = _nameGenerator.generate(tenant.getLabel(),
-				exportGroup.getLabel(), exportGroup.getId().toString(), '_', 56);
-		exportGroup.setGeneratedName(generatedName);
-		return exportGroup;
-	}
+    private List<Initiator> getListOfInitiators(Connector connector, String tenant_id, String protocol, Volume vol) {
+        List<Initiator> initiators = new ArrayList<Initiator>();
+        boolean bFound = false;
 
-	private List<Initiator> getListOfInitiators(Connector connector, String tenant_id, String protocol, Volume vol) {
-		List<Initiator> initiators = new ArrayList<Initiator>();
-		boolean bFound = false;
+        // TODO: How do we handle the automatic addition of initiators. Even if we add it how do we handle the part of
+        // adding it to the the requisite network.
+        if (protocol.equals(Protocol.iSCSI.name())) {
+            // this is an iSCSI request
+            String port = connector.initiator;
+            String hostname = connector.host;
+            List<Initiator> iscsi_initiators = new ArrayList<Initiator>();
+            Boolean found = searchInDb(port, iscsi_initiators, Protocol.iSCSI.name());
+            if (found) {
+                initiators.addAll(iscsi_initiators);
+            }
+            else {
+                // not found, create a new one
+                _log.info("Creating new iSCSI initiator, iqn = {}", port);
+                // Make sure the port is a valid iSCSI port.
+                if (!iSCSIUtility.isValidIQNPortName(port) && !iSCSIUtility.isValidEUIPortName(port))
+                    throw APIException.badRequests.invalidIscsiInitiatorPort();
+                // Find host, and if not found, create new host
+                Host host = getHost(hostname, tenant_id);
 
-		//TODO: How do we handle the automatic addition of  initiators. Even if we add it how do we handle the part of
-		//adding it to the the requisite network.
-		if(protocol.equals(Protocol.iSCSI.name())){
-			// this is an iSCSI request
-			String port = connector.initiator;
-			String hostname = connector.host;
-			List<Initiator> iscsi_initiators = new ArrayList<Initiator>();
-			Boolean found = searchInDb(port, iscsi_initiators, Protocol.iSCSI.name());
-			if (found){
-				initiators.addAll(iscsi_initiators);
-			}
-			else{
-				// not found, create a new one
-				_log.info("Creating new iSCSI initiator, iqn = {}", port);
-				// Make sure the port is a valid iSCSI port.
-				if (!iSCSIUtility.isValidIQNPortName(port) && !iSCSIUtility.isValidEUIPortName(port))
-					throw APIException.badRequests.invalidIscsiInitiatorPort(); 
-				// Find host, and if not found, create new host
-				Host host = getHost(hostname, tenant_id);
+                // create and populate the initiator
+                Initiator initiator = new Initiator();
+                initiator.setHost(host.getId());
+                initiator.setHostName(connector.host);
+                if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+                    Cluster cluster = queryObject(Cluster.class, host.getCluster(), false);
+                    initiator.setClusterName(cluster.getLabel());
+                }
+                initiator.setId(URIUtil.createId(Initiator.class));
+                initiator.setInitiatorPort(port);
+                initiator.setIsManualCreation(true);  // allows deletion via UI
+                initiator.setProtocol(HostInterface.Protocol.iSCSI.name());
+                addInitiatorToNetwork(initiator, vol);
+                ScopedLabelSet tags = new ScopedLabelSet();
+                tags.add(new ScopedLabel("openstack", "dynamic"));
+                initiator.setTag(tags);
 
-				//create and populate the initiator
-				Initiator initiator = new Initiator();
-				initiator.setHost(host.getId());
-				initiator.setHostName(connector.host);
-				if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-					Cluster cluster = queryObject(Cluster.class, host.getCluster(), false);
-					initiator.setClusterName(cluster.getLabel());
-				}
-				initiator.setId(URIUtil.createId(Initiator.class));
-				initiator.setInitiatorPort(port);
-				initiator.setIsManualCreation(true);  // allows deletion via UI
-				initiator.setProtocol(HostInterface.Protocol.iSCSI.name());
-				addInitiatorToNetwork(initiator, vol);
-				ScopedLabelSet tags = new ScopedLabelSet();
-				tags.add(new ScopedLabel("openstack","dynamic"));
-				initiator.setTag(tags);
-
-				_dbClient.createObject(initiator);
-				initiators.add(initiator);
-			}
-		}
-		else if(protocol.equals(Protocol.FC.name())){
-			// this is an FC request
-			for (String fc_port: connector.wwpns){
-				// See if this initiator exists in our DB
-				List<Initiator> fc_initiators = new ArrayList<Initiator>();
-				Boolean found = searchInDb(fc_port, fc_initiators, Protocol.FC.name());
-				if (found){
-					bFound = true;
-					initiators.addAll(fc_initiators);
-				}
-				else{
-					// not found, we don't create dynamically for FC
-					//TODO: How do we intimate the user apropriately.
-					_log.info("FC initiator for wwpn {} not found", fc_port);
-				}
-			}
-			if(!bFound){
-				throw APIException.internalServerErrors.genericApisvcError("Export Failed", 
-						new Exception("No FC initiator found for export"));	
-			}
-		}
-		else
-		{	
-			throw APIException.internalServerErrors.genericApisvcError("Unsupported volume protocol", 
-				new Exception("The protocol specified is not supported. The protocols supported are "+
-								Protocol.FC.name()+" and "+Protocol.iSCSI.name()));			
-		}
-		return initiators;
-	}
+                _dbClient.createObject(initiator);
+                initiators.add(initiator);
+            }
+        }
+        else if (protocol.equals(Protocol.FC.name())) {
+            // this is an FC request
+            for (String fc_port : connector.wwpns) {
+                // See if this initiator exists in our DB
+                List<Initiator> fc_initiators = new ArrayList<Initiator>();
+                Boolean found = searchInDb(fc_port, fc_initiators, Protocol.FC.name());
+                if (found) {
+                    bFound = true;
+                    initiators.addAll(fc_initiators);
+                }
+                else {
+                    // not found, we don't create dynamically for FC
+                    // TODO: How do we intimate the user apropriately.
+                    _log.info("FC initiator for wwpn {} not found", fc_port);
+                }
+            }
+            if (!bFound) {
+                throw APIException.internalServerErrors.genericApisvcError("Export Failed",
+                        new Exception("No FC initiator found for export"));
+            }
+        }
+        else
+        {
+            throw APIException.internalServerErrors.genericApisvcError("Unsupported volume protocol",
+                    new Exception("The protocol specified is not supported. The protocols supported are " +
+                            Protocol.FC.name() + " and " + Protocol.iSCSI.name()));
+        }
+        return initiators;
+    }
 
     /**
      * Add ISCSI initiator to Network
@@ -903,117 +915,116 @@ public class ExportService extends VolumeService {
             throw APIException.internalServerErrors.genericApisvcError("Export failed", new Exception("No network is available"));
         }
     }
-	
-	private Host getHost(String hostname, String tenant_id) {
-		Host host = searchHostInDb(hostname);
-		if (host == null){
-			_log.info("Creating new Host, hostname = {}", hostname);
-			host = new Host();
-			host.setId(URIUtil.createId(Host.class));
-			StorageOSUser user = getUserFromContext();
-			host.setTenant(URI.create(user.getTenantId()));
-			host.setHostName(hostname);
-			host.setLabel(hostname);
-			host.setDiscoverable(false);
-			Project proj = getCinderHelper().getProject(tenant_id,getUserFromContext());
-			if(proj!=null){
-				host.setProject(proj.getId());
-			}
-			else{
-				throw APIException.badRequests.projectWithTagNonexistent(tenant_id);
-			}
-				
-			host.setType(Host.HostType.Other.name());
-			_dbClient.createObject(host);
-		}
-		return host;
-	}
 
-	
-	private boolean validateVolumeExpand(String openstack_tenant_id, VirtualPool pool , Volume vol, long requestedSize, Project proj){		
-		QuotaOfCinder objQuota  = null;
+    private Host getHost(String hostname, String tenant_id) {
+        Host host = searchHostInDb(hostname);
+        if (host == null) {
+            _log.info("Creating new Host, hostname = {}", hostname);
+            host = new Host();
+            host.setId(URIUtil.createId(Host.class));
+            StorageOSUser user = getUserFromContext();
+            host.setTenant(URI.create(user.getTenantId()));
+            host.setHostName(hostname);
+            host.setLabel(hostname);
+            host.setDiscoverable(false);
+            Project proj = getCinderHelper().getProject(tenant_id, getUserFromContext());
+            if (proj != null) {
+                host.setProject(proj.getId());
+            }
+            else {
+                throw APIException.badRequests.projectWithTagNonexistent(tenant_id);
+            }
 
-		if(pool== null)
-			objQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
-		else
-			objQuota = getCinderHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
+            host.setType(Host.HostType.Other.name());
+            _dbClient.createObject(host);
+        }
+        return host;
+    }
 
-		if(objQuota == null){
-			_log.info("Unable to retrive the Quota information");
-			return false;
-		}
+    private boolean validateVolumeExpand(String openstack_tenant_id, VirtualPool pool, Volume vol, long requestedSize, Project proj) {
+        QuotaOfCinder objQuota = null;
 
-		long totalSizeUsed = 0;
-		UsageStats stats = null;
+        if (pool == null)
+            objQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
+        else
+            objQuota = getCinderHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
 
-		if(pool!=null)
-			stats = getCinderHelper().GetUsageStats(pool.getId(), proj.getId());
-		else
-			stats = getCinderHelper().GetUsageStats(null, proj.getId());
+        if (objQuota == null) {
+            _log.info("Unable to retrive the Quota information");
+            return false;
+        }
 
-		totalSizeUsed = stats.spaceUsed ;
+        long totalSizeUsed = 0;
+        UsageStats stats = null;
 
-		_log.info(String.format("ProvisionedCapacity:%s ,TotalQuota:%s , TotalSizeUsed:%s, RequestedSize:%s, VolCapacity:%s", 
-				(long) (vol.getProvisionedCapacity()/GB), objQuota.getTotalQuota() , totalSizeUsed, 
-				(long)(requestedSize/GB), (long) vol.getCapacity()/GB));
+        if (pool != null)
+            stats = getCinderHelper().GetUsageStats(pool.getId(), proj.getId());
+        else
+            stats = getCinderHelper().GetUsageStats(null, proj.getId());
 
-		if( (objQuota.getTotalQuota()!=QuotaService.DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA) && (objQuota.getTotalQuota() <= (totalSizeUsed +  ((long)(requestedSize/GB) - (long) (vol.getProvisionedCapacity()/GB)))))
-			return false;
-		else
-			return true;
+        totalSizeUsed = stats.spaceUsed;
 
-	}
+        _log.info(String.format("ProvisionedCapacity:%s ,TotalQuota:%s , TotalSizeUsed:%s, RequestedSize:%s, VolCapacity:%s",
+                (long) (vol.getProvisionedCapacity() / GB), objQuota.getTotalQuota(), totalSizeUsed,
+                (long) (requestedSize / GB), (long) vol.getCapacity() / GB));
 
-	private Host searchHostInDb(String hostname) {
-		SearchedResRepList resRepList = new SearchedResRepList(ResourceTypeEnum.HOST);
-		_dbClient.queryByConstraint(AlternateIdConstraint.Factory.getConstraint(Host.class, "hostName", hostname),
-				resRepList);
-		if (resRepList.iterator() != null) {
-			for (SearchResultResourceRep res : resRepList) {
-				Host host = _dbClient.queryObject(Host.class, res.getId());
-				if ((host != null) && !(host.getInactive())){
-					return host;
-				}
-			}
-		}
-		return null; // if not found
-	}
+        if ((objQuota.getTotalQuota() != QuotaService.DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA)
+                && (objQuota.getTotalQuota() <= (totalSizeUsed + ((long) (requestedSize / GB) - (long) (vol.getProvisionedCapacity() / GB)))))
+            return false;
+        else
+            return true;
 
-	// Sometimes there are multiple entries for the same initiator
-	// and so we return a list here
-	private Boolean searchInDb(String port, List<Initiator> list, String protocol) {
-		SearchedResRepList resRepList = new SearchedResRepList(ResourceTypeEnum.INITIATOR);
-		Boolean found = false;		
-		String formattedStr = "";
-		
-		if(protocol.equalsIgnoreCase(Protocol.FC.name())){
-			int index = 0;				
-			while(index < (port.length()) ){
-				formattedStr += port.substring(index, index + 2).toUpperCase();			
-				index = index + 2;
-				if(index < (port.length()) ){
-					formattedStr += ":";
-				}
-			}
-		}
-		else if(protocol.equalsIgnoreCase(Protocol.iSCSI.name())){
-			formattedStr = port;
-		}
-						
-		// Finds the Initiator that includes the initiator port specified, if any.
-		_dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(formattedStr), resRepList);
-		if (resRepList.iterator() != null) {
-			for (SearchResultResourceRep res : resRepList) {
-				Initiator initiator = _dbClient.queryObject(Initiator.class, res.getId());
-				if ((initiator != null) && !(initiator.getInactive())){
-					list.add(initiator);
-					_log.info("Found initiator in DB for port = {}", port);
-					found = true;
-				}
-			}
-		}
-		return found;
-	}
+    }
 
+    private Host searchHostInDb(String hostname) {
+        SearchedResRepList resRepList = new SearchedResRepList(ResourceTypeEnum.HOST);
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getConstraint(Host.class, "hostName", hostname),
+                resRepList);
+        if (resRepList.iterator() != null) {
+            for (SearchResultResourceRep res : resRepList) {
+                Host host = _dbClient.queryObject(Host.class, res.getId());
+                if ((host != null) && !(host.getInactive())) {
+                    return host;
+                }
+            }
+        }
+        return null; // if not found
+    }
+
+    // Sometimes there are multiple entries for the same initiator
+    // and so we return a list here
+    private Boolean searchInDb(String port, List<Initiator> list, String protocol) {
+        SearchedResRepList resRepList = new SearchedResRepList(ResourceTypeEnum.INITIATOR);
+        Boolean found = false;
+        String formattedStr = "";
+
+        if (protocol.equalsIgnoreCase(Protocol.FC.name())) {
+            int index = 0;
+            while (index < (port.length())) {
+                formattedStr += port.substring(index, index + 2).toUpperCase();
+                index = index + 2;
+                if (index < (port.length())) {
+                    formattedStr += ":";
+                }
+            }
+        }
+        else if (protocol.equalsIgnoreCase(Protocol.iSCSI.name())) {
+            formattedStr = port;
+        }
+
+        // Finds the Initiator that includes the initiator port specified, if any.
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(formattedStr), resRepList);
+        if (resRepList.iterator() != null) {
+            for (SearchResultResourceRep res : resRepList) {
+                Initiator initiator = _dbClient.queryObject(Initiator.class, res.getId());
+                if ((initiator != null) && !(initiator.getInactive())) {
+                    list.add(initiator);
+                    _log.info("Found initiator in DB for port = {}", port);
+                    found = true;
+                }
+            }
+        }
+        return found;
+    }
 
 }

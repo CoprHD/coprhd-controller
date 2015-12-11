@@ -18,7 +18,7 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 @XmlRootElement(name = "volume_type")
 @XmlAccessorType(XmlAccessType.PUBLIC_MEMBER)
 @XmlAccessorOrder(XmlAccessOrder.ALPHABETICAL)
-public class VolumeType{
+public class VolumeType {
     public String name;
     public String id;
     public Map<String, String> extra_specs;

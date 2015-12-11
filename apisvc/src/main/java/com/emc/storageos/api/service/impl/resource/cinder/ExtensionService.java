@@ -21,54 +21,50 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 
 @Path("/v2")
-@DefaultPermissions( readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        readAcls = {ACL.OWN, ACL.ALL},
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.OWN, ACL.ALL },
         writeRoles = { Role.TENANT_ADMIN },
-        writeAcls = {ACL.OWN, ACL.ALL})
+        writeAcls = { ACL.OWN, ACL.ALL })
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class ExtensionService {
 
-	public class Versions {
-		private List<Version> versions;
-		
-		@XmlElement (name = "versions")
-		public List<Version> getVersions(){
-			if (versions == null){
-				versions = new ArrayList<Version>();
-			}
-			return versions;
-		}
-	}
+    public class Versions {
+        private List<Version> versions;
 
+        @XmlElement(name = "versions")
+        public List<Version> getVersions() {
+            if (versions == null) {
+                versions = new ArrayList<Version>();
+            }
+            return versions;
+        }
+    }
 
-
-	/**
+    /**
      * Get the current API version
-     *     
-     *
+     * 
+     * 
      * @prereq none
-     *
-     *
+     * 
+     * 
      * @brief Show version
      * @return Version
      */
-	@GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Version getVersion() {
-		return getV2();
+        return getV2();
     }
 
-   
-
     // INTERNAL FUNCTIONS
-    
+
     private Version getV2() {
         Version v2 = new Version();
         v2.status = "CURRENT";
         v2.id = "v2.0";
         v2.updated = VolumeService.date(Calendar.getInstance().getTimeInMillis());
         return v2;
-	}
+    }
 
 }

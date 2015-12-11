@@ -11,18 +11,18 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "volume_type")
 public class VolumeTypeRestResp {
 
-	private VolumeType _type;
-	
-	@XmlElement(name="volume_type")
-	public VolumeType getVolumeType(){
-		if (_type == null){
-			_type = new VolumeType();
-		}
-		return _type;
-	}
+    private VolumeType _type;
 
-	public void setVolumeType(VolumeType type){
-		_type = type;
-	}
-	
+    @XmlElement(name = "volume_type")
+    public VolumeType getVolumeType() {
+        if (_type == null) {
+            _type = new VolumeType();
+        }
+        return _type;
+    }
+
+    public void setVolumeType(VolumeType type) {
+        _type = type;
+    }
+
 }

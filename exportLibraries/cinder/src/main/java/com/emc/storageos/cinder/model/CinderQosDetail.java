@@ -3,10 +3,10 @@
  *
  */
 package com.emc.storageos.cinder.model;
+
 import javax.xml.bind.annotation.XmlElement;
 
-public class CinderQosDetail{ 
-	@XmlElement(name = "qos_specs")
-	public CinderQos qos_spec = new CinderQos();
+public class CinderQosDetail {
+    @XmlElement(name = "qos_specs")
+    public CinderQos qos_spec = new CinderQos();
 }
-

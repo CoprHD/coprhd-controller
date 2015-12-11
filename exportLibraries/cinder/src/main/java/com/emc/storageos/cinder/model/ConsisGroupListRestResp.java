@@ -15,12 +15,12 @@ public class ConsisGroupListRestResp {
     private List<ConsistencyGroupDetail> consistencyGroups;
 
     /**
-     * List of snapshots that make up this entry.  Used primarily to report to cinder.  
+     * List of snapshots that make up this entry. Used primarily to report to cinder.
      */
     @XmlElement
     public List<ConsistencyGroupDetail> getConsistencyGroups() {
         if (consistencyGroups == null) {
-        	consistencyGroups = new ArrayList<ConsistencyGroupDetail>();
+            consistencyGroups = new ArrayList<ConsistencyGroupDetail>();
         }
         return consistencyGroups;
     }
@@ -28,6 +28,5 @@ public class ConsisGroupListRestResp {
     public void setConsistencyGroups(List<ConsistencyGroupDetail> consistencyGroups) {
         this.consistencyGroups = consistencyGroups;
     }
-       
-}
 
+}

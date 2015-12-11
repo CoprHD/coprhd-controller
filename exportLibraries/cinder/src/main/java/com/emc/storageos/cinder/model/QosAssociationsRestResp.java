@@ -9,18 +9,19 @@ import java.util.List;
 
 import javax.xml.bind.annotation.XmlElementRef;
 import javax.xml.bind.annotation.XmlRootElement;
+
 // REST response for the List volume types query
 @XmlRootElement(name = "qos_associations")
 public class QosAssociationsRestResp {
 
-	private List<VolumeType> types;
-	
-	@XmlElementRef
-	public List<VolumeType> getVolumeTypes(){
-		if (types == null){
-			types = new ArrayList<VolumeType>();
-		}
-		return types;
-	}
-	
+    private List<VolumeType> types;
+
+    @XmlElementRef
+    public List<VolumeType> getVolumeTypes() {
+        if (types == null) {
+            types = new ArrayList<VolumeType>();
+        }
+        return types;
+    }
+
 }

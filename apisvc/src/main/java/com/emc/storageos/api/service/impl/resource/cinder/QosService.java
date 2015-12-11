@@ -33,62 +33,59 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 
 @Path("/v2/{tenant_id}/qos-specs")
-@DefaultPermissions( readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        readAcls = {ACL.OWN, ACL.ALL},
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.OWN, ACL.ALL },
         writeRoles = { Role.TENANT_ADMIN },
-        writeAcls = {ACL.OWN, ACL.ALL})
+        writeAcls = { ACL.OWN, ACL.ALL })
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class QosService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(QosService.class);
-    private static final String EVENT_SERVICE_TYPE = "block";   
-    
+    private static final String EVENT_SERVICE_TYPE = "block";
+
     /**
      * Get the summary list of all Qos for the given tenant
-     *     
-     *
+     * 
+     * 
      * @prereq none
-     *
-     * @param tenant_id the URN of the tenant 
-     *
+     * 
+     * @param tenant_id the URN of the tenant
+     * 
      * @brief List Qos
      * @return Qos list
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public CinderQosListRestResp getQosList(@PathParam("tenant_id") String openstack_tenant_id) {
-    	CinderQosListRestResp qosListResp= new CinderQosListRestResp();    	
-    	return qosListResp;
+        CinderQosListRestResp qosListResp = new CinderQosListRestResp();
+        return qosListResp;
     }
-    
-    
-	/**
+
+    /**
      * Get the detailed list of all associations for a given qos
-     *     
-     *
+     * 
+     * 
      * @prereq none
-     *
-     * @param tenant_id the URN of the tenant 
-     *
+     * 
+     * @param tenant_id the URN of the tenant
+     * 
      * @brief List volumes in detail
      * @return Volume detailed list
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{qos_id}/associations")
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public QosAssociationsRestResp getQosAssociations(@PathParam("tenant_id") String openstack_tenant_id) {
         _log.info("START get qos associations");
-        QosAssociationsRestResp objQosRestResp= new QosAssociationsRestResp();
+        QosAssociationsRestResp objQosRestResp = new QosAssociationsRestResp();
         return objQosRestResp;
     }
-    
-        
-    static String date(Long timeInMillis){
-    	return new java.text.SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z").format(new java.util.Date (timeInMillis));
-    }
 
+    static String date(Long timeInMillis) {
+        return new java.text.SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z").format(new java.util.Date(timeInMillis));
+    }
 
     @Override
     protected URI getTenantOwner(URI id) {
@@ -105,7 +102,7 @@ public class QosService extends TaskResourceService {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.VOLUME;
     }
 
@@ -114,21 +111,20 @@ public class QosService extends TaskResourceService {
         return EVENT_SERVICE_TYPE;
     }
 
-
     /**
      * Get object specific permissions filter
-     *
+     * 
      */
     @Override
     protected ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
-                                                                             PermissionsHelper permissionsHelper)
+            PermissionsHelper permissionsHelper)
     {
         return new ProjOwnedResRepFilter(user, permissionsHelper, Volume.class);
     }
 
-	@Override
-	protected DataObject queryResource(URI id) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    protected DataObject queryResource(URI id) {
+        throw new UnsupportedOperationException();
+    }
 
 }

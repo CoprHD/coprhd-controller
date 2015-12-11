@@ -9,17 +9,17 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.map.annotate.JsonRootName;
 
-@JsonRootName(value="extension")
-@XmlRootElement(name="extension")
+@JsonRootName(value = "extension")
+@XmlRootElement(name = "extension")
 public class CinderExtension {
-	@XmlAttribute
-	public String updated;	
-	@XmlAttribute
-	public String namespace;
-	@XmlAttribute
-	public String name;
-	@XmlAttribute
-	public String alias;
-	public String description;
-	public String links[];
+    @XmlAttribute
+    public String updated;
+    @XmlAttribute
+    public String namespace;
+    @XmlAttribute
+    public String name;
+    @XmlAttribute
+    public String alias;
+    public String description;
+    public String links[];
 }

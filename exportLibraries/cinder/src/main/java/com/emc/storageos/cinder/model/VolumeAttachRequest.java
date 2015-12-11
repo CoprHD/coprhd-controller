@@ -36,7 +36,7 @@ public class VolumeAttachRequest {
      */
 
     @SerializedName("os-initialize_connection")
-    @XmlElement (name="os-initialize-connection")
+    @XmlElement(name = "os-initialize-connection")
     public InitializeConnection initializeConnection = new InitializeConnection();
 
     public class InitializeConnection

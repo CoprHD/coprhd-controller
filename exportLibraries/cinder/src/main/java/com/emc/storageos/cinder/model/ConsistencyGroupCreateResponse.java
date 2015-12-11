@@ -9,14 +9,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.map.annotate.JsonRootName;
 
-@XmlRootElement(name="consistencygroup")
-@JsonRootName(value="consistencygroup")
+@XmlRootElement(name = "consistencygroup")
+@JsonRootName(value = "consistencygroup")
 public class ConsistencyGroupCreateResponse {
-	
-	@XmlAttribute
-	public String id;
-	
-	@XmlAttribute
-	public String name;
+
+    @XmlAttribute
+    public String id;
+
+    @XmlAttribute
+    public String name;
 
 }

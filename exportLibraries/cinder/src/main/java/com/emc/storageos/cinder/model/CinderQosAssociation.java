@@ -13,7 +13,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "associations")
 @XmlAccessorType(XmlAccessType.PUBLIC_MEMBER)
 @XmlAccessorOrder(XmlAccessOrder.ALPHABETICAL)
-public class CinderQosAssociation{
+public class CinderQosAssociation {
     public String association_type;
     public String id;
     public String name;

@@ -10,6 +10,5 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "snapshots")
 public class CinderSnapshotMetadata {
-	public Map<String, String> metadata;
+    public Map<String, String> metadata;
 }
-

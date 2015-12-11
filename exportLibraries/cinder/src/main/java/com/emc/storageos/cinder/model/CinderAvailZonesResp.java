@@ -10,20 +10,19 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElementRef;
 import javax.xml.bind.annotation.XmlRootElement;
 
-
 @XmlRootElement(name = "availabilityZoneInfo")
 public class CinderAvailZonesResp {
     private List<CinderAvailabiltyZone> availabilityZoneInfo;
-    
+
     @XmlElementRef
     public List<CinderAvailabiltyZone> getAvailabilityZoneInfo() {
         if (availabilityZoneInfo == null) {
-        	availabilityZoneInfo = new ArrayList<CinderAvailabiltyZone>();
+            availabilityZoneInfo = new ArrayList<CinderAvailabiltyZone>();
         }
         return availabilityZoneInfo;
     }
 
     public void setAvailabilityZoneInfo(List<CinderAvailabiltyZone> zones) {
-    	this.availabilityZoneInfo = zones;
+        this.availabilityZoneInfo = zones;
     }
 }

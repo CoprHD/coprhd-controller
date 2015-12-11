@@ -13,11 +13,12 @@ import org.codehaus.jackson.annotate.JsonProperty;
 
 /**
  * Pojo class for detail list of consistency group
+ * 
  * @author singhc1
- *
+ * 
  */
 public class ConsistencyGroupsResponse {
-    
+
     private List<ConsistencyGroupDetail> consistencyGroupList = new ArrayList<ConsistencyGroupDetail>();
 
     @JsonProperty(value = "consistencygroups")

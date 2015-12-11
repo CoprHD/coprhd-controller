@@ -13,7 +13,7 @@ import java.util.Arrays;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name="connector")
+@XmlRootElement(name = "connector")
 public class Connector
 {
     /** to be filled in for iSCSI attach */
@@ -22,44 +22,52 @@ public class Connector
     public String[] wwpns;
     public String host;
     public String ip;
-	public String getInitiator() {
-		return initiator;
-	}
-	public void setInitiator(String initiator) {
-		this.initiator = initiator;
-	}
-	public String[] getWwpns() {
-		return wwpns;
-	}
-	public void setWwpns(String[] wwpns) {
-		this.wwpns = wwpns;
-	}
-	public String getHost() {
-		return host;
-	}
-	public void setHost(String host) {
-		this.host = host;
-	}
-	public String getIp() {
-		return ip;
-	}
-	public void setIp(String ip) {
-		this.ip = ip;
-	}
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("Connector [initiator=");
-		builder.append(initiator);
-		builder.append(", wwpns=");
-		builder.append(Arrays.toString(wwpns));
-		builder.append(", host=");
-		builder.append(host);
-		builder.append(", ip=");
-		builder.append(ip);
-		builder.append("]");
-		return builder.toString();
-	}
-    
-    
+
+    public String getInitiator() {
+        return initiator;
+    }
+
+    public void setInitiator(String initiator) {
+        this.initiator = initiator;
+    }
+
+    public String[] getWwpns() {
+        return wwpns;
+    }
+
+    public void setWwpns(String[] wwpns) {
+        this.wwpns = wwpns;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public String getIp() {
+        return ip;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Connector [initiator=");
+        builder.append(initiator);
+        builder.append(", wwpns=");
+        builder.append(Arrays.toString(wwpns));
+        builder.append(", host=");
+        builder.append(host);
+        builder.append(", ip=");
+        builder.append(ip);
+        builder.append("]");
+        return builder.toString();
+    }
+
 }

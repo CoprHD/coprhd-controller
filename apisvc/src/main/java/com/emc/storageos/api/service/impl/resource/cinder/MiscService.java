@@ -53,226 +53,218 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.cinder.model.CinderOsVolumeTransferRestResp;
 import com.emc.storageos.cinder.model.CinderOsServicesRestResp;
 
-
 @Path("/v2/{tenant_id}")
-@DefaultPermissions( readRoles = {Role.TENANT_ADMIN, Role.SYSTEM_MONITOR},
-readAcls = {ACL.USE}, writeRoles = { })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR },
+        readAcls = { ACL.USE }, writeRoles = {})
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class MiscService extends TaskResourceService {
     private static final Logger _log = LoggerFactory.getLogger(MiscService.class);
     private CinderHelpers helper = null;
-    
+
     @Override
     public Class<CinderLimitsDetail> getResourceClass() {
         return CinderLimitsDetail.class;
     }
-    
-    
+
     private CinderHelpers getCinderHelper() {
-		return CinderHelpers.getInstance(_dbClient , _permissionsHelper);
-	}
+        return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
+    }
 
     /**
      * Get Limits
-     *     
+     * 
      * @prereq none
-     * @param tenant_id the URN of the tenant 
+     * @param tenant_id the URN of the tenant
      * @brief Get Limits
-     * @return limits	
+     * @return limits
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Path("/limits")	
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})        
-    public Response getLimits(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {    	
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/limits")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public Response getLimits(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
         _log.info("START get limits");
-        CinderLimits limitsResp = new CinderLimits();                	     
-    	Project project = getCinderHelper().getProject(openstack_tenant_id.toString() , getUserFromContext());
-    	if(project == null){
-        	throw APIException.badRequests.projectWithTagNonexistent(openstack_tenant_id);
+        CinderLimits limitsResp = new CinderLimits();
+        Project project = getCinderHelper().getProject(openstack_tenant_id.toString(), getUserFromContext());
+        if (project == null) {
+            throw APIException.badRequests.projectWithTagNonexistent(openstack_tenant_id);
         }
         int totalSizeUsed = 0;
-    	int maxQuota = (int)QuotaService.DEFAULT_PROJECT_TOTALGB_QUOTA;
-    	int maxTotalVolumes = 0;
-    	int maxTotalSnapshots = 0;
-    	int totalVolumesUsed = 0;
-    	int totalSnapshotsUsed = 0;
-    	
-    	if(project.getQuotaEnabled()){
-			maxQuota =(int) (project.getQuota().intValue());
-		}
-    	
-    	UsageStats objUsageStats = new UsageStats();
-    	objUsageStats = getCinderHelper().GetUsageStats(null, project.getId());
-    			
-    	totalVolumesUsed= (int) objUsageStats.volumes;
-    	totalSnapshotsUsed= (int) objUsageStats.snapshots;
-    	totalSizeUsed= (int) objUsageStats.spaceUsed;
-    	
-		QuotaOfCinder projQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
-		if(projQuota!=null){
-			maxTotalVolumes =  projQuota.getVolumesLimit().intValue();
-			maxTotalSnapshots =  (int)projQuota.getSnapshotsLimit().intValue();						
-		}
-		else{
-			QuotaOfCinder quotaObj = new QuotaOfCinder();	    	
-	    	quotaObj.setId(URI.create(UUID.randomUUID().toString()));
-	    	quotaObj.setProject(project.getId());	    	
-	    	quotaObj.setVolumesLimit(QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA);
-	    	quotaObj.setSnapshotsLimit(QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA);
-	    	quotaObj.setTotalQuota((long)maxQuota);	    		    	
-	    	_dbClient.createObject(quotaObj);	    	
-	    	_dbClient.persistObject(quotaObj);	
-	    	maxTotalSnapshots = (int)QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA;
-	    	maxTotalVolumes = (int)QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA;	    		    	 	
-		}
-					        
-        Map<String,Integer> absoluteDetailsMap = new HashMap<String,Integer>();               
+        int maxQuota = (int) QuotaService.DEFAULT_PROJECT_TOTALGB_QUOTA;
+        int maxTotalVolumes = 0;
+        int maxTotalSnapshots = 0;
+        int totalVolumesUsed = 0;
+        int totalSnapshotsUsed = 0;
+
+        if (project.getQuotaEnabled()) {
+            maxQuota = (int) (project.getQuota().intValue());
+        }
+
+        UsageStats objUsageStats = new UsageStats();
+        objUsageStats = getCinderHelper().GetUsageStats(null, project.getId());
+
+        totalVolumesUsed = (int) objUsageStats.volumes;
+        totalSnapshotsUsed = (int) objUsageStats.snapshots;
+        totalSizeUsed = (int) objUsageStats.spaceUsed;
+
+        QuotaOfCinder projQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
+        if (projQuota != null) {
+            maxTotalVolumes = projQuota.getVolumesLimit().intValue();
+            maxTotalSnapshots = (int) projQuota.getSnapshotsLimit().intValue();
+        }
+        else {
+            QuotaOfCinder quotaObj = new QuotaOfCinder();
+            quotaObj.setId(URI.create(UUID.randomUUID().toString()));
+            quotaObj.setProject(project.getId());
+            quotaObj.setVolumesLimit(QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA);
+            quotaObj.setSnapshotsLimit(QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA);
+            quotaObj.setTotalQuota((long) maxQuota);
+            _dbClient.createObject(quotaObj);
+            _dbClient.persistObject(quotaObj);
+            maxTotalSnapshots = (int) QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA;
+            maxTotalVolumes = (int) QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA;
+        }
+
+        Map<String, Integer> absoluteDetailsMap = new HashMap<String, Integer>();
         absoluteDetailsMap.put("totalSnapshotsUsed", totalSnapshotsUsed);
         absoluteDetailsMap.put("maxTotalVolumeGigabytes", maxQuota);
         absoluteDetailsMap.put("totalGigabytesUsed", totalSizeUsed);
         absoluteDetailsMap.put("maxTotalSnapshots", maxTotalSnapshots);
         absoluteDetailsMap.put("totalVolumesUsed", totalVolumesUsed);
-        absoluteDetailsMap.put("maxTotalVolumes", maxTotalVolumes);         
-        limitsResp.absolute = absoluteDetailsMap;    
+        absoluteDetailsMap.put("maxTotalVolumes", maxTotalVolumes);
+        limitsResp.absolute = absoluteDetailsMap;
         _log.info("END get limits");
         return CinderApiUtils.getCinderResponse(limitsResp, header, true);
     }
-    
-        
+
     /**
      * Get extensions
-     *     
+     * 
      * @prereq none
      * @param tenant_id the URN of the tenant
      * @brief Get extensions
-     * @return extensions	
+     * @return extensions
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})    
-    @Path("/extensions")	
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})        
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/extensions")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response getExtensions(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
-    	// Here we ignore the openstack tenant id
+        // Here we ignore the openstack tenant id
         _log.info("START get extensions");
         CinderExtensionsRestResp extResp = new CinderExtensionsRestResp();
         CinderExtension objExt = new CinderExtension();
         objExt.alias = "os-availability-zone";
         objExt.description = "Describe Availability Zones.";
         objExt.namespace = "http://docs.openstack.org/volume/ext/os-availability-zone/api/v1";
-        //TODO what do we do about the below hard coding?
-        objExt.updated = "2013-06-27T00:00:00+00:00";  
+        // TODO what do we do about the below hard coding?
+        objExt.updated = "2013-06-27T00:00:00+00:00";
         objExt.name = "AvailabilityZones";
         extResp.getExtensions().add(objExt);
         _log.info("END get extensions");
         return CinderApiUtils.getCinderResponse(extResp, header, false);
     }
-    
- 
+
     /**
      * Get os-volume-transfer details
-     *     
+     * 
      * @prereq none
-     * @param tenant_id the URN of the tenant 
-     * @return transfers	
+     * @param tenant_id the URN of the tenant
+     * @return transfers
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})    
-    @Path("/os-volume-transfer/detail")	
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})        
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/os-volume-transfer/detail")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response getVolumeTransfers(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
         _log.info("RAG START getVolumeTransfers");
         CinderOsVolumeTransferRestResp volTransferResp = new CinderOsVolumeTransferRestResp();
-        //Todo
+        // Todo
         // need to support You can transfer a volume from one owner to another by using the cinder transfer* commands
-        // this involves Create a volume transfer request,  Accept a volume transfer request
+        // this involves Create a volume transfer request, Accept a volume transfer request
         // and Delete a volume transfer
 
-        
         return CinderApiUtils.getCinderResponse(volTransferResp, header, false);
     }
 
     /**
      * Get os-services
-     *     
+     * 
      * @prereq none
-     * @param tenant_id the URN of the tenant 
-     * @return services	
+     * @param tenant_id the URN of the tenant
+     * @return services
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})    
-    @Path("/os-services")	
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})        
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/os-services")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response getOsServices(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
-        _log.info("RAG START getOsServices");       
-        //ToDo
+        _log.info("RAG START getOsServices");
+        // ToDo
         // need to support system Information os-service
 
         CinderOsServicesRestResp osServicesResp = new CinderOsServicesRestResp();
         return CinderApiUtils.getCinderResponse(osServicesResp, header, false);
-    }    
-       
+    }
+
     /**
      * Get availability zones
-     *     
+     * 
      * @prereq none
-     * @param tenant_id the URN of the tenant 
-     * @brief Get availability zones 
+     * @param tenant_id the URN of the tenant
+     * @brief Get availability zones
      * @return availability zones
      */
-    
+
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Path("/os-availability-zone")	
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})        
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/os-availability-zone")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public CinderAvailZonesResp getAvailabilityZones(@PathParam("tenant_id") String openstack_tenant_id) {
-    	// Here we ignore the openstack tenant id
+        // Here we ignore the openstack tenant id
         _log.info("START get availability zones");
-        
-        CinderAvailZonesResp objCinderAvailZonesResp = new CinderAvailZonesResp();                           
+
+        CinderAvailZonesResp objCinderAvailZonesResp = new CinderAvailZonesResp();
         List<CinderAvailabiltyZone> az_list = objCinderAvailZonesResp.getAvailabilityZoneInfo();
-        
+
         _log.debug("retrieving virtual arrays via dbclient");
-        
+
         getCinderHelper().getAvailabilityZones(az_list, getUserFromContext());
-        
-        return objCinderAvailZonesResp;   	
+
+        return objCinderAvailZonesResp;
     }
-    
-    
-    private CinderAvailabiltyZone extractAvailabilityZone(VirtualArray nh){
-    	CinderAvailabiltyZone objAz = new CinderAvailabiltyZone();
-    	objAz.zoneName = nh.getLabel();
-    	objAz.zoneState.available = !nh.getInactive();
-    	return objAz;
+
+    private CinderAvailabiltyZone extractAvailabilityZone(VirtualArray nh) {
+        CinderAvailabiltyZone objAz = new CinderAvailabiltyZone();
+        objAz.zoneName = nh.getLabel();
+        objAz.zoneState.available = !nh.getInactive();
+        return objAz;
     }
-    
-    
+
     /**
      * Get object specific permissions filter
-     *
+     * 
      */
     @Override
     protected ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
-                                                                             PermissionsHelper permissionsHelper)
+            PermissionsHelper permissionsHelper)
     {
         return new ProjOwnedResRepFilter(user, permissionsHelper, VirtualPool.class);
     }
 
-	@Override
-	protected DataObject queryResource(URI id) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected URI getTenantOwner(URI id) { 
-		throw new UnsupportedOperationException();
-	}
-	
-	
-	@Override
-    protected ResourceTypeEnum getResourceType(){
-		throw new UnsupportedOperationException();
+    @Override
+    protected DataObject queryResource(URI id) {
+        throw new UnsupportedOperationException();
     }
-    
+
+    @Override
+    protected URI getTenantOwner(URI id) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected ResourceTypeEnum getResourceType() {
+        throw new UnsupportedOperationException();
+    }
+
 }

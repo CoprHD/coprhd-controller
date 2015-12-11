@@ -8,11 +8,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.map.annotate.JsonRootName;
 
-@XmlRootElement(name="consistencygroup")
-@JsonRootName(value="consistencygroup")
-public class ConsistencyGroupDetail {   
+@XmlRootElement(name = "consistencygroup")
+@JsonRootName(value = "consistencygroup")
+public class ConsistencyGroupDetail {
     public String description;
-    public String created_at;   
+    public String created_at;
     public String availability_zone;
     public String id;
     public String name;

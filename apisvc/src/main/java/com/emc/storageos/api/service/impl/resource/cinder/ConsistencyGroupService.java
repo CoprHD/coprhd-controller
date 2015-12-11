@@ -57,49 +57,52 @@ import com.emc.storageos.security.authorization.Role;
 
 /**
  * This class provide consistency group CRUD service on openstack request.
+ * 
  * @author singhc1
- *
+ * 
  */
 @Path("/v2/{tenant_id}/consistencygroups")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = {
         ACL.OWN, ACL.ALL })
-public class ConsistencyGroupService extends AbstractConsistencyGroupService{
-    
+public class ConsistencyGroupService extends AbstractConsistencyGroupService {
+
     private static final Logger _log = LoggerFactory.getLogger(ConsistencyGroupService.class);
-    
-    //Consistency group name max character
+
+    // Consistency group name max character
     private static final int CG_MAX_LIMIT = 64;
-    
-    
+
     /**
      * This function handles Get request for a consistency group detail
-     * @param openstack_tenant_id Openstack tenant id 
+     * 
+     * @param openstack_tenant_id Openstack tenant id
      * @param consistencyGroup_id Consistency group id
      * @param isV1Call openstack cinder V1 call
      * @param header HTTP header
      * @brief Get Consistency Group Info
-     * @return Response 
+     * @return Response
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{consistencyGroup_id}")
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public Response getCosistencyGroup(@PathParam("tenant_id") String openstack_tenant_id, 
-            @PathParam("consistencyGroup_id") String consistencyGroup_id, @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header){
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public Response getCosistencyGroup(@PathParam("tenant_id") String openstack_tenant_id,
+            @PathParam("consistencyGroup_id") String consistencyGroup_id, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
+            @Context HttpHeaders header) {
         final BlockConsistencyGroup blockConsistencyGroup = findConsistencyGroup(consistencyGroup_id, openstack_tenant_id);
-        if(blockConsistencyGroup == null){
+        if (blockConsistencyGroup == null) {
             return CinderApiUtils.createErrorResponse(404, "Invalid Request: No Such Consistency Group Found");
-        }else {
+        } else {
             ConsistencyGroupDetail response = getConsistencyGroupDetail(blockConsistencyGroup);
             return CinderApiUtils.getCinderResponse(response, header, true);
         }
-        
-    }  
-    
+
+    }
+
     /**
      * This function handles Get request for all consistency group list
-     * @param openstack_tenant_id Openstack tenant id 
+     * 
+     * @param openstack_tenant_id Openstack tenant id
      * @param header HTTP header
      * @brief get detail consistency group info
      * @return Response
@@ -125,9 +128,10 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
         }
         return CinderApiUtils.getCinderResponse(cgsResponse, header, false);
     }
-    
+
     /**
      * Create Consistency group
+     * 
      * @param openstack_tenant_id openstack tenant id
      * @param param pojo class to bind request
      * @param isV1Call cinder V1 api
@@ -140,10 +144,10 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response createConsistencyGroup(
             @PathParam("tenant_id") String openstack_tenant_id,
-            ConsistencyGroupCreateRequest param,@HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header){
+            ConsistencyGroupCreateRequest param, @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header) {
 
         _log.info("Creating Consistency Group : " + param.consistencygroup.name);
-        
+
         ConsistencyGroupCreateResponse cgResponse = new ConsistencyGroupCreateResponse();
         final Project project = getCinderHelper().getProject(openstack_tenant_id,
                 getUserFromContext());
@@ -173,22 +177,26 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
             tagSet.add(new ScopedLabel("volume_types",
                     volume_types));
             tagSet.add(new ScopedLabel("status", "available"));
-            tagSet.add(new ScopedLabel("availability_zone", (param.consistencygroup.availability_zone != null) ? param.consistencygroup.availability_zone : "nova"));
-            tagSet.add(new ScopedLabel("description", (param.consistencygroup.description != null) ? param.consistencygroup.description : "No Description"));
-            tagSet.add(new ScopedLabel(project.getTenantOrg().getURI().toString(), CinderApiUtils.splitString(consistencyGroup.getId().toString(), ":", 3)));
+            tagSet.add(new ScopedLabel("availability_zone",
+                    (param.consistencygroup.availability_zone != null) ? param.consistencygroup.availability_zone : "nova"));
+            tagSet.add(new ScopedLabel("description", (param.consistencygroup.description != null) ? param.consistencygroup.description
+                    : "No Description"));
+            tagSet.add(new ScopedLabel(project.getTenantOrg().getURI().toString(), CinderApiUtils.splitString(consistencyGroup.getId()
+                    .toString(), ":", 3)));
             _dbClient.createObject(consistencyGroup);
-            
+
             cgResponse.id = CinderApiUtils.splitString(consistencyGroup.getId().toString(), ":", 3);
             cgResponse.name = consistencyGroup.getLabel();
-            return CinderApiUtils.getCinderResponse(cgResponse, header, true); 
-        }else{
-           return CinderApiUtils.createErrorResponse(400, "Bad Request : can't create consistency group due to invalid argument");
+            return CinderApiUtils.getCinderResponse(cgResponse, header, true);
+        } else {
+            return CinderApiUtils.createErrorResponse(400, "Bad Request : can't create consistency group due to invalid argument");
         }
-        
+
     }
-    
+
     /**
      * Delete consistency group
+     * 
      * @param openstack_tenant_id openstack tenant id
      * @param consistencyGroup_id consistency group id
      * @param param pojo class to bind request
@@ -201,13 +209,14 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
     @Path("/{consistencyGroup_id}/delete")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response deleteConsistencyGroup(@PathParam("tenant_id") String openstack_tenant_id, 
-            @PathParam("consistencyGroup_id") String consistencyGroup_id, ConsistencyGroupDeleteRequest param,@HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header){
+    public Response deleteConsistencyGroup(@PathParam("tenant_id") String openstack_tenant_id,
+            @PathParam("consistencyGroup_id") String consistencyGroup_id, ConsistencyGroupDeleteRequest param,
+            @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header) {
         boolean isForced = param.consistencygroup.force;
         final BlockConsistencyGroup consistencyGroup = findConsistencyGroup(consistencyGroup_id, openstack_tenant_id);
         String task = UUID.randomUUID().toString();
-        
-        if(isForced){
+
+        if (isForced) {
             final URIQueryResultList cgVolumesResults = new URIQueryResultList();
             _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
                     cgVolumesResults);
@@ -218,7 +227,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
                     URI systemUri = volume.getStorageController();
                     List<URI> volumeURIs = new ArrayList<URI>();
                     volumeURIs.add(volume.getId());
-                    api.deleteVolumes(systemUri, volumeURIs, "FULL", null);        
+                    api.deleteVolumes(systemUri, volumeURIs, "FULL", null);
 
                     if (volume.getExtensions() == null) {
                         volume.setExtensions(new StringMap());
@@ -227,7 +236,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
                     volume.setInactive(true);
                     _dbClient.persistObject(volume);
                 }
-        }
+            }
         }
         // srdf/rp cgs can be deleted from vipr only if there are no more volumes associated.
         // If the consistency group is inactive or has yet to be created on
@@ -235,8 +244,8 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
 
         // RP + VPlex CGs cannot be be deleted without VPlex controller intervention.
         if (consistencyGroup.getTypes().contains(Types.SRDF.toString()) ||
-                (consistencyGroup.getTypes().contains(Types.RP.toString()) && 
-                        !consistencyGroup.getTypes().contains(Types.VPLEX.toString())) ||
+                (consistencyGroup.getTypes().contains(Types.RP.toString()) &&
+                !consistencyGroup.getTypes().contains(Types.VPLEX.toString())) ||
                 deleteUncreatedConsistencyGroup(consistencyGroup)) {
             final URIQueryResultList cgVolumesResults = new URIQueryResultList();
             _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
@@ -251,14 +260,14 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
             consistencyGroup.setInactive(true);
             _dbClient.persistObject(consistencyGroup);
             TaskResourceRep resp = finishDeactivateTask(consistencyGroup, task);
-            if(resp.getState().equals("ready") || resp.getState().equals("pending")){
+            if (resp.getState().equals("ready") || resp.getState().equals("pending")) {
                 return Response.status(202).build();
-            }else{
+            } else {
                 return Response.status(500).build();
             }
-            
+
         }
-        
+
         final StorageSystem storageSystem = consistencyGroup.created() ? _permissionsHelper
                 .getObjectById(consistencyGroup.getStorageController(), StorageSystem.class) : null;
 
@@ -277,17 +286,17 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService{
                     consistencyGroup.getLabel(), storageSystem.getNativeGuid()));
             // Otherwise, invoke operation to delete CG from the array.
             TaskResourceRep taskResource = blockServiceApi.deleteConsistencyGroup(storageSystem, consistencyGroup, task);
-            if(taskResource.getState().equals("ready") || taskResource.getState().equals("pending")){
+            if (taskResource.getState().equals("ready") || taskResource.getState().equals("pending")) {
                 return Response.status(202).build();
-            }else{
+            } else {
                 return Response.status(500).build();
             }
         }
         _log.info(String.format("BlockConsistencyGroup %s was not associated with any storage. Deleting it from ViPR only.",
                 consistencyGroup.getLabel()));
         TaskResourceRep resp = finishDeactivateTask(consistencyGroup, task);
-        return Response.status(202).build();    
-        
+        return Response.status(202).build();
+
     }
-    
+
 }

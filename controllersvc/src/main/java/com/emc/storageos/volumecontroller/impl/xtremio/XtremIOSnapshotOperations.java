@@ -368,6 +368,11 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    @Override
+    public void linkSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
     /**
      * {@inheritDoc}
      */

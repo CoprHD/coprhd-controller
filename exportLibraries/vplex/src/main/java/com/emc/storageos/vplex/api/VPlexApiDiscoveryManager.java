@@ -2463,17 +2463,21 @@ public class VPlexApiDiscoveryManager {
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
-        if (status != VPlexApiConstants.SUCCESS_STATUS) {
-            throw VPlexApiException.exceptions.failedGettingConsistencyGroupInfo(String.valueOf(status));
-        }
 
-        try {
-            List<VPlexConsistencyGroupInfo> clusterCGInfoList = VPlexApiUtils
-                    .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
-                            VPlexConsistencyGroupInfo.class);
-            return clusterCGInfoList;
-        } catch (Exception e) {
-            throw VPlexApiException.exceptions.errorProcessingConsistencyGroupInformation(e.getLocalizedMessage());
+        if (status == VPlexApiConstants.SUCCESS_STATUS) {
+            try {
+                return VPlexApiUtils
+                        .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
+                                VPlexConsistencyGroupInfo.class);
+            } catch (Exception e) {
+                throw VPlexApiException.exceptions.errorProcessingConsistencyGroupInformation(e.getLocalizedMessage());
+            }
+        } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
+            // return an empty list rather than an error
+            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
+            return new ArrayList<VPlexConsistencyGroupInfo>();
+        } else {
+            throw VPlexApiException.exceptions.failedGettingConsistencyGroupInfo(String.valueOf(status));
         }
     }
 

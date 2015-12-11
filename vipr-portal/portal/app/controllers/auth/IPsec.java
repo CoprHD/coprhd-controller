@@ -5,7 +5,6 @@
 
 package controllers.auth;
 
-import com.emc.storageos.model.ipsec.IPsecNodeState;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
@@ -17,6 +16,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.springframework.util.CollectionUtils;
 import play.mvc.With;
 import util.IPsecUtils;
 import util.MessagesUtils;
@@ -60,20 +60,17 @@ public class IPsec extends ViprResourceController {
     }
 
     public static class IPsecFailedNodeInfo {
-        public static final String FAILED_NODE_STATE_SYNCHRONIZING = "Synching";
-        public static final String FAILED_NODE_STATE_UNKNOWN = "Unknown";
+        public static final String DISCONNECTED_NODE_STATE = "Degraded";
 
         public String node;
-        public String keysGeneratedOn;
         public String status;
 
         public IPsecFailedNodeInfo() {
 
         }
 
-        public IPsecFailedNodeInfo(String node, String keysGeneratedOn, String status) {
+        public IPsecFailedNodeInfo(String node, String status) {
             this.node = node;
-            this.keysGeneratedOn = keysGeneratedOn;
             this.status = status;
         }
     }
@@ -90,15 +87,10 @@ public class IPsec extends ViprResourceController {
             status = ipsecStatus.getIsGood();
             configGeneratedDate = convertToDateTime(ipsecStatus.getVersion());
             failureNodes = new ArrayList<IPsecFailedNodeInfo>();
-            if (ipsecStatus.getNodeStatus() != null) {
-                for (IPsecNodeState ipsecNodeState : ipsecStatus.getNodeStatus()) {
-                    String status = StringUtils.isNotBlank(ipsecNodeState.getVersion()) ?
-                            IPsecFailedNodeInfo.FAILED_NODE_STATE_SYNCHRONIZING :
-                            IPsecFailedNodeInfo.FAILED_NODE_STATE_UNKNOWN;
-
-                    IPsecFailedNodeInfo ipsecFailedNodeInfo = new IPsecFailedNodeInfo(ipsecNodeState.getIp(),
-                            convertToDateTime(ipsecNodeState.getVersion()), status);
-
+            if (!CollectionUtils.isEmpty(ipsecStatus.getDisconnectedNodes())) {
+                for (String disconnectedNode : ipsecStatus.getDisconnectedNodes()) {
+                    IPsecFailedNodeInfo ipsecFailedNodeInfo = new IPsecFailedNodeInfo(disconnectedNode,
+                            IPsecFailedNodeInfo.DISCONNECTED_NODE_STATE);
                     failureNodes.add(ipsecFailedNodeInfo);
                 }
             }

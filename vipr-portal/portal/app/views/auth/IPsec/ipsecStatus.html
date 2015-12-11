@@ -1,24 +1,6 @@
 #{set 'moreScripts'}
 #{get 'moreScripts'/}
     <script>
-        function updateHeight() {
-            var height = $("#ipsecConfig").height();
-            var diff = height - $("#ipsecStatus").height();
-            $("#ipsecStatus").height(height);
-
-            if ($("#ipsecStatusFailure")) {
-                $("#ipsecStatusFailure").height($("#ipsecStatusFailure").height() + diff);
-            }
-
-            if ($("#ipsecStatusSuccess")) {
-                $("#ipsecStatusSuccess").height($("#ipsecStatusSuccess").height() + diff);
-            }
-
-            if ($("#ipsecStatusLoading")) {
-                $("#ipsecStatusLoading").height($("#ipsecStatusLoading").height() + diff);
-            }
-        }
-
         function startUpdating(url, contentId) {
             var content = DynamicContent();
             content.watchValue(contentId);
@@ -27,16 +9,31 @@
                 $.get(url, function(data) {
                     var newData = $('<div></div>').html(data);
                     content.update(newData);
-                    updateHeight();
+                    $('[data-format-relative-time]').each(function () {
+                      var $this = $(this)
+                      $this.data("format-relative-time", new Date().getTime());
+                    });
+                    refreshLastUpdated();
+                    window.setInterval(refreshLastUpdated, 5000);
                 });
             };
             update();
         }
 
+        function refreshLastUpdated() {
+          $('[data-format-relative-time]').each(function () {
+            var $this = $(this)
+            var time = new moment($this.data("format-relative-time"));
+            var diff = (new Date().getTime() - time)/1000;
+                $this.text(Math.floor(diff) + " seconds ago");
+          });
+        }
+
         $(document).ready(function() {
-            updateHeight();
             startUpdating('@{auth.IPsec.ipsecStatus()}', '#ipsecStatusPanel');
+            setTimeout(function () { location.reload(1); }, 60000);
         });
+
     </script>
 #{/set}
 
@@ -44,7 +41,7 @@
 #{get 'moreStyles'/}
     <style type="text/css">
         .panel-margin-top {
-        margin-top: 10px;
+        margin-top: 12px;
         }
         .text-margin-top {
         margin-top: 5px;
@@ -69,41 +66,46 @@
 
 <div id="ipsecStatusPanel">
     <div class="row" id="ipsec">
-        <div class="col-sm-2">
+        <div class="col-sm-3">
             <div id="ipsecStatus" class="panel panel-default">
                 <div class="panel-heading"><h3 class="panel-title">&{'ipsec.status'}</h3></div>
                 #{if ipSecStatusInfo}
                     #{if ipSecStatusInfo.status}
-                    <div id="ipsecStatusSuccess" class="panel-body panel-ipsec-status-success" title="&{'ipsec.status.refresh'}" onclick="window.location.href = '@{auth.IPsec.ipsec()}';" style="cursor: pointer;">
+                    <div id="ipsecStatusSuccess" class="panel-body panel-ipsec-status-success" title="&{'ipsec.status.refresh'}">
                         <div class="row panel-margin-top" align="center">
                             <span class="glyphicon glyphicon-ok panel-ipsec-status-text-color gi-2x"> </span>
                         </div>
                         <div class="row panel-margin-top" align="center">
-                            <span class="text gi-2x panel-ipsec-status-text-color"> Stable</span>
+                            <span class="text gi-2x panel-ipsec-status-text-color"> &{'ipsec.status.stable'}</span>
                         </div>
                     </div>
                     #{/if}
                     #{if !ipSecStatusInfo.status}
-                    <div id="ipsecStatusFailure" class="panel-body panel-ipsec-status-failure" title="&{'ipsec.status.refresh'}" onclick="window.location.href = '@{auth.IPsec.ipsec()}';" style="cursor: pointer;">
+                    <div id="ipsecStatusFailure" class="panel-body panel-ipsec-status-failure" title="&{'ipsec.status.refresh'}">
                         <div class="row panel-margin-top" align="center">
                             <span class="gi-2x panel-ipsec-status-text-color">#{icon 'warning-sign'/}</span>
                         </div>
                         <div class="row panel-margin-top" align="center">
-                            <span class="text gi-2x panel-ipsec-status-text-color"> Degraded</span>
+                            <span class="text gi-2x panel-ipsec-status-text-color"> &{'ipsec.status.degraded'}</span>
                         </div>
                     </div>
                     #{/if}
                 #{/if}
                 #{if !ipSecStatusInfo}
                     <div id="ipsecStatusLoading" class="panel-body">
-                        <div class="loadingBox">
+                        <div class="loadingBox panel-margin-top" align="center">
                             <img src="/public/img/loading-huge.gif" height="64" width="64">
                         </div>
                     </div>
                 #{/if}
+                <div class="panel-footer">
+                    <div class="text text-margin-left">
+                        <small>&{'adminDashboard.lastUpdated'} <span data-format-relative-time=""></span></small>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="col-sm-10">
+        <div class="col-sm-9">
             <div id="ipsecConfig" class="panel panel-default">
                 <div class="panel-heading"><h3 class="panel-title">&{'ipsec.configuration'}</h3></div>
                 <div class="panel-body">
@@ -141,7 +143,6 @@
                 <thead>
                 <tr>
                     <th>&{'ipsecFailure.node'}</th>
-                    <th>&{'ipsecFailure.keysGeneratedOn'}</th>
                     <th>&{'ipsecFailure.status'}</th>
                 </tr>
                 </thead>
@@ -149,17 +150,8 @@
                 #{list items:ipSecStatusInfo.failureNodes, as:'failureNode'}
                 <tr>
                     <td>${failureNode.node}</td>
-                    <td>${failureNode.keysGeneratedOn}</td>
                     <td>
-                        #{if failureNode.status == "Synching"}
-                            <span class="label label-info" title="&{'ipsec.status.refresh'}" onclick="window.location.href = '@{auth.IPsec.ipsec()}';" style="cursor: pointer;">
-                                <span class ="glyphicon glyphicon-refresh rotate"></span>
-                                <span class="label label-info">${failureNode.status} </span>
-                            </span>
-                        #{/if}
-                        #{if failureNode.status == "Unknown"}
-                        <span class="label label-warning" title="&{'ipsec.status.refresh'}" onclick="window.location.href = '@{auth.IPsec.ipsec()}';" style="cursor: pointer;">#{icon 'warning-sign'/} ${failureNode.status}</span>
-                        #{/if}
+                        <span class="label label-warning" title="&{'ipsec.status.refresh'}">#{icon 'warning-sign'/} ${failureNode.status}</span>
                     </td>
                 </tr>
                 #{/list}

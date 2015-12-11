@@ -15,7 +15,7 @@ import com.iwave.ext.command.CommandOutput;
 
 public class GetNetworkAdapterMacAddressCommandTest {
 
-    static String output = "0xD89D67F562F0";
+    static String output = "0xF0F0F0F0F0F0";
 
     static GetNetworkAdapterMacAddressCommand macAddressCommand = null;
 
@@ -33,7 +33,7 @@ public class GetNetworkAdapterMacAddressCommandTest {
     public void testCommand() {
         macAddressCommand.parseOutput();
         String results = macAddressCommand.getResults();
-        Assert.assertEquals("D8:9D:67:F5:62:F0", results);
+        Assert.assertEquals("F0:F0:F0:F0:F0:F0", results);
     }
 
 }

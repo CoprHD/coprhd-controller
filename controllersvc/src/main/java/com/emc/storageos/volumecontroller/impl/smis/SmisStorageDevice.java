@@ -2843,6 +2843,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
+    @Override
+    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
+        try {
+            _snapshotOperations.linkSnapshotSessionTargetGroup(system, snapSessionSnapshotMap, copyMode, targetsExist, completer);
+        } catch (Exception e) {
+            // TODO Fix error message
+            _log.error(String.format("Exception trying to create and link new target to block snapshot session %s on array %s",
+                    "TODO", system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doLinkBlockSnapshotSessionTarget", e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
     /**
      * {@inheritDoc}
      */

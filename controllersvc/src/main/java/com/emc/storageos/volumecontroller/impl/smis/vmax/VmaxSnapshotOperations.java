@@ -1508,6 +1508,14 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         }
     }
 
+    @Override
+    public void linkSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap,
+                                               String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
+        _log.info("Link new target group to snapshot session group START");
+        completer.ready(_dbClient);
+        _log.info("Link new target group to snapshot session group FINISH");
+    }
+
     /**
      * {@inheritDoc}
      */

@@ -957,6 +957,22 @@ public interface BlockStorageDevice {
             String copyMode, Boolean targetExists, TaskCompleter completer) throws DeviceControllerException;
 
     /**
+     * Creates a new target volume group and links it to an array snapshot on the passed storage system.
+     *
+     * @param system A reference to the storage system.
+     * @param snapSessionSnapshotMap Map of BlockSnapshotSession URI's to their BlockSnapshot instance URI,
+     *                               representing the linked target.
+     * @param copyMode The copy mode in which the target is linked to the snapshot.
+     * @param targetsExist true if the target exists, false if a new one needs to be created.
+     * @param completer A reference to the task completer.
+     *
+     * @throws DeviceControllerException
+     */
+    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap,
+                                                      String copyMode, Boolean targetsExist, TaskCompleter completer)
+            throws DeviceControllerException;
+
+    /**
      * Re-links a target volume to an array snapshot on the passed storage system.
      * 
      * @param system A reference to the storage system.

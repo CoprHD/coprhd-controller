@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -135,6 +136,11 @@ public class DefaultSnapshotOperations implements SnapshotOperations {
     public void linkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, Boolean targetExists, TaskCompleter completer)
             throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+    @Override
+    public void linkSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 

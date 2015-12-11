@@ -56,24 +56,35 @@ public class DbBackupHandler extends BackupHandler {
     }
 
     /**
+     * Gets database system table location
+     */
+    public File getDBSystemTableLocation() {
+        return getDataFileLocation(BackupConstants.DB_SYSTEM_TABLE_FOLDER);
+    }
+
+    /**
      * Gets valid keyspace folder of ViPR DB or GeoDB
      */
     public File getValidKeyspace() {
-        log.debug("Searching ViPR keyspace {}...", viprKeyspace);
+        return getDataFileLocation(viprKeyspace);
+    }
+
+    private File getDataFileLocation(final String folderName) {
+        log.info("Searching DB data file location of {}...", folderName);
         for (String dataFolder : StorageService.instance.getAllDataFileLocations()) {
-            File[] keyspaceList = new File(dataFolder).listFiles(new FilenameFilter() {
+            File[] folderList = new File(dataFolder).listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return name.trim().equals(viprKeyspace);
+                    return name.trim().equals(folderName);
                 }
             });
-            if (keyspaceList != null && keyspaceList.length == 1 && keyspaceList[0].isDirectory()) {
-                log.debug("ViPR keyspace found at {}", keyspaceList[0]);
-                return keyspaceList[0];
+            if (folderList != null && folderList.length == 1 && folderList[0].isDirectory()) {
+                log.info("Found DB data file location: {}", folderList[0]);
+                return folderList[0];
             }
         }
         throw new IllegalArgumentException(
-                String.format("Invalid ViPR keyspace name: %s", viprKeyspace));
+                String.format("Invalid DB data file folder name: %s", folderName));
     }
 
     @Override
@@ -149,6 +160,13 @@ public class DbBackupHandler extends BackupHandler {
                 // Moves snapshot folder and renames it with Column Family name
                 Files.move(snapshotFolder.toPath(), cfBackupFolder.toPath(),
                         StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            // Copy system table to backup folder
+            File systemTableLocation = getDBSystemTableLocation();
+            if (systemTableLocation.exists()) {
+                File systemTableBackupFolder = new File(backupFolder, BackupConstants.DB_SYSTEM_TABLE_FOLDER);
+                FileUtils.copyDirectory(systemTableLocation, systemTableBackupFolder);
             }
         } catch (IOException ex) {
             clearSnapshot(fullBackupTag);

@@ -4716,7 +4716,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         List<URI> cgs = new ArrayList<URI>();
         TaskCompleter completer = null;
         String waitFor = null;
-        List<URI> addVolumesList = addVolList.getVolumes();
+        List<URI> addVolumesList = new ArrayList<URI>();
+        List<URI> removeVolList = new ArrayList<URI>();
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
@@ -4725,6 +4726,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (removeVolumeList!= null && !removeVolumeList.isEmpty()) {
                 Map<URI, List<URI>> removeVolsMap = new HashMap<URI, List<URI>>();
+                removeVolList = removeVolumeList;
                 for (URI voluri : removeVolumeList) {
                     Volume vol = _dbClient.queryObject(Volume.class, voluri);
                     URI cguri = vol.getConsistencyGroup();
@@ -4755,6 +4757,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
                 _log.info("Creating workflows for adding volumes to CG and application");
+                addVolumesList = addVolList.getVolumes();
                 URI voluri = addVolumesList.get(0);
                 Volume vol = _dbClient.queryObject(Volume.class, voluri);
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());

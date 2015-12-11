@@ -12,13 +12,20 @@
 #{/DataTable.crudTable}
 #{DataTable.expandHtml @errorDetails(':id'), table:'disasterRecovery' /}
 
+#{set isPrimarysite:controllers.infra.DisasterRecovery.isPrimarySite() /}
+
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
 		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
 			<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
 			<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
 			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
-			<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.FailoverButton' | t}}</a>
+			#{if isPrimarysite }
+				<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.switchover'}')){return false;}")>{{'disasterRecovery.SwitchoverButton' | t}}</a>
+			#{/if}
+			#{else}
+				<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.failover'}')){return false;}")>{{'disasterRecovery.FailoverButton' | t}}</a>
+			#{/else}
 		#{/deadbolt.restrict}
     </div>
 </script>
@@ -38,11 +45,11 @@ angular.module('tags').directive({
         	 scope.pauseUrl = standbypauseUrl({'uuid': scope.row.id});
         	 scope.resumeUrl = standbyresumeUrl({'uuid': scope.row.id});
         	 scope.testUrl = standbytestUrl({'uuid': scope.row.id});
-			scope.failoverUrl = standbyfailoverUrl({'uuid': scope.row.id});
-			scope.isPauseSite = false;
-			scope.isResumeSite = false;
-			scope.isTestSite = false;
-			scope.isFailover = false;
+			 scope.failoverUrl = standbyfailoverUrl({'uuid': scope.row.id});
+			 scope.isPauseSite = false;
+			 scope.isResumeSite = false;
+			 scope.isTestSite = false;
+			 scope.isFailover = false;
 
         	 if(scope.row.status.toUpperCase() == "STANDBY_SYNCED"){
 				scope.isPauseSite = true;
@@ -52,6 +59,7 @@ angular.module('tags').directive({
         	 
         	 if(scope.row.status.toUpperCase() == "STANDBY_PAUSED"){
 				scope.isResumeSite = true;
+				scope.isFailover = true;
              }
         	 
         	 if(scope.row.status.toUpperCase() == "ACTIVE"){
@@ -93,7 +101,7 @@ function watchLoadStatus(datatable, itemsJson) {
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
 }
 $(document).ready(function() {
-    var dataTable = table.disasterRecovery.dataTable.getDataTable()
+    var dataTable = table.disasterRecovery.dataTable.getDataTable();
     var itemsJson = #{jsAction @itemsJson(':ids')/};
     watchLoadStatus(dataTable, itemsJson);
 });

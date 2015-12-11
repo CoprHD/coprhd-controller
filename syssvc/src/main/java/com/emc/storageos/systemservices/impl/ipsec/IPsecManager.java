@@ -13,6 +13,7 @@ import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.security.exceptions.SecurityException;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +51,7 @@ public class IPsecManager {
         List<String> disconnectedNodes = checkIPsecStatus();
 
         IPsecStatus status = new IPsecStatus();
-        status.setIsGood(disconnectedNodes == null);
+        status.setIsGood(CollectionUtils.isEmpty(disconnectedNodes));
         status.setVersion(vdcConfigVersion);
         if (disconnectedNodes != null) {
             status.setDisconnectedNodes(disconnectedNodes);
@@ -74,6 +75,10 @@ public class IPsecManager {
             log.warn("Fail to rotate ipsec key due to: {}", e);
             throw SecurityException.fatals.failToRotateIPsecKey(e);
         }
+    }
+
+    public boolean isKeyRotationDone() throws Exception {
+        return CollectionUtils.isEmpty(checkIPsecStatus());
     }
 
     private List<String> checkIPsecStatus() {

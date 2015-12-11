@@ -418,7 +418,7 @@ public class ApplicationService extends TaskResourceService {
                 continue;
             }
             StringSet applications = vol.getApplicationIds();
-            if (!applications.contains(application.getId().toString())) {
+            if (applications == null || !applications.contains(application.getId().toString())) {
                 log.info(String.format("The volume %s is not assigned to the application", vol.getLabel()));
                 continue;
             }

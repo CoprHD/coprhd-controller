@@ -4788,7 +4788,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, cguri, addVolumesList, opId);
                 
             }
-            completer = new ApplicationTaskCompleter(application, addVolumesList, removeVolumeList, cgs, opId);
+            completer = new ApplicationTaskCompleter(application, addVolumesList, removeVolList, cgs, opId);
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);
             String successMessage = String.format(

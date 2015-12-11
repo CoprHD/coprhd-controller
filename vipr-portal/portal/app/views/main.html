@@ -40,10 +40,12 @@
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">#{icon 'user'/} ${currentUser?.commonName} <b class="caret"></b></a>
           <ul class="dropdown-menu">
-            #{nav.item 'preferences', href:@Preferences.update()/}
-            #{if controllers.security.Security.isLocalUser()}
-                #{nav.item 'password', href:@security.ChangePassword.update()/}
-            #{/if}
+          	#{if controllers.infra.DisasterRecovery.isPrimarySite()}
+            	#{nav.item 'preferences', href:@Preferences.update()/}
+            	#{if controllers.security.Security.isLocalUser()}
+                	#{nav.item 'password', href:@security.ChangePassword.update()/}
+            	#{/if}
+          	#{/if}
             <li class="divider"></li>
             #{nav.item 'logout', href: @security.Security.logout()/}
           </ul>
@@ -64,8 +66,10 @@
               #{nav.item 'adminDashboardPage', href: @AdminDashboard.dashboard()/}
               	#{nav.item 'systemHealthDashboard', href: @SystemHealth.systemHealth()/}
               	#{nav.item 'backup', href: @Backup.list()/}
-              	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
-                	#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
+              	#{if controllers.infra.DisasterRecovery.isPrimarySite()}
+              		#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
+                		#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
+              		#{/if}
               	#{/if}
               	#{nav.item 'dbHealthDashboard', href: @SystemHealth.dbHealth()/}
             #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}  

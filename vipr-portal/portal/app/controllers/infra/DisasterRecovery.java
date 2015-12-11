@@ -24,6 +24,7 @@ import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
@@ -244,9 +245,16 @@ public class DisasterRecovery extends ViprResourceController {
 
     public static void errorDetails(String id) {
         SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
+        Boolean isError = false;
         if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
             SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
-            render(disasterSiteError);
+            isError = true;
+            render(isError, disasterSiteError);
+        }
+        else {
+            SiteDetailRestRep disasterSiteTime = DisasterRecoveryUtils.getSiteTime(id);
+            isError = false;
+            render(isError, disasterSiteTime);
         }
     }
 

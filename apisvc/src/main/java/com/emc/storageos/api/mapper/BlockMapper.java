@@ -234,7 +234,7 @@ public class BlockMapper {
             for (String volumeGroup : from.getVolumeGroupIds()) {
                 volumeGroups.add(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, URI.create(volumeGroup)));
             }
-            to.setApplications(volumeGroups);
+            to.setVolumeGroups(volumeGroups);
         }
 
         return to;

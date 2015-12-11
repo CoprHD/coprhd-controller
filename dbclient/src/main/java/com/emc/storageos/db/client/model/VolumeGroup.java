@@ -20,7 +20,7 @@ public class VolumeGroup extends DataObject {
     public static enum VolumeGroupRole {
         COPY,
         DR,
-        MIGRATION
+        MOBILITY
     }
 
     @Name("description")

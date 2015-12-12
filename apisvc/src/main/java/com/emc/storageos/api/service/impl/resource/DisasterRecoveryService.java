@@ -110,7 +110,7 @@ public class DisasterRecoveryService {
     private CoordinatorClient coordinator;
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
-    private Properties _dbCommonInfo;
+    private Properties dbCommonInfo;
     private DrUtil drUtil;
 
     private InternalSiteServiceClient internalSiteServiceClient;
@@ -187,7 +187,6 @@ public class DisasterRecoveryService {
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
             standbySite.setNodeCount(standbyConfig.getNodeCount());
-            standbySite.setSecretKey(standbyConfig.getSecretKey());
             standbySite.setUuid(standbyConfig.getUuid());
             String shortId = generateShortId(drUtil.listSites());
             standbySite.setStandbyShortId(shortId);
@@ -255,6 +254,8 @@ public class DisasterRecoveryService {
         for (Site standby : drUtil.listStandbySites()) {
             SiteParam standbyParam = new SiteParam();
             siteMapper.map(standby, standbyParam);
+            SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
+            standbyParam.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
             if (standby.getUuid().equals(targetStandbyUUID)) {
                 log.info("Set data revision for site {} to {}", standby.getUuid(), targetStandbyDataRevision);
                 standbyParam.setDataRevision(targetStandbyDataRevision);
@@ -320,7 +321,6 @@ public class DisasterRecoveryService {
             ipsecConfig.setPreSharedKey(activeSiteParam.getIpsecKey());
 
             coordinator.addSite(activeSiteParam.getUuid());
-            coordinator.setActiveSite(activeSiteParam.getUuid());
             Site activeSite = new Site();
             siteMapper.map(activeSiteParam, activeSite);
             activeSite.setVdcShortId(drUtil.getLocalVdcShortId());
@@ -716,7 +716,7 @@ public class DisasterRecoveryService {
             for (Site site : drUtil.listStandbySites()) {
                 if (site.getUuid().equals(uuid)) {
                     int gcGracePeriod = DEFAULT_GC_GRACE_PERIOD;
-                    String strVal = _dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
+                    String strVal = dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
                     if (strVal != null) {
                         gcGracePeriod = Integer.parseInt(strVal);
                     }
@@ -817,9 +817,6 @@ public class DisasterRecoveryService {
         try {
             newActiveSite = drUtil.getSiteFromLocalVdc(uuid);
 
-            // Set new UUID as active site ID
-            coordinator.setActiveSite(uuid);
-
             // Set old active site's state, short id and key
             oldActiveSite = drUtil.getSiteFromLocalVdc(oldActiveUUID);
             if (StringUtils.isEmpty(oldActiveSite.getStandbyShortId())) {
@@ -886,7 +883,6 @@ public class DisasterRecoveryService {
         }
 
         try {
-
             // set state
             Site oldActiveSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
             oldActiveSite.setState(SiteState.ACTIVE_FAILING_OVER);
@@ -895,10 +891,7 @@ public class DisasterRecoveryService {
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
 
-            // set new acitve uuid
-            coordinator.setActiveSite(uuid);
-
-            // reconfig other standby sites
+            //reconfig other standby sites
             for (Site site : allStandbySites) {
                 if (!site.getUuid().equals(uuid)) {
                     InternalSiteServiceClient client = clientCacheMap.get(site.getUuid());
@@ -971,8 +964,6 @@ public class DisasterRecoveryService {
             Site newActiveSite = drUtil.getSiteFromLocalVdc(newActiveSiteUUID);
             newActiveSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(newActiveSite.toString());
-
-            coordinator.setActiveSite(newActiveSiteUUID);
 
             drUtil.updateVdcTargetVersion(currentSite.getUuid(), SiteInfo.DR_OP_FAILOVER);
 
@@ -1267,7 +1258,7 @@ public class DisasterRecoveryService {
         }
 
         if (standbyUuid.equals(drUtil.getActiveSiteId())) {
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Can't switchover to a acitve site");
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Can't switchover to an active site");
         }
 
         if (!drUtil.isSiteUp(standbyUuid)) {
@@ -1457,6 +1448,6 @@ public class DisasterRecoveryService {
 
     // DBSVC config parameters
     public void setDbCommonInfo(Properties dbCommonInfo) {
-        _dbCommonInfo = dbCommonInfo;
+        this.dbCommonInfo = dbCommonInfo;
     }
 }

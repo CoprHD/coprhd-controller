@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,6 +28,7 @@ import com.emc.storageos.hds.model.Condition;
 import com.emc.storageos.hds.model.Delete;
 import com.emc.storageos.hds.model.EchoCommand;
 import com.emc.storageos.hds.model.Error;
+import com.emc.storageos.hds.model.Filter;
 import com.emc.storageos.hds.model.Get;
 import com.emc.storageos.hds.model.LDEV;
 import com.emc.storageos.hds.model.LogicalUnit;
@@ -755,7 +757,7 @@ public class HDSApiVolumeManager {
         }
         return luList;
     }
-    
+
     /**
      * Returns all LogicalUnits of a given system.
      * 
@@ -773,8 +775,10 @@ public class HDSApiVolumeManager {
         attributeMap.put(HDSConstants.GET, getOp);
         LogicalUnit lu = new LogicalUnit();
         Condition condition = new Condition(type, startElementNo, batchSize);
+        Filter filter = new Filter();
+        filter.setCondition(condition);
+        attributeMap.put(HDSConstants.FILTER_LIST, Arrays.asList(filter));
         attributeMap.put(HDSConstants.LOGICALUNIT, lu);
-        attributeMap.put(HDSConstants.CONDITION, condition);
 
         String getLogicalUnitsInputXML = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.GET_LOGICALUNITS_IN_BATCH_OP, attributeMap,

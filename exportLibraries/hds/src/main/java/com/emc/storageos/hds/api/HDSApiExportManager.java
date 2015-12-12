@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import com.emc.storageos.hds.model.Condition;
 import com.emc.storageos.hds.model.Delete;
 import com.emc.storageos.hds.model.EchoCommand;
 import com.emc.storageos.hds.model.Error;
+import com.emc.storageos.hds.model.Filter;
 import com.emc.storageos.hds.model.FreeLun;
 import com.emc.storageos.hds.model.Get;
 import com.emc.storageos.hds.model.HDSHost;
@@ -493,7 +495,7 @@ public class HDSApiExportManager {
         }
         return hsdList;
     }
-    
+
     /**
      * API call to get the host groups created on array in batch fashion.
      * 
@@ -516,7 +518,9 @@ public class HDSApiExportManager {
             HostStorageDomain hsd = new HostStorageDomain();
             attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
             Condition condition = new Condition(startElementNo, batchSize);
-            attributeMap.put(HDSConstants.CONDITION, condition);
+            Filter filter = new Filter();
+            filter.setCondition(condition);
+            attributeMap.put(HDSConstants.FILTER_LIST, Arrays.asList(filter));
 
             String getAllHSDQuery = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.GET_HSDS_IN_BATCH_OP, attributeMap,

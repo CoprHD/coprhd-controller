@@ -140,6 +140,13 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         this.executor = executor;
     }
 
+    /**
+     * @param exportDiscoverer the exportDiscoverer to set
+     */
+    public void setExportDiscoverer(HDSUnManagedExportMasksDiscoverer exportDiscoverer) {
+        this.exportDiscoverer = exportDiscoverer;
+    }
+
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
@@ -273,19 +280,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
                                 .toString()))) {
-            Map<String, Set<String>> volumeToUems = new HashMap<String, Set<String>>();
-            boolean umvDiscoveryStatus = false;
-
-            if (umvDiscoveryStatus && null != this.exportDiscoverer) {
-                this.exportDiscoverer.setDbClient(_dbClient);
-                this.exportDiscoverer.setVolumeMasks(volumeToUems);
-                discoverUnManagedExportMasks(accessProfile);
-            }
-            if (null != this.volumeDiscoverer) {
-                this.volumeDiscoverer.setDbClient(_dbClient);
-                this.volumeDiscoverer.setVolumeMasks(volumeToUems);
-                umvDiscoveryStatus = discoverUnManagedVolumes(accessProfile);
-            }
+            discoverUnManagedObjects(accessProfile);
         } else {
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());
 
@@ -335,7 +330,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     if (storageSystem != null) {
                         storageSystem
                                 .setLastDiscoveryStatusMessage(detailedStatusMessage);
-                        _dbClient.persistObject(storageSystem);
+                        _dbClient.updateObject(storageSystem);
                     }
                 } catch (Exception e) {
                     _logger.error(e.getMessage(), e);
@@ -346,18 +341,49 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
     }
 
     /**
-     * Discover the Host Groups exist on the array.
+     * Discover the unmanaged objects for the given storage system.
      * 
      * @param accessProfile
      */
-    private void discoverUnManagedExportMasks(AccessProfile accessProfile) {
+    private void discoverUnManagedObjects(AccessProfile accessProfile) {
+        String detailedStatusMessage = null;
+        StorageSystem storageSystem = null;
         try {
-            exportDiscoverer.discover(accessProfile, _partitionManager);
-        } catch (Exception e) {
-
+            storageSystem = _dbClient.queryObject(StorageSystem.class,
+                    accessProfile.getSystemId());
+            _logger.info("Discovering the unmanaged objects for {}", storageSystem.getSerialNumber());
+            Map<String, Set<String>> volumeToUems = new HashMap<String, Set<String>>();
+            storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
+            _dbClient.updateObject(storageSystem);
+            if (null != this.exportDiscoverer) {
+                exportDiscoverer.setDbClient(_dbClient);
+                exportDiscoverer.setNetworkController(_networkDeviceController);
+                exportDiscoverer.setCoordinator(_coordinator);
+                exportDiscoverer.setPartitionManager(_partitionManager);
+                exportDiscoverer.setVolumeMasks(volumeToUems);
+                exportDiscoverer.discover(accessProfile);
+            }
+            if (null != this.volumeDiscoverer) {
+                volumeDiscoverer.setDbClient(_dbClient);
+                volumeDiscoverer.setCoordinator(_coordinator);
+                volumeDiscoverer.setPartitionManager(_partitionManager);
+                volumeDiscoverer.setVolumeMasks(volumeToUems);
+                volumeDiscoverer.discover(accessProfile);
+            }
+            detailedStatusMessage = String.format(
+                    "Discovery of unmanaged objects successful for system %s",
+                    storageSystem.getId().toString());
+            storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.toString());
+        } catch (Exception ex) {
+            _logger.error("Discovery of unmanaged objects failed ");
+            detailedStatusMessage = String.format("Discovery of umanaged objects failed for system %s due to %s",
+                    storageSystem.getSerialNumber(), ex.getMessage());
+            storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString());
         } finally {
-            // @TODO update discovery status here.
+            storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
+            _dbClient.updateObject(storageSystem);
         }
+
     }
 
     /**
@@ -426,9 +452,9 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             updateTiers.add(storageTier);
         }
         _dbClient.createObject(newTiers);
-        _dbClient.persistObject(updateTiers);
+        _dbClient.updateObject(updateTiers);
         poolInDb.addTiers(tiersSet);
-        _dbClient.persistObject(poolInDb);
+        _dbClient.updateObject(poolInDb);
     }
 
     /**
@@ -451,38 +477,6 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
     }
 
     /**
-     * Discover all UnManagedVolumes for a given storagesystem.
-     * 
-     * @param accessProfile
-     */
-    private boolean discoverUnManagedVolumes(AccessProfile accessProfile) {
-        StorageSystem storageSystem = null;
-        String detailedStatusMessage = null;
-        boolean umvDiscoveryStatus = true;
-        try {
-            storageSystem = _dbClient.queryObject(StorageSystem.class,
-                    accessProfile.getSystemId());
-            storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
-            _dbClient.updateObject(storageSystem);
-            volumeDiscoverer.discover(accessProfile, _partitionManager);
-        } catch (Exception e) {
-            if (storageSystem != null) {
-                cleanupDiscovery(storageSystem);
-            }
-            detailedStatusMessage = String.format(
-                    "Discovery of unmanaged volumes failed for system %s because %s",
-                    storageSystem.getId().toString(), e.getLocalizedMessage());
-            _logger.error(detailedStatusMessage, e);
-            storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString());
-            // set detailed message
-            storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
-            _dbClient.updateObject(storageSystem);
-            umvDiscoveryStatus = false;
-        }
-        return umvDiscoveryStatus;
-    }
-
-    /**
      * If discovery fails, then mark the system as unreachable. The discovery
      * framework will remove the storage system from the database.
      * 
@@ -492,7 +486,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
     private void cleanupDiscovery(StorageSystem system) {
         try {
             system.setReachableStatus(false);
-            _dbClient.persistObject(system);
+            _dbClient.updateObject(system);
         } catch (DatabaseException e) {
             _logger.error(
                     "discoverStorage failed. Failed to update discovery status to ERROR.",

@@ -6,9 +6,11 @@ package com.emc.storageos.volumecontroller.impl.hds.discovery;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -24,6 +26,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
@@ -40,16 +43,14 @@ import com.emc.storageos.hds.model.ISCSIName;
 import com.emc.storageos.hds.model.Path;
 import com.emc.storageos.hds.model.WorldWideName;
 import com.emc.storageos.plugins.AccessProfile;
-import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 
 /**
- * @author gangak
  * 
- * @TODO ITL Map population
+ * 
  * @TODO Mark unmanaged Volumes based on VPLEX initiators.
  *
  */
@@ -57,51 +58,36 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
 
     private static final Logger log = LoggerFactory.getLogger(HDSUnManagedExportMasksDiscoverer.class);
 
-    @Override
-    public void discover(AccessProfile accessProfile, PartitionManager partitionManager)
-            throws Exception {
-        try {
-            log.info("Started discovery of HostGroups on system {}", accessProfile.getSystemId());
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
-                    HDSUtils.getHDSServerManagementServerInfo(accessProfile),
-                    accessProfile.getUserName(), accessProfile.getPassword());
-            HDSApiExportManager exportManager = hdsApiClient.getHDSApiExportManager();
-            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
-                    accessProfile.getSystemId());
-            URIQueryResultList systemPortList = new URIQueryResultList();
-            dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(storageSystem.getId()),
-                    systemPortList);
-            String systemObjectId = HDSUtils.getSystemObjectID(storageSystem);
-            URIQueryResultList portURIList = new URIQueryResultList();
-            dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(storageSystem.getId()),
-                    portURIList);
-            Iterator<StoragePort> storagePortsItr = dbClient.queryIterativeObjects(StoragePort.class, portURIList);
-            List<HostStorageDomain> hostGroupList = null;
-            int startElement = 0;
-            int retryCount = 0;
-            Set<URI> allMasks = new HashSet<URI>();
-            List<UnManagedExportMask> newMasks = new ArrayList<UnManagedExportMask>();
-            List<UnManagedExportMask> updateMasks = new ArrayList<UnManagedExportMask>();
-            do {
-                // If it is last attempt, just retrieve all records sothat we don't miss any records.
-                int batchSize = (retryCount == 4) ? 0 : BATCH_SIZE;
-                hostGroupList = exportManager.getHostGroupInBatch(systemObjectId, String.valueOf(startElement), String.valueOf(batchSize));
-                if (null != hostGroupList && !hostGroupList.isEmpty()) {
-                    processHostGroupsInBatch(hostGroupList, storageSystem, storagePortsItr, newMasks, updateMasks, allMasks);
-                    retryCount = 0;
-                } else {
-                    // HDS API is not intelligent to to know next batch of Host Groups, Hence using this retryCount,
-                    // We can skip making calls to find volumes after 5 attempts.
-                    log.debug("retrying {} time. No HostGroups found from startElement {} to {}", startElement, BATCH_SIZE);
-                    retryCount++;
-                }
-                startElement = startElement + BATCH_SIZE + 1;
-            } while (!hostGroupList.isEmpty() || retryCount < 5);
-            // Mark the undiscovered masks to inactive.
-            DiscoveryUtils.markInActiveUnManagedExportMask(storageSystem.getId(), allMasks, dbClient, partitionManager);
-        } catch (Exception ex) {
+    protected static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
 
+    @Override
+    public void discover(AccessProfile accessProfile) throws Exception {
+
+        log.info("Discovering HostGroups on system {}", accessProfile.getSystemId());
+        HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+                HDSUtils.getHDSServerManagementServerInfo(accessProfile),
+                accessProfile.getUserName(), accessProfile.getPassword());
+        HDSApiExportManager exportManager = hdsApiClient.getHDSApiExportManager();
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
+                accessProfile.getSystemId());
+        URIQueryResultList systemPortList = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(storageSystem.getId()),
+                systemPortList);
+        String systemObjectId = HDSUtils.getSystemObjectID(storageSystem);
+        Map<String, StoragePort> portMap = new HashMap<String, StoragePort>();
+        List<HostStorageDomain> hostGroupList = null;
+        Set<URI> allMasks = new HashSet<URI>();
+        hostGroupList = exportManager.getHostGroupInBatch(systemObjectId, null, null);
+        if (null != hostGroupList && !hostGroupList.isEmpty()) {
+            processHostGroupsInBatch(hostGroupList, storageSystem, portMap, allMasks);
+        } else {
+            log.info("No HostGroups found for {}", storageSystem.getSerialNumber());
         }
+
+        // Mark the undiscovered masks to inactive.
+        DiscoveryUtils.markInActiveUnManagedExportMask(storageSystem.getId(), allMasks, dbClient, partitionManager);
+        log.info("Processed {} unmanaged exportmasks for system {}", allMasks.size(), storageSystem.getId());
+
     }
 
     /**
@@ -113,40 +99,75 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
      * @param partitionManager
      */
     private void processHostGroupsInBatch(List<HostStorageDomain> hostGroupList, StorageSystem storageSystem,
-            Iterator<StoragePort> storagePortsItr, List<UnManagedExportMask> newMasks, List<UnManagedExportMask> updateMasks,
-            Set<URI> allMasks) {
-
+            Map<String, StoragePort> portMap, Set<URI> allMasks) {
+        List<UnManagedExportMask> newMasks = new ArrayList<UnManagedExportMask>();
+        List<UnManagedExportMask> updateMasks = new ArrayList<UnManagedExportMask>();
         for (HostStorageDomain hsd : hostGroupList) {
-            UnManagedExportMask umExportMask = null;
-            List<WorldWideName> wwnList = hsd.getWwnList();
-            List<ISCSIName> iscsiList = hsd.getIscsiList();
             Set<String> knownPortSet = new HashSet<String>();
             Set<String> knownVolumeSet = new HashSet<String>();
             List<StoragePort> matchedPorts = new ArrayList<StoragePort>();
             Set<String> knownIniSet = new HashSet<String>();
             Set<String> knownIniWwnSet = new HashSet<String>();
             List<Initiator> matchedInitiators = new ArrayList<Initiator>();
-            if (null != wwnList && !wwnList.isEmpty() && null != iscsiList && !iscsiList.isEmpty()) {
-                log.info("Skipping the HSD {} as it has both FC & ISCSI ports", hsd.getObjectID());
-                continue;
-            }
-            List<Path> pathList = hsd.getPathList();
-            if (null != wwnList && !wwnList.isEmpty()) {
-                processFCInitiators(storageSystem, umExportMask, hsd, wwnList, matchedInitiators, knownIniSet, knownIniWwnSet, newMasks,
-                        updateMasks, allMasks);
-            } else if (null != iscsiList && !iscsiList.isEmpty()) {
-                processIscsiInitiators(storageSystem, umExportMask, hsd, iscsiList, matchedInitiators, knownIniSet, knownIniWwnSet,
-                        newMasks, updateMasks, allMasks);
-            }
-            processStoragePorts(storageSystem, hsd.getPortID(), storagePortsItr, umExportMask, matchedPorts, knownPortSet);
+            try {
+                List<WorldWideName> wwnList = hsd.getWwnList();
+                List<ISCSIName> iscsiList = hsd.getIscsiList();
+                List<Path> pathList = hsd.getPathList();
+                if (null != wwnList && !wwnList.isEmpty() && null != iscsiList && !iscsiList.isEmpty()) {
+                    log.info("Skipping the HSD {} as it has both FC & ISCSI ports", hsd.getObjectID());
+                    continue;
+                }
+                if (wwnList.isEmpty() && iscsiList.isEmpty()) {
+                    log.info("No initiators found in the Host Group: {}. Hence skipping.", hsd.getObjectID());
+                    continue;
+                }
+                if (pathList.isEmpty()) {
+                    log.info("No volumes found in the HostGroup: {}. Hence skipping.", hsd.getObjectID());
+                    continue;
+                }
 
-            if (null != pathList && !pathList.isEmpty()) {
-                processVolumes(storageSystem, umExportMask, knownVolumeSet, pathList);
+                UnManagedExportMask umExportMask = null;
+                if (null != wwnList && !wwnList.isEmpty()) {
+                    umExportMask = processFCInitiators(storageSystem, hsd, wwnList, matchedInitiators, knownIniSet, knownIniWwnSet,
+                            newMasks,
+                            updateMasks, allMasks);
+                } else if (null != iscsiList && !iscsiList.isEmpty()) {
+                    umExportMask = processIscsiInitiators(storageSystem, hsd, iscsiList, matchedInitiators, knownIniSet, knownIniWwnSet,
+                            newMasks, updateMasks, allMasks);
+                }
+                processStoragePorts(storageSystem, hsd.getPortID(), portMap, umExportMask, matchedPorts, knownPortSet);
+
+                if (null != pathList && !pathList.isEmpty()) {
+                    processVolumes(storageSystem, umExportMask, knownVolumeSet, pathList);
+                }
+                umExportMask.setLabel(hsd.getNickname());
+                umExportMask.setMaskName(hsd.getNickname());
+                umExportMask.setMaskingViewPath(hsd.getNickname());
+                umExportMask.setStorageSystemUri(storageSystem.getId());
+                updateZoningMap(umExportMask, matchedInitiators, matchedPorts, hsd.getObjectID(), pathList);
+                updateMaskInfo(umExportMask, knownIniSet, knownIniWwnSet, knownVolumeSet, knownPortSet);
+                if (!newMasks.isEmpty() && newMasks.size() > BATCH_SIZE) {
+                    partitionManager.insertInBatches(newMasks, BATCH_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
+                    newMasks.clear();
+                }
+                if (!updateMasks.isEmpty() && updateMasks.size() > BATCH_SIZE) {
+                    partitionManager.updateInBatches(updateMasks, BATCH_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
+                    updateMasks.clear();
+                }
+            } catch (Exception ex) {
+                log.error("Exception occurred while processing the HostGroup: {}. continuing with next.", hsd.getObjectID(), ex);
             }
-            updateZoningMap(umExportMask, matchedInitiators, matchedPorts, hsd.getObjectID(), pathList);
-            updateMaskInfo(umExportMask, knownIniSet, knownIniWwnSet, knownVolumeSet, knownPortSet);
         }
 
+        // persist the remaining masks.
+        if (!newMasks.isEmpty() && newMasks.size() > 0) {
+            partitionManager.insertInBatches(newMasks, BATCH_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
+            newMasks.clear();
+        }
+        if (!updateMasks.isEmpty() && updateMasks.size() > 0) {
+            partitionManager.updateInBatches(updateMasks, BATCH_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
+            updateMasks.clear();
+        }
     }
 
     /**
@@ -166,7 +187,7 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
             umExportMask.getKnownInitiatorUris().clear();
         }
         if (null != knownIniWwnSet && !knownIniWwnSet.isEmpty()) {
-            log.debug("Known Initiator to add: {}", knownIniWwnSet);
+            log.debug("Known Initiator wwn to add: {}", knownIniWwnSet);
             umExportMask.getKnownInitiatorNetworkIds().replace(knownIniWwnSet);
         } else {
             umExportMask.getKnownInitiatorNetworkIds().clear();
@@ -177,7 +198,7 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
         } else {
             umExportMask.getKnownVolumeUris().clear();
         }
-        if (null != knownPortSet && !knownVolumeSet.isEmpty()) {
+        if (null != knownPortSet && !knownPortSet.isEmpty()) {
             log.debug("Known ports to add: {}", knownPortSet);
             umExportMask.getKnownStoragePortUris().replace(knownPortSet);
         } else {
@@ -196,18 +217,23 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
             List<Path> pathList) {
         try {
             ZoneInfoMap zoningMap = networkController.getInitiatorsZoneInfoMap(initiators, storagePorts);
+            StringSetMap itlMap = new StringSetMap();
             StringSet itlSet = new StringSet();
             for (ZoneInfo zoneInfo : zoningMap.values()) {
                 log.info("Found zone: {} for initiator {} and port {}", new Object[] { zoneInfo.getZoneName(),
                         zoneInfo.getInitiatorWwn(), zoneInfo.getPortWwn() });
                 for (Path path : pathList) {
                     StringBuffer itl = new StringBuffer(zoneInfo.getInitiatorWwn());
-                    itl.append(HDSConstants.COLON).append(zoneInfo.getPortWwn()).append(HDSConstants.COLON).append(path.getDevNum());
+                    itl.append(HDSConstants.UNDERSCORE_OPERATOR).append(zoneInfo.getPortWwn()).append(HDSConstants.UNDERSCORE_OPERATOR)
+                            .append(path.getDevNum());
                     itlSet.add(itl.toString());
                 }
             }
-            mask.getZoningMap().putAll(zoningMap);
-            mask.getDeviceDataMap().put(hsdId, itlSet);
+            if (null != zoningMap || !zoningMap.isEmpty()) {
+                mask.addZoningMap(zoningMap);
+                itlMap.put(hsdId, itlSet);
+                mask.addDeviceDataMap(itlMap);
+            }
         } catch (Exception ex) {
             log.error("Failed to get the zoning map for mask {}", mask.getMaskName());
             mask.setZoningMap(null);
@@ -224,23 +250,27 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
      * @param matchedPorts
      * @param knownPortSet
      */
-    private void processStoragePorts(StorageSystem storageSystem, String portID, Iterator<StoragePort> storagePortsItr,
+    private void processStoragePorts(StorageSystem storageSystem, String portID, Map<String, StoragePort> storagePortMap,
             UnManagedExportMask umExportMask, List<StoragePort> matchedPorts, Set<String> knownPortSet) {
+        String portNativeGuid = HDSUtils.getPortNativeGuid(storageSystem, portID);
         StoragePort sport = null;
-        while (storagePortsItr.hasNext()) {
-            StoragePort sportFromDb = storagePortsItr.next();
-            String portNativeIdFound = HDSUtils.getStoragePortNumber(sportFromDb.getNativeGuid());
-            if (portID.equalsIgnoreCase(portNativeIdFound)) {
-                sport = sportFromDb;
-                break;
+        if (storagePortMap.containsKey(portNativeGuid)) {
+            sport = storagePortMap.get(portNativeGuid);
+        } else {
+            URIQueryResultList queryResult = new URIQueryResultList();
+            this.dbClient
+                    .queryByConstraint(AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(portNativeGuid), queryResult);
+            while (queryResult.iterator().hasNext()) {
+                sport = this.dbClient.queryObject(StoragePort.class, queryResult.iterator().next());
+                storagePortMap.put(portNativeGuid, sport);
             }
-
         }
+
         StoragePort knownStoragePort = NetworkUtil.getStoragePort(sport.getPortNetworkId(), dbClient);
 
         if (null != knownStoragePort) {
             log.info("Found a matching storage port {} in ViPR ", knownStoragePort.getLabel());
-            knownPortSet.add(knownStoragePort.getPortNetworkId());
+            knownPortSet.add(knownStoragePort.getId().toString());
             matchedPorts.add(knownStoragePort);
         } else {
             log.info("No storage port in ViPR found matching portNetworkId {}", sport.getPortNetworkId());
@@ -272,13 +302,15 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
                 umvMasks = new HashSet<String>();
             }
             umvMasks.add(umExportMask.getId().toString());
+            volumeMasks.put(umvNativeGuid, umvMasks);
         }
 
     }
 
-    private UnManagedExportMask processIscsiInitiators(StorageSystem storageSystem, UnManagedExportMask umExportMask,
+    private UnManagedExportMask processIscsiInitiators(StorageSystem storageSystem,
             HostStorageDomain hsd, List<ISCSIName> iscsiList, List<Initiator> matchedInitiators, Set<String> knownIniSet,
             Set<String> knownIniWwnSet, List<UnManagedExportMask> newMasks, List<UnManagedExportMask> updateMasks, Set<URI> allMasks) {
+        UnManagedExportMask umExportMask = null;
         for (ISCSIName scsiName : iscsiList) {
             String scsiInitiatorName = scsiName.getiSCSIName();
             if (iSCSIUtility.isValidIQNPortName(scsiInitiatorName) || iSCSIUtility
@@ -310,14 +342,15 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
         return umExportMask;
     }
 
-    private UnManagedExportMask processFCInitiators(StorageSystem storageSystem, UnManagedExportMask umExportMask, HostStorageDomain hsd,
+    private UnManagedExportMask processFCInitiators(StorageSystem storageSystem, HostStorageDomain hsd,
             List<WorldWideName> wwnList, List<Initiator> matchedInitiators, Set<String> knownIniSet, Set<String> knownIniWwnSet,
             List<UnManagedExportMask> newMasks, List<UnManagedExportMask> updateMasks, Set<URI> allMasks) {
         StringSet unknownIniWwnSet = new StringSet();
+        UnManagedExportMask umExportMask = null;
         for (WorldWideName wwn : wwnList) {
-            String initiatorWwn = wwn.getWwn().replaceAll(HDSConstants.DOT_OPERATOR, HDSConstants.EMPTY_STR);
-            if (WWNUtility.isValidWWN(initiatorWwn)) {
-                initiatorWwn = initiatorWwn.toUpperCase();
+            String initiatorWwn = wwn.getWwn().replace(HDSConstants.DOT_OPERATOR, HDSConstants.EMPTY_STR);
+            if (WWNUtility.isValidNoColonWWN(initiatorWwn)) {
+                initiatorWwn = WWNUtility.getWWNWithColons(initiatorWwn.toUpperCase());
             } else {
                 log.warn("Found an invalid initiator wwn: {}", wwn.getWwn());
                 continue;
@@ -328,7 +361,7 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
                 umExportMask = findAnyExistingUnManagedExportMask(storageSystem, initiatorWwn, knownInitiator, newMasks, updateMasks);
             }
             if (null != knownInitiator) {
-                log.info("Found an initiator in ViPR on host " + knownInitiator.getHostName());
+                log.info("Found an initiator in ViPR on host {}", knownInitiator.getHostName());
                 knownIniSet.add(knownInitiator.getId().toString());
 
                 knownIniWwnSet.add(knownInitiator.getInitiatorPort());
@@ -377,6 +410,12 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
             }
             if (null != umExportMask.getUnmanagedVolumeUris()) {
                 umExportMask.getUnmanagedVolumeUris().clear();
+            }
+            if (null != umExportMask.getZoningMap()) {
+                umExportMask.getZoningMap().clear();
+            }
+            if (null != umExportMask.getDeviceDataMap()) {
+                umExportMask.getDeviceDataMap().clear();
             }
         }
 

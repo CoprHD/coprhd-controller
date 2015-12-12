@@ -231,6 +231,36 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         this.deviceDataMap = deviceDataMap;
     }
 
+    public void addDeviceDataMap(StringSetMap deviceDataMapEntries) {
+        if (this.deviceDataMap == null) {
+            setDeviceDataMap(deviceDataMapEntries);
+        } else {
+            this.deviceDataMap.putAll(deviceDataMapEntries);
+        }
+    }
+
+    public void replaceDeviceDataMapEntries(StringSetMap deviceDataMapEntries) {
+        if (null != deviceDataMapEntries
+                && !deviceDataMapEntries.isEmpty()) {
+            deviceDataMap.replace(deviceDataMapEntries);
+        }
+    }
+
+    public void removeDeviceDataMapEntry(String key) {
+        if (this.deviceDataMap != null) {
+            // This seemingly consorted logic is to avoid
+            // a concurrent update error.
+            StringSet set = deviceDataMap.get(key);
+            if (set != null && !set.isEmpty()) {
+                StringSet values = new StringSet();
+                values.addAll(set);
+                for (String value : values) {
+                    deviceDataMap.remove(key, value);
+                }
+            }
+        }
+    }
+
     /**
      * Update initiator/volumes/ports
      * 

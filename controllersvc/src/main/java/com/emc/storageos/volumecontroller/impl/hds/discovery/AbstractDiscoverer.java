@@ -33,6 +33,8 @@ public abstract class AbstractDiscoverer {
 
     protected Map<String, Set<String>> volumeMasks;
 
+    protected PartitionManager partitionManager;
+
     /**
      * @param hdsApiFactory the hdsApiFactory to set
      */
@@ -96,6 +98,20 @@ public abstract class AbstractDiscoverer {
         this.volumeMasks = volumeMasks;
     }
 
-    public abstract void discover(AccessProfile accessProfile, PartitionManager partitionManager) throws Exception;
+    /**
+     * @return the partitionManager
+     */
+    public PartitionManager getPartitionManager() {
+        return partitionManager;
+    }
+
+    /**
+     * @param partitionManager the partitionManager to set
+     */
+    public void setPartitionManager(PartitionManager partitionManager) {
+        this.partitionManager = partitionManager;
+    }
+
+    public abstract void discover(AccessProfile accessProfile) throws Exception;
 
 }

@@ -475,4 +475,35 @@ public class HDSUtils {
         return Iterables.getLast(portNativeGuidSplitter);
     }
 
+    /**
+     * Generates the nativeGuid format for the given portID.
+     * HDS+56752+PORT+PORT.R800.56752.140
+     * 
+     * @param storageSystem
+     * @param portID
+     * @return
+     */
+    public static String getPortNativeGuid(StorageSystem storageSystem, String portID) {
+        StringBuffer portNativeGuid = new StringBuffer(storageSystem.getSystemType().toUpperCase());
+        portNativeGuid.append(HDSConstants.PLUS_OPERATOR).append(storageSystem.getSerialNumber())
+                .append(HDSConstants.PLUS_OPERATOR).append(HDSConstants.PORT).append(HDSConstants.PLUS_OPERATOR);
+        portNativeGuid.append(getPortObjectId(storageSystem, portID));
+        return portNativeGuid.toString();
+    }
+
+    /**
+     * Return the
+     * 
+     * @param storageSystem
+     * @param portID
+     * @return
+     */
+    private static Object getPortObjectId(StorageSystem storageSystem, String portID) {
+        StringBuffer portObjectId = new StringBuffer(HDSConstants.PORT);
+        portObjectId.append(HDSConstants.DOT_OPERATOR);
+        Iterable<String> sysNativeGuidSplitter = Splitter.on(HDSConstants.DOT_OPERATOR).limit(2).split(storageSystem.getNativeGuid());
+        portObjectId.append(Iterables.getLast(sysNativeGuidSplitter)).append(HDSConstants.DOT_OPERATOR).append(portID);
+        return portObjectId.toString();
+    }
+
 }

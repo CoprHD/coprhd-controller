@@ -411,7 +411,7 @@
 	</operation>
 	
 	<operation name="getLogicalUnitsInBatch" models="default">
-		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Get,StorageArray,LogicalUnit,LDEV,ObjectLabel,Filter,Condition</xmlElementSequence>
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Get,StorageArray,LogicalUnit,Filter,LDEV,ObjectLabel</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
 		<xmlElementSequenceAttributes>
 		    <xmlElementSequenceAttribute>
@@ -432,14 +432,16 @@
 				<model>com.emc.storageos.hds.model.LogicalUnit</model>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
-				<name>Condition</name>
-				<model>com.emc.storageos.hds.model.Condition</model>
+				<name>Filter</name>
+				<model>com.emc.storageos.hds.model.Filter</model>
+				<childExists>true</childExists>
+				<type>List</type>
 			</xmlElementSequenceAttribute>
 		</xmlElementSequenceAttributes>
 	</operation>
 	
 	<operation name="getHSDsInBatch" models="default">
-		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Get,StorageArray,HostStorageDomain,WorldWideName,ISCSIName,Path,Filter,Condition</xmlElementSequence>
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Get,StorageArray,HostStorageDomain,Filter,WorldWideName,ISCSIName,Path</xmlElementSequence>
 		<xmlElementsToClose>APIInfo,WorldWideName,ISCSIName,Path</xmlElementsToClose>
 		<xmlElementSequenceAttributes>
 		    <xmlElementSequenceAttribute>
@@ -460,8 +462,10 @@
 				<model>com.emc.storageos.hds.model.HostStorageDomain</model>
 			</xmlElementSequenceAttribute>
 			<xmlElementSequenceAttribute>
-				<name>Condition</name>
-				<model>com.emc.storageos.hds.model.Condition</model>
+				<name>Filter</name>
+				<model>com.emc.storageos.hds.model.Filter</model>
+				<childExists>true</childExists>
+				<type>List</type>
 			</xmlElementSequenceAttribute>
 		</xmlElementSequenceAttributes>
 	</operation>	

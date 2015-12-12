@@ -54,7 +54,7 @@ public class HDSVolumeDiscoverer extends AbstractDiscoverer {
     private static final Logger log = LoggerFactory.getLogger(HDSVolumeDiscoverer.class);
 
     @Override
-    public void discover(AccessProfile accessProfile, PartitionManager partitionManager)
+    public void discover(AccessProfile accessProfile)
             throws Exception {
 
         log.info("Started discovery of UnManagedVolumes for system {}", accessProfile.getSystemId());
@@ -84,20 +84,23 @@ public class HDSVolumeDiscoverer extends AbstractDiscoverer {
         int retryCount = 0;
         do {
             // If it is last attempt, just retrieve all records sothat we don't miss any records.
-            int batchSize = (retryCount == 4) ? 0 : BATCH_SIZE;
+            int batchSize = (retryCount == 5) ? 0 : BATCH_SIZE;
             luList = volumeManager.getLogicalUnitsInBatch(systemObjectId, String.valueOf(startElement), String.valueOf(batchSize), "ALL");
             if (!luList.isEmpty()) {
                 processVolumesInBatch(luList, dbClient, pools, storageSystem, newUnManagedVolumeList, updateUnManagedVolumeList,
-                        allDiscoveredUnManagedVolumes, partitionManager);
+                        allDiscoveredUnManagedVolumes);
+                LogicalUnit lastLogicalUnit = luList.get(luList.size() - 1);
+                startElement = lastLogicalUnit.getDevNum() + 1;
                 // reset count when there are no volumes in between batches.
                 retryCount = 0;
             } else {
                 // HDS API is not intelligent to return next batch, Hence using this retryCount,
                 // We can skip making calls to find volumes after 5 attempts.
                 log.debug("retrying {} time. No volumes found from startElement {} to {}", startElement, BATCH_SIZE);
+                startElement += BATCH_SIZE + 1;
                 retryCount++;
             }
-            startElement = startElement + BATCH_SIZE + 1;
+
         } while (!luList.isEmpty() || retryCount < 5);
 
         // Process those active unmanaged volume objects available in database but not in newly discovered items, to mark them inactive.
@@ -116,11 +119,11 @@ public class HDSVolumeDiscoverer extends AbstractDiscoverer {
      * @param newUnManagedVolumeList
      * @param updateUnManagedVolumeList
      * @param allDiscoveredUnManagedVolumes
-     * @param partitionManager
+     * 
      */
     private void processVolumesInBatch(List<LogicalUnit> luList, DbClient dbClient, HashMap<String, StoragePool> pools,
             StorageSystem storageSystem, List<UnManagedVolume> newUnManagedVolumeList, List<UnManagedVolume> updateUnManagedVolumeList,
-            Set<URI> allDiscoveredUnManagedVolumes, PartitionManager partitionManager) {
+            Set<URI> allDiscoveredUnManagedVolumes) {
         try {
             log.info("Processing {} volumes received from HiCommand server.", luList.size());
 
@@ -132,6 +135,7 @@ public class HDSVolumeDiscoverer extends AbstractDiscoverer {
 
                 if (isLogicalUnitReplica(logicalUnit)) {
                     log.info("Logical Unit {} is a replica. Hence ignoring....", logicalUnit.getObjectID());
+                    continue;
                 }
 
                 log.info("Processing LogicalUnit: {}", logicalUnit.getObjectID());
@@ -139,7 +143,7 @@ public class HDSVolumeDiscoverer extends AbstractDiscoverer {
 
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), String.valueOf(logicalUnit.getDevNum()));
-                if (null == DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid)) {
+                if (null != DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid)) {
                     log.info("Skipping volume {} as it is already managed by ViPR", managedVolumeNativeGuid);
                     continue;
                 }
@@ -210,6 +214,14 @@ public class HDSVolumeDiscoverer extends AbstractDiscoverer {
         return (HDSUtils.isSnapshot(logicalUnit) || HDSUtils.isCloneOrMirror(logicalUnit) || HDSUtils.isRemoteReplica(logicalUnit));
     }
 
+    /**
+     * 
+     * @param newUnManagedVolumeList
+     * @param updateUnManagedVolumeList
+     * @param partitionManager
+     * @param dbClient
+     * @param limit
+     */
     private void performUnManagedVolumesBookKeepting(
             List<UnManagedVolume> newUnManagedVolumeList,
             List<UnManagedVolume> updateUnManagedVolumeList,

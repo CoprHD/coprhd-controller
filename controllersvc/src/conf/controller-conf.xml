@@ -1248,7 +1248,7 @@
         <property name="configInfo" ref="configinfo" />
         <property name="dataObjectScanner" ref="dataObjectScanner"/>
         <property name="controlRequestTaskConsumer" ref="controlRequestTaskConsumer"/>
-        <property name="drUtil" ref="drUtil" />
+        <property name="drPostFailoverHandler" ref="drPostFailoverHandler"/>
     </bean>
 
 	<bean id="monitoringJobConsumer"
@@ -1387,5 +1387,8 @@
     
     <bean id="drUtil" class="com.emc.storageos.coordinator.client.service.DrUtil">
         <property name="coordinator" ref="coordinator"/>
+    </bean>
+    
+    <bean id="drPostFailoverHandler" class="com.emc.storageos.volumecontroller.impl.DrPostFailoverHandler">
     </bean>
 </beans>

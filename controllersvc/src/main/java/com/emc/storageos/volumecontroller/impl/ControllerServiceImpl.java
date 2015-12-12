@@ -138,7 +138,8 @@ public class ControllerServiceImpl implements ControllerService {
     private DistributedLockQueueManager _lockQueueManager;
     private ControlRequestTaskConsumer _controlRequestTaskConsumer;
     private DrUtil _drUtil;
-
+    private DrPostFailoverHandler _drPostFailoverHandler;
+    
     ManagedCapacityImpl _capacityCompute;
     LeaderSelector _capacityService;
 
@@ -437,6 +438,16 @@ public class ControllerServiceImpl implements ControllerService {
         // Watson
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
+
+        /**
+         * Lock used in making Scanning/Discovery mutually exclusive.
+         */
+        for (Lock lock : Lock.values()) {
+            lock.setLock(_coordinator.getLock(lock.toString()));
+        }
+
+        _drPostFailoverHandler.execute();
+        
         _dispatcher.start();
 
         _jobTracker.setJobContext(new JobContext(_dbClient, _cimConnectionFactory,
@@ -447,14 +458,7 @@ public class ControllerServiceImpl implements ControllerService {
         _workflowService.start();
         _distributedOwnerLockService.start();
 
-        /**
-         * Lock used in making Scanning/Discovery mutually exclusive.
-         */
-
-        for (Lock lock : Lock.values()) {
-            lock.setLock(_coordinator.getLock(lock.toString()));
-        }
-
+        
         /**
          * Discovery Queue, an instance of DistributedQueueImpl in
          * CoordinatorService,which holds Discovery Jobs. On starting
@@ -498,7 +502,6 @@ public class ControllerServiceImpl implements ControllerService {
 
         startCapacityService();
         loadCustomConfigDefaults();
-        checkSiteStateForFailover();
     }
 
     @Override
@@ -731,21 +734,9 @@ public class ControllerServiceImpl implements ControllerService {
         _controlRequestTaskConsumer = consumer;
     }
 
-    public void setDrUtil(DrUtil drUtil) {
-        this._drUtil = drUtil;
+    public void setDrPostFailoverHandler(DrPostFailoverHandler drFailoverHandler) {
+        this._drPostFailoverHandler = drFailoverHandler;
     }
     
-    private void checkSiteStateForFailover() {
-        try {
-            Site site = _drUtil.getLocalSite();
-            
-            if (site.getState().equals(SiteState.STANDBY_FAILING_OVER)) {
-                _log.info("Site state is STANDBY_FAILING_OVER, set it to PRIMARY");
-                site.setState(SiteState.ACTIVE);
-                _coordinator.persistServiceConfiguration(site.toConfiguration());
-            }
-        } catch (Exception e) {
-            _log.error("Failed to check site state for failover");
-        }
-    }
+
 }

@@ -54,12 +54,16 @@ import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
+import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.emc.storageos.volumecontroller.impl.file.RemoteFileMirrorOperation;
+
 
 /**
  * Isilon specific file controller implementation.
  */
-public class IsilonFileStorageDevice implements FileStorageDevice {
+public class IsilonFileStorageDevice implements RemoteFileMirrorOperation, FileStorageDevice {
     private static final Logger _log = LoggerFactory.getLogger(IsilonFileStorageDevice.class);
 
     private static final String IFS_ROOT = "/ifs";
@@ -76,8 +80,19 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     private DbClient _dbClient;
     
     private CustomConfigHandler customConfigHandler;
+    
+    private FileMirrorOperations mirrorOperations;
+    
 
-    /**
+    public FileMirrorOperations getMirrorOperations() {
+		return mirrorOperations;
+	}
+
+	public void setMirrorOperations(FileMirrorOperations mirrorOperations) {
+		this.mirrorOperations = mirrorOperations;
+	}
+
+	/**
      * Set Isilon API factory
      * 
      * @param factory
@@ -2086,4 +2101,47 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     	}
     	return zoneName;
     }
+    
+    
+    //remote mirror related operation
+
+	@Override
+	public void doCreateLink(StorageSystem system, URI source, URI target,
+			TaskCompleter completer) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void doDetachLink(StorageSystem system, URI source, URI target,
+			TaskCompleter completer) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void doStartLink(StorageSystem system, FileShare target,
+			TaskCompleter completer) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	
+	//local mirror related operations
+	
+	@Override
+    public void doCreateMirror(StorageSystem storage, URI mirror, Boolean createInactive, 
+    		TaskCompleter taskCompleter) throws DeviceControllerException {
+        mirrorOperations.createSingleMirrorFileShare(storage, mirror, createInactive, taskCompleter);
+    }
+
+	@Override
+	public void doDeleteMirror(StorageSystem storage, URI mirror,
+			Boolean createInactive, TaskCompleter taskCompleter)throws DeviceControllerException {
+		// TODO Auto-generated method stub
+		mirrorOperations.deleteSingleMirrorFileShare(storage, mirror, taskCompleter);
+		
+	}
+	
+	
 }

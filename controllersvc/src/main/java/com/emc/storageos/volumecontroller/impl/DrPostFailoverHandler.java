@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
@@ -52,6 +54,8 @@ import com.emc.storageos.workflow.WorkflowService;
 public class DrPostFailoverHandler {
     private static final Logger log = LoggerFactory.getLogger(DrPostFailoverHandler.class);
 
+    private static final String POST_FAILOVER_HANDLER_LOCK = "drPostFailoverLock";
+    
     @Autowired
     private CoordinatorClient coordinator;
     @Autowired
@@ -62,24 +66,40 @@ public class DrPostFailoverHandler {
     public DrPostFailoverHandler() {}
     
     public void execute() {
+        
         try {
             Site site = drUtil.getLocalSite();
             SiteState state = site.getState();
-            if (state.equals(SiteState.STANDBY_FAILING_OVER)) {
+            if (!state.equals(SiteState.STANDBY_FAILING_OVER)) {
                 log.info("Bypass DR post failover handler for site state {}", state);
                 return;
             }
             
-            log.info("Site state is {}. Start post failover processing", state);
-            checkAndFixDb();
-            cleanupJobQueue();
-            cleanupWorkflow();
-            cleanupTasks();
-            rediscoverDevices();
-            site.setState(SiteState.ACTIVE);
-            coordinator.persistServiceConfiguration(site.toConfiguration());
+            log.info("Acquiring lock {}", POST_FAILOVER_HANDLER_LOCK);
+            InterProcessLock lock = coordinator.getLock(POST_FAILOVER_HANDLER_LOCK);
+            lock.acquire();
+            log.info("Acquired lock {}", POST_FAILOVER_HANDLER_LOCK);
+            try {
+                site = drUtil.getLocalSite(); // check site state again after acquiring lock
+                state = site.getState();
+                if (!state.equals(SiteState.STANDBY_FAILING_OVER)) {
+                    log.info("Bypass DR post failover handler for site state {}", state);
+                    return;
+                }
+                log.info("Site state is {}. Start post failover processing", state);
+                checkAndFixDb();
+                cleanupJobQueue();
+                cleanupWorkflow();
+                cleanupTasks();
+                rediscoverDevices();
+                site.setState(SiteState.ACTIVE);
+                coordinator.persistServiceConfiguration(site.toConfiguration());
+            } finally {
+                lock.release();
+                log.info("Released lock {}", POST_FAILOVER_HANDLER_LOCK);
+            }
         } catch (Exception e) {
-            log.error("Failed to execute DR failover handler", e);//todo define a new exception
+            log.error("Failed to execute DR failover handler", e);//todo throw a new exception
         }
     }
     
@@ -87,6 +107,14 @@ public class DrPostFailoverHandler {
         DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper((DbClientImpl)dbClient);
         DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
         int corruptedCount = checker.check();
+        if (corruptedCount > 0) {
+            log.info("Corrupted db data found {}. Start fixing it", corruptedCount);
+            //Iterator<String> cleanupFiles = DbCheckerFileWriter.getGeneratedFiles();
+            //while(cleanupFiles.hasNext()) {
+            //    String fileName = cleanupFiles.next();
+            //    log.info("File {}", fileName);
+            //}
+        }
     }
     
     private void cleanupJobQueue() {

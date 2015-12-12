@@ -18,9 +18,12 @@ import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -114,6 +117,10 @@ public class DbCheckerFileWriter {
         return StringUtils.join(cleanupFiles, " ");
     }
 
+    public static Iterator<String> getGeneratedFiles() {
+        return cleanupFiles.iterator();
+    }
+    
     private static void deleteIfExists(String fileName) {
         File file = new File(fileName);
         if (file.exists()) {

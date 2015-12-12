@@ -438,15 +438,6 @@ public class ControllerServiceImpl implements ControllerService {
         // Watson
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
-
-        /**
-         * Lock used in making Scanning/Discovery mutually exclusive.
-         */
-        for (Lock lock : Lock.values()) {
-            lock.setLock(_coordinator.getLock(lock.toString()));
-        }
-
-        _drPostFailoverHandler.execute();
         
         _dispatcher.start();
 
@@ -457,15 +448,19 @@ public class ControllerServiceImpl implements ControllerService {
                 new QueueJobSerializer(), DEFAULT_MAX_THREADS);
         _workflowService.start();
         _distributedOwnerLockService.start();
-
         
+        /**
+         * Lock used in making Scanning/Discovery mutually exclusive.
+         */
+        for (Lock lock : Lock.values()) {
+            lock.setLock(_coordinator.getLock(lock.toString()));
+        }
         /**
          * Discovery Queue, an instance of DistributedQueueImpl in
          * CoordinatorService,which holds Discovery Jobs. On starting
          * discoveryConsumer, a new ScheduledExecutorService is instantiated,
          * which schedules Loading Devices from DB every X minutes.
          */
-
         _discoverJobConsumer.start();
         _computeDiscoverJobConsumer.start();
         _scanJobConsumer.start();
@@ -478,12 +473,15 @@ public class ControllerServiceImpl implements ControllerService {
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(METERING_COREPOOLSIZE)), 200);
         _scanJobQueue = _coordinator.getQueue(SCAN_JOB_QUEUE_NAME, _scanJobConsumer,
                 new DataCollectionJobSerializer(), 1, 50);
+        
+        _drPostFailoverHandler.execute();
+        
         /**
          * Monitoring use cases starts here
          */
         _monitoringJobQueue = _coordinator.getQueue(MONITORING_JOB_QUEUE_NAME, _monitoringJobConsumer,
                 new DataCollectionJobSerializer(), DEFAULT_MAX_THREADS);
-
+        
         /**
          * Adds listener class for zk connection state change.
          * This listener will release local CACHE while zk connection RECONNECT.

@@ -22,6 +22,18 @@ public class IsilonMirrorOperations implements FileMirrorOperations{
 	private DbClient _dbClient;
 	private IsilonApiFactory _factory;
 	
+	/**
+     * Set Isilon API factory
+     * 
+     * @param factory
+     */
+    public void setIsilonApiFactory(IsilonApiFactory factory) {
+        _factory = factory;
+    }
+    
+    public void setDbClient(DbClient dbc) {
+        _dbClient = dbc;
+    }
 	
 	@Override
 	public void createSingleMirrorFileShare(StorageSystem storage, URI mirror,

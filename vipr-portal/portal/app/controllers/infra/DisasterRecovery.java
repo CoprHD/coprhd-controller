@@ -110,6 +110,7 @@ public class DisasterRecovery extends ViprResourceController {
         String standby_name = null;
         String standby_vip = null;
         String active_name = null;
+        String targetURL = null;
         Boolean iamPrimary = false;
 
         // Get active site details
@@ -140,7 +141,8 @@ public class DisasterRecovery extends ViprResourceController {
         String site_uuid = id;
         result = DisasterRecoveryUtils.getSite(id);
         String site_state = result.getState();
-        render(active_name, standby_name, standby_vip, site_uuid, site_state, iamPrimary);
+        targetURL = "https://" + standby_vip;
+        render(active_name, standby_name, standby_vip, site_uuid, site_state, iamPrimary, targetURL);
     }
 
     private static DisasterRecoveryDataTable createDisasterRecoveryDataTable() {

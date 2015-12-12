@@ -20,7 +20,7 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doCreateLink(StorageSystem system, URI source, URI target, TaskCompleter completer);
+    void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer);
 
     /**
      * Detach a source and target from their replication link.
@@ -30,7 +30,7 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doDetachLink(StorageSystem system, URI source, URI target, TaskCompleter completer);
+    void doDetachMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer);
 
     /**
      * Starts a replication link.
@@ -39,7 +39,7 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doStartLink(StorageSystem system, FileShare target, TaskCompleter completer);
+    void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer);
 
 
 }

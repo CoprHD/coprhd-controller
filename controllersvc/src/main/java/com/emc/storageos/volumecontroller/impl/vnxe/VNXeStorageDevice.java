@@ -1317,13 +1317,7 @@ public class VNXeStorageDevice extends VNXeOperations
 
     }
 
-    @Override
-    public void doCreateMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-
-    }
+   
 
     @Override
     public void doFractureMirror(StorageSystem storage, URI mirror,
@@ -2518,5 +2512,16 @@ public class VNXeStorageDevice extends VNXeOperations
             TaskCompleter taskCompleter) throws DeviceControllerException {
         // If this operation is unsupported by default it's not necessarily an error
         return;
+    }
+    
+    //file mirror related operations
+    public void doCreateMirror(StorageSystem storage, URI mirror, 
+    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException{
+    	throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+    
+    public void doDeleteMirror(StorageSystem storage, URI mirror, 
+    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException{
+    	throw DeviceControllerException.exceptions.operationNotSupported();
     }
 }

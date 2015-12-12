@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.filereplicationcontroller;
 import java.net.URI;
 import java.util.Set;

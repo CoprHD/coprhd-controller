@@ -7,7 +7,6 @@ package com.emc.storageos.fileorchestrationcontroller;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 

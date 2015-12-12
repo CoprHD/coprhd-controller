@@ -1,3 +1,4 @@
+#{if isError }
 <dl class="dl-horizontal">
   <dt>&{'disasterRecovery.error.code'}</dt>
   <dd>${disasterSiteError.serviceCode}</dd>
@@ -11,3 +12,14 @@
   <dt>&{'disasterRecovery.error.message'}</dt>
   <dd>${disasterSiteError.errorMessage}</dd>
 </dl>
+#{/if}
+#{else}
+<dl class="dl-horizontal">
+  <dt>&{'disasterRecovery.error.creation.time'}</dt>
+  <dd>${disasterSiteTime.creationTime ?: '-'}</dd>
+  <dt>&{'disasterRecovery.paused.time'}</dt>
+  <dd>${disasterSiteTime.pausedTime ?: '-'}</dd>
+  <dt>&{'disasterRecovery.lastOperation.time'}</dt>
+  <dd>${disasterSiteTime.lastOperationTime ?: '-'}</dd>  
+</dl>	
+#{/else}

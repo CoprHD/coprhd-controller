@@ -85,7 +85,6 @@ public class DbsvcTestBase {
     protected static GeoDependencyChecker _geoDependencyChecker;
     protected static SchemaUtil schemaUtil;
     protected  static final String dataDir="./dbtest";
-    private static InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
 
     // This controls whether the JMX server is started with DBSVC or not. JMX server is used to snapshot Cassandra
     // DB files and dump SSTables to JSON files. However, current JmxServerWrapper.start() implementation blindly
@@ -207,8 +206,6 @@ public class DbsvcTestBase {
         statusChecker.setDbVersionInfo(_dbVersionInfo);
         statusChecker.setServiceName(service.getName());
         
-        apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
-        
         SecretKey key = null;
         try {
             KeyGenerator keyGenerator = null;
@@ -218,8 +215,6 @@ public class DbsvcTestBase {
             fail("generate key fail");
         }
         
-        doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
-
         schemaUtil  = new MockSchemaUtil();
         schemaUtil.setKeyspaceName("Test");
         schemaUtil.setClusterName("Test");
@@ -229,7 +224,6 @@ public class DbsvcTestBase {
         schemaUtil.setCoordinator(_coordinator);
         schemaUtil.setVdcShortId("datacenter1");
         schemaUtil.setDrUtil(new DrUtil(_coordinator));
-        schemaUtil.setApiSignatureGenerator(apiSignatureGeneratorMock);
 
         DbClientContext dbctx = new MockDbClientContext();
         dbctx.setClusterName("Test");

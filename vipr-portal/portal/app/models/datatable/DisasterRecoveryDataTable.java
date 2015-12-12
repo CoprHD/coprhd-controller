@@ -15,7 +15,7 @@ public class DisasterRecoveryDataTable extends DataTable {
         addColumn("description");
         addColumn("VirtualIP");
         addColumn("status").setRenderFunction("standbyStatusIcon");
-        addColumn("id");
+        addColumn("networkHealth");
         addColumn("actions").setRenderFunction("renderButtonBar");
         sortAllExcept("actions");
     }
@@ -27,6 +27,7 @@ public class DisasterRecoveryDataTable extends DataTable {
         public String status;
         public String siteId;
         public String id;
+        public String networkHealth;
 
         public StandByInfo() {
         }

@@ -1,7 +1,7 @@
-@root-menu-width: 60px;
-@root-menu-icon-color: #798790;
-@root-menu-font-size: 30px;
-@root-menu-background-color: #eaeaea;
+@root-menu-width: 80px;
+@root-menu-icon-color: #8c8e8c;
+@root-menu-font-size: 18px; 
+@root-menu-background-color: #2d2c2c;
 
 @root-menu-item-selected-color: #ffffff;
 @root-menu-item-selected-background-color: #555555;
@@ -19,6 +19,7 @@
 @sub-menu-background-color: rgba(85, 85, 85, 0.95);
 @sub-menu-hover-color: #fff;
 @sub-menu-hover-background-color: #a5a5a5;
+@sub-menu-hover-selected-margin-top: -8px;
 
 #mainMenu {
 	position: fixed;
@@ -57,13 +58,14 @@
 .rootNav span {
 	font-size: @root-menu-font-size;
 	color: @root-menu-icon-color;
+	padding: 25px !important;
 }
 .rootNav img {
 	width: 30px;
 }
 a.rootNav {
-	padding: 7px 15px;
-	margin-top: 12px;
+	padding: 10px 0px;
+	margin-top: 0px;
 	display: block;
 	opacity: 0.75;
 	filter: alpha(opacity=75);
@@ -183,7 +185,7 @@ a.rootNav.selected span {
 	z-index: 999;
 	width: @sub-menu-padding;
 	height: 100%;
-	margin-top: -14px;
+	margin-top: @sub-menu-hover-selected-margin-top;
 }
 .menuTree li.active a {
   background-color: @menu-item-active-background-color;
@@ -198,7 +200,7 @@ a.rootNav.selected span {
   background-color: @menu-item-active-background-color;
   left: -@sub-menu-padding;
   width: @sub-menu-padding;
-  margin-top: -14px;
+  margin-top: @sub-menu-hover-selected-margin-top;
 }
 .menuTree li.active a:hover:before {
   background-color: @menu-item-active-background-color;

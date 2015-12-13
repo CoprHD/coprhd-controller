@@ -48,6 +48,7 @@
         <property name="extraCleanDirs">
             <list value-type="java.lang.String">
                 <value>/data/geodb/1/commitlog</value>
+                <value>/data/geodb/1/data/system</value>
             </list>
         </property>
     </bean>

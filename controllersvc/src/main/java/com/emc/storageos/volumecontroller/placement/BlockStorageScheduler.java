@@ -330,10 +330,11 @@ public class BlockStorageScheduler {
         // remove initiators that are routed to it - Should this be done when initiators are added or is this an override?
         filterRemoteInitiators(system, varray, net2InitiatorsMap, networkMap);
 
-        // Compute the number of Ports needed for each Network
+        // Compute the number of Ports needed for each Network, and get the network ordering for allocation.
+        List<URI> orderedNetworks = new ArrayList<URI>();
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
         Map<URI, Integer> net2PortsNeeded = assigner.getPortsNeededPerNetwork(net2InitiatorsMap,
-                pathParams, existingPortsMap, existingInitiatorsMap);
+                pathParams, existingPortsMap, existingInitiatorsMap, orderedNetworks);
         for (Map.Entry<URI, Integer> entry : net2PortsNeeded.entrySet()) {
             if (networkMap.get(entry.getKey()) != null) {
                 _log.info(String.format("Network %s (%s) requested ports %d",
@@ -355,13 +356,10 @@ public class BlockStorageScheduler {
             allocator.addPortsToAlreadyAllocatedContext(_dbClient, network, existingPorts);
         }
 
-        // Compute the StoragePort usage map. This also generates the ordering that
-        // the allocation should be done in.
-        List<URI> orderedNetworks = new ArrayList<URI>();
+        // Compute the StoragePort usage map. 
         Map<URI, Map<StoragePort, Long>> portUsageMap =
                 computeStoragePortUsageMapForPorts(system.getId(),
-                        networkMap, varray, orderedNetworks,
-                        portsByNetwork);
+                        networkMap, varray, portsByNetwork);
 
         // Filter out the ports in the case of VMAX and RP splitting: (CTRL-7288)
         // https://support.emc.com/docu10627_RecoverPoint-Deploying-with-Symmetrix-Arrays-and-Splitter-Technical-Notes.pdf?language=en_US
@@ -780,22 +778,19 @@ public class BlockStorageScheduler {
     }
 
     /**
-     * Compute the ports available and their usage, and return a list of the proper
-     * ordering of which networks to be processed first.
+     * Compute the ports available and their usage.
      * 
      * @param storageUri -- StorageSystem URI
      * @param networkMap -- a map of Network URI to NetworkLite indicating networks to process
      * @param varrayURI -- the Virtual Array URI
-     * @param orderedNetworks -- OUT parameter: an ordered list of networks to process
      * @param storagePortsMap a map of network-to-ports of ports that can be allocated
      * @return -- a Map of Network URI to a Map of Storage Port to Long usage factor
      */
     private Map<URI, Map<StoragePort, Long>> computeStoragePortUsageMapForPorts(
-            URI storageUri, Map<URI, NetworkLite> networkMap, URI varrayURI, List<URI> orderedNetworks,
+            URI storageUri, Map<URI, NetworkLite> networkMap, URI varrayURI, 
             Map<NetworkLite, List<StoragePort>> storagePortsMap)
             throws PlacementException {
         Map<URI, Map<StoragePort, Long>> result = new HashMap<URI, Map<StoragePort, Long>>();
-        PriorityQueue<NetworkUsage> usageQueue = new PriorityQueue<NetworkUsage>();
         // Then put them in the result map and the usageQueue.
         for (URI networkURI : networkMap.keySet()) {
             NetworkLite network = networkMap.get(networkURI);
@@ -805,37 +800,19 @@ public class BlockStorageScheduler {
             }
             if (network.getTransportType().equals(StorageProtocol.Transport.FC.name()) ||
                     network.getTransportType().equals(StorageProtocol.Transport.IP.name())) {
-                Map<StoragePort, Long> portMap = computeStoragePortUsage(spList);
+                Map<StoragePort, Long> portUsage = computeStoragePortUsage(spList);
                 // If there are no ports in the requested network, throw an error
-                if (portMap.isEmpty()) {
+                if (portUsage.isEmpty()) {
                     throw PlacementException.exceptions.noStoragePortsInNetwork(network.getLabel());
                 }
-                result.put(networkURI, portMap);
-                // Determine the port with the highest usage metric.
-                Long max = Long.MIN_VALUE;
-                for (Long x : portMap.values()) {
-                    if (x > max) {
-                        max = x;
-                    }
-                }
-                // Put a NetworkUsage on the usageQueue.
-                NetworkUsage netUsage = new NetworkUsage(networkURI, max);
-                usageQueue.add(netUsage);
+                result.put(networkURI, portUsage);
             } else {
                 Map<StoragePort, Long> portUsage = new HashMap<StoragePort, Long>();
                 for (StoragePort sp : spList) {
                     portUsage.put(sp, 0L);
                 }
                 result.put(networkURI, portUsage);
-                // No usage metric. Just add to list.
-                NetworkUsage netUsage = new NetworkUsage(networkURI, 0);
-                usageQueue.add(netUsage);
             }
-        }
-
-        // Now generate an ordered list processing the networks with highest usage metric first.
-        while (usageQueue.peek() != null) {
-            orderedNetworks.add(usageQueue.poll().network);
         }
         return result;
     }

@@ -398,9 +398,9 @@ public enum OperationTypeEnum {
     IMAGESERVER_VERIFY_IMPORT_IMAGES("IMAGESERVER_VERIFY_IMPORT_IMAGES", "", "operation to verify a compute image server and import images."),
     UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "", "operation to update and verify a compute image server."),
     DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
-    CREATE_APPLICATION("CREATE APPLICATION", "", "operation to create application"),
-    DELETE_APPLICATION("DELETE APPLICATION", "", "operation to delete application"), 
-    UPDATE_APPLICATION("UPDATE APPLICATION", "", "operation to update application"),
+    CREATE_VOLUME_GROUP("CREATE VOLUME GROUP", "", "operation to create volume group"),
+    DELETE_VOLUME_GROUP("DELETE VOLUME GROUP", "", "operation to delete volume group"), 
+    UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "", "operation to update volume group"),
 
     /* Disaster Recovery Operations */
     ADD_STANDBY("ADD STANDBY", "", "operation to add a new standby to ensemble"),

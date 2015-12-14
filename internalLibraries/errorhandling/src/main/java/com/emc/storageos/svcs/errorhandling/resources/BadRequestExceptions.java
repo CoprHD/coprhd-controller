@@ -2634,14 +2634,16 @@ public interface BadRequestExceptions {
     public BadRequestException canNotCanceldbConsistencyCheck();
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException applicationWithVolumesCantBeDeleted(final String applicationName);
+    public BadRequestException volumeGroupWithVolumesCantBeDeleted(final String volumeGroupName);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException applicationCantBeUpdated(final String applicationName, final String reason);
+    public BadRequestException volumeGroupCantBeUpdated(final String volumeGroupName, final String reason);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException volumeCantBeAddedToApplication(final String volumeName, final String reason);
+    public BadRequestException volumeCantBeAddedToVolumeGroup(final String volumeName, final String reason);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException removeVolumeFromCGNotAllowed(final String volumeName, final String applicationName);
 }
+
+

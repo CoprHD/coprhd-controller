@@ -298,7 +298,7 @@ public enum ResourceOperationTypeEnum {
     CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER", "Create and verify a compute image server"),
     UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "Update and verify a compute image server"),
     CREATE_VPLEX_VOLUME_FROM_SNAPSHOT("CREATE VPLEX VOLUME FROM SNAPSHOT", "Create a VPLEX volume on top of a block snapshot target volume"),
-    UPDATE_APPLICATION("UPDATE APPLICATION", "Update an application");
+    UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "Update a volume group");
 
     private final String name;
     private final String description;

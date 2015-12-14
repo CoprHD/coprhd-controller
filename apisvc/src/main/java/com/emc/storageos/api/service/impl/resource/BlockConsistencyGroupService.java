@@ -55,7 +55,6 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.Application;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -74,6 +73,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -1176,10 +1176,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                         blockServiceApiImpl.verifyRemoveVolumeFromCG(volume, cgVolumes);
                     }
                     // Check if the volume is assigned to an application
-                    StringSet applications = volume.getApplicationIds();
-                    if (applications != null && !applications.isEmpty()) {
-                        for (String appString : applications) {
-                            Application application = _dbClient.queryObject(Application.class, URI.create(appString));
+                    StringSet volumeGroups = volume.getVolumeGroupIds();
+                    if (volumeGroups != null && !volumeGroups.isEmpty()) {
+                        for (String appString : volumeGroups) {
+                            VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, URI.create(appString));
                             if(application != null && !application.getInactive()) {
                                 throw APIException.badRequests.removeVolumeFromCGNotAllowed(volume.getLabel(), application.getLabel());
                             }

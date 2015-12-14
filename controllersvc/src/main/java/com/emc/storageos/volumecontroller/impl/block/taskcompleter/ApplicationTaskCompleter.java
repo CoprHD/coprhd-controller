@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.Application;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSet;
@@ -35,8 +35,8 @@ public class ApplicationTaskCompleter extends TaskCompleter{
     private List<URI> removeVolumes;
     private List<URI> consistencyGroups;
     
-    public ApplicationTaskCompleter(URI applicationId, List<URI> addVolumes, List<URI>removeVols, List<URI> consistencyGroups, String opId) {
-        super(Application.class, applicationId, opId);
+    public ApplicationTaskCompleter(URI volumeGroupId, List<URI> addVolumes, List<URI>removeVols, List<URI> consistencyGroups, String opId) {
+        super(VolumeGroup.class, volumeGroupId, opId);
         this.addVolumes = addVolumes;
         this.removeVolumes = removeVols;
         this.consistencyGroups = consistencyGroups;
@@ -90,7 +90,7 @@ public class ApplicationTaskCompleter extends TaskCompleter{
     private void removeApplicationFromVolume(URI voluri, DbClient dbClient) {
         Volume volume = dbClient.queryObject(Volume.class, voluri);
         String appId = getId().toString();
-        StringSet appIds = volume.getApplicationIds();
+        StringSet appIds = volume.getVolumeGroupIds();
         if(appIds != null) {
             appIds.remove(appId);
         }
@@ -104,12 +104,12 @@ public class ApplicationTaskCompleter extends TaskCompleter{
      */
     public void addApplicationToVolume(URI voluri, DbClient dbClient) {
         Volume volume = dbClient.queryObject(Volume.class, voluri);
-        StringSet applications = volume.getApplicationIds();
+        StringSet applications = volume.getVolumeGroupIds();
         if (applications == null) {
             applications = new StringSet();
         }
         applications.add(getId().toString());
-        volume.setApplicationIds(applications);
+        volume.setVolumeGroupIds(applications);
         dbClient.updateObject(volume);
         
     }

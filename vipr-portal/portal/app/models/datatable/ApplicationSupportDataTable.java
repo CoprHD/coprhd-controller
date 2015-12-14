@@ -8,7 +8,6 @@ import java.util.List;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.google.common.collect.Lists;
-import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import util.AppSupportUtil;
 import util.datatable.DataTable;
 
@@ -41,7 +40,7 @@ public class ApplicationSupportDataTable extends DataTable {
         public ApplicationSupport(NamedRelatedResourceRep application) {
             id = application.getId().toString();
             name = application.getName();
-            description = AppSupportUtil.getApplication(uri(id)).getDescription();
+            description = AppSupportUtil.getApplication(id).getDescription();
         }
     }
 }

@@ -152,7 +152,7 @@ public class PathConstants {
     public static final String VIRTUAL_NAS_SERVER_BY_VARRAY_URL = VIRTUAL_NAS_SERVER_URL + "/varray/{varray-id}";
     public static final String VIRTUAL_NAS_SERVER_BY_PROJECT_URL = "/project/{project-id}";
 
-    public static final String APP_SUPPORT_CREATE_APP_URL = "/applications/block";
+    public static final String APP_SUPPORT_CREATE_APP_URL = "/volume-groups/block";
     public static final String APP_SUPPORT_DELETE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/deactivate";
     public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL +"/{id}";
 }

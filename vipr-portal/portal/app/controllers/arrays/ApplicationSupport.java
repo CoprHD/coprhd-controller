@@ -6,7 +6,6 @@ package controllers.arrays;
 
 import static controllers.Common.flashException;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
@@ -18,7 +17,6 @@ import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.MinSize;
 import play.data.validation.Required;
-import play.data.validation.Valid;
 import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.With;
@@ -27,7 +25,7 @@ import util.MessagesUtils;
 import util.StringOption;
 import util.datatable.DataTablesSupport;
 
-import com.emc.storageos.model.application.ApplicationRestRep;
+import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.vipr.client.exceptions.ViPRException;
 
 import controllers.Common;
@@ -58,7 +56,7 @@ public class ApplicationSupport extends Controller {
     }
     
     public static void create() {
-        renderArgs.put("roleOptions",StringOption.options(new String[] { "COPY", "DR",}));
+        renderArgs.put("roleOptions",StringOption.options(new String[] { "COPY", "DR", "MOBILITY"}));
         render();
     }
 
@@ -67,7 +65,7 @@ public class ApplicationSupport extends Controller {
     }
 
     public static void edit(String id) {
-       ApplicationRestRep application = AppSupportUtil.getApplication(uri(id));
+        VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
        if (application != null) {
            ApplicationForm applicationForm = new ApplicationForm(application);
            edit(applicationForm);
@@ -79,7 +77,7 @@ public class ApplicationSupport extends Controller {
     }
     
     private static void edit(ApplicationForm applicationForm) {
-        renderArgs.put("roleOptions",StringOption.options(new String[] { "COPY", "DR",}));
+        renderArgs.put("roleOptions",StringOption.options(new String[] { "COPY", "DR", "MOBILITY"}));
         render("@create",applicationForm);
     }
 
@@ -141,7 +139,7 @@ public class ApplicationSupport extends Controller {
         public Set<String> roles;
         
 
-        public ApplicationForm(ApplicationRestRep applicationForm) {
+        public ApplicationForm(VolumeGroupRestRep applicationForm) {
             this.id = applicationForm.getId().toString();
             this.name = applicationForm.getName();
             this.description = applicationForm.getDescription();
@@ -160,7 +158,7 @@ public class ApplicationSupport extends Controller {
             if (isNew()) {
                 AppSupportUtil.createApplication(name, description, roles);
             } else {
-                ApplicationRestRep oldApplication = AppSupportUtil.getApplication(uri(id));
+                VolumeGroupRestRep oldApplication = AppSupportUtil.getApplication(id);
                 if(oldApplication.getName().equals(name)) {
                     this.name = "";
                 }

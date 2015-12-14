@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
@@ -246,5 +247,6 @@ public abstract class  AbstractFileStorageDevice implements FileStorageDevice,
 		// TODO Auto-generated method stub
 		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
+	
 
 }

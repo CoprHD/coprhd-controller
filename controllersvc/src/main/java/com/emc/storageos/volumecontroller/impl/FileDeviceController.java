@@ -3477,8 +3477,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs, String opId) {
         return new Workflow.Method("rollBackCreateFileShares", systemURI, fileURIs, opId);
     }
-    
-    public void rollBackCreateVolumes(URI systemURI, List<URI> fileURIs, String opId){
+    @Override
+    public void rollBackCreateFileShares(URI systemURI, List<URI> fileURIs, String opId){
     	
     	try {
 			WorkflowStepCompleter.stepExecuting(opId);

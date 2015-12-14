@@ -992,7 +992,7 @@ public class FileStorageScheduler implements Scheduler{
         if (placement.getvNAS() != null) {
         	fileShare.setVirtualNAS(placement.getvNAS());
         }
-        
+        dbClient.updateObject(fileShare);
        // set file share id in recommendation
         placement.setId(fileShare.getId());
 

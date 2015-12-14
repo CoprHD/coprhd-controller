@@ -91,8 +91,10 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ApplicationTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupUpdateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorDeactivateCompleter;
@@ -3927,7 +3929,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter taskCompleter = null;
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
+            taskCompleter = new BlockConsistencyGroupAddVolumeCompleter(consistencyGroup, addVolumesList, opId);
             getDevice(storageSystem.getSystemType()).doAddToConsistencyGroup(
                     storageSystem, consistencyGroup, addVolumesList, taskCompleter);
         } catch (Exception e) {
@@ -3948,7 +3950,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter taskCompleter = null;
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
+            taskCompleter = new BlockConsistencyGroupRemoveVolumeCompleter(consistencyGroup, removeVolumesList, opId);
             getDevice(storageSystem.getSystemType()).doRemoveFromConsistencyGroup(
                     storageSystem, consistencyGroup, removeVolumesList, taskCompleter);
         } catch (Exception e) {
@@ -4746,6 +4748,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
                     URI storageUri = vol.getStorageController();
                     StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageUri);
+                    // call ReplicaDeviceController
+                    waitFor = _replicaDeviceController.addStepsForRemovingVolumesFromCG(workflow, waitFor, cguri, removeVolumeList, opId);
                     // Remove the volumes from the consistency group
                     workflow.createStep(REMOVE_VOLUMES_FROM_CG_STEP_GROUP,
                             String.format("Remove volumes from consistency group %s", cguri.toString()),

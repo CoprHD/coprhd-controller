@@ -18,7 +18,7 @@ import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.Application;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -40,7 +40,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TypedRelatedResourceRep;
-import com.emc.storageos.model.application.ApplicationRestRep;
+import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.customconfig.CustomConfigRestRep;
 import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
@@ -266,15 +266,15 @@ public class DbObjectMapper {
     }
     
     /**
-     * Map an application to ApplicationRestRep
-     * @param from application
-     * @return ApplicationRestRep
+     * Map an VolumeGroup to VolumeGroupRestRep
+     * @param from VolumeGroup
+     * @return VolumeGroupRestRep
      */
-    public static ApplicationRestRep map(Application from) {
+    public static VolumeGroupRestRep map(VolumeGroup from) {
         if ( from == null) {
             return null;
         }
-        ApplicationRestRep rep = new ApplicationRestRep();
+        VolumeGroupRestRep rep = new VolumeGroupRestRep();
         mapDataObjectFields(from, rep);
         rep.setDescription(from.getDescription());
         rep.setRoles(from.getRoles());

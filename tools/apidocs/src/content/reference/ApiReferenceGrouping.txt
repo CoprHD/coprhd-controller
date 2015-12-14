@@ -63,8 +63,8 @@ TenantService
 =Config Services
 CustomConfigService
 
-=Application Services
-ApplicationService
+=Volume Group Services
+VolumeGroupService
 
 =UI Services
 com.emc.sa.api.ApprovalService
@@ -119,5 +119,5 @@ Compute Services
 Tenant Services
 Virtual Data Center Services
 Object Data Control Services
-Application Services
+Volume Group Services
 Other Services

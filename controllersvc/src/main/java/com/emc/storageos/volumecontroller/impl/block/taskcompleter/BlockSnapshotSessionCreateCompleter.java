@@ -24,7 +24,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
  * instance completes.
  */
 @SuppressWarnings("serial")
-public class BlockSnapshotSessionCreateCompleter extends TaskCompleter {
+public class BlockSnapshotSessionCreateCompleter extends TaskLockingCompleter {
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionCreateCompleter.class);
@@ -82,10 +82,7 @@ public class BlockSnapshotSessionCreateCompleter extends TaskCompleter {
                 }
             }
 
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the step to complete.
-                updateWorkflowStatus(status, coded);
-            }
+            super.complete(dbClient, status, coded);
             s_logger.info("Done snapshot session create step {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
             s_logger.error("Failed updating status for snapshot session create step {}", getOpId(), e);

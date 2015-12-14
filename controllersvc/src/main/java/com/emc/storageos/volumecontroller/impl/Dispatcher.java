@@ -248,7 +248,8 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
                     Thread.currentThread().setName(threadNameBuilder.toString());
                 }
                 ControllerUtils.setThreadLocalLogData(resourceId, opId);
-                long timeSinceItemCreation = System.currentTimeMillis() - _item.getTimestamp();
+                long now = System.currentTimeMillis();
+                long timeSinceItemCreation = now - _item.getTimestamp();
                 if (timeSinceItemCreation < STALE_ITEM_THRESHOLD) {
                     if (_deviceSemaphore == null) {
                         // this device did not specify maxConnections.
@@ -267,8 +268,8 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
                         }
                     }
                 } else {
-                    _log.info(String.format("Task %s is stale and will not be executed. Timestamp for request was %d", _method.getName(),
-                            _item.getTimestamp()));
+                    _log.info(String.format("Task %s is stale and will not be executed. Timestamp for request was %d (%s), now = %d",
+                            _method.getName(), _item.getTimestamp(), new Date(_item.getTimestamp()).toString(), now));
                     isStale = true;
                 }
             } catch (InvocationTargetException e) {

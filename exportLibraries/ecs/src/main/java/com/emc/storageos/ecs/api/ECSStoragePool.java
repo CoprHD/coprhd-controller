@@ -64,7 +64,7 @@ public class ECSStoragePool {
 	public void setTotalDataCenters() {
 		this.totalDataCenters = storagePoolVDC.size();
 	}
-	
+
 	public int getTotalDataCenters() {
 		return totalDataCenters;
 	}

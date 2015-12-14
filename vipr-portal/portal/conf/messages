@@ -6,7 +6,7 @@ CERT_OPTIONS_1=options
 # You can specialize this file for each language.
 # For example, for French create a messages.fr file
 #
-application.name=EMC ViPR
+application.name=EMC ViPR Controller
 # Validation messages
 #   Most of these are exact copies from the play framework and are here to make
 #   it easier to find and change validation messages for the entire application.
@@ -45,7 +45,7 @@ nav.viewOrders=My Orders
 nav.allOrders=All Orders
 nav.pendingOrders=Scheduled Orders
 nav.user=User Mode
-nav.catalog=Service Catalog
+nav.catalog=Catalog
 nav.viewCatalog=View Catalog
 nav.editCatalog=Edit Catalog
 nav.approvals=Approvals
@@ -86,7 +86,7 @@ nav.backup= Data Backup
 nav.systemNodeRecovery=Recovery
 nav.properties=General Configuration
 nav.clusterInfo=Network Configuration
-nav.adminDashboard=System
+nav.adminDashboard=Dashboards
 nav.dbHealthDashboard=Database Housekeeping Status
 nav.adminDashboardPage=Dashboard
 nav.localPasswords=Local Passwords
@@ -2792,7 +2792,7 @@ setup.no.proxy.password=Proxy User Password Not Set
 
 successfully.saved=Successfully Saved.
 
-dashboard.welcome=Welcome to EMC ViPR
+dashboard.welcome=Welcome to EMC ViPR Controller
 dashboard.welcomeMessage=To get started, browse the <a href="%s">Service Catalog</a> to order storage.
 dashboard.clusterState=state
 

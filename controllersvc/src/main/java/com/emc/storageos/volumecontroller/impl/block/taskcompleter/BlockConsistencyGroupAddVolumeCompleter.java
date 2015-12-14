@@ -31,7 +31,7 @@ public class BlockConsistencyGroupAddVolumeCompleter extends BlockConsistencyGro
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
             throws DeviceControllerException {
-        log.info("Updating removed volume replicationGroupInstance");
+        log.info("Updating add volume replicationGroupInstance");
         try {
             super.complete(dbClient, status, coded);
             if (status == Status.ready) {

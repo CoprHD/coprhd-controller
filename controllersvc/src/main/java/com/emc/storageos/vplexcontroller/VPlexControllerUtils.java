@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.spring.util.BeanProvider;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
@@ -90,7 +91,7 @@ public class VPlexControllerUtils {
         URI vplexEndpointURI = new URI("https", null, vplexMnmgtSvr.getIPAddress(),
                 vplexMnmgtSvr.getPortNumber(), "/", null, null);
 
-        VPlexApiClient client = vplexApiFactory.getClient(vplexEndpointURI,
+        VPlexApiClient client = vplexApiFactory.getRESTClient(vplexEndpointURI,
                 vplexMnmgtSvr.getUserName(), vplexMnmgtSvr.getPassword());
         return client;
     }
@@ -197,7 +198,7 @@ public class VPlexControllerUtils {
         VPlexApiClient client = null;
 
         try {
-            client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplexSystem, dbClient);
+            client = VPlexControllerUtils.getVPlexAPIClient(BeanProvider.getBean(VPlexApiFactory.class), vplexSystem, dbClient);
         } catch (URISyntaxException e) {
             throw VPlexApiException.exceptions.connectionFailure(vplexURI.toString());
         }
@@ -229,7 +230,7 @@ public class VPlexControllerUtils {
         VPlexApiClient client = null;
 
         try {
-            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            VPlexApiFactory vplexApiFactory = BeanProvider.getBean(VPlexApiFactory.class);
             client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
         } catch (URISyntaxException e) {
             log.error("cannot load vplex api client", e);
@@ -261,7 +262,7 @@ public class VPlexControllerUtils {
         VPlexApiClient client = null;
 
         try {
-            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            VPlexApiFactory vplexApiFactory = BeanProvider.getBean(VPlexApiFactory.class);
             client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
         } catch (URISyntaxException e) {
             log.error("cannot load vplex api client", e);
@@ -299,7 +300,7 @@ public class VPlexControllerUtils {
         VPlexApiClient client = null;
 
         try {
-            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            VPlexApiFactory vplexApiFactory = BeanProvider.getBean(VPlexApiFactory.class);
             client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
         } catch (URISyntaxException e) {
             log.error("cannot load vplex api client", e);
@@ -336,7 +337,7 @@ public class VPlexControllerUtils {
         VPlexApiClient client = null;
 
         try {
-            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            VPlexApiFactory vplexApiFactory = BeanProvider.getBean(VPlexApiFactory.class);
             client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
         } catch (URISyntaxException e) {
             log.error("cannot load vplex api client", e);
@@ -409,7 +410,7 @@ public class VPlexControllerUtils {
         VPlexApiClient client = null;
 
         try {
-            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            VPlexApiFactory vplexApiFactory = BeanProvider.getBean(VPlexApiFactory.class);
             client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
         } catch (URISyntaxException e) {
             log.error("cannot load vplex api client", e);
@@ -439,7 +440,7 @@ public class VPlexControllerUtils {
         VPlexApiClient client = null;
 
         try {
-            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            VPlexApiFactory vplexApiFactory = BeanProvider.getBean(VPlexApiFactory.class);
             client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
         } catch (URISyntaxException e) {
             log.error("cannot load vplex api client", e);
@@ -455,4 +456,5 @@ public class VPlexControllerUtils {
                     deviceName, "cannot load vplex api client");
         }
     }
+
 }

@@ -218,7 +218,7 @@ public class VPlexMigrationJob extends Job implements Serializable {
         s_logger.debug("VPlex base URI is {}", vplexEndpointURI.toString());
         VPlexApiFactory vplexApiFactory = jobContext.getVPlexApiFactory();
         s_logger.debug("Got VPlex API factory");
-        VPlexApiClient client = vplexApiFactory.getClient(vplexEndpointURI,
+        VPlexApiClient client = vplexApiFactory.getRESTClient(vplexEndpointURI,
                 vplexSystem.getUsername(), vplexSystem.getPassword());
         s_logger.debug("Got VPlex API client");
         return client;

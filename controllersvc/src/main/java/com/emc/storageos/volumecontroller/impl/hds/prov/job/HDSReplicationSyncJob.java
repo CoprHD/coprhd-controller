@@ -93,7 +93,7 @@ public class HDSReplicationSyncJob extends HDSJob {
             StorageSystem storageSystem = jobContext.getDbClient().queryObject(StorageSystem.class, getStorageSystemURI());
 
             // log.info("HDSJob: Looking up job: id {}, provider: {} ", messageId, storageSystem.getActiveProviderURI());
-            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem),
+            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getRESTClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
 
             if (hdsApiClient == null) {

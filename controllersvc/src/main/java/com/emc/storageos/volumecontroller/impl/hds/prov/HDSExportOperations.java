@@ -188,7 +188,7 @@ public class HDSExportOperations implements ExportMaskOperations {
         List<HostStorageDomain> hsdsWithInitiators = null;
         List<HostStorageDomain> hsdsToCreate = null;
         try {
-            hdsApiClient = hdsApiFactory.getClient(getHDSServerManagementServerInfo(storage),
+            hdsApiClient = hdsApiFactory.getRESTClient(getHDSServerManagementServerInfo(storage),
                     storage.getSmisUserName(), storage.getSmisPassword());
             systemObjectID = HDSUtils.getSystemObjectID(storage);
             exportMask = dbClient.queryObject(ExportMask.class, exportMaskId);
@@ -802,7 +802,7 @@ public class HDSExportOperations implements ExportMaskOperations {
         List<HostStorageDomain> hsdToDeleteList = new ArrayList<HostStorageDomain>();
         try {
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
@@ -851,7 +851,7 @@ public class HDSExportOperations implements ExportMaskOperations {
         HDSApiClient hdsApiClient = null;
         String systemObjectID = null;
         try {
-            hdsApiClient = hdsApiFactory.getClient(
+            hdsApiClient = hdsApiFactory.getRESTClient(
                     getHDSServerManagementServerInfo(storage),
                     storage.getSmisUserName(), storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient
@@ -948,7 +948,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} removeVolume START...", storage.getSerialNumber());
         try {
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
@@ -1031,7 +1031,7 @@ public class HDSExportOperations implements ExportMaskOperations {
         List<HostStorageDomain> hsdsToCreate = null;
         List<HostStorageDomain> hsdsWithInitiators = null;
         try {
-            hdsApiClient = hdsApiFactory.getClient(
+            hdsApiClient = hdsApiFactory.getRESTClient(
                     getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             systemObjectID = HDSUtils.getSystemObjectID(storage);
@@ -1158,7 +1158,7 @@ public class HDSExportOperations implements ExportMaskOperations {
         long startTime = System.currentTimeMillis();
         log.info("{} removeInitiator START...", storage.getSerialNumber());
         try {
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
@@ -1271,7 +1271,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             List<String> initiatorNames, boolean mustHaveAllPorts) {
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
         log.info("finding export masks for storage {}", storage.getId());
-        HDSApiClient client = hdsApiFactory.getClient(
+        HDSApiClient client = hdsApiFactory.getRESTClient(
                 getHDSServerManagementServerInfo(storage),
                 storage.getSmisUserName(), storage.getSmisPassword());
         HDSApiExportManager exportManager = client.getHDSApiExportManager();
@@ -1602,7 +1602,7 @@ public class HDSExportOperations implements ExportMaskOperations {
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
 
         try {
-            HDSApiClient client = hdsApiFactory.getClient(
+            HDSApiClient client = hdsApiFactory.getRESTClient(
                     getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportManager = client.getHDSApiExportManager();
@@ -1783,7 +1783,7 @@ public class HDSExportOperations implements ExportMaskOperations {
 
             List<Volume> volumes = dbClient.queryObject(Volume.class,
                     volumeURIs);
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storage),
                     storage.getSmisUserName(), storage.getSmisPassword());
             String systemObjectID = HDSUtils.getSystemObjectID(storage);

@@ -89,7 +89,7 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
             String systemObjectID = HDSUtils.getSystemObjectID(storageSystem);
             String poolObjectID = HDSUtils.getPoolObjectID(storagePool);
 
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
             // commenting this to rever the fix.
@@ -188,7 +188,7 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
             StoragePool storagePool, Volume metaHead, List<String> newMetaMembers,
             String metaType, MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws Exception {
 
-        HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+        HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                 HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                 storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
         String systemObjectID = HDSUtils.getSystemObjectID(storageSystem);

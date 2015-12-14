@@ -7,14 +7,19 @@ package com.emc.storageos.hds.api;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import javax.ws.rs.core.MediaType;
 
 import org.apache.http.HttpStatus;
 import org.milyn.payload.JavaResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.common.http.RESTClient;
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.hds.HDSException;
 import com.emc.storageos.hds.model.EchoCommand;
@@ -45,7 +50,7 @@ public class HDSApiClient {
     private URI baseURI;
 
     // The REST client for executing requests to the HDS Management Station.
-    private com.emc.storageos.common.http.RESTClient client;
+    private RESTClient client;
     
     private String username;
     
@@ -67,7 +72,7 @@ public class HDSApiClient {
      * @param endpoint The URI of the HighCommand Device Manager.
      * @param client A reference to the REST client for making requests.
      */
-    HDSApiClient(URI endpoint, com.emc.storageos.common.http.RESTClient client) {
+    HDSApiClient(URI endpoint, RESTClient client) {
         this.baseURI = endpoint;
         this.client = client;
         this.hdsApiVolumeManager = new HDSApiVolumeManager(this);
@@ -77,7 +82,7 @@ public class HDSApiClient {
         this.hdsApiProtectionManager = new HDSApiProtectionManager(this);
     }
     
-    HDSApiClient(URI endpoint, com.emc.storageos.common.http.RESTClient client, String username, String password) {
+    HDSApiClient(URI endpoint, RESTClient client, String username, String password) {
         this.baseURI = endpoint;
         this.client = client;
         this.username = username;
@@ -366,7 +371,10 @@ public class HDSApiClient {
      * @return The client response.
      */
     public ClientResponse post(URI resourceURI, String postData) {
-        return client.post(resourceURI, postData, username, password);
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", MediaType.TEXT_XML);
+        
+        return client.post(resourceURI, headers, postData, username, password);
     }
 
     /**
@@ -383,10 +391,14 @@ public class HDSApiClient {
         JavaResult result = null;
         String statusQueryWithParams = String.format(STATUS_QUERY, messageID);
         int retries = 0;
+        
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", MediaType.TEXT_XML);
+        
         do {
             try {
                 log.info("retrying {}th time", retries);
-                ClientResponse response = client.post(getBaseURI(), statusQueryWithParams);
+                ClientResponse response = client.post(getBaseURI(), headers, statusQueryWithParams, username, password);
                 if (HttpStatus.SC_OK == response.getStatus()) {
                     responseStream = response.getEntityInputStream();
                     result = SmooksUtil.getParsedXMLJavaResult(responseStream,
@@ -444,9 +456,13 @@ public class HDSApiClient {
     public JavaResult checkAsyncTaskStatus(String messageID) throws Exception {
         InputStream responseStream = null;
         JavaResult result = null;
+        
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", MediaType.TEXT_XML);
+        
         try {
             String statusQueryWithParams = String.format(STATUS_QUERY, messageID);
-            ClientResponse response = client.post(getBaseURI(), statusQueryWithParams);
+            ClientResponse response = client.post(getBaseURI(), headers, statusQueryWithParams, username, password);
             if (HttpStatus.SC_OK == response.getStatus()) {
                 responseStream = response.getEntityInputStream();
                 result = SmooksUtil.getParsedXMLJavaResult(responseStream,

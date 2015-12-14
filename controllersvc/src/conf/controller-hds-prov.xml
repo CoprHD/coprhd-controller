@@ -4,7 +4,9 @@
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
 	 <bean id="hdsApiFactory" class="com.emc.storageos.hds.api.HDSApiFactory"
-          init-method="init"/>
+          init-method="init">
+          <property name="restClient" ref="controllerRestClient" />
+     </bean>
           
     <bean id="hdsStorageDevice" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSStorageDevice">
 		<property name="dbClient" ref="dbclient"/>

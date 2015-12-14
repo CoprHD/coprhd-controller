@@ -68,12 +68,6 @@ public class ECSApi {
         this.password = password;
     }
     
-    /**
-     * Close client resources
-     */
-    public void close() {
-        _client.close();
-    }
 
     /**
      * 

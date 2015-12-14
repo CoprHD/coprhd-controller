@@ -1904,7 +1904,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         // on the IP and port in the passed access profile.
         URI vplexEndpointURI = new URI("https", null, accessProfile.getIpAddress(), accessProfile.getPortNumber(), "/", null, null);
         s_logger.debug("VPlex base URI is {}", vplexEndpointURI.toString());
-        VPlexApiClient client = _apiFactory.getClient(vplexEndpointURI,
+        VPlexApiClient client = _apiFactory.getRESTClient(vplexEndpointURI,
                 accessProfile.getUserName(), accessProfile.getPassword());
         return client;
     }

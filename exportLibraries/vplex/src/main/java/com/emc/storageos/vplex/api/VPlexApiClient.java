@@ -12,12 +12,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.core.Cookie;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.common.http.RESTClient;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
 import com.emc.storageos.vplex.api.clientdata.PortInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
@@ -62,6 +65,12 @@ public class VPlexApiClient {
     // The REST client for executing requests to the VPlex Management Station.
     private RESTClient _client;
 
+    //Username
+    private String _username;
+    
+    //Password
+    private String _password;
+    
     // A reference to the discovery manager.
     private VPlexApiDiscoveryManager _discoveryMgr;
 
@@ -89,9 +98,11 @@ public class VPlexApiClient {
      * @param endpoint The URI of the VPlex Management Station.
      * @param client A reference to the REST client for making requests.
      */
-    VPlexApiClient(URI endpoint, RESTClient client) {
+    VPlexApiClient(URI endpoint, RESTClient client, String username, String password) {
         _baseURI = endpoint;
         _client = client;
+        _username = username;
+        _password = password;
         _discoveryMgr = new VPlexApiDiscoveryManager(this);
         _virtualVolumeMgr = new VPlexApiVirtualVolumeManager(this);
         _exportMgr = new VPlexApiExportManager(this);
@@ -1349,10 +1360,20 @@ public class VPlexApiClient {
     ClientResponse get(URI resourceURI, String jsonFormat, String cacheControlMaxAge) {
         int retryCount = 0;
         ClientResponse response = null;
+        
+        Map<String, String> headers = new HashMap<>();
+        headers.put(VPlexApiConstants.USER_NAME_HEADER, _username);
+        headers.put(VPlexApiConstants.PASS_WORD_HEADER, _password);
+        headers.put("Accept", MediaType.APPLICATION_JSON + jsonFormat);
+        headers.put(VPlexApiConstants.CACHE_CONTROL_HEADER, VPlexApiConstants.CACHE_CONTROL_MAXAGE_KEY + cacheControlMaxAge);
+        headers.put(VPlexApiConstants.CONNECTION_HEADER, VPlexApiConstants.CONNECTION_HEADER_VALUE_CLOSE);
+        
+        List<Cookie> cookies = new ArrayList<>();
+        cookies.add(new Cookie(VPlexApiConstants.SESSION_COOKIE, _vplexSessionId));
+        
         while (++retryCount <= GET_RETRY_COUNT) {
             try {
-                response = _client.get(resourceURI, _vplexSessionId,
-                        jsonFormat, cacheControlMaxAge);
+                response = _client.get(resourceURI, headers, cookies);
                 updateVPLEXSessionId(response);
                 break;
             } catch (Exception e) {
@@ -1409,15 +1430,6 @@ public class VPlexApiClient {
         return response;
     }
 
-    /**
-     * Execute a PUT request with the default JSON format=0.
-     * 
-     * @param resourceURI The resource URI.
-     * @return The client response.
-     */
-    ClientResponse put(URI resourceURI) {
-        return put(resourceURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_0);
-    }
 
     /**
      * Package protected method for executing a PUT request.
@@ -1428,8 +1440,17 @@ public class VPlexApiClient {
      * 
      * @return The client response.
      */
-    ClientResponse put(URI resourceURI, String jsonFormat) {
-        ClientResponse response = _client.put(resourceURI, _vplexSessionId, jsonFormat);
+    ClientResponse put(URI resourceURI) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put(VPlexApiConstants.USER_NAME_HEADER, _username);
+        headers.put(VPlexApiConstants.PASS_WORD_HEADER, _password);
+        headers.put("Accept", MediaType.APPLICATION_JSON + VPlexApiConstants.ACCEPT_JSON_FORMAT_0);
+        headers.put(VPlexApiConstants.CACHE_CONTROL_HEADER, VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO);
+        headers.put(VPlexApiConstants.CONNECTION_HEADER, VPlexApiConstants.CONNECTION_HEADER_VALUE_CLOSE);
+        
+        List<Cookie> cookies = new ArrayList<>();
+        cookies.add(new Cookie(VPlexApiConstants.SESSION_COOKIE, _vplexSessionId));
+        ClientResponse response = _client.put(resourceURI, headers, cookies, null);
         updateVPLEXSessionId(response);
         return response;
     }

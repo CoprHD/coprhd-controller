@@ -18,7 +18,7 @@ import com.sun.jersey.client.urlconnection.HTTPSProperties;
 
 public abstract class RestAPIFactory<T> {
 
-    private Logger _log = LoggerFactory.getLogger(getClass());
+    protected Logger _log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private RESTClient restClient;

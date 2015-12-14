@@ -39,6 +39,7 @@ public class HDSUtils {
 
     private static final Logger log = LoggerFactory.getLogger(HDSUtils.class);
 
+    @SuppressWarnings("deprecation")
     public static void updateStoragePoolCapacity(DbClient dbClient, HDSApiClient client, StoragePool storagePool) {
         StorageSystem storageSystem = null;
 
@@ -210,12 +211,13 @@ public class HDSUtils {
      * @param hdsApiFactory
      * @return List of Active Storage Providers
      */
+    @SuppressWarnings("deprecation")
     public static List<URI> refreshHDSConnections(final List<StorageProvider> hicommandProviderList,
             DbClient dbClient, HDSApiFactory hdsApiFactory) {
         List<URI> activeProviders = new ArrayList<URI>();
         for (StorageProvider storageProvider : hicommandProviderList) {
             try {
-                HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+                HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                         HDSUtils.getHDSServerManagementServerInfo(storageProvider),
                         storageProvider.getUserName(), storageProvider.getPassword());
                 // Makes sure "Hi Command Device manager" is reachable
@@ -330,7 +332,7 @@ public class HDSUtils {
     }
 
     public static HDSApiClient getHDSApiClient(HDSApiFactory apiFactory, StorageSystem storageSystem) throws URISyntaxException {
-        HDSApiClient apiClient = apiFactory.getClient(
+        HDSApiClient apiClient = apiFactory.getRESTClient(
                 HDSUtils.getHDSServerManagementServerInfo(storageSystem), storageSystem.getSmisUserName(),
                 storageSystem.getSmisPassword());
         ;

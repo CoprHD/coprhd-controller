@@ -125,13 +125,6 @@ public class IsilonApi {
     }
 
     /**
-     * Close client resources
-     */
-    public void close() {
-        _client.close();
-    }
-
-    /**
      * Get cluster info from the isilon array
      * 
      * @return IsilonClusterInfo object

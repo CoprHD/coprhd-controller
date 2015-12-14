@@ -69,7 +69,7 @@ public class HDSSnapshotOperations extends DefaultSnapshotOperations {
         HDSApiClient hdsApiClient = null;
         HDSHost pairMgmtServer = null;
         try {
-            hdsApiClient = hdsApiFactory.getClient(
+            hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -242,7 +242,7 @@ public class HDSSnapshotOperations extends DefaultSnapshotOperations {
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
             log.info("deleteSingleVolumeSnapshot operation START");
 
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
 
@@ -298,7 +298,7 @@ public class HDSSnapshotOperations extends DefaultSnapshotOperations {
         try {
             BlockSnapshot from = dbClient.queryObject(BlockSnapshot.class, snapshot);
             Volume to = dbClient.queryObject(Volume.class, volume);
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSHost pairMgmtServer = hdsApiClient.getSnapshotGroupPairManagementServer(storage.getSerialNumber());

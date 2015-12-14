@@ -69,7 +69,7 @@ public class HDSMirrorOperations implements MirrorOperations {
 
         try {
 
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem), storageSystem.getSmisUserName(),
                     storageSystem.getSmisPassword());
             HDSApiProtectionManager hdsApiProtectionManager = hdsApiClient.getHdsApiProtectionManager();
@@ -220,7 +220,7 @@ public class HDSMirrorOperations implements MirrorOperations {
                     "Delete Mirror Start - Array:%s", storageSystem.getSerialNumber()));
             Set<String> thickLogicalUnitIdList = new HashSet<String>();
             Set<String> thinLogicalUnitIdList = new HashSet<String>();
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
             String systemObjectID = HDSUtils.getSystemObjectID(storageSystem);

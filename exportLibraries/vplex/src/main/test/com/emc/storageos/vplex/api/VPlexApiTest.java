@@ -76,14 +76,11 @@ public class VPlexApiTest {
             // Load test properties.
             _properties.load(VPlexApiTest.class.getResourceAsStream(PROP_FILE_NAME));
 
-            // Create API factory.
-            _apiFactory = VPlexApiFactory.getInstance();
-
             // Get the Http API client.
             URI vplexEndpointURI = new URI("https", null, VPLEX_PROVIDER_IP, Integer.parseInt(VPLEX_PROVIDER_PORT),
                     "/", null, null);
 
-            _client = _apiFactory.getClient(vplexEndpointURI, _properties.getProperty(VPLEX_PROVIDER_USER),
+            _client = _apiFactory.getRESTClient(vplexEndpointURI, _properties.getProperty(VPLEX_PROVIDER_USER),
                     _properties.getProperty(VPLEX_PROVIDER_PWD));
 
             // Setup the list of storage systems attached to the VPlex.

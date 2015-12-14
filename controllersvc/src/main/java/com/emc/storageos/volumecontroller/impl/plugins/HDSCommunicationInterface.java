@@ -178,7 +178,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 accessProfile.getSystemId());
         boolean exceptionOccured = false;
         try {
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(accessProfile),
                     accessProfile.getUserName(), accessProfile.getPassword());
 
@@ -277,7 +277,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             try {
                 storageSystem = _dbClient.queryObject(StorageSystem.class,
                         accessProfile.getSystemId());
-                HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+                HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                         HDSUtils.getHDSServerManagementServerInfo(accessProfile),
                         accessProfile.getUserName(), accessProfile.getPassword());
 

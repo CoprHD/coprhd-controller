@@ -20,9 +20,12 @@
     <import resource="classpath:controller-hds-prov.xml"/>
     <import resource="classpath:controller-ecs-prov.xml"/>
     <import resource="classpath:controller-isilon-prov.xml"/>
+    <import resource="classpath:controller-vplex-prov.xml"/>
     <import resource="classpath:controller-scaleio-prov.xml"/>
     <import resource="classpath:controller-xtremio-prov.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
+
+	<bean class="com.emc.storageos.spring.util.BeanProvider"/>
 
     <bean id="blockscheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
         <property name="dbClient" ref="dbclient"/>
@@ -553,9 +556,6 @@
     <bean id="auditLogManager" class="com.emc.storageos.security.audit.AuditLogManager">
       <property name="dbClient" ref="dbclient"/>
     </bean>
-
-    <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
-          factory-method="getInstance"/>
 
     <bean id="blockExportController"
           class="com.emc.storageos.volumecontroller.impl.BlockExportControllerImpl">
@@ -1213,7 +1213,7 @@
         <property name="cinderApiFactory" ref="cinderapifactory"/>
 		<property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
 		<property name="workflowService" ref="workflowService" />
-                <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
+        <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
         <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
 		<property name="xivSmisCommandHelper" ref="xivSmisCommandHelper"/>
 		<property name="monitoringJobConsumer" ref="monitoringJobConsumer" />

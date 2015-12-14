@@ -57,7 +57,7 @@ public class HDSDeleteVolumeJob extends HDSJob
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
                     getStorageSystemURI());
 
-            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(
+            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
 

@@ -88,6 +88,7 @@ import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.spring.util.BeanProvider;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -8402,7 +8403,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 StorageSystem vplexSystem = dbClient.queryObject(StorageSystem.class,
                         volume.getStorageController());
                 try {
-                    VPlexApiFactory apiFactory = VPlexApiFactory.getInstance();
+                    VPlexApiFactory apiFactory = BeanProvider.getBean(VPlexApiFactory.class);
                     VPlexApiClient client = getVPlexAPIClient(apiFactory, vplexSystem,
                             dbClient);
                     VPlexVirtualVolumeInfo vvInfo = client.getVirtualVolumeStructure(volume

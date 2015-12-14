@@ -67,7 +67,7 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
             StringBuilder logMsgBuilder = new StringBuilder(String.format("Updating status of job %s to %s", opId, _status.name()));
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
 
-            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem),
+            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getRESTClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
 
             // If terminal state update storage pool capacity and remove reservation for volumes capacity

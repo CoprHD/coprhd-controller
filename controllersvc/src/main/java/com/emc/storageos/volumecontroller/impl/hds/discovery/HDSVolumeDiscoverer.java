@@ -67,7 +67,7 @@ public class HDSVolumeDiscoverer {
             CoordinatorClient coordinator, PartitionManager partitionManager) throws Exception {
 
         log.info("Started discovery of UnManagedVolumes for system {}", accessProfile.getSystemId());
-        HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+        HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                 HDSUtils.getHDSServerManagementServerInfo(accessProfile),
                 accessProfile.getUserName(), accessProfile.getPassword());
         List<UnManagedVolume> newUnManagedVolumeList = new ArrayList<UnManagedVolume>();

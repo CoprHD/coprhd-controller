@@ -173,7 +173,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         try {
             multiVolumeCheckForHitachiModel(volumes, storageSystem);
 
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
             String systemObjectID = HDSUtils.getSystemObjectID(storageSystem);
@@ -255,7 +255,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                 "Expand Volume Start - Array: %s, Pool: %s, Volume: %s, New size: %d",
                 storageSystem.getSerialNumber(), storagePool.getNativeGuid(), volume.getLabel(), size));
         try {
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
             String systemObjectID = HDSUtils.getSystemObjectID(storageSystem);
@@ -347,7 +347,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;
             Set<String> thickLogicalUnitIdList = new HashSet<String>();
             Set<String> thinLogicalUnitIdList = new HashSet<String>();
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
             String systemObjectId = HDSUtils.getSystemObjectID(storageSystem);
@@ -785,7 +785,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                     storageSystem.getSerialNumber(), volume.getLabel()));
             // Load meta volume members from WF data
             String sourceStepId = cleanupCompleter.getSourceStepId();
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getUsername(), storageSystem.getSmisPassword());
             List<String> metaMembers = (ArrayList<String>) WorkflowService.getInstance()
@@ -877,7 +877,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
 
             // We split the pair which causes the data to be synchronized.
             // When the split is complete that data is synchronized.
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageObj),
                     storageObj.getSmisUserName(), storageObj.getSmisPassword());
             HDSApiProtectionManager hdsApiProtectionManager = hdsApiClient
@@ -927,7 +927,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             if (providerUriList.iterator().hasNext()) {
                 StorageProvider provider = dbClient.queryObject(StorageProvider.class,
                         providerUriList.iterator().next());
-                HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+                HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                         HDSUtils.getHDSServerManagementServerInfo(provider),
                         provider.getUserName(), provider.getPassword());
                 List<StorageArray> storageArrayList = hdsApiClient
@@ -966,7 +966,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         String systemObjectID = HDSUtils.getSystemObjectID(storage);
         for (Volume volume : volumes) {
             try {
-                HDSApiClient hdsApiClient = hdsApiFactory.getClient(HDSUtils.getHDSServerManagementServerInfo(storage),
+                HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(HDSUtils.getHDSServerManagementServerInfo(storage),
                         storage.getSmisUserName(), storage.getSmisPassword());
                 logMsgBuilder.append(String.format("%nVolume:%s , IsThinlyProvisioned: %s, tieringPolicy: %s",
                         volume.getLabel(), volume.getThinlyProvisioned(), volume.getAutoTieringPolicyUri()));

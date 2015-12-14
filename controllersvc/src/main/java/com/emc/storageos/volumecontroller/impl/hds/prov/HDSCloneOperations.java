@@ -75,7 +75,7 @@ public class HDSCloneOperations implements CloneOperations {
         Volume cloneVolume = null;
         try {
 
-            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+            HDSApiClient hdsApiClient = hdsApiFactory.getRESTClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem), storageSystem.getSmisUserName(),
                     storageSystem.getSmisPassword());
             HDSApiProtectionManager hdsApiProtectionManager = hdsApiClient.getHdsApiProtectionManager();

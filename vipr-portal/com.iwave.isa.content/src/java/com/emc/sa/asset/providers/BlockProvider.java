@@ -894,7 +894,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                         return (isSnapshotSessionSupportedForVolume(parentVolume));
                     }
                 });
-
         return constructSnapshotSessionOptions(client, project, snapshotSessions);
     }
 

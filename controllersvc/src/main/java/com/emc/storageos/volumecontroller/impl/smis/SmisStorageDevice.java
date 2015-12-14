@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
+import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkSnapshotSessionConsistencyGroup;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_REPLICATION_GROUP;
 import static java.text.MessageFormat.format;
@@ -2808,8 +2809,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
             throws DeviceControllerException {
         try {
-            List<BlockSnapshotSession> snapSessions = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIs);
-            if (doGroupSnapshotSessionCreation(snapSessions)) {
+            if (checkSnapshotSessionConsistencyGroup(snapSessionURIs.get(0), _dbClient, completer)) {
                 // Note that this will need to be changed when we add group support.
                 // Because RP+VPLEX requires groups, even if we aren't really doing
                 // a group operation, it will be determined this is a group operation.

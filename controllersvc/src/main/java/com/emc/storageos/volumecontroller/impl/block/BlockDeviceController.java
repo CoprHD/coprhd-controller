@@ -5561,7 +5561,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param targetsExist true if the target exists, false if a new one needs to be created.
      * @param stepId The unique id of the workflow step in which the target is linked.
      */
-    public boolean linkBlockSnapshotSessionTargetGroupMethod(URI systemURI, Map<URI, List<URI>> snapSessionSnapshotMap,
+    public boolean linkBlockSnapshotSessionTargetGroup(URI systemURI, Map<URI, List<URI>> snapSessionSnapshotMap,
                                                              String copyMode, Boolean targetsExist, String stepId) {
         TaskCompleter completer = null;
         try {

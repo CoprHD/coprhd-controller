@@ -69,6 +69,8 @@ import java.util.Map.Entry;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
 import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Lists.newArrayList;
 import static java.text.MessageFormat.format;
 
 public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
@@ -1406,7 +1408,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             String groupName = _helper.getConsistencyGroupName(sourceObj, system);
             CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(system, groupName);
 
-
             try {
                 CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                 CIMArgument[] outArgs = new CIMArgument[5];
@@ -1512,8 +1513,63 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     public void linkSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap,
                                                String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         _log.info("Link new target group to snapshot session group START");
-        completer.ready(_dbClient);
-        _log.info("Link new target group to snapshot session group FINISH");
+
+        CIMObjectPath targetGroupPath = null;
+        List<String> targetDeviceIds = new ArrayList<>();
+
+        // Gather all snapshots to be created
+        List<URI> snapshotUris = newArrayList(concat(snapSessionSnapshotMap.values()));
+        List<BlockSnapshot> snapshots = newArrayList(_dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotUris));
+
+        BlockSnapshot sampleSnapshot = snapshots.get(0);
+        Volume sampleParent = _dbClient.queryObject(Volume.class, sampleSnapshot.getParent().getURI());
+        String sourceGroupName = _helper.getConsistencyGroupName(sampleParent, system);
+
+        try {
+            // Group snapshots parent volumes by their pool and size
+            Map<String, List<Volume>> volumesBySizeMap = new HashMap<>();
+            for (BlockSnapshot target : snapshots) {
+                Volume parent = _dbClient.queryObject(Volume.class, target.getParent().getURI());
+                String key = parent.getPool() + "-" + parent.getCapacity();
+                if (volumesBySizeMap.containsKey(key)) {
+                    volumesBySizeMap.get(key).add(parent);
+                } else {
+                    volumesBySizeMap.put(key, newArrayList(parent));
+                }
+            }
+
+            // Create snapshot target volumes
+
+            CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, sampleParent, null);
+            for (Entry<String, List<Volume>> entry : volumesBySizeMap.entrySet()) {
+                final List<Volume> volumes = entry.getValue();
+                final Volume volume = volumes.get(0);
+                final URI poolId = volume.getPool();
+
+                // Create target devices based on the array model
+                final List<String> newDeviceIds = kickOffTargetDevicesCreation(system, volumeGroupPath,
+                        sourceGroupName, null, false, true, volumes.size(), poolId,
+                        volume.getCapacity(), completer);
+
+                targetDeviceIds.addAll(newDeviceIds);
+            }
+
+            // Create target device group
+            targetGroupPath = ReplicationUtils.createTargetDeviceGroup(system, sourceGroupName, targetDeviceIds, completer,
+                    _dbClient, _helper, _cimPath,
+                    SYNC_TYPE.SNAPSHOT);
+
+            _log.info("Created target device group: {}", targetGroupPath);
+
+            // TODO Call ModifySettingsDefineState to add the target group.
+
+            completer.ready(_dbClient);
+            _log.info("Link new target group to snapshot session group FINISH");
+        } catch (Exception e) {
+            _log.info("Exception creating and linking snapshot session targets", e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+            completer.error(_dbClient, error);
+        }
     }
 
     /**

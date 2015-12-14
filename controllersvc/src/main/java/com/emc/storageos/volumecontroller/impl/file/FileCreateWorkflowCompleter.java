@@ -43,7 +43,6 @@ public class FileCreateWorkflowCompleter extends FileWorkflowCompleter{
             case error:
 
                 handleFileShareErrors(dbClient);
-               
                 break;
             default:
                 break;

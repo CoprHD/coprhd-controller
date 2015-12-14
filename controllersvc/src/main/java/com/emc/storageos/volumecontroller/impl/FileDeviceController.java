@@ -3368,7 +3368,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 		                getDeviceType(fileDescriptor.getDeviceURI()),
 		                this.getClass(),
 		                createFileSharesMethod(workflow, waitFor, fileDescriptor, taskId),
-		                rollbackCreateFileSharesMethod(fileDescriptor.getDeviceURI(), fileURIs), null);
+		                rollbackCreateFileSharesMethod(fileDescriptor.getDeviceURI(), fileURIs,taskId), null);
 
 			
 		}
@@ -3462,11 +3462,27 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param fileURI
      * @return Workflow.Method
      */
-    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs) {
-        return new Workflow.Method("rollBackCreateFileShares", systemURI, fileURIs);
+    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs, String opId) {
+        return new Workflow.Method("rollBackCreateFileShares", systemURI, fileURIs, opId);
     }
     
-    
+    public void rollBackCreateVolumes(URI systemURI, List<URI> fileURIs, String opId){
+    	
+    	try {
+			WorkflowStepCompleter.stepExecuting(opId);
+			for(URI fileshareId: fileURIs) {
+				FileShare fsObj = _dbClient.queryObject(FileShare.class, fileshareId);
+				//dummy code
+				this.delete(fsObj.getStorageDevice(), fsObj.getPool(), fsObj.getId(), 
+					false, FileControllerConstants.DeleteTypeEnum.FULL.toString(), opId);
+			}
+			WorkflowStepCompleter.stepSucceded(opId); 
+		} catch (Exception e) {
+			 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+	            WorkflowStepCompleter.stepFailed(opId, serviceError);
+			
+		}
+    }
     
     /**
      * Return a Workflow.Method for deleteVolumes.
@@ -3475,7 +3491,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param volumeURIs
      * @return
      */
-    private Workflow.Method deleteFileSharesMethod(Workflow workflow, URI systemURI, List<URI> fileShareURIs, boolean forceDelete, String deleteType, String taskId) {
+    private Workflow.Method deleteFileSharesMethod(Workflow workflow, URI systemURI, List<URI> fileShareURIs, 
+    		boolean forceDelete, String deleteType, String taskId) {
         return new Workflow.Method("deleteFileSystemStep", workflow, systemURI, fileShareURIs, taskId);
     }
     

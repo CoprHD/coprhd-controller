@@ -665,7 +665,7 @@ public interface ContainmentConstraint extends Constraint {
         
         public static ContainmentConstraint getBucketAclsConstraint(URI bucket) {
             DataObjectType doType = TypeMap.getDoType(ObjectBucketACL.class);
-            ColumnField field = doType.getColumnField("bucketName");
+            ColumnField field = doType.getColumnField("bucketId");
             return new ContainmentConstraintImpl(bucket, ObjectBucketACL.class, field);
         }
 

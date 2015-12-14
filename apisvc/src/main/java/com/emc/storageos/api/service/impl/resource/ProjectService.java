@@ -39,6 +39,7 @@ import com.emc.storageos.api.mapper.functions.MapProject;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper.ACLInputFilter;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
+import com.emc.storageos.api.service.impl.resource.utils.ProjectUtility;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -914,18 +915,7 @@ public class ProjectService extends TaggedResource {
         if (vNasIds != null && !vNasIds.isEmpty() && project != null) {
 
             // Get list of domains associated with the project
-            Set<String> projectDomains = new HashSet<String>();
-            NamedURI tenantUri = project.getTenantOrg();
-            TenantOrg tenant = _permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
-            if (tenant != null && tenant.getUserMappings() != null) {
-                for (AbstractChangeTrackingSet<String> userMappingSet : tenant.getUserMappings().values()) {
-                    for (String existingMapping : userMappingSet) {
-                        UserMappingParam userMap = BasePermissionsHelper.UserMapping.toParam(
-                                BasePermissionsHelper.UserMapping.fromString(existingMapping));
-                        projectDomains.add(userMap.getDomain().toUpperCase());
-                    }
-                }
-            }
+            Set<String> projectDomains = ProjectUtility.getDomainsOfProject(_permissionsHelper, project);
 
             for (String id : vNasIds) {
                 URI vnasURI = URI.create(id);
@@ -954,21 +944,8 @@ public class ProjectService extends TaggedResource {
                 }
 
                 // Get list of domains associated with a VNAS server and validate with project's domain
-                boolean domainMatched = false;
-                if (projectDomains != null && !projectDomains.isEmpty()) {
-                	if( vnas.getCifsServersMap() != null && !vnas.getCifsServersMap().isEmpty() ) {
-                		Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
-                		for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
-                			NasCifsServer cifsServer = nasCifsServer.getValue();
-                			if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
-                				domainMatched = true;
-                				break;
-                			}
-                		}
-                	}
-                } else {
-                    domainMatched = true;
-                }
+                boolean domainMatched = ProjectUtility.doesProjectDomainMatchesWithVNASDomain(projectDomains, vnas);
+                
                 if (!domainMatched) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " domain is not matched with project domain");
                     _log.error(errorMsg.toString());

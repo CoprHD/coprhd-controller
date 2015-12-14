@@ -68,7 +68,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 host.setDiscoveryStatus(DataCollectionJobStatus.ERROR.name());
                 host.setLastDiscoveryRunTime(System.currentTimeMillis());
                 host.setCompatibilityStatus(compatibilityStatus);
-                host.setLastDiscoveryStatusMessage(errorMessage);
+                host.setLastDiscoveryStatusMessage("vCenter Discovery Failed: " + errorMessage);
                 save(host);
             }
         }

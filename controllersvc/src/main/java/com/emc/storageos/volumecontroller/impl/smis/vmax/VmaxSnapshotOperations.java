@@ -33,20 +33,7 @@ import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResyncSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionCGCreateJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionCreateJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionDeleteJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionLinkTargetJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRelinkTargetJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRestoreJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionUnlinkTargetJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.*;
 import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1567,15 +1554,16 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMObjectPath sourceGroupPath = _cimPath.getReplicationGroupObjectPath(system, sourceGroupName);
             BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
             String syncAspectPath = snapSession.getSessionInstance();
-            CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourceGroupPath, syncAspectPath);
+            CIMObjectPath settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName,
+                    syncAspectPath);
 
             CIMArgument[] inArgs = null;
             CIMArgument[] outArgs = new CIMArgument[5];
             inArgs = _helper.getModifySettingsDefinedStateForLinkTargetGroup(system, settingsStatePath, targetGroupPath, copyMode);
             _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
             CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-            ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionLinkTargetJob(jobPath,
-                    system.getId(), snapSessionURI, copyMode, completer)));
+            ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionLinkTargetGroupJob(jobPath,
+                    system.getId(), completer)));
             _log.info("Link new target group to snapshot session group FINISH");
         } catch (Exception e) {
             _log.info("Exception creating and linking snapshot session targets", e);

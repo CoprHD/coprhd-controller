@@ -1520,7 +1520,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         // Gather all snapshots to be created
         List<URI> snapshotUris = newArrayList(concat(snapSessionSnapshotMap.values()));
         List<BlockSnapshot> snapshots = newArrayList(_dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotUris));
-
+        URI snapSessionURI = snapSessionSnapshotMap.keySet().iterator().next();
         BlockSnapshot sampleSnapshot = snapshots.get(0);
         Volume sampleParent = _dbClient.queryObject(Volume.class, sampleSnapshot.getParent().getURI());
         String sourceGroupName = _helper.getConsistencyGroupName(sampleParent, system);
@@ -1561,9 +1561,21 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             _log.info("Created target device group: {}", targetGroupPath);
 
-            // TODO Call ModifySettingsDefineState to add the target group.
+            // Now link the target group to the array snapshots represented by the session.
+            CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
 
-            completer.ready(_dbClient);
+            CIMObjectPath sourceGroupPath = _cimPath.getReplicationGroupObjectPath(system, sourceGroupName);
+            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+            String syncAspectPath = snapSession.getSessionInstance();
+            CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourceGroupPath, syncAspectPath);
+
+            CIMArgument[] inArgs = null;
+            CIMArgument[] outArgs = new CIMArgument[5];
+            inArgs = _helper.getModifySettingsDefinedStateForLinkTargetGroup(system, settingsStatePath, targetGroupPath, copyMode);
+            _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
+            CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+            ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionLinkTargetJob(jobPath,
+                    system.getId(), snapSessionURI, copyMode, completer)));
             _log.info("Link new target group to snapshot session group FINISH");
         } catch (Exception e) {
             _log.info("Exception creating and linking snapshot session targets", e);

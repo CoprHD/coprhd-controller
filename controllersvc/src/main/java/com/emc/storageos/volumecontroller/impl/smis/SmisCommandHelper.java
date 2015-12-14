@@ -7029,10 +7029,20 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public CIMArgument[] getModifySettingsDefinedStateForLinkTargets(StorageSystem system, CIMObjectPath settingsStatePath,
             CIMObjectPath targetDevicePath, String copyMode) {
+        return getModifySettingsDefinedStateForLinking(system, settingsStatePath, targetDevicePath, copyMode, CP_TARGET_ELEMENT);
+    }
 
+    public CIMArgument[] getModifySettingsDefinedStateForLinkTargetGroup(StorageSystem system, CIMObjectPath settingsStatePath,
+                                                                     CIMObjectPath targetDevicePath, String copyMode) {
+        return getModifySettingsDefinedStateForLinking(system, settingsStatePath, targetDevicePath, copyMode, CP_TARGET_GROUP);
+    }
+
+    public CIMArgument[] getModifySettingsDefinedStateForLinking(StorageSystem system, CIMObjectPath settingsStatePath,
+                                                                 CIMObjectPath targetPath, String copyMode,
+                                                                 String targetKey) {
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         args.add(_cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath));
-        args.add(_cimArgument.reference(CP_TARGET_ELEMENT, targetDevicePath));
+        args.add(_cimArgument.reference(targetKey, targetPath));
         if (copyMode.equals(BlockSnapshotSession.CopyMode.copy.name())) {
             CIMInstance replicationsettingDataInstance = getReplicationSettingDataInstanceForDesiredCopyMethod(system,
                     COPY_METHODOLOGY_FULL_COPY, false);

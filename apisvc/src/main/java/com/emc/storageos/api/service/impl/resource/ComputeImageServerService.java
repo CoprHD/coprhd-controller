@@ -360,7 +360,7 @@ public class ComputeImageServerService extends TaskResourceService {
             }
             if(null != imageImportTimeout){
                 ArgValidator.checkFieldRange(imageImportTimeout, 0, 2147483, "seconds", "imageImportTimeout");
-                imageServer.setOsInstallTimeoutMs(new Long(
+                imageServer.setImageImportTimeoutMs(new Long(
                         TimeUnit.SECONDS.toMillis(imageImportTimeout)).intValue());
             }
             if (StringUtils.isNotBlank(bootDir)) {

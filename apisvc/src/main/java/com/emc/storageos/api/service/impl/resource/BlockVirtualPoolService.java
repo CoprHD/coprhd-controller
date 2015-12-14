@@ -834,8 +834,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                             // will be the parent vpool or the ha vpool.
                             String defaultVpoolId = nullValue;
                             if (haParam != null && !haParam.getMetroPoint() && haParam.getHaVirtualArrayVirtualPool() != null
-                                    && haParam.getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite() != null
-                                    && haParam.getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite()) {
+                                    && Boolean.TRUE.equals(haParam.getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite())) {
                                 // If active protection at HA site is specified, our default vpool should be the HA
                                 // virtual pool.
                                 if (haParam.getHaVirtualArrayVirtualPool().getVirtualPool() != null) {

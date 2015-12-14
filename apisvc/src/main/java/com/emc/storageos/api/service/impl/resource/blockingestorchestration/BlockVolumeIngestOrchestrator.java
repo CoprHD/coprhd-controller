@@ -120,26 +120,36 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                     String[] syncAspectInfoComponents = syncAspectInfo.split(":");
                     String syncAspectName = syncAspectInfoComponents[0];
                     String syncAspectObjPath = syncAspectInfoComponents[1];
-                    BlockSnapshotSession session = new BlockSnapshotSession();
-                    session.setId(URIUtil.createId(BlockSnapshotSession.class));
-                    session.setLabel(syncAspectName);
-                    session.setSessionLabel(syncAspectName);
-                    session.setParent(new NamedURI(volume.getId(), volume.getLabel()));
-                    session.setProject(new NamedURI(project.getId(), volume.getLabel()));
-                    session.setSessionInstance(syncAspectObjPath);
-                    StringSet linkedTargetURIs = new StringSet();
+
+                    // Make sure it is not already created.
                     URIQueryResultList queryResults = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotBySettingsInstance(syncAspectObjPath),
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance(syncAspectObjPath),
                             queryResults);
                     Iterator<URI> queryResultsIter = queryResults.iterator();
-                    while (queryResultsIter.hasNext()) {
-                        linkedTargetURIs.add(queryResultsIter.next().toString());
+                    if (!queryResultsIter.hasNext()) {
+                        BlockSnapshotSession session = new BlockSnapshotSession();
+                        session.setId(URIUtil.createId(BlockSnapshotSession.class));
+                        session.setLabel(syncAspectName);
+                        session.setSessionLabel(syncAspectName);
+                        session.setParent(new NamedURI(volume.getId(), volume.getLabel()));
+                        session.setProject(new NamedURI(project.getId(), volume.getLabel()));
+                        session.setSessionInstance(syncAspectObjPath);
+                        StringSet linkedTargetURIs = new StringSet();
+                        URIQueryResultList snapshotQueryResults = new URIQueryResultList();
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotBySettingsInstance(syncAspectObjPath),
+                                snapshotQueryResults);
+                        Iterator<URI> snapshotQueryResultsIter = snapshotQueryResults.iterator();
+                        while (snapshotQueryResultsIter.hasNext()) {
+                            linkedTargetURIs.add(snapshotQueryResultsIter.next().toString());
+                        }
+                        session.setLinkedTargets(linkedTargetURIs);
+                        session.setOpStatus(new OpStatusMap());
+                        snapSessions.add(session);
                     }
-                    session.setLinkedTargets(linkedTargetURIs);
-                    session.setOpStatus(new OpStatusMap());
-                    snapSessions.add(session);
                 }
-                _dbClient.createObject(snapSessions);
+                if (!snapSessions.isEmpty()) {
+                    _dbClient.createObject(snapSessions);
+                }
             }
         }
 

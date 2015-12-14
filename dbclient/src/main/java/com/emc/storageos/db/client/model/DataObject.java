@@ -152,7 +152,7 @@ public abstract class DataObject implements Serializable {
     private int getPrefixIndexMinLength()  {
         int length = DEFAULT_MIN_LABEL_LENGTH;
         try {
-            Method method = DataObject.class.getDeclaredMethod(READ_LABEL_METHOD_NAME, new Class<?>[] {String.class});
+            Method method = DataObject.class.getDeclaredMethod(READ_LABEL_METHOD_NAME, null);
             PrefixIndex annotation = method.getAnnotation(PrefixIndex.class);
             length = annotation.minChars();
         } catch (Exception e) {

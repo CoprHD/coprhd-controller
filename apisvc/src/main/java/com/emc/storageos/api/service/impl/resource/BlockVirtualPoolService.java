@@ -833,17 +833,17 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                             // Set the journal virtual pool. If none is specified, we must determine the default, which
                             // will be the parent vpool or the ha vpool.
                             String defaultVpoolId = nullValue;
-                            if (haParam != null && !haParam.getMetroPoint() && haParam.getHaVirtualArrayVirtualPool() != null
+                            if (haParam == null || Boolean.TRUE.equals(haParam.getMetroPoint())) {
+                                // Default the virtual pool to the parent virtual pool in cases where no high availability
+                                // is specified or when HA is specified but not MetroPoint.
+                                defaultVpoolId = virtualPool.getId().toString();
+                            } else if (Boolean.FALSE.equals(haParam.getMetroPoint()) && haParam.getHaVirtualArrayVirtualPool() != null
                                     && Boolean.TRUE.equals(haParam.getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite())) {
                                 // If active protection at HA site is specified, our default vpool should be the HA
                                 // virtual pool.
                                 if (haParam.getHaVirtualArrayVirtualPool().getVirtualPool() != null) {
                                     defaultVpoolId = haParam.getHaVirtualArrayVirtualPool().getVirtualPool().toString();
                                 }
-                            } else {
-                                // Default the virtual pool to the parent virtual pool in cases where no high availability
-                                // is specified or when HA is specified by not MetroPoint.
-                                defaultVpoolId = virtualPool.getId().toString();
                             }
 
                             virtualPool.setJournalVpool(!NullColumnValueGetter.isNullURI(sourcePolicy.getJournalVpool()) ? sourcePolicy
@@ -1510,8 +1510,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                         } else {
                             String journalVpoolId = NullColumnValueGetter.getNullStr();
 
-                            if (param.getHighAvailability() != null
-                                    && !param.getHighAvailability().getMetroPoint()
+                            if (param.getHighAvailability() == null || Boolean.TRUE.equals(param.getHighAvailability().getMetroPoint())) {
+                                // In cases of MetroPoint or when high availability is not specified, default the journal virtual pool
+                                // to the parent virtual pool
+                                journalVpoolId = vpool.getId().toString();
+                            } else if (Boolean.FALSE.equals(param.getHighAvailability().getMetroPoint())
                                     && param.getHighAvailability().getHaVirtualArrayVirtualPool() != null
                                     && Boolean.TRUE.equals(param.getHighAvailability().getHaVirtualArrayVirtualPool()
                                             .getActiveProtectionAtHASite())) {
@@ -1522,7 +1525,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                                             .toString();
                                 }
                             } else {
-                                // In cases of MetroProint or when high availability is not specified, default the journal virtual pool
+                                // In cases of MetroPoint or when high availability is not specified, default the journal virtual pool
                                 // to the parent virtual pool
                                 journalVpoolId = vpool.getId().toString();
                             }

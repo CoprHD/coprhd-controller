@@ -116,7 +116,7 @@ public class CallHomeEventManager {
     }
 
     /**
-     * Determines whether it's time to send a new license expiration event.
+     * Determines whether it's time to send a new capacity exceeded event.
      * 
      * @return boolean
      * @throws Exception

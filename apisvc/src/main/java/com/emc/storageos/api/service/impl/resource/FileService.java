@@ -266,6 +266,16 @@ public class FileService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
         }
 
+        if(param.getSoftLimit() > 0) {
+            ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.SUPPORT_SOFT_LIMIT, true);
+        }
+        
+        if(param.getNotificationLimit() > 0) {
+            ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.SUPPORT_NOTIFICATION_LIMIT, true);
+        }
+        
         // verify quota
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, fsSize, "filesystem");
 

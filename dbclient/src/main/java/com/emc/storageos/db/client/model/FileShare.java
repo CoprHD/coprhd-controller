@@ -67,7 +67,15 @@ public class FileShare extends FileObject implements ProjectResource {
     private URI _originalProject;
     
     private URI virtualNAS;
-
+    
+    private Long softLimit;
+    
+    private Boolean softLimitExceeded;
+    
+    private int softGracePeriod;
+    
+    private Long notificationLimit;
+    
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
@@ -262,4 +270,41 @@ public class FileShare extends FileObject implements ProjectResource {
 		this.virtualNAS = vituralNAS;
 		setChanged("virtualNAS");
 	}
+
+	@Name("softLimit")
+    public Long getSoftLimit() {
+        return softLimit;
+    }
+
+    public void setSoftLimit(Long softLimit) {
+        this.softLimit = softLimit;
+    }
+
+    @Name("softLimitExceeded")
+    public Boolean getSoftLimitExceeded() {
+        return softLimitExceeded;
+    }
+
+    public void setSoftLimitExceeded(Boolean softLimitExceeded) {
+        this.softLimitExceeded = softLimitExceeded;
+    }
+
+    @Name("softGracePeriod")
+    public int getSoftGracePeriod() {
+        return softGracePeriod;
+    }
+
+    public void setSoftGracePeriod(int softGracePeriod) {
+        this.softGracePeriod = softGracePeriod;
+    }
+    
+    @Name("notificationLimit")
+    public Long getNotificationLimit() {
+        return notificationLimit;
+    }
+
+    public void setNotificationLimit(Long notificationLimit) {
+        this.notificationLimit = notificationLimit;
+    }
+
 }

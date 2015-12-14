@@ -36,6 +36,8 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String ADD_JOURNAL_CAPACITY = "add_journal_capacity";
     public static final String RP_COPY_TYPE = "rp_copy_type";
     public static final String RP_MAX_SNAPS = "rp_max_snaps";
+    public static final String SUPPORT_SOFT_LIMIT = "soft_limit";
+    public static final String SUPPORT_NOTIFICATION_LIMIT = "notification_limit";
     
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -148,6 +150,14 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
         if (capabilities.contains(META_VOLUME_TYPE)) {
             _vpoolCapabilities.put(META_VOLUME_TYPE, capabilities.getMetaVolumeType());
+        }
+        
+        if(capabilities.contains(SUPPORT_SOFT_LIMIT)) {
+            _vpoolCapabilities.put(SUPPORT_SOFT_LIMIT, capabilities.getSupportsSoftLimit());
+        }
+        
+        if(capabilities.contains(SUPPORT_NOTIFICATION_LIMIT)) {
+            _vpoolCapabilities.put(SUPPORT_NOTIFICATION_LIMIT, capabilities.getSupportsNotificationLimit());
         }
 
     }
@@ -273,5 +283,15 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public String getMetaVolumeType() {
         Object value = _vpoolCapabilities.get(META_VOLUME_TYPE);
         return value != null ? (String) value : null;
+    }
+    
+    public Boolean getSupportsSoftLimit() {
+        Object value = _vpoolCapabilities.get(SUPPORT_SOFT_LIMIT);
+        return value != null ? (boolean) value : false;
+    }
+    
+    public Boolean getSupportsNotificationLimit() {
+        Object value = _vpoolCapabilities.get(SUPPORT_NOTIFICATION_LIMIT);
+        return value != null ? (boolean) value : false;
     }
 }

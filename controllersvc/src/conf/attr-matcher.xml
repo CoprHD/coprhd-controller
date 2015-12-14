@@ -42,7 +42,8 @@
         <ref bean="storageSystemMatcher" />
         <ref bean="vmaxFASTInitialTierSelectionMatcher"/>
         <ref bean="poolPreferenceBasedOnDriveMathcer"/>
-        
+        <ref bean="softLimitMatcher"/>
+        <ref bean="notificationLimitMatcher"/>
 	</util:list>
 
     <util:list id="basicPlacementMatchers">
@@ -86,6 +87,8 @@
     <bean id="compatiblePoolMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CompatiblePoolMatcher" />
     <bean id="longTermRetentionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.LongTermRetentionMatcher" />
     <bean id="hdsShadowImagePairCountMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HDSShadowImagePairCountMatcher"/>
+    <bean id="softLimitMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SoftLimitMatcher"/>
+    <bean id="notificationLimitMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NotificationLimitMatcher"/>
     
 	
 	<!-- The following bean represents how to inject a bean in a util class having static methods. 

@@ -457,6 +457,12 @@ public class StorageScheduler implements Scheduler {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.system_type.name(), systemTypes);
             }
         }
+        if(capabilities.getSupportsSoftLimit()) {
+            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.support_soft_limit.name(), capabilities.getSupportsSoftLimit());
+        }
+        if(capabilities.getSupportsNotificationLimit()) {
+            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.support_notification_limit.name(), capabilities.getSupportsNotificationLimit());
+        }
 
         Map<String, Object> attributeMap = provMapBuilder.buildMap();
         if (optionalAttributes != null) {

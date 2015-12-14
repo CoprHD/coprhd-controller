@@ -132,6 +132,10 @@ public class StorageSystem extends DiscoveredSystemObject {
     // storage system's ports average metrics. This number is computed via
     // {@link PortMetricProcessor#computeStorageSystemAvgPortMetrics}
     private Double averagePortMetrics;
+    
+    private Boolean supportSoftLimit = false;
+    
+    private Boolean supportNotificationLimit = false;
 
     public static enum SupportedProvisioningTypes {
         THICK, THIN, THIN_AND_THICK, NONE
@@ -562,6 +566,24 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     public void setSupportedReplicationTypes(final StringSet supportedReplicationTypes) {
         this.supportedReplicationTypes = supportedReplicationTypes;
+    }
+
+    @Name("supportSoftLimit")
+    public Boolean getSupportSoftLimit() {
+        return supportSoftLimit;
+    }
+
+    public void setSupportSoftLimit(Boolean supportSoftLimit) {
+        this.supportSoftLimit = supportSoftLimit;
+    }
+    
+    @Name("supportNotificationLimit")
+    public Boolean getSupportNotificationLimit() {
+        return supportNotificationLimit;
+    }
+
+    public void setSupportNotificationLimit(Boolean supportNotificationLimit) {
+        this.supportNotificationLimit = supportNotificationLimit;
     }
 
     @Name("connectedTo")

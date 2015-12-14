@@ -291,8 +291,13 @@ public class VolumeGroupService extends TaskResourceService {
             return taskList;
         }
         
-        VolumeGroupUtils utils = getVolumeGroupUtils(volumeGroup).get(0);
-        utils.updateVolumesInVolumeGroup(_dbClient, param, volumeGroup, taskId, taskList);
+        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
+        for (VolumeGroupUtils util : utils) {
+            util.validateUpdateVolumesInVolumeGroup(_dbClient, param, volumeGroup);
+        }
+        for (VolumeGroupUtils util : utils) {
+            util.updateVolumesInVolumeGroup(_dbClient, param, volumeGroup, taskId, taskList);
+        }
         auditOp(OperationTypeEnum.UPDATE_VOLUME_GROUP, true, null, volumeGroup.getId().toString(),
                 volumeGroup.getLabel());
         return taskList;
@@ -323,6 +328,88 @@ public class VolumeGroupService extends TaskResourceService {
          * @return
          */
         public abstract void updateVolumesInVolumeGroup(DbClient dbClient, final VolumeGroupUpdateParam param, VolumeGroup volumeGroup, String taskId, TaskList taskList);
+        
+        /**
+         * @param dbClient
+         * @param param
+         * @param volumeGroup
+         * @param taskId
+         * @param taskList
+         */
+        public abstract void validateUpdateVolumesInVolumeGroup(DbClient dbClient, final VolumeGroupUpdateParam param, VolumeGroup volumeGroup);
+        
+        protected void updateVolumeObjects(DbClient dbClient, List<Volume> addVols, List<Volume> removeVols, VolumeGroup volumeGroup) {
+            for (Volume addVol : addVols) {
+                addVol.getVolumeGroupIds().add(volumeGroup.getId().toString());
+            }
+            for (Volume remVol : removeVols) {
+                remVol.getVolumeGroupIds().remove(volumeGroup.getId().toString());
+            }
+            dbClient.updateObject(addVols);
+            dbClient.updateObject(removeVols);
+        }
+
+        /**
+         * Add task for volumes and consistency groups
+         * 
+         * @param addVols
+         * @param removeVols
+         * @param removeVolumeCGs
+         * @param taskId
+         * @param taskList
+         */
+        protected void addTasksForVolumesAndCGs(DbClient dbClient, List<Volume> addVols, List<Volume> removeVols, Set<URI> removeVolumeCGs,
+                String taskId, TaskList taskList) {
+            if (addVols != null && !addVols.isEmpty()) {
+                for (Volume vol : addVols) {
+                    addVolumeTask(dbClient, vol, taskList, taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
+                }
+            }
+            if (removeVols != null && !removeVols.isEmpty()) {
+                for (Volume vol : removeVols) {
+                    addVolumeTask(dbClient, vol, taskList, taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
+                }
+            }
+
+            if (removeVolumeCGs != null && !removeVolumeCGs.isEmpty()) {
+                for (URI cg : removeVolumeCGs) {
+                    addConsistencyGroupTask(dbClient, cg, taskList, taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
+                }
+            }
+        }
+        
+        /**
+         * Creates tasks against consistency group associated with a request and adds them to the given task list.
+         *
+         * @param group
+         * @param taskList
+         * @param taskId
+         * @param operationTypeEnum
+         */
+        private void addConsistencyGroupTask(DbClient dbClient, URI groupUri, TaskList taskList,
+                String taskId,
+                ResourceOperationTypeEnum operationTypeEnum) {
+            BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, groupUri);
+            Operation op = dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
+                    operationTypeEnum);
+            taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
+        }
+
+        /**
+         * Creates tasks against volume associated with a request and adds them to the given task list.
+         *
+         * @param volume
+         * @param taskList
+         * @param taskId
+         * @param operationTypeEnum
+         */
+        private void addVolumeTask(DbClient dbClient, Volume volume, TaskList taskList,
+                String taskId,
+                ResourceOperationTypeEnum operationTypeEnum) {
+            Operation op = dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId,
+                    operationTypeEnum);
+            taskList.getTaskList().add(TaskMapper.toTask(volume, taskId, op));
+        }
     }
     
     private static class MobilityVolumeGroupUtils extends VolumeGroupUtils {
@@ -333,6 +420,32 @@ public class VolumeGroupService extends TaskResourceService {
         @Override
         public void updateVolumesInVolumeGroup(DbClient dbClient, VolumeGroupUpdateParam param, VolumeGroup volumeGroup, String taskId,
                 TaskList taskList) {
+            
+            List<Volume> removeVols = new ArrayList<Volume>();
+            List<Volume> addVols = new ArrayList<Volume>();
+            
+            Iterator<Volume> addVolItr = dbClient.queryIterativeObjects(Volume.class, param.getAddVolumesList().getVolumes());
+            while (addVolItr.hasNext()) {
+                addVols.add(addVolItr.next());
+            }
+            Iterator<Volume> remVolItr = dbClient.queryIterativeObjects(Volume.class, param.getRemoveVolumesList().getVolumes());
+            while (remVolItr.hasNext()) {
+                removeVols.add(remVolItr.next());
+            }
+            
+            Operation op = dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(),
+                    taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
+            taskList.getTaskList().add(toTask(volumeGroup, taskId, op));
+            addTasksForVolumesAndCGs(dbClient, addVols, removeVols, null, taskId, taskList);
+            
+            updateVolumeObjects(dbClient, addVols, removeVols, volumeGroup);
+        }
+
+        /* (non-Javadoc)
+         * @see com.emc.storageos.api.service.impl.resource.VolumeGroupService.VolumeGroupUtils#validateUpdateVolumesInVolumeGroup(com.emc.storageos.db.client.DbClient, com.emc.storageos.model.application.VolumeGroupUpdateParam, com.emc.storageos.db.client.model.VolumeGroup)
+         */
+        @Override
+        public void validateUpdateVolumesInVolumeGroup(DbClient dbClient, VolumeGroupUpdateParam param, VolumeGroup volumeGroup) {
             // TODO Auto-generated method stub
             
         }
@@ -350,20 +463,32 @@ public class VolumeGroupService extends TaskResourceService {
             // TODO Auto-generated method stub
             
         }
+
+        /* (non-Javadoc)
+         * @see com.emc.storageos.api.service.impl.resource.VolumeGroupService.VolumeGroupUtils#validateUpdateVolumesInVolumeGroup(com.emc.storageos.db.client.DbClient, com.emc.storageos.model.application.VolumeGroupUpdateParam, com.emc.storageos.db.client.model.VolumeGroup)
+         */
+        @Override
+        public void validateUpdateVolumesInVolumeGroup(DbClient dbClient, VolumeGroupUpdateParam param, VolumeGroup volumeGroup) {
+            // TODO Auto-generated method stub
+            
+        }
         
     }
     
     private static class CopyVolumeGroupUtils extends VolumeGroupUtils {
+        
+        private List<Volume> removeVols;
+        private List<Volume> addVols;
+        private Set<URI> impactedCGs = new HashSet<URI>();
+        private Volume firstVol;
+        private boolean validated;
 
         /* (non-Javadoc)
-         * @see com.emc.storageos.api.service.impl.resource.VolumeGroupService.VolumeGroupUtils#updateVolumesInVolumeGroup(java.net.URI, com.emc.storageos.model.application.VolumeGroupUpdateParam, com.emc.storageos.db.client.model.VolumeGroup, java.lang.String, com.emc.storageos.model.TaskList)
+         * @see com.emc.storageos.api.service.impl.resource.VolumeGroupService.VolumeGroupUtils#validateUpdateVolumesInVolumeGroup(com.emc.storageos.db.client.DbClient, com.emc.storageos.model.application.VolumeGroupUpdateParam, com.emc.storageos.db.client.model.VolumeGroup, java.lang.String, com.emc.storageos.model.TaskList)
          */
         @Override
-        public void updateVolumesInVolumeGroup(DbClient dbClient, VolumeGroupUpdateParam param, VolumeGroup volumeGroup, String taskId, TaskList taskList) {
-            List<Volume> removeVols = null;
-            List<Volume> addVols = null;
-            Set<URI> impactedCGs = new HashSet<URI>();
-            Volume firstVol = null;
+        public void validateUpdateVolumesInVolumeGroup(DbClient dbClient, VolumeGroupUpdateParam param, VolumeGroup volumeGroup) {
+            impactedCGs = new HashSet<URI>();
 
             if (param.hasVolumesToAdd()) {
                 addVols = validateAddVolumes(dbClient, param, volumeGroup, impactedCGs);
@@ -376,7 +501,19 @@ public class VolumeGroupService extends TaskResourceService {
                     firstVol = removeVols.get(0);
                 }
             }
+            validated = true;
+        }
 
+        /* (non-Javadoc)
+         * @see com.emc.storageos.api.service.impl.resource.VolumeGroupService.VolumeGroupUtils#updateVolumesInVolumeGroup(java.net.URI, com.emc.storageos.model.application.VolumeGroupUpdateParam, com.emc.storageos.db.client.model.VolumeGroup, java.lang.String, com.emc.storageos.model.TaskList)
+         */
+        @Override
+        public void updateVolumesInVolumeGroup(DbClient dbClient, VolumeGroupUpdateParam param, VolumeGroup volumeGroup, String taskId, TaskList taskList) {
+
+            if (!validated) {
+                validateUpdateVolumesInVolumeGroup(dbClient, param, volumeGroup);
+            }
+            
             BlockServiceApi serviceAPI = getBlockService(dbClient, firstVol);
             Operation op = dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(),
                     taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
@@ -415,7 +552,6 @@ public class VolumeGroupService extends TaskResourceService {
          * @return The validated volumes
          */
         private List<Volume> validateAddVolumes(DbClient dbClient, VolumeGroupUpdateParam param, VolumeGroup volumeGroup, Set<URI> impactedCGs) {
-            // TODO add role specific code
             String addedVolType = null;
             String firstVolLabel = null;
             List<URI> addVolList = param.getAddVolumesList().getVolumes();
@@ -478,7 +614,6 @@ public class VolumeGroupService extends TaskResourceService {
          * @return The validated volumes
          */
         private List<Volume> validateRemoveVolumes(DbClient dbClient, List<URI> volumes, VolumeGroup volumeGroup, Set<URI> removeVolumeCGs) {
-            // TODO add role specific code
             List<Volume> removeVolumes = new ArrayList<Volume>();
             for (URI voluri : volumes) {
                 ArgValidator.checkFieldUriType(voluri, Volume.class, "id");
@@ -514,67 +649,6 @@ public class VolumeGroupService extends TaskResourceService {
             }
         }
 
-        /**
-         * Creates tasks against consistency group associated with a request and adds them to the given task list.
-         *
-         * @param group
-         * @param taskList
-         * @param taskId
-         * @param operationTypeEnum
-         */
-        private void addConsistencyGroupTask(DbClient dbClient, URI groupUri, TaskList taskList,
-                String taskId,
-                ResourceOperationTypeEnum operationTypeEnum) {
-            BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, groupUri);
-            Operation op = dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
-                    operationTypeEnum);
-            taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
-        }
-
-        /**
-         * Creates tasks against volume associated with a request and adds them to the given task list.
-         *
-         * @param volume
-         * @param taskList
-         * @param taskId
-         * @param operationTypeEnum
-         */
-        private void addVolumeTask(DbClient dbClient, Volume volume, TaskList taskList,
-                String taskId,
-                ResourceOperationTypeEnum operationTypeEnum) {
-            Operation op = dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId,
-                    operationTypeEnum);
-            taskList.getTaskList().add(TaskMapper.toTask(volume, taskId, op));
-        }
-
-        /**
-         * Add task for volumes and consistency groups
-         * 
-         * @param addVols
-         * @param removeVols
-         * @param removeVolumeCGs
-         * @param taskId
-         * @param taskList
-         */
-        private void addTasksForVolumesAndCGs(DbClient dbClient, List<Volume> addVols, List<Volume> removeVols, Set<URI> removeVolumeCGs,
-                String taskId, TaskList taskList) {
-            if (addVols != null && !addVols.isEmpty()) {
-                for (Volume vol : addVols) {
-                    addVolumeTask(dbClient, vol, taskList, taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
-                }
-            }
-            if (removeVols != null && !removeVols.isEmpty()) {
-                for (Volume vol : removeVols) {
-                    addVolumeTask(dbClient, vol, taskList, taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
-                }
-            }
-
-            if (removeVolumeCGs != null && !removeVolumeCGs.isEmpty()) {
-                for (URI cg : removeVolumeCGs) {
-                    addConsistencyGroupTask(dbClient, cg, taskList, taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
-                }
-            }
-        }
 
         private void updateFailedVolumeTasks(DbClient dbClient, List<URI> uriList, String taskId, ServiceCoded e) {
             for (URI uri : uriList) {

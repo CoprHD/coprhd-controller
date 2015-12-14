@@ -1513,8 +1513,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                             if (param.getHighAvailability() != null
                                     && !param.getHighAvailability().getMetroPoint()
                                     && param.getHighAvailability().getHaVirtualArrayVirtualPool() != null
-                                    && param.getHighAvailability().getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite() != null
-                                    && param.getHighAvailability().getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite()) {
+                                    && Boolean.TRUE.equals(param.getHighAvailability().getHaVirtualArrayVirtualPool()
+                                            .getActiveProtectionAtHASite())) {
                                 // If active protection at HA site is specified (not MetroPoint), our default ha journal vpool should be the
                                 // HA virtual pool.
                                 if (param.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool() != null) {

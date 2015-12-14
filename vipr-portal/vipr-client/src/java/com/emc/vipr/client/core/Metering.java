@@ -30,6 +30,7 @@ public class Metering {
      *            the date to format as an hour time bucket.
      * @return the stream containing the statistics as XML.
      * 
+     * @see #getStatisticsForTimeBucketAsStream(String)
      * @see TimeBucketUtils#forHour(Date)
      */
     public InputStream getStatisticsForHourAsStream(Date date) {
@@ -44,7 +45,7 @@ public class Metering {
      * @param date
      *            the date to format as a minute time bucket.
      * @return the stream containing the statistics as XML.
-     * 
+     * @see #getStatisticsForTimeBucketAsStream(String)
      * @see TimeBucketUtils#forMinute(Date)
      */
     public InputStream getStatisticsForMinuteAsStream(Date date) {

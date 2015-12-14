@@ -8,7 +8,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.vipr.client.exceptions.TimeoutException;
 import com.emc.vipr.client.exceptions.ViPRException;
-import com.emc.vipr.client.impl.RestClient;
+import com.emc.vipr.client.impl.*;
 import com.emc.vipr.client.core.impl.TaskUtil;
 import java.net.URI;
 import java.util.Calendar;

@@ -357,8 +357,8 @@ public class ClientConfig {
      * important SSL security.
      * 
      * @param ignoreCertificates True if SSL trust should be disabled
-     * Please refer setSocketFactory(javax.net.ssl.SSLSocketFactory)
-     * Please refer #setHostnameVerifier(javax.net.ssl.HostnameVerifier)
+     * @see #setSocketFactory(SSLSocketFactory) Please refer setSocketFactory(javax.net.ssl.SSLSocketFactory)
+     * @see #setHostnameVerifier(HostnameVerifier) Please refer #setHostnameVerifier(javax.net.ssl.HostnameVerifier)
      */
     public void setIgnoreCertificates(boolean ignoreCertificates) {
         if (ignoreCertificates) {

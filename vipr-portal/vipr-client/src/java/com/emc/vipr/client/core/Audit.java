@@ -30,7 +30,8 @@ public class Audit {
      *            the date, which will be formatted as an hour time bucket.
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
-     * 
+     * @see #getLogsForHourAsStream(Date,String)
+     * @see TimeBucketUtils#forHour(Date)  
      */
     public InputStream getLogsForHourAsStream(Date date) {
         return getLogsForHourAsStream(date, null);
@@ -44,6 +45,8 @@ public class Audit {
      *            the date, which will be formatted as an hour time bucket.
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
+     * @see #getLogsForTimeBucketAsStream(String)
+     * @see TimeBucketUtils#forHour(Date)
      * 
      */
     public InputStream getLogsForHourAsStream(Date date, String language) {
@@ -59,7 +62,8 @@ public class Audit {
      *            the date, which will be formatted as a minute time bucket.
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
-     * 
+     * @see #getLogsForTimeBucketAsStream(String)
+     * @see TimeBucketUtils#forHour(Date) 
      */
     public InputStream getLogsForMinuteAsStream(Date date) {
         return getLogsForMinuteAsStream(date, null);

@@ -29,7 +29,7 @@ public class Monitoring {
      * @param date
      *            the date to format as an hour time bucket.
      * @return the stream containing the events as XML.
-     * 
+     * @see #getEventsForTimeBucketAsStream(Date)
      * @see TimeBucketUtils#forHour(Date)
      */
     public InputStream getEventsForHourAsStream(Date date) {
@@ -45,7 +45,7 @@ public class Monitoring {
      * @param date
      *            the date to format as an hour time bucket.
      * @return the stream containing the events as XML.
-     * 
+     * @see #getEventsForTimeBucketAsStream(Date)
      * @see TimeBucketUtils#forHour(Date)
      */
     public InputStream getEventsForMinuteAsStream(Date date) {

@@ -72,7 +72,7 @@ public class FileShare extends FileObject implements ProjectResource {
     
     private Boolean softLimitExceeded;
     
-    private int softGracePeriod;
+    private Integer softGracePeriod;
     
     private Long notificationLimit;
     
@@ -290,11 +290,11 @@ public class FileShare extends FileObject implements ProjectResource {
     }
 
     @Name("softGracePeriod")
-    public int getSoftGracePeriod() {
+    public Integer getSoftGracePeriod() {
         return softGracePeriod;
     }
 
-    public void setSoftGracePeriod(int softGracePeriod) {
+    public void setSoftGracePeriod(Integer softGracePeriod) {
         this.softGracePeriod = softGracePeriod;
     }
     

@@ -4,28 +4,27 @@
  */
 package com.emc.storageos.db.server.impl;
 
-import org.apache.cassandra.service.StorageService;
-import org.apache.cassandra.service.ActiveRepairService;
-import org.apache.cassandra.service.StorageServiceMBean;
-import org.apache.cassandra.dht.Range;
-import org.apache.cassandra.dht.Token;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.management.Notification;
 import javax.management.NotificationListener;
 
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Collection;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.ScheduledFuture;
+import org.apache.cassandra.dht.Range;
+import org.apache.cassandra.dht.Token;
+import org.apache.cassandra.service.ActiveRepairService;
+import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.service.StorageServiceMBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Class handles running repair job and listening for messages related modeled
@@ -60,7 +59,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
     /**
      * Max wait time in minutes for each range repair. Terminate the job
      */
-    private int _maxWaitInMinutes = 30;
+    private final int _maxWaitInMinutes = 30;
 
     /**
      * Start execution time of the job. For time estimation of remaining repair
@@ -71,7 +70,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
     /**
      * Executor to schedule job monitor thread
      */
-    private ScheduledExecutorService _exe;
+    private final ScheduledExecutorService _exe;
 
     /**
      * Flag to indicate if current job is aborted
@@ -83,13 +82,13 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      */
     private String _lastToken = null;
 
-    private ProgressNotificationListener listener;
+    private final ProgressNotificationListener listener;
 
-    private StorageServiceMBean svcProxy;
+    private final StorageServiceMBean svcProxy;
 
-    private String keySpaceName;
+    private final String keySpaceName;
 
-    private String clusterStateDigest;
+    private final String clusterStateDigest;
 
     /**
      * 
@@ -102,7 +101,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      * @param listener
      * @param startToken
      */
-    public RepairJobRunner(StorageServiceMBean svcProxy, String keySpaceName, ScheduledExecutorService exe, 
+    public RepairJobRunner(StorageServiceMBean svcProxy, String keySpaceName, ScheduledExecutorService exe,
             ProgressNotificationListener listener, String startToken, String clusterStateDigest) {
         this.svcProxy = svcProxy;
         this.keySpaceName = keySpaceName;
@@ -220,10 +219,10 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 this.listener.onStartToken(range.end, getProgress());
 
                 /*
-                 TODO: The logic is from sync to async, should refine this part code, Boying is working on this.
-                  */
-                svcProxy.forceRepairRangeAsync(range.begin, range.end, this.keySpaceName,
-                        true, false, true);
+                 * TODO: The logic is from sync to async, should refine this part code, Boying is working on this.
+                 */
+                // svcProxy.forceRepairRangeAsync(range.begin, range.end, this.keySpaceName,
+                // true, false, true);
 
                 if (!_success) {
                     _log.error("Fail to repair range {} {}. Stopping the job",
@@ -316,6 +315,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
     /**
      * Handle DB repair request notification from Cassandra JMX bean
      */
+    @Override
     public void handleNotification(Notification notification, Object handback) {
         if ("repair".equals(notification.getType())) {
             int[] status = (int[]) notification.getUserData();

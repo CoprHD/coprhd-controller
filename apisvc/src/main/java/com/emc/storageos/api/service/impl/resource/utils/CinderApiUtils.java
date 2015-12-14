@@ -11,7 +11,6 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
@@ -24,7 +23,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import com.emc.storageos.api.service.impl.resource.VirtualPoolService;
-import com.emc.storageos.cinder.model.CinderQos;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.QosSpecification;
 import com.emc.storageos.db.client.model.StringMap;
@@ -63,10 +61,6 @@ public class CinderApiUtils {
 	
 	private static final String JSON_REGULAR_EXP = ".*application/json.*";
 
-    public static final Integer UNLIMITED_SNAPSHOTS = -1;
-
-    public static final Integer DISABLED_SNAPSHOTS = 0;
-	
     /**
      * Unmodifiable map used to keep key value for the Http Response code
      */
@@ -215,50 +209,6 @@ public class CinderApiUtils {
      */
     public static String timeFormat(Calendar cal) {
         return new java.text.SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z").format(cal.getTimeInMillis());
-    }
-
-    /**
-     * Retrieves information from given Virtual Pool
-     *
-     * @param virtualPool Virtual Pool
-     * @return QosSpecification filled with information from Virtual Pool
-     */
-    public static QosSpecification getDataFromVirtualPool(VirtualPool virtualPool) {
-        _log.debug("Fetching data from Virtual Pool, id: {}", virtualPool.getId());
-        QosSpecification qos = new QosSpecification();
-        StringMap specs = new StringMap();
-        String systems = virtualPool.getProtocols().toString();
-        qos.setName("specs-" + virtualPool.getLabel());
-        qos.setConsumer("back-end");
-        qos.setLabel(virtualPool.getLabel());
-        qos.setId(URIUtil.createId(QosSpecification.class));
-        qos.setVirtualPoolId(virtualPool.getId());
-        specs.put("Provisioning Type", virtualPool.getSupportedProvisioningType());
-        specs.put("Protocol", systems.substring(1, systems.length() - 1));
-        specs.put("Drive Type", virtualPool.getDriveType());
-        specs.put("System Type", VirtualPoolService.getSystemType(virtualPool));
-        specs.put("Multi-Volume Consistency", Boolean.toString(virtualPool.getMultivolumeConsistency()));
-        if (virtualPool.getArrayInfo().get("raid_level") != null) {
-            specs.put("RAID LEVEL", virtualPool.getArrayInfo().get("raid_level").toString());
-        }
-        specs.put("Expendable", Boolean.toString(virtualPool.getExpandable()));
-        specs.put("Maximum SAN paths", Integer.toString(virtualPool.getNumPaths()));
-        specs.put("Minimum SAN paths", Integer.toString(virtualPool.getMinPaths()));
-        specs.put("Maximum block mirrors", Integer.toString(virtualPool.getMaxNativeContinuousCopies()));
-        specs.put("Paths per Initiator", Integer.toString(virtualPool.getPathsPerInitiator()));
-        if (virtualPool.getHighAvailability() != null) {
-            specs.put("High Availability", virtualPool.getHighAvailability());
-        }
-        if (virtualPool.getMaxNativeSnapshots().equals(UNLIMITED_SNAPSHOTS)) {
-            specs.put("Maximum Snapshots", "unlimited");
-        }else if(virtualPool.getMaxNativeSnapshots().equals(DISABLED_SNAPSHOTS)){
-            specs.put("Maximum Snapshots", "disabled");
-        }else{
-            specs.put("Maximum Snapshots", Integer.toString(virtualPool.getMaxNativeSnapshots()));
-        }
-
-        qos.setSpecs(specs);
-        return qos;
     }
 
 }

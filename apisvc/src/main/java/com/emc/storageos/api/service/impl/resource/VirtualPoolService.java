@@ -13,6 +13,7 @@ import java.util.*;
 
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.api.service.impl.resource.cinder.QosService;
 import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
@@ -90,10 +91,6 @@ public abstract class VirtualPoolService extends TaggedResource {
     protected static final String VPOOL_CREATED_DESCRIPTION = "Virtual Pool Created";
     protected static final String VPOOL_UPDATED_DESCRIPTION = "Virtual Pool Updated";
     protected static final String VPOOL_DELETED_DESCRIPTION = "Virtual Pool Deleted";
-
-    protected static final String QOS_CREATED_DESCRIPTION = "Quality of Service Created";
-    protected static final String QOS_UPDATED_DESCRIPTION = "Quality of Service Updated";
-    protected static final String QOS_DELETED_DESCRIPTION = "Quality of Service Deleted";
 
     protected static final String VPOOL_PROTOCOL_NFS = "NFS";
     protected static final String VPOOL_PROTOCOL_CIFS = "CIFS";
@@ -789,7 +786,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
 
         // Get the QoS for the VirtualPool, otherwise throw exception
-        QosSpecification qosSpecification = getQos(vpool.getId());
+        QosSpecification qosSpecification = QosService.getQos(vpool.getId(), _dbClient);
         
         // make sure vpool is unused by volumes/fileshares
         ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(vpool));
@@ -835,93 +832,12 @@ public abstract class VirtualPoolService extends TaggedResource {
 
         // Remove Qos associated to this Virtual Pool and record operation
         _dbClient.removeObject(qosSpecification);
-        recordOperation(OperationTypeEnum.DELETE_QOS, QOS_DELETED_DESCRIPTION, qosSpecification);
+        recordOperation(OperationTypeEnum.DELETE_QOS, QosService.QOS_DELETED_DESCRIPTION, qosSpecification);
 
         _dbClient.markForDeletion(vpool);
 
         recordOperation(OperationTypeEnum.DELETE_VPOOL, VPOOL_DELETED_DESCRIPTION, vpool);
         return Response.ok().build();
-    }
-
-    /**
-     * Get QoS specification associated with provided VirtualPool.
-     *
-     * @param vpoolId the VirtualPool for which QoS specification is required.
-     */
-    protected QosSpecification getQos(URI vpoolId) throws APIException {
-        List<URI> qosSpecsURI = _dbClient.queryByType(QosSpecification.class, true);
-        Iterator<QosSpecification> qosIter = _dbClient.queryIterativeObjects(QosSpecification.class, qosSpecsURI);
-        while (qosIter.hasNext()) {
-            QosSpecification activeQos = qosIter.next();
-            if(activeQos != null && activeQos.getVirtualPoolId().equals(vpoolId)){
-                _log.debug("Qos Specification {} assigned to Virtual Pool {} found", activeQos.getId(), vpoolId);
-                return activeQos;
-            }
-        }
-        throw APIException.internalServerErrors.noAssociatedQosForVirtualPool(vpoolId);
-    }
-
-    /**
-     * Update QoS specification associated with provided VirtualPool.
-     *
-     * @param vpool the VirtualPool object with updated data.
-     * @param qosSpecification the QosSpecification to update.
-     */
-    protected QosSpecification updateQos(VirtualPool virtualPool, QosSpecification qosSpecification) {
-        _log.debug("Updating Qos Specification, id: " + qosSpecification.getId());
-        StringMap specs = qosSpecification.getSpecs();
-        String systems = virtualPool.getProtocols().toString();
-        if (!qosSpecification.getLabel().equals(virtualPool.getLabel())) {
-            qosSpecification.setLabel(virtualPool.getLabel());
-        }
-        if (!qosSpecification.getName().equals("specs-" + virtualPool.getLabel())) {
-            qosSpecification.setName("specs-" + virtualPool.getLabel());
-        }
-        if (!specs.get("Provisioning Type").equals(virtualPool.getSupportedProvisioningType())) {
-            specs.put("Provisioning Type", virtualPool.getSupportedProvisioningType());
-        }
-        if (!specs.get("Protocol").equals(systems.substring(1, systems.length() - 1))) {
-            specs.put("Protocol", systems.substring(1, systems.length() - 1));
-        }
-        if (!specs.get("Drive Type").equals(virtualPool.getDriveType())) {
-            specs.put("Drive Type", virtualPool.getDriveType());
-        }
-        if (!specs.get("System Type").equals(VirtualPoolService.getSystemType(virtualPool))) {
-            specs.put("System Type", VirtualPoolService.getSystemType(virtualPool));
-        }
-        if (!specs.get("Multi-Volume Consistency").equals(Boolean.toString(virtualPool.getMultivolumeConsistency()))) {
-            specs.put("Multi-Volume Consistency", Boolean.toString(virtualPool.getMultivolumeConsistency()));
-        }
-        if (virtualPool.getArrayInfo().get("raid_level") != null
-                && !specs.get("RAID level").equals(virtualPool.getArrayInfo().get("raid_level").toString())) {
-            specs.put("RAID LEVEL", virtualPool.getArrayInfo().get("raid_level").toString());
-        }
-        if (!specs.get("Expendable").equals(Boolean.toString(virtualPool.getExpandable()))) {
-            specs.put("Expendable", Boolean.toString(virtualPool.getExpandable()));
-        }
-        if (!specs.get("Maximum SAN paths").equals(Integer.toString(virtualPool.getNumPaths()))) {
-            specs.put("Maximum SAN paths", Integer.toString(virtualPool.getNumPaths()));
-        }
-        if (!specs.get("Minimum SAN paths").equals(Integer.toString(virtualPool.getMinPaths()))) {
-            specs.put("Minimum SAN paths", Integer.toString(virtualPool.getMinPaths()));
-        }
-        if (!specs.get("Maximum block mirrors").equals(Integer.toString(virtualPool.getMaxNativeContinuousCopies()))) {
-            specs.put("Maximum block mirrors", Integer.toString(virtualPool.getMaxNativeContinuousCopies()));
-        }
-        if (!specs.get("Paths per Initiator").equals(Integer.toString(virtualPool.getPathsPerInitiator()))) {
-            specs.put("Paths per Initiator", Integer.toString(virtualPool.getPathsPerInitiator()));
-        }
-        if (virtualPool.getHighAvailability() != null && !specs.get("High Availability").equals(virtualPool.getHighAvailability())) {
-            specs.put("High Availability", virtualPool.getHighAvailability());
-        }
-        if (!specs.get("Maximum Snapshots").equals("unlimited") && virtualPool.getMaxNativeSnapshots().equals(CinderApiUtils.UNLIMITED_SNAPSHOTS)) {
-            specs.put("Maximum Snapshots", "unlimited");
-        } else if (!specs.get("Maximum Snapshots").equals("disabled") && virtualPool.getMaxNativeSnapshots().equals(CinderApiUtils.DISABLED_SNAPSHOTS)) {
-            specs.put("Maximum Snapshots", "disabled");
-        } else if (!specs.get("Maximum Snapshots").equals(Integer.toString(virtualPool.getMaxNativeSnapshots()))) {
-            specs.put("Maximum Snapshots", Integer.toString(virtualPool.getMaxNativeSnapshots()));
-        }
-        return qosSpecification;
     }
 
     /**
@@ -1157,69 +1073,41 @@ public abstract class VirtualPoolService extends TaggedResource {
 
         _log.info("opType: {} detail: {}", opType.toString(), evType + ':' + evDesc);
 
-        if(extParam[0].getClass().equals(VirtualPool.class)) {
-            VirtualPool vpool = (VirtualPool) extParam[0];
+        VirtualPool vpool = (VirtualPool) extParam[0];
 
-            recordVirtualPoolEvent(evType, evDesc, vpool.getId());
+        recordVirtualPoolEvent(evType, evDesc, vpool.getId());
 
-            StringBuilder protocols = new StringBuilder();
-            if (vpool.getProtocols() != null) {
-                for (String proto : vpool.getProtocols()) {
-                    protocols.append(" ");
-                    protocols.append(proto);
-                }
+        StringBuilder protocols = new StringBuilder();
+        if (vpool.getProtocols() != null) {
+            for (String proto : vpool.getProtocols()) {
+                protocols.append(" ");
+                protocols.append(proto);
             }
-            StringBuilder neighborhoods = new StringBuilder();
-            if (vpool.getVirtualArrays() != null) {
-                for (String neighborhood : vpool.getVirtualArrays()) {
-                    neighborhoods.append(" ");
-                    neighborhoods.append(neighborhood);
-                }
+        }
+        StringBuilder neighborhoods = new StringBuilder();
+        if (vpool.getVirtualArrays() != null) {
+            for (String neighborhood : vpool.getVirtualArrays()) {
+                neighborhoods.append(" ");
+                neighborhoods.append(neighborhood);
             }
+        }
 
-            switch (opType) {
-                case CREATE_VPOOL:
-                    auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType(), protocols.toString(),
-                            neighborhoods.toString(), vpool.getSupportedProvisioningType(),
-                            vpool.getAutoTierPolicyName(), vpool.getDriveType(), vpool.getHighAvailability());
-                    break;
-                case UPDATE_VPOOL:
-                    auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType(), protocols.toString(),
-                            neighborhoods.toString(), vpool.getSupportedProvisioningType(), vpool.getAutoTierPolicyName(),
-                            vpool.getDriveType());
-                    break;
-                case DELETE_VPOOL:
-                    auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType());
-                    break;
-                default:
-                    _log.error("unrecognized vpool operation type");
-            }
-        }else{
-            QosSpecification qosSpecification = (QosSpecification) extParam[0];
-
-            StringBuilder specs = new StringBuilder();
-            if(qosSpecification.getSpecs() != null){
-                for(Map.Entry<String, String> entry : qosSpecification.getSpecs().entrySet()){
-                    specs.append(" ");
-                    specs.append(entry.getKey()).append(":").append(entry.getValue());
-                }
-            }
-
-            switch (opType) {
-                case CREATE_QOS:
-                    auditOp(opType, true, null, qosSpecification.getId().toString(), qosSpecification.getLabel(),
-                            qosSpecification.getConsumer(), specs.toString());
-                    break;
-                case UPDATE_QOS:
-                    auditOp(opType, true, null, qosSpecification.getId().toString(), qosSpecification.getLabel(),
-                            qosSpecification.getConsumer(), specs.toString());
-                    break;
-                case DELETE_QOS:
-                    auditOp(opType, true, null, qosSpecification.getId().toString(), qosSpecification.getLabel());
-                    break;
-                default:
-                    _log.error("unrecognized qos operation type");
-            }
+        switch (opType) {
+            case CREATE_VPOOL:
+                auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType(), protocols.toString(),
+                        neighborhoods.toString(), vpool.getSupportedProvisioningType(),
+                        vpool.getAutoTierPolicyName(), vpool.getDriveType(), vpool.getHighAvailability());
+                break;
+            case UPDATE_VPOOL:
+                auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType(), protocols.toString(),
+                        neighborhoods.toString(), vpool.getSupportedProvisioningType(), vpool.getAutoTierPolicyName(),
+                        vpool.getDriveType());
+                break;
+            case DELETE_VPOOL:
+                auditOp(opType, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType());
+                break;
+            default:
+                _log.error("unrecognized vpool operation type");
         }
     }
 

@@ -29,6 +29,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.api.service.impl.resource.cinder.QosService;
 import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
@@ -183,14 +184,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
             ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
         }
-        // Get data from Virtual Pool
-        QosSpecification qosSpecification = CinderApiUtils.getDataFromVirtualPool(vpool);
 
         _dbClient.createObject(vpool);
 
-        // Persist new QoS to the DB
-        _dbClient.createObject(qosSpecification);
-        recordOperation(OperationTypeEnum.CREATE_QOS, QOS_CREATED_DESCRIPTION, qosSpecification);
+        // Creates a new QoS object in DB based on data from given Virtual Pool
+        QosService.createQosSpecification(vpool, _dbClient);
 
         recordOperation(OperationTypeEnum.CREATE_VPOOL, VPOOL_CREATED_DESCRIPTION, vpool);
         return toBlockVirtualPool(_dbClient, vpool, VirtualPool.getProtectionSettings(vpool, _dbClient),
@@ -382,7 +380,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         }
 
         // Get the QoS for the VirtualPool, otherwise throw exception.
-        QosSpecification qosSpecification = getQos(vpool.getId());
+        QosSpecification qosSpecification = QosService.getQos(vpool.getId(), _dbClient);
 
         URIQueryResultList resultList = new URIQueryResultList();
         _dbClient.queryByConstraint(
@@ -512,12 +510,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             validateMaxNativeContinuousCopies(vpool.getMaxNativeContinuousCopies(), vpool.getHighAvailability());
         }
 
-        _dbClient.updateAndReindexObject(vpool);
+        _dbClient.updateObject(vpool);
 
         // Update VirtualPool and QoS with new parameters
-        qosSpecification = updateQos(vpool, qosSpecification);
-        _dbClient.updateAndReindexObject(qosSpecification);
-        recordOperation(OperationTypeEnum.UPDATE_QOS, QOS_UPDATED_DESCRIPTION, qosSpecification);
+        QosService.updateQos(vpool, qosSpecification, _dbClient);
+
         recordOperation(OperationTypeEnum.UPDATE_VPOOL, VPOOL_UPDATED_DESCRIPTION, vpool);
         return toBlockVirtualPool(_dbClient, vpool, VirtualPool.getProtectionSettings(vpool, _dbClient),
                 VirtualPool.getRemoteProtectionSettings(vpool, _dbClient));

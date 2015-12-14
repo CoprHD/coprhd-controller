@@ -170,7 +170,7 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException virtualPoolNotMatchingVArray(final URI uri);
 
-    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    @DeclareServiceCode(ServiceCode.API_INTERNAL_SERVER_ERROR)
     public InternalServerErrorException noAssociatedQosForVirtualPool(final URI uri);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)

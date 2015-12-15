@@ -135,7 +135,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                         Iterator<URI> snapshotQueryResultsIter = snapshotQueryResults.iterator();
                         while (snapshotQueryResultsIter.hasNext()) {
                             linkedTargetURIs.add(snapshotQueryResultsIter.next().toString());
-        }
+                        }
                         session.setLinkedTargets(linkedTargetURIs);
                         session.setOpStatus(new OpStatusMap());
                         snapSessions.add(session);

@@ -46,7 +46,7 @@ public class SmisBlockSnapshotSessionLinkTargetGroupJob extends SmisSnapShotJob 
     private static final Logger log = LoggerFactory.getLogger(SmisBlockSnapshotSessionLinkTargetGroupJob.class);
     private static final String JOB_NAME = SmisBlockSnapshotSessionLinkTargetGroupJob.class.getSimpleName();
 
-    private Map<String, URI> nativeIdToSnapshotMap;
+    private Map<String, URI> srcNativeIdToSnapshotMap;
     private String sourceGroupName;
     private String targetGroupName;
     private String snapSessionInstance;
@@ -55,8 +55,8 @@ public class SmisBlockSnapshotSessionLinkTargetGroupJob extends SmisSnapShotJob 
         super(cimJob, storageSystem, taskCompleter, JOB_NAME);
     }
 
-    public void setNativeIdToSnapshotMap(Map<String, URI> nativeIdToSnapshotMap) {
-        this.nativeIdToSnapshotMap = nativeIdToSnapshotMap;
+    public void setSrcNativeIdToSnapshotMap(Map<String, URI> srcNativeIdToSnapshotMap) {
+        this.srcNativeIdToSnapshotMap = srcNativeIdToSnapshotMap;
     }
 
     public void setSourceGroupName(String sourceGroupName) {
@@ -112,9 +112,9 @@ public class SmisBlockSnapshotSessionLinkTargetGroupJob extends SmisSnapShotJob 
 
                 String srcIdProp = (String) replicaPairView.getPropertyValue(CP_SV_SOURCE_DEVICE_ID);
                 String tgtIdProp = (String) replicaPairView.getPropertyValue(CP_SV_TARGET_DEVICE_ID);
-                // Relies on the BlockSnapshot model being initially created with its nativeID set to its parents.
-                if (nativeIdToSnapshotMap.containsKey(srcIdProp)) {
-                    URI blockSnapshotURI = nativeIdToSnapshotMap.get(srcIdProp);
+
+                if (srcNativeIdToSnapshotMap.containsKey(srcIdProp)) {
+                    URI blockSnapshotURI = srcNativeIdToSnapshotMap.get(srcIdProp);
                     BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, blockSnapshotURI);
                     BlockObject sourceObj = BlockObject.fetch(dbClient, snapshot.getParent().getURI());
 
@@ -158,7 +158,7 @@ public class SmisBlockSnapshotSessionLinkTargetGroupJob extends SmisSnapShotJob 
         log.info("Failed to link target group {} to source snap session group {}", targetGroupName, sourceGroupName);
         DbClient dbClient = jobContext.getDbClient();
         Iterator<BlockSnapshot> iterator = dbClient.queryIterativeObjects(BlockSnapshot.class,
-                nativeIdToSnapshotMap.values());
+                srcNativeIdToSnapshotMap.values());
         ArrayList<BlockSnapshot> snapshots = Lists.newArrayList(iterator);
         for (BlockSnapshot snapshot : snapshots) {
             snapshot.setInactive(true);

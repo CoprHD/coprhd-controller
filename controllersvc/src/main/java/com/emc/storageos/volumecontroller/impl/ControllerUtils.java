@@ -582,12 +582,6 @@ public class ControllerUtils {
                             volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel,
                                     virtualPool.getHostIOLimitBandwidth(),
                                     virtualPool.getHostIOLimitIOPs());
-                        } else if (blockObject instanceof BlockMirror) {
-                            BlockMirror mirror = (BlockMirror) blockObject;
-                            VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, mirror.getVirtualPool());
-                            volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel,
-                                    virtualPool.getHostIOLimitBandwidth(),
-                                    virtualPool.getHostIOLimitIOPs());
                         }
                     }
                     volURIsHlus[index++] = volumeURLHLU;

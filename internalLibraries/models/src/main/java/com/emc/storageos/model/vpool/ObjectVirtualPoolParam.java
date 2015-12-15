@@ -14,6 +14,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ObjectVirtualPoolParam extends VirtualPoolCommonParam {
 
 	Integer maxRetention;
+	Integer minDataCenters;
 
     public ObjectVirtualPoolParam() {
     }
@@ -30,5 +31,19 @@ public class ObjectVirtualPoolParam extends VirtualPoolCommonParam {
 
     public void setMaxRetention(Integer maxRetention) {
         this.maxRetention = maxRetention;
+    }
+    
+    /**
+     * The minimum number of data centers required for each CoprHD storage pool
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "min_datacenters")
+    public Integer getMinDataCenters() {
+        return minDataCenters;
+    }
+
+    public void setMinDataCenters(Integer minDataCenters) {
+        this.minDataCenters = minDataCenters;
     }
 }

@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
@@ -1936,6 +1937,31 @@ public class RPHelper {
                         // Review: OK to reduce to debug level
                         _log.info("Adding initiator " + initiator.getId() + " with port: " + port);
                         initiators.add(initiator.getId());
+
+    /**
+     * Does this snapshot require any sort of protection intervention? If it's a local array-based
+     * snapshot, probably not. If it's a protection-based snapshot or a remote array-based snapshot
+     * that requires protection intervention to ensure consistency between the source and target, then
+     * you should go to the protection controller
+     * 
+     * @param volume source volume
+     * @param snapshotType The snapshot technology type.
+     * 
+     * @return true if this is a protection based snapshot, false otherwise.
+     */
+    public static boolean isProtectionBasedSnapshot(Volume volume, String snapshotType) {
+        // This is a protection based snapshot request if:
+        // The volume allows for bookmarking (it's under protection) and
+        // - The param either asked for a bookmark, or
+        // - The param didn't ask for a bookmark, but the volume is a remote volume
+        if (volume.getProtectionController() != null
+                && (snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString()) || volume
+                        .getPersonality().equals(Volume.PersonalityTypes.TARGET.toString()))) {
+            return true;
+        }
+        return false;
+    }
+}
                     }
                 }
             }

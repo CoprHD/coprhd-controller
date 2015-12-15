@@ -5,6 +5,10 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,9 +19,21 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -49,6 +65,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();
         boolean unManagedVolumeExported = requestContext.getVolumeContext().isVolumeExported();
         Volume volume = null;
+        List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
 
         URI unManagedVolumeUri = unManagedVolume.getId();
         String volumeNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
@@ -94,6 +111,46 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                         SupportedVolumeInformation.REPLICA_STATE.toString(), unManagedVolume.getVolumeInformation());
                 volume.setReplicaState(replicaState);
             }
+
+            // Create snapshot sessions for each synchronization aspect for the volume.
+            StringSet syncAspectInfoForVolume = PropertySetterUtil.extractValuesFromStringSet(
+                    SupportedVolumeInformation.SNAPSHOT_SESSIONS.toString(), unManagedVolume.getVolumeInformation());
+            if ((syncAspectInfoForVolume != null) && (!syncAspectInfoForVolume.isEmpty())) {
+                for (String syncAspectInfo : syncAspectInfoForVolume) {
+                    String[] syncAspectInfoComponents = syncAspectInfo.split(":");
+                    String syncAspectName = syncAspectInfoComponents[0];
+                    String syncAspectObjPath = syncAspectInfoComponents[1];
+
+                    // Make sure it is not already created.
+                    URIQueryResultList queryResults = new URIQueryResultList();
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance(syncAspectObjPath),
+                            queryResults);
+                    Iterator<URI> queryResultsIter = queryResults.iterator();
+                    if (!queryResultsIter.hasNext()) {
+                        BlockSnapshotSession session = new BlockSnapshotSession();
+                        session.setId(URIUtil.createId(BlockSnapshotSession.class));
+                        session.setLabel(syncAspectName);
+                        session.setSessionLabel(syncAspectName);
+                        session.setParent(new NamedURI(volume.getId(), volume.getLabel()));
+                        session.setProject(new NamedURI(project.getId(), volume.getLabel()));
+                        session.setSessionInstance(syncAspectObjPath);
+                        StringSet linkedTargetURIs = new StringSet();
+                        URIQueryResultList snapshotQueryResults = new URIQueryResultList();
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotBySettingsInstance(syncAspectObjPath),
+                                snapshotQueryResults);
+                        Iterator<URI> snapshotQueryResultsIter = snapshotQueryResults.iterator();
+                        while (snapshotQueryResultsIter.hasNext()) {
+                            linkedTargetURIs.add(snapshotQueryResultsIter.next().toString());
+        }
+                        session.setLinkedTargets(linkedTargetURIs);
+                        session.setOpStatus(new OpStatusMap());
+                        snapSessions.add(session);
+                    }
+                }
+                if (!snapSessions.isEmpty()) {
+                    _dbClient.createObject(snapSessions);
+                }
+            }
         }
 
         // Note that a VPLEX backend volume can also be a snapshot target volume.
@@ -133,6 +190,10 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                     "Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
                     unManagedVolume.getNativeGuid());
             volume.addInternalFlags(INTERNAL_VOLUME_FLAGS);
+            for (BlockSnapshotSession snapSession : snapSessions) {
+                snapSession.addInternalFlags(INTERNAL_VOLUME_FLAGS);
+        }
+            _dbClient.updateObject(snapSessions);
         }
 
         return clazz.cast(volume);

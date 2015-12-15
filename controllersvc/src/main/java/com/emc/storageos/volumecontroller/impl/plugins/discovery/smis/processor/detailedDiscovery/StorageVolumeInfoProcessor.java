@@ -60,6 +60,7 @@ import com.google.common.collect.Sets.SetView;
  * 
  */
 public class StorageVolumeInfoProcessor extends StorageProcessor {
+<<<<<<< HEAD
     private Logger              _logger                              = LoggerFactory
                                                                              .getLogger(StorageVolumeInfoProcessor.class);
     private List<Object>        _args;
@@ -89,6 +90,37 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
     List<CIMObjectPath>         _metaVolumePaths                     = null;
     private Map<String, String> _volumeToSpaceConsumedMap            = null;
     Set<URI>                    unManagedVolumesReturnedFromProvider = new HashSet<URI>();
+=======
+    private final Logger _logger = LoggerFactory
+            .getLogger(StorageVolumeInfoProcessor.class);
+    private List<Object> _args;
+    private DbClient _dbClient;
+    private static final String SVUSAGE = "SVUsage";
+    private static final String USAGE = "Usage";
+    private static final String TWELVE = "12";
+    private static final String TWO = "2";
+    private static final String NINE = "9";
+    private static final String SEVEN = "7";
+    private static final String ELEVEN = "11";
+    private static final String TRUE = "true";
+    private static final String FALSE = "false";
+    private static final String UNMANAGED_VOLUME = "UnManagedVolume";
+    private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
+    private static final String SVELEMENT_NAME = "SVElementName";
+    private static final String NAME = "Name";
+    private static final String THINLY_PROVISIONED = "ThinlyProvisioned";
+    private AccessProfile _profile;
+
+    private PartitionManager _partitionManager;
+
+    List<UnManagedVolume> _unManagedVolumesInsert = null;
+    List<UnManagedVolume> _unManagedVolumesUpdate = null;
+    List<UnManagedExportMask> _unManagedExportMasksUpdate = null;
+    List<CIMObjectPath> _metaVolumeViewPaths = null;
+    List<CIMObjectPath> _metaVolumePaths = null;
+    private Map<String, String> _volumeToSpaceConsumedMap = null;
+    Set<URI> unManagedVolumesReturnedFromProvider = new HashSet<URI>();
+>>>>>>> origin/master
 
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
@@ -114,6 +146,9 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             @SuppressWarnings("unchecked")
             Map<String, LocalReplicaObject> volumeToLocalReplicaMap = (Map<String, LocalReplicaObject>) keyMap
                     .get(Constants.UN_VOLUME_LOCAL_REPLICA_MAP);
+            @SuppressWarnings("unchecked")
+            Map<String, Map<String, String>> volumeToSyncAspectMap = (Map<String, Map<String, String>>) keyMap
+                    .get(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP);
             @SuppressWarnings("unchecked")
             Map<String, Set<String>> vmax2ThinPoolToBoundVolumesMap = (Map<String, Set<String>>) keyMap
                     .get(Constants.VMAX2_THIN_POOL_TO_BOUND_VOLUMES);
@@ -160,14 +195,16 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
 
             Set<URI> srdfEnabledTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
             processVolumes(volumeInstances, keyMap, operation, pool, system, exportedVolumes,
-                    existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames, boundVolumes,
+                    existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, volumeToSyncAspectMap, poolSupportedSLONames,
+                    boundVolumes,
                     srdfEnabledTargetVPools);
             while (!volumeInstanceChunks.isEnd()) {
                 _logger.info("Processing Next Volume Chunk of size {}", BATCH_SIZE);
                 volumeInstanceChunks = client.getInstancesWithPath(storagePoolPath,
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
                 processVolumes(volumeInstanceChunks.getResponses(), keyMap, operation, pool, system, exportedVolumes,
-                        existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames, boundVolumes,
+                        existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, volumeToSyncAspectMap, poolSupportedSLONames,
+                        boundVolumes,
                         srdfEnabledTargetVPools);
             }
             if (null != _unManagedVolumesUpdate && !_unManagedVolumesUpdate.isEmpty()) {
@@ -226,7 +263,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
     private void processVolumes(Iterator<CIMInstance> it, Map<String, Object> keyMap, Operation operation,
             StoragePool pool, StorageSystem system, Map<String, VolHostIOObject> exportedVolumes,
             Set<String> existingVolumesInCG, Map<String, RemoteMirrorObject> volumeToRAGroupMap,
-            Map<String, LocalReplicaObject> volumeToLocalReplicaMap,
+            Map<String, LocalReplicaObject> volumeToLocalReplicaMap, Map<String, Map<String, String>> volumeToSyncAspectMap,
             Set<String> poolSupportedSLONames, Set<String> boundVolumes, Set<URI> srdfEnabledTargetVPools) {
 
         List<CIMObjectPath> metaVolumes = new ArrayList<CIMObjectPath>();
@@ -273,7 +310,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 unManagedVolume = createUnManagedVolume(unManagedVolume, volumeViewInstance,
                         unManagedVolumeNativeGuid, pool, system, volumeNativeGuid,
                         exportedVolumes, existingVolumesInCG, volumeToRAGroupMap,
-                        volumeToLocalReplicaMap, poolSupportedSLONames, keyMap, srdfEnabledTargetVPools);
+                        volumeToLocalReplicaMap, volumeToSyncAspectMap, poolSupportedSLONames, keyMap, srdfEnabledTargetVPools);
 
                 // set up UnManagedExportMask information
                 boolean nonRpExported = false;
@@ -541,6 +578,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * @param existingVolumesInCG
      * @param volumeToRAGroupMap
      * @param volumeToLocalReplicaMap
+     * @param volumeToSyncAspectMap
      * @param poolSupportedSLONames
      * @param keyMap
      * @param srdfEnabledTargetVPools
@@ -556,7 +594,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             // arguments
             Map<String, VolHostIOObject> exportedVolumes,
             Set<String> existingVolumesInCG, Map<String, RemoteMirrorObject> volumeToRAGroupMap,
-            Map<String, LocalReplicaObject> volumeToLocalReplicaMap,
+            Map<String, LocalReplicaObject> volumeToLocalReplicaMap, Map<String, Map<String, String>> volumeToSyncAspectMap,
             Set<String> poolSupportedSLONames, Map<String, Object> keyMap, Set<URI> srdfEnabledTargetVPools) {
         _logger.info("Process UnManagedVolume {}", unManagedVolumeNativeGuid);
         try {
@@ -600,6 +638,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.FULL_COPIES.name(), new StringSet());
                 unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.MIRRORS.name(), new StringSet());
                 unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOTS.name(), new StringSet());
+                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOT_SESSIONS.name(), new StringSet());
             }
 
             Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
@@ -834,8 +873,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
 
             // handle clones, local mirrors and snapshots
             boolean isLocalReplica = false;
-            if (volumeToLocalReplicaMap.containsKey(unManagedVolume
-                    .getNativeGuid())) {
+            if (volumeToLocalReplicaMap.containsKey(unManagedVolume.getNativeGuid())) {
                 _logger.info("Found in localReplicaMap {}",
                         unManagedVolume.getNativeGuid());
                 LocalReplicaObject lrObj = volumeToLocalReplicaMap
@@ -963,6 +1001,20 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 }
             }
 
+            // Array snapshot sessions for which the volume is the source.
+            if (volumeToSyncAspectMap.containsKey(unManagedVolume.getNativeGuid())) {
+                _logger.info("Found in SyncAspectMap {}", unManagedVolume.getNativeGuid());
+                StringSet syncAspectInfoForForVolume = new StringSet();
+                Map<String, String> syncAspectMap = volumeToSyncAspectMap.get(unManagedVolume.getNativeGuid());
+                for (String syncAspectKey : syncAspectMap.keySet()) {
+                    String syncAspectName = syncAspectKey.split(Constants.COLON)[1];
+                    String syncAspectObjPath = syncAspectMap.get(syncAspectKey);
+                    String syncAspectInfo = syncAspectName + Constants.COLON + syncAspectObjPath;
+                    syncAspectInfoForForVolume.add(syncAspectInfo);
+                }
+                unManagedVolumeInformation.put(SupportedVolumeInformation.SNAPSHOT_SESSIONS.name(), syncAspectInfoForForVolume);
+            }
+
             // set volume's isSyncActive
             if (!isLocalReplica) {
                 StringSet isSyncActive = new StringSet();
@@ -1014,13 +1066,13 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             unManagedVolume.getUnmanagedExportMasks().clear();
             unManagedVolume.getInitiatorUris().clear();
             unManagedVolume.getInitiatorNetworkIds().clear();
-            
+
             Object wwn = getCIMPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME_ALT);
             if (null == wwn) {
                 wwn = getCIMPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME);
             }
             unManagedVolume.setWwn(String.valueOf(wwn));
-            
+
             if (created) {
                 _unManagedVolumesInsert.add(unManagedVolume);
             } else {

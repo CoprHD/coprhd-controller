@@ -31,6 +31,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
     private Set<String> serverUrls;
     private Set<String> groupWhitelistValues;
     private Boolean disable;
+    private Boolean autoRegisterOpenStackProjects;
     private String description;
     private Integer maxPageSize;
     private Set<String> groupObjectClasses;
@@ -65,6 +66,21 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     public void setDisable(Boolean disable) {
         this.disable = disable;
+    }
+
+    /**
+     * Specifies if OpenStack Projects will be auto-registered as Tenants in CoprHD.
+     * 
+     * @valid true = Projects will be registered as tenants
+     * @valid false = Projects will NOT be registered as tenants 
+     */
+    @XmlElement(name = "auto_register")
+    public Boolean getAutoRegisterOpenStackProjects() {
+        return autoRegisterOpenStackProjects;
+    }
+
+    public void setAutoRegisterOpenStackProjects(Boolean autoReg) {
+        this.autoRegisterOpenStackProjects = autoReg;
     }
 
     @XmlElementWrapper(name = "domains")

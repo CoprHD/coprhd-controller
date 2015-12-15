@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.AuthnProvider;
+import com.emc.storageos.keystone.restapi.KeystoneApiClient;
+
 import models.SearchScopes;
 import models.datatable.LDAPsourcesDataTable;
 import models.datatable.LDAPsourcesDataTable.LDAPsourcesInfo;
@@ -50,9 +52,15 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.ViprResourceController;
 import controllers.util.FlashException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 @With(Common.class)
 @Restrictions({ @Restrict("SECURITY_ADMIN") })
 public class LDAPsources extends ViprResourceController {
+
+    private static Logger log = LoggerFactory.getLogger(LDAPsources.class);
 
     protected static final String SAVED = "LDAPsources.saved";
     protected static final String DELETED = "LDAPsources.deleted";
@@ -186,6 +194,8 @@ public class LDAPsources extends ViprResourceController {
         public String description;
 
         public Boolean disable;
+        
+        public Boolean autoRegisterOpenStackProjects;
 
         @Required
         public List<String> domains;
@@ -244,6 +254,7 @@ public class LDAPsources extends ViprResourceController {
             this.mode = ldapSources.getMode();
             this.description = ldapSources.getDescription();
             this.disable = ldapSources.getDisable();
+            this.autoRegisterOpenStackProjects = ldapSources.getAutoRegisterOpenStackProjects();
             this.domains = Lists.newArrayList(ldapSources.getDomains());
             this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
@@ -389,6 +400,10 @@ public class LDAPsources extends ViprResourceController {
 
         	if (StringUtils.equals(AuthSourceType.ad.name(), mode) || StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
                 Validation.required(fieldName + ".groupAttribute", groupAttribute);
+                // Automatically Register CoprHD as block service provider for OpenStack
+                System.out.println("Register Keystone With OpenStack");
+                log.error("Register Keystone Here!!");
+
             }
             Validation.required(fieldName + ".domains", parseMultiLineInput(this.domains.get(0)));
             Validation.required(fieldName + ".serverUrls", parseMultiLineInput(this.serverUrls.get(0)));

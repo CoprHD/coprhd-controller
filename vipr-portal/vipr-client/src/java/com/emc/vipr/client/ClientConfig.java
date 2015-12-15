@@ -172,9 +172,10 @@ public class ClientConfig {
     public void setHost(String host) {
         //sets literal ipv6 address to bracketed address
         if (IPAddressUtil.isIPv6LiteralAddress(host)) {
-            host = String.format("[%s]",host);
+            this.host = String.format("[%s]",host);
+        } else {
+            this.host = host;
         }
-        this.host = host;
     }
 
     public int getPort() {

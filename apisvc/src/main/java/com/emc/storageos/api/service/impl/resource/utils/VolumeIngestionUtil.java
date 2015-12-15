@@ -423,6 +423,12 @@ public class VolumeIngestionUtil {
         return targetUriList;
     }
 
+    /**
+     * Check to see if an unmanaged resource is RP enabled (part of an RP CG) or not
+     * 
+     * @param unManagedVolume unmanaged volume 
+     * @return true if it's part of an RP CG
+     */
     public static boolean checkUnManagedResourceIsRecoverPointEnabled(UnManagedVolume unManagedVolume) {
         StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         String isRecoverPointEnabled = unManagedVolumeCharacteristics
@@ -434,6 +440,14 @@ public class VolumeIngestionUtil {
         return false;
     }
 
+    /**
+     * Check to see if an unmanaged resource is exported to anything non-RP.
+     * Note: Being exported to RP doesn't not mean this returns false.  It's a way
+     * to check if something is exported to something other than RP, regardless of RP.
+     * 
+     * @param unManagedVolume unmanaged volume
+     * @return true if object is exported to something non-RP
+     */
     public static boolean checkUnManagedResourceIsNonRPExported(UnManagedVolume unManagedVolume) {
         StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         String isNonRPExported = unManagedVolumeCharacteristics
@@ -445,6 +459,13 @@ public class VolumeIngestionUtil {
         return false;
     }
 
+    /**
+     * Check if the unmanaged volume under RP control is in an image access state that indicates that
+     * the volume is "locked-down" in a target operation.
+     * 
+     * @param unManagedVolume unmanaged volume
+     * @return true if the voume is in an image access mode.  Several modes qualify.
+     */
     public static boolean isRPUnManagedVolumeInImageAccessState(UnManagedVolume unManagedVolume) {
         boolean isImageAccessState = false;
         String rpAccessState = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.RP_ACCESS_STATE.toString(),

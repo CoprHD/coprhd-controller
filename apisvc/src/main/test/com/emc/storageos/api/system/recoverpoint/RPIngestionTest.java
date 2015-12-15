@@ -123,7 +123,7 @@ public class RPIngestionTest extends ApisvcTestBase {
 		}
 	}
 	
-	@Ignore
+    @Ignore
 	@Test
     // Prepare1 creates a simple RP CDP volume set, then inventory deletes it.
     // SOURCE - 1gb local_varray, local_vpool
@@ -188,6 +188,7 @@ public class RPIngestionTest extends ApisvcTestBase {
 		
 	}
 	
+    @Ignore
 	@Test
 	// Test3 creates a vplex locl volume with mirror option, inventory deletes it, 
 	// discovers unmanaged resources, and ingests volume, checking for mirror.
@@ -225,6 +226,7 @@ public class RPIngestionTest extends ApisvcTestBase {
 		
 	}
 	
+    @Ignore
 	@Test
 	public void prepare999() {
 		// Do discovery of unmanaged volumes / exports
@@ -337,6 +339,7 @@ public class RPIngestionTest extends ApisvcTestBase {
 		}
 	}
 	
+    @Ignore
 	@Test
 	public void test3() {
 		printLog("test3");

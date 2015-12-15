@@ -22,46 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.spi.LoggerFactory;
+import org.eclipse.jetty.util.StringMap;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.ProtectionSet;
-import com.emc.storageos.db.client.model.ProtectionSet.ProtectionStatus;
-import com.emc.storageos.db.client.model.ProtectionSystem;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGCharacteristics;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGInformation;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.model.block.VolumeExportIngestParam;
-import com.emc.storageos.util.ExportUtils;
 
 /**
  * RecoverPoint Ingestion
@@ -101,10 +68,6 @@ import com.emc.storageos.util.ExportUtils;
  * - BlockConsistencyGroup and ProtectionSet objects are created and all ingested volumes therein are updated with references to them.
  * 
  */
-/**
- * @author belliott
- *
- */
 public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator {
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockRecoverPointIngestOrchestrator.class);
@@ -127,28 +90,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext) parentRequestContext.getVolumeContext();
 
-        Volume volume = (Volume) ingestBlockObjectsInternal(parentRequestContext, volumeContext, clazz);
-
-        // Experimental auto-ingestion feature. Only run it if we haven't ingested everything yet.
-        /*
-         * if (!validateAllVolumesInCGIngested(unManagedVolume, umpset)) {
-         * performAutoIngestOnRemainingVolumes(umpset, systemCache, poolCache, project, tenant,
-         * unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported,
-         * taskStatusMap, vplexIngestionMethod);
-         * }
-         */
-        return clazz.cast(volume);
-    }
-
-    /**
-     * Internal implementation of ingestion of RP volumes. This method will not perform auto-ingestion when complete.
-     *
-     * @param parentRequestContext the IngestionRequestContext for the overriding ingestion process
-     * @param volumeContext the RecoverPointVolumeIngestionContext for the volume currently being ingested
-     * @return Volume of a managed RP volume
-     */
-    private <T extends BlockObject> T ingestBlockObjectsInternal(IngestionRequestContext parentRequestContext,
-            RecoverPointVolumeIngestionContext volumeContext, Class<T> clazz) {
 
         UnManagedVolume unManagedVolume = volumeContext.getUnmanagedVolume();
 
@@ -212,213 +153,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
 
         return clazz.cast(volume);
-    }
-
-    /**
-     * Perform automatic ingestion on the remaining RP volumes, if possible.
-     * The goal is to reduce unnecessary churn for the user. Do not return an error
-     * if anything bad happens in here because it has no impact on the original ingestion
-     * operation, with some top-level exceptions where the customer should know that future
-     * ingestion operations will fail and why.
-     * 
-     * @param umpset unmanaged protection set.
-     */
-    private void performAutoIngestOnRemainingVolumes(IngestionRequestContext parentRequestContext,
-            RecoverPointVolumeIngestionContext context,
-            UnManagedProtectionSet umpset, List<URI> systemCache, List<URI> poolCache, Project project,
-            TenantOrg tenant, List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed,
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
-            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) {
-        // Experimental: Perform automated ingestion of other RP volumes if certain criteria is met.
-        //
-        // Criteria:
-        // - UnManagedVolumes that are not exported to a host (exported to something other than RP) qualify
-        // - One source volume must be ingested (so we can use deduce the right vpool)
-        // - Virtual Pool selection must be unambiguous.
-        // Example of ambiguous: Two targets, varray1 with vpool1 and varray2 and vpool2 where vpool1 or vpool2
-        // are assigned to both varray1 and varray2. We don't know which to choose.
-
-        // Is there at least one source volume ingested?
-        VirtualPool masterVpool = null;
-        VirtualArray masterVarray = null;
-        for (URI volumeId : URIUtil.toURIList(umpset.getManagedVolumeIds())) {
-            Volume managedVolume = _dbClient.queryObject(Volume.class, volumeId);
-
-            if (managedVolume == null) {
-                _logger.error("Could not find ingested RP volume in database: " + volumeId);
-                throw IngestionException.exceptions.rpObjectNotFound(volumeId);
-            }
-
-            // Look for source volumes in the list of managed volumes.
-            if (managedVolume.getPersonality() != null &&
-                    managedVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString())) {
-
-                if (managedVolume.getVirtualPool() == null) {
-                    _logger.error("Could not find virtual pool of ingested RP volume in database: " + volumeId);
-                    throw IngestionException.exceptions.rpObjectNotSet("virtual pool", volumeId);
-                }
-
-                // Grab the virtual pool.
-                masterVpool = _dbClient.queryObject(VirtualPool.class, managedVolume.getVirtualPool());
-
-                if (masterVpool == null) {
-                    _logger.error("Could not find virtual pool of ingested RP volume in database: " + volumeId);
-                    throw IngestionException.exceptions.rpObjectNotFound(managedVolume.getVirtualPool());
-                }
-
-                masterVarray = _dbClient.queryObject(VirtualArray.class, managedVolume.getVirtualArray());
-
-                if (masterVarray == null) {
-                    _logger.error("Could not find virtual array of ingested RP volume in database: " + volumeId);
-                    throw IngestionException.exceptions.rpObjectNotFound(managedVolume.getVirtualArray());
-                }
-            }
-        }
-
-        // Send out a warning to let them know they're missing out on this convenience.
-        if (masterVpool == null) {
-            _logger.warn("Unable to perform automated ingestion of other RP volumes because there are no RP source volume ingested.  " +
-                    "If one RP source volume is ingested, automated ingestion may reduce some of the steps required to ingest " +
-                    "the entire RecoverPoint consistency group");
-            return;
-        }
-
-        if (umpset.getUnManagedVolumeIds() == null ||
-                umpset.getUnManagedVolumeIds().isEmpty()) {
-            _logger.error("Could not find unmanaged volumes left in the unmanaged protection set, however we were not able to fully ingest the protection set.");
-            throw IngestionException.exceptions.noUnManagedVolumesFound(umpset.getCgName());
-        }
-
-        // Collect volumes that qualify
-        List<UnManagedVolume> umvs = _dbClient.queryObject(UnManagedVolume.class, URIUtil.toURIList(umpset.getUnManagedVolumeIds()));
-        for (UnManagedVolume umv : umvs) {
-            boolean attemptAutoIngest = true;
-
-            // Is this volume exported to something other than RP? If so, it cannot be auto-ingested.
-            // We do anticipate there will be an unmanaged export mask for RP
-            if (umv.getUnmanagedExportMasks() != null) {
-                for (URI umemId : URIUtil.toURIList(umv.getUnmanagedExportMasks())) {
-                    UnManagedExportMask umem = _dbClient.queryObject(UnManagedExportMask.class, umemId);
-
-                    if (umem == null) {
-                        _logger.error("Could not find unmanaged export mask object of uningested RP volume in database: " + umemId);
-                        throw IngestionException.exceptions.rpObjectNotFound(umemId);
-                    }
-
-                    if (umem.getKnownInitiatorUris() != null &&
-                            !ExportUtils.checkIfInitiatorsForRP(_dbClient, umem.getKnownInitiatorUris())) {
-                        _logger.warn("We cannot automatically ingest unmanaged RP volume: " + umv.getLabel()
-                                + " because it's exported to a known host/cluster");
-                        attemptAutoIngest = false;
-                    }
-
-                    if (umem.getUnmanagedInitiatorNetworkIds() != null &&
-                            !umem.getUnmanagedInitiatorNetworkIds().isEmpty()) {
-                        _logger.warn("We cannot automatically ingest unmanaged RP volume: " + umv.getLabel()
-                                + " because it's exported to an unknown host/cluster/RPA");
-                        attemptAutoIngest = false;
-                    }
-                }
-            }
-
-            // Find the appropriate virtual pool for this volume, given the master virtual pool and
-            // information we received from the RP system.
-            String personality = PropertySetterUtil.extractValueFromStringSet(
-                    SupportedVolumeInformation.RP_PERSONALITY.toString(), umv.getVolumeInformation());
-            if (personality == null) {
-                _logger.error("Could not find the personality of unmanaged volume: " + umv.getLabel()
-                        + ".  Run protection system unmanaged CG discovery");
-                throw IngestionException.exceptions.rpObjectNotSet("Personality", umv.getId());
-            }
-
-            URI umvp = null;
-            URI umva = null;
-            if (personality.equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString())) {
-                // If this a source volume, the master virtual pool is the proper virtual pool.
-                umvp = masterVpool.getId();
-                umva = masterVarray.getId();
-            } else if (personality.equalsIgnoreCase(Volume.PersonalityTypes.TARGET.toString())) {
-                // Find the intersection of the target virtual pools and the qualified virtual pools for this volume.
-                Map<URI, VpoolProtectionVarraySettings> protectionSettings = VirtualPool.getProtectionSettings(masterVpool, _dbClient);
-                for (Entry<URI, VpoolProtectionVarraySettings> settingsEntry : protectionSettings.entrySet()) {
-                    if (umv.getSupportedVpoolUris() != null &&
-                            umv.getSupportedVpoolUris().contains(settingsEntry.getValue().getVirtualPool().toString())) {
-                        if (umva != null || umvp != null) {
-                            _logger.warn("Could not auto-ingest unmanaged volume " + umv.getLabel() +
-                                    " because there are multiple target virtual pools that qualify that are part of the RP virtual pool.");
-                            attemptAutoIngest = false;
-                            break;
-                        }
-
-                        // TODO: We could probably think of some varray criteria as well to make this algorithm even better
-                        // You could have multiple targets using the same virtual pool or virtual pools
-                        // that are in the unmanaged volume's vpool list, but the volume could only live in one varray.
-                        // With this current algorithm, in that case it would be too ambiguous.
-                        umva = settingsEntry.getKey();
-                        umvp = settingsEntry.getValue().getVirtualPool();
-                    }
-                }
-            } else if (personality.equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString())) {
-                // Find the intersection of the target virtual pools and the qualified virtual pools for this volume.
-                Map<URI, VpoolProtectionVarraySettings> protectionSettings = VirtualPool.getProtectionSettings(masterVpool, _dbClient);
-                for (Entry<URI, VpoolProtectionVarraySettings> settingsEntry : protectionSettings.entrySet()) {
-                    URI journalVpoolURI = settingsEntry.getValue().getJournalVpool() != null ? settingsEntry.getValue().getJournalVpool()
-                            : settingsEntry.getValue().getVirtualPool();
-                    URI journalVarrayURI = settingsEntry.getValue().getJournalVpool() != null ? settingsEntry.getValue().getJournalVarray()
-                            : settingsEntry.getKey();
-                    if (umv.getSupportedVpoolUris() != null &&
-                            umv.getSupportedVpoolUris().contains(journalVpoolURI)) {
-                        if (umva != null || umvp != null) {
-                            _logger.warn("Could not auto-ingest unmanaged volume " + umv.getLabel() +
-                                    " because there are multiple target virtual pools that qualify that are part of the RP virtual pool.");
-                            attemptAutoIngest = false;
-                            break;
-                        }
-
-                        // TODO: We could probably think of some varray criteria as well to make this algorithm even better
-                        // You could have multiple targets using the same virtual pool or virtual pools
-                        // that are in the unmanaged volume's vpool list, but the volume could only live in one varray.
-                        // With this current algorithm, in that case it would be too ambiguous.
-                        umva = journalVarrayURI;
-                        umvp = journalVpoolURI;
-                    }
-                }
-            }
-
-            if (umva == null) {
-                attemptAutoIngest = false;
-                _logger.error("Auto-ingest failed for volume: " + umv.getLabel()
-                        + ". Could not find an appropriate virtual array for the unmanaged RP volume");
-            }
-
-            if (umvp == null) {
-                attemptAutoIngest = false;
-                _logger.error("Auto-ingest failed for volume: " + umv.getLabel()
-                        + ". Could not find an appropriate virtual pool for the unmanaged RP volume");
-            }
-
-            if (attemptAutoIngest) {
-                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, umvp);
-                VirtualArray varray = _dbClient.queryObject(VirtualArray.class, umva);
-                _logger.info(String.format(
-                        "Going to attempt to auto-ingest unmanaged volume: %s with virtual array: %s and virtual pool: %s",
-                        umv.getLabel(), varray.getLabel(), vpool.getLabel()));
-                try {
-                    // Some arguments to ingest we can steal from what came in originally.
-                    // Other arguments we deduced in the code immediately above.
-                    // Finally others we need to figure out, just like the ingest service did.
-                    StorageSystem system = _dbClient.queryObject(StorageSystem.class, umv.getStorageSystemUri());
-                    ingestBlockObjectsInternal(parentRequestContext, context, Volume.class);
-                    // If the service or factories put in business logic AFTER calling ingestBlockObjects,
-                    // we're going to fall short here.
-                } catch (Exception e) {
-                    // We don't want to fail the original ingestion operation, nor do we want to stop trying to ingest other volumes.
-                    // So give the error in the log, but move on.
-                    _logger.error("Failed to auto-ingest unmanaged volume " + umv.getLabel(), e);
-                    _logger.warn("Auto-ingest will continue to process remaining volumes.");
-                }
-            }
-        }
     }
 
     /**
@@ -850,7 +584,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * @return unmanaged export mask that belongs to the protection system that contains the unmanaged volume
      */
     private UnManagedExportMask findUnManagedRPExportMask(ProtectionSystem protectionSystem, UnManagedVolume unManagedVolume) {
-        UnManagedExportMask em = null;
+        UnManagedExportMask em;
         for (String maskIdStr : unManagedVolume.getUnmanagedExportMasks()) {
 
             // Find the mask associated with the protection system. (Assume there's only one for this volume)
@@ -1141,7 +875,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
     }
 
-    private static enum ColumnEnum {
+    private enum ColumnEnum {
         NAME(0), ID(1), PERSONALITY(2), COPY_NAME(3), RSET_NAME(4), VARRAY(5), VPOOL(6);
 
         private final int column;

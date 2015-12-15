@@ -10,12 +10,14 @@ import java.util.Map;
 
 import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Exec;
@@ -51,16 +53,10 @@ public class VdcManager extends AbstractManager {
     
     // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
     private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
-    // Timeout in minutes for add/resume/data sync
-    // If data synchronization takes long than this value, set site to error
-    public static final int ADD_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    public static final int PAUSE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    public static final int DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    public static final int REMOVE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     private static final int BACK_UPGRADE_RETRY_MILLIS = 30 * 1000; // 30 seconds
-    
+
+    private DisasterRecoveryConfig drConfig = new DisasterRecoveryConfig();
+
     private SiteInfo targetSiteInfo;
     private String currentSiteId;
     private DrUtil drUtil;
@@ -228,6 +224,21 @@ public class VdcManager extends AbstractManager {
             // Step6: sleep
             log.info("Step6: sleep");
             longSleep();
+        }
+    }
+
+    /**
+     * If DisasterRecoveryConfig exists in ZK, pull it to local, otherwise push local default DisasterRecoveryConfig to ZK
+     */
+    private void initializeDrConfig() {
+        CoordinatorClient client = coordinator.getCoordinatorClient();
+        Configuration config = client.queryConfiguration(DisasterRecoveryConfig.CONFIG_KIND, DisasterRecoveryConfig.CONFIG_ID);
+        if (config == null) {
+            client.persistServiceConfiguration(drConfig.toConfiguration());
+            log.info("Push DisasterRecoveryConfig from local to ZK, current value: {}", drConfig);
+        } else {
+            drConfig = new DisasterRecoveryConfig(config);
+            log.info("Pull DisasterRecoveryConfig from ZK to local, current value: {}", drConfig);
         }
     }
 
@@ -435,6 +446,8 @@ public class VdcManager extends AbstractManager {
             return;
         }
 
+        initializeDrConfig();
+
         for(Site site : drUtil.listSites()) {
             SiteError error = getSiteError(site);
             if (error != null) {
@@ -453,52 +466,52 @@ public class VdcManager extends AbstractManager {
 
         switch(site.getState()) {
             case STANDBY_ADDING:
-                if (currentTime - lastSiteUpdateTime > ADD_STANDBY_TIMEOUT_MILLIS) {
+                if (currentTime - lastSiteUpdateTime > drConfig.getAddStandbyTimeoutMillis()) {
                     log.info("Step5: Site {} set to error due to add standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(
-                            ADD_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                            drConfig.getAddStandbyTimeoutMillis() / 60 / 1000));
                 }
                 break;
             case STANDBY_PAUSING:
-                if (currentTime - lastSiteUpdateTime > PAUSE_STANDBY_TIMEOUT_MILLIS) {
+                if (currentTime - lastSiteUpdateTime > drConfig.getPauseStandbyTimeoutMillis()) {
                     log.info("Step5: Site {} set to error due to pause standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.pauseStandbyFailedTimeout(
-                            PAUSE_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                            drConfig.getPauseStandbyTimeoutMillis() / 60 / 1000));
                 }
                 break;
             case STANDBY_RESUMING:
-                if (currentTime - lastSiteUpdateTime > RESUME_STANDBY_TIMEOUT_MILLIS) {
+                if (currentTime - lastSiteUpdateTime > drConfig.getResumeStandbyTimeoutMillis()) {
                     log.info("Step5: Site {} set to error due to resume standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.resumeStandbyFailedTimeout(
-                            RESUME_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                            drConfig.getResumeStandbyTimeoutMillis() / 60 / 1000));
                 }
                 break;
             case STANDBY_SYNCING:
-                if (currentTime - lastSiteUpdateTime > DATA_SYNC_TIMEOUT_MILLIS) {
+                if (currentTime - lastSiteUpdateTime > drConfig.getDataSyncTimeoutMillis()) {
                     log.info("Step5: Site {} set to error due to data sync timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.dataSyncFailedTimeout(
-                            DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                            drConfig.getDataSyncTimeoutMillis() / 60 / 1000));
                 }
                 break;
             case STANDBY_REMOVING:
-                if (currentTime - lastSiteUpdateTime > REMOVE_STANDBY_TIMEOUT_MILLIS) {
+                if (currentTime - lastSiteUpdateTime > drConfig.getRemoveStandbyTimeoutMillis()) {
                     log.info("Step5: Site {} set to error due to remove standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.removeStandbyFailedTimeout(
-                            REMOVE_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                            drConfig.getRemoveStandbyTimeoutMillis() / 60 / 1000));
                 }
                 break;
             case ACTIVE_SWITCHING_OVER:
-                if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
+                if (currentTime - lastSiteUpdateTime > drConfig.getSwitchoverTimeoutMillis()) {
                     log.info("Step5: site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverActiveFailedTimeout(
-                            site.getName(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                            site.getName(), drConfig.getDataSyncTimeoutMillis() / 60 / 1000));
                 }
                 break;
             case STANDBY_SWITCHING_OVER:
-                if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
+                if (currentTime - lastSiteUpdateTime > drConfig.getSwitchoverTimeoutMillis()) {
                     log.info("Step5: site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverStandbyFailedTimeout(
-                            site.getName(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                            site.getName(), drConfig.getDataSyncTimeoutMillis() / 60 / 1000));
                 }
                 break;
         }

@@ -57,6 +57,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -682,19 +683,22 @@ public class BlockSnapshotSessionManager {
         // Create the task identifier.
         String taskId = UUID.randomUUID().toString();
 
-        List<BlockSnapshotSession> snapshotSessions = null;
+        // Create a list of CG snap sessions, or single snap session for non-CG
+        List<URI> snapshotSessionURIs = null;
         if (snapSessionSourceObj.hasConsistencyGroup()) {
             QueryResultList resultList = new URIQueryResultList();
             _dbClient.queryByConstraint(getBlockSnapshotSessionBySessionInstance(snapSession.getSessionInstance()),
                     resultList);
-            snapshotSessions = Lists.newArrayList(resultList.iterator());
+            snapshotSessionURIs = Lists.newArrayList(resultList.iterator());
         } else {
-            snapshotSessions = Lists.newArrayList(snapSession);
+            snapshotSessionURIs = Lists.newArrayList(snapSessionURI);
         }
 
         TaskList taskList = new TaskList();
-
-        for (BlockSnapshotSession blockSnapshotSession : snapshotSessions) {
+        Iterator<BlockSnapshotSession> snapshotSessions = _dbClient.queryIterativeObjects(BlockSnapshotSession.class,
+                snapshotSessionURIs);
+        while(snapshotSessions.hasNext()) {
+            BlockSnapshotSession blockSnapshotSession = snapshotSessions.next();
             // Create the operation status entry in the status map for the snapshot.
             Operation op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION);

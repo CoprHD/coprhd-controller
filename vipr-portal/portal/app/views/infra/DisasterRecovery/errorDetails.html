@@ -1,5 +1,8 @@
 #{if isError }
 <dl class="dl-horizontal">
+  <dt>&{'disasterRecovery.id'}</dt>
+  <dd>${uuid}</dd>
+  
   <dt>&{'disasterRecovery.error.code'}</dt>
   <dd>${disasterSiteError.serviceCode}</dd>
   
@@ -19,6 +22,8 @@
 #{/if}
 #{else}
 <dl class="dl-horizontal">
+  <dt>&{'disasterRecovery.id'}</dt>
+  <dd>${uuid}</dd>
   <dt>&{'disasterRecovery.error.creation.time'}</dt>
   <dd id="creationTime-${uuid}">--</dd>
   #{if creationTime }

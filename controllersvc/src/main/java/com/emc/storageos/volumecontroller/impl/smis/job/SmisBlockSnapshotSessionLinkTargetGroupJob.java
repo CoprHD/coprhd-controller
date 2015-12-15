@@ -107,10 +107,10 @@ public class SmisBlockSnapshotSessionLinkTargetGroupJob extends SmisSnapShotJob 
                 CIMInstance replicaPairView = client.getInstance(replicaPairViewPath, false, false, PS_REPLICA_PAIR_VIEW);
 
                 // Verify that ReplicaPairView references our groups
-                String srcGrp = replicaPairView.getPropertyValue(CP_EMC_RG_SOURCE_INSTANCE_ID).toString();
-                String tgtGrp = replicaPairView.getPropertyValue(CP_EMC_RG_TARGET_INSTANCE_ID).toString();
+                String srcGrpInstance = replicaPairView.getPropertyValue(CP_EMC_RG_SOURCE_INSTANCE_ID).toString();
+                String tgtGrpInstance = replicaPairView.getPropertyValue(CP_EMC_RG_TARGET_INSTANCE_ID).toString();
                 // ReplicaPairView references src/tgt replication groups as <symm-id>+<group-name>, hence #contains
-                if (!srcGrp.contains(sourceGroupName) || !tgtGrp.contains(targetGroupName)) {
+                if (!srcGrpInstance.contains(sourceGroupName) || !tgtGrpInstance.contains(targetGroupName)) {
                     log.warn("ReplicaPairView did not match source/target groups: {}/{}",
                             sourceGroupName, targetGroupName);
                     continue;
@@ -143,6 +143,7 @@ public class SmisBlockSnapshotSessionLinkTargetGroupJob extends SmisSnapShotJob 
                     snapshot.setWWN(volumeWWN.toUpperCase());
                     snapshot.setAlternateName(volumeAltName);
                     snapshot.setSettingsInstance(snapSessionInstance);
+                    snapshot.setReplicationGroupInstance(tgtGrpInstance);
                     commonSnapshotUpdate(snapshot, volume, client, system, sourceObj.getNativeId(), tgtIdProp, false, dbClient);
                     log.info(String
                             .format("For target volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). Associated volume is %5$s (%6$s)",

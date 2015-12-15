@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_MIRROR_TO_URI;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkCloneConsistencyGroup;
+import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkSnapshotSessionConsistencyGroup;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Collections2.transform;
 import static java.lang.String.format;
@@ -4804,7 +4805,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // If necessary add a step for each session to create the new targets and link them to the session.
             if ((sessionSnapshotURIMap != null) && (!sessionSnapshotURIMap.isEmpty())) {
 
-                if (true) { // TODO if CG operation
+                if (checkSnapshotSessionConsistencyGroup(snapSessionURIs.get(0), _dbClient, completer)) {
                     workflow.createStep(LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                             String.format("Linking group targets snapshot sessions %s", snapSessionURIs),
                             waitFor, systemURI, getDeviceType(systemURI), getClass(),

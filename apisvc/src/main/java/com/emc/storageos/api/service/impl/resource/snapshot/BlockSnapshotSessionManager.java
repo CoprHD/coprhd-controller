@@ -276,8 +276,8 @@ public class BlockSnapshotSessionManager {
             snapSessionSnapshotURIMap.put(snapSessionURI, snapSessionSnapshotURIs);
         }
 
-        addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
-                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
+//        addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
+//                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
 
         // Create the snapshot sessions.
         try {

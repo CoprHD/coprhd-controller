@@ -107,7 +107,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
 
         recordOperation(OperationTypeEnum.CREATE_VPOOL, VPOOL_CREATED_DESCRIPTION, cos);
 
-        return toFileVirtualPool(cos);
+        return toFileVirtualPool(cos, VirtualPool.getFileRemoteProtectionSettings(cos, _dbClient));
     }
 
     /**
@@ -136,7 +136,8 @@ public class FileVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
     public FileVirtualPoolRestRep getFileVirtualPool(@PathParam("id") URI id) {
         VirtualPool vpool = getVirtualPool(VirtualPool.Type.file, id);
-        FileVirtualPoolRestRep restRep = toFileVirtualPool(vpool);
+        FileVirtualPoolRestRep restRep = toFileVirtualPool(vpool,
+        		VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient));
         restRep.setNumResources(getNumResources(vpool, _dbClient));
         return restRep;
     }
@@ -339,7 +340,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
         _dbClient.updateAndReindexObject(cos);
 
         recordOperation(OperationTypeEnum.UPDATE_VPOOL, VPOOL_UPDATED_DESCRIPTION, cos);
-        return toFileVirtualPool(cos);
+        return toFileVirtualPool(cos, VirtualPool.getFileRemoteProtectionSettings(cos, _dbClient));
     }
 
     /**
@@ -357,7 +358,8 @@ public class FileVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public FileVirtualPoolRestRep updateFileVirtualPoolWithAssignedPools(@PathParam("id") URI id,
             VirtualPoolPoolUpdateParam param) {
-        return toFileVirtualPool(updateVirtualPoolWithAssignedStoragePools(id, param));
+    	VirtualPool vPool = updateVirtualPoolWithAssignedStoragePools(id, param);
+        return toFileVirtualPool(vPool, VirtualPool.getFileRemoteProtectionSettings(vPool, _dbClient));
     }
 
     /**
@@ -441,7 +443,8 @@ public class FileVirtualPoolService extends VirtualPoolService {
     private class mapFileVirtualPoolWithResources implements Function<VirtualPool, FileVirtualPoolRestRep> {
         @Override
         public FileVirtualPoolRestRep apply(VirtualPool vpool) {
-            FileVirtualPoolRestRep to = VirtualPoolMapper.toFileVirtualPool(vpool);
+            FileVirtualPoolRestRep to = VirtualPoolMapper.toFileVirtualPool(vpool, 
+            		VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient));
             to.setNumResources(getNumResources(vpool, _dbClient));
             return to;
         }
@@ -564,12 +567,12 @@ public class FileVirtualPoolService extends VirtualPoolService {
             		vPool.setFileReplicationType(FileReplicationType.LOCAL.name());
             	}
             	
-            	Set<VirtualPoolProtectionVirtualArraySettingsParam> copies = 
+            	Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = 
             			param.getProtection().getReplicationParam().getCopies();
             	if( copies != null & !copies.isEmpty()) {
             		// Create a Map with remote copies 
             		StringMap remoteCopiesMap = new StringMap();
-            		for (VirtualPoolProtectionVirtualArraySettingsParam remoteCopy : copies) {
+            		for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteCopy : copies) {
             			
             			VirtualArray remoteVArray = _dbClient.queryObject(VirtualArray.class, remoteCopy.getVarray());
                         if (null == remoteVArray || remoteVArray.getInactive()) {

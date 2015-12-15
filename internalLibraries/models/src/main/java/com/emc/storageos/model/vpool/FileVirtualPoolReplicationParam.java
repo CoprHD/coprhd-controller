@@ -12,14 +12,14 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 
 public class FileVirtualPoolReplicationParam {
 	
-	private Set<VirtualPoolProtectionVirtualArraySettingsParam> copies;
+	private Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies;
     private FileReplicationPolicy fileReplicationPolicy;
     
     public FileVirtualPoolReplicationParam() {
     }
 
     public FileVirtualPoolReplicationParam(
-            Set<VirtualPoolProtectionVirtualArraySettingsParam> copies,
+            Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies,
             FileReplicationPolicy sourcePolicy) {
         this.copies = copies;
         this.fileReplicationPolicy = sourcePolicy;
@@ -32,14 +32,14 @@ public class FileVirtualPoolReplicationParam {
      * @valid none
      */
     @XmlElement(name = "protection_varray_vpool", required = false)
-    public Set<VirtualPoolProtectionVirtualArraySettingsParam> getCopies() {
+    public Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> getCopies() {
         if (copies == null) {
-            copies = new LinkedHashSet<VirtualPoolProtectionVirtualArraySettingsParam>();
+            copies = new LinkedHashSet<VirtualPoolRemoteProtectionVirtualArraySettingsParam>();
         }
         return copies;
     }
 
-    public void setCopies(Set<VirtualPoolProtectionVirtualArraySettingsParam> copies) {
+    public void setCopies(Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies) {
         this.copies = copies;
     }
 

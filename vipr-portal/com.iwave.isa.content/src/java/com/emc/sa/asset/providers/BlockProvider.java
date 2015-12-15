@@ -886,14 +886,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     
     private List<AssetOption> getVolumeSnapshotSessionOptionsForProject(AssetOptionsContext ctx, URI project) {
         final ViPRCoreClient client = api(ctx);
-        List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().findByProject(project,
-                new DefaultResourceFilter<BlockSnapshotSessionRestRep>() {
-                    @Override
-                    public boolean accept(BlockSnapshotSessionRestRep snapshotSession) {
-                        VolumeRestRep parentVolume = client.blockVolumes().get(snapshotSession.getParent().getId());
-                        return (isSnapshotSessionSupportedForVolume(parentVolume));
-                    }
-                });
+        List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().findByProject(project);
+//        List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().findByProject(project,
+//                new DefaultResourceFilter<BlockSnapshotSessionRestRep>() {
+//                    @Override
+//                    public boolean accept(BlockSnapshotSessionRestRep snapshotSession) {
+//                        VolumeRestRep parentVolume = client.blockVolumes().get(snapshotSession.getParent().getId());
+//                        return (isSnapshotSessionSupportedForVolume(parentVolume));
+//                    }
+//                });
         return constructSnapshotSessionOptions(client, project, snapshotSessions);
     }
 

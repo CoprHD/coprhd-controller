@@ -425,16 +425,16 @@ public class VolumeGroupService extends TaskResourceService {
             List<Volume> addVols = new ArrayList<Volume>();
             
             if (param.hasVolumesToAdd()) {
-            Iterator<Volume> addVolItr = dbClient.queryIterativeObjects(Volume.class, param.getAddVolumesList().getVolumes());
-            while (addVolItr.hasNext()) {
-                addVols.add(addVolItr.next());
-            }
+                Iterator<Volume> addVolItr = dbClient.queryIterativeObjects(Volume.class, param.getAddVolumesList().getVolumes());
+                while (addVolItr.hasNext()) {
+                    addVols.add(addVolItr.next());
+                }
             }
             if (param.hasVolumesToRemove()) {
-            Iterator<Volume> remVolItr = dbClient.queryIterativeObjects(Volume.class, param.getRemoveVolumesList().getVolumes());
-            while (remVolItr.hasNext()) {
-                removeVols.add(remVolItr.next());
-            }
+                Iterator<Volume> remVolItr = dbClient.queryIterativeObjects(Volume.class, param.getRemoveVolumesList().getVolumes());
+                while (remVolItr.hasNext()) {
+                    removeVols.add(remVolItr.next());
+                }
             }
             
             Operation op = dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(),

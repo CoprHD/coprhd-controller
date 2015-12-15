@@ -1,3 +1,7 @@
+/* Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ *
+ */
 package com.emc.storageos.cinder.model;
 
 import org.codehaus.jackson.map.annotate.JsonRootName;
@@ -12,7 +16,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @JsonRootName(value = "qos_associations")
 @XmlAccessorType(XmlAccessType.PUBLIC_MEMBER)
 @XmlAccessorOrder(XmlAccessOrder.ALPHABETICAL)
-public class CinderQosAssociation{
+public class CinderQosAssociation {
     public String association_type;
     public String id;
     public String name;

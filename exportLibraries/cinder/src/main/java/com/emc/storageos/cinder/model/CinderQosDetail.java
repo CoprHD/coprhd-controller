@@ -1,3 +1,7 @@
+/* Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ *
+ */
 package com.emc.storageos.cinder.model;
 
 import com.emc.storageos.model.RestLinkRep;
@@ -22,4 +26,3 @@ public class CinderQosDetail{
         selfLink = link;
     }
 }
-

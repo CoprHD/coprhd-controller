@@ -1,6 +1,8 @@
+/* Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ *
+ */
 package com.emc.storageos.cinder.model;
-
-import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import java.util.ArrayList;
 import java.util.List;

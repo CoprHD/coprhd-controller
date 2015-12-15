@@ -10,24 +10,24 @@
  */
 package com.emc.storageos.cinder.model;
 
-import java.util.Map;
 //import VolumeCreateRequest;
 
-public class VolumeCreateRequestGen  extends VolumeCreateRequest{
-	
-	/**
-	 * Json model representation for volume
-	 * create request
-	 * 
-	 * This class is created as a generic volumecreaterequest class which can handle the inputs of 
-	 * volume create in Cinder V1 and V2.
-	 */
-	public VolumeGen volume = new VolumeGen();	
-	public class VolumeGen extends Volume
-	{		
-		public String display_name;
-		public String display_description;
-		
-	}
+public class VolumeCreateRequestGen extends VolumeCreateRequest {
+
+    /**
+     * Json model representation for volume
+     * create request
+     * 
+     * This class is created as a generic volumecreaterequest class which can handle the inputs of
+     * volume create in Cinder V1 and V2.
+     */
+    public VolumeGen volume = new VolumeGen();
+
+    public class VolumeGen extends Volume
+    {
+        public String display_name;
+        public String display_description;
+
+    }
 
 }

@@ -10,11 +10,11 @@
  */
 package com.emc.storageos.cinder.model;
 
-
 public class VolumeUpdateRequest {
-	public Volume volume;
-	public class Volume {
-		public String name;
-		public String description;
-	}
+    public Volume volume;
+
+    public class Volume {
+        public String name;
+        public String description;
+    }
 }

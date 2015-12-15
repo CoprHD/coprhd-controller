@@ -1,3 +1,7 @@
+/* Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ *
+ */
 package com.emc.storageos.cinder.model;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -16,9 +20,9 @@ public class Extension {
     public String alias;
     public String updated;
     private RestLinkRep selfLink;
-    
+
     @XmlElement(name = "links")
-    public RestLinkRep getLink(){
+    public RestLinkRep getLink() {
         return selfLink;
     }
 

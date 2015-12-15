@@ -440,7 +440,7 @@ def update_parser(subcommand_parsers, common_parser):
 
 def update(args):
 
-    if(args.newname is None and args.description is None and args.add_volumes is None):
+    if(args.newname is None and args.description is None and args.add_volumes is None and args.remove_volumes is None):
         raise SOSError(SOSError.CMD_LINE_ERR,
             "viprcli volume group update: error: at least one of " +
             "the arguments -np/-newname -d/-description -a/-add_volumes " +

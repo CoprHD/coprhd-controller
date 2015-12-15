@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CIM_STORAGE_VOLUME;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_DEVICE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_RG_SOURCE_INSTANCE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_RG_TARGET_INSTANCE_ID;
@@ -105,8 +106,13 @@ public class SmisBlockSnapshotSessionLinkTargetGroupJob extends SmisSnapShotJob 
                 log.info("Processing replica pair view instance: {}", replicaPairViewPath);
                 CIMInstance replicaPairView = client.getInstance(replicaPairViewPath, false, false, PS_REPLICA_PAIR_VIEW);
 
-                if (!replicaPairView.getPropertyValue(CP_EMC_RG_SOURCE_INSTANCE_ID).equals(sourceGroupName) ||
-                        !replicaPairView.getPropertyValue(CP_EMC_RG_TARGET_INSTANCE_ID).equals(targetGroupName)) {
+                // Verify that ReplicaPairView references our groups
+                String srcGrp = replicaPairView.getPropertyValue(CP_EMC_RG_SOURCE_INSTANCE_ID).toString();
+                String tgtGrp = replicaPairView.getPropertyValue(CP_EMC_RG_TARGET_INSTANCE_ID).toString();
+                // ReplicaPairView references src/tgt replication groups as <symm-id>+<group-name>, hence #contains
+                if (!srcGrp.contains(sourceGroupName) || !tgtGrp.contains(targetGroupName)) {
+                    log.warn("ReplicaPairView did not match source/target groups: {}/{}",
+                            sourceGroupName, targetGroupName);
                     continue;
                 }
 
@@ -186,6 +192,7 @@ public class SmisBlockSnapshotSessionLinkTargetGroupJob extends SmisSnapShotJob 
         CloseableIterator<CIMObjectPath> it = null;
         try {
             it = client.associatorNames(getCimJob(), null, SmisConstants.SE_REPLICATION_GROUP, null, null);
+            // Only one group is expected.
             if (it.hasNext()) {
                 return it.next();
             }
@@ -201,11 +208,11 @@ public class SmisBlockSnapshotSessionLinkTargetGroupJob extends SmisSnapShotJob 
                                                     String targetDeviceId) throws WBEMException {
         CloseableIterator<CIMObjectPath> it = null;
         try {
-            it = client.associatorNames(replicaPairView, null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
-            if (it.hasNext()) {
+            it = client.associatorNames(replicaPairView, null, CIM_STORAGE_VOLUME, null, null);
+            while (it.hasNext()) {
                 CIMObjectPath volume = it.next();
-                String deviceID = (String) volume.getKeyValue(CP_DEVICE_ID);
-                if (targetDeviceId.equals(deviceID)) {
+                String deviceId = volume.getKeyValue(CP_DEVICE_ID).toString();
+                if (targetDeviceId.equals(deviceId)) {
                     return volume;
                 }
             }

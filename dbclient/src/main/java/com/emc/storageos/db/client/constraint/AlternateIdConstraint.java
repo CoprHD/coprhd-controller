@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
@@ -644,6 +645,15 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemNfsACLIndex"), fileSystemNfsACLIndex);
         }
+
+        public static AlternateIdConstraint getBlockSnapshotBySettingsInstance(String settingsInstance) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("settingsInstance"), settingsInstance);
     }
 
+        public static AlternateIdConstraint getBlockSnapshotSessionBySessionInstance(String sessionInstance) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("sessionInstance"), sessionInstance);
+        }
+    }
 }

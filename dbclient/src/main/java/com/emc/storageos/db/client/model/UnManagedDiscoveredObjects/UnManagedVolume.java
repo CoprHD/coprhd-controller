@@ -148,6 +148,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         SYNCHRONIZED_INSTANCE("synchronizedInstance", "synchronizedInstance"),
         // for block snapshot
         SNAPSHOTS("snapshots", "snapshots"), // snapshots of a source volume, for internal ingestion use only
+        SNAPSHOT_SESSIONS("snapshotSessions", "snapshotSessions"), // snapshot session for a source volume
         NEEDS_COPY_TO_TARGET("needsCopyToTarget", "needsCopyToTarget"),
         TECHNOLOGY_TYPE("technologyType", "technologyType"),
         SETTINGS_INSTANCE("settingsInstance", "settingsInstance"),

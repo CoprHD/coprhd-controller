@@ -4,6 +4,11 @@
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
+import java.net.URI;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,16 +16,22 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
@@ -55,6 +66,27 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             snapShot = createSnapshot(requestContext.getStorageSystem(), snapNativeGuid, 
                     requestContext.getVarray(), requestContext.getVpool(), 
                     unManagedVolume, requestContext.getProject());
+
+            // See if this is a linked target for existing block snapshot sessions.
+            if (!NullColumnValueGetter.isNullValue(snapShot.getSettingsInstance())) {
+                URIQueryResultList queryResults = new URIQueryResultList();
+                _dbClient.queryByConstraint(
+                        AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance(snapShot.getSettingsInstance()),
+                        queryResults);
+                Iterator<URI> queryResultsIter = queryResults.iterator();
+                while (queryResultsIter.hasNext()) {
+                    BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, queryResultsIter.next());
+                    StringSet linkedTargets = snapSession.getLinkedTargets();
+                    if ((linkedTargets != null)) {
+                        linkedTargets.add(snapShot.getId().toString());
+                    } else {
+                        linkedTargets = new StringSet();
+                        linkedTargets.add(snapShot.getId().toString());
+                        snapSession.setLinkedTargets(linkedTargets);
+        }
+                    _dbClient.updateObject(snapSession);
+                }
+            }
         }
 
         // Run this logic always when Volume is NO_PUBLIC_ACCESS

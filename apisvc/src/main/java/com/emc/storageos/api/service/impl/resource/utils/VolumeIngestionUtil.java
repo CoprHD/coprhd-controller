@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
@@ -423,6 +424,12 @@ public class VolumeIngestionUtil {
         return targetUriList;
     }
 
+    /**
+     * Check to see if an unmanaged resource is RP enabled (part of an RP CG) or not
+     * 
+     * @param unManagedVolume unmanaged volume 
+     * @return true if it's part of an RP CG
+     */
     public static boolean checkUnManagedResourceIsRecoverPointEnabled(UnManagedVolume unManagedVolume) {
         StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         String isRecoverPointEnabled = unManagedVolumeCharacteristics
@@ -434,6 +441,14 @@ public class VolumeIngestionUtil {
         return false;
     }
 
+    /**
+     * Check to see if an unmanaged resource is exported to anything non-RP.
+     * Note: Being exported to RP doesn't not mean this returns false.  It's a way
+     * to check if something is exported to something other than RP, regardless of RP.
+     * 
+     * @param unManagedVolume unmanaged volume
+     * @return true if object is exported to something non-RP
+     */
     public static boolean checkUnManagedResourceIsNonRPExported(UnManagedVolume unManagedVolume) {
         StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         String isNonRPExported = unManagedVolumeCharacteristics
@@ -445,6 +460,13 @@ public class VolumeIngestionUtil {
         return false;
     }
 
+    /**
+     * Check if the unmanaged volume under RP control is in an image access state that indicates that
+     * the volume is "locked-down" in a target operation.
+     * 
+     * @param unManagedVolume unmanaged volume
+     * @return true if the voume is in an image access mode.  Several modes qualify.
+     */
     public static boolean isRPUnManagedVolumeInImageAccessState(UnManagedVolume unManagedVolume) {
         boolean isImageAccessState = false;
         String rpAccessState = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.RP_ACCESS_STATE.toString(),
@@ -1252,7 +1274,7 @@ public class VolumeIngestionUtil {
      */
     private static List<String> getStoragePortNames(Collection<URI> storagePortUris, DbClient dbClient) {
         List<String> storagePortNames = new ArrayList<String>();
-        if (storagePortUris != null & !storagePortUris.isEmpty()) {
+        if (storagePortUris != null && !storagePortUris.isEmpty()) {
             List<StoragePort> storagePorts = dbClient.queryObject(StoragePort.class, storagePortUris);
             for (StoragePort storagePort : storagePorts) {
                 if (storagePort != null) {
@@ -2454,6 +2476,16 @@ public class VolumeIngestionUtil {
 
         blockObject.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
 
+        // snapshot sessions
+        URIQueryResultList queryResults = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(blockObject.getId()), queryResults);
+        Iterator<URI> resultsIter = queryResults.iterator();
+        while (resultsIter.hasNext()) {
+            BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, resultsIter.next());
+            snapSession.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+            updatedObjects.add(snapSession);
+        }
+
         if ((blockObject instanceof Volume) && (isVplexBackendVolume)) {
             // VPLEX backend volumes should still have the INTERNAL_OBJECT flag.
             // Note that snapshots can also be VPLEX backend volumes so make sure
@@ -2543,6 +2575,7 @@ public class VolumeIngestionUtil {
                 case CREATE_VOLUME_MIRROR:
                 case CHANGE_BLOCK_VOLUME_VARRAY:
                 case UPDATE_CONSISTENCY_GROUP:
+                case CREATE_SNAPSHOT_SESSION:
                     _logger.error("Operation {} is not permitted on ingested volumes.", operation.getName());
                     throw APIException.badRequests.operationNotPermittedOnIngestedVolume(
                             operation.getName(), volume.getLabel());

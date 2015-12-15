@@ -582,6 +582,12 @@ public class ControllerUtils {
                             volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel,
                                     virtualPool.getHostIOLimitBandwidth(),
                                     virtualPool.getHostIOLimitIOPs());
+                        } else if (blockObject instanceof BlockMirror) {
+                            BlockMirror mirror = (BlockMirror) blockObject;
+                            VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, mirror.getVirtualPool());
+                            volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel,
+                                    virtualPool.getHostIOLimitBandwidth(),
+                                    virtualPool.getHostIOLimitIOPs());
                         }
                     }
                     volURIsHlus[index++] = volumeURLHLU;
@@ -613,6 +619,12 @@ public class ControllerUtils {
                     AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class, policyURI);
                     policyName = policy.getPolicyName();
                 }
+            }
+        } else if (URIUtil.isType(uri, BlockMirror.class)) {
+            BlockMirror mirror = dbClient.queryObject(BlockMirror.class, uri);
+            if (!NullColumnValueGetter.isNullURI(mirror.getAutoTieringPolicyUri())) {
+                AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class, mirror.getAutoTieringPolicyUri());
+                policyName = policy.getPolicyName();
             }
         }
 

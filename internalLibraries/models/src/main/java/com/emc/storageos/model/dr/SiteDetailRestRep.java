@@ -16,7 +16,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SiteDetailRestRep {
     private Date creationTime;
     private Date pausedTime;
-    private Date lastOperationTime;
+    private Date lastUpdateTime;
 
     @XmlElement(name = "creationTime")
     public Date getCreationTime() {
@@ -36,13 +36,13 @@ public class SiteDetailRestRep {
         this.pausedTime = pausedTime;
     }
 
-    @XmlElement(name = "lastOperationTime")
-    public Date getLastOperationTime() {
-        return lastOperationTime;
+    @XmlElement(name = "lastUpdateTime")
+    public Date getlastUpdateTime() {
+        return lastUpdateTime;
     }
 
-    public void setLastOperationTime(Date lastOperationTime) {
-        this.lastOperationTime = lastOperationTime;
+    public void setlastUpdateTime(Date lastUpdateTime) {
+        this.lastUpdateTime = lastUpdateTime;
     }
 
     @Override
@@ -52,8 +52,8 @@ public class SiteDetailRestRep {
         builder.append(creationTime);
         builder.append(", pausedTime=");
         builder.append(pausedTime);
-        builder.append(", lastOperationTime=");
-        builder.append(lastOperationTime);
+        builder.append(", lastUpdateTime=");
+        builder.append(lastUpdateTime);
         builder.append("]");
         return builder.toString();
     }

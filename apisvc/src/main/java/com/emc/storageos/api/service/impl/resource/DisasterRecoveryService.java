@@ -1056,7 +1056,7 @@ public class DisasterRecoveryService {
             if (standby.getState().equals(SiteState.STANDBY_PAUSED)) {
                 standbyTimes.setPausedTime(new Date(standby.getLastStateUpdateTime()));
             }
-            // Add last-synced time to lastOperationTime when available
+            // Add last-synced time to lastUpdateTime when available
         } catch (CoordinatorException e) {
             log.error("Can't find site {} from ZK", uuid);
             throw APIException.badRequests.siteIdNotFound();

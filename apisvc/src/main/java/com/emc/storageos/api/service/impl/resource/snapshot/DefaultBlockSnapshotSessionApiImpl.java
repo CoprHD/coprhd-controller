@@ -366,7 +366,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
             Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
         // Must be implemented by platform implementations for which this is supported.
-        APIException.methodNotAllowed.notSupported();
+        throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
@@ -396,7 +396,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     @Override
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
             List<URI> snapshotURIs, String copyMode, String taskId) {
-        APIException.methodNotAllowed.notSupported();
+        throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
@@ -455,7 +455,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     @Override
     public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession TgtSnapSession,
             List<URI> snapshotURIs, String taskId) {
-        APIException.methodNotAllowed.notSupported();
+        throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
@@ -493,7 +493,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     @Override
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
             Map<URI, Boolean> snapshotDeletionMap, String taskId) {
-        APIException.methodNotAllowed.notSupported();
+        throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
@@ -539,7 +539,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void restoreSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
-        APIException.methodNotAllowed.notSupported();
+        throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
@@ -578,7 +578,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
-        APIException.methodNotAllowed.notSupported();
+        throw APIException.methodNotAllowed.notSupported();
     }
 
     /**

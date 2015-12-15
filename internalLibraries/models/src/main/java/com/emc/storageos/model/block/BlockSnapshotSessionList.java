@@ -15,7 +15,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 /**
  * List of NamedRelatedResourceRep instances representing BlockSnapshotSession instances.
  */
-@XmlRootElement(name = "snapshot-sessions")
+@XmlRootElement(name = "snapshot_sessions")
 public class BlockSnapshotSessionList {
 
     // The list of NamedRelatedResourceRep for the BlockSnapshotSession instances.
@@ -42,7 +42,7 @@ public class BlockSnapshotSessionList {
      * 
      * @return The list of NamedRelatedResourceRep for the BlockSnapshotSession instances.
      */
-    @XmlElement(name = "snapshot-session")
+    @XmlElement(name = "snapshot_session")
     public List<NamedRelatedResourceRep> getSnapSessionRelatedResourceList() {
         if (snapSessionRelatedResourceList == null) {
             snapSessionRelatedResourceList = new ArrayList<NamedRelatedResourceRep>();

@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -15,6 +16,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.constraint.QueryResultList;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
+import com.emc.storageos.model.pools.VirtualArrayAssignments;
+import com.emc.storageos.model.vpool.VirtualPoolList;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
+import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,6 +148,77 @@ public class StoragePortAssociationHelper {
         return poolUris;
     }
 
+    public static void runUpdatePortAssociationsProcessForVArrayChange(StoragePort port,
+                                                                       DbClient dbClient, CoordinatorClient coordinator, List<StoragePool> pools,
+                                                                       VirtualArrayAssignmentChanges varrayAssignmentChanges) {
+        try {
+            // If there was no change in connection between virtual array and storage system which owns port,
+            // we will run only NumPathsMatcher. Even when varray to storage system connectivity had not changed,
+            // change in varray ports may have impact on max. number of paths available for varray pools.
+            // If there was change in connectivity between virtual array and storage system, we will run all vpool
+            // matchers.
+
+            // This is our storage system.
+            URI storageSystemURI = port.getStorageDevice();
+            Set<String> varraysToAddIds = new HashSet<>();
+            Set<String> varraysToRemoveIds = new HashSet<>();
+            VirtualArrayAssignments varraysToAdd = varrayAssignmentChanges.getAdd();
+            if (varraysToAdd != null) {
+                varraysToAddIds = varraysToAdd.getVarrays();
+            }
+            VirtualArrayAssignments varraysToRemove = varrayAssignmentChanges.getRemove();
+            if (varraysToRemove != null) {
+                varraysToRemoveIds = varraysToRemove.getVarrays();
+            }
+            Set<String> varraysWithOutChangedConnectivity = new HashSet<>(varraysToAddIds);
+            varraysWithOutChangedConnectivity.addAll(varraysToRemoveIds);
+
+            // Set of varrays which changed connection to our storage system as result of storage port to varrays assignment change.
+            Set<String> varraysWithChangedConnectivity = StoragePortAssociationHelper.getVArraysWithChangedConnectivityToStorageSystem(storageSystemURI, varraysToAddIds,
+                    varraysToRemoveIds, dbClient);
+            varraysWithOutChangedConnectivity.removeAll(varraysWithChangedConnectivity);
+
+            Collection<StoragePort> ports = Collections.singleton(port);
+            if (null == pools) {
+                pools = new ArrayList<StoragePool>();
+            }
+
+            // for better reading, added a method to group Ports by Network
+            Map<NetworkLite, List<StoragePort>> portsByNetwork = groupPortsByNetwork(ports, dbClient);
+            if (!portsByNetwork.isEmpty()) {
+                updatePortAssociations(ports, portsByNetwork, dbClient);
+                // if any ports are associated with network, then add pools to existing list and run matching pools
+                Set<URI> poolUris = getStoragePoolIds(pools);
+                List<StoragePool> modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(dbClient, ports, null);
+                for (StoragePool pool : modifiedPools) {
+                    if (!poolUris.contains(pool.getId())) {
+                        pools.add(pool);
+                    }
+                }
+            }
+            if (!varraysWithChangedConnectivity.isEmpty()) {
+                // If there are varrays which changed connectivity to our storage system, we need to process all their vpools to match them to
+                // our system's storage pools.
+                // Match the VPools defined in VArrays with changed connectivity to the StoragePools with all vpool matchers
+                List<URI> vpoolURIs = getVpoolsForVarrays(varraysWithChangedConnectivity, dbClient);
+                ImplicitPoolMatcher.matchModifiedStoragePoolsWithVirtualPools(pools, vpoolURIs, dbClient, coordinator, AttributeMatcher.VPOOL_MATCHERS);
+            }
+            if (!varraysWithOutChangedConnectivity.isEmpty()) {
+                // Match the VPools defined in VArrays without changed connectivity to the StoragePools only with num paths matcher
+                List<URI> vpoolURIs = getVpoolsForVarrays(varraysWithOutChangedConnectivity, dbClient);
+                ImplicitPoolMatcher.matchModifiedStoragePoolsWithVirtualPools(pools, vpoolURIs, dbClient, coordinator, AttributeMatcher.CONNECTIVITY_PLACEMENT_MATCHERS);
+            }
+            // get all the system that were affected and update their virtual
+            // arrays
+            HashSet<URI> systemsToProcess = StoragePoolAssociationHelper.getStorageSytemsFromPorts(ports, null);
+            // Now that pools have changed varrays, we need to update RP systems
+            ConnectivityUtil.updateRpSystemsConnectivity(systemsToProcess, dbClient);
+        } catch (Exception e) {
+            _log.error("Update Port Association process failed", e);
+        }
+    }
+
+
     /**
      * This method is responsible for
      * 1. Update pools to virtual arrays & system to virtual arrays in vplex case
@@ -187,6 +268,100 @@ public class StoragePortAssociationHelper {
             _log.error("Update Port Association process failed", e);
         }
     }
+
+
+    private static Set<String>  getVArraysWithChangedConnectivityToStorageSystem(URI storageSystemURI, Set<String> varraysToAddIds,
+                                                                                Set<String> varraysToRemoveIds, DbClient dbClient) {
+        // Set of varrays which changed connection to the storage system.
+        Set<String> varraysWithChangedConnectivity = new HashSet<>();
+
+        // Check which varrays in "ToAdd" set already have at least one port from our storage system.
+        // For these varrays there is no connection change to the storage system.
+        // This map keeps count of ports from our storage system in each varray under change.
+        Map<String, Integer> varrayToPortCountMap = new HashMap<>();
+
+        if (varraysToAddIds != null && !varraysToAddIds.isEmpty()) {
+            Set<String> varraysToAddWithChangedConnectivity = new HashSet<>(varraysToAddIds);
+            for (String varrayId : varraysToAddIds) {
+                URIQueryResultList storagePortURIs = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(varrayId),
+                        storagePortURIs);
+                for (URI portURI : storagePortURIs) {
+                    StoragePort varrayPort = (StoragePort) dbClient.queryObject(portURI);
+                    if (!NullColumnValueGetter.isNullURI(varrayPort.getStorageDevice()) &&
+                            storageSystemURI.equals(varrayPort.getStorageDevice())) {
+                        // This varray port belongs to our storage system
+                        varrayToPortCountMap.put(varrayId, 1);
+                        // At least one port from our storage system belongs to varray.
+                        // Addition of a new port to this varray does not change connection between our storage
+                        // system and varray.
+                        // We can stop here processing varray ports.
+                        varraysToAddWithChangedConnectivity.remove(varrayId);
+                        break;
+                    }
+                }
+            }
+            varraysWithChangedConnectivity.addAll(varraysToAddWithChangedConnectivity);
+        }
+
+        // Check which varrays "ToRemove" have at least two ports from our storage system.
+        // For these varrays there is no connection change to our storage system when one of the ports is removed from
+        // the varray.
+        if (varraysToRemoveIds != null && !varraysToRemoveIds.isEmpty()) {
+            Set<String> varraysToRemoveWithChangedConnectivity = new HashSet<>(varraysToRemoveIds);
+            for (String varrayId : varraysToRemoveIds) {
+                URIQueryResultList storagePortURIs = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(varrayId),
+                        storagePortURIs);
+                for (URI portURI : storagePortURIs) {
+                    StoragePort varrayPort = (StoragePort) dbClient.queryObject(portURI);
+                    if (!NullColumnValueGetter.isNullURI(varrayPort.getStorageDevice()) &&
+                            storageSystemURI.equals(varrayPort.getStorageDevice())) {
+                        // This varray port belongs to our storage system
+                        Integer count = varrayToPortCountMap.get(varrayId);
+                        if (count != null) {
+                            count++;
+                        } else {
+                            count = new Integer(1);
+                        }
+                        varrayToPortCountMap.put(varrayId, count);
+                        if (count > 1) {
+                            // More than one port from our storage system belongs to varray.
+                            // We can stop here processing varray ports.
+                            varraysToRemoveWithChangedConnectivity.remove(varrayId);
+                            break;
+                        }
+                    }
+                }
+            }
+            varraysWithChangedConnectivity.addAll(varraysToRemoveWithChangedConnectivity);
+        }
+        return varraysWithChangedConnectivity;
+    }
+
+
+    public static List<URI> getVpoolsForVarrays(Set<String> varrayIDs, DbClient dbClient) {
+        List<URI> vpoolURIs = new ArrayList<>();
+        for (String varrayID : varrayIDs) {
+            URI varrayURI = URI.create(varrayID);
+            URIQueryResultList resultList = new URIQueryResultList();
+            dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getVirtualArrayVirtualPoolConstraint(varrayURI),
+                    resultList);
+
+            Iterator<URI> iterator = resultList.iterator();
+            while (iterator.hasNext()) {
+                URI vpoolId = iterator.next();
+
+                if (vpoolURIs.contains(vpoolId)) { // already added, ignore
+                    continue;
+                }
+                vpoolURIs.add(vpoolId);
+            }
+        }
+        return vpoolURIs;
+    }
+
 
     /**
      * it return VirtualNAS from database using NativeId

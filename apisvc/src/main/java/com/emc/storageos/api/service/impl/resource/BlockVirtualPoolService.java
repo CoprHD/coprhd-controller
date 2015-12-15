@@ -228,7 +228,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool, allPools,
                 protectionSettingsMap,
                 remoteSettingsMap,
-                _dbClient, _coordinator);
+                _dbClient, _coordinator, null);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
         }

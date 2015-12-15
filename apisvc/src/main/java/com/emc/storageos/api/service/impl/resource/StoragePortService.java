@@ -322,8 +322,7 @@ public class StoragePortService extends TaggedResource {
             List<StoragePool> pools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(
                     _dbClient, Arrays.asList(storagePort), null, true);
             if ((modifiedPools == null) || (modifiedPools.isEmpty())) {
-                modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(
-                        _dbClient, Arrays.asList(storagePort), null, true);
+                modifiedPools = pools;
             } else {
                 List<StoragePool> poolsToAdd = new ArrayList<StoragePool>();
                 for (StoragePool pool : pools) {
@@ -344,8 +343,15 @@ public class StoragePortService extends TaggedResource {
             }
         }
 
-        if (virtualArraysUpdated || networkUpdated || portNetworkIdUpdated) {
+        boolean updatePortAssociations = virtualArraysUpdated || networkUpdated || portNetworkIdUpdated;
+        if (updatePortAssociations && !(networkUpdated || portNetworkIdUpdated)) {
             _log.info("Storage port virtual arrays have been modified.");
+            // this method runs poolmatcher, rp connectivity
+            StoragePortAssociationHelper.runUpdatePortAssociationsProcessForVArrayChange(
+                    storagePort, _dbClient,
+                    _coordinator, modifiedPools, storagePortUpdates.getVarrayChanges());
+        } else if (updatePortAssociations) {
+            _log.info("Storage port was moved to other network or storage port's virtual arrays have been modified.");
             // this method runs poolmatcher, rp connectivity
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(
                     Collections.singleton(storagePort), null, _dbClient,

@@ -176,7 +176,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
                 null,
                 null,
                 _dbClient,
-                _coordinator);
+                _coordinator, null);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
         }

@@ -1785,8 +1785,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     @SuppressWarnings("rawtypes")
     @Override
-    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
-            throws DeviceControllerException {
+    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer) throws DeviceControllerException {
         if (system.checkIfVmax3()) {
             // Only supported for VMAX3 storage systems.
             try {
@@ -1803,7 +1802,16 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     URI sourceURI = snapSession.getParent().getURI();
                     BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
                     CIMObjectPath sourcePath = _cimPath.getBlockObjectPath(system, sourceObj);
-                    CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
+
+                    CIMObjectPath settingsStatePath = null;
+                    if (sourceObj.hasConsistencyGroup()) {
+                        String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
+                        settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName,
+                                syncAspectPath);
+                    } else {
+                        settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
+                    }
+
                     CIMArgument[] inArgs = null;
                     CIMArgument[] outArgs = new CIMArgument[5];
                     inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(settingsStatePath, false);

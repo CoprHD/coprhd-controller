@@ -12,6 +12,8 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.QueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -42,6 +44,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +65,7 @@ import java.util.UUID;
 import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 import static java.lang.String.format;
 
@@ -655,7 +659,7 @@ public class BlockSnapshotSessionManager {
      * 
      * @return TaskResourceRep representing the snapshot session task.
      */
-    public TaskResourceRep deleteSnapshotSession(URI snapSessionURI) {
+    public TaskList deleteSnapshotSession(URI snapSessionURI) {
         s_logger.info("START delete snapshot session {}", snapSessionURI);
 
         // Get the snapshot session.
@@ -678,12 +682,26 @@ public class BlockSnapshotSessionManager {
         // Create the task identifier.
         String taskId = UUID.randomUUID().toString();
 
-        // Create the operation status entry in the status map for the snapshot.
-        Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION);
-        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, op);
-        snapSession.getOpStatus().put(taskId, op);
-        TaskResourceRep response = toTask(snapSession, taskId);
+        List<BlockSnapshotSession> snapshotSessions = null;
+        if (snapSessionSourceObj.hasConsistencyGroup()) {
+            QueryResultList resultList = new URIQueryResultList();
+            _dbClient.queryByConstraint(getBlockSnapshotSessionBySessionInstance(snapSession.getSessionInstance()),
+                    resultList);
+            snapshotSessions = Lists.newArrayList(resultList.iterator());
+        } else {
+            snapshotSessions = Lists.newArrayList(snapSession);
+        }
+
+        TaskList taskList = new TaskList();
+
+        for (BlockSnapshotSession blockSnapshotSession : snapshotSessions) {
+            // Create the operation status entry in the status map for the snapshot.
+            Operation op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION);
+            _dbClient.createTaskOpStatus(BlockSnapshotSession.class, blockSnapshotSession.getId(), taskId, op);
+            snapSession.getOpStatus().put(taskId, op);
+            taskList.addTask(toTask(blockSnapshotSession, taskId));
+        }
 
         // Delete the snapshot session.
         try {
@@ -696,7 +714,7 @@ public class BlockSnapshotSessionManager {
             } else {
                 sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
             }
-            cleanupFailure(Arrays.asList(response), new ArrayList<DataObject>(), errorMsg, taskId, sc);
+            cleanupFailure(taskList.getTaskList(), new ArrayList<DataObject>(), errorMsg, taskId, sc);
             throw e;
         }
 
@@ -705,7 +723,8 @@ public class BlockSnapshotSessionManager {
                 snapSessionURI.toString(), snapSessionSourceURI.toString(), snapSessionSourceObj.getStorageController().toString());
 
         s_logger.info("FINISH delete snapshot session {}", snapSessionURI);
-        return response;
+
+        return taskList;
     }
 
     /**

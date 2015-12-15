@@ -34,7 +34,9 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.job.*;
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1507,6 +1509,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         // Gather all snapshots to be created
         List<URI> snapshotUris = newArrayList(concat(snapSessionSnapshotMap.values()));
         List<BlockSnapshot> snapshots = newArrayList(_dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotUris));
+        final Map<URI, BlockSnapshot> uriToSnapshot = new HashMap<>();
         URI snapSessionURI = snapSessionSnapshotMap.keySet().iterator().next();
         BlockSnapshot sampleSnapshot = snapshots.get(0);
         Volume sampleParent = _dbClient.queryObject(Volume.class, sampleSnapshot.getParent().getURI());
@@ -1516,6 +1519,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             // Group snapshots parent volumes by their pool and size
             Map<String, List<Volume>> volumesBySizeMap = new HashMap<>();
             for (BlockSnapshot target : snapshots) {
+                uriToSnapshot.put(target.getId(), target);
                 Volume parent = _dbClient.queryObject(Volume.class, target.getParent().getURI());
                 String key = parent.getPool() + "-" + parent.getCapacity();
                 if (volumesBySizeMap.containsKey(key)) {
@@ -1547,6 +1551,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     SYNC_TYPE.SNAPSHOT);
 
             _log.info("Created target device group: {}", targetGroupPath);
+            String targetGroupName = (String) targetGroupPath.getKeyValue(CP_INSTANCE_ID);
 
             // Now link the target group to the array snapshots represented by the session.
             CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
@@ -1562,8 +1567,22 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             inArgs = _helper.getModifySettingsDefinedStateForLinkTargetGroup(system, settingsStatePath, targetGroupPath, copyMode);
             _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
             CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-            ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionLinkTargetGroupJob(jobPath,
-                    system.getId(), completer)));
+
+            SmisBlockSnapshotSessionLinkTargetGroupJob job =
+                    new SmisBlockSnapshotSessionLinkTargetGroupJob(jobPath, system.getId(), completer);
+            job.setSourceGroupName(sourceGroupName);
+            job.setTargetGroupName(targetGroupName);
+            job.setSnapSessionInstance(snapSession.getSessionInstance());
+
+            Map<String, URI> nativeIdToSnapshot = Maps.uniqueIndex(snapshotUris, new Function<URI, String>() {
+                @Override
+                public String apply(URI input) {
+                    return uriToSnapshot.get(input).getNativeId();
+                }
+            });
+            job.setNativeIdToSnapshotMap(nativeIdToSnapshot);
+
+            ControllerServiceImpl.enqueueJob(new QueueJob(job));
             _log.info("Link new target group to snapshot session group FINISH");
         } catch (Exception e) {
             _log.info("Exception creating and linking snapshot session targets", e);

@@ -20,10 +20,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.StringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,18 +29,22 @@ import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.DbModelClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -56,7 +56,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
-import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportGroupRemoveVolumesCleanupCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
@@ -68,7 +67,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchest
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.volumecontroller.placement.ExportPathParams;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
@@ -298,10 +296,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         // allocating the Storage Ports (targets).
         List<Initiator> initiators =
                 _dbClient.queryObject(Initiator.class, initiatorURIs);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                volumeMap.keySet(), exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeMap.keySet(), exportGroup.getNumPaths(), storage.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
         if (exportGroup.getZoneAllInitiators()) {
             pathParams.setAllowFewerPorts(true);
@@ -503,10 +501,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs :
                 (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                volumeURIs, exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeURIs, exportGroup.getNumPaths(), storageURI, exportGroupURI);
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
@@ -1129,6 +1127,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Integer requestedHLU = volumeMap.get(bo.getId());
             StringMap existingVolumesInMask = exportMask.getExistingVolumes();
             if (existingVolumesInMask != null
+                    && !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString())
                     && existingVolumesInMask.containsValue(requestedHLU.toString())) {
                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                         exportGroup.getId(), token);
@@ -1551,7 +1550,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             volumes = Collections2.transform(exportGroup.getVolumes().keySet(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI);
         }
-        ExportPathParams exportPathParams = _blockScheduler.calculateExportPathParamForVolumes(volumes, 0, storage);
+        ExportPathParams exportPathParams = _blockScheduler
+                .calculateExportPathParamForVolumes(volumes, 0, storage, exportGroup.getId());
         _log.info(String.format("determineInitiatorToExportMaskPlacements - ExportGroup=%s, exportPathParams=%s",
                 exportGroup.getId().toString(), exportPathParams));
         // Update mapping based on what is seen on the array

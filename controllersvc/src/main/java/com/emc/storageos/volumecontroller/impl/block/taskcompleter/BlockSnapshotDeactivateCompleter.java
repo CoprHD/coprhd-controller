@@ -27,10 +27,6 @@ public class BlockSnapshotDeactivateCompleter extends BlockSnapshotTaskCompleter
     private static final String SNAPSHOT_DEACTIVATE_FAILED_MSG = "Failed to deactivate snapshot %s for volume %s";
     private final List<URI> _snapshotURIs;
 
-    public List<URI> getSnapshotURIs() {
-        return _snapshotURIs;
-    }
-
     public BlockSnapshotDeactivateCompleter(List<URI> snaps, String task) {
         super(BlockSnapshot.class, snaps.get(0), task);
         _snapshotURIs = new ArrayList<URI>();
@@ -42,28 +38,27 @@ public class BlockSnapshotDeactivateCompleter extends BlockSnapshotTaskCompleter
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            for (URI thisOne : _snapshotURIs) {
-                switch (status) {
-                    case error:
-                        dbClient.error(BlockSnapshot.class, thisOne, getOpId(), coded);
-                        break;
-                    default:
-                        dbClient.ready(BlockSnapshot.class, thisOne, getOpId());
-                }
-                BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, thisOne);
+            List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, _snapshotURIs);
+
+            for (BlockSnapshot snapshot : snapshots) {
                 Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
+
                 switch (status) {
                     case error:
-                        dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
+                        setErrorOnDataObject(dbClient, BlockSnapshot.class, snapshot, coded);
+                        setErrorOnDataObject(dbClient, Volume.class, volume.getId(), coded);
                         break;
                     default:
-                        dbClient.ready(Volume.class, volume.getId(), getOpId());
+                        setReadyOnDataObject(dbClient, BlockSnapshot.class, snapshot);
+                        setReadyOnDataObject(dbClient, Volume.class, volume.getId());
                 }
 
                 recordBlockSnapshotOperation(dbClient, OperationTypeEnum.DEACTIVATE_VOLUME_SNAPSHOT, status,
                         eventMessage(status, volume, snapshot), snapshot);
             }
-            _log.info("Done dectivate {}, with Status: {}", getOpId(), status.name());
+
+            super.complete(dbClient, status, coded);
+            _log.info("Done deactivate {}, with Status: {}", getOpId(), status.name());
         } catch (Exception e) {
             _log.error("Failed updating status. SnapshotDeactivate {}, for task " + getOpId(), getId(), e);
         }

@@ -39,8 +39,10 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
     @Override
     public <T extends BlockObject> void ingestExportMasks(UnManagedVolume unManagedVolume,
             List<UnManagedExportMask> unManagedMasks, VolumeExportIngestParam param, ExportGroup exportGroup, T volume,
-            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount, List<Initiator> deviceInitiators) throws IngestionException {
-        super.ingestExportMasks(unManagedVolume, unManagedMasks, param, exportGroup, volume, system, exportGroupCreated, masksIngestedCount, deviceInitiators);
+            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount, 
+            List<Initiator> deviceInitiators, List<String> errorMessages ) throws IngestionException {
+        super.ingestExportMasks(unManagedVolume, unManagedMasks, param, exportGroup, 
+                volume, system, exportGroupCreated, masksIngestedCount, deviceInitiators, errorMessages);
     }
 
     @Override

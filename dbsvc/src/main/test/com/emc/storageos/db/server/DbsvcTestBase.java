@@ -5,8 +5,35 @@
 
 package com.emc.storageos.db.server;
 
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+
+import java.beans.Introspector;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+
+import org.apache.cassandra.config.Schema;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.db.client.DbClient;
@@ -25,24 +52,12 @@ import com.emc.storageos.db.server.impl.MigrationHandlerImpl;
 import com.emc.storageos.db.server.impl.SchemaUtil;
 import com.emc.storageos.db.server.util.StubBeaconImpl;
 import com.emc.storageos.db.server.util.StubCoordinatorClientImpl;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.LoggingUtils;
-
-import org.apache.cassandra.config.Schema;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
-import java.beans.Introspector;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.URI;
-import java.util.*;
 
 /**
  * Dbsvc unit test base
@@ -68,6 +83,9 @@ public class DbsvcTestBase {
     protected static Map<String, List<BaseCustomMigrationCallback>> customMigrationCallbacks = new HashMap<>();
     protected static DbServiceStatusChecker statusChecker = null;
     protected static GeoDependencyChecker _geoDependencyChecker;
+    protected static SchemaUtil schemaUtil;
+    protected  static final String dataDir="./dbtest";
+    private static InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
 
     // This controls whether the JMX server is started with DBSVC or not. JMX server is used to snapshot Cassandra
     // DB files and dump SSTables to JSON files. However, current JmxServerWrapper.start() implementation blindly
@@ -77,6 +95,9 @@ public class DbsvcTestBase {
     // throw an exception. There's no standard way to shutdown a RMI Registry server.
     protected static boolean _startJmx;
 
+    private static final String args[] = {
+            "dbversion-info.xml",
+    };
     /**
      * Deletes given directory
      * 
@@ -95,12 +116,15 @@ public class DbsvcTestBase {
 
     @BeforeClass
     public static void setup() throws IOException {
-        _dbVersionInfo = new DbVersionInfo();
-        _dbVersionInfo.setSchemaVersion("2.2");
-        _dataDir = new File("./dbtest");
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("dbversion-info.xml");
+
+        _dbVersionInfo = (DbVersionInfo)ctx.getBean("dbVersionInfo");
+        _dataDir = new File(dataDir);
         if (_dataDir.exists() && _dataDir.isDirectory()) {
             cleanDirectory(_dataDir);
         }
+        _dataDir.mkdir();
+        
         startDb(_dbVersionInfo.getSchemaVersion(), null);
     }
 
@@ -182,28 +206,43 @@ public class DbsvcTestBase {
         statusChecker.setClusterNodeCount(1);
         statusChecker.setDbVersionInfo(_dbVersionInfo);
         statusChecker.setServiceName(service.getName());
+        
+        apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
+        
+        SecretKey key = null;
+        try {
+            KeyGenerator keyGenerator = null;
+            keyGenerator = KeyGenerator.getInstance("HmacSHA256");
+            key = keyGenerator.generateKey();
+        } catch (NoSuchAlgorithmException e) {
+            fail("generate key fail");
+        }
+        
+        doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
 
-        SchemaUtil util = new MockSchemaUtil();
-        util.setKeyspaceName("Test");
-        util.setClusterName("Test");
-        util.setDataObjectScanner(scanner);
-        util.setService(service);
-        util.setStatusChecker(statusChecker);
-        util.setCoordinator(_coordinator);
-        util.setVdcShortId("vdc1");
+        schemaUtil  = new MockSchemaUtil();
+        schemaUtil.setKeyspaceName("Test");
+        schemaUtil.setClusterName("Test");
+        schemaUtil.setDataObjectScanner(scanner);
+        schemaUtil.setService(service);
+        schemaUtil.setStatusChecker(statusChecker);
+        schemaUtil.setCoordinator(_coordinator);
+        schemaUtil.setVdcShortId("datacenter1");
+        schemaUtil.setDrUtil(new DrUtil(_coordinator));
+        schemaUtil.setApiSignatureGenerator(apiSignatureGeneratorMock);
 
-        DbClientContext dbctx = new DbClientContext();
+        DbClientContext dbctx = new MockDbClientContext();
         dbctx.setClusterName("Test");
         dbctx.setKeyspaceName("Test");
-        util.setClientContext(dbctx);
+        schemaUtil.setClientContext(dbctx);
 
         Properties props = new Properties();
         props.put(DbClientImpl.DB_STAT_OPTIMIZE_DISK_SPACE, "false");
-        util.setDbCommonInfo(props);
+        schemaUtil.setDbCommonInfo(props);
         List<String> vdcHosts = new ArrayList();
         vdcHosts.add("127.0.0.1");
-        util.setVdcNodeList(vdcHosts);
-        util.setDbCommonInfo(new java.util.Properties());
+        schemaUtil.setVdcNodeList(vdcHosts);
+        schemaUtil.setDbCommonInfo(new java.util.Properties());
 
         JmxServerWrapper jmx = new JmxServerWrapper();
         if (_startJmx) {
@@ -223,7 +262,7 @@ public class DbsvcTestBase {
         passwordUtils.setCoordinator(_coordinator);
         passwordUtils.setEncryptionProvider(_encryptionProvider);
         passwordUtils.setDbClient(_dbClient);
-        util.setPasswordUtils(passwordUtils);
+        schemaUtil.setPasswordUtils(passwordUtils);
 
         MigrationHandlerImpl handler = new MigrationHandlerImpl();
         handler.setPackages(pkgsArray);
@@ -231,7 +270,7 @@ public class DbsvcTestBase {
         handler.setStatusChecker(statusChecker);
         handler.setCoordinator(_coordinator);
         handler.setDbClient(_dbClient);
-        handler.setSchemaUtil(util);
+        handler.setSchemaUtil(schemaUtil);
         handler.setPackages(pkgsArray);
 
         handler.setCustomMigrationCallbacks(customMigrationCallbacks);
@@ -241,13 +280,14 @@ public class DbsvcTestBase {
 
         _dbsvc = new TestMockDbServiceImpl();
         _dbsvc.setConfig("db-test.yaml");
-        _dbsvc.setSchemaUtil(util);
+        _dbsvc.setSchemaUtil(schemaUtil);
         _dbsvc.setCoordinator(_coordinator);
         _dbsvc.setStatusChecker(statusChecker);
         _dbsvc.setService(service);
         _dbsvc.setJmxServerWrapper(jmx);
         _dbsvc.setDbClient(_dbClient);
         _dbsvc.setBeacon(beacon);
+        _dbsvc.setDbDir(dataDir);
         _dbsvc.setMigrationHandler(handler);
         _dbsvc.setDisableScheduledDbRepair(true);
         _dbsvc.start();
@@ -282,7 +322,7 @@ public class DbsvcTestBase {
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
 
-        DbClientContext localCtx = new DbClientContext();
+        DbClientContext localCtx = new MockDbClientContext();
         localCtx.setClusterName("Test");
         localCtx.setKeyspaceName("Test");
         dbClient.setLocalContext(localCtx);
@@ -300,6 +340,13 @@ public class DbsvcTestBase {
         @Override
         public void insertVdcVersion(final DbClient dbClient) {
             // Do nothing
+        }
+    }
+    
+    static class MockDbClientContext extends DbClientContext {
+        @Override
+        public int getThriftPort() {
+            return 9160;
         }
     }
     

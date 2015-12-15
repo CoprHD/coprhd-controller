@@ -93,24 +93,6 @@ if (project.hasProperty("log4jConf")) {
     }
 }
 
-// need to make some dependent files ready before subprojects are evaluated.
-if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
-    project.rootProject.afterEvaluate {
-        println "GET - ${project.rootDir}/repo/net.sourceforge.org/sblim-cim-client-2.2.3.jar"
-        
-	def executableName = "${project.rootDir}/gradlew-oss"
-	if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-        	executableName = executableName + ".bat"
-    	}
-
-	exec {
-            workingDir "${project.rootDir}/repo"
-            executable "${executableName}"
-            args       "-g.gradle", "assembleSBLIM"
-        }
-    }
-}
-
 allprojects {
     group = "com.emc.vipr"
     configurations {

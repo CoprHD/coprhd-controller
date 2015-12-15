@@ -16,7 +16,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "compute_imageserver")
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -24,10 +24,11 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     private String imageServerIp;
     private String imageServerSecondIp;
     private String tftpBootDir;
-    private List<RelatedResourceRep> computeImages;
+    private List<NamedRelatedResourceRep> computeImages;
     private String computeImageServerStatus;
-    private Integer osInstallTimeoutMs;
+    private Integer osInstallTimeout;
     private String imageServerUser;
+    private List<NamedRelatedResourceRep> failedImages = new ArrayList<NamedRelatedResourceRep>();
 
     public ComputeImageServerRestRep() {
     }
@@ -72,9 +73,9 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     @XmlElementWrapper(name = "compute_images")
     @XmlElement(name = "compute_image")
     @JsonProperty("compute_images")
-    public List<RelatedResourceRep> getComputeImages() {
+    public List<NamedRelatedResourceRep> getComputeImages() {
         if (null == computeImages) {
-            computeImages = new ArrayList<RelatedResourceRep>();
+            computeImages = new ArrayList<NamedRelatedResourceRep>();
         }
         return computeImages;
     }
@@ -83,7 +84,7 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
      * @param computeImages
      *            the computeImages to set
      */
-    public void setComputeImages(List<RelatedResourceRep> computeImages) {
+    public void setComputeImages(List<NamedRelatedResourceRep> computeImages) {
         this.computeImages = computeImages;
     }
 
@@ -133,19 +134,36 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     }
 
     /**
-     * @return the osInstallTimeoutMs
+     * @return the osInstallTimeout
      */
-    @XmlElement(name = "osinstall_timeoutms")
-    @JsonProperty("osinstall_timeoutms")
-    public Integer getOsInstallTimeoutMs() {
-        return osInstallTimeoutMs;
+    @XmlElement(name = "osinstall_timeout")
+    @JsonProperty("osinstall_timeout")
+    public Integer getOsInstallTimeout() {
+        return osInstallTimeout;
     }
 
     /**
-     * @param osInstallTimeoutMs
-     *            the osInstallTimeoutMs to set
+     * @param osInstallTimeout
+     *            the osInstallTimeout to set
      */
-    public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
-        this.osInstallTimeoutMs = osInstallTimeoutMs;
+    public void setOsInstallTimeout(Integer osInstallTimeout) {
+        this.osInstallTimeout = osInstallTimeout;
+    }
+
+    /**
+     * @return the failedImages
+     */
+    @XmlElementWrapper(name = "failed_compute_images", nillable = true, required = false)
+    @XmlElement(name = "failed_compute_image")
+    @JsonProperty("failed_compute_images")
+    public List<NamedRelatedResourceRep> getFailedImages() {
+        return failedImages;
+    }
+
+    /**
+     * @param failedImages the failedImages to set
+     */
+    public void setFailedImages(List<NamedRelatedResourceRep> failedImages) {
+        this.failedImages = failedImages;
     }
 }

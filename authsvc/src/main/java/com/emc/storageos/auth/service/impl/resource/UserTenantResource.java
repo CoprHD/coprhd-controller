@@ -72,6 +72,6 @@ public class UserTenantResource {
             }
             return Response.ok(userTenantList).build();
         }
-        return Response.status(Status.BAD_REQUEST).entity(String.format("Invalid username %1s", username)).build();
+        return Response.status(Status.BAD_REQUEST).entity(String.format("Invalid username")).build();
     }
 }

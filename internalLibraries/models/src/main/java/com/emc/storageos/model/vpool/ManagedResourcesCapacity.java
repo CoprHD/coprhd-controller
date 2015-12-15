@@ -86,7 +86,8 @@ public class ManagedResourcesCapacity {
     public enum CapacityResourceType {
         VOLUME,
         FILESHARE,
-        POOL
+        POOL, 
+        BUCKET
     }
 
 }

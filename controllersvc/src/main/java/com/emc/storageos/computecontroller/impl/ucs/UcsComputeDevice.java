@@ -518,7 +518,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
                     _dbClient.persistObject(exportGroup);
 
-                    Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
+                    Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
                     List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
                     List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
@@ -542,8 +542,9 @@ public class UcsComputeDevice implements ComputeDevice {
                         }
                     }
 
-                    blockExportController.exportGroupUpdate(exportGroup.getId(), updatedVolumesMap, updatedClusters,
-                            updatedHosts, updatedInitiators, task);
+                    blockExportController.exportGroupUpdate(exportGroup.getId(), 
+                            noUpdatesVolumeMap, noUpdatesVolumeMap, 
+                            updatedClusters, updatedHosts, updatedInitiators, task);
 
                     while (true) {
                         Thread.sleep(TASK_STATUS_POLL_FREQUENCY);

@@ -343,6 +343,20 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
         return postTask(getByConsistencyGroupUrl() + "/{id}/restore", consistencyGroupId, id);
     }
 
+    /**
+     * Creates a new VPLEX volume using the target volume associated with
+     * BlockSnapshot instance with the passed id as the source side
+     * backend volume for the VPLEX volume.
+     * <p>
+     * API Call: <tt>POST /block/snapshots/{id}/expose</tt>
+     * 
+     * @param id the URI of the block snapshot
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockSnapshotRestRep> expose(URI id) {
+        return postTask(getIdUrl() + "/expose", id);
+    }
+
     public Tasks<BlockSnapshotRestRep> createFullCopy(URI id, VolumeFullCopyCreateParam input) {
         return postTasks(input, getFullCopyUrl(), id);
     }
@@ -356,4 +370,16 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
         return getIdUrl() + "/protection/full-copies";
     }
 
+    /**
+     * Begins resynchronizing a blocksnapshot of the given block volume.
+     * <p>
+     * API Call: <tt>POST /block/snapshots/{id}/resynchronize</tt>
+     * 
+     * @param snapshotId
+     *            the ID of the block snapshot to resynchronize.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockSnapshotRestRep> resynchronizeBlockSnapshot(URI snapshotId) {
+        return postTask(getIdUrl() + "/resynchronize", snapshotId);
+    }
 }

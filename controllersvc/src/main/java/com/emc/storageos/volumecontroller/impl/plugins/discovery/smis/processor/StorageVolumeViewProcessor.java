@@ -4,6 +4,21 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.cim.UnsignedInteger32;
+import javax.wbem.CloseableIterator;
+import javax.wbem.client.EnumerateResponse;
+import javax.wbem.client.WBEMClient;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -12,19 +27,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.cim.UnsignedInteger32;
-import javax.wbem.CloseableIterator;
-import javax.wbem.client.EnumerateResponse;
-import javax.wbem.client.WBEMClient;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public class StorageVolumeViewProcessor extends StorageProcessor {
 
@@ -106,7 +108,7 @@ public class StorageVolumeViewProcessor extends StorageProcessor {
 
         List<CIMObjectPath> metaVolumes = new ArrayList<>();
         while (volumeInstances.hasNext()) {
-            CIMInstance volumeViewInstance = (CIMInstance) volumeInstances.next();
+            CIMInstance volumeViewInstance = volumeInstances.next();
             String nativeGuid = getVolumeViewNativeGuid(volumeViewInstance.getObjectPath(), keyMap);
 
             if (isSnapShot(volumeViewInstance)) {

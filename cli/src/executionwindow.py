@@ -404,7 +404,7 @@ def create_parser(subcommand_parsers, common_parser):
         type=int,
         metavar='<minuteOfHour>',
         dest='minuteOfHour',
-        help="minute  of month for the execution window" +
+        help="minute  of Hour for the execution window" +
         "(only used if type is HOURLY)")
 
     create_parser.set_defaults(func=executionwindow_create)
@@ -455,6 +455,13 @@ def update_parser(subcommand_parsers, common_parser):
         dest='lengthType',
         help='Units for the length of the execution window',
         required=True)
+    update_parser.add_argument('-minuteOfHour',
+        choices=range(1, 60),
+        type=int,
+        metavar='<minuteOfHour>',
+        dest='minuteOfHour',
+        help="minute  of Hour for the execution window" +
+        "(only used if type is HOURLY)")
     update_parser.add_argument('-dayOfWeek',
         choices=range(1, 8),
         type=int,

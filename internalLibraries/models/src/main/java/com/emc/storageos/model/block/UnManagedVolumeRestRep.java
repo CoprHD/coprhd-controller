@@ -80,6 +80,13 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
      */
     private RelatedResourceRep storagePool;
 
+    /**
+     * WWN of the Volume
+     *
+     * @valid none
+     */
+    private String wwn;
+
     @XmlElement(name = "native_guid")
     public String getNativeGuid() {
         return nativeGuid;
@@ -198,4 +205,12 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
         this.supportedVPoolUris = supportedVPoolUris;
     }
 
+    public void setWWN(String wwn) {
+        this.wwn = wwn;
+    }
+
+    @XmlElement(name = "wwn")
+    public String getWWN() {
+        return wwn;
+    }
 }

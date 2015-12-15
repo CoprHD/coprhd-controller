@@ -75,6 +75,25 @@ _setBootmodeFlag() {
    touch ${run_root_dir}/bootmode_normal
 }
 
+# Add user svcuser if it does not exist
+_add_svcuser() {
+    getent passwd svcuser >&/dev/null || useradd svcuser -c "Appliance Maintenance" -d /home/svcuser -m
+    usermod svcuser -u 1001 -s /usr/bin/rbash
+    chmod 750 /home/svcuser
+    chmod 640 /home/svcuser/.bashrc
+}
+
+# Add user and group storageos if they do not exist
+_add_storageos() {
+    getent group  storageos >&/dev/null || groupadd -g 444 storageos
+    getent passwd storageos >&/dev/null || useradd -r -d /opt/storageos -c "StorageOS"   -g 444 -u 444 -s /bin/bash storageos
+}
+
+_addGroupAndUser() {
+    _add_svcuser
+    _add_storageos
+}
+
 case ${1} in
     start|restart|reload)
         echo -n "Initializing storageos environment variables"
@@ -84,6 +103,8 @@ case ${1} in
         if [ "${STORAGEOS_BOOT_MODE}" == "normal" ]; then
             _setBootmodeFlag  
         fi
+        echo -n "Adding group and user accounts"
+        _addGroupAndUser
         echo -n "Initializing configuration properties"
         /etc/systool --initializeprops 2>>/var/log/genconfig.log || rc_failed 1
         rc_status -v

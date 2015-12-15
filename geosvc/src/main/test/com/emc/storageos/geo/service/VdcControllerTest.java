@@ -263,6 +263,7 @@ public class VdcControllerTest {
         Assert.assertTrue(clientManager.client.countForSyncCall == 3);
     }
 
+    // Test hanging in IDE and "gradlew test"
     @Test
     public void testAddVdcPrecheckFailure() throws Exception {
         // create a mock db with 2 existing vdc
@@ -866,7 +867,7 @@ public class VdcControllerTest {
             return ClusterInfo.ClusterState.STABLE;
         }
 
-        public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+        public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException {
             if (RepositoryInfo.class.equals(clazz)) {
                 SoftwareVersion current = new SoftwareVersion("vipr-2.3.0.0.100");
                 List<SoftwareVersion> versions = new ArrayList<SoftwareVersion>();

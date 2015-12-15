@@ -136,8 +136,8 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         StorageSystemRestRep storageSystemRestRep = client.storageSystems().get(storageSystemId);
 
         List<AssetOption> options = Lists.newArrayList();
+        options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
         if (BlockProviderUtils.isVplex(storageSystemRestRep)) {
-            options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
             options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(),
                     "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
         }
@@ -151,8 +151,8 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         BlockVirtualPoolRestRep virtualPoolRestRep = client.blockVpools().get(virtualPoolId);
 
         List<AssetOption> options = Lists.newArrayList();
+        options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
         if (virtualPoolRestRep.getHighAvailability() != null) {
-            options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
             options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(),
                     "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
         }

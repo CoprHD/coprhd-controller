@@ -13,6 +13,8 @@ import javax.xml.bind.annotation.XmlTransient;
  */
 @Cf("Bucket")
 public class Bucket extends DataObject implements ProjectResource {
+    //Bucket name at source
+    private String name;
     // project this Bucket is associated with
     private NamedURI _project;
     // soft quota capacity in bytes (Notification Quota)
@@ -76,6 +78,7 @@ public class Bucket extends DataObject implements ProjectResource {
     }
 
     @Name("hardQuota")
+    @AggregatedIndex(cf = "AggregatedIndex", classGlobal = true)
     public Long getHardQuota() {
         return (null == hardQuota) ? 0L : hardQuota;
     }
@@ -120,7 +123,6 @@ public class Bucket extends DataObject implements ProjectResource {
 
     @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
     @Name("varray")
-    @AlternateId("AltIdIndex")
     public URI getVirtualArray() {
         return _virtualArray;
     }
@@ -188,5 +190,15 @@ public class Bucket extends DataObject implements ProjectResource {
     public void setOwner(String owner) {
         this._owner = owner;
         setChanged("owner");
+    }
+
+    @Name("name")
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+        setChanged("name");
     }
 }

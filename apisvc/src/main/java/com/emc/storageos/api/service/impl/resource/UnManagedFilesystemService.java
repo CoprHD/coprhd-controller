@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
@@ -307,6 +308,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                 String usedCapacity = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.ALLOCATED_CAPACITY.toString(),
                         unManagedFileSystemInformation);
+                String nasUri = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.NAS.toString(),
+                        unManagedFileSystemInformation);
+
                 String path = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.PATH.toString(),
                         unManagedFileSystemInformation);
@@ -314,22 +319,37 @@ public class UnManagedFilesystemService extends TaggedResource {
                 String mountPath = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.MOUNT_PATH.toString(),
                         unManagedFileSystemInformation);
+                
+                String systemType = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.SYSTEM_TYPE.toString(),
+                        unManagedFileSystemInformation);
 
                 Long lcapcity = Long.valueOf(capacity);
                 Long lusedCapacity = Long.valueOf(usedCapacity);
                 // pool uri cannot be null
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
-                StoragePort port = _dbClient.queryObject(StoragePort.class,
-                        URI.create(storagePortUri));
+                
+                StoragePort port = null;
+                if (storagePortUri != null ) {
+                    port = _dbClient.queryObject(StoragePort.class, URI.create(storagePortUri));
+                }
+                
                 StorageHADomain dataMover = null;
-                if (port.getStorageHADomain() != null) {
+                if (port != null && port.getStorageHADomain() != null) {
                     dataMover = _dbClient.queryObject(StorageHADomain.class, port.getStorageHADomain());
                 }
                 if (dataMover != null) {
                     _logger.info("Data Mover to Use {} {} {}",
                             new Object[] { dataMover.getAdapterName(), dataMover.getName(), dataMover.getLabel() });
                 }
-
+                
+                //check ingest is valid for given project
+                
+                if(!isIngestUmfsValidForProject(project, _dbClient, nasUri)) {
+                    _logger.info("ingest umfs {} is mounted to vNAS Uri {} invalid for project", path, nasUri);
+                    continue;
+                }
+                
                 // Check to see if UMFS's storagepool's Tagged neighborhood has the "passed in" neighborhood.
                 // if not don't ingest
                 if (null != pool) {
@@ -371,6 +391,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.setMountPath(mountPath);
                 filesystem.setVirtualPool(param.getVpool());
                 filesystem.setVirtualArray(param.getVarray());
+                if(nasUri != null) {
+                	filesystem.setVirtualNAS(URI.create(nasUri));
+                }
 
                 URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
                 StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
@@ -404,7 +427,21 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                 _logger.info("Un Managed File System {} has exports? : {}", unManagedFileSystem.getId(),
                         unManagedFileSystem.getHasExports());
-                StoragePort sPort = compareAndSelectPortURIForUMFS(system, port, neighborhood);
+                
+                StoragePort sPort = null;
+
+                if(port !=null && neighborhood !=null){
+                	
+                	if(StorageSystem.Type.isilon.equals(system.getSystemType())) {
+                	
+                		sPort = getIsilonStoragePort(port, nasUri, _dbClient,neighborhood.getId());
+                		
+                	}else{
+            		sPort = compareAndSelectPortURIForUMFS(system, port,
+							neighborhood);
+                	}
+                }
+				
                 if (unManagedFileSystem.getHasExports()) {
                     _logger.info("Storage Port Found {}", sPort);
                     if (null != sPort) {
@@ -653,6 +690,81 @@ public class UnManagedFilesystemService extends TaggedResource {
             _logger.info("share ACLs details {}", shareACL.toString());
         }
     }
+    
+    /**
+     * Validate vnas of unmanaged file system association with project       
+     * @param project
+     * @param dbClient
+     * @param nasUri
+     * @return
+     */
+    public boolean isIngestUmfsValidForProject(Project project, DbClient dbClient, String nasUri) {
+        boolean isIngestValid = true;
+        //step -1 check file system is mounted to VNAS
+        if( nasUri != null && URIUtil.getTypeName(nasUri).equals("VirtualNAS")) {
+            VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+            
+            //step -2 if project has any associated vNAS
+            StringSet vnasStringSet = project.getAssignedVNasServers();
+            if(vnasStringSet != null && !vnasStringSet.isEmpty()) {
+                //step -3 then check nasUri in project associated vnas list
+                if(vnasStringSet.contains(nasUri) == false && virtualNAS.isNotAssignedToProject() == false) {
+                    _logger.info("vNAS {} is assicated with other project", nasUri);
+                    isIngestValid = false;
+                }
+            } else {//then check vnas associated with any other project
+                //step -3 //if is associated with other project then don't ingest
+                if(virtualNAS.isNotAssignedToProject() == false) {
+                    _logger.info("vNAS {} is assicated with other project", nasUri);
+                    isIngestValid = false;
+                }
+            }
+        }
+        return isIngestValid;
+    }
+    
+    /**
+     * Get UMFS's Storage Port in Isilon Storage Array
+     * Will return UMFS's storage port if its part of VitualNAS's storage port list
+     * else will return another storage port available in the VirtualNAS's port list
+     * @param umfsStoragePort
+     * @param nasUri
+     * @param dbClient
+     * @return StoragePort   
+     */
+    
+    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, DbClient dbClient,URI virtualArray){
+    	StoragePort sp= null;
+    	
+    	VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+    	
+    	List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray);
+    	StringSet virtualArrayPortsSet = new StringSet();
+    	    	
+    	StringSet storagePorts=virtualNAS.getStoragePorts();
+    	
+    	for(URI tempVarrayPort : virtualArrayPorts){
+    		virtualArrayPortsSet.add(tempVarrayPort.toString());
+    	}
+    	
+    	StringSet commonPorts =null;
+    	
+    	if(virtualArrayPorts!=null && storagePorts!= null){
+    		commonPorts = new StringSet(storagePorts);
+    		commonPorts.retainAll(virtualArrayPortsSet);
+    	}
+    	
+		if (commonPorts.contains(umfsStoragePort.getId())) {
+			sp = umfsStoragePort;
+		} else {
+			List<String> tempList = new ArrayList<String>(commonPorts);
+			Collections.shuffle(tempList);
+			sp = dbClient.queryObject(StoragePort.class,
+					URI.create(tempList.get(0)));
+		}
+    	return sp;
+    }
+
 
     @Override
     protected ResourceTypeEnum getResourceType() {
@@ -812,13 +924,11 @@ public class UnManagedFilesystemService extends TaggedResource {
         } else {
             matchedPorts = returnAllPortsforStgArrayAndVArray(system, storagePortsForVArray);
         }
-
-        if (matchedPorts != null && !matchedPorts.isEmpty()) {
-            // Shuffle Storageports and return the first one.
-            Collections.shuffle(matchedPorts);
-            sPort = _dbClient.queryObject(StoragePort.class, matchedPorts.get(0));
+		if (matchedPorts != null && !matchedPorts.isEmpty()) {
+			// Shuffle Storageports and return the first one.
+			Collections.shuffle(matchedPorts);
+			sPort = _dbClient.queryObject(StoragePort.class, matchedPorts.get(0));
         }
-
         return sPort;
     }
 

@@ -15,13 +15,18 @@ import static com.emc.storageos.imageservercontroller.ImageServerConstants.PXELI
 import static com.emc.storageos.imageservercontroller.ImageServerConstants.SERVER_PY_FILE;
 import static com.emc.storageos.imageservercontroller.ImageServerConstants.WGET_FILE;
 
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +34,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
@@ -37,6 +44,7 @@ import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageJob.JobStatus;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
+import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -105,6 +113,13 @@ public class ImageServerControllerImpl implements ImageServerController {
     @Autowired
     private AuditLogManager _auditMgr;
 
+    private CoordinatorClient _coordinator;
+
+    private static final String IMAGEURL_PASSWORD_SPLIT_REGEX = "(.*?:){2}((?<=\\:).*(?=\\@))";
+
+    private static final String IMAGEURL_HOST_REGEX = "^*(?<=@)([^/@]++)/.*+$";
+
+
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
@@ -123,6 +138,14 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     public void setComputeDeviceController(ComputeDeviceController computeDeviceController) {
         this.computeDeviceController = computeDeviceController;
+    }
+
+    /**
+     * setter for coordinator client
+     * @param coordinator
+     */
+    public void setCoordinator(CoordinatorClient coordinator) {
+        _coordinator = coordinator;
     }
 
     /**
@@ -353,11 +376,28 @@ public class ImageServerControllerImpl implements ImageServerController {
         }
     }
 
-    private void sanitizeUrl(String url) {
+    private String sanitizeUrl(String url) {
         try {
-            new URL(url); // NOSONAR ("We are using this line to verify valid URL")
+            URL imageUrl = new URL(url); // NOSONAR
+                                         // ("We are using this line to verify valid URL")
+            String filepart = imageUrl.getFile();
+            String[] tempArr = StringUtils.split(filepart, "/");
+            StringBuilder strBuilder = new StringBuilder();
+            for (String string : tempArr) {
+                strBuilder.append("/").append(
+                        URLEncoder.encode(string, "UTF-8"));
+            }
+
+            String newURL = StringUtils.replace(url, filepart,
+                    strBuilder.toString());
+            new URL(newURL);
+            return newURL;
         } catch (MalformedURLException e) {
-            throw ImageServerControllerException.exceptions.urlSanitationFailure(url, e);
+            throw ImageServerControllerException.exceptions
+                    .urlSanitationFailure(url, e);
+        } catch (UnsupportedEncodingException e) {
+            throw ImageServerControllerException.exceptions
+                    .urlSanitationFailure(url, e);
         }
     }
 
@@ -502,10 +542,11 @@ public class ImageServerControllerImpl implements ImageServerController {
         log.info("importImageMethod importing image {} on to imageServer {}",
                 ciId, imageServer.getId());
         ImageServerDialog d = null;
+        ComputeImage ci = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
 
-            ComputeImage ci = dbClient.queryObject(ComputeImage.class, ciId);
+            ci = dbClient.queryObject(ComputeImage.class, ciId);
             SSHSession session = new SSHSession();
             session.connect(imageServer.getImageServerIp(), imageServer.getSshPort(),
                     imageServer.getImageServerUser(), imageServer.getImageServerPassword());
@@ -515,6 +556,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
             log.error("Exception importing image: " + e.getMessage(), e);
+            updateFailedImages(imageServer.getId(), ci);
             WorkflowStepCompleter.stepFailed(stepId, e);
         } catch (Exception e) {
             log.error(
@@ -525,6 +567,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                 operationName = ResourceOperationTypeEnum.IMPORT_IMAGE
                         .getName();
             }
+            updateFailedImages(imageServer.getId(), ci);
             WorkflowStepCompleter.stepFailed(stepId,
                     ImageServerControllerException.exceptions
                             .unexpectedException(operationName, e));
@@ -549,8 +592,9 @@ public class ImageServerControllerImpl implements ImageServerController {
     private void importImage(ComputeImageServer imageServer, ComputeImage ci,
             ImageServerDialog imageserverDialog) {
         log.info("Importing image {} on to {} imageServer", ci.getLabel(),
-                imageServer.getImageServerIp());
-        sanitizeUrl(ci.getImageUrl());
+                imageServer.getLabel());
+        String deCrpytedURL = decryptImageURLPassword(ci.getImageUrl());
+        deCrpytedURL = sanitizeUrl(deCrpytedURL);
 
         String ts = String.valueOf(System.currentTimeMillis());
         String[] tokens = ci.getImageUrl().split("/");
@@ -559,7 +603,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         String tempDir = TMP + "/os" + ts + "/";
 
         imageserverDialog.init();
-        log.info("connected to image server {}", imageServer.getImageServerIp());
+        log.info("connected to image server {}", imageServer.getLabel());
 
         log.info("cd to {}", TMP);
         imageserverDialog.cd(TMP);
@@ -567,12 +611,12 @@ public class ImageServerControllerImpl implements ImageServerController {
         log.info("download image");
         // CTRL-12030: special characters in URL's password cause issues on
         // Image Server. Adding quotes.
-        boolean res = imageserverDialog.wget("'" + ci.getImageUrl() + "'",
+        boolean res = imageserverDialog.wget("'" + deCrpytedURL + "'",
                 imageName, imageServer.getImageImportTimeoutMs());
 
         if (res) {
             log.info("downloaded image successfully on to {}  imageServer",
-                    imageServer.getImageServerIp());
+                    imageServer.getLabel());
         } else {
             throw ImageServerControllerException.exceptions
                     .fileDownloadFailed(ci.getImageUrl());
@@ -581,8 +625,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         log.info("create temp dir {}", tempDir);
         imageserverDialog.mkdir(tempDir);
 
-        log.info("mount image onto temp dir of {}",
-                imageServer.getImageServerIp());
+        log.info("mount image onto temp dir of {}", imageServer.getLabel());
         imageserverDialog.mount(imageName, tempDir);
 
         log.info("Analyze metadata");
@@ -635,16 +678,23 @@ public class ImageServerControllerImpl implements ImageServerController {
                 + "/");
         ci.setImageName(osMetadata.fullName());
         ci.setImageType(osMetadata.getImageType());
+        ci.setComputeImageStatus(ComputeImageStatus.AVAILABLE.toString());
 
-        dbClient.persistObject(ci);
-
+        dbClient.updateObject(ci);
+        String ciURIString = ci.getId().toString();
         // update the imageServer with the successfully updated image.
         if (imageServer.getComputeImages() == null) {
             imageServer.setComputeImages(new StringSet());
         }
-        imageServer.getComputeImages().add(ci.getId().toString());
-
-        dbClient.persistObject(imageServer);
+        imageServer.getComputeImages().add(ciURIString);
+        //check if this image was previously failed, if so remove from fail list
+        if (imageServer.getFailedComputeImages() != null &&
+                imageServer.getFailedComputeImages().contains(ciURIString)) {
+            imageServer.getFailedComputeImages().remove(ciURIString);
+        }
+        log.info("Successfully imported image {} on to {} imageServer", ci.getLabel(),
+                imageServer.getLabel());
+        dbClient.updateObject(imageServer);
         // clean up
         cleanupTemp(imageserverDialog, tempDir, imagePath);
     }
@@ -684,6 +734,16 @@ public class ImageServerControllerImpl implements ImageServerController {
                                     "deleteImageMethod", ciId, imageServer.getId()),
                             null, null);
                 }
+                //The image being deleted/cleaned up must also be removed from the
+                //imageServer's failedImages list, because the image can be AVAILABLE
+                //but could have failed to import on some of the imageServers.
+                //So this cleanup needs to be performed.
+                if(imageServer.getFailedComputeImages() != null
+                        && imageServer.getFailedComputeImages().contains(
+                                ciId.toString())) {
+                    imageServer.getFailedComputeImages().remove(ciId.toString());
+                    dbClient.updateObject(imageServer);
+                }
             }
 
             workflow.executePlan(completer, SUCCESS);
@@ -715,7 +775,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             log.info("delete done");
             if (imageServer.getComputeImages() != null && imageServer.getComputeImages().contains(ciId.toString())) {
                 imageServer.getComputeImages().remove(ciId.toString());
-                dbClient.persistObject(imageServer);
+                dbClient.updateObject(imageServer);
             }
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
@@ -914,7 +974,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             if (job.getJobStartTime() == null) {
                 log.info("starting the job");
                 job.setJobStartTime(System.currentTimeMillis());
-                dbClient.persistObject(job);
+                dbClient.updateObject(job);
             } else {
                 log.info("resuming the job");
             }
@@ -967,18 +1027,18 @@ public class ImageServerControllerImpl implements ImageServerController {
             if (status == OsInstallStatus.SUCCESS) {
                 log.info("session {} - marking job as SUCCESS", job.getPxeBootIdentifier());
                 job.setJobStatus(JobStatus.SUCCESS.name());
-                dbClient.persistObject(job);
+                dbClient.updateObject(job);
                 WorkflowStepCompleter.stepSucceded(stepId);
             } else if (status == OsInstallStatus.FAILURE) {
                 log.info("session {} - marking job as FAILED", job.getPxeBootIdentifier());
                 job.setJobStatus(JobStatus.FAILED.name());
-                dbClient.persistObject(job);
+                dbClient.updateObject(job);
                 WorkflowStepCompleter.stepFailed(stepId,
                         ImageServerControllerException.exceptions.osInstallationFailed("failure in the post-install"));
             } else { // timed out
                 log.info("session {} - marking job as TIMEDOUT", job.getPxeBootIdentifier());
                 job.setJobStatus(JobStatus.TIMEDOUT.name());
-                dbClient.persistObject(job);
+                dbClient.updateObject(job);
                 WorkflowStepCompleter.stepFailed(stepId,
                         ImageServerControllerException.exceptions.osInstallationTimedOut(imageServer.getOsInstallTimeoutMs() / 1000));
             }
@@ -1035,8 +1095,9 @@ public class ImageServerControllerImpl implements ImageServerController {
                 ComputeImageServer imageServer = dbClient.queryObject(
                         ComputeImageServer.class, computeImageServerID);
                 for (ComputeImage computeImage : computeImageList) {
-                    if (computeImage.getComputeImageStatus().equals(
-                            ComputeImageStatus.AVAILABLE.name())) {
+                    if (null == imageServer.getComputeImages()
+                            || !imageServer.getComputeImages().contains(
+                                    computeImage.getId().toString())) {
                         StringBuilder msg = new StringBuilder(
                                 "Importing image ");
                         msg.append(computeImage.getLabel()).append(
@@ -1046,11 +1107,10 @@ public class ImageServerControllerImpl implements ImageServerController {
                         workflow.createStep(IMAGESERVER_IMPORT_IMAGES_STEP, msg
                                 .toString(), IMAGESERVER_VERIFICATION_STEP,
                                 computeImageServerID, computeImageServerID
-                                        .toString(),
-                                this.getClass(),
+                                        .toString(), this.getClass(),
                                 new Workflow.Method("importImageMethod",
-                                        computeImage.getId(), imageServer, opName),
-                                null, null);
+                                        computeImage.getId(), imageServer,
+                                        opName), null, null);
                     }
                 }
             }
@@ -1094,20 +1154,123 @@ public class ImageServerControllerImpl implements ImageServerController {
         log.info("entering method verifyComputeImageServer");
         WorkflowStepCompleter.stepExecuting(stepId);
 
-        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
+        ComputeImageServer imageServer = dbClient.queryObject(
+                ComputeImageServer.class, imageServerId);
 
         if (verifyImageServer(imageServer)) {
+            imageServer
+                    .setComputeImageServerStatus(ComputeImageServer.ComputeImageServerStatus.AVAILABLE
+                            .name());
+            dbClient.updateObject(imageServer);
             WorkflowStepCompleter.stepSucceded(stepId);
         } else {
             log.error("Unable to verify imageserver");
+            imageServer
+                    .setComputeImageServerStatus(ComputeImageServer.ComputeImageServerStatus.NOT_AVAILABLE
+                            .name());
+            dbClient.updateObject(imageServer);
             WorkflowStepCompleter
                     .stepFailed(
                             stepId,
                             ImageServerControllerException.exceptions
                                     .unexpectedException(
-                                            OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES.name(),
+                                            OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES
+                                                    .name(),
                                             new Exception(
                                                     "Unable to verify imageserver")));
         }
+    }
+
+    /**
+     * Updates the imageServer with the image that failed import, this method updates
+     * it as failed only after making sure that the image was not previously successful.
+     * @param imageServerURI {@link URI} imageServerURI instance to which import was made.
+     * @param image {@link ComputeImage} instance that failed the import.
+     */
+    private void updateFailedImages(URI imageServerURI, ComputeImage image) {
+        if (null != imageServerURI && null != image) {
+            String imageURIStr = image.getId().toString();
+            log.info("updateFailedImages : update failed image import details.");
+            // first fetch updated imageServer details from DB and
+            // verify if image was previously loaded successfully on to
+            // the imageServer, if so then skip updating it as failed else
+            // update it as failed.
+            ComputeImageServer imageServer = dbClient.queryObject(
+                    ComputeImageServer.class, imageServerURI);
+            if (imageServer.getComputeImages() == null
+                    || !imageServer.getComputeImages().contains(imageURIStr)) {
+                // update the imageServer with the failed image.
+                if (imageServer.getFailedComputeImages() == null) {
+                    imageServer.setFailedComputeImages(new StringSet());
+                }
+                log.info(
+                        "Image - {} failed to import on imageServer - {}",
+                        image.getLabel(), imageServer.getLabel());
+                imageServer.getFailedComputeImages().add(imageURIStr);
+                dbClient.updateObject(imageServer);
+            }
+        }
+    }
+
+    /**
+     * Method to decrypt the imageURL password before it can be used.
+     * This method also takes care of encoding the password before use.
+     * @param imageUrl {@link String} compute image URL string
+     * @return {@link String}
+     */
+    private String decryptImageURLPassword(String imageUrl) {
+        String password = extractPasswordFromImageUrl(imageUrl);
+        if (StringUtils.isNotBlank(password)) {
+            String encPwd = null;
+            try {
+                EncryptionProviderImpl encryptionProviderImpl = new EncryptionProviderImpl();
+                encryptionProviderImpl.setCoordinator(_coordinator);
+                encryptionProviderImpl.start();
+                EncryptionProvider encryptionProvider = encryptionProviderImpl;
+                encPwd = URLEncoder.encode(encryptionProvider.decrypt(Base64
+                        .decodeBase64(password)), "UTF-8");
+                return StringUtils.replace(imageUrl, ":" + password + "@", ":"
+                        + encPwd + "@");
+            } catch (UnsupportedEncodingException e) {
+                log.warn(
+                        "Unable to encode compute image password '{}'."
+                                + "Special characters may cause issues loading compute image.",
+                        imageUrl, e.getMessage());
+            } catch (Exception e) {
+                log.error("Cannot decrypt compute image password :"
+                        + e.getLocalizedMessage());
+                e.printStackTrace();
+                throw e;
+            }
+        }
+        return imageUrl;
+    }
+
+    /**
+     * Extract password if present from the given imageUrl string
+     * @param imageUrl {@link String} image url
+     * @return {@link String} password
+     */
+    public static String extractPasswordFromImageUrl(String imageUrl)
+    {
+        Pattern r = Pattern.compile(IMAGEURL_PASSWORD_SPLIT_REGEX);
+        Matcher m = r.matcher(imageUrl);
+        String password = null;
+        if (m.find() && m.groupCount() >= 2
+                && StringUtils.isNotBlank(m.group(2))) {
+            password = m.group(2);
+            Pattern hostpattern = Pattern.compile(IMAGEURL_HOST_REGEX);
+            Matcher hostMatcher = hostpattern.matcher(password);
+            if(hostMatcher.find()) {
+                String preHostregex = "^(.*?)\\@"+hostMatcher.group(1);
+                Pattern pwdPattern = Pattern.compile(preHostregex);
+                Matcher pwdMatcher = pwdPattern.matcher(password);
+                if(pwdMatcher.find())
+                {
+                    password = pwdMatcher.group(1);
+                }
+            }
+        }
+        return password;
     }
 }

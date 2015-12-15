@@ -4,16 +4,19 @@
  */
 package com.emc.vipr.client;
 
+import java.net.URI;
+
 import com.emc.storageos.model.tenant.TenantResponse;
 import com.emc.storageos.model.user.UserInfo;
 import com.emc.vipr.client.core.*;
 import com.emc.vipr.client.impl.RestClient;
-
-import java.net.URI;
+import com.emc.vipr.client.system.IPsec;
 
 public class ViPRCoreClient {
     protected RestClient client;
 
+    // for easy mocking in UT
+    public ViPRCoreClient() {}
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host)
      * 
@@ -179,6 +182,10 @@ public class ViPRCoreClient {
         return new ComputeVirtualPools(this, client);
     }
 
+    public ComputeImageServers computeImageServers() {
+        return new ComputeImageServers(this, client);
+    }
+
     public ComputeImages computeImages() {
         return new ComputeImages(this, client);
     }
@@ -322,5 +329,13 @@ public class ViPRCoreClient {
 
     public UserGroup getUserGroup() {
         return new UserGroup(this, client);
+    }
+    
+    public Site site(){
+        return new Site(this, client);
+    }
+
+    public IPsec ipsec() {
+        return new IPsec(client);
     }
 }

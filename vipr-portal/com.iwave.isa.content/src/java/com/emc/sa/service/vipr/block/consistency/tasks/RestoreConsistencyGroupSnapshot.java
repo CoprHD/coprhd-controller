@@ -14,15 +14,15 @@ public class RestoreConsistencyGroupSnapshot extends
         WaitForTask<BlockConsistencyGroupRestRep> {
 
     private URI consistencyGroup;
-    private URI fullCopy;
+    private URI snapshot;
 
-    public RestoreConsistencyGroupSnapshot(URI consistencyGroup, URI fullCopy) {
+    public RestoreConsistencyGroupSnapshot(URI consistencyGroup, URI snapshot) {
         this.consistencyGroup = consistencyGroup;
-        this.fullCopy = fullCopy;
+        this.snapshot = snapshot;
     }
 
     @Override
     protected Task<BlockConsistencyGroupRestRep> doExecute() throws Exception {
-        return getClient().blockConsistencyGroups().restoreSnapshot(consistencyGroup, fullCopy);
+        return getClient().blockConsistencyGroups().restoreSnapshot(consistencyGroup, snapshot);
     }
 }

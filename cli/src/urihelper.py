@@ -61,7 +61,7 @@ class URIHelper(object):
     
     URI_FILESHARE_TASK=URI_FILESHARE_TASK_LIST+'/{1}'
     URI_FILESHARE_SEARCH_BY_PROJECT = '/file/filesystems/search?project={0}'
-
+    URI_FILESHARE_TASK_BY_ID = '/vdc/tasks/{0}'
     '''
     Volume URIs
     '''
@@ -167,11 +167,13 @@ class URIHelper(object):
 
     INITIATOR_URIS_MAP = dict()
     URI_INITIATOR_TASKS = "/compute/initiators/{0}/tasks"
+    URI_INITIATOR_TASK = URI_INITIATOR_TASKS + "/{1}"
     URI_INITIATOR_TASK_BY_ID = '/vdc/tasks/{0}'
 
     IPINTERFACE_URIS_MAP = dict()
     URI_IPINTERFACE_TASKS = "/compute/ip-interfaces/{0}/tasks"
     URI_IPINTERFACE_TASK_BY_ID = '/vdc/tasks/{0}'
+    
 
     def __init__(self):
         '''
@@ -286,6 +288,7 @@ class URIHelper(object):
         self.FILESHARE_URIS_MAP[
             "search_by_project"] = self.URI_FILESHARE_SEARCH_BY_PROJECT
         self.FILESHARE_URIS_MAP["show"] = self.URI_FILESHARE
+        self.FILESHARE_URIS_MAP["task_by_id"] = self.URI_FILESHARE_TASK_BY_ID
 
     def __fillVolumeMap(self):
         self.VOLUME_URIS_MAP["tasks_list"] = self.URI_VOLUME_TASK_LIST
@@ -335,7 +338,8 @@ class URIHelper(object):
         self.VCENTER_URIS_MAP["task"] = self.URI_VCENTER_TASK_BY_ID
 
         self.INITIATOR_URIS_MAP["tasks_list"] = self.URI_INITIATOR_TASKS
-        self.INITIATOR_URIS_MAP["task"] = self.URI_INITIATOR_TASK_BY_ID
+        self.INITIATOR_URIS_MAP["task"] = self.URI_INITIATOR_TASK
+        self.INITIATOR_URIS_MAP["task_by_id"] = self.URI_INITIATOR_TASK_BY_ID
 
         self.IPINTERFACE_URIS_MAP["tasks_list"] = self.URI_IPINTERFACE_TASKS
         self.IPINTERFACE_URIS_MAP["task"] = self.URI_IPINTERFACE_TASK_BY_ID

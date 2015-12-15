@@ -29,7 +29,6 @@ public class DetachFullCopyService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             BlockStorageUtils.detachFullCopies(uris(copyIds));
         } else {

@@ -13,6 +13,7 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logWarn;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -325,10 +326,16 @@ public class VMwareSupport {
      * Deletes a VMFS datastore. Because VMFS datastores are shared across hosts, it only needs to be deleted from a
      * single host for it to be deleted.
      * 
+     * @param volumes
+     *            the volumes backing the datastore.
+     * @param hostOrClusterId
+     *            the id of the host or cluster where the datastore is mounted.
      * @param datastore
-     *            the datastore.
+     *            the datastore to delete
+     * @param detachLuns
+     *            if true, detach the luns from each host
      */
-    public void deleteVmfsDatastore(Collection<VolumeRestRep> volumes, URI hostOrClusterId, final Datastore datastore) {
+    public void deleteVmfsDatastore(Collection<VolumeRestRep> volumes, URI hostOrClusterId, final Datastore datastore, boolean detachLuns) {
         List<HostSystem> hosts = getHostsForDatastore(datastore);
         if (hosts.isEmpty()) {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
@@ -348,13 +355,15 @@ public class VMwareSupport {
 
         execute(new DeleteDatastore(hosts.get(0), datastore));
 
-        executeOnHosts(hosts, new HostSystemCallback() {
-            @Override
-            public void exec(HostSystem host) {
-                List<HostScsiDisk> disks = hostDisks.get(host);
-                detachLuns(host, disks);
-            }
-        });
+        if (detachLuns) {
+            executeOnHosts(hosts, new HostSystemCallback() {
+                @Override
+                public void exec(HostSystem host) {
+                    List<HostScsiDisk> disks = hostDisks.get(host);
+                    detachLuns(host, disks);
+                }
+            });
+        }
         removeVmfsDatastoreTag(volumes, hostOrClusterId);
     }
 
@@ -719,5 +728,45 @@ public class VMwareSupport {
         }
 
         return e;
+    }
+
+    /**
+     * Unmount the datastore from the host or hosts in the cluster
+     * 
+     * @param host host to unmount the datastore from. if null, use cluster's hosts
+     * @param cluster cluster to unmount the datastore from
+     * @param datastore the datastore to unmount
+     */
+    public void unmountVmfsDatastore(HostSystem host, ClusterComputeResource cluster,
+            final Datastore datastore) {
+        enterMaintenanceMode(datastore);
+        setStorageIOControl(datastore, false);
+        List<HostSystem> hosts = host != null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
+
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                unmountVmfsDatastore(host, datastore);
+            }
+        });
+    }
+
+    /**
+     * Detach the volume from the host or hosts in the cluster
+     * 
+     * @param host host to detach the volume. if null, use cluster's hosts
+     * @param cluster cluster to detach the volume
+     * @param volume the volume to detach
+     */
+    public void detachLuns(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume) {
+        final HostScsiDisk disk = findScsiDisk(host, cluster, volume);
+        List<HostSystem> hosts = host != null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
+
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                detachLuns(host, Collections.singletonList(disk));
+            }
+        });
     }
 }

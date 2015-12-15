@@ -11,9 +11,13 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.IngestStrategyEnum;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.ReplicationStrategy;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.VolumeType;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -32,6 +36,18 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockVolumeIngestOrchestrator.class);
 
+    // A reference to the ingest strategy factory.
+    protected IngestStrategyFactory ingestStrategyFactory;
+
+    /**
+     * Setter for the ingest strategy factory.
+     * 
+     * @param ingestStrategyFactory A reference to the ingest strategy factory.
+     */
+    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
+        this.ingestStrategyFactory = ingestStrategyFactory;
+    }
+
     @Override
     protected <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
             UnManagedVolume unManagedVolume,
@@ -48,7 +64,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                 VolumeIngestionUtil.VOLUME);
 
         volume = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
-        // Check if ingested volume has exportmasks pending for ingestion.
+        // Check if ingested volume has export masks pending for ingestion.
         if (isExportIngestionPending(volume, unManagedVolumeUri, unManagedVolumeExported)) {
             return clazz.cast(volume);
         }
@@ -87,10 +103,35 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             }
         }
 
+        // Note that a VPLEX backend volume can also be a snapshot target volume.
+        // When the VPLEX ingest orchestrator is executed, it gets the ingestion
+        // strategy for the backend volume and executes it. If the backend volume
+        // is both a snapshot and a VPLEX backend volume, this local volume ingest
+        // strategy is invoked and a Volume instance will result. That is fine because
+        // we need to represent that VPLEX backend volume. However, we also need a
+        // BlockSnapshot instance to represent the snapshot target volume. Therefore,
+        // if the unmanaged volume is also a snapshot target volume, we get and
+        // execute the local snapshot ingest strategy to create this BlockSnapshot
+        // instance and we add it to the created object list. Note that since the
+        // BlockSnapshot is added to the created objects list and the Volume and
+        // BlockSnapshot instance will have the same native GUID, we must be careful
+        // about adding the Volume to the created object list in the VPLEX ingestion
+        // strategy.
+        BlockObject snapshot = null;
+        if (VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
+            String strategyKey = ReplicationStrategy.LOCAL.name() + "_" + VolumeType.SNAPSHOT.name();
+            IngestStrategy ingestStrategy = ingestStrategyFactory.getIngestStrategy(IngestStrategyEnum.getIngestStrategy(strategyKey));
+            snapshot = ingestStrategy.ingestBlockObjects(systemCache, poolCache,
+                    system, unManagedVolume, vPool, virtualArray,
+                    project, tenant, unManagedVolumesSuccessfullyProcessed, createdObjectMap,
+                    updatedObjectMap, true, BlockSnapshot.class, taskStatusMap, vplexIngestionMethod);
+            createdObjectMap.put(snapshot.getNativeGuid(), snapshot);
+        }
+
         // Run this always when volume NO_PUBLIC_ACCESS
         if (markUnManagedVolumeInactive(unManagedVolume, volume,
                 unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap,
-                taskStatusMap)) {
+                taskStatusMap, vplexIngestionMethod)) {
             _logger.info("All the related replicas and parent has been ingested ",
                     unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as

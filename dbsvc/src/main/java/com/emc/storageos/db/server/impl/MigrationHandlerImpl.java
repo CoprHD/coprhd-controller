@@ -23,6 +23,7 @@ import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.model.UpgradeFailureInfo;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientContext;
@@ -65,6 +66,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     String targetVersion;
     String failedCallbackName;
+    Exception lastException;
 
     /**
      * Package where model classes are defined
@@ -147,6 +149,13 @@ public class MigrationHandlerImpl implements MigrationHandler {
      */
     @Override
     public boolean run() throws DatabaseException {
+        if (schemaUtil.isStandby()) {
+            // no migration on standby site
+            log.info("Migration does not run on standby");
+            return true;
+        } 
+        
+        Date startTime = new Date();
         // set state to migration_init and wait for all nodes to reach this state
         setDbConfig(DbConfigConstants.MIGRATION_INIT);
 
@@ -172,7 +181,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
             // need to copy geo-replicated resources from local to geo db.
             statusChecker.waitForAllNodesMigrationInit(Constants.GEODBSVC_NAME);
         }
-
+        
         InterProcessLock lock = null;
         String currentSchemaVersion = null;
         int retryCount = 0;
@@ -258,15 +267,17 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 schemaUtil.setMigrationStatus(MigrationStatus.DONE);
                 // Remove migration checkpoint after done
                 schemaUtil.removeMigrationCheckpoint();
+                removeMigrationFailInfoIfExist();
                 log.debug("Migration handler - Done.");
                 return true;
             } catch (Exception e) {
                 if (isUnRetryableException(e)) {
-                    markMigrationFailure(currentSchemaVersion, e);
+                    markMigrationFailure(startTime, currentSchemaVersion, e);
                     return false;
                 } else {
                     log.warn("Retryable exception during migration ", e);
                     retryCount++;
+                    lastException = e;
                 }
             } finally {
                 if (lock != null) {
@@ -279,13 +290,35 @@ public class MigrationHandlerImpl implements MigrationHandler {
             }
             sleepBeforeRetry();
         }  // while -- not done
-        markMigrationFailure(currentSchemaVersion);
+        markMigrationFailure(startTime, currentSchemaVersion, lastException);
         return false;
     }
 
-    private void markMigrationFailure(String currentSchemaVersion, Exception e) {
-        schemaUtil.setMigrationStatus(MigrationStatus.FAILED);
+    private void removeMigrationFailInfoIfExist() {
+        UpgradeFailureInfo failInfo = coordinator.queryRuntimeState(Constants.UPGRADE_FAILURE_INFO, UpgradeFailureInfo.class);
+        if (failInfo != null) {
+            log.info("remove upgrade fail information from zk.");
+            coordinator.removeRuntimeState(Constants.UPGRADE_FAILURE_INFO);
+        }
+    }
 
+    private void persistMigrationFailInfo(Date startTime, Exception e) {
+        schemaUtil.setMigrationStatus(MigrationStatus.FAILED);
+        UpgradeFailureInfo failure = new UpgradeFailureInfo();
+        failure.setVersion(targetVersion);
+        failure.setStartTime(startTime);
+        failure.setMessage(String.format("Upgrade to %s failed:%s", targetVersion, e.getClass().getName()));
+        List<String> callStack = new ArrayList<String>();
+        for (StackTraceElement t : e.getStackTrace()){
+            callStack.add(t.toString());
+        }       
+        failure.setCallStack(callStack);
+        coordinator.persistRuntimeState(Constants.UPGRADE_FAILURE_INFO, failure);
+    }
+    
+    private void markMigrationFailure(Date startTime, String currentSchemaVersion, Exception e) {
+        persistMigrationFailInfo(startTime, e);
+        
         String errMsg =
                 String.format("DB schema migration from %s to %s failed due to an unexpected error.",
                         currentSchemaVersion, targetVersion);
@@ -302,10 +335,6 @@ public class MigrationHandlerImpl implements MigrationHandler {
         }
     }
     
-    private void markMigrationFailure(String currentSchemaVersion) {
-        markMigrationFailure(currentSchemaVersion, null);
-    }
-
     private boolean isUnRetryableException(Exception e) {
         return e instanceof FatalDatabaseException ||
                 e instanceof FatalCoordinatorException ||
@@ -337,12 +366,12 @@ public class MigrationHandlerImpl implements MigrationHandler {
      * Checks and registers db configuration information
      */
     private void setDbConfig(String name) {
-        Configuration config = coordinator.queryConfiguration(
+        Configuration config = coordinator.queryConfiguration(coordinator.getSiteId(),
                 coordinator.getVersionedDbConfigPath(service.getName(), service.getVersion()), service.getId());
         if (config != null) {
             if (config.getConfig(name) == null) {
                 config.setConfig(name, Boolean.TRUE.toString());
-                coordinator.persistServiceConfiguration(config);
+                coordinator.persistServiceConfiguration(coordinator.getSiteId(), config);
             }
         } else {
             throw new IllegalStateException("unexpected error, configuration is null");

@@ -36,13 +36,15 @@ public class XtremioStorageSystemToStorageProviderMigration
             List<StorageSystem> storageSystemsList = dbClient.queryObject(StorageSystem.class, storageSystemURIList);
             Iterator<StorageSystem> systemItr = storageSystemsList.iterator();
             List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
+            List<StorageProvider> storageProvidersToCreate = new ArrayList<StorageProvider>();
             while (systemItr.hasNext()) {
                 StorageSystem storageSystem = systemItr.next();
                 // perform storagesystem upgrade only for XtremIO storagesystems.
                 if (DiscoveredDataObject.Type.xtremio.name().equalsIgnoreCase(storageSystem.getSystemType())) {
-                    createNewStorageProviderInstance(storageSystem);
+                    storageProvidersToCreate.add(createNewStorageProviderInstance(storageSystem));
                 }
             }
+            dbClient.createObject(storageProvidersToCreate);
             // persist all systems here.
             dbClient.persistObject(systemsToUpdate);
         } catch (Exception e) {
@@ -64,7 +66,8 @@ public class XtremioStorageSystemToStorageProviderMigration
         storageProvider.setId(URIUtil.createId(StorageProvider.class));
 
         storageProvider.setCompatibilityStatus(xioSystem.getCompatibilityStatus());
-        storageProvider.setConnectionStatus(xioSystem.getSmisConnectionStatus());
+        // Set connectionStatus as Connected always, Let scan validate the connection later.
+        storageProvider.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.name());
         storageProvider.setCreationTime(xioSystem.getCreationTime());
         storageProvider.setInterfaceType(StorageProvider.InterfaceType.xtremio.name());
         storageProvider.setIPAddress(xioSystem.getIpAddress());
@@ -82,7 +85,6 @@ public class XtremioStorageSystemToStorageProviderMigration
         storageProvider.setVersionString(xioSystem.getFirmwareVersion());
         log.info("Adding the storage system to the storage provider");
         storageProvider.addStorageSystem(dbClient, xioSystem, true);
-
         return storageProvider;
     }
 

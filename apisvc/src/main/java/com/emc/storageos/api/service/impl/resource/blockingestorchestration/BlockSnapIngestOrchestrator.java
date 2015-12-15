@@ -66,7 +66,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
 
         // Run this logic always when Volume is NO_PUBLIC_ACCESS
         if (markUnManagedVolumeInactive(unManagedVolume, snapShot, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap,
-                taskStatusMap)) {
+                taskStatusMap, vplexIngestionMethod)) {
             _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ", unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as inactive after successful export
             if (!unManagedVolumeExported) {

@@ -568,7 +568,6 @@ class Tenant(object):
             parms['namespace'] = namespace
 
             body = json.dumps(parms)
-            print body 
 
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port, "PUT",

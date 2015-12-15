@@ -33,6 +33,7 @@ public class PropertyMetadata {
     private String[] notifiers = new String[0];
     private String value;
     private Boolean controlNodeOnly = false;    // Control node only property flag
+    private Boolean siteSpecific = false; // Site specific attribute
 
     public PropertyMetadata() {
     }
@@ -205,6 +206,16 @@ public class PropertyMetadata {
     @JsonProperty("controlNodeOnly")
     public Boolean getControlNodeOnly() {
         return controlNodeOnly;
+    }
+
+    @XmlElement(name = "siteSpecific")
+    @JsonProperty("siteSpecific")
+    public Boolean getSiteSpecific() {
+        return siteSpecific;
+    }
+
+    public void setSiteSpecific(Boolean siteSpecific) {
+        this.siteSpecific = siteSpecific;
     }
 
     /**

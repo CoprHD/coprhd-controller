@@ -78,6 +78,7 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
  * This information can be used to get the indications from block devices.
  * 2. User can register and deregister SMISProvider.
  * 
+ * This class is deprecated class. Use /vdc/storage-providers instead of /vdc/smis-providers.
  */
 @Deprecated
 @Path("/vdc/smis-providers")
@@ -116,8 +117,9 @@ public class SMISProviderService extends TaskResourceService {
      * Register an SMI-S provider to create storage systems of type
      * vnxblock and vmax. This call is not used to create SMI-S
      * providers for vnxfile.
-     * <p> 
+     * <p>
      * The method is deprecated. Use /vdc/storage-providers instead.
+     * 
      * @param param SMIS-Provider parameters
      * @brief Register SMI-S provider
      * @return Newly registered SMIS-Provider details
@@ -183,6 +185,7 @@ public class SMISProviderService extends TaskResourceService {
      * host access credential details.
      * <p>
      * The method is deprecated. Use /vdc/storage-providers/{id} instead.
+     * 
      * @param id the URN of a ViPR SMIS-Provider
      * @brief Show SMI-S provider
      * @return SMIS-Provider details.
@@ -209,6 +212,7 @@ public class SMISProviderService extends TaskResourceService {
      * This function allows user to fetch list of all SMI-S Providers information.
      * <p>
      * The method is deprecated. Use /vdc/storage-providers instead.
+     * 
      * @brief List SMI-S providers
      * @return List of SMIS-Providers.
      */
@@ -238,6 +242,7 @@ public class SMISProviderService extends TaskResourceService {
      * provider.
      * <p>
      * The method is deprecated. Use /vdc/storage-providers/{id} instead.
+     * 
      * @param id the URN of a ViPR SMIS-Provider
      * @brief Update SMI-S provider
      * @return Updated SMIS-Provider information.
@@ -317,7 +322,9 @@ public class SMISProviderService extends TaskResourceService {
 
     /**
      * Scan all SMI-S providers.
-     * <p>The method is deprecated. Use /vdc/storage-providers/scan instead.
+     * <p>
+     * The method is deprecated. Use /vdc/storage-providers/scan instead.
+     * 
      * @brief Scan SMI-S providers
      * @return TasList of all created asynchronous tasks
      */
@@ -349,6 +356,7 @@ public class SMISProviderService extends TaskResourceService {
      * Allows the user to deactivate an SMI-S provider.
      * <p>
      * The method is deprecated. Use /vdc/storage-providers/{id}/deactivate instead.
+     * 
      * @param id the URN of a ViPR SMI-S provider
      * 
      * @brief Delete SMI-S provider
@@ -409,6 +417,7 @@ public class SMISProviderService extends TaskResourceService {
      * Otherwise this method should be used to reinstall previously decommissioned Arrays.
      * <p>
      * The method is deprecated. Use /vdc/storage-providers/storage-systems instead.
+     * 
      * @param param The storage system details.
      * 
      * @brief Create a storage system and add it to the SMI-S providers.
@@ -556,6 +565,7 @@ public class SMISProviderService extends TaskResourceService {
     /**
      * Get zone role assignments
      * The method is deprecated. Use /vdc/storage-providers/deactivated-systems
+     * 
      * @brief List zone role assignments
      * @return Role assignment details
      */
@@ -644,6 +654,7 @@ public class SMISProviderService extends TaskResourceService {
             system.setLabel(nativeGuid);
         }
         _dbClient.createObject(system);
+        _log.info("Created Storage System with Native Guid:" + system.getNativeGuid());
 
         return system;
     }
@@ -745,7 +756,8 @@ public class SMISProviderService extends TaskResourceService {
     }
 
     /**
-     * Retrieve resource representations based on input ids.The method is deprecated. Use /vdc/storage-providers/bulk
+     * Retrieve resource representations based on input ids.
+     * The method is deprecated. Use /vdc/storage-providers/bulk
      * 
      * @param param POST data containing the id list.
      * @brief List data of SMI-S provider resources

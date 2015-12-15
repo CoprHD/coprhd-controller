@@ -17,6 +17,7 @@ import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
+import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -190,7 +191,7 @@ public class LunMaskingProcessor extends StorageProcessor {
 
             _logger.info("Bw {} and Iops {} found for SG : {} ",
                     new Object[] { hostIoBw, hostIoPs, String.valueOf(instance.getPropertyValue(Constants.ELEMENTNAME)) });
-            if (hostIoBw == "0" && hostIoPs == "0") {
+            if (hostIoBw.equals("0") && hostIoPs.equals("0")) {
                 hostIoBw = parentHostIoBw;
                 hostIoPs = parentHostIoPs;
             }
@@ -204,7 +205,7 @@ public class LunMaskingProcessor extends StorageProcessor {
                 obj.setHostIops(hostIoPs);
                 _logger.debug("Volume key: {}..obj : {}", volumeNativeGuid, obj.toString());
                 volToIolimits.put(volumeNativeGuid, obj);
-                if (null != fastSetting && !fastSetting.isEmpty()) {
+                if (!Strings.isNullOrEmpty(fastSetting)) {
                     volToFastPolicy.put(volumeNativeGuid, fastSetting);
                 }
 

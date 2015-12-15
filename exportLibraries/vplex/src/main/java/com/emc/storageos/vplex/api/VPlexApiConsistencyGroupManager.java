@@ -26,7 +26,7 @@ public class VPlexApiConsistencyGroupManager {
     private static Logger s_logger = LoggerFactory.getLogger(VPlexApiConsistencyGroupManager.class);
 
     // A reference to the API client.
-    private VPlexApiClient _vplexApiClient;
+    private final VPlexApiClient _vplexApiClient;
 
     /**
      * Package protected constructor.
@@ -466,22 +466,43 @@ public class VPlexApiConsistencyGroupManager {
         // Find the virtual volumes with the passed names.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
+        Map<String, List<VPlexVirtualVolumeInfo>> clusterToVirtualVolumes = new HashMap<String, List<VPlexVirtualVolumeInfo>>();
+        for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+            List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = discoveryMgr.getVirtualVolumesForCluster(clusterInfo.getName());
+            clusterToVirtualVolumes.put(clusterInfo.getName(), clusterVolumeInfoList);
+        }
+
         List<VPlexVirtualVolumeInfo> virtualVolumeInfoList = new ArrayList<VPlexVirtualVolumeInfo>();
+        List<String> notFoundVirtualVolumeNames = new ArrayList<String>();
         for (String virtualVolumeName : virtualVolumeNames) {
+            s_logger.info("Find virtual volume {}", virtualVolumeName);
             VPlexVirtualVolumeInfo virtualVolumeInfo = null;
-            for (VPlexClusterInfo clusterInfo : clusterInfoList) {
-                virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterInfo.getName(),
-                        virtualVolumeName, false);
+            for (String clusterId : clusterToVirtualVolumes.keySet()) {
+                List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = clusterToVirtualVolumes.get(clusterId);
+                for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
+                    s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
+                    if (volumeInfo.getName().equals(virtualVolumeName)) {
+                        s_logger.info("Found virtual volume {}", volumeInfo.getName());
+                        virtualVolumeInfo = volumeInfo;
+                        break;
+                    }
+                }
+
                 if (virtualVolumeInfo != null) {
                     break;
                 }
             }
+
             if (virtualVolumeInfo == null) {
-                throw VPlexApiException.exceptions.cantFindRequestedVolume(virtualVolumeName);
+                notFoundVirtualVolumeNames.add(virtualVolumeName);
+            } else {
+                virtualVolumeInfoList.add(virtualVolumeInfo);
             }
-            virtualVolumeInfoList.add(virtualVolumeInfo);
         }
 
+        if (!notFoundVirtualVolumeNames.isEmpty()) {
+            throw VPlexApiException.exceptions.cantFindRequestedVolume(notFoundVirtualVolumeNames.toString());
+        }
         // Find the consistency group
         VPlexConsistencyGroupInfo cgInfo = discoveryMgr.findConsistencyGroup(cgName,
                 clusterInfoList, false);
@@ -584,7 +605,13 @@ public class VPlexApiConsistencyGroupManager {
         List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
         VPlexConsistencyGroupInfo cgInfo = discoveryMgr.findConsistencyGroup(cgName,
                 clusterInfoList, false);
-        deleteConsistencyGroup(cgInfo);
+        // COP-17138 If the consistency group still has virtual volumes in the VPLEX, don't delete it in the VPLEX
+        discoveryMgr.updateConsistencyGroupInfo(cgInfo);
+        if (cgInfo.getVirtualVolumes().isEmpty()) {
+            deleteConsistencyGroup(cgInfo);
+        } else {
+            s_logger.info("The consistency group {} still has virtual volumes in VPLEX, not deleting it in the VPLEX", cgName);
+        }
     }
 
     /**

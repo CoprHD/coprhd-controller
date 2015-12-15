@@ -57,11 +57,22 @@ public class BlockConsistencyGroupUpdateCompleter extends BlockConsistencyGroupT
                     dbClient.queryObject(BlockConsistencyGroup.class,
                             getConsistencyGroupURI());
 
-            dbClient.ready(BlockConsistencyGroup.class, consistencyGroup.getId(),
-                    getOpId());
+            switch (status) {
+                case error:
+                    dbClient.error(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId(),
+                            coded);
+                    break;
+                case ready:
+                    dbClient.ready(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId());
+                    break;
+                default:
+                    _log.error(String.format("Unexpected status %s when creating consistency group %s", status.name(),
+                            getConsistencyGroupURI().toString()));
+                    break;
+            }
 
             recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(),
-                    eventType(Status.ready), Status.ready, eventMessage(Status.ready,
+                    eventType(status), status, eventMessage(status,
                     consistencyGroup));
         } catch (Exception e) {
             _log.error("Failed updating status. BlockConsistencyGroupUpdate {}, for task "

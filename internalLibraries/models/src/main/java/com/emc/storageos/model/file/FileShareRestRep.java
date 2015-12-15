@@ -29,6 +29,7 @@ public class FileShareRestRep extends FileObjectRestRep {
     private RelatedResourceRep storagePort;
     private Boolean thinlyProvisioned;
     private String nativeId;
+    private RelatedResourceRep virtualNAS;
 
     /**
      * File system's actual path on the array.
@@ -206,4 +207,15 @@ public class FileShareRestRep extends FileObjectRestRep {
     public void setThinlyProvisioned(Boolean thinlyProvisioned) {
         this.thinlyProvisioned = thinlyProvisioned;
     }
+
+    @XmlElement(name = "virtual_nas")
+	public RelatedResourceRep getVirtualNAS() {
+		return virtualNAS;
+	}
+
+	public void setVirtualNAS(RelatedResourceRep virtualNAS) {
+		this.virtualNAS = virtualNAS;
+	}
+    
+    
 }

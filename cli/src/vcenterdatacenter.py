@@ -195,7 +195,7 @@ class VcenterDatacenter(object):
 
                 body = json.dumps(params)
                 (s, h) = common.service_json_request(
-                    self.__ipAddr, self.__port, "PUT",
+                    self.__ipAddr, self.__port, "POST",
                     VcenterDatacenter.URI_VCENTER_DATACENTERS.format(
                         vcenteruri), body)
                 o = common.json_decode(s)

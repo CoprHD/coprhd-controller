@@ -115,6 +115,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         VPLEX_CLUSTER_IDS("vplexClusters", "vplexClusters"),
         // unmanaged volume native GUIDs for the vplex backend volumes
         VPLEX_BACKEND_VOLUMES("vplexBackendVolumes", "vplexBackendVolumes"),
+        // vplex cluster id for a vplex backend volume
+        VPLEX_BACKEND_CLUSTER_ID("vplexBackendClusterId", "vplexBackendClusterId"),
         // native GUID of the VPLEX virtual volume containing this volume
         VPLEX_PARENT_VOLUME("vplexParentVolume", "vplexParentVolume"),
         // map of backend clone volume GUID to virtual volume GUID 
@@ -123,6 +125,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         VPLEX_MIRROR_MAP("vplexMirrorMap", "vplexMirrorMap"),
         VPLEX_NATIVE_MIRROR_TARGET_VOLUME("vplexNativeMirrorTargetVolume", "vplexNativeMirrorTargetVolume"),
         VPLEX_NATIVE_MIRROR_SOURCE_VOLUME("vplexNativeMirrorSourceVolume", "vplexNativeMirrorSourceVolume"),
+        HLU_TO_EXPORT_MASK_NAME_MAP("hluToExportLabelMap", "hluToExportLabelMap"),
         META_MEMBER_SIZE("metaMemberSize", "metaMemberSize"),
         META_MEMBER_COUNT("metaMemberCount", "metaMemberCount"),
         META_VOLUME_TYPE("compositeType", "compositeType"),

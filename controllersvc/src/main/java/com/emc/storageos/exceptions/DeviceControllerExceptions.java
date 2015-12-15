@@ -259,6 +259,9 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToRestoreFileSystemFromSnapshot(final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringDbException(
@@ -401,6 +404,12 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException failedToUpdateConsistencyGroup(String message);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException failedToAddMembersToReplicationGroup(String name, String deviceLabel, String error);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException failedToRemoveMembersFromReplicationGroup(String name, String deviceLabel, String error);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException existingExportFoundButWithSPsInDifferentNetwork(String vArrayName, String maskInfo);

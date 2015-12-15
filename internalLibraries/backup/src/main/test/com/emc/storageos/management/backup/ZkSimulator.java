@@ -102,6 +102,8 @@ public class ZkSimulator {
         inetAddressMap.setCoordinatorClient(client);
         inetAddressMap.setControllerNodeIPLookupMap(new HashMap<String, DualInetAddress>());
         client.setInetAddessLookupMap(inetAddressMap);
+        client.setSysSvcName("syssvc");
+        client.setSysSvcVersion("1");
         client.start();
         return client;
     }

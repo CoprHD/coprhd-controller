@@ -78,7 +78,9 @@ public class DbRepairRunnable implements Runnable {
 
         Collections.sort(nodeIds);
 
-        return StringUtils.join(nodeIds, ',');
+        String stateDigest = StringUtils.join(nodeIds, ',');
+        log.info("cluster digest: {}", stateDigest);
+        return stateDigest;
     }
 
     public static String getStateKey(String keySpaceName, boolean isGeoDbsvc) {

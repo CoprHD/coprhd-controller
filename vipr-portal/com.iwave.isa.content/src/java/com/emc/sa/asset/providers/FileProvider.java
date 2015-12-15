@@ -43,18 +43,19 @@ import com.google.common.collect.Sets;
 public class FileProvider extends BaseAssetOptionsProvider {
     public static final String CIFS = "CIFS";
     public static final String NFS = "NFS";
+    public static final String NFSv4 = "NFSv4";
     public static final String EXPORTED_TYPE = "exported";
     public static final String UNEXPORTED_TYPE = "unexported";
 
     @Asset("fileNfsVirtualPool")
     @AssetDependencies("fileVirtualArray")
     public List<AssetOption> getFileNfsVirtualPools(AssetOptionsContext ctx, URI virtualArray) {
-        return getFileVirtualPools(ctx, virtualArray, NFS);
+        return getFileVirtualPools(ctx, virtualArray, NFS, NFSv4);
     }
 
     @Asset("fileNfsVirtualPool")
     public List<AssetOption> getFileNfsVirtualPools(AssetOptionsContext ctx) {
-        return getFileVirtualPools(ctx, null, NFS);
+        return getFileVirtualPools(ctx, null, NFS, NFSv4);
     }
 
     @Asset("fileCifsVirtualPool")
@@ -71,12 +72,12 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @Asset("fileVirtualPool")
     @AssetDependencies("fileVirtualArray")
     public List<AssetOption> getFileVirtualPools(AssetOptionsContext ctx, URI virtualArray) {
-        return getFileVirtualPools(ctx, virtualArray, CIFS, NFS);
+        return getFileVirtualPools(ctx, virtualArray, CIFS, NFS, NFSv4);
     }
 
     @Asset("fileVirtualPool")
     public List<AssetOption> getFileVirtualPools(AssetOptionsContext ctx) {
-        return getFileVirtualPools(ctx, null, CIFS, NFS);
+        return getFileVirtualPools(ctx, null, CIFS, NFS, NFSv4);
     }
 
     private List<AssetOption> getFileVirtualPools(AssetOptionsContext ctx, URI virtualArray, String... protocols) {
@@ -314,7 +315,8 @@ public class FileProvider extends BaseAssetOptionsProvider {
         @Override
         public boolean evaluate(Object object) {
             FileShareRestRep filesystem = getFilesystem(object);
-            return filesystem.getProtocols().contains(NFS);
+            return filesystem.getProtocols().contains(NFS)
+                    || filesystem.getProtocols().contains(NFSv4);
         }
 
     }

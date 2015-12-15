@@ -7,9 +7,6 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolChangeRep;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
-import static com.emc.storageos.db.client.model.SynchronizationState.FRACTURED;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
-import static com.google.common.collect.Collections2.transform;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -44,7 +41,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -85,6 +82,7 @@ import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
@@ -190,10 +188,22 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public <T extends DataObject> String checkForDelete(T object) throws InternalException {
-        String depMsg = getDependencyChecker().checkDependencies(object.getId(), object.getClass(), true);
+        URI objectURI = object.getId();
+        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true);
         if (depMsg != null) {
             return depMsg;
         }
+
+        // The dependency checker does not pick up dependencies on
+        // BlockSnapshotSession because the containment constraint
+        // use the base class BlockObject as the parent i.e., source
+        // for a BlockSnapshotSession could be a Volume or BlockSnapshot.
+        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(objectURI));
+        if (!snapSessions.isEmpty()) {
+            return BlockSnapshotSession.class.getSimpleName();
+        }
+
         return object.canBeDeleted();
     }
 
@@ -274,6 +284,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
+     * 
      * @throws ControllerException
      */
     @Override
@@ -285,7 +296,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * @throws ControllerException 
+     * 
+     * @throws ControllerException
      */
     @Override
     public TaskList deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String task) throws ControllerException {
@@ -476,19 +488,19 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // system and all other storage systems to which this storage system
         // is connected.
         URI volumeSystemURI = volume.getStorageController();
-        
+
         // If the volume storage system is a vplex, we want to find storage systems
         // associated by network connectivity with the vplex backend ports
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volumeSystemURI);
         StoragePort.PortType portType = getSystemConnectivityPortType();
         if (ConnectivityUtil.isAVPlex(storageSystem)) {
-        	s_logger.info("Volume Storage System is a VPLEX, setting port type to backend for storage systems network association check.");
-        	portType = StoragePort.PortType.backend;
+            s_logger.info("Volume Storage System is a VPLEX, setting port type to backend for storage systems network association check.");
+            portType = StoragePort.PortType.backend;
         }
-        
+
         Set<URI> connectedSystemURIs = ConnectivityUtil
                 .getStorageSystemAssociationsByNetwork(_dbClient, volumeSystemURI, portType);
-                                
+
         connectedSystemURIs.add(volumeSystemURI);
         Iterator<URI> systemURIsIter = connectedSystemURIs.iterator();
         while (systemURIsIter.hasNext()) {
@@ -824,7 +836,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      *         false otherwise.
      */
     protected boolean isMetaVolumeWithMirrors(Volume volume) {
-        return ((isMeta(volume)) && (hasMirrors(volume)));
+        return ((isMeta(volume)) && (BlockServiceUtils.hasMirrors(volume)));
     }
 
     /**
@@ -888,7 +900,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
         return ((!(StoragePool.PoolClassNames.Clar_UnifiedStoragePool.name()
                 .equalsIgnoreCase(storagePool.getPoolClassName()) || isHitachiThinVolume(volume))))
-                && (hasMirrors(volume));
+                && (BlockServiceUtils.hasMirrors(volume));
     }
 
     /**
@@ -912,17 +924,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 volume.getStorageController(), StorageSystem.class);
         return DiscoveredDataObject.Type.hds.name().equalsIgnoreCase(
                 system.getSystemType());
-    }
-
-    /**
-     * Determines if the passed volume has attached mirrors.
-     * 
-     * @param volume A reference to a Volume.
-     * 
-     * @return true if passed volume has attached mirrors, false otherwise.
-     */
-    protected boolean hasMirrors(Volume volume) {
-        return volume.getMirrors() != null && !volume.getMirrors().isEmpty();
     }
 
     /**
@@ -1002,7 +1003,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             if (vpool.getMaxNativeSnapshots() == 0) {
                 throw APIException.badRequests.maxNativeSnapshotsIsZero(vpool.getLabel());
             }
-            if (getNumNativeSnapshots(volumeToSnap) >= vpool.getMaxNativeSnapshots()) {
+            if (getNumNativeSnapshots(volumeToSnap) >= vpool.getMaxNativeSnapshots().intValue()) {
                 throw APIException.methodNotAllowed.maximumNumberSnapshotsReached();
             }
 
@@ -1081,21 +1082,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * 
      * @return The number of snapshots on a volume.
      */
-    protected Integer getNumNativeSnapshots(Volume volume) {
-        Integer numSnapshots = 0;
-        URI volumeURI = volume.getId();
-        URIQueryResultList snapshotURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-                volumeURI), snapshotURIs);
-        while (snapshotURIs.iterator().hasNext()) {
-            URI snapshotURI = snapshotURIs.iterator().next();
-            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-            if (snapshot != null && !snapshot.getInactive()
-                    && snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString())) {
-                numSnapshots++;
-            }
-        }
-        return numSnapshots;
+    protected int getNumNativeSnapshots(Volume volume) {
+        return BlockServiceUtils.getNumNativeSnapshots(volume.getId(), _dbClient);
     }
 
     /**
@@ -1110,16 +1098,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param volume The volume to check.
      */
     protected void checkForDuplicatSnapshotName(String requestedName, Volume volume) {
-        String snapsetLabel = ResourceOnlyNameGenerator.removeSpecialCharsForName(
-                requestedName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
-        List<BlockSnapshot> volumeSnapshots = CustomQueryUtility
-                .queryActiveResourcesByConstraint(_dbClient, BlockSnapshot.class,
-                        ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()));
-        for (BlockSnapshot snapshot : volumeSnapshots) {
-            if (snapsetLabel.equals(snapshot.getSnapsetLabel())) {
-                throw APIException.badRequests.duplicateLabel(requestedName);
-            }
-        }
+        BlockServiceUtils.checkForDuplicateArraySnapshotName(requestedName, volume.getId(), _dbClient);
     }
 
     /**
@@ -1335,7 +1314,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         StringBuilder volumeLabelBuilder = new StringBuilder(baseVolumeLabel);
         if (volumeCount > 1) {
             volumeLabelBuilder.append("-");
-            volumeLabelBuilder.append(volumeIndex+1);
+            volumeLabelBuilder.append(volumeIndex + 1);
         }
         return volumeLabelBuilder.toString();
     }
@@ -1472,17 +1451,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return List of active BlockMirror URI's
      */
     protected List<URI> getActiveMirrorsForVolume(Volume volume) {
-        List<URI> activeMirrorURIs = new ArrayList<>();
-        if (hasMirrors(volume)) {
-            Collection<URI> mirrorUris = transform(volume.getMirrors(), FCTN_STRING_TO_URI);
-            List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorUris);
-            for (BlockMirror mirror : mirrors) {
-                if (!FRACTURED.toString().equalsIgnoreCase(mirror.getSyncState())) {
-                    activeMirrorURIs.add(mirror.getId());
-                }
-            }
-        }
-        return activeMirrorURIs;
+        return BlockServiceUtils.getActiveMirrorsForVolume(volume, _dbClient);
     }
 
     /**
@@ -1557,47 +1526,99 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
         // Don't allow partially ingested volume to be added to CG.
         BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
-
-        // Don't allow volume with multiple replicas
-        // Currently we do not have a way to group replicas based on their time stamp
-        // and put them into different groups on array.
-        verifyIfVolumeHasMultipleReplicas(volume);
     }
 
     /**
-     * Verify if volume has multiple replicas (snapshots/clones/mirrors).
-     * This is not yet supported via add Volume/Replica to CG.
-     *
-     * @param volume the volume
+     * {@inheritDoc}
      */
-    protected void verifyIfVolumeHasMultipleReplicas(Volume volume) {
-        // multiple snapshot check
-        URIQueryResultList list = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
-                list);
-        Iterator<URI> it = list.iterator();
-        int snapCount = 0;
-        while (it.hasNext()) {
-            it.next();
-            snapCount++;
-        }
-        if (snapCount > 1) {
-            throw APIException.badRequests
-                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "snapshots");
+    @Override
+    public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG) {
+        /*
+         * For VMAX, volumes to be added can have replicas only if
+         *    1. CG has no existing volumes, and
+         *    2. SMI-S 8.x
+         * For other arrays, or VMAX (CG has existing volumes, or non SMI-S 8.x), volumes to be added cannot have replicas
+         */
+        boolean isReplicaAllowed = false;
+        if ((volsAlreadyInCG || cgVolumes.isEmpty()) && ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient)) {
+            isReplicaAllowed = true;
         }
 
-        // multiple clone check
-        StringSet fullCopies = volume.getFullCopies();
-        if (fullCopies != null && fullCopies.size() > 1) {
-            throw APIException.badRequests
-                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "full copies");
-        }
+        int knownSnapCount = -1;
+        int knownCloneCount = -1;
+        int knownMirrorCount = -1;
+        for (Volume volume : volumes) {
+            // snapshot check
+            URIQueryResultList list = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
+                    list);
+            Iterator<URI> it = list.iterator();
+            int snapCount = 0;
+            while (it.hasNext()) {
+                it.next();
+                snapCount++;
+            }
 
-        // multiple mirror check
-        StringSet mirrors = volume.getMirrors();
-        if (mirrors != null && mirrors.size() > 1) {
-            throw APIException.badRequests
-                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "mirrors");
+            if (!isReplicaAllowed && snapCount > 0) {
+                throw APIException.badRequests
+                        .volumesWithReplicaCannotBeAdded(volume.getLabel(), "snapshots");
+            }
+
+            // Don't allow volume with multiple replicas
+            // Currently we do not have a way to group replicas based on their time stamp
+            // and put them into different groups on array.
+            if (snapCount > 1) {
+                throw APIException.badRequests
+                        .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "snapshots");
+            }
+
+            // Volume should have same number of replicas with other volumes
+            if (knownSnapCount != -1 && snapCount != knownSnapCount) {
+                throw APIException.badRequests
+                        .volumeWithDifferentNumberOfReplicasCannotBeAdded(volume.getLabel(), "snapshots");
+            }
+
+            // clone check
+            StringSet fullCopies = volume.getFullCopies();
+            int cloneCount = fullCopies == null ? 0 : fullCopies.size();
+
+            if (!isReplicaAllowed && cloneCount > 0) {
+                throw APIException.badRequests
+                        .volumesWithReplicaCannotBeAdded(volume.getLabel(), "full copies");
+            }
+
+            if (cloneCount > 1) {
+                throw APIException.badRequests
+                        .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "full copies");
+            }
+
+            if (knownCloneCount != -1 && cloneCount != knownCloneCount) {
+                throw APIException.badRequests
+                        .volumeWithDifferentNumberOfReplicasCannotBeAdded(volume.getLabel(), "full copies");
+            }
+
+            // mirror check
+            StringSet mirrors = volume.getMirrors();
+            int mirrorCount = mirrors == null ? 0 : mirrors.size();
+
+            if (!isReplicaAllowed && mirrorCount > 0) {
+                throw APIException.badRequests
+                        .volumesWithReplicaCannotBeAdded(volume.getLabel(), "mirrors");
+            }
+
+            if (mirrorCount > 1) {
+                throw APIException.badRequests
+                        .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "mirrors");
+            }
+
+            if (knownMirrorCount != -1 && mirrorCount != knownMirrorCount) {
+                throw APIException.badRequests
+                        .volumeWithDifferentNumberOfReplicasCannotBeAdded(volume.getLabel(), "mirrors");
+            }
+
+            knownSnapCount = snapCount;
+            knownCloneCount = cloneCount;
+            knownMirrorCount = mirrorCount;
         }
     }
 
@@ -1646,7 +1667,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // Look for high-order source device first, which would be RP_VPLEX_VIRT_SOURCE or RP_SOURCE
         List<VolumeDescriptor> volumes = VolumeDescriptor.filterByType(volumesDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
-                                              VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
                 new VolumeDescriptor.Type[] {});
 
         // If there are none of those, look for VPLEX_VIRT_VOLUME
@@ -1659,8 +1680,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // Finally look for SRDF or regular block volumes
         if (volumes.isEmpty()) {
             volumes = VolumeDescriptor.filterByType(volumesDescriptors,
-                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, 
-                                                  VolumeDescriptor.Type.SRDF_SOURCE },
+                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA,
+                            VolumeDescriptor.Type.SRDF_SOURCE },
                     new VolumeDescriptor.Type[] {});
         }
 
@@ -1668,7 +1689,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         if (volumes.isEmpty()) {
             return;
         }
-        
+
         for (VolumeDescriptor desc : volumes) {
             s_logger.info(String.format("Volume and Task Pre-creation Objects [Exec]--  Source Volume: %s, Op: %s",
                     desc.getVolumeURI(), task));

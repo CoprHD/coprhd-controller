@@ -38,8 +38,10 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
+import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.exceptions.RetryableBackupException;
 import com.emc.storageos.services.util.FileUtils;
@@ -638,6 +640,7 @@ public class BackupOps {
      * @return a list of backup sets info
      */
     public List<BackupSetInfo> listBackup() {
+        log.info("Listing backup sets");
         return listBackup(true);
     }
 
@@ -651,7 +654,7 @@ public class BackupOps {
         List<String> errorList = new ArrayList<>();
         try {
             List<BackupProcessor.BackupTask<List<BackupSetInfo>>> backupTasks =
-                    (new BackupProcessor(getHosts(), Arrays.asList(ports.get(0)), null))
+                    (new BackupProcessor(getHosts(), Arrays.asList(ports.get(2)), null))
                             .process(new ListBackupCallable(), false);
             Throwable result = null;
             for (BackupProcessor.BackupTask task : backupTasks) {
@@ -685,14 +688,6 @@ public class BackupOps {
             }
         } catch (Exception e) {
             log.error("Exception when listing backups", e);
-            List<String> newErrList = (List<String>) ((ArrayList<String>) errorList).clone();
-            for (String node : newErrList) {
-                List<BackupSetInfo> nodeBackupFileList = retryListBackupWithOtherPorts(getHosts().get(node));
-                if (nodeBackupFileList != null) {
-                    clusterBackupFiles.addAll(nodeBackupFileList, node);
-                    errorList.remove(node);
-                }
-            }
             if (!errorList.isEmpty()) {
                 Throwable cause = (e.getCause() == null ? e : e.getCause());
                 if (ignore) {
@@ -743,22 +738,6 @@ public class BackupOps {
         } finally {
             close(conn);
         }
-    }
-
-    private List<BackupSetInfo> retryListBackupWithOtherPorts(String host) {
-        for (int i = 1; i < ports.size(); i++) {
-            try {
-                List<BackupSetInfo> nodeBackupFileList =
-                        listBackupFromNode(host, ports.get(i));
-                log.info("Retry list backup on node({}:{}) success",
-                        host, ports.get(i));
-                return nodeBackupFileList;
-            } catch (Exception e) {
-                log.error(String.format("Retry list backup on node(%s:%d) failed.",
-                        host, ports.get(i)), e);
-            }
-        }
-        return null;
     }
 
     private List<BackupSetInfo> filterToCreateBackupsetList(BackupFileSet clusterBackupFiles) {
@@ -831,11 +810,42 @@ public class BackupOps {
         return inetAddress.hasInet4() ? inetAddress.getInet4() : inetAddress.getInet6();
     }
 
+    private boolean isNodeAvailable(String host) {
+        for (String nodeId : hosts.keySet())
+        if (hosts.get(nodeId).equals(host)) {
+            return getAvailableNodes().contains(nodeId);
+        }
+        return false;
+    }
+
+    private List<String> getAvailableNodes() {
+        List<String> goodNodes = new ArrayList<String>();
+        try {
+            List<Service> svcs = coordinatorClient.locateAllServices(
+                    ((CoordinatorClientImpl) coordinatorClient).getSysSvcName(),
+                    ((CoordinatorClientImpl) coordinatorClient).getSysSvcVersion(),
+                    (String) null, null);
+            for (Service svc : svcs) {
+                String svcId = svc.getId();
+                goodNodes.add("vipr" + svcId.substring(svcId.lastIndexOf("-") + 1));
+            }
+            log.debug("Available nodes: {}", goodNodes);
+        } catch (Exception e) {
+            log.warn("Failed to get available nodes by query syssvc beacon", e);
+            goodNodes.addAll(hosts.keySet());
+        }
+        return goodNodes;
+    }
+
     /**
      * Create a connection to the JMX agent
      */
     private JMXConnector connect(String host, int port) {
         try {
+            if (!isNodeAvailable(host)) {
+                log.info("Node({}) is unavailable", host);
+                throw new IllegalStateException("Node is unavailable");
+            }
             log.debug("Connecting to JMX Server {}:{}", host, port);
             String connectorAddress = String.format(serviceUrl, host, port);
             JMXServiceURL jmxUrl = new JMXServiceURL(connectorAddress);

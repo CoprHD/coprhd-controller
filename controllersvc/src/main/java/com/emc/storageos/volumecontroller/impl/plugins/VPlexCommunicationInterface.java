@@ -176,7 +176,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             // Determine the VPLEX system managed by this management server.
             Map<String, StorageSystemViewObject> scanCache = accessProfile.getCache();
+            s_logger.info("Storage System scanCache before scanning:" + scanCache);
             scanManagedSystems(client, mgmntServer, scanCache);
+            s_logger.info("Storage System scanCache after scanning:" + scanCache);
             scanStatusMessage = String.format("Scan job completed successfully for " +
                     "VPLEX management server: %s", mgmntServerURI.toString());
         } catch (Exception e) {
@@ -612,6 +614,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     }
 
                     Volume managedVolume = findVirtualVolumeManagedByVipr(info);
+                    UnManagedVolume unmanagedVolume = findUnmanagedVolumeKnownToVipr(info);
 
                     // check for volumes ingested with no public access flags set.
                     // this would indicate the volume has been partially ingested (due to outstanding replicas)
@@ -629,8 +632,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         } else {
                             s_logger.info("Virtual Volume {} is not managed by ViPR", name);
                         }
-
-                        UnManagedVolume unmanagedVolume = findUnmanagedVolumeKnownToVipr(info);
 
                         if (null != unmanagedVolume) {
                             // just refresh / update the existing unmanaged volume
@@ -678,13 +679,16 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         }
 
                         persistUnManagedVolumes(newUnmanagedVolumes, knownUnmanagedVolumes, false);
-                        allUnmanagedVolumes.add(unmanagedVolume.getId());
 
                     } else {
                         s_logger.info("Virtual Volume {} is already managed by "
                                 + "ViPR as Volume URI {}", name, managedVolume.getId());
                     }
 
+                    if (null != unmanagedVolume && !unmanagedVolume.getInactive()) {
+                        allUnmanagedVolumes.add(unmanagedVolume.getId());
+                    }
+                    
                     tracker.volumeTimeResults.put(name, System.currentTimeMillis() - timer);
                     tracker.totalVolumesDiscovered++;
 
@@ -756,8 +760,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 .getStorageSystemUnManagedVolumeConstraint(vplexUri), results);
 
         List<UnManagedVolume> changedVolumes = new ArrayList<UnManagedVolume>();
-        List<UnManagedVolume> allUnmanagedVolumes = _dbClient.queryObject(UnManagedVolume.class, results);
-        for (UnManagedVolume unManagedVolume : allUnmanagedVolumes) {
+        Iterator<UnManagedVolume> allUnmanagedVolumes = 
+                _dbClient.queryIterativeObjects(UnManagedVolume.class, results, true);
+        while (allUnmanagedVolumes.hasNext()) {
+            UnManagedVolume unManagedVolume = allUnmanagedVolumes.next();
             String isFullCopyStr = unManagedVolume.getVolumeCharacterstics()
                     .get(SupportedVolumeCharacterstics.IS_FULL_COPY.toString());
             boolean isFullCopy = (null != isFullCopyStr && Boolean.parseBoolean(isFullCopyStr));

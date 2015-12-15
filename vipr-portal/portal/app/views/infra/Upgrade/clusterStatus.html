@@ -4,7 +4,6 @@
         &nbsp;&nbsp;#{loading /}
     #{/if}
 <div>&nbsp;</div>
-
 #{if newVersions.size() > 0}
     <div class="alert alert-info">
         &{'upgrade.newVersionAvailable', newVersions[0]}
@@ -58,7 +57,19 @@
   #{if repositoryVersions?.size() >= 4}
         <div class="alert alert-warning">&{'upgrade.tooMany'}</div>
   #{/if}
-  #{if newVersions.size() > 0}
+ #{if newVersions.size() <= 0}
+    <div class="alert alert-info">&{'upgrade.noVersions'}</div>
+ #{/if}
+
+   	  %{
+   	  	isRepoVersionIsInstalled = false;
+   	  	len = repositoryVersions.size();
+   	  	if(repositoryVersions.get(len-1) == clusterInfo.targetState.current){
+   	  		isRepoVersionIsInstalled = true;
+   	  		
+   	  	}
+   	  }% 
+  #{if (!isRepoVersionIsInstalled || newVersions.size() > 0) }
   <legend>&{'upgrade.steps'}</legend>
   	<form id=backup action="@{Backup.create()}" onsubmit="return true">
   	<div class="text"><b>&{'upgrade.backupDB'}</b>
@@ -72,6 +83,7 @@
   	</div>
   	</form>
   	<br/>
+  	#{if newVersions.size() > 0}
   	<form class="form form-horizontal" method="GET" action="@{downloadImage()}" onsubmit="downloadImage(); return true" id="downloadImage" style="margin:0px"> 
     <div class="text"><b>&{'upgrade.downloadNew'}</b>
       <span class="text">
@@ -87,13 +99,14 @@
     </div>
     </form>
     <br/>
+    #{/if}
     <div class="text"><b>&{'upgrade.installRemove'}</b></div>
+  <br/>
   #{/if}
   #{else}
-    <div class="alert alert-info">&{'upgrade.noVersions'}</div>
     <legend>&{'upgrade.installedImages'}</legend>
+    <br/>
   #{/else}
-  <br/>
 #{/if}
 
 

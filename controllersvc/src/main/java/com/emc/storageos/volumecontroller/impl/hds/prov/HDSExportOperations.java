@@ -954,6 +954,10 @@ public class HDSExportOperations implements ExportMaskOperations {
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
             String systemObjectID = HDSUtils.getSystemObjectID(storage);
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+            if (null == exportMask.getDeviceDataMap()) {
+                log.info("HSD's are not found in the exportMask {} device DataMap.", exportMask.getId());
+                taskCompleter.ready(dbClient);
+            }
             StringSetMap deviceDataMap = exportMask.getDeviceDataMap();
             Set<String> hsdList = deviceDataMap.keySet();
             List<Path> pathObjectIdList = new ArrayList<Path>();
@@ -961,7 +965,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 throw HDSException.exceptions
                         .notAbleToFindHostStorageDomain(systemObjectID);
             }
-            if (null != exportMask && !exportMask.getInactive() && !hsdList.isEmpty()) {
+            if (null != exportMask && !exportMask.getInactive()) {
                 for (String hsdObjectId : hsdList) {
                     HostStorageDomain hsd = exportMgr.getHostStorageDomain(
                             systemObjectID, hsdObjectId);
@@ -1158,6 +1162,11 @@ public class HDSExportOperations implements ExportMaskOperations {
         long startTime = System.currentTimeMillis();
         log.info("{} removeInitiator START...", storage.getSerialNumber());
         try {
+            if (null == initiators || initiators.isEmpty()) {
+                log.info("No initiators found to remove {}", exportMaskURI);
+                taskCompleter.ready(dbClient);
+                return;
+            }
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
                     getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
@@ -1201,7 +1210,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 // update the task status after processing all HSD's.
                 taskCompleter.ready(dbClient);
             } else {
-                log.info("No Host groups configured on exportMask {}", exportMaskURI);
+                log.info("No Host groups found on exportMask {}", exportMaskURI);
                 // No HSD's found in exportMask.
                 taskCompleter.ready(dbClient);
             }
@@ -1610,7 +1619,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             if (null != mask.getDeviceDataMap() && !mask.getDeviceDataMap().isEmpty()) {
                 Set<String> hsdList = mask.getDeviceDataMap().keySet();
                 StringBuilder builder = new StringBuilder();
-                List<String> discoveredInitiators = new ArrayList<String>();
+                Set<String> discoveredInitiators = new HashSet<String>();
                 String maskName = null;
                 Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
                 for (String hsdObjectIdFromDb : hsdList) {

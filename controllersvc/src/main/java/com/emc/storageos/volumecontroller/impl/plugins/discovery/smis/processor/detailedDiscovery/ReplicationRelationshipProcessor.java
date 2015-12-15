@@ -46,7 +46,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
     private static final String SNAPSHOT_CLONE_REPLICA_STATE = Volume.ReplicationState.UNKNOWN.name();
 
     private Map<String, LocalReplicaObject> _volumeToLocalReplicaMap;
-    private Map<String, String> _syncAspectMap;
+    private Map<String, Map<String, String>> _syncAspectMap;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -55,7 +55,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
         _logger.debug("Calling ReplicationRelationshipProcessor");
         _volumeToLocalReplicaMap = (Map<String, LocalReplicaObject>) keyMap
                 .get(Constants.UN_VOLUME_LOCAL_REPLICA_MAP);
-        _syncAspectMap = (Map<String, String>) keyMap
+        _syncAspectMap = (Map<String, Map<String, String>>) keyMap
                 .get(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP);
 
         CIMInstance[] instances = (CIMInstance[]) getFromOutputArgs((CIMArgument[]) resultObj, SmisConstants.SYNCHRONIZATIONS);
@@ -164,15 +164,14 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                     }
 
                     replicaObj.setSyncActive(inSync);
-                    replicaObj
-                            .setTechnologyType(BlockSnapshot.TechnologyType.NATIVE
-                                    .name());
+                    replicaObj.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
 
-                    String relationshipName = getCIMPropertyValue(instance,
-                            EMC_RELATIONSHIP_NAME);
-                    String syncAspect = _syncAspectMap.get(getSyncAspectMapKey(
-                            srcNativeGuid, relationshipName));
-                    replicaObj.setSettingsInstance(syncAspect);
+                    String relationshipName = getCIMPropertyValue(instance, EMC_RELATIONSHIP_NAME);
+                    Map<String, String> aspectsForSource = _syncAspectMap.get(srcNativeGuid);
+                    if (null != aspectsForSource) {
+                        String syncAspect = aspectsForSource.get(getSyncAspectMapKey(srcNativeGuid, relationshipName));
+                        replicaObj.setSettingsInstance(syncAspect);
+                    }
 
                     if (null == srcReplicaObj.getSnapshots()) {
                         srcReplicaObj.setSnapshots(new StringSet());

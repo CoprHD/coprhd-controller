@@ -652,4 +652,10 @@ public interface DbClient {
      *         the features for geoVersion can be enabled. Otherwise false;
      * */
     boolean checkGeoCompatible(String expectVersion);
+    
+    /**
+     * Check whether there is active and useful data in database. Don't check the data whose type is in excludeClasses
+     * @return true if there are useful data
+     */
+    boolean hasUsefulData();
 }

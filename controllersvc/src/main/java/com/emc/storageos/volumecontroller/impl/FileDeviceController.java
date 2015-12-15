@@ -309,6 +309,7 @@ public class FileDeviceController implements FileController {
                 isFile = true;
                 args.setForceDelete(forceDelete);
                 fsObj = _dbClient.queryObject(FileShare.class, uri);
+                setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 fileObject = fsObj;
                 args.addFileShare(fsObj);
                 args.setFileOperation(isFile);
@@ -384,6 +385,7 @@ public class FileDeviceController implements FileController {
                 fileObject = snapshotObj;
                 args.addSnapshot(snapshotObj);
                 fsObj = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
+                setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 args.addFileShare(fsObj);
                 args.setFileOperation(isFile);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, args);
@@ -671,6 +673,7 @@ public class FileDeviceController implements FileController {
             if (URIUtil.isType(fileUri, FileShare.class)) {
                 isFile = true;
                 fs = _dbClient.queryObject(FileShare.class, fileUri);
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 fsObj = fs;
                 args.addFSFileObject(fs);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
@@ -679,6 +682,7 @@ public class FileDeviceController implements FileController {
                 snapshotObj = _dbClient.queryObject(Snapshot.class, fileUri);
                 fsObj = snapshotObj;
                 fs = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 args.addFileShare(fs);
                 args.addSnapshotFileObject(snapshotObj);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
@@ -944,6 +948,7 @@ public class FileDeviceController implements FileController {
             args.setOpId(opId);
             if (URIUtil.isType(uri, FileShare.class)) {
                 fsObj = _dbClient.queryObject(FileShare.class, uri);
+                setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 fileObject = fsObj;
                 args.addFSFileObject(fsObj);
                 args.setFileOperation(true);
@@ -982,6 +987,7 @@ public class FileDeviceController implements FileController {
 
                 _dbClient.persistObject(snapshotObj);
                 fsObj = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
+                setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
                 List<SMBFileShare> shares = null;
                 if (result.isCommandSuccess()) {
@@ -1723,6 +1729,7 @@ public class FileDeviceController implements FileController {
             if (URIUtil.isType(fsURI, FileShare.class)) {
                 isFile = true;
                 fs = _dbClient.queryObject(FileShare.class, fsURI);
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 fsObj = fs;
                 args.addFSFileObject(fs);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
@@ -1735,6 +1742,7 @@ public class FileDeviceController implements FileController {
                 fsObj = snapshotObj;
                 fs = _dbClient.queryObject(FileShare.class,
                         snapshotObj.getParent());
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 args.addFileShare(fs);
                 args.addSnapshotFileObject(snapshotObj);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
@@ -2207,6 +2215,7 @@ public class FileDeviceController implements FileController {
             if (URIUtil.isType(fileUri, FileShare.class)) {
                 isFile = true;
                 fs = _dbClient.queryObject(FileShare.class, fileUri);
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 fsObj = fs;
                 args.addFSFileObject(fs);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
@@ -2221,6 +2230,7 @@ public class FileDeviceController implements FileController {
                 fsObj = snapshotObj;
                 fs = _dbClient.queryObject(FileShare.class,
                         snapshotObj.getParent());
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 args.addFileShare(fs);
                 args.addSnapshotFileObject(snapshotObj);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
@@ -2404,6 +2414,7 @@ public class FileDeviceController implements FileController {
             if (URIUtil.isType(fsURI, FileShare.class)) {
                 isFile = true;
                 fs = _dbClient.queryObject(FileShare.class, fsURI);
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 fsObj = fs;
                 args.addFSFileObject(fs);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
@@ -2416,6 +2427,7 @@ public class FileDeviceController implements FileController {
                 fsObj = snapshotObj;
                 fs = _dbClient.queryObject(FileShare.class,
                         snapshotObj.getParent());
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 args.addFileShare(fs);
                 args.addSnapshotFileObject(snapshotObj);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
@@ -2818,6 +2830,7 @@ public class FileDeviceController implements FileController {
             if (URIUtil.isType(fsURI, FileShare.class)) {
                 isFile = true;
                 fs = _dbClient.queryObject(FileShare.class, fsURI);
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 fsObj = fs;
                 args.addFSFileObject(fs);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
@@ -2830,6 +2843,7 @@ public class FileDeviceController implements FileController {
                 fsObj = snapshotObj;
                 fs = _dbClient.queryObject(FileShare.class,
                         snapshotObj.getParent());
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
                 args.addFileShare(fs);
                 args.addSnapshotFileObject(snapshotObj);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
@@ -3203,48 +3217,57 @@ public class FileDeviceController implements FileController {
     }
 
     /**
-     * To get all the ACLs associated with the a FileShare
+     * To get all the ACLs of File System or a mention subDir.
      * 
-     * @param fs File Share
+     * @param fs File System
      * @param subDir Sub directory
      * @return List of NFS ACL present in DB.
      */
     private List<NFSShareACL> queryAllNfsACLInDB(FileShare fs, String subDir, FileDeviceInputOutput args) {
-        List<NFSShareACL> nfsShareAcl = null;
+        List<NFSShareACL> allNfsShareAcl = null;
+        List<NFSShareACL> returnNfsShareAcl = null;
+        List<NFSShareACL> fsNfsShareAcl = new ArrayList<NFSShareACL>();
+        List<NFSShareACL> subDirNfsShareAcl = new ArrayList<NFSShareACL>();
+
         _log.info("Querying all Nfs File System ACL Using FsId {}", fs.getId());
         try {
-        	
-        	ContainmentConstraint containmentConstraint = null;
 
-        	if ( args.getFileOperation() ) {
-        		containmentConstraint = ContainmentConstraint.Factory
-        				.getFileNfsAclsConstraint(fs.getId());
-        		
-        	} else {
-        		containmentConstraint = ContainmentConstraint.Factory
-        				.getSnapshotNfsAclsConstraint(args.getSnapshotId());
-        	}
-            
-            nfsShareAcl = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, NFSShareACL.class,
+            ContainmentConstraint containmentConstraint = null;
+
+            if (args.getFileOperation()) {
+                containmentConstraint = ContainmentConstraint.Factory
+                        .getFileNfsAclsConstraint(fs.getId());
+
+            } else {
+                containmentConstraint = ContainmentConstraint.Factory
+                        .getSnapshotNfsAclsConstraint(args.getSnapshotId());
+            }
+
+            allNfsShareAcl = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, NFSShareACL.class,
                     containmentConstraint);
 
         } catch (Exception e) {
             _log.error("Error while querying {}", e);
         }
+
+        returnNfsShareAcl = fsNfsShareAcl;
+        String absolutefsPath = fs.getPath();
+        String absoluteDirPath = "";
         if (subDir != null && !subDir.isEmpty()) {
 
-            // Filter for a specific Sub Directory export
-            // fs path + subdir path is same as acl filesystem path
-            String absoluteSubdir = fs.getPath() + "/" + subDir;
-            for (NFSShareACL nfsAcl : nfsShareAcl) {
-                if (!nfsAcl.getFileSystemPath().equals(absoluteSubdir)) {
-                    // list of the ace
-                    nfsShareAcl.remove(nfsAcl);
+            absoluteDirPath = absolutefsPath + "/" + subDir;
+            returnNfsShareAcl = subDirNfsShareAcl;
+        }
+        for (NFSShareACL nfsAcl : allNfsShareAcl) {
+            if (nfsAcl.getFileSystemPath().equals(absoluteDirPath)) {
+                subDirNfsShareAcl.add(nfsAcl);
 
-                }
+            } else if (nfsAcl.getFileSystemPath().equals(absolutefsPath)) {
+                fsNfsShareAcl.add(nfsAcl);
             }
         }
-        return nfsShareAcl;
+
+        return returnNfsShareAcl;
     }
 
     /**

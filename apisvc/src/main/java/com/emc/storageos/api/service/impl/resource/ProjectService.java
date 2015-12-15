@@ -25,6 +25,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,19 +36,12 @@ import com.emc.storageos.api.mapper.functions.MapProject;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper.ACLInputFilter;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
+import com.emc.storageos.api.service.impl.resource.utils.ProjectUtility;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.NasCifsServer;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -906,18 +901,7 @@ public class ProjectService extends TaggedResource {
         if (vNasIds != null && !vNasIds.isEmpty() && project != null) {
 
             // Get list of domains associated with the project
-            Set<String> projectDomains = new HashSet<String>();
-            NamedURI tenantUri = project.getTenantOrg();
-            TenantOrg tenant = _permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
-            if (tenant != null && tenant.getUserMappings() != null) {
-                for (AbstractChangeTrackingSet<String> userMappingSet : tenant.getUserMappings().values()) {
-                    for (String existingMapping : userMappingSet) {
-                        UserMappingParam userMap = BasePermissionsHelper.UserMapping.toParam(
-                                BasePermissionsHelper.UserMapping.fromString(existingMapping));
-                        projectDomains.add(userMap.getDomain().toUpperCase());
-                    }
-                }
-            }
+            Set<String> projectDomains = ProjectUtility.getDomainsOfProject(_permissionsHelper, project);
 
             for (String id : vNasIds) {
                 URI vnasURI = URI.create(id);
@@ -946,21 +930,8 @@ public class ProjectService extends TaggedResource {
                 }
 
                 // Get list of domains associated with a VNAS server and validate with project's domain
-                boolean domainMatched = false;
-                if (projectDomains != null && !projectDomains.isEmpty()) {
-                	if( vnas.getCifsServersMap() != null && !vnas.getCifsServersMap().isEmpty() ) {
-                		Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
-                		for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
-                			NasCifsServer cifsServer = nasCifsServer.getValue();
-                			if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
-                				domainMatched = true;
-                				break;
-                			}
-                		}
-                	}
-                } else {
-                    domainMatched = true;
-                }
+                boolean domainMatched = ProjectUtility.doesProjectDomainMatchesWithVNASDomain(projectDomains, vnas);
+                
                 if (!domainMatched) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " domain is not matched with project domain");
                     _log.error(errorMsg.toString());
@@ -970,16 +941,35 @@ public class ProjectService extends TaggedResource {
                 // Get list of file systems and associated project of VNAS server and validate with Project
                 URIQueryResultList fsList = new URIQueryResultList();
                 boolean projectMatched = true;
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vnas.getStorageDeviceURI());
                 for (String storagePort : vnas.getStoragePorts()) {
                     _dbClient.queryByConstraint(
                             ContainmentConstraint.Factory.getStoragePortFileshareConstraint(URI.create(storagePort)), fsList);
                     Iterator<URI> fsItr = fsList.iterator();
                     while (fsItr.hasNext()) {
                         FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
-                        if (fileShare != null && !fileShare.getInactive() &&
-                                !fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
-                            projectMatched = false;
-                            break;
+                        if (fileShare != null && !fileShare.getInactive()) {
+                            //if fs contain vNAS uri, then compare uri of vNAS assgined to project
+                            if (fileShare.getVirtualNAS() != null && 0 == fileShare.getVirtualNAS().compareTo(vnas.getId())) {                                
+                                _log.debug("Validation of assigned vNAS URI: {} and file system path : {} ",
+                                                                                fileShare.getVirtualNAS(), fileShare.getPath());
+                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
+                                    projectMatched = false;
+				                    break;
+                                }
+                            } else { //for isilon, if fs don't have vNAS uri, compare fspath with base path of AZ
+                                if (storageSystem.getSystemType().equals(StorageSystem.Type.isilon.name())) {
+                                    if (fileShare.getPath().startsWith(vnas.getBaseDirPath() + "/") == false) {
+                                        continue;
+                                    }
+                                }
+                                _log.debug("Validation of assigned vNAS base path {} and file path : {} ",
+                                                                    vnas.getBaseDirPath(), fileShare.getPath());
+                                if (!fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
+                                    projectMatched = false;
+                                    break;
+                                }
+                            }
                         }
                     }
                     if (!projectMatched) {

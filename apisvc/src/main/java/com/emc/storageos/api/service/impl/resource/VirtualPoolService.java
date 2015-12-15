@@ -829,9 +829,8 @@ public abstract class VirtualPoolService extends TaggedResource {
             }
         }
 
-        // Remove Qos associated to this Virtual Pool and record operation
+        // Remove Qos associated to this Virtual Pool
         _dbClient.removeObject(qosSpecification);
-        recordOperation(OperationTypeEnum.DELETE_QOS, QosService.QOS_DELETED_DESCRIPTION, qosSpecification);
 
         _dbClient.markForDeletion(vpool);
 

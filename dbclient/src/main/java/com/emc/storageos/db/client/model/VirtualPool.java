@@ -325,7 +325,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     // names to be used in type field
     public static enum Type {
-        block, file, object;
+        block, file, object, storagecontainer;
         private static final Type[] vpoolTypeValues = values();
 
         public static Type lookup(final String name) {

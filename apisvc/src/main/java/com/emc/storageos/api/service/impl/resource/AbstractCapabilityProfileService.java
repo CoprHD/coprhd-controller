@@ -10,13 +10,14 @@ import com.emc.storageos.db.client.model.StorageContainer.ProtocolEndpointTypeEn
 import com.emc.storageos.db.client.model.StorageContainer.ProtocolType;
 import com.emc.storageos.db.client.model.StorageContainer.ProvisioningType;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.vasa.CapabilityProfileCreateRequestParam;
 import com.emc.storageos.model.vasa.VasaCommonRestRequest;
 
 public abstract class AbstractCapabilityProfileService extends AbstractVasaService{
 
-    public <T extends VasaCommonRestRequest> void populateCommonFields(CapabilityProfile capabilityProfile, T param) throws DatabaseException{
+    public <T extends VasaCommonRestRequest> void populateCommonFields(VirtualPool capabilityProfile, T param) throws DatabaseException{
      // Validate the name for not null and non-empty values
         if (StringUtils.isNotEmpty(param.getName())) {
             capabilityProfile.setLabel(param.getName());
@@ -24,15 +25,6 @@ public abstract class AbstractCapabilityProfileService extends AbstractVasaServi
         if (StringUtils.isNotEmpty(param.getDescription())) {
             capabilityProfile.setDescription(param.getDescription());
         }
-        
-        ArgValidator.checkFieldNotEmpty(param.getProtocolType(), PROTOCOL_TYPE);
-        ArgValidator.checkFieldValueFromEnum(param.getProtocolType(), PROTOCOL_TYPE,
-                EnumSet.of(ProtocolType.block, ProtocolType.file));
-        
-        if (null != param.getProtocolType()) {
-            capabilityProfile.setProtocolType(param.getProtocolType());
-        }
-
 
         ArgValidator.checkFieldNotEmpty(param.getProvisionType(), PROVISIONING_TYPE);
         ArgValidator.checkFieldValueFromEnum(param.getProvisionType(), PROVISIONING_TYPE,
@@ -40,7 +32,7 @@ public abstract class AbstractCapabilityProfileService extends AbstractVasaServi
 
         capabilityProfile.setId(URIUtil.createId(CapabilityProfile.class));
         if (null != param.getProvisionType()) {
-            capabilityProfile.setProvisioningType(param.getProvisionType());
+            capabilityProfile.setSupportedProvisioningType(param.getProvisionType());
         }
         
         capabilityProfile.setProtocols(new StringSet());
@@ -48,23 +40,23 @@ public abstract class AbstractCapabilityProfileService extends AbstractVasaServi
         // Validate the protocols for not null and non-empty values
         ArgValidator.checkFieldNotEmpty(param.getProtocols(), PROTOCOLS);
         // Validate the protocols for type of capabilityProfile.
-        validateProtocol(capabilityProfile.getProtocolType(), param.getProtocols());
+        validateProtocol(capabilityProfile.getType(), param.getProtocols());
         capabilityProfile.getProtocols().addAll(param.getProtocols());
 
     }
     
-    public void populateCommonCapabilityProfileFields(CapabilityProfile capabilityProfile,
+    public void populateCommonCapabilityProfileFields(VirtualPool capabilityProfile,
             CapabilityProfileCreateRequestParam param) throws DatabaseException{
         
-        ArgValidator.checkFieldNotEmpty(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE);
-        ArgValidator.checkFieldValueFromEnum(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE,
-                EnumSet.of(ProtocolEndpointTypeEnum.NFS, ProtocolEndpointTypeEnum.NFS4x, ProtocolEndpointTypeEnum.SCSI));
-        if(null != param.getProtocolEndPointType()){
-            capabilityProfile.setProtocolEndPointType(param.getProtocolEndPointType());
-        }
+//        ArgValidator.checkFieldNotEmpty(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE);
+//        ArgValidator.checkFieldValueFromEnum(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE,
+//                EnumSet.of(ProtocolEndpointTypeEnum.NFS, ProtocolEndpointTypeEnum.NFS4x, ProtocolEndpointTypeEnum.SCSI));
+//        if(null != param.getProtocolEndPointType()){
+//            capabilityProfile.setProtocolEndPointType(param.getProtocolEndPointType());
+//        }
         
         ArgValidator.checkFieldMaximum(param.getQuotaGB(), 2000, QUOTA_GB);
-        capabilityProfile.setQuotaGB(param.getQuotaGB());
+        capabilityProfile.setQuota(param.getQuotaGB());
         
         if(null != param.getDriveType()){
             capabilityProfile.setDriveType(param.getDriveType());

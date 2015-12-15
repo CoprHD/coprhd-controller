@@ -29,8 +29,9 @@ public abstract class AbstractVasaService extends TaggedResource{
     protected static final String PROTOCOL_NFS = "NFS";
     protected static final String PROTOCOL_CIFS = "CIFS";
     protected static final String PROTOCOL_FC = "FC";
-    protected static final String PROTOCOL_ISCSI = "iSCSI";
+    protected static final String PROTOCOL_SCSI = "SCSI";
     protected static final String PROTOCOL_SCALEIO = "ScaleIO";
+    protected static final String PROTOCOL_NFS4X = "NFS4x";
 
     protected static final String PROVISIONING_TYPE = "provisioning_type";
     protected static final String PROTOCOL_ENDPOINT_TYPE = "protocolEndPointType";
@@ -39,20 +40,16 @@ public abstract class AbstractVasaService extends TaggedResource{
     protected static final String DESCRIPTION = "description";
     protected static final String MAXVVOLSIZEMB = "maxVvolSizeMB";
     protected static final String SYSTEM_TYPE = "system_type";
-    protected static final String PROTOCOL_TYPE = "protocolType";
     protected static final String QUOTA_GB = "quotaGB";
     
-    private static Set<String> fileProtocols = new HashSet<String>();
-    private static Set<String> blockProtocols = new HashSet<String>();
+    private static Set<String> protocols = new HashSet<String>();
     static {
-        // Initialize file type protocols
-        fileProtocols.add(PROTOCOL_NFS);
-        fileProtocols.add(PROTOCOL_CIFS);
-
-        // initialize block protocols
-        blockProtocols.add(PROTOCOL_FC);
-        blockProtocols.add(PROTOCOL_ISCSI);
-        blockProtocols.add(PROTOCOL_SCALEIO);
+        protocols.add(PROTOCOL_NFS);
+        protocols.add(PROTOCOL_CIFS);
+        protocols.add(PROTOCOL_FC);
+        protocols.add(PROTOCOL_SCSI);
+        protocols.add(PROTOCOL_SCALEIO);
+        protocols.add(PROTOCOL_NFS4X);
     }
 
     private static final Logger _log = LoggerFactory.getLogger(AbstractVasaService.class);
@@ -78,25 +75,15 @@ public abstract class AbstractVasaService extends TaggedResource{
     
 
     
-    protected void validateProtocol(String type, Set<String> protocols) {
-        if (null != protocols && !protocols.isEmpty()) {
-            // Validate the protocols for type of VirtualPool.
-            switch (StorageContainer.ProtocolType.lookup(type)) {
-                case file:
-                    if (!fileProtocols.containsAll(protocols)) {
-                        throw APIException.badRequests.invalidProtocols(type, protocols, PROTOCOL_NFS,
-                                PROTOCOL_CIFS);
-                    }
-                    break;
-                case block:
-                    if (!blockProtocols.containsAll(protocols)) {
-                        throw APIException.badRequests.invalidProtocols(type, protocols, PROTOCOL_FC,
-                                PROTOCOL_ISCSI, PROTOCOL_SCALEIO);
-                    }
-                default:
-                    break;
+    protected boolean validateProtocol(String type, Set<String> protocolsParam) {
+        if (null != protocolsParam && !protocolsParam.isEmpty()) {
+            if(protocols.containsAll(protocolsParam)){
+                return true;
+            }else {
+                throw APIException.badRequests.invalidProtocols(type, protocolsParam);
             }
         }
+        return false;
     }
 
 }

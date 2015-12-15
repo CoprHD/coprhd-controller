@@ -4,6 +4,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFieldsNoL
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
+import java.util.Set;
 
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.model.CapabilityProfile;
@@ -11,6 +12,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ProtocolEndpoint;
 import com.emc.storageos.db.client.model.StorageContainer;
 import com.emc.storageos.db.client.model.VVol;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
@@ -52,7 +54,7 @@ public class VasaObjectMapper {
         return to;
     }
     
-    public static CapabilityProfileCreateResponse toCapabilityProfile(CapabilityProfile from){
+    public static CapabilityProfileCreateResponse toCapabilityProfile(VirtualPool from){
         if(from == null){
             return null;
         }
@@ -60,10 +62,12 @@ public class VasaObjectMapper {
         to.setType(from.getType());
         to.setDescription(from.getDescription());
         to.setProtocols(from.getProtocols());
-        to.setProvisioningType(from.getProvisioningType());
+        to.setProvisioningType(from.getSupportedProvisioningType());
         
-        to.setProtocolEndPointType(from.getProtocolEndPointType());
-        to.setQuotaGB(from.getQuotaGB());
+        Object[] protocols = from.getProtocols().toArray();
+        to.setProtocolEndPointType(protocols[0].toString());
+        
+        to.setQuotaGB(from.getQuota());
         to.setDriveType(from.getDriveType());
         to.setHighAvailability(from.getHighAvailability());
         

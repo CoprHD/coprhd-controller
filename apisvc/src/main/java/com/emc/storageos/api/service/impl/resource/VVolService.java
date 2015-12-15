@@ -46,6 +46,7 @@ public class VVolService extends AbstractVasaService{
         String result = getStringFromInputStream(input);
         
         _log.info("************ SOAP Request : " + result +  " **********************");
+        
         return Response.status(201).build();
         
     }

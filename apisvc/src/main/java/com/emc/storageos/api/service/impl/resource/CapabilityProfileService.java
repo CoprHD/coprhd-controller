@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.CapabilityProfile;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.vasa.CapabilityProfileBulkResponse;
 import com.emc.storageos.model.vasa.CapabilityProfileCreateRequestParam;
@@ -41,14 +42,14 @@ public class CapabilityProfileService extends AbstractCapabilityProfileService{
         ArgValidator.checkFieldNotEmpty(param.getName(), NAME);
         checkForDuplicateName(param.getName(), CapabilityProfile.class);
         ArgValidator.checkFieldNotEmpty(param.getDescription(), DESCRIPTION);
-        CapabilityProfile capabilityProfile = prepareCapabilityProfile(param);
-        
+//        CapabilityProfile capabilityProfile = prepareCapabilityProfile(param);
+        VirtualPool capabilityProfile = prepareCapabilityProfile(param);
         return toCapabilityProfile(capabilityProfile);
     }
 
-    private CapabilityProfile prepareCapabilityProfile(CapabilityProfileCreateRequestParam param) {
-        CapabilityProfile capabilityProfile = new CapabilityProfile();
-        capabilityProfile.setType(CapabilityProfile.Type.geo.name());
+    private VirtualPool prepareCapabilityProfile(CapabilityProfileCreateRequestParam param) {
+        VirtualPool capabilityProfile = new VirtualPool();
+        capabilityProfile.setType(VirtualPool.Type.storagecontainer.name());
         populateCommonFields(capabilityProfile, param);
         populateCommonCapabilityProfileFields(capabilityProfile, param);
         _dbClient.createObject(capabilityProfile);
@@ -59,11 +60,11 @@ public class CapabilityProfileService extends AbstractCapabilityProfileService{
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CapabilityProfileBulkResponse getCapabilityProfiles(){
         _log.info("@@@@@@@@ Getting Capability Profiles @@@@@@@@@@@");
-        List<URI> capabilityProfileUris = _dbClient.queryByType(CapabilityProfile.class, true);
-        List<CapabilityProfile> capabilityProfiles = _dbClient.queryObject(CapabilityProfile.class, capabilityProfileUris);
+        List<URI> capabilityProfileUris = _dbClient.queryByType(VirtualPool.class, true);
+        List<VirtualPool> capabilityProfiles = _dbClient.queryObject(VirtualPool.class, capabilityProfileUris);
         CapabilityProfileBulkResponse capabilityProfileBulkResponse = new CapabilityProfileBulkResponse();
         if(null != capabilityProfiles){
-            for(CapabilityProfile capabilityProfile : capabilityProfiles){
+            for(VirtualPool capabilityProfile : capabilityProfiles){
                 if(capabilityProfile != null){
                     capabilityProfileBulkResponse.getCapabilityProfiles().add(toCapabilityProfile(capabilityProfile));
                 }

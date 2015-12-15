@@ -58,9 +58,6 @@ public class AbstractStorageContainerService extends AbstractVasaService{
              storageContainer.setSystemType(param.getSystemType());
          }
          
-         ArgValidator.checkFieldNotEmpty(param.getProtocolType(), PROTOCOL_TYPE);
-         ArgValidator.checkFieldValueFromEnum(param.getProtocolType(), PROTOCOL_TYPE,
-                 EnumSet.of(ProtocolType.block, ProtocolType.file));
          
          if (null != param.getProtocolType()) {
              storageContainer.setProtocolType(param.getProtocolType());

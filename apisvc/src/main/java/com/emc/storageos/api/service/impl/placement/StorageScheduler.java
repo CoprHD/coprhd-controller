@@ -1170,6 +1170,9 @@ public class StorageScheduler implements Scheduler {
         volume.setPool(poolId);
         if (consistencyGroup != null) {
             volume.setConsistencyGroup(consistencyGroup.getId());
+            if (!consistencyGroup.isProtectedCG()) {
+                volume.setReplicationGroupInstance(consistencyGroup.getLabel());
+            }
         }
 
         if (null != cosCapabilities.getAutoTierPolicyName()) {

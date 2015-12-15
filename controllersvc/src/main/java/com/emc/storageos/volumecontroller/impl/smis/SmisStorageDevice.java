@@ -1564,24 +1564,20 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             CIMArgument[] inArgs;
             CIMArgument[] outArgs = new CIMArgument[5];
-            // Invoke the creation of the consistency group with a null name so that it generates a
-            // random name avoiding name collisions
-            // Note: For SRDF source and target CGs, we create group on array with user requested name
-            String groupName = null;
+
             boolean srdfCG = false;
 
             // create target CG on source provider
             StorageSystem forProvider = storage;
             if (consistencyGroup.getRequestedTypes().contains(Types.SRDF.name())) {
                 srdfCG = true;
-                groupName = (consistencyGroup.getAlternateLabel() != null) ?
-                        consistencyGroup.getAlternateLabel() : consistencyGroup.getLabel();
-
                 if (NullColumnValueGetter.isNotNullValue(consistencyGroup.getAlternateLabel())) {
                     forProvider = getSRDFSourceProvider(consistencyGroup);
                     _log.debug("Creating target Consistency Group on source provider");
                 }
-            }
+            } 
+            String groupName = (consistencyGroup.getAlternateLabel() != null) ?
+                    consistencyGroup.getAlternateLabel() : consistencyGroup.getLabel();
             inArgs = _helper.getCreateReplicationGroupInputArguments(groupName);
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             _helper.invokeMethod(forProvider, replicationSvc, SmisConstants.CREATE_GROUP, inArgs, outArgs);

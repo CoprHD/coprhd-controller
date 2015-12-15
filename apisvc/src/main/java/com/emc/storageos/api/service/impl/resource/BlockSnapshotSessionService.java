@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
@@ -152,7 +153,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep deactivateSnapshotSession(@PathParam("id") URI id) {
+    public TaskList deactivateSnapshotSession(@PathParam("id") URI id) {
         return getSnapshotSessionManager().deleteSnapshotSession(id);
     }
 

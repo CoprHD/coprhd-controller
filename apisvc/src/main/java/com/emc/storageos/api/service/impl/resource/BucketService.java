@@ -491,6 +491,11 @@ public class BucketService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
                 task, ResourceOperationTypeEnum.UPDATE_BUCKET_ACL);
         op.setDescription("Bucket ACL update");
+        
+        BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getName(), bucket.getId());
+        bucketACLUtil.verifyBucketACL(param);
+        _log.info("Request payload verified. No errors found.");
+        
         controller.updateBucketACL(bucket.getStorageDevice(), id, param, task);
 
         auditOp(OperationTypeEnum.UPDATE_BUCKET_ACL, true, AuditLogManager.AUDITOP_BEGIN,

@@ -26,7 +26,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * Abstract base task completer for operations on BlockSnapshotSession instances.
  */
 @SuppressWarnings("serial")
-public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
+public abstract class BlockSnapshotSessionCompleter extends TaskLockingCompleter {
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionCompleter.class);

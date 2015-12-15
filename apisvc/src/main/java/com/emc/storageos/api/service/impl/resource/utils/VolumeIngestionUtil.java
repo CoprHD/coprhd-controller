@@ -1273,7 +1273,7 @@ public class VolumeIngestionUtil {
      */
     private static List<String> getStoragePortNames(Collection<URI> storagePortUris, DbClient dbClient) {
         List<String> storagePortNames = new ArrayList<String>();
-        if (storagePortUris != null & !storagePortUris.isEmpty()) {
+        if (storagePortUris != null && !storagePortUris.isEmpty()) {
             List<StoragePort> storagePorts = dbClient.queryObject(StoragePort.class, storagePortUris);
             for (StoragePort storagePort : storagePorts) {
                 if (storagePort != null) {

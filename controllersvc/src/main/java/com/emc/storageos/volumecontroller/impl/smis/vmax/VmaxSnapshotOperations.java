@@ -1574,13 +1574,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             job.setTargetGroupName(targetGroupName);
             job.setSnapSessionInstance(snapSession.getSessionInstance());
 
-            Map<String, URI> nativeIdToSnapshot = Maps.uniqueIndex(snapshotUris, new Function<URI, String>() {
+            Map<String, URI> srcNativeIdToSnapshot = Maps.uniqueIndex(snapshotUris, new Function<URI, String>() {
                 @Override
                 public String apply(URI input) {
-                    return uriToSnapshot.get(input).getNativeId();
+                    return uriToSnapshot.get(input).getSourceNativeId();
                 }
             });
-            job.setNativeIdToSnapshotMap(nativeIdToSnapshot);
+            job.setSrcNativeIdToSnapshotMap(srcNativeIdToSnapshot);
 
             ControllerServiceImpl.enqueueJob(new QueueJob(job));
             _log.info("Link new target group to snapshot session group FINISH");

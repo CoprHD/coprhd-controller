@@ -6,7 +6,7 @@ package com.emc.storageos.db.client.model;
 
 /**
  * FilePolicy will contain the details of file schedule policy.
- * It will hold information about the policyId, policyName, policySchedule, policyExpiration
+ * It will hold information about the policyId, policyName, policySchedule, snapshotExpire values.
  * 
  * @author prasaa9
  * 

@@ -21,7 +21,7 @@ public class MinDataCenterMatcher extends AttributeMatcher {
 	@Override
 	protected boolean isAttributeOn(Map<String, Object> attributeMap) {
 		if (attributeMap != null
-				&& attributeMap.containsKey(Attributes.min_data_center.toString())) {
+				&& attributeMap.containsKey(Attributes.min_datacenters.toString())) {
 			return true;
 		}
 		return false;
@@ -30,7 +30,7 @@ public class MinDataCenterMatcher extends AttributeMatcher {
 	@Override
 	protected List<StoragePool> matchStoragePoolsWithAttributeOn(
 			List<StoragePool> allPools, Map<String, Object> attributeMap) {
-		Integer minDataCenters = (Integer) attributeMap.get(Attributes.min_data_center.toString());
+		Integer minDataCenters = (Integer) attributeMap.get(Attributes.min_datacenters.toString());
         _logger.info("Pools Matching Minimum Data Centers Started {}, {} :", minDataCenters,
                 Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
         Iterator<StoragePool> poolIterator = allPools.iterator();

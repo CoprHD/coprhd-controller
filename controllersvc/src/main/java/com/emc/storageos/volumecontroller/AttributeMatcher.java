@@ -70,7 +70,7 @@ public abstract class AttributeMatcher {
         unique_policy_names,
         remote_copy,
         long_term_retention_policy,
-        min_data_center
+        min_datacenters
     }
 
     /**

@@ -210,7 +210,7 @@ public class ApprovalService extends CatalogTaggedResourceService {
         if (order.getSubmittedByUserId().equals(user.getUserName()) && 
                 param.getApprovalStatus().equals(ApprovalStatus.APPROVED.toString())) {
             throw APIException.badRequests.updateApprovalBySameUser(
-                    user.getName());
+                    user.getUserName());
         }
 
         validateParam(param, approval);

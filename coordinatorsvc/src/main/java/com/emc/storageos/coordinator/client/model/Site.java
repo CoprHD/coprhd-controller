@@ -24,10 +24,9 @@ public class Site {
     private static final String KEY_NAME = "name";
     private static final String KEY_DESCRIPTION = "description";
     private static final String KEY_VIP = "vip";
-    private static final String KEY_SECRETKEY = "secretKey";
     private static final String KEY_STANDBY_SHORTID = "standbyShortId";
     private static final String KEY_CREATIONTIME = "creationTime";
-    private static final String KEY_PAUSEDTIME = "pausedTime";
+    private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
     private static final String KEY_SITE_STATE = "state";
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
@@ -40,13 +39,12 @@ public class Site {
     private String vdcShortId;
     private String name;
     private String vip;
-    private String secretKey;
     private String description;
     private Map<String, String> hostIPv4AddressMap = new HashMap<>();
     private Map<String, String> hostIPv6AddressMap = new HashMap<>();
     private String standbyShortId;
     private long creationTime;
-    private long pausedTime;
+    private long lastStateUpdateTime;
     private SiteState state = SiteState.ACTIVE;
     private int nodeCount;
 
@@ -89,14 +87,6 @@ public class Site {
 
     public void setVip(String vip) {
         this.vip = vip;
-    }
-
-    public String getSecretKey() {
-        return secretKey;
-    }
-
-    public void setSecretKey(String secretKey) {
-        this.secretKey = secretKey;
     }
 
     public Map<String, String> getHostIPv4AddressMap() {
@@ -147,12 +137,12 @@ public class Site {
         this.creationTime = creationTime;
     }
 
-    public long getPausedTime() {
-        return pausedTime;
+    public long getLastStateUpdateTime() {
+        return lastStateUpdateTime;
     }
 
-    public void setPausedTime(long pausedTime) {
-        this.pausedTime = pausedTime;
+    public void setLastStateUpdateTime(long lastStateUpdateTime) {
+        this.lastStateUpdateTime = lastStateUpdateTime;
     }
 
     public SiteState getState() {
@@ -161,6 +151,7 @@ public class Site {
 
     public void setState(SiteState state) {
         this.state = state;
+        setLastStateUpdateTime(System.currentTimeMillis());
     }
 
     @Override
@@ -199,15 +190,12 @@ public class Site {
         if (vip != null) {
             config.setConfig(KEY_VIP, vip);
         }
-        if (secretKey != null) {
-            config.setConfig(KEY_SECRETKEY, this.secretKey);
-        }
         if (standbyShortId != null) {
             config.setConfig(KEY_STANDBY_SHORTID, this.standbyShortId);
         }
         config.setConfig(KEY_CREATIONTIME, String.valueOf(creationTime));
-        if (pausedTime != 0L) {
-            config.setConfig(KEY_PAUSEDTIME, String.valueOf(pausedTime));
+        if (lastStateUpdateTime != 0L) {
+            config.setConfig(KEY_LASTSTATEUPDATETIME, String.valueOf(lastStateUpdateTime));
         }
 
         if (state != null) {
@@ -238,15 +226,14 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
-            this.secretKey = config.getConfig(KEY_SECRETKEY);
             this.standbyShortId = config.getConfig(KEY_STANDBY_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
                 this.creationTime = Long.valueOf(s);
             }
-            s = config.getConfig(KEY_PAUSEDTIME);
+            s = config.getConfig(KEY_LASTSTATEUPDATETIME);
             if (s != null) {
-                this.pausedTime = Long.valueOf(s);
+                this.lastStateUpdateTime = Long.valueOf(s);
             }
             s = config.getConfig(KEY_SITE_STATE);
             if (s != null) {

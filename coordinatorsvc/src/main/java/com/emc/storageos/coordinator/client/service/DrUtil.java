@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,12 +59,22 @@ public class DrUtil {
     }
     
     /**
-     * Check if current site is acitve
+     * Check if current site is active
      * 
-     * @return true for acitve. otherwise false
+     * @return true for active. otherwise false
      */
     public boolean isActiveSite() {
-        return getActiveSiteId().equals(coordinator.getSiteId());
+        try {
+            SiteState state = getSiteFromLocalVdc(coordinator.getSiteId()).getState();
+            return Arrays.asList(SiteState.ACTIVE, SiteState.STANDBY_FAILING_OVER, SiteState.STANDBY_SWITCHING_OVER).contains(state);
+        } catch (RetryableCoordinatorException ex) {
+            // Site no initialized yet 
+            if  (ServiceCode.COORDINATOR_SITE_NOT_FOUND == ex.getServiceCode()) {
+                return true;
+            }
+            log.error("Unexpected error to check active site", ex);
+        }
+        return false;
     }
     
     /**
@@ -76,7 +87,7 @@ public class DrUtil {
     }
     
     /**
-     * Get acitve site in current vdc
+     * Get active site in current vdc
      * 
      * @return
      */
@@ -85,19 +96,20 @@ public class DrUtil {
     }
 
     /**
-     * Get acitve site in a specific vdc
+     * Get active site in a specific vdc
      *
      * @param vdcShortId short id of the vdc
-     * @return uuid of the acitve site
+     * @return uuid of the active site
      */
     public String getActiveSiteId(String vdcShortId) {
-        Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_ACTIVE_KIND, vdcShortId);
-        if (config == null && vdcShortId.equals(getLocalVdcShortId())) {
-            // active site config may not be initialized yet. Assume it is active site now
-            log.info("Cannot load active site config for vdc {}. Use current site as the active one", vdcShortId);
-            return coordinator.getSiteId();
+        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
+        for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
+            Site site = new Site(siteConfig);
+            if (site.getState().equals(SiteState.ACTIVE)) {
+                return site.getUuid();
+            }
         }
-        return config.getConfig(Constants.CONFIG_DR_ACTIVE_SITEID);
+        return null;
     }
 
     /**
@@ -131,7 +143,7 @@ public class DrUtil {
      * @return list of standby sites
      */
     public List<Site> listStandbySites() {
-        String activeSiteId = this.getActiveSiteId();
+        String activeSiteId = getActiveSiteId();
         List<Site> result = new ArrayList<>();
         for(Site site : listSites()) {
             if (!site.getUuid().equals(activeSiteId)) {
@@ -166,8 +178,17 @@ public class DrUtil {
      * @return list of all sites
      */
     public List<Site> listSites() {
+        return listSites(getLocalVdcShortId());
+    }
+    
+    /**
+     * List all sites in given vdc
+     * 
+     * @return list of all sites
+     */
+    public List<Site> listSites(String vdcShortId) {
         List<Site> result = new ArrayList<>();
-        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, getLocalVdcShortId());
+        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
         for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
             result.add(new Site(siteConfig));
         }
@@ -181,8 +202,18 @@ public class DrUtil {
      * @return
      */
     public List<Site> listSitesInState(SiteState state) {
+        return listSitesInState(getLocalVdcShortId(), state);
+    }
+    
+    /**
+     * List sites in given vdc with given state
+     * 
+     * @param state
+     * @return
+     */
+    public List<Site> listSitesInState(String vdcShortId, SiteState state) {
         List<Site> result = new ArrayList<Site>();
-        for(Site site : listSites()) {
+        for(Site site : listSites(vdcShortId)) {
             if (site.getState().equals(state)) {
                 result.add(site);
             }

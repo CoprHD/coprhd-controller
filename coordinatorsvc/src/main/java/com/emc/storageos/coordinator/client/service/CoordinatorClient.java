@@ -409,6 +409,17 @@ public interface CoordinatorClient {
     public LeaderSelector getLeaderSelector(String leaderPath, LeaderSelectorListener listener) throws CoordinatorException;
 
     /**
+     * Create a leader selector. For specific site only. See comment for {@link #getLeaderSelector(String, LeaderSelectorListener)}
+     * 
+     * @param siteId - null for global area. Non null site id for some specific site.
+     * @param leaderPath leader path
+     * @param listener leader assignment listener
+     * @return LeaderSelector
+     * @throws CoordinatorException
+     */
+    public LeaderSelector getLeaderSelector(String siteId, String leaderPath, LeaderSelectorListener listener) throws CoordinatorException;
+
+    /**
      * Get target info
      * 
      * @param clazz
@@ -603,12 +614,6 @@ public interface CoordinatorClient {
      * This should only be used by the add standby site API
      */
     public void addSite(String siteId) throws Exception;
-
-    /**
-     * Update the active site pointer in ZK
-     * This should only be used by the sync site API
-     */
-    public void setActiveSite(String siteId) throws Exception;
     
     /**
      * Create a Curator recipe - double barrier 

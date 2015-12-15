@@ -31,7 +31,6 @@
         </property>
         <property name="dbCommonInfo" ref="dbcommoninfo"/>
         <property name="passwordUtils" ref="passwordUtils"/>
-        <property name="apiSignatureGenerator" ref="keyGenerator"/>
         <property name="drUtil" ref="drUtil"/>
     </bean>
 

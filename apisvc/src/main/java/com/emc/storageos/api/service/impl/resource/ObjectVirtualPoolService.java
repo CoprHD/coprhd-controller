@@ -505,6 +505,10 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         if (null != param.getMaxRetention()) {
             vPool.setMaxRetention(param.getMaxRetention());
         }
+        
+        if (null != param.getMinDataCenters()) {
+            vPool.setMinDataCenters(param.getMinDataCenters());
+        }
 
         return vPool;
     }

@@ -661,7 +661,7 @@ public class ConnectivityUtil {
      * @param dbClient
      * @param siteArray
      * @param ids virtual array ids collected
-     * @return all the URIs of the associated VSAs
+     * @return void
      */
     private static void findAllVirtualArraysForRPSiteArray(
             DbClient dbClient, RPSiteArray siteArray, Collection<URI> ids) {
@@ -690,10 +690,7 @@ public class ConnectivityUtil {
             }
             
             // If the rpsite array storage system is vplex check virtual array
-            // connectivity to rpsite using front end storage ports
-            
-            // JOE:  Ask Bill why we can't just use StringSet vArrays = StoragePoolAssociationHelper.getVplexSystemConnectedVarrays(storageSystem.getId(), dbClient);
-            
+            // connectivity to rpsite using front end storage ports                        
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, siteArray.getStorageSystem());    
             if (storageSystem != null && isAVPlex(storageSystem)) {               
             	Map<URI, List<StoragePort>> storagePortMap = ConnectivityUtil.getStoragePortsOfType(dbClient, storageSystem.getId(), PortType.frontend);

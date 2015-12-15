@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -83,7 +84,13 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
                 if (!copies.isEmpty() && isRemotelyConnectedViaExpectedCopyMode(system, remoteCopySettings)) {
                     _logger.info(String.format("Adding Pools %s, as associated Storage System %s is connected to any remote Storage System",
                             Joiner.on("\t").join(storageToPoolsEntry.getValue()), system.getNativeGuid()));
-                    matchedPools.addAll(storageToPoolsEntry.getValue());
+                    if (checkSupportedSRDFActiveModeprovider(system, remoteCopySettings)) {
+                        matchedPools.addAll(storageToPoolsEntry.getValue());
+                    } else {
+                        _logger.info(String.format("Skipping Pools %s, as associated Storage System %s Provider is not "
+                                + "using 8.1.X version required for SRDF ACTIVE Mode.",
+                                Joiner.on("\t").join(storageToPoolsEntry.getValue()), system.getNativeGuid()));
+                    }
                 } else {
                     _logger.info(String.format("Skipping Pools %s, as associated Storage System %s is not connected to any remote Storage System",
                             Joiner.on("\t").join(storageToPoolsEntry.getValue()), system.getNativeGuid()));
@@ -203,6 +210,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
                             foundCopyModeAll = true;
                             copyModes.add(SupportedCopyModes.SYNCHRONOUS.toString());
                             copyModes.add(SupportedCopyModes.ASYNCHRONOUS.toString());
+                            copyModes.add(SupportedCopyModes.ACTIVE.toString());
                             break;
                         } else {
                             copyModes.add(rg.getSupportedCopyMode());
@@ -221,5 +229,25 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
             _logger.error("Available Attribute failed in remote mirror protection matcher", e);
         }
         return availableAttrMap;
+    }
+
+    private boolean checkSupportedSRDFActiveModeprovider(StorageSystem storageSystem, Map<String, List<String>> remoteCopySettings) {
+
+        if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
+            Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
+            if (copyModes.contains(SupportedCopyModes.ACTIVE.toString())) {
+                try {
+                    StorageProvider storageProvider = _objectCache.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
+                    String providerVersion = storageProvider.getVersionString();
+                    String versionSubstring = providerVersion.split("\\.")[1];
+                    return (Integer.parseInt(versionSubstring) >= 1);
+                } catch (Exception e) {
+                    _logger.error("Exception get provider version for the storage system {} {}.", storageSystem.getLabel(),
+                            storageSystem.getId());
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }

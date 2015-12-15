@@ -60,7 +60,6 @@ import com.google.common.collect.Sets.SetView;
  * 
  */
 public class StorageVolumeInfoProcessor extends StorageProcessor {
-<<<<<<< HEAD
     private Logger              _logger                              = LoggerFactory
                                                                              .getLogger(StorageVolumeInfoProcessor.class);
     private List<Object>        _args;
@@ -90,37 +89,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
     List<CIMObjectPath>         _metaVolumePaths                     = null;
     private Map<String, String> _volumeToSpaceConsumedMap            = null;
     Set<URI>                    unManagedVolumesReturnedFromProvider = new HashSet<URI>();
-=======
-    private final Logger _logger = LoggerFactory
-            .getLogger(StorageVolumeInfoProcessor.class);
-    private List<Object> _args;
-    private DbClient _dbClient;
-    private static final String SVUSAGE = "SVUsage";
-    private static final String USAGE = "Usage";
-    private static final String TWELVE = "12";
-    private static final String TWO = "2";
-    private static final String NINE = "9";
-    private static final String SEVEN = "7";
-    private static final String ELEVEN = "11";
-    private static final String TRUE = "true";
-    private static final String FALSE = "false";
-    private static final String UNMANAGED_VOLUME = "UnManagedVolume";
-    private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
-    private static final String SVELEMENT_NAME = "SVElementName";
-    private static final String NAME = "Name";
-    private static final String THINLY_PROVISIONED = "ThinlyProvisioned";
-    private AccessProfile _profile;
-
-    private PartitionManager _partitionManager;
-
-    List<UnManagedVolume> _unManagedVolumesInsert = null;
-    List<UnManagedVolume> _unManagedVolumesUpdate = null;
-    List<UnManagedExportMask> _unManagedExportMasksUpdate = null;
-    List<CIMObjectPath> _metaVolumeViewPaths = null;
-    List<CIMObjectPath> _metaVolumePaths = null;
-    private Map<String, String> _volumeToSpaceConsumedMap = null;
-    Set<URI> unManagedVolumesReturnedFromProvider = new HashSet<URI>();
->>>>>>> origin/master
 
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
@@ -768,7 +736,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 isMetaVolume = getCIMPropertyValue(volumeInstance, SupportedVolumeCharacterstics.IS_METAVOLUME.getCharacterstic());
                 allocCapacity = getCIMPropertyValue(volumeInstance, EMC_ALLOCATED_CAPACITY);
             }
-
+            
             if (null != raidLevelObj) {
                 StringSet raidLevels = new StringSet();
                 raidLevels.add(raidLevelObj.toString());

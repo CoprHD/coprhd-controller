@@ -1937,6 +1937,12 @@ public class RPHelper {
                         // Review: OK to reduce to debug level
                         _log.info("Adding initiator " + initiator.getId() + " with port: " + port);
                         initiators.add(initiator.getId());
+                    }
+                }
+            }
+        }
+        return initiators;
+    }    
 
     /**
      * Does this snapshot require any sort of protection intervention? If it's a local array-based
@@ -1961,13 +1967,6 @@ public class RPHelper {
         }
         return false;
     }
-}
-                    }
-                }
-            }
-        }
-        return initiators;
-    }    
     
     /**
      * Fetch the RP Protected target virtual pool uris.

@@ -69,10 +69,10 @@ class CreateVolumeSchedulingThread implements Runnable {
         _log.info("Starting scheduling/placement thread...");
         // Call out placementManager to get the recommendation for placement.
         try {
-            List recommendations = this.blockService._placementManager.getRecommendationsForVolumeCreateRequest(
+            List recommendations = this.blockService._placementManager.getRecommendationsForVirtualPool(
                     varray, project, vpool, capabilities);
 
-            if (recommendations.isEmpty()) {
+            if (true || recommendations.isEmpty()) {
                 throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
             }
 

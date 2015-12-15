@@ -196,9 +196,9 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             }
         }
 
-        if (!ProtectionSystemTypes.isRecoverPointOrNone(remoteProtection)) {
-            Validation.addError(formName + ".remoteProtection", "vpool.remoteProtection.error.vplex");
-        }
+        //if (!ProtectionSystemTypes.isRecoverPointOrNone(remoteProtection)) {
+        //    Validation.addError(formName + ".remoteProtection", "vpool.remoteProtection.error.vplex");
+        //}
     }
 
     protected void validateTenant(String formName) {

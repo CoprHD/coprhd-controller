@@ -4160,4 +4160,11 @@ public class RecoverPointScheduler implements Scheduler {
             return buff.toString();
         } // end toString
     } // end PlacementStatus class
+
+    @Override
+    public Set<List<Recommendation>> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
+            VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> currentRecommendations) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

@@ -36,6 +36,7 @@ import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation.VolumeType;
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
@@ -1519,7 +1520,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             cosWrapper.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, cgURI);
         }
         List<Recommendation> recommendations = getBlockScheduler().scheduleStorage(
-                varray, requestedVPlexSystems, null, vpool, false, null, null, cosWrapper);
+                varray, requestedVPlexSystems, null, vpool, false, null, null, 
+                cosWrapper, targetProject, VpoolUse.ROOT, new ArrayList<Recommendation>());
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getId(), varray.getId(), sourceVolumeURI);
         }
@@ -1656,7 +1658,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         if (recommendations == null || recommendations.isEmpty()) {
             recommendations = getBlockScheduler().scheduleStorage(
-                    varray, requestedVPlexSystems, null, vpool, false, null, null, capabilities);
+                    varray, requestedVPlexSystems, null, vpool, false, null, null, capabilities, 
+                    targetProject, VpoolUse.ROOT, new ArrayList<Recommendation>());
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getId(), varray.getId(), sourceVolumeURI);
             }

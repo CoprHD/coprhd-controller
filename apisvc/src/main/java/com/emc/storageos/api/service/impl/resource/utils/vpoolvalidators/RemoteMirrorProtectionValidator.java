@@ -154,13 +154,13 @@ public class RemoteMirrorProtectionValidator extends
                 && !createParam.getProtection().getRecoverPoint().getCopies().isEmpty()) {
             throw APIException.badRequests.parameterRPNotSupportedWithSRDF();
         }
-        // VPLEX HA not allowed if SRDF Protection specified in VPOOL
-        if (null != createParam.getHighAvailability()
-                && null != createParam.getHighAvailability().getHaVirtualArrayVirtualPool()
-                && null != createParam.getHighAvailability().getHaVirtualArrayVirtualPool()
-                        .getVirtualArray()) {
-            throw APIException.badRequests.parameterVPLEXNotSupportedWithSRDF();
-        }
+//        // VPLEX HA not allowed if SRDF Protection specified in VPOOL
+//        if (null != createParam.getHighAvailability()
+//                && null != createParam.getHighAvailability().getHaVirtualArrayVirtualPool()
+//                && null != createParam.getHighAvailability().getHaVirtualArrayVirtualPool()
+//                        .getVirtualArray()) {
+//            throw APIException.badRequests.parameterVPLEXNotSupportedWithSRDF();
+//        }
     }
 
     @Override

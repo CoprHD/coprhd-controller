@@ -114,12 +114,12 @@ public class StorageScheduler implements Scheduler {
      * @return list of VolumeRecommendation instances
      */
     @Override
-    public List<VolumeRecommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project, VirtualPool cos,
+    public List<Recommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project, VirtualPool cos,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());
 
-        List<VolumeRecommendation> volumeRecommendations = new ArrayList<VolumeRecommendation>();
+        List<Recommendation> volumeRecommendations = new ArrayList<Recommendation>();
 
         // Initialize a list of recommendations to be returned.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
@@ -148,6 +148,11 @@ public class StorageScheduler implements Scheduler {
             while (count > 0) {
                 VolumeRecommendation volumeRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_VOLUME,
                         capabilities.getSize(), cos, neighborhood.getId());
+                volumeRecommendation.setSourceStoragePool(recommendation.getSourceStoragePool());
+                volumeRecommendation.setSourceStorageSystem(recommendation.getSourceStorageSystem());
+                volumeRecommendation.setVirtualArray(neighborhood.getId());
+                volumeRecommendation.setVirtualPool(cos);
+                volumeRecommendation.setResourceCount(1);
                 volumeRecommendation.addStoragePool(recommendation.getSourceStoragePool());
                 volumeRecommendation.addStorageSystem(recommendation.getSourceStorageSystem());
                 volumeRecommendations.add(volumeRecommendation);
@@ -1313,6 +1318,18 @@ public class StorageScheduler implements Scheduler {
         StringMap reservationMap = pool.getReservedCapacityMap();
         reservationMap.put(volume.getId().toString(), String.valueOf(reservedCapacity));
         _dbClient.persistObject(pool);
+    }
+
+    @Override
+    public Set<List<Recommendation>> getRecommendationsForVpool(VirtualArray vArray, Project project, 
+            VirtualPool vPool, VpoolUse vPoolUse,
+            VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> currentRecommendations) {
+        // Initially we're only going to return one recommendation set.
+        Set<List<Recommendation>>  recommendationSet = new HashSet<List<Recommendation>>();
+        List<Recommendation> recommendations = 
+                getRecommendationsForResources(vArray, project, vPool, capabilities);
+        recommendationSet.add(recommendations);
+        return recommendationSet;
     }
 
 }

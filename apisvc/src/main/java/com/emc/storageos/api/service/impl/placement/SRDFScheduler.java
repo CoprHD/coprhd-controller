@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.placement.PlacementManager.SchedulerType;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -407,6 +408,8 @@ public class SRDFScheduler implements Scheduler {
         			Map<VirtualArray, Set<StorageSystem>> varrayTargetDeviceMap = new HashMap<VirtualArray, Set<StorageSystem>>();
         			for (VirtualArray targetVarray1 : targetVarrayPoolMap.keySet()) {
         				if (rec.getSourceStoragePool() == null) {
+        				    rec.setVirtualArray(varray.getId());
+        				    rec.setVirtualPool(vpool);
         					rec.setSourceStoragePool(recommendedPool.getId());
         					rec.setResourceCount(currentCount);
         					rec.setSourceStorageSystem(recommendedPool.getStorageDevice());
@@ -1157,4 +1160,50 @@ public class SRDFScheduler implements Scheduler {
         return varrayStoragePoolMap;
     }
 
+    @Override
+    public Set<List<Recommendation>> getRecommendationsForVpool(VirtualArray vArray, Project project, 
+            VirtualPool vPool, VpoolUse vPoolUse,
+            VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> currentRecommendations) {
+       Set<List<Recommendation>> recommendationSet = new HashSet<List<Recommendation>>();
+       List<Recommendation> recommendations;
+       if (vPoolUse == VpoolUse.SRDF_COPY) {
+           recommendations = getRecommendationsForCopy(vArray, project, vPool, capabilities, currentRecommendations);
+       } else {
+           recommendations = getRecommendationsForResources(vArray, project, vPool, capabilities);
+       } 
+       recommendationSet.add(recommendations);
+       return recommendationSet;
+    }
+    
+    private List<Recommendation> getRecommendationsForCopy(VirtualArray vArray, Project project, 
+            VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities, 
+            List<Recommendation> currentRecommendations) {
+        List<Recommendation> recommendations = new ArrayList<Recommendation>();
+        // Look through the existing SRDF Recommendations for a SRDFRecommendation
+        // that has has matching varray and vpool.
+        for (Recommendation recommendation : currentRecommendations) {
+            Recommendation rec = recommendation;
+            while (rec != null) {
+                if (rec instanceof SRDFRecommendation) {
+                    SRDFRecommendation srdfrec = (SRDFRecommendation) rec;
+                    if (srdfrec.getVirtualArrayTargetMap().containsKey(vArray.getId())) {
+                        SRDFRecommendation.Target target = srdfrec.getVirtualArrayTargetMap().get(vArray.getId());
+                        _log.info(String.format("Found SRDF target recommendation for va %s vpool %s", 
+                                vArray.getLabel(), vPool.getLabel()));
+                        Recommendation targetRecommendation = new Recommendation();
+                        targetRecommendation.setVirtualArray(vArray.getId());
+                        targetRecommendation.setVirtualPool(vPool);
+                        targetRecommendation.setSourceStorageSystem(target.getTargetStorageDevice());
+                        targetRecommendation.setSourceStoragePool(target.getTargetStoragePool());
+                        targetRecommendation.setResourceCount(srdfrec.getResourceCount());
+                        targetRecommendation.setRecommendation(srdfrec);
+                        recommendations.add(targetRecommendation);
+                    }
+                }
+                // Check child recommendations, if any
+                rec = rec.getRecommendation();
+            }
+        }
+        return recommendations;
+    }
 }

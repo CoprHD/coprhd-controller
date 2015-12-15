@@ -37,6 +37,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.workflow.Workflow.StepState;
+import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 
 /**
@@ -53,7 +54,6 @@ import com.emc.storageos.workflow.WorkflowService;
  */
 public class DrPostFailoverHandler {
     private static final Logger log = LoggerFactory.getLogger(DrPostFailoverHandler.class);
-
     private static final String POST_FAILOVER_HANDLER_LOCK = "drPostFailoverLock";
     
     @Autowired
@@ -66,12 +66,10 @@ public class DrPostFailoverHandler {
     public DrPostFailoverHandler() {}
     
     public void execute() {
-        
         try {
-            Site site = drUtil.getLocalSite();
-            SiteState state = site.getState();
-            if (!state.equals(SiteState.STANDBY_FAILING_OVER)) {
-                log.info("Bypass DR post failover handler for site state {}", state);
+            SiteState siteState = drUtil.getLocalSite().getState();
+            if (!siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
+                log.info("Ignore DR post failover handler for site state {}", siteState);
                 return;
             }
             
@@ -80,15 +78,14 @@ public class DrPostFailoverHandler {
             lock.acquire();
             log.info("Acquired lock {}", POST_FAILOVER_HANDLER_LOCK);
             try {
-                site = drUtil.getLocalSite(); // check site state again after acquiring lock
-                state = site.getState();
-                if (!state.equals(SiteState.STANDBY_FAILING_OVER)) {
-                    log.info("Bypass DR post failover handler for site state {}", state);
+                Site site = drUtil.getLocalSite(); // check site state again after acquiring lock
+                siteState = site.getState();
+                if (!siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
+                    log.info("Ignore DR post failover handler for site state {}", siteState);
                     return;
                 }
-                log.info("Site state is {}. Start post failover processing", state);
+                log.info("Site state is {}. Start post failover processing", siteState);
                 checkAndFixDb();
-                cleanupJobQueue();
                 cleanupWorkflow();
                 cleanupTasks();
                 rediscoverDevices();
@@ -100,6 +97,7 @@ public class DrPostFailoverHandler {
             }
         } catch (Exception e) {
             log.error("Failed to execute DR failover handler", e);//todo throw a new exception
+            throw new IllegalStateException(e);
         }
     }
     
@@ -109,17 +107,33 @@ public class DrPostFailoverHandler {
         int corruptedCount = checker.check();
         if (corruptedCount > 0) {
             log.info("Corrupted db data found {}. Start fixing it", corruptedCount);
-            //Iterator<String> cleanupFiles = DbCheckerFileWriter.getGeneratedFiles();
-            //while(cleanupFiles.hasNext()) {
-            //    String fileName = cleanupFiles.next();
-            //    log.info("File {}", fileName);
-            //}
+            Iterator<String> cleanupFiles = DbCheckerFileWriter.getGeneratedFiles();
+            while(cleanupFiles.hasNext()) {
+                String fileName = cleanupFiles.next();
+                log.info("File {}", fileName);
+                // Todo - fix db inconsistencies.
+            }
         }
     }
     
-    private void cleanupJobQueue() {
-        log.info("Cleanup zk job queue path {}", ZkPath.QUEUE);
-        coordinator.deletePath(ZkPath.QUEUE.toString());
+    public void cleanupQueues() {
+        SiteState siteState = drUtil.getLocalSite().getState();
+        if (siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
+            String[] queueNames = new String[]{ControllerServiceImpl.SCAN_JOB_QUEUE_NAME, 
+                    ControllerServiceImpl.JOB_QUEUE_NAME, 
+                    ControllerServiceImpl.COMPUTE_DISCOVER_JOB_QUEUE_NAME, 
+                    ControllerServiceImpl.DISCOVER_JOB_QUEUE_NAME, 
+                    ControllerServiceImpl.METERING_JOB_QUEUE_NAME,
+                    ControllerServiceImpl.MONITORING_JOB_QUEUE_NAME,
+                    Dispatcher.QueueName.controller.toString(),
+                    Dispatcher.QueueName.workflow_inner.toString(), 
+                    Dispatcher.QueueName.workflow_outer.toString()};
+            for (String name : queueNames) {
+                String fullQueuePath = String.format("%s/%s", ZkPath.QUEUE, name);
+                log.info("Cleanup zk job queue path {}", fullQueuePath);
+                coordinator.deletePath(fullQueuePath);
+            }
+        }
     }
     
     private void cleanupWorkflow() {
@@ -145,9 +159,9 @@ public class DrPostFailoverHandler {
             String state = step.getState();
             List<String> activeStepStates = Arrays.asList(StepState.CREATED.toString(), StepState.BLOCKED.toString(), StepState.QUEUED.toString(), StepState.EXECUTING.toString());
             if (activeStepStates.contains(state)) {
-                DeviceControllerException ex = DeviceControllerException.exceptions.terminatedForControllerFailover();
+                WorkflowException ex = WorkflowException.exceptions.workflowTerminatedForFailover(workflowId.toString());
                 log.info("Terminate workflow step {}", step.getId());
-                WorkflowService.completerStepError(step.getStepId(), ex);
+                WorkflowService.completerStepErrorWithoutRollback(step.getStepId(), ex);
             }
         }
     }

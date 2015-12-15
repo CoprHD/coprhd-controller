@@ -120,6 +120,16 @@ public enum SiteState {
     },
 
     /**
+     * Standby site is doing post processing for failover
+     */
+    STANDBY_FAILOVER_POST_PROCESSING {
+        @Override
+        public boolean isDROperationOngoing() {
+            return true;
+        }
+    },
+    
+    /**
      *  Standby site. Removing
      */
     STANDBY_REMOVING {

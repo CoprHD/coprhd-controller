@@ -71,12 +71,12 @@ import com.emc.storageos.workflow.WorkflowService;
 public class ControllerServiceImpl implements ControllerService {
 
     // constants
-    private static final String JOB_QUEUE_NAME = "jobqueue";
-    private static final String DISCOVER_JOB_QUEUE_NAME = "discoverjobqueue";
-    private static final String COMPUTE_DISCOVER_JOB_QUEUE_NAME = "computediscoverjobqueue";
-    private static final String SCAN_JOB_QUEUE_NAME = "scanjobqueue";
+    protected static final String JOB_QUEUE_NAME = "jobqueue";
+    protected static final String DISCOVER_JOB_QUEUE_NAME = "discoverjobqueue";
+    protected static final String COMPUTE_DISCOVER_JOB_QUEUE_NAME = "computediscoverjobqueue";
+    protected static final String SCAN_JOB_QUEUE_NAME = "scanjobqueue";
     public static final String MONITORING_JOB_QUEUE_NAME = "monitoringjobqueue";
-    private static final String METERING_JOB_QUEUE_NAME = "meteringjobqueue";
+    protected static final String METERING_JOB_QUEUE_NAME = "meteringjobqueue";
     public static final String DISCOVERY = "Discovery";
     public static final String DISCOVERY_RECONCILE_TZ = "DiscoveryReconcileTZ";
     public static final String SCANNER = "Scanner";
@@ -438,6 +438,7 @@ public class ControllerServiceImpl implements ControllerService {
         // Watson
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
+        _drPostFailoverHandler.cleanupQueues();
         
         _dispatcher.start();
 
@@ -474,8 +475,6 @@ public class ControllerServiceImpl implements ControllerService {
         _scanJobQueue = _coordinator.getQueue(SCAN_JOB_QUEUE_NAME, _scanJobConsumer,
                 new DataCollectionJobSerializer(), 1, 50);
         
-        _drPostFailoverHandler.execute();
-        
         /**
          * Monitoring use cases starts here
          */
@@ -492,11 +491,12 @@ public class ControllerServiceImpl implements ControllerService {
          */
         _monitoringJobConsumer.start();
 
+        startLockQueueService();
+        _drPostFailoverHandler.execute();
+        
         _jobScheduler.start();
 
         _svcBeacon.start();
-
-        startLockQueueService();
 
         startCapacityService();
         loadCustomConfigDefaults();

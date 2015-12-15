@@ -751,6 +751,29 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
+     * Deactivate the specified Consistency Group Snapshot
+     *
+     *
+     * @prereq none
+     *
+     * @param consistencyGroupId
+     *            - Consistency group URI
+     * @param snapshotSessionId
+     *            - Consistency group snapshot URI
+     *
+     * @brief Deactivate consistency group snapshot
+     * @return TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions/{sid}/deactivate")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList deactivateConsistencyGroupSnapshotSession(
+            @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI snapshotSessionId) {
+        return getSnapshotSessionManager().deleteSnapshotSession(snapshotSessionId);
+    }
+
+    /**
      * Restore the specified consistency group snapshot
      * 
      * 

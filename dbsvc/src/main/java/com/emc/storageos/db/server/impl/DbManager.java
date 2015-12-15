@@ -216,6 +216,7 @@ public class DbManager implements DbManagerMBean {
         try {
             DbRepairJobState state = DbRepairRunnable.queryRepairState(this.coordinator, this.schemaUtil.getKeyspaceName(),
                     this.schemaUtil.isGeoDbsvc());
+            log.info("cluster state digest stored in ZK: {}", state.getCurrentDigest());
 
             DbRepairStatus retState = getLastRepairStatus(state, forCurrentNodesOnly ? DbRepairRunnable.getClusterStateDigest() : null,
                     this.repairRetryTimes);

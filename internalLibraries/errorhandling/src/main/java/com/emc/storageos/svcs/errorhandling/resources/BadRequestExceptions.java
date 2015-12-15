@@ -56,6 +56,9 @@ public interface BadRequestExceptions {
     public BadRequestException cannotCreateVolumeAsConsistencyGroupHasSnapshots(String label, URI id);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotCreateVolumeAsConsistencyGroupHasMirrors(String label, URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeactivateStorageSystem();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

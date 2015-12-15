@@ -220,7 +220,6 @@ public class ApprovalService extends CatalogTaggedResourceService {
         approvalManager.updateApproval(approval, user);
 
         if (approval.getOrderId() != null) {
-            order = orderManager.getOrderById(approval.getOrderId());
             if (order != null) {
                 orderManager.processOrder(order);
             }

@@ -1,5 +1,7 @@
 package com.emc.storageos.driver.scaleio;
 
+
+import org.junit.Assert;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,18 +31,12 @@ public class ScaleIORestHandleFactoryTest {
     @org.junit.Test
     public void testGetClientHandle() throws Exception {
         ScaleIORestClient client = handleFactory.getClientHandle(null, IP_ADDRESS, PORT_NUMBER, USER_NAME, PASSWORD);
-        if (client == null) {
-            System.out.print("no rest client returned!");
-        } else {
-            System.out.print("----1-----" + client.getSystemId() + "-------------");
-        }
+        Assert.assertNotNull(client);
         // Test fetching client in the cache
         ScaleIORestClient client1 = handleFactory.getClientHandle(SYS_NATIVE_ID, IP_ADDRESS, PORT_NUMBER, USER_NAME, PASSWORD);
-        if (client == null) {
-            System.out.print("no rest client returned!");
-        } else {
-            System.out.print("----2-----" + client1.getSystemId() + "-------------");
-        }
+        Assert.assertNotNull(client1);
+       // String volumeId;
+       // client.queryVolume("d584a34100000001");
     }
 
 }

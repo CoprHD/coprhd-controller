@@ -48,7 +48,7 @@ public class ScaleIORestHandleFactory {
                 handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, username,
                         password, true);
                 if (handle == null) {
-                    log.info("Failed to get Rest Handle");
+                    log.error("Failed to get Rest Handle");
                 } else if (systemNativeId == null || systemNativeId.trim().length() == 0) {
                     systemNativeId = handle.getSystemId();
                 }

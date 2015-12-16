@@ -9,6 +9,7 @@ import java.util.*;
 
 import javax.ws.rs.core.MediaType;
 
+import com.sun.org.apache.bcel.internal.generic.RETURN;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -168,7 +169,6 @@ public class ScaleIORestClient extends StandardRestClient {
         String uri = ScaleIOConstants.getRemoveVolumeURI(volumeId);
         ScaleIORemoveVolume removeParm = new ScaleIORemoveVolume();
         post(URI.create(uri), getJsonForEntity(removeParm));
-
     }
 
     /**
@@ -518,5 +518,13 @@ public class ScaleIORestClient extends StandardRestClient {
             result.put(volume.getName(), volume);
         }
         return result;
+    }
+
+    public String getVolumeParent(String volumeId) throws Exception{
+        String uri = ScaleIOConstants.getParentVolumeURI(volumeId);
+        ClientResponse response = get(URI.create(ScaleIOConstants.GET_VOLUMES_BYIDS_URI));
+
+
+        return null;
     }
 }

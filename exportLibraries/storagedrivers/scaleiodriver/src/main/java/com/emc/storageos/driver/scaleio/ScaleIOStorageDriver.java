@@ -2,10 +2,7 @@ package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOProtectionDomain;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOSDS;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOStoragePool;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOSystem;
+import com.emc.storageos.driver.scaleio.api.restapi.response.*;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -72,7 +69,51 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
-        return null;
+        DriverTask task= new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_CREATE));
+        String ip_address,port,username,password;
+        ScaleIORestClient client;
+        int count_succ=0;
+        //Assume snapshots could be from different storage system
+        for(VolumeSnapshot snapshot: snapshots){
+            ip_address=this.getConnInfoFromRegistry(snapshot.getStorageSystemId(), ScaleIOConstants.IP_ADDRESS);
+            port=this.getConnInfoFromRegistry(snapshot.getStorageSystemId(), ScaleIOConstants.PORT_NUMBER);
+            username=this.getConnInfoFromRegistry(snapshot.getStorageSystemId(), ScaleIOConstants.USER_NAME);
+            password=this.getConnInfoFromRegistry(snapshot.getStorageSystemId(), ScaleIOConstants.PASSWORD);
+            if(ip_address!=null && port!=null && username!=null && password!=null) {
+                try {
+                    client = handleFactory.getClientHandle(snapshot.getStorageSystemId(), ip_address, Integer.parseInt(port), username, password);
+                    //create snapshot
+                    ScaleIOSnapshotVolumeResponse result= client.snapshotVolume(snapshot.getParentId(),snapshot.getDisplayName(),snapshot.getStorageSystemId());
+                    //set value to the output
+                    if(result!=null){
+                        snapshot.setNativeId(result.getVolumeIdList().get(0));
+                        snapshot.setTimestamp(ScaleIOHelper.getCurrentTime());
+                        snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
+
+                        Map<String, String> snapNameIdMap = client.getVolumes(result.getVolumeIdList());
+                        snapshot.setDeviceLabel(snapNameIdMap.get(snapshot.getNativeId()));
+                        count_succ++;
+                    }else{
+                        log.error("Exception while creating snapshot");
+                    }
+
+                } catch (Exception e) {
+                    log.error("Exception while getting client instance", e);
+                }
+            }else{
+                log.error("Exception while getting connection info from Registry");
+            }
+            if(count_succ==0){
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+                //task.setMessage(); set to the same content as log?
+            }else if(count_succ<snapshots.size()){
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+            }else{
+                task.setStatus(DriverTask.TaskStatus.READY);
+            }
+        }
+
+        return task;
     }
 
     /**
@@ -84,7 +125,10 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot) {
-        return null;
+        DriverTask task= new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_RESTORE));
+        task.setStatus(DriverTask.TaskStatus.ABORTED);
+        task.setMessage("Operation not supported");
+        return task;
     }
 
     /**
@@ -95,7 +139,37 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
-        return null;
+        DriverTask task= new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_DELETE));
+        String ip_address,port,username,password;
+        ScaleIORestClient client;
+        int count_succ=0;
+        //Assume snapshots could be from different storage system
+        for(VolumeSnapshot snapshot: snapshots){
+            ip_address=this.getConnInfoFromRegistry(snapshot.getStorageSystemId(), ScaleIOConstants.IP_ADDRESS);
+            port=this.getConnInfoFromRegistry(snapshot.getStorageSystemId(), ScaleIOConstants.PORT_NUMBER);
+            username=this.getConnInfoFromRegistry(snapshot.getStorageSystemId(), ScaleIOConstants.USER_NAME);
+            password=this.getConnInfoFromRegistry(snapshot.getStorageSystemId(), ScaleIOConstants.PASSWORD);
+            if(ip_address!=null && port!=null && username!=null && password!=null) {
+                try {
+                    client = handleFactory.getClientHandle(snapshot.getStorageSystemId(), ip_address, Integer.parseInt(port), username, password);
+                    client.removeVolume(snapshot.getNativeId());
+                    count_succ++;
+                } catch (Exception e) {
+                    log.error("Exception while getting client instance", e);
+                }
+            }else{
+                log.error("Exception while getting connection info from Registry");
+            }
+            if(count_succ==0){
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+                //task.setMessage(); set to the same content as log?
+            }else if(count_succ<snapshots.size()){
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+            }else{
+                task.setStatus(DriverTask.TaskStatus.READY);
+            }
+        }
+        return task;
     }
 
     /**
@@ -253,6 +327,17 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
     }
 
     /**
+     * Delete block consistency group.
+     *
+     * @param consistencyGroup Input
+     * @return
+     */
+    @Override
+    public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
+        return null;
+    }
+
+    /**
      * Create snapshot of consistency group.
      *
      * @param consistencyGroup input parameter
@@ -263,7 +348,51 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
     @Override
     public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots,
             List<CapabilityInstance> capabilities) {
-        return null;
+        DriverTask task= new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_SNAP_CREATE));
+        if(ScaleIOHelper.isFromSameStorageSystem(snapshots)){
+            String systemId=snapshots.get(0).getStorageSystemId();
+            String ip_address,port,username,password;
+            ScaleIORestClient client;
+
+            ip_address=this.getConnInfoFromRegistry(systemId, ScaleIOConstants.IP_ADDRESS);
+            port=this.getConnInfoFromRegistry(systemId, ScaleIOConstants.PORT_NUMBER);
+            username=this.getConnInfoFromRegistry(systemId, ScaleIOConstants.USER_NAME);
+            password=this.getConnInfoFromRegistry(systemId, ScaleIOConstants.PASSWORD);
+            if(ip_address!=null && port!=null && username!=null && password!=null) {
+                try {
+                    client = handleFactory.getClientHandle(systemId, ip_address, Integer.parseInt(port), username, password);
+
+                    Map<String, String> parent2snap = new HashMap<>();
+                    for(VolumeSnapshot snapshot:snapshots){
+                        parent2snap.put(snapshot.getParentId(),snapshot.getDisplayName());
+                    }
+                    ScaleIOSnapshotVolumeResponse result = client.snapshotMultiVolume(parent2snap, systemId);
+
+                    //set value to the output
+                    consistencyGroup.setNativeId(result.getSnapshotGroupId());
+                    consistencyGroup.setStorageSystemId(systemId);
+
+                    //get parentID
+                    List<String> nativeIds = result.getVolumeIdList();
+                    Map<String, String> snapNameIdMap = client.getVolumes(nativeIds);
+
+
+                    task.setStatus(DriverTask.TaskStatus.READY);
+                } catch (Exception e) {
+                    log.error("Exception while getting client instance", e);
+                    task.setStatus(DriverTask.TaskStatus.FAILED);
+                }
+            }else{
+                log.error("Exception while getting connection info from Registry");
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+            }
+        }else{
+            log.error("snapshots are not from same storage system");
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+        }
+
+
+        return task;
     }
 
     /**
@@ -274,7 +403,34 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
-        return null;
+        DriverTask task= new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_SNAP_DELETE));
+        if(ScaleIOHelper.isFromSameCGgroup(snapshots)){
+            String systemId=snapshots.get(0).getStorageSystemId();
+            String ip_address,port,username,password;
+            ScaleIORestClient client;
+
+            ip_address=this.getConnInfoFromRegistry(systemId, ScaleIOConstants.IP_ADDRESS);
+            port=this.getConnInfoFromRegistry(systemId, ScaleIOConstants.PORT_NUMBER);
+            username=this.getConnInfoFromRegistry(systemId, ScaleIOConstants.USER_NAME);
+            password=this.getConnInfoFromRegistry(systemId, ScaleIOConstants.PASSWORD);
+            if(ip_address!=null && port!=null && username!=null && password!=null) {
+                try {
+                    client = handleFactory.getClientHandle(systemId, ip_address, Integer.parseInt(port), username, password);
+                    client.removeConsistencyGroupSnapshot(snapshots.get(0).getConsistencyGroup());
+                    task.setStatus(DriverTask.TaskStatus.READY);
+                } catch (Exception e) {
+                    log.error("Exception while getting client instance", e);
+                    task.setStatus(DriverTask.TaskStatus.FAILED);
+                }
+            }else{
+                log.error("Exception while getting connection info from Registry");
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+            }
+        }else{
+            log.error("snapshots are not from same consistency group");
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+        }
+        return task;
     }
 
     /**

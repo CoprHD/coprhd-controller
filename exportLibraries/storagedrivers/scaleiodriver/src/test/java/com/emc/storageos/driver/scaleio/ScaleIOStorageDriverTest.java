@@ -179,4 +179,120 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals(USER_NAME, driver.getConnInfoFromRegistry(SYS_NATIVE_ID, ScaleIOConstants.USER_NAME));
         Assert.assertEquals(PASSWORD, driver.getConnInfoFromRegistry(SYS_NATIVE_ID, ScaleIOConstants.PASSWORD));
     }
+
+    @Test
+    public void testCreateVolumes() throws Exception {
+
+    }
+
+    @Test
+    public void testExpandVolume() throws Exception {
+
+    }
+
+    @Test
+    public void testDeleteVolumes() throws Exception {
+
+    }
+
+    @Test
+    public void testCreateVolumeSnapshot() throws Exception {
+        //driver.createVolumeSnapshot(null,null);
+
+    }
+
+    @Test
+    public void testRestoreSnapshot() throws Exception {
+
+    }
+
+    @Test
+    public void testDeleteVolumeSnapshot() throws Exception {
+
+    }
+
+    @Test
+    public void testCreateVolumeClone() throws Exception {
+
+    }
+
+    @Test
+    public void testDetachVolumeClone() throws Exception {
+
+    }
+
+    @Test
+    public void testRestoreFromClone() throws Exception {
+
+    }
+
+    @Test
+    public void testDeleteVolumeClone() throws Exception {
+
+    }
+
+    @Test
+    public void testCreateVolumeMirror() throws Exception {
+
+    }
+
+    @Test
+    public void testDeleteVolumeMirror() throws Exception {
+
+    }
+
+    @Test
+    public void testSplitVolumeMirror() throws Exception {
+
+    }
+
+    @Test
+    public void testResumeVolumeMirror() throws Exception {
+
+    }
+
+    @Test
+    public void testRestoreVolumeMirror() throws Exception {
+
+    }
+
+    @Test
+    public void testGetITL() throws Exception {
+
+    }
+
+    @Test
+    public void testExportVolumesToInitiators() throws Exception {
+
+    }
+
+    @Test
+    public void testUnexportVolumesFromInitiators() throws Exception {
+
+    }
+
+    @Test
+    public void testCreateConsistencyGroup() throws Exception {
+
+    }
+
+    @Test
+    public void testCreateConsistencyGroupSnapshot() throws Exception {
+
+    }
+
+    @Test
+    public void testDeleteConsistencyGroupSnapshot() throws Exception {
+
+    }
+
+    @Test
+    public void testCreateConsistencyGroupClone() throws Exception {
+
+    }
+
+    @Test
+    public void testDeleteConsistencyGroupClone() throws Exception {
+
+    }
 }

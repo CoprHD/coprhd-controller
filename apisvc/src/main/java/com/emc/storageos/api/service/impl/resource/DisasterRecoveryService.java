@@ -6,6 +6,8 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,15 +60,16 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
-import com.emc.storageos.model.dr.SiteDetailRestRep;
+import com.emc.storageos.model.dr.FailoverPrecheckResponse;
+import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
-import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -868,23 +871,24 @@ public class DisasterRecoveryService {
     public Response doFailover(@PathParam("uuid") String uuid) {
         log.info("Begin to failover for standby UUID {}", uuid);
 
+        Site currentSite = drUtil.getSiteFromLocalVdc(uuid);
         precheckForFailoverLocally(uuid);
 
         Map<String, InternalSiteServiceClient> clientCacheMap = new HashMap<String, InternalSiteServiceClient>();
-        Site currentSite = drUtil.getSiteFromLocalVdc(uuid);
-
         List<Site> allStandbySites = drUtil.listStandbySites();
+        List<SiteRestRep> responseSiteFromRemote = new ArrayList<SiteRestRep>(allStandbySites.size());
 
         for (Site site : allStandbySites) {
             if (!site.getUuid().equals(uuid)) {
                 InternalSiteServiceClient client = new InternalSiteServiceClient(site);
                 client.setCoordinatorClient(coordinator);
                 client.setKeyGenerator(apiSignatureGenerator);
-                client.failoverPrecheck();
+                FailoverPrecheckResponse precheckResponse = client.failoverPrecheck();
+                responseSiteFromRemote.add(precheckResponse.getSite());
                 clientCacheMap.put(site.getUuid(), client);
             }
         }
-
+           
         try {
             // set state
             Site oldActiveSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
@@ -1310,8 +1314,8 @@ public class DisasterRecoveryService {
         }
 
         // should be SYNCED
-        if (standby.getState() != SiteState.STANDBY_SYNCED) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(), "Standby site is not fully synced");
+        if (standby.getState() != SiteState.STANDBY_SYNCED && standby.getState() != SiteState.STANDBY_PAUSED) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(), "Only paused or synced standby site can do failover");
         }
 
         // Current site is stable
@@ -1332,6 +1336,24 @@ public class DisasterRecoveryService {
             log.info("Acitve site is available now, can't do failover");
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Acitve site is available now, can't do failover");
         }
+    }
+    
+    protected SiteRestRep findRecommendFailoverSite(List<SiteRestRep> responseSiteFromRemote, Site currentSite) {
+        responseSiteFromRemote.add(this.siteMapper.map(currentSite));
+        Collections.sort(responseSiteFromRemote, new Comparator<SiteRestRep>() {
+
+            @Override
+            public int compare(SiteRestRep site1, SiteRestRep site2) {
+                if (site1.getState().equalsIgnoreCase(site2.getState())) {
+                    return new Date(site1.getLastStateUpdateTime()).compareTo(new Date(site2.getLastStateUpdateTime()));
+                } else {
+                    return site1.getState().equalsIgnoreCase(SiteState.STANDBY_SYNCED.toString())? 1 : -1;
+                }
+            }
+            
+        });
+        
+        return responseSiteFromRemote.get(responseSiteFromRemote.size() - 1);
     }
 
     protected void validateAddParam(SiteAddParam param, List<Site> existingSites) {

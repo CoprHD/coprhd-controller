@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import java.lang.reflect.Constructor;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -69,7 +70,6 @@ import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -825,6 +825,49 @@ public class DisasterRecoveryServiceTest {
         updateParam.setName("New Name");
         updateParam.setDescription("New Description");
         drService.updateSite(standbySite1.getUuid(), updateParam);
+    }
+    
+    @Test
+    public void testFindRecommendFailoverSite() {
+        //only one synced site
+        standbySite1.setState(SiteState.STANDBY_SYNCED);
+        List<SiteRestRep> responseSiteFromRemote = new ArrayList<SiteRestRep>();
+        SiteRestRep recommendSite = drService.findRecommendFailoverSite(responseSiteFromRemote, standbySite1);
+        assertEquals(recommendSite.getUuid(), standbySite1.getUuid());
+        
+        //only one paused site
+        standbySite1.setState(SiteState.STANDBY_PAUSED);
+        responseSiteFromRemote = new ArrayList<SiteRestRep>();
+        recommendSite = drService.findRecommendFailoverSite(responseSiteFromRemote, standbySite1);
+        assertEquals(recommendSite.getUuid(), standbySite1.getUuid());
+        
+        //one paused, two synced
+        responseSiteFromRemote = new ArrayList<SiteRestRep>();
+        SiteRestRep site1 = new SiteRestRep();
+        site1.setUuid("standby1");
+        site1.setState(SiteState.STANDBY_SYNCED.toString());
+        site1.setLastStateUpdateTime((new Date()).getTime());
+        responseSiteFromRemote.add(site1);
+        
+        SiteRestRep site2 = new SiteRestRep();
+        site2.setUuid("standby2");
+        site2.setState(SiteState.STANDBY_SYNCED.toString());
+        site2.setLastStateUpdateTime((new Date()).getTime()+10);
+        responseSiteFromRemote.add(site2);
+        
+        recommendSite = drService.findRecommendFailoverSite(responseSiteFromRemote, standbySite1);
+        assertEquals(recommendSite.getUuid(), site2.getUuid());
+        
+        // 3 paused
+        responseSiteFromRemote = new ArrayList<SiteRestRep>();
+        site1.setState(SiteState.STANDBY_PAUSED.toString());
+        responseSiteFromRemote.add(site1);
+
+        site2.setState(SiteState.STANDBY_PAUSED.toString());
+        responseSiteFromRemote.add(site2);
+        standbySite1.setLastStateUpdateTime((new Date()).getTime()+1000);
+        recommendSite = drService.findRecommendFailoverSite(responseSiteFromRemote, standbySite1);
+        assertEquals(recommendSite.getUuid(), standbySite1.getUuid());
     }
     
     protected void compareSiteResponse(SiteRestRep response, Site site) {

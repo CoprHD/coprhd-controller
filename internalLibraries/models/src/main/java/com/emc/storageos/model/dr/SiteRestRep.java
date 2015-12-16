@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.model.dr;
 
-import java.net.URI;
+import java.util.Date;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -22,6 +22,7 @@ public class SiteRestRep extends DataObjectRestRep {
     private String description;
     private String vip;
     private String state;
+    private long lastStateUpdateTime;
     
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -76,6 +77,15 @@ public class SiteRestRep extends DataObjectRestRep {
     public void setDescription(String description) {
         this.description = description;
     }
+    
+    @XmlElement(name = "lastStateUpdateTime")
+    public long getLastStateUpdateTime() {
+        return lastStateUpdateTime;
+    }
+
+    public void setLastStateUpdateTime(long lastStateUpdateTime) {
+        this.lastStateUpdateTime = lastStateUpdateTime;
+    }
 
     @Override
     public String toString() {
@@ -92,6 +102,8 @@ public class SiteRestRep extends DataObjectRestRep {
         builder.append(vip);
         builder.append(", state=");
         builder.append(state);
+        builder.append(", lastStateUpdateTime=");
+        builder.append(new Date(lastStateUpdateTime));
         builder.append("]");
         return builder.toString();
     }

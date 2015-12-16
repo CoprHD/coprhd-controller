@@ -62,8 +62,8 @@ public class IPsec extends ViprResourceController {
     public static class IPsecFailedNodeInfo {
         public static final String DISCONNECTED_NODE_STATE = "Degraded";
 
-        public String node;
-        public String status;
+        public String node; //NOSONAR("Suppressing Sonar violation of node being public member. This is needed for the html template. Visibility Modifier")
+        public String status; //NOSONAR("Suppressing Sonar violation of status being public member. This is needed for the html template. Visibility Modifier")
 
         public IPsecFailedNodeInfo() {
 
@@ -79,9 +79,9 @@ public class IPsec extends ViprResourceController {
         protected static final String DATE_TIME_FORMAT = "yyyy MMMMM dd hh:mm:ss:SSS aaa";
         protected static final String UNKNOWN_DATE_TIME = "Unknown";
 
-        public String status;
-        public String configGeneratedDate;
-        public List<IPsecFailedNodeInfo> failureNodes;
+        public String status; //NOSONAR("Suppressing Sonar violation of status being public member. This is needed for the html template. Visibility Modifier")
+        public String configGeneratedDate; //NOSONAR("Suppressing Sonar violation of configGeneratedDate being public member. This is needed for the html template. Visibility Modifier")
+        public List<IPsecFailedNodeInfo> failureNodes; //NOSONAR("Suppressing Sonar violation of failureNodes being public member. This is needed for the html template. Visibility Modifier")
 
         public IPSecStatusInfo(IPsecStatus ipsecStatus) {
             status = ipsecStatus.getStatus();

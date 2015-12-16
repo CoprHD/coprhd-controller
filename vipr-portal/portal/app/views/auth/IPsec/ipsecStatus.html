@@ -75,30 +75,30 @@
                 #{if ipSecStatusInfo}
                     #{if ipSecStatusInfo.status == "good"}
                     <div class="panel-body panel-ipsec-status-stable" title="&{'ipsec.status.refresh'}">
-                        <div class="row panel-margin-top" align="center">
+                        <div class="row panel-margin-top" style="text-align:center">
                             <span class="glyphicon glyphicon-ok panel-ipsec-status-text-color gi-2x"> </span>
                         </div>
-                        <div class="row panel-margin-top" align="center">
+                        <div class="row panel-margin-top" style="text-align:center">
                             <span class="text gi-2x panel-ipsec-status-text-color"> &{'ipsec.status.stable'}</span>
                         </div>
                     </div>
                     #{/if}
                     #{if ipSecStatusInfo.status == "degraded"}
                     <div class="panel-body panel-ipsec-status-degraded" title="&{'ipsec.status.refresh'}">
-                        <div class="row panel-margin-top" align="center">
+                        <div class="row panel-margin-top" style="text-align:center">
                             <span class="gi-2x panel-ipsec-status-text-color">#{icon 'warning-sign'/}</span>
                         </div>
-                        <div class="row panel-margin-top" align="center">
+                        <div class="row panel-margin-top" style="text-align:center">
                             <span class="text gi-2x panel-ipsec-status-text-color"> &{'ipsec.status.degraded'}</span>
                         </div>
                     </div>
                     #{/if}
                     #{if ipSecStatusInfo.status == "disabled"}
                     <div class="panel-body panel-ipsec-status-disabled" title="&{'ipsec.status.refresh'}">
-                        <div class="row panel-margin-top" align="center">
+                        <div class="row panel-margin-top" style="text-align:center">
                             <span class="gi-2x panel-ipsec-status-text-color">#{icon 'remove-sign'/}</span>
                         </div>
-                        <div class="row panel-margin-top" align="center">
+                        <div class="row panel-margin-top" style="text-align:center">
                             <span class="text gi-2x panel-ipsec-status-text-color"> &{'ipsec.status.disabled'}</span>
                         </div>
                     </div>
@@ -106,8 +106,8 @@
                 #{/if}
                 #{if !ipSecStatusInfo}
                     <div id="ipsecStatusLoading" class="panel-body">
-                        <div class="loadingBox panel-margin-top" align="center">
-                            <img src="/public/img/loading-huge.gif" height="64" width="64">
+                        <div class="loadingBox panel-margin-top" style="text-align:center">
+                            <img src="/public/img/loading-huge.gif" height="64" width="64" alt="Loading...">
                         </div>
                     </div>
                 #{/if}
@@ -126,7 +126,7 @@
                         <span class="text">&{'ipsec.configuration.keysGeneratedOn'}</span>
                         #{if !ipSecStatusInfo}
                             <span class="loadingBox">
-                                &nbsp;&nbsp; <img src="/public/img/loading-huge.gif" height="32" width="32">
+                                &nbsp;&nbsp; <img src="/public/img/loading-huge.gif" height="32" width="32" alt="Loading...">
                             </span>
                         #{/if}
                         #{if ipSecStatusInfo}

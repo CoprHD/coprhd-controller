@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1109,14 +1110,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     /**
      * add user define the access zone to Discovery path
      * 
-     * @param accessZones
+     * @param nasServers
      */
-    void setDiscPathForAccess(List<IsilonAccessZone> accessZones) {
-        if (accessZones != null && !accessZones.isEmpty()) {
-            for (IsilonAccessZone isilonAccessZone : accessZones) {
-                if (isilonAccessZone.isSystem() == false) {
-                    getDiscPathsForUnManaged().add(isilonAccessZone.getPath() + "/");
-                    _log.info("setDiscPathForAccess: {}", isilonAccessZone.getPath() + "/");
+    void setDiscPathForAccess(Map<String, NASServer> nasServers) {
+        if (nasServers != null && !nasServers.isEmpty()) {
+            for (String path : nasServers.keySet()) {
+                if (StringUtils.isNotEmpty(path)) {
+                    getDiscPathsForUnManaged().add(path + "/");
+                    _log.info("setDiscPathForAccess: {}", path + "/");
                 }
             }
         }
@@ -1199,8 +1200,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             // get the associated storage port for vnas Server
             List<IsilonAccessZone> isilonAccessZones = isilonApi.getAccessZones(null);
-            setDiscPathForAccess(isilonAccessZones);
             Map<String, NASServer> nasServers = getNASServer(storageSystem, isilonAccessZones);
+            setDiscPathForAccess(nasServers);
+            
 
             // Get All FileShare
             HashMap<String, HashSet<String>> allSMBShares = discoverAllSMBShares(storageSystem, isilonAccessZones);

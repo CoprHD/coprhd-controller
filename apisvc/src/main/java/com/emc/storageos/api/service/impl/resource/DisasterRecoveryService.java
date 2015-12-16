@@ -935,10 +935,11 @@ public class DisasterRecoveryService {
     @POST
     @Path("/internal/failoverprecheck")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public SiteErrorResponse failoverPrecheck() {
+    public FailoverPrecheckResponse failoverPrecheck() {
         log.info("Precheck for failover internally");
 
-        SiteErrorResponse response = new SiteErrorResponse();
+        FailoverPrecheckResponse response = new FailoverPrecheckResponse();
+        response.setSite(this.siteMapper.map(drUtil.getLocalSite()));
         try {
             precheckForFailover();
         } catch (InternalServerErrorException e) {
@@ -952,7 +953,7 @@ public class DisasterRecoveryService {
             return response;
         }
 
-        return SiteErrorResponse.noError();
+        return response;
     }
 
     /**

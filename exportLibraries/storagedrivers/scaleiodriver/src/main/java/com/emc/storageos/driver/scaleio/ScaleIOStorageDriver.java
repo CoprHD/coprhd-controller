@@ -1,5 +1,11 @@
 package com.emc.storageos.driver.scaleio;
 
+import java.util.*;
+
+import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOProtectionDomain;
@@ -12,13 +18,9 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-import org.apache.commons.lang.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.*;
+public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
-class ScaleIOStorageDriver extends AbstractStorageDriver {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
     private ScaleIORestHandleFactory handleFactory;
 
@@ -253,6 +255,18 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
     }
 
     /**
+     *
+     * Delete block consistency group.
+     *
+     * @param consistencyGroup Input
+     * @return
+     */
+    @Override
+    public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
+        return null;
+    }
+
+    /**
      * Create snapshot of consistency group.
      *
      * @param consistencyGroup input parameter
@@ -324,25 +338,8 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
 
         for (StorageSystem storageSystem : storageSystems) {
             try {
-                // _log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - Start",
-                // storageSystem.getIpAddress(), storageSystem.getSystemName());
-//                List<String> list = new ArrayList<>();
-//                list.add(storageSystem.getIpAddress());
-//                driverRegistry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME, storageSystem.getNativeId(),
-//                        ScaleIOConstants.IP_ADDRESS, list);
-//                list = new ArrayList<>();
-//                list.add(String.valueOf(storageSystem.getPortNumber()));
-//                driverRegistry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME, storageSystem.getNativeId(),
-//                        ScaleIOConstants.PORT_NUMBER, list);
-//                list = new ArrayList<>();
-//                list.add(storageSystem.getUsername());
-//                driverRegistry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME, storageSystem.getNativeId(),
-//                        ScaleIOConstants.USER_NAME, list);
-//                list = new ArrayList<>();
-//                list.add(storageSystem.getPassword());
-//                driverRegistry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME, storageSystem.getNativeId(),
-//                        ScaleIOConstants.PASSWORD, list);
-                setConnInfoToRegistry(storageSystem.getNativeId(),storageSystem.getIpAddress(),storageSystem.getPortNumber(),storageSystem.getUsername(),storageSystem.getPassword());
+                setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                        storageSystem.getUsername(), storageSystem.getPassword());
                 ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(storageSystem.getNativeId(), storageSystem.getIpAddress(),
                         storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
                 if (scaleIOHandle != null) {
@@ -374,6 +371,7 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
             }
         }
         return task;
+
     }
 
     /**
@@ -385,6 +383,7 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
+
         String taskType = "discover-storage-pools";
         String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTask task = new DriverTaskImpl(taskID);
@@ -437,7 +436,8 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
                     storageSystem.getNativeId());
             task.setStatus(DriverTask.TaskStatus.ABORTED);
         }
-        return null;
+        return task;
+
     }
 
     /**
@@ -449,6 +449,7 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
+
         String taskType = "discover-storage-ports";
         String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTask task = new DriverTaskImpl(taskID);
@@ -502,6 +503,7 @@ class ScaleIOStorageDriver extends AbstractStorageDriver {
             task.setStatus(DriverTask.TaskStatus.ABORTED);
         }
         return task;
+
     }
 
     /**

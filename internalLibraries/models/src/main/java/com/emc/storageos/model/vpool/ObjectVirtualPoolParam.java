@@ -14,7 +14,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ObjectVirtualPoolParam extends VirtualPoolCommonParam {
 
 	Integer maxRetention;
-	Integer minDataCenters;
+    Integer minDataCenters;
 
     public ObjectVirtualPoolParam() {
     }

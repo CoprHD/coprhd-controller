@@ -829,9 +829,9 @@ public class SnapshotService extends TaskResourceService {
         
         UsageStats stats = null;
         if (pool != null) {
-            stats = getCinderHelper().GetUsageStats(pool.getId(), proj.getId());
+            stats = getCinderHelper().GetStorageStats(pool.getId(), proj.getId());
         } else {
-            stats = getCinderHelper().GetUsageStats(null, proj.getId());
+            stats = getCinderHelper().GetStorageStats(null, proj.getId());
         }            
 
         totalSnapshotsUsed = stats.snapshots;

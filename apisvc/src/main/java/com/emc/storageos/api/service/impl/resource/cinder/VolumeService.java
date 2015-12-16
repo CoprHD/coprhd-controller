@@ -162,7 +162,9 @@ public class VolumeService extends TaskResourceService {
 
         URIQueryResultList uris = getVolumeUris(openstack_tenant_id);
         if (uris != null) {
-            for (URI volumeUri : uris) {
+            //for (URI volumeUri : uris) {
+            while (uris.iterator().hasNext()) {
+            	URI volumeUri = uris.iterator().next();
                 Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
                 if (volume != null && !volume.getInactive()) {
                     CinderVolume cinder_volume = new CinderVolume();
@@ -301,6 +303,12 @@ public class VolumeService extends TaskResourceService {
             throw APIException.badRequests.parameterIsNotValid(param.volume.volume_type);
         _log.debug("Create volume: vpool = {}", vpool.getLabel());
         VirtualArray varray = getCinderHelper().getVarray(param.volume.availability_zone, getUserFromContext());
+        if ((snapshotId == null) && (sourceVolId == null) && (varray == null)) {
+        	//snapshotId and sourceVolId is optional can be null
+        	//when snapshotId and sourceVolId values are absent varry values has to be provided
+        	//otherwise availability_zone exception will be thrown
+            throw APIException.badRequests.parameterIsNotValid(param.volume.availability_zone);
+        }
 
         // Validating consistency group
         URI blockConsistencyGroupId = null;
@@ -326,9 +334,7 @@ public class VolumeService extends TaskResourceService {
 
         BlockSnapshot snapshot = null;
         URI snapUri = null;
-        if ((snapshotId == null) && (sourceVolId == null) && (varray == null)) {
-            throw APIException.badRequests.parameterIsNotValid(param.volume.availability_zone);
-        }
+
         if (snapshotId != null) {
             snapshot = getCinderHelper().querySnapshotByTag(URI.create(snapshotId), getUserFromContext());
             if (snapshot == null) {
@@ -347,9 +353,9 @@ public class VolumeService extends TaskResourceService {
         String name = null;
         String description = null;
 
-        _log.info("isV1Call is {}", isV1Call);
-        _log.info("name is {}", name);
-        _log.info("description is {}", description);
+        _log.info("is isV1Call {}", isV1Call);
+        _log.info("name = {},  description  = {}", name, description);
+
         if (isV1Call != null) {
             name = param.volume.display_name;
             description = param.volume.display_description;
@@ -359,10 +365,8 @@ public class VolumeService extends TaskResourceService {
             description = param.volume.description;
         }
 
-        _log.info("param.volume.name is {}", param.volume.name);
-        _log.info("param.volume.display_name is {}", param.volume.display_name);
-        _log.info("param.volume.description is {}", param.volume.description);
-        _log.info("param.volume.display_description is {}", param.volume.display_description);
+        _log.info("param.volume.name = {}, param.volume.display_name = {}", param.volume.name,param.volume.display_name);
+        _log.info("param.volume.description = {}, param.volume.display_description = {}", param.volume.description, param.volume.display_description);
 
         if (name == null || (name.length() <= 2))
             throw APIException.badRequests.parameterIsNotValid(name);
@@ -423,7 +427,7 @@ public class VolumeService extends TaskResourceService {
 
         } else if ((snapshotId == null) && (sourceVolId == null))
         {
-            _log.debug("Creating New Volume snapshotId ={}, sourceVolId ={}", snapshotId, sourceVolId);
+            _log.debug("Creating New Volume where snapshotId and sourceVolId are null");
             tasklist = newVolume(volumeCreate, project, api, capabilities, varray, task, vpool, param, volumeCount, requestedSize, name);
         }
 
@@ -752,9 +756,9 @@ public class VolumeService extends TaskResourceService {
         UsageStats stats = null;
 
         if (pool != null)
-            stats = getCinderHelper().GetUsageStats(pool.getId(), proj.getId());
+            stats = getCinderHelper().GetStorageStats(pool.getId(), proj.getId());
         else
-            stats = getCinderHelper().GetUsageStats(null, proj.getId());
+            stats = getCinderHelper().GetStorageStats(null, proj.getId());
 
         totalVolumesUsed = stats.volumes;
         totalSizeUsed = stats.spaceUsed;

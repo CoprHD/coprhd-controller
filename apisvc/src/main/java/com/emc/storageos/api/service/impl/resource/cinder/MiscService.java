@@ -101,7 +101,7 @@ public class MiscService extends TaskResourceService {
         }
 
         UsageStats objUsageStats = new UsageStats();
-        objUsageStats = getCinderHelper().GetUsageStats(null, project.getId());
+        objUsageStats = getCinderHelper().GetStorageStats(null, project.getId());
 
         totalVolumesUsed = (int) objUsageStats.volumes;
         totalSnapshotsUsed = (int) objUsageStats.snapshots;

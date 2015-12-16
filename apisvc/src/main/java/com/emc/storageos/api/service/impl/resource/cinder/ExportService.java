@@ -958,9 +958,9 @@ public class ExportService extends VolumeService {
         UsageStats stats = null;
 
         if (pool != null)
-            stats = getCinderHelper().GetUsageStats(pool.getId(), proj.getId());
+            stats = getCinderHelper().GetStorageStats(pool.getId(), proj.getId());
         else
-            stats = getCinderHelper().GetUsageStats(null, proj.getId());
+            stats = getCinderHelper().GetStorageStats(null, proj.getId());
 
         totalSizeUsed = stats.spaceUsed;
 

@@ -153,10 +153,11 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
                 getUserFromContext());
         final String volume_types = param.consistencygroup.volume_types;
         if (null != project && getCinderHelper().getVpool(volume_types) != null) {
-            checkForDuplicateName(param.consistencygroup.name, BlockConsistencyGroup.class);
-
+        	
             // Validate name
             ArgValidator.checkFieldNotEmpty(param.consistencygroup.name, "name");
+            
+            checkForDuplicateName(param.consistencygroup.name, BlockConsistencyGroup.class);
 
             // Validate name not greater than 64 characters
             ArgValidator.checkFieldLengthMaximum(param.consistencygroup.name, CG_MAX_LIMIT,

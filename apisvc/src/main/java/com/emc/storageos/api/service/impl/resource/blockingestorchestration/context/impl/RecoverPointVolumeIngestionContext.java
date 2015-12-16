@@ -49,9 +49,6 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     // these members are part of the IngestionRequestContext 
     // for the RecoverPoint volume's backend ingestion processing
     private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
-    private Map<String, BlockObject> _objectsToBeCreatedMap;
-    private Map<String, List<DataObject>> _objectsToBeUpdatedMap;
-    private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
     private IngestionRequestContext _parentRequestContext;
 
     // members related to RecoverPoint backend export mask ingestion
@@ -118,6 +115,10 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     public UnManagedProtectionSet getUnManagedProtectionSet() {
 
+        if (_unManagedProtectionSet != null) {
+            return _unManagedProtectionSet;
+        }
+        
         // Find the UnManagedProtectionSet associated with this unmanaged volume
         List<UnManagedProtectionSet> umpsets =
                 CustomQueryUtility.getUnManagedProtectionSetByUnManagedVolumeId(_dbClient, getUnmanagedVolume().getId().toString());
@@ -474,11 +475,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public List<UnManagedVolume> getUnManagedVolumesToBeDeleted() {
-        if (null == _unManagedVolumesToBeDeleted) {
-            _unManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
-        }
-
-        return _unManagedVolumesToBeDeleted;
+        return _parentRequestContext.getUnManagedVolumesToBeDeleted();
     }
 
     /*
@@ -677,11 +674,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public Map<String, BlockObject> getObjectsToBeCreatedMap() {
-        if (null == _objectsToBeCreatedMap) {
-            _objectsToBeCreatedMap = new HashMap<String, BlockObject>();
-        }
-
-        return _objectsToBeCreatedMap;
+        return _parentRequestContext.getObjectsToBeCreatedMap();
     }
 
     /*
@@ -691,11 +684,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public Map<String, List<DataObject>> getObjectsToBeUpdatedMap() {
-        if (null == _objectsToBeUpdatedMap) {
-            _objectsToBeUpdatedMap = new HashMap<String, List<DataObject>>();
-        }
-
-        return _objectsToBeUpdatedMap;
+        return _parentRequestContext.getObjectsToBeUpdatedMap();
     }
 
     /**
@@ -713,10 +702,9 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * @param dataObject the DataObject that needs to be updated in the database
      */
     public void addObjectToUpdate(DataObject dataObject) {
-        List<DataObject> objectsToUpdate = getObjectsToBeUpdatedMap().get(getCurrentUnmanagedVolume().getNativeGuid());
-        if (null == objectsToUpdate) {
-            objectsToUpdate = new ArrayList<DataObject>();
+        if (null == getObjectsToBeUpdatedMap().get(getCurrentUnmanagedVolume().getNativeGuid())) {
+            getObjectsToBeUpdatedMap().put(getCurrentUnmanagedVolume().getNativeGuid(), new ArrayList<DataObject>());
         }
-        objectsToUpdate.add(dataObject);
+        getObjectsToBeUpdatedMap().get(getCurrentUnmanagedVolume().getNativeGuid()).add(dataObject);
     }
 }

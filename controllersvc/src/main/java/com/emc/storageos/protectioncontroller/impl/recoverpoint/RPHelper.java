@@ -180,18 +180,20 @@ public class RPHelper {
             allVolumesInRSet.add(sourceVol);
         }
 
-        for (String tgtVolId : sourceVol.getRpTargets()) {
-            if (tgtVolId.equals(volume.getId().toString())) {
-                allVolumesInRSet.add(volume);
-            } else {
-                Volume tgt = _dbClient.queryObject(Volume.class, URI.create(tgtVolId));
-                if (tgt != null && !tgt.getInactive()) {
-                    allVolumesInRSet.add(tgt);
-                }
+        if (sourceVol.getRpTargets() != null) {
+            for (String tgtVolId : sourceVol.getRpTargets()) {
+                if (tgtVolId.equals(volume.getId().toString())) {
+                    allVolumesInRSet.add(volume);
+                } else {
+                    Volume tgt = _dbClient.queryObject(Volume.class, URI.create(tgtVolId));
+                    if (tgt != null && !tgt.getInactive()) {
+                        allVolumesInRSet.add(tgt);
+                    }
 
-                // if this target was previously the Metropoint active source, go out and get the standby copy
-                if (tgt != null && isMetroPointVolume(tgt)) {
-                    allVolumesInRSet.addAll(getMetropointStandbyCopies(tgt));
+                    // if this target was previously the Metropoint active source, go out and get the standby copy
+                    if (tgt != null && isMetroPointVolume(tgt)) {
+                        allVolumesInRSet.addAll(getMetropointStandbyCopies(tgt));
+                    }
                 }
             }
         }

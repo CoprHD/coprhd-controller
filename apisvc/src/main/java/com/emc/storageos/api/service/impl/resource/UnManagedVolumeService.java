@@ -36,6 +36,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BaseIngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -335,13 +336,25 @@ public class UnManagedVolumeService extends TaskResourceService {
                 // Update the related objects if any after ingestion
                 List<DataObject> updatedObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
-                    _dbClient.updateAndReindexObject(updatedObjects);
+                    _dbClient.updateObject(updatedObjects);
                 }
             }
 
             _dbClient.createObject(requestContext.getObjectsToBeCreatedMap().values());
-            _dbClient.persistObject(unManagedVolumes);
 
+            // TODO: This is workaround since RP objects are not getting saved, and .getObjectsToBeCreated() is using BlockObject, not DataObject.
+            if (requestContext.getVolumeContext() != null) {
+                if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
+                    RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
+                    if (rpContext.getManagedProtectionSet() != null) {
+                        _dbClient.createObject(rpContext.getManagedProtectionSet());
+                    }
+                    if (rpContext.getManagedBlockConsistencyGroup() != null) {
+                        _dbClient.createObject(rpContext.getManagedBlockConsistencyGroup());
+                    }
+                }
+            }
+            
             // record the events after they have been persisted
             for (BlockObject volume : requestContext.getObjectsToBeCreatedMap().values()) {
                 recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),

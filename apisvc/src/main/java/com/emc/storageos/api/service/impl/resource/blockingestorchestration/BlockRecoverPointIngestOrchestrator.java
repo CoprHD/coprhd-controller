@@ -56,7 +56,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedPro
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 
 /**
  * RecoverPoint Ingestion
@@ -148,7 +147,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         // Test ingestion status message
         _logger.info("Printing Ingestion Report before Ingestion Attempt");
-        _logger.info(getRPIngestionStatus(umpset));
+        _logger.info(getRPIngestionStatus(volumeContext));
 
         Volume volume = (Volume) blockObject;
         // Perform RP-specific volume ingestion
@@ -159,17 +158,17 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         decorateVolumeWithRPProperties(volumeContext, volume, unManagedVolume);
 
         // Update the unmanaged protection set
-        decorateUnManagedProtectionSet(volumeContext, umpset, volume, unManagedVolume);
+        decorateUnManagedProtectionSet(volumeContext, volume, unManagedVolume);
 
         // Perform RP-specific export ingestion
         performRPExportIngestion(volumeContext, unManagedVolume, volume);
 
         // Print post-ingestion report
         _logger.info("Printing Ingestion Report After Ingestion");
-        _logger.info(getRPIngestionStatus(umpset));
+        _logger.info(getRPIngestionStatus(volumeContext));
 
         // Create the managed protection set/CG objects when we have all of the volumes ingested
-        if (validateAllVolumesInCGIngested(unManagedVolume, umpset)) {
+        if (validateAllVolumesInCGIngested(volumeContext, unManagedVolume)) {
             _logger.info("Successfully ingested all volumes associated with RP consistency group");
 
             createProtectionSet(volumeContext);
@@ -441,7 +440,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * @param unManagedVolume the unmanaged volume
      */
     private void decorateUnManagedProtectionSet(RecoverPointVolumeIngestionContext volumeContext,
-            UnManagedProtectionSet umpset, Volume volume, UnManagedVolume unManagedVolume) {
+            Volume volume, UnManagedVolume unManagedVolume) {
+        UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
+        
         // Add the volume to the list of managed volumes we have so far.
         if (!umpset.getManagedVolumeIds().contains(volume.getId().toString())) {
             umpset.getManagedVolumeIds().add(volume.getId().toString());
@@ -651,7 +652,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * 
      * @return true if all volumes in CG are ingested
      */
-    private boolean validateAllVolumesInCGIngested(UnManagedVolume unManagedVolume, UnManagedProtectionSet umpset) {
+    private boolean validateAllVolumesInCGIngested(RecoverPointVolumeIngestionContext volumeContext, UnManagedVolume unManagedVolume) {
+        UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
         if (umpset == null) {
             _logger.error("Unable to find unmanaged protection set associated with volume: " + unManagedVolume.getId()
                     + " Please run unmanaged CG discovery of registered protection systems");
@@ -714,29 +716,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     }
 
     /**
-     * <<<<<<< HEAD
-     * =======
-     * Find the unmanaged protection set associated with the unmanaged volume
-     * 
-     * @param unManagedVolume unmanaged volume
-     * @return unmanaged protection set associated with that volume
-     */
-    private UnManagedProtectionSet getUnManagedProtectionSet(UnManagedVolume unManagedVolume) {
-        // Find the UnManagedProtectionSet associated with this unmanaged volume
-        List<UnManagedProtectionSet> umpsets = CustomQueryUtility.getUnManagedProtectionSetByUnManagedVolumeId(_dbClient, unManagedVolume
-                .getId().toString());
-        Iterator<UnManagedProtectionSet> umpsetsItr = umpsets.iterator();
-        if (!umpsetsItr.hasNext()) {
-            _logger.error("Unable to find unmanaged protection set associated with volume: " + unManagedVolume.getId());
-            // caller will throw exception
-            return null;
-        }
-
-        return umpsetsItr.next();
-    }
-
-    /**
-     * >>>>>>> feature-CTRL-12931-rp-ingest
      * Create the managed protection set associated with the ingested RP volumes.
      * Also, as a side-effect, insert the protection set ID into each of the impacted volumes.
      * 
@@ -931,13 +910,15 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
     /**
      * This method will assemble a status printout of the ingestion progress for this protection set.
+     * @param volumeContext context information
      * 
-     * @param umpset unmanaged protection set
      * @return String status (multi-line, formatted)
      */
-    private String getRPIngestionStatus(UnManagedProtectionSet umpset) {
+    private String getRPIngestionStatus(RecoverPointVolumeIngestionContext volumeContext) {
         StringBuffer sb = new StringBuffer();
 
+        UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
+        
         sb.append("\nRecoverPoint Ingestion Progress Report\n");
         sb.append("--------------------------------------\n");
 
@@ -952,11 +933,24 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         for (int column = 0; column < ColumnEnum.map.keySet().size(); column++) {
             columnWidthMap.put(column, ColumnEnum.valueOf(column).toString().length());
         }
-
+        
         if (!umpset.getManagedVolumeIds().isEmpty()) {
+            List<Volume> volumes = new ArrayList<Volume>();
             sb.append("\n\nIngested Volumes:\n");
-            List<Volume> volumes = _dbClient.queryObject(Volume.class, URIUtil.toURIList(umpset.getManagedVolumeIds()));
-            for (Volume volume : volumes) {
+            for (URI volumeId : URIUtil.toURIList(umpset.getManagedVolumeIds())) {
+                Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+                if (volume == null) {
+                    // Check the "just created" list in the volume context
+                    if (volumeContext.getObjectsToBeCreatedMap().get(volumeId.toString()) != null) {
+                        volume = (Volume)volumeContext.getObjectsToBeCreatedMap().get(volumeId.toString());
+                        volumes.add(volume);
+                    } else {
+                        continue;
+                    }
+                } else {
+                    volumes.add(volume);
+                }
+                
                 // Get the width of the columns so we can have a compact, formatted printout.
                 // Name, ID, Personality, copy name, rset name, varray name, vpool name
                 if (volume.getLabel() != null && columnWidthMap.get(ColumnEnum.NAME.getColumnNum()) < volume.getLabel().length()) {

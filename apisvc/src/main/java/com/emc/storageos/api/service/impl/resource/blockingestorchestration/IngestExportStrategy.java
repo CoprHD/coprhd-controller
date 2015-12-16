@@ -17,13 +17,9 @@ import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
-import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 
@@ -55,8 +51,14 @@ public class IngestExportStrategy {
                 List<UnManagedExportMask> unManagedMasks = _dbClient.queryObject(UnManagedExportMask.class, unManagedMaskUris);
                 int originalSize = unManagedMasks.size();
                 MutableInt masksIngestedCount = new MutableInt(0);
-                List<String> errorMessages = requestContext.getVolumeContext(
+                List<String> errorMessages = new ArrayList<String>();
+
+                // TODO: Nathan, please take a look at the intent of this block wrt context object.
+                if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) != null) {
+                    errorMessages = requestContext.getVolumeContext(
                         unManagedVolume.getNativeGuid()).getErrorMessages();
+                }
+                
                 // Ingest Associated Masks
                 ingestExportOrchestrator.ingestExportMasks(
                         requestContext, unManagedVolume, blockObject, unManagedMasks, masksIngestedCount);

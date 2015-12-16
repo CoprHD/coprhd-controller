@@ -31,7 +31,7 @@ public class VVolPlacementManagerUtil {
             _log.info("Size " + createVirtualVol.getSizeInMB());
             
         } catch(Exception e){
-            _log.error(e.getMessage());
+            e.printStackTrace();
         }
     }
 

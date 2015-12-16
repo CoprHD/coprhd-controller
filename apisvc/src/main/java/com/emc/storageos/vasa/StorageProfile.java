@@ -7,6 +7,7 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementRef;
 import javax.xml.bind.annotation.XmlSchemaType;
+import javax.xml.bind.annotation.XmlSeeAlso;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.datatype.XMLGregorianCalendar;
 
@@ -50,9 +51,9 @@ import javax.xml.datatype.XMLGregorianCalendar;
     "name",
     "profileId"
 })
-//@XmlSeeAlso({
-//    DefaultProfile.class
-//})
+@XmlSeeAlso({
+    DefaultProfile.class
+})
 public class StorageProfile {
 
     @XmlElementRef(name = "constraints", namespace = "http://profile.policy.data.vasa.vim.vmware.com/xsd", type = JAXBElement.class, required = false)

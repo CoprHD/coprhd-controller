@@ -6,22 +6,22 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlSeeAlso;
+import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 
 /**
- * <p>Java class for SubProfile complex type.
+ * <p>Java class for anonymous complex type.
  * 
  * <p>The following schema fragment specifies the expected content contained within this class.
  * 
  * <pre>
- * &lt;complexType name="SubProfile">
+ * &lt;complexType>
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
- *         &lt;element name="capability" type="{http://capability.policy.data.vasa.vim.vmware.com/xsd}CapabilityInstance" maxOccurs="unbounded"/>
- *         &lt;element name="name" type="{http://www.w3.org/2001/XMLSchema}string"/>
+ *         &lt;element name="vvolId" type="{http://www.w3.org/2001/XMLSchema}string" maxOccurs="unbounded"/>
+ *         &lt;element name="destHostId" type="{http://www.w3.org/2001/XMLSchema}string"/>
  *       &lt;/sequence>
  *     &lt;/restriction>
  *   &lt;/complexContent>
@@ -31,71 +31,69 @@ import javax.xml.bind.annotation.XmlType;
  * 
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "SubProfile", namespace = "http://profile.policy.data.vasa.vim.vmware.com/xsd", propOrder = {
-    "capability",
-    "name"
+@XmlType(name = "", propOrder = {
+    "vvolId",
+    "destHostId"
 })
-@XmlSeeAlso({
-    SubProfileWithCandidates.class
-})
-public class SubProfile {
+@XmlRootElement(name = "prepareForBindingChange")
+public class PrepareForBindingChange {
 
     @XmlElement(required = true)
-    protected List<CapabilityInstance> capability;
+    protected List<String> vvolId;
     @XmlElement(required = true)
-    protected String name;
+    protected String destHostId;
 
     /**
-     * Gets the value of the capability property.
+     * Gets the value of the vvolId property.
      * 
      * <p>
      * This accessor method returns a reference to the live list,
      * not a snapshot. Therefore any modification you make to the
      * returned list will be present inside the JAXB object.
-     * This is why there is not a <CODE>set</CODE> method for the capability property.
+     * This is why there is not a <CODE>set</CODE> method for the vvolId property.
      * 
      * <p>
      * For example, to add a new item, do as follows:
      * <pre>
-     *    getCapability().add(newItem);
+     *    getVvolId().add(newItem);
      * </pre>
      * 
      * 
      * <p>
      * Objects of the following type(s) are allowed in the list
-     * {@link CapabilityInstance }
+     * {@link String }
      * 
      * 
      */
-    public List<CapabilityInstance> getCapability() {
-        if (capability == null) {
-            capability = new ArrayList<CapabilityInstance>();
+    public List<String> getVvolId() {
+        if (vvolId == null) {
+            vvolId = new ArrayList<String>();
         }
-        return this.capability;
+        return this.vvolId;
     }
 
     /**
-     * Gets the value of the name property.
+     * Gets the value of the destHostId property.
      * 
      * @return
      *     possible object is
      *     {@link String }
      *     
      */
-    public String getName() {
-        return name;
+    public String getDestHostId() {
+        return destHostId;
     }
 
     /**
-     * Sets the value of the name property.
+     * Sets the value of the destHostId property.
      * 
      * @param value
      *     allowed object is
      *     {@link String }
      *     
      */
-    public void setName(String value) {
-        this.name = value;
+    public void setDestHostId(String value) {
+        this.destHostId = value;
     }
 
 }

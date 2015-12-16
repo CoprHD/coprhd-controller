@@ -2159,11 +2159,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             for (IsilonAccessZone isilonAccessZone : accessZones) {
                 if (isilonAccessZone.isSystem() == false) {
                     nasServer = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
-
-                    accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    if (nasServer != null) {
+                        accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    }
                 } else {
                     nasServer = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
-                    accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    if (nasServer != null) {
+                        accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    }
                 }
             }
         }

@@ -291,8 +291,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // we need to do as much as we can:
         //
         // 1. Process each managed target volume ID in the unmanaged source volume, add to the managed source volume's RP target list.
-        // 2. Go through each unmanaged RP target volume in the unmanaged source volume (before it goes away), add the managed source volume
-        // ID.
+        // 2. Go through each unmanaged RP target volume in the unmanaged source volume (before it goes away), add the managed source volume ID.
         // 3. Go through each unmanaged RP target volume in the unmanaged source volume, remove the unmanaged source volume ID.
 
         // 1. Process each managed target volume ID in the unmanaged source volume, add to the managed source volume's RP target list.
@@ -313,8 +312,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             volume.getRpTargets().add(managedTargetVolume.getId().toString());
         }
 
-        // 2. Go through each unmanaged RP target volume in the unmanaged source volume (before it goes away), add the managed source volume
-        // ID.
+        // 2. Go through each unmanaged RP target volume in the unmanaged source volume (before it goes away), add the managed source volume ID.
         // 3. Go through each unmanaged RP target volume in the unmanaged source volume, remove the unmanaged source volume ID.
         StringSet rpUnManagedTargetVolumeIdStrs = PropertySetterUtil.extractValuesFromStringSet(
                 SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString(),

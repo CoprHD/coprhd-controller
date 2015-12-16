@@ -234,7 +234,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
                     }
                     volume.getExtensions().put("status", ComponentStatus.DELETING.getStatus().toLowerCase());
                     volume.setInactive(true);
-                    _dbClient.persistObject(volume);
+                    _dbClient.updateObject(volume);
                 }
             }
         }
@@ -258,7 +258,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
             }
             consistencyGroup.setStorageController(null);
             consistencyGroup.setInactive(true);
-            _dbClient.persistObject(consistencyGroup);
+            _dbClient.updateObject(consistencyGroup);
             TaskResourceRep resp = finishDeactivateTask(consistencyGroup, task);
             if (resp.getState().equals("ready") || resp.getState().equals("pending")) {
                 return Response.status(202).build();

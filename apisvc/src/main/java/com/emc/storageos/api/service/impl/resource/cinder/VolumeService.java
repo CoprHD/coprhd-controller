@@ -524,7 +524,7 @@ public class VolumeService extends TaskResourceService {
             _log.debug("Update volume : stored description");
             vol.setExtensions(extensions);
         }
-        _dbClient.persistObject(vol);
+        _dbClient.updateObject(vol);
         return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstack_tenant_id), header, true);
     }
 
@@ -574,7 +574,7 @@ public class VolumeService extends TaskResourceService {
 
         vol.getExtensions().put("status", ComponentStatus.DELETING.getStatus().toLowerCase());
         vol.getExtensions().put(DELETE_TASK_ID, task);
-        _dbClient.persistObject(vol);
+        _dbClient.updateObject(vol);
 
         return Response.status(202).build();
     }
@@ -616,7 +616,7 @@ public class VolumeService extends TaskResourceService {
                     else if (taskObj.getStatus().equals("pending")) {
                         detail.status = ComponentStatus.DELETING.getStatus().toLowerCase();
                     }
-                    _dbClient.persistObject(vol);
+                    _dbClient.updateObject(vol);
                 }
                 else {
                     detail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
@@ -656,7 +656,7 @@ public class VolumeService extends TaskResourceService {
                     vol.getExtensions().remove("task_id");
                     vol.getExtensions().put("status", "");
                 }
-                _dbClient.persistObject(vol);
+                _dbClient.updateObject(vol);
             }
             else if (vol.getExtensions().containsKey("status") && !vol.getExtensions().get("status").equals("")) {
                 detail.status = vol.getExtensions().get("status").toString().toLowerCase();

@@ -331,8 +331,6 @@ public class CinderHelpers {
 
         _log.info("before creating proj default quota");
         _dbClient.createObject(quotaObj);
-        _log.info("before persisiting proj default quota");
-        _dbClient.persistObject(quotaObj);
 
         return quotaObj;
     }
@@ -348,8 +346,6 @@ public class CinderHelpers {
 
         _log.info("before create object for vpool quota");
         _dbClient.createObject(objQuotaOfCinder);
-        _log.info("before update object for vpool quota");
-        _dbClient.persistObject(objQuotaOfCinder);
 
         return objQuotaOfCinder;
     }

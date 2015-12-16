@@ -58,7 +58,6 @@ public class BlockSnapshotSessionDeleteWorkflowCompleter extends BlockSnapshotSe
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         List<URI> snapshotSessionURIs = getIds();
-        URI snapSessionURI = getId();
         try {
             Iterator<BlockSnapshotSession> iterator = dbClient.queryIterativeObjects(BlockSnapshotSession.class,
                     snapshotSessionURIs);
@@ -73,10 +72,10 @@ public class BlockSnapshotSessionDeleteWorkflowCompleter extends BlockSnapshotSe
                 // Update the status map of the snapshot session.
                 switch (status) {
                     case error:
-                        setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
+                        setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapshotSession.getId(), coded);
                         break;
                     case ready:
-                        setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
+                        setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapshotSession.getId());
 
                         // Mark snapshot session inactive.
                         snapshotSession.setInactive(true);

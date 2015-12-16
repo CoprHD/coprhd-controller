@@ -122,10 +122,8 @@ public class BlockMapper {
         to.setSupportsSnapshotSessions(Boolean.FALSE);
         if (dbClient != null) {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
-            if (system != null) {
-                if (system.checkIfVmax3()) {
-                    to.setSupportsSnapshotSessions(Boolean.TRUE);
-                } 
+            if (system != null && system.checkIfVmax3()) {                
+                to.setSupportsSnapshotSessions(Boolean.TRUE);                 
             }
         }
         // Extra checks for VPLEX volumes
@@ -134,12 +132,10 @@ public class BlockMapper {
             // volume.
             Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
             StorageSystem system = dbClient.queryObject(StorageSystem.class, sourceSideBackingVolume.getStorageController());
-            if (null != system) {
-                if (system.checkIfVmax3()) {
-                    to.setSupportsSnapshotSessions(Boolean.TRUE);
-                } 
+            if (null != system && system.checkIfVmax3()) {
+                to.setSupportsSnapshotSessions(Boolean.TRUE); 
             }
-            // Set xio3xvolume in virtualvolume only if it's backend volume belongs to xtremio & version is 3.x
+            // Set xio3xvolume in virtual volume only if it's backend volume belongs to xtremio & version is 3.x
             for (String backendVolumeuri : from.getAssociatedVolumes()) {
                 Volume backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
                 if (null != backendVol) {

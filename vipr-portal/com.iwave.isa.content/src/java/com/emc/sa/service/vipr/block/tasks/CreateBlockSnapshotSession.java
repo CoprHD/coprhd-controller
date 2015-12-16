@@ -15,7 +15,7 @@ import com.emc.vipr.client.Tasks;
 public class CreateBlockSnapshotSession extends WaitForTasks<BlockSnapshotSessionRestRep> {
     private URI volumeId;
     private String name;
-    private SnapshotSessionNewTargetsParam linkedTargetsParam; //Not sure if this is right way...I think no.
+    private SnapshotSessionNewTargetsParam linkedTargetsParam;
     
     public CreateBlockSnapshotSession(String volumeId, String name, String linkedSnapshotName, Integer linkedSnapshotCount, String copyMode) {
         this(uri(volumeId), name, linkedSnapshotName, linkedSnapshotCount, copyMode);

@@ -427,10 +427,12 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             else {
                 if (activeProtectionAtHASite) {
                     builder.setJournalVarrayAndVpool(uri(haJournalVArray), uri(haJournalVPool));
-                }
-                else {
+                } else {
                     builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
                 }
+
+                // Reset the standby varray/vpool values
+                builder.setStandByJournalVArrayVpool(null, null);
             }
             builder.setHighAvailability(highAvailability, enableAutoCrossConnExport, virtualArrayId, virtualPoolId,
                     activeProtectionAtHASite, metroPoint);
@@ -502,6 +504,9 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
                     } else {
                         builder.setJournalVarrayAndVpool(uri(sourceJournalVArray), uri(sourceJournalVPool));
                     }
+
+                    // Reset the standby varray/vpool values
+                    builder.setStandByJournalVArrayVpool(null, null);
                 }
                 builder.setHighAvailability(highAvailability, enableAutoCrossConnExport, uri(haVirtualArray), uri(haVirtualPool),
                         activeProtectionAtHASite, metroPoint);

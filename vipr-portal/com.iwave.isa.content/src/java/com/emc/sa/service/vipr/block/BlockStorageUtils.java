@@ -542,7 +542,10 @@ public class BlockStorageUtils {
         List<ITLRestRep> bulkResponse = execute(new FindBlockVolumeHlus(volumeIds));
         Map<URI, Integer> volumeHLUs = Maps.newHashMap();
         for (ITLRestRep export : bulkResponse) {
-            volumeHLUs.put(export.getBlockObject().getId(), export.getHlu());
+            ExportGroupRestRep exportGroup = getExport(export.getExport().getId());
+            if (!exportGroup.getInternal()) {
+                volumeHLUs.put(export.getBlockObject().getId(), export.getHlu());
+            }
         }
         return volumeHLUs;
     }

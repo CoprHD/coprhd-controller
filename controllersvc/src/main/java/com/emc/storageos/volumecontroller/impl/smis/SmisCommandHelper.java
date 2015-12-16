@@ -3756,6 +3756,10 @@ public class SmisCommandHelper implements SmisConstants {
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class,
                         volumeUri);
                 nativeGuid = NativeGUIDGenerator.generateNativeGuid(storage, snapshot);
+            } else if (URIUtil.isType(volumeUri, BlockMirror.class)) {
+                BlockMirror mirror = _dbClient.queryObject(BlockMirror.class,
+                        volumeUri);
+                nativeGuid = NativeGUIDGenerator.generateNativeGuid(storage, mirror);
             }
             volumePaths.put(nativeGuid, volumeUri);
         }

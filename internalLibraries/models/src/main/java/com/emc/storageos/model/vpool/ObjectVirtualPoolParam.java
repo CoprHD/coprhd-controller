@@ -13,8 +13,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "object_vpool_create")
 public class ObjectVirtualPoolParam extends VirtualPoolCommonParam {
 
-	Integer maxRetention;
-    Integer minDataCenters;
+	private Integer maxRetention;
+    private Integer minDataCenters;
 
     public ObjectVirtualPoolParam() {
     }

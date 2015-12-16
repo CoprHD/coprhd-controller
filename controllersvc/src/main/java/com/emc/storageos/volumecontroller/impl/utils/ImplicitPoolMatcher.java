@@ -204,6 +204,14 @@ public class ImplicitPoolMatcher {
         }
     }
 
+    /**
+     * Matches given set of virtual pools with list of storage pools.
+     * @param updatedPoolList list of storage pools
+     * @param vpoolURIs list of virtual pools
+     * @param dbClient
+     * @param coordinator
+     * @param matcherGroupName group name of attribute matchers
+     */
     public static void matchModifiedStoragePoolsWithVirtualPools(List<StoragePool> updatedPoolList, List<URI> vpoolURIs,
                                                                  DbClient dbClient, CoordinatorClient coordinator, String matcherGroupName) {
         Iterator<VirtualPool> vpoolListItr = dbClient.queryIterativeObjects(VirtualPool.class, vpoolURIs);
@@ -227,6 +235,7 @@ public class ImplicitPoolMatcher {
      * @param pools
      *            : pools to match.
      * @param dbClient
+     * @param matcherGroupName group name of attribute matchers to run
      */
     public static void matchvPoolWithStoragePools(VirtualPool vpool, List<StoragePool> pools, DbClient dbClient,
             CoordinatorClient coordinator, String matcherGroupName) {

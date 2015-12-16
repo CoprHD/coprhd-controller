@@ -148,6 +148,14 @@ public class StoragePortAssociationHelper {
         return poolUris;
     }
 
+    /**
+     * This method executes process to update varrays for the passed port parameter.
+     * @param port storage port for which varrays have been changed
+     * @param dbClient
+     * @param coordinator
+     * @param pools pools which may require vpool changes as a result of port varray changes
+     * @param varrayAssignmentChanges varray changes for the port
+     */
     public static void runUpdatePortAssociationsProcessForVArrayChange(StoragePort port,
                                                                        DbClient dbClient, CoordinatorClient coordinator, List<StoragePool> pools,
                                                                        VirtualArrayAssignmentChanges varrayAssignmentChanges) {
@@ -174,7 +182,7 @@ public class StoragePortAssociationHelper {
             varraysWithOutChangedConnectivity.addAll(varraysToRemoveIds);
 
             // Set of varrays which changed connection to our storage system as result of storage port to varrays assignment change.
-            Set<String> varraysWithChangedConnectivity = StoragePortAssociationHelper.getVArraysWithChangedConnectivityToStorageSystem(storageSystemURI, varraysToAddIds,
+            Set<String> varraysWithChangedConnectivity = StoragePortAssociationHelper.getVArraysWithChangedConnectivityToStorageSystem(port, varraysToAddIds,
                     varraysToRemoveIds, dbClient);
             varraysWithOutChangedConnectivity.removeAll(varraysWithChangedConnectivity);
 
@@ -200,12 +208,16 @@ public class StoragePortAssociationHelper {
                 // If there are varrays which changed connectivity to our storage system, we need to process all their vpools to match them to
                 // our system's storage pools.
                 // Match the VPools defined in VArrays with changed connectivity to the StoragePools with all vpool matchers
+                _log.info("New varrays connected to storage system {} through port {} are {}", storageSystemURI, port.getId(), varraysWithChangedConnectivity);
                 List<URI> vpoolURIs = getVpoolsForVarrays(varraysWithChangedConnectivity, dbClient);
+                _log.info("Execute all vpool matchers for vpools {}", vpoolURIs);
                 ImplicitPoolMatcher.matchModifiedStoragePoolsWithVirtualPools(pools, vpoolURIs, dbClient, coordinator, AttributeMatcher.VPOOL_MATCHERS);
             }
             if (!varraysWithOutChangedConnectivity.isEmpty()) {
+                _log.info("Varrays which did not change connection to storage system {} are {}", storageSystemURI, varraysWithOutChangedConnectivity);
                 // Match the VPools defined in VArrays without changed connectivity to the StoragePools only with num paths matcher
                 List<URI> vpoolURIs = getVpoolsForVarrays(varraysWithOutChangedConnectivity, dbClient);
+                _log.info("Execute num paths matcher for vpools {}", vpoolURIs);
                 ImplicitPoolMatcher.matchModifiedStoragePoolsWithVirtualPools(pools, vpoolURIs, dbClient, coordinator, AttributeMatcher.CONNECTIVITY_PLACEMENT_MATCHERS);
             }
             // get all the system that were affected and update their virtual
@@ -269,45 +281,65 @@ public class StoragePortAssociationHelper {
         }
     }
 
+    /**
+     * This method finds varrays which change connection (either are newly connected or lost old connection) to storage
+     * system of the passed port parameter.
+     * @param port storage port for which varrays were added/removed
+     * @param varraysToAddIds  set of added varrays to port
+     * @param varraysToRemoveIds set of removed varrays from port
+     * @param dbClient
+     * @return set of varrays which changed connection to port's storage system
+     */
 
-    private static Set<String>  getVArraysWithChangedConnectivityToStorageSystem(URI storageSystemURI, Set<String> varraysToAddIds,
+    private static Set<String>  getVArraysWithChangedConnectivityToStorageSystem(StoragePort port, Set<String> varraysToAddIds,
                                                                                 Set<String> varraysToRemoveIds, DbClient dbClient) {
+        // This is our storage system.
+        URI storageSystemURI = port.getStorageDevice();
+        _log.info("Port {} belongs to storage system {}", port.getId(), storageSystemURI);
         // Set of varrays which changed connection to the storage system.
         Set<String> varraysWithChangedConnectivity = new HashSet<>();
 
-        // Check which varrays in "ToAdd" set already have at least one port from our storage system.
+        // Check which varrays in "ToAdd" set already have at least one other port from our storage system.
         // For these varrays there is no connection change to the storage system.
         // This map keeps count of ports from our storage system in each varray under change.
         Map<String, Integer> varrayToPortCountMap = new HashMap<>();
 
         if (varraysToAddIds != null && !varraysToAddIds.isEmpty()) {
+            _log.info("New varrays {} added to the port {}", varraysToAddIds, port.getId());
             Set<String> varraysToAddWithChangedConnectivity = new HashSet<>(varraysToAddIds);
             for (String varrayId : varraysToAddIds) {
                 URIQueryResultList storagePortURIs = new URIQueryResultList();
                 dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(varrayId),
                         storagePortURIs);
                 for (URI portURI : storagePortURIs) {
+                    // If this is the same port as was added to varray in the change request, skip and continue
+                    if (port.getId().equals(portURI)) {
+                        continue;
+                    }
                     StoragePort varrayPort = (StoragePort) dbClient.queryObject(portURI);
                     if (!NullColumnValueGetter.isNullURI(varrayPort.getStorageDevice()) &&
                             storageSystemURI.equals(varrayPort.getStorageDevice())) {
                         // This varray port belongs to our storage system
                         varrayToPortCountMap.put(varrayId, 1);
-                        // At least one port from our storage system belongs to varray.
+                        // At least one other port from our storage system belongs to varray.
                         // Addition of a new port to this varray does not change connection between our storage
                         // system and varray.
                         // We can stop here processing varray ports.
                         varraysToAddWithChangedConnectivity.remove(varrayId);
+                        _log.info("Varray {} already has connection to storage system {} through port {}", varrayId, storageSystemURI, varrayPort);
                         break;
                     }
                 }
             }
+            _log.info("New varrays connected to storage system {} are {}", storageSystemURI, varraysToAddWithChangedConnectivity);
             varraysWithChangedConnectivity.addAll(varraysToAddWithChangedConnectivity);
         }
 
-        // Check which varrays "ToRemove" have at least two ports from our storage system.
-        // For these varrays there is no connection change to our storage system when one of the ports is removed from
+        // Check which varrays "ToRemove" have at least one other  port from our storage system.
+        // For these varrays there is no connection change to our storage system when port in the request is removed from
         // the varray.
         if (varraysToRemoveIds != null && !varraysToRemoveIds.isEmpty()) {
+            _log.info("Varrays {} are removed from the port {}", varraysToRemoveIds, port.getId());
             Set<String> varraysToRemoveWithChangedConnectivity = new HashSet<>(varraysToRemoveIds);
             for (String varrayId : varraysToRemoveIds) {
                 URIQueryResultList storagePortURIs = new URIQueryResultList();
@@ -318,24 +350,18 @@ public class StoragePortAssociationHelper {
                     if (!NullColumnValueGetter.isNullURI(varrayPort.getStorageDevice()) &&
                             storageSystemURI.equals(varrayPort.getStorageDevice())) {
                         // This varray port belongs to our storage system
-                        Integer count = varrayToPortCountMap.get(varrayId);
-                        if (count != null) {
-                            count++;
-                        } else {
-                            count = new Integer(1);
-                        }
-                        varrayToPortCountMap.put(varrayId, count);
-                        if (count > 1) {
-                            // More than one port from our storage system belongs to varray.
-                            // We can stop here processing varray ports.
-                            varraysToRemoveWithChangedConnectivity.remove(varrayId);
-                            break;
-                        }
+                        _log.info("Varray {} has connection to storage system {} through port {}", varrayId, storageSystemURI, varrayPort);
+                        // There is other port from our storage system which belongs to varray.
+                        // We can stop here processing varray ports.
+                        varraysToRemoveWithChangedConnectivity.remove(varrayId);
+                        break;
                     }
                 }
             }
+            _log.info("Varrays which lost connection to storage system {} are {}", storageSystemURI, varraysToRemoveWithChangedConnectivity);
             varraysWithChangedConnectivity.addAll(varraysToRemoveWithChangedConnectivity);
         }
+        _log.info("Varrays with changed connection to storage system {} are {}", storageSystemURI, varraysWithChangedConnectivity);
         return varraysWithChangedConnectivity;
     }
 

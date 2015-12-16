@@ -5,10 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -31,10 +28,11 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator client.
      * @param scheduler A reference to a scheduler.
+     * @param fullCopyMgr A reference to the full copy manager.
      */
-    public ScaleIOBlockFullCopyApiImpl(DbClient dbClient,
-            CoordinatorClient coordinator, Scheduler scheduler) {
-        super(dbClient, coordinator, scheduler);
+    public ScaleIOBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator, Scheduler scheduler,
+            BlockFullCopyManager fullCopyMgr) {
+        super(dbClient, coordinator, scheduler, fullCopyMgr);
     }
 
     /**

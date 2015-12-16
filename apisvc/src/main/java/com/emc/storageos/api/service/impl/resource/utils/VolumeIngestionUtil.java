@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
@@ -2380,6 +2381,16 @@ public class VolumeIngestionUtil {
 
         blockObject.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
 
+        // snapshot sessions
+        URIQueryResultList queryResults = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(blockObject.getId()), queryResults);
+        Iterator<URI> resultsIter = queryResults.iterator();
+        while (resultsIter.hasNext()) {
+            BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, resultsIter.next());
+            snapSession.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+            updatedObjects.add(snapSession);
+        }
+
         if ((blockObject instanceof Volume) && (isVplexBackendVolume)) {
             // VPLEX backend volumes should still have the INTERNAL_OBJECT flag.
             // Note that snapshots can also be VPLEX backend volumes so make sure
@@ -2469,6 +2480,7 @@ public class VolumeIngestionUtil {
                 case CREATE_VOLUME_MIRROR:
                 case CHANGE_BLOCK_VOLUME_VARRAY:
                 case UPDATE_CONSISTENCY_GROUP:
+                case CREATE_SNAPSHOT_SESSION:
                     _logger.error("Operation {} is not permitted on ingested volumes.", operation.getName());
                     throw APIException.badRequests.operationNotPermittedOnIngestedVolume(
                             operation.getName(), volume.getLabel());

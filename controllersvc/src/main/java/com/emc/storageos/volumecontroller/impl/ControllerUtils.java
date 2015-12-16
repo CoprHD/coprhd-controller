@@ -1499,6 +1499,6 @@ public class ControllerUtils {
     public static List<URI> getSnapshotSessionsByInstance(String instance, DbClient dbClient) {
         URIQueryResultList resultList = new URIQueryResultList();
         dbClient.queryByConstraint(getBlockSnapshotSessionBySessionInstance(instance), resultList);
-        return newArrayList(resultList);
+        return newArrayList(resultList.iterator());
     }
 }

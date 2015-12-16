@@ -887,41 +887,32 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private List<AssetOption> getVolumeSnapshotSessionOptionsForProject(AssetOptionsContext ctx, URI project) {
         final ViPRCoreClient client = api(ctx);
         List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().findByProject(project);
-//        List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().findByProject(project,
-//                new DefaultResourceFilter<BlockSnapshotSessionRestRep>() {
-//                    @Override
-//                    public boolean accept(BlockSnapshotSessionRestRep snapshotSession) {
-//                        VolumeRestRep parentVolume = client.blockVolumes().get(snapshotSession.getParent().getId());
-//                        return (isSnapshotSessionSupportedForVolume(parentVolume));
-//                    }
-//                });
         return constructSnapshotSessionOptions(client, project, snapshotSessions);
     }
 
     @Asset("blockSnapshotOrConsistencyGroup")
-    @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType", "blockSnapshotType" })
-    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String cg, URI consistencyGroupId, String snapshotType) {
-        if (CG_SNAPSHOT_TYPE_VALUE.equals(snapshotType)) {
-            if (NONE_TYPE.equals(cg)) {                
-                return new ArrayList<AssetOption>();
-            } else {
-                if (cg == null) {
-                    error("Consistency type invalid : %s", cg);
-                    return new ArrayList<AssetOption>();
-                }
-                URI consistencyGroup = uri(cg);
-                if (!BlockProviderUtils.isType(consistencyGroup, BLOCK_CONSISTENCY_GROUP_TYPE)) {
-                    error("Consistency Group field is required for Storage Type [%s, %s]", cg, consistencyGroupId);
-                    return new ArrayList<AssetOption>();
-                }
-                return getConsistencyGroupSnapshots(ctx, consistencyGroup);
-            }
-        } else if (SESSION_SNAPSHOT_TYPE_VALUE.equals(snapshotType)) {
-            debug("getting blockSnapshotSessions (project=%s)", project);
-            return getVolumeSnapshotSessionOptionsForProject(ctx, project);
+    @AssetDependencies({ "project", "blockVolumeOrConsistencyType", "blockSnapshotType", "consistencyGroupByProjectAndType" })
+    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String storageType, String snapshotType, URI consistencyGroupId) {
+        if (NONE_TYPE.equals(storageType)) {                
+            return new ArrayList<AssetOption>();
         } else {
-            debug("getting blockSnapshots (project=%s)", project);
-            return getVolumeSnapshotOptionsForProject(ctx, project);
+            if (CG_SNAPSHOT_TYPE_VALUE.equals(snapshotType)) {               
+                if (consistencyGroupId == null) {
+                    error("Consistency type invalid : %s", consistencyGroupId);
+                    return new ArrayList<AssetOption>();
+                }                
+                if (!BlockProviderUtils.isType(consistencyGroupId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
+                    error("Consistency Group field is required for Storage Type [%s, %s]", storageType, consistencyGroupId);
+                    return new ArrayList<AssetOption>();
+                }
+                return getConsistencyGroupSnapshots(ctx, consistencyGroupId);          
+            } else if (SESSION_SNAPSHOT_TYPE_VALUE.equals(snapshotType)) {
+                debug("getting blockSnapshotSessions (project=%s)", project);
+                return getVolumeSnapshotSessionOptionsForProject(ctx, project);
+            } else {
+                debug("getting blockSnapshots (project=%s)", project);
+                return getVolumeSnapshotOptionsForProject(ctx, project);
+            }    
         }
     }
     
@@ -966,16 +957,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
     }
 
-    @Asset("blockSnapshotType")
-    public List<AssetOption> getBlockSnapshotTypeLockable(AssetOptionsContext ctx) {
-        debug("getting blockSnapshotTypes");
-        List<AssetOption> options = Lists.newArrayList();
-        options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
-        options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
-        options.add(SESSION_SNAPSHOT_TYPE_OPTION);
-        return options;
-    }
-    
     @Asset("blockSnapshotType")
     @AssetDependencies({"blockVolumeOrConsistencyType", "snapshotBlockVolume"})
     public List<AssetOption> getBlockSnapshotType(AssetOptionsContext ctx, String storageType, URI blockVolume) {

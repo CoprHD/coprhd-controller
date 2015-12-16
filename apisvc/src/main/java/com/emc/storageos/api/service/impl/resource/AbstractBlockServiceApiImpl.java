@@ -1574,7 +1574,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
          * For other arrays, or VMAX (CG has existing volumes, or non SMI-S 8.x), volumes to be added cannot have replicas
          */
         boolean isReplicaAllowed = false;
-        if ((volsAlreadyInCG || cgVolumes.isEmpty()) && ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient)) {
+        if ((volsAlreadyInCG || cgVolumes.isEmpty()) && ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient) || ControllerUtils.isVnxVolume(volumes.get(0), _dbClient) ) {
             isReplicaAllowed = true;
         }
 

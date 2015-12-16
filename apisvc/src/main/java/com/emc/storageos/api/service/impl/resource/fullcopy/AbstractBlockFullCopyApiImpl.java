@@ -130,7 +130,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             // group instance.
             URIQueryResultList queryResults = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getCloneReplicationGroupInstanceConstraint(fullCopyVolume
+                    .getVolumeReplicationGroupInstanceConstraint(fullCopyVolume
                             .getReplicationGroupInstance()), queryResults);
             Iterator<URI> resultsIter = queryResults.iterator();
             while (resultsIter.hasNext()) {

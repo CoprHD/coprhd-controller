@@ -15,6 +15,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.SynchronizationState;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -726,7 +727,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 waitFor = removeMirrorsFromReplicationGroupStep(workflow, waitFor, storageSystem, cgURI, mirrorList, repGroupName);
             }
 
-            waitFor = _blockDeviceController.deleteMirrorStep(workflow, waitFor, storage, storageSystem, mirrorList, isRemoveAll);
+            waitFor = _blockDeviceController.deleteListMirrorStep(workflow, waitFor, storage, storageSystem, mirrorList, isRemoveAll);
         }
 
         return waitFor;
@@ -798,7 +799,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         List<URI> replicas = new ArrayList<URI>();
         URIQueryResultList queryResults = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getCloneReplicationGroupInstanceConstraint(repGroupName), queryResults);
+                .getVolumeReplicationGroupInstanceConstraint(repGroupName), queryResults);
         Iterator<URI> resultsIter = queryResults.iterator();
         while (resultsIter.hasNext()) {
             Volume clone = _dbClient.queryObject(Volume.class, resultsIter.next());
@@ -926,14 +927,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
         if (!volumes.isEmpty()) {
             Volume firstVolume = volumes.get(0);
-            if (!(firstVolume != null && ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient))) {
+            if (!ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient) &&
+                    !ControllerUtils.isVnxVolume(firstVolume, _dbClient)) {
                 return waitFor;
             }
 
             URI storage = firstVolume.getStorageController();
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             // find member volumes in the group
-            List<Volume> cgVolumes = ControllerUtils.getVolumesPartOfCG(cgURI, _dbClient);
+            List<Volume> cgVolumes = ControllerUtils.getVolumesPartOfRG(storageSystem, cgURI, _dbClient);
             if (checkIfCGHasCloneReplica(cgVolumes)) {
                 log.info("Adding clone steps for adding volumes");
                 // create new clones for the newly added volumes
@@ -996,7 +998,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
         if (!volumes.isEmpty()) {
             Volume firstVolume = volumes.get(0);
-            if (!(firstVolume != null && firstVolume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient))) {
+            if (!(firstVolume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient)) &&
+                  !ControllerUtils.isInVNXVirtualRG(firstVolume, _dbClient)) {
                 return waitFor;
             }
 

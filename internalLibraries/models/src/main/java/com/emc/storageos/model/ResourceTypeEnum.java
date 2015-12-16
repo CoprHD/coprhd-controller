@@ -75,7 +75,7 @@ public enum ResourceTypeEnum {
     USER_GROUP("user_group", "/vdc/admin/user-groups"),
     SITE("site", "/site"),
     VIRTUAL_NAS("vnas-servers", "/vdc/vnas-servers"),
-    APPLICATION("application", "/applications/block"),
+    VOLUME_GROUP("volume_group", "/volume-groups/block"),
     COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers");
 
     private final String type;

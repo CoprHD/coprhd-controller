@@ -18,12 +18,12 @@ import com.emc.storageos.model.valid.Length;
 /**
  * Application update parameters
  */
-@XmlRootElement(name = "application_update")
-public class ApplicationUpdateParam {
+@XmlRootElement(name = "volume_group_update")
+public class VolumeGroupUpdateParam {
     private String name;
     private String description;
     
-    public static class ApplicationVolumeList {
+    public static class VolumeGroupVolumeList {
         private List<URI> volumes;
         // The name of the backend replication group that the volumes would add to
         private String replicationGroupName;
@@ -65,35 +65,35 @@ public class ApplicationUpdateParam {
         }
     }
 
-    private ApplicationVolumeList addVolumesList;
-    private ApplicationVolumeList removeVolumesList;
+    private VolumeGroupVolumeList addVolumesList;
+    private VolumeGroupVolumeList removeVolumesList;
 
     /**
-     * List of volumes to add to the block consistency group
+     * List of volumes to add to the volume group
      * 
      * @valid none
      */
     @XmlElement(name = "add_volumes")
-    public ApplicationVolumeList getAddVolumesList() {
+    public VolumeGroupVolumeList getAddVolumesList() {
         return addVolumesList;
     }
 
-    public void setAddVolumesList(ApplicationVolumeList addVolumesList) {
+    public void setAddVolumesList(VolumeGroupVolumeList addVolumesList) {
         this.addVolumesList = addVolumesList;
     }
 
     /**
-     * List of volumes to remove from the block consistency group
+     * List of volumes to remove from the volume group
      * 
      * @valid none
      */
     @XmlElement(name = "remove_volumes")
-    public ApplicationVolumeList getRemoveVolumesList() {
+    public VolumeGroupVolumeList getRemoveVolumesList() {
         return removeVolumesList;
     }
 
     public void setRemoveVolumesList(
-            ApplicationVolumeList removeVolumesList) {
+            VolumeGroupVolumeList removeVolumesList) {
         this.removeVolumesList = removeVolumesList;
     }
 
@@ -115,7 +115,7 @@ public class ApplicationUpdateParam {
                 !removeVolumesList.volumes.isEmpty();
     }
     /**
-     * Application unique name
+     * volume group unique name
      * 
      * @valid minimum of 2 characters
      * @valid maximum of 128 characters
@@ -131,7 +131,7 @@ public class ApplicationUpdateParam {
     }
     
     /**
-     * Application description
+     * volume group description
      */
     @XmlElement
     public String getDescription() {

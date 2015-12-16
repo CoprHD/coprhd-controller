@@ -16,8 +16,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import com.emc.storageos.model.DataObjectRestRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
-@XmlRootElement(name = "application")
-public class ApplicationRestRep extends DataObjectRestRep {
+@XmlRootElement(name = "volume_group")
+public class VolumeGroupRestRep extends DataObjectRestRep {
     private String description;
     private Set<String> roles;
 
@@ -32,7 +32,7 @@ public class ApplicationRestRep extends DataObjectRestRep {
 
     @XmlElementWrapper(name = "roles")
     /**
-     * Roles of the application
+     * Roles of the volume group
      * 
      * @valid none
      */

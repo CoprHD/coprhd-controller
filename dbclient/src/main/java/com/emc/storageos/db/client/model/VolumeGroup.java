@@ -6,20 +6,21 @@ package com.emc.storageos.db.client.model;
 
 import java.util.Set;
 
-@Cf("Application")
-public class Application extends DataObject {
+@Cf("VolumeGroup")
+public class VolumeGroup extends DataObject {
 
     private static final long serialVersionUID = 2559507385303958088L;
 
-    // Description of the application
+    // Description of the volume group
     private String description;
 
-    // The role of the application, either COPY or DR
+    // The role of the volume group, either COPY or DR
     private StringSet roles;
 
-    public static enum ApplicationRole {
+    public static enum VolumeGroupRole {
         COPY,
-        DR
+        DR,
+        MOBILITY
     }
 
     @Name("description")

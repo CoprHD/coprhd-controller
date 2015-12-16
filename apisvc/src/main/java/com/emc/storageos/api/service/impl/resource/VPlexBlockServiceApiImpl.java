@@ -3390,7 +3390,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     }
     
     /**
-     * Check if the volumes are in the same backend CG
+     * Check if the volumes are in a CG and in the same backend CG
      * @param volumes The Vplex volumes 
      * @return true or false
      */
@@ -3399,7 +3399,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         String replicationGroup = null;
         int count = 0;
         for (Volume volume : volumes) {
-            Volume srcVol =  VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+            URI cgURI = volume.getConsistencyGroup();
+            if (NullColumnValueGetter.isNullURI(cgURI)) {
+                result = false;
+                break;
+            }
+            Volume srcVol =  VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+            if (srcVol == null) {
+                result = false;
+                break;
+            }
             String rpName = srcVol.getReplicationGroupInstance();
             if (count == 0) {
                 replicationGroup = rpName;

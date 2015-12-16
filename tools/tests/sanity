@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr | ipsec} [local|ldap] [<timeslot>] | sanzoning'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr | ipsec} [local|ldap] [<timeslot>] | sanzoning | volumegroup'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -130,7 +130,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec)
+    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|volumegroup)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -7425,7 +7425,7 @@ fail(){
 
 trap _failure ERR INT
 set -E
-if [ "$3" != "recoverpoint" ] && [ "$3" != "vdc" ] && [ "$3" != "dr" ]; then
+if [ "$3" != "vdc" ] && [ "$3" != "dr" ]; then
     common_setup	
 fi
 
@@ -7454,6 +7454,42 @@ output_conf(){
     echo "user=$WS_UID" >> "$file"
     echo "secretkey=$WS_SECRET" >> "$file"
     echo "bucket=${WS_SETUP_BUCKETS# }" >> "$file"
+}
+
+volumegroup_setup()
+{
+    echo "**** Executing volume group setup"
+}
+
+volumegroup_crud_test()
+{
+    echo "**** Executing volume group crud test"
+    appname=sanityapp-${RANDOM}
+
+    # test and verify create volume group
+    run volumegroup create ${appname} descrip COPY
+    run volumegroup show ${appname}
+    run volumegroup verify ${appname} description descrip
+    #run volume group ${appname} roles COPY
+
+    # test and verify list volume group
+    run volumegroup list
+
+    # test and verify volume group update
+    newappname=${appname}new
+    run volumegroup update ${appname} ${newappname} newdescription
+    run volumegroup show ${newappname}
+    run volumegroup verify ${newappname} description newdescription
+
+    # test and verify volume group delete
+    run volumegroup delete ${newappname}
+    fail volumegroup show ${newappname}
+}
+
+volumegroup_tests()
+{
+    echo "**** Executing volume group tests"
+    volumegroup_crud_test
 }
 
 vplexsnap_setup()

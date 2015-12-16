@@ -299,7 +299,7 @@ public class VdcManager extends AbstractManager {
         // This ipsec_status and ipsec_key properties are not normal system properties,
         // as they need be protected by double barrier to make sure they be changed and
         // synced to all nodes at the SAME time, or else the quorum of zk and db will be
-        // broken. This is why we don’t put them in system property.
+        // broken. This is why we don't put them in system property.
         targetVdcPropInfo.addProperty(Constants.IPSEC_STATUS,ipsecConfig.getIpsecStatus());
         targetVdcPropInfo.addProperty(Constants.IPSEC_KEY, ipsecConfig.getPreSharedKey());
         return targetVdcPropInfo;

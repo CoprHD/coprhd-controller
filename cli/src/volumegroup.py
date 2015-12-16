@@ -24,6 +24,7 @@ class VolumeGroup(object):
     # Commonly used URIs for the 'VolumeGroup' module
     URI_VOLUME_GROUP_LIST = '/volume-groups/block'
     URI_VOLUME_GROUP = '/volume-groups/block/{0}'
+    URI_VOLUME_GROUP_VOLUMES = '/volume-groups/block/{0}/volumes'
     URI_DEACTIVATE = URI_VOLUME_GROUP + '/deactivate'
     URI_TAG_VOLUME_GROUP = URI_VOLUME_GROUP + "/tags"
 
@@ -152,7 +153,7 @@ class VolumeGroup(object):
         volume_group_uri = self.query_by_name(name)
         return self.delete_by_uri(volume_group_uri)
 
-    def update(self, name, new_name, new_description):
+    def update(self, name, new_name, new_description, add_volumes, cg_id, remove_volumes):
         '''
         Makes REST API call and updates volume group name and description
         Parameters:
@@ -170,6 +171,16 @@ class VolumeGroup(object):
             request["name"] = new_name
         if(new_description and len(new_description) > 0):
             request["description"] = new_description
+        if(add_volumes and len(add_volumes) > 0):
+            add_vols = dict()
+            add_vols["volume"] = add_volumes.split(',')
+            if(cg_id and len(cg_id) > 0):
+                add_vols["consistency_group"] = cg_id
+            request["add_volumes"] = add_vols
+        if(remove_volumes and len(remove_volumes) > 0):
+            remove_vols = dict()
+            remove_vols["volume"] = remove_volumes.split(',')
+            request["remove_volumes"] = remove_vols
 
         body = json.dumps(request)
 
@@ -195,7 +206,50 @@ class VolumeGroup(object):
                               VolumeGroup.URI_TAG_VOLUME_GROUP,
                                volume_group_uri, addtags, removetags)
         )
+    
+    #Routine for volume group volumes 
+    def volume_show(self, name ,xml=False):
+        
+        volume_group_uri = self.query_by_name(name)
+        
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
+                        VolumeGroup.URI_VOLUME_GROUP_VOLUMES.format(volume_group_uri), None)
+        o = common.json_decode(s)
+     
+        
+        return o
 
+
+#SHOW resource parser
+
+def show_volume_group_volume_parser(subcommand_parsers, common_parser):
+    volume_group_volume_parser = subcommand_parsers.add_parser('show-volumes',
+                        description='ViPR Project Show CLI usage.',
+                                                parents=[common_parser],
+                                                conflict_handler='resolve',
+                                                help='Show volume group details')
+    volume_group_volume_parser.add_argument('-xml',
+                             dest='xml',
+                             action='store_true',
+                             help='XML response')
+    mandatory_args = volume_group_volume_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    volume_group_volume_parser.set_defaults(func=volume_group_volume_show)
+
+def volume_group_volume_show(args):
+    obj = VolumeGroup(args.ip, args.port)
+    try:
+        res = obj.volume_show(args.name, args.xml)
+        if(res):
+            if (args.xml == True):
+                return common.format_xml(res)
+            return common.format_json_object(res)
+    except SOSError as e:
+        raise e
 
 
 def create_parser(subcommand_parsers, common_parser):
@@ -285,7 +339,6 @@ def show_parser(subcommand_parsers, common_parser):
                                 required=True)
     show_parser.set_defaults(func=show)
 
-
 def show(args):
     obj = VolumeGroup(args.ip, args.port)
     try:
@@ -297,9 +350,6 @@ def show(args):
     except SOSError as e:
         raise e
     
-
-
-
 # list command parser
 
 
@@ -368,24 +418,37 @@ def update_parser(subcommand_parsers, common_parser):
                                        metavar='<newname>',
                                        dest='newname',
                                        help='New name of volume group')
-    update_parser.add_argument('-o', '-description',
-                                       metavar='<newowner>',
+    update_parser.add_argument('-d', '-description',
+                                       metavar='<description>',
                                        dest='description',
                                        help='New description of volume group')
+    update_parser.add_argument('-r', '-remove_volumes',
+                                       metavar='<remove_volumes>',
+                                       dest='remove_volumes',
+                                       help='A list of volumes to remove from the volume group')
+    update_parser.add_argument('-a', '-add_volumes',
+                                       metavar='<add_volumes>',
+                                       dest='add_volumes',
+                                       help='A list of volumes to add to the volume group')
+    update_parser.add_argument('-cg', '-consistency_group',
+                                       metavar='<consistency_group>',
+                                       dest='consistency_group',
+                                       help='A consistency group for adding volumes to the volume group')
 
     update_parser.set_defaults(func=update)
 
 
 def update(args):
 
-    if(args.newname is None and args.description is None):
+    if(args.newname is None and args.description is None and args.add_volumes is None and args.remove_volumes is None):
         raise SOSError(SOSError.CMD_LINE_ERR,
             "viprcli volume group update: error: at least one of " +
-            "the arguments -np/-newname -o/-description is required")
+            "the arguments -np/-newname -d/-description -a/-add_volumes " +
+            " -r/-remove_volumes is required")
     obj = VolumeGroup(args.ip, args.port)
     try:
         obj.update(args.name, args.newname,
-                    args.description)
+                    args.description, args.add_volumes, args.consistency_group, args.remove_volumes)
     except SOSError as e:
         raise e
 
@@ -451,3 +514,5 @@ def volume_group_parser(parent_subparser, common_parser):
 
     # volume group tag parser
     tag_parser(subcommand_parsers, common_parser)
+    
+    show_volume_group_volume_parser(subcommand_parsers, common_parser)

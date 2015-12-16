@@ -7,6 +7,7 @@ import com.emc.storageos.storagedriver.impl.InMemoryRegistryImpl;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +19,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 @RunWith(value = SpringJUnit4ClassRunner.class)
@@ -40,6 +42,9 @@ public class ScaleIOStorageDriverTest {
         driver = new ScaleIOStorageDriver();
         driver.setHandleFactory(handleFactory);
         driver.setDriverRegistry(registry);
+
+        /*Set up Connection Info for Ops*/
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID, IP_ADDRESS, PORT_NUMBER, USER_NAME, PASSWORD);
     }
 
     @Test
@@ -180,99 +185,58 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals(PASSWORD, driver.getConnInfoFromRegistry(SYS_NATIVE_ID, ScaleIOConstants.PASSWORD));
     }
 
-    @Test
-    public void testCreateVolumes() throws Exception {
-
-    }
-
-    @Test
-    public void testExpandVolume() throws Exception {
-
-    }
-
-    @Test
-    public void testDeleteVolumes() throws Exception {
-
-    }
 
     @Test
     public void testCreateVolumeSnapshot() throws Exception {
-        //driver.createVolumeSnapshot(null,null);
+        //null
+        List<VolumeSnapshot> snapshots=null;
+        DriverTask task=driver.createVolumeSnapshot(snapshots,null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED",task.getStatus().toString());
 
-    }
+        //create snapshot from valid volume
+        snapshots = new LinkedList<>();
+        VolumeSnapshot snapshot= new VolumeSnapshot();
+        snapshot.setParentId("d584a34400000003");
+        snapshot.setStorageSystemId(SYS_NATIVE_ID);
+        snapshots.add(snapshot);
+        task=driver.createVolumeSnapshot(snapshots,null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("READY",task.getStatus().toString());
 
-    @Test
-    public void testRestoreSnapshot() throws Exception {
+        //create snapshot from volume which already has a snapshot
+        snapshots.remove(0);
+        snapshot= new VolumeSnapshot();
+        snapshot.setParentId("d584a34300000002");
+        snapshot.setStorageSystemId(SYS_NATIVE_ID);
+        snapshots.add(snapshot);
+        task=driver.createVolumeSnapshot(snapshots,null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("READY",task.getStatus().toString());
 
     }
 
     @Test
     public void testDeleteVolumeSnapshot() throws Exception {
+        //null
+        List<VolumeSnapshot> snapshots=null;
+        DriverTask task= driver.deleteVolumeSnapshot(snapshots);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED",task.getStatus().toString());
 
-    }
-
-    @Test
-    public void testCreateVolumeClone() throws Exception {
-
-    }
-
-    @Test
-    public void testDetachVolumeClone() throws Exception {
-
-    }
-
-    @Test
-    public void testRestoreFromClone() throws Exception {
-
-    }
-
-    @Test
-    public void testDeleteVolumeClone() throws Exception {
-
-    }
-
-    @Test
-    public void testCreateVolumeMirror() throws Exception {
-
-    }
-
-    @Test
-    public void testDeleteVolumeMirror() throws Exception {
-
-    }
-
-    @Test
-    public void testSplitVolumeMirror() throws Exception {
-
-    }
-
-    @Test
-    public void testResumeVolumeMirror() throws Exception {
-
-    }
-
-    @Test
-    public void testRestoreVolumeMirror() throws Exception {
-
-    }
-
-    @Test
-    public void testGetITL() throws Exception {
-
-    }
-
-    @Test
-    public void testExportVolumesToInitiators() throws Exception {
-
-    }
-
-    @Test
-    public void testUnexportVolumesFromInitiators() throws Exception {
-
-    }
-
-    @Test
-    public void testCreateConsistencyGroup() throws Exception {
+        //list of valid snapshot
+        snapshots = new LinkedList<>();
+        VolumeSnapshot snapshot= new VolumeSnapshot();
+        snapshot.setNativeId("d584a34100000001");
+        snapshot.setStorageSystemId(SYS_NATIVE_ID);
+        snapshots.add(snapshot);
+        VolumeSnapshot snapshot1=new VolumeSnapshot();
+        snapshot1.setNativeId("d584a34500000004");
+        snapshot1.setStorageSystemId(SYS_NATIVE_ID);
+        snapshots.add(snapshot1);
+        task=driver.deleteVolumeSnapshot(snapshots);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("READY",task.getStatus().toString());
 
     }
 
@@ -286,13 +250,4 @@ public class ScaleIOStorageDriverTest {
 
     }
 
-    @Test
-    public void testCreateConsistencyGroupClone() throws Exception {
-
-    }
-
-    @Test
-    public void testDeleteConsistencyGroupClone() throws Exception {
-
-    }
 }

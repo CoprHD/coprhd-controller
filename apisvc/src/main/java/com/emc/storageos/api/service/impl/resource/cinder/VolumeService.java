@@ -330,8 +330,7 @@ public class VolumeService extends TaskResourceService {
             throw APIException.badRequests.parameterIsNotValid(param.volume.availability_zone);
         }
         if (snapshotId != null) {
-            snapshot = getCinderHelper().querySnapshotByTag(
-                    URI.create(snapshotId), getUserFromContext());
+            snapshot = getCinderHelper().querySnapshotByTag(URI.create(snapshotId), getUserFromContext());
             if (snapshot == null) {
                 throw APIException.badRequests.parameterIsNotValid(snapshotId);
             } else {
@@ -408,7 +407,7 @@ public class VolumeService extends TaskResourceService {
         }
         if (sourceVolId != null)
         {
-            _log.debug("Creating New Volume from cone : Source volume ID ={}", sourceVolId);
+            _log.debug("Creating New Volume from Volume : Source volume ID ={}", sourceVolId);
             Volume sourceVolume = findVolume(sourceVolId, openstack_tenant_id);
             if (sourceVolume != null) {
                 tasklist = volumeClone(name, project, sourceVolId, varray, volumeCount, sourceVolume, blkFullCpManager);
@@ -1022,7 +1021,7 @@ public class VolumeService extends TaskResourceService {
                 capabilities);
     }
 
-    // copied from BlockSnapShotService
+
     /**
      * Verify that the snapshot is not on vmax and hds, and not in a consistency group
      * and the array has full copy enabled
@@ -1182,8 +1181,7 @@ public class VolumeService extends TaskResourceService {
             // Validate that the number of volumes in the group plus the number
             // to be added by this request does not exceed the maximum volumes
             // in a CG.
-            int cgMaxVolCount = blockServiceImpl
-                    .getMaxVolumesForConsistencyGroup(consistencyGroup);
+            int cgMaxVolCount = blockServiceImpl.getMaxVolumesForConsistencyGroup(consistencyGroup);
             if ((activeCGVolumes.size() + volumeCount.intValue()) > cgMaxVolCount) {
                 throw APIException.badRequests.requestedVolumeCountExceedsLimitsForCG(
                         volumeCount.intValue(), cgMaxVolCount, consistencyGroup.getLabel());

@@ -254,13 +254,34 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public void rollback() {
         // basically dereferenced everything so that it won't be saved
-        getObjectsIngestedByExportProcessing().clear();
-        getObjectsToBeCreatedMap().clear();
-        getObjectsToBeUpdatedMap().clear();
-        getUnManagedVolumesToBeDeleted().clear();
-        _managedSourceVolumesToUpdate.clear();
-        _unmanagedSourceVolumesToUpdate.clear();
-        _unmanagedTargetVolumesToUpdate.clear();
+        if (getObjectsIngestedByExportProcessing() != null) {
+            getObjectsIngestedByExportProcessing().clear();
+        }
+        
+        if (getObjectsToBeCreatedMap() != null) {
+            getObjectsToBeCreatedMap().clear();
+        }
+        
+        if (getObjectsToBeUpdatedMap() != null) {
+            getObjectsToBeUpdatedMap().clear();
+        }
+        
+        if (getUnManagedVolumesToBeDeleted() != null) {
+            getUnManagedVolumesToBeDeleted().clear();
+        }
+        
+        if (_managedSourceVolumesToUpdate != null) {
+            _managedSourceVolumesToUpdate.clear();
+        }
+        
+        if (_unmanagedSourceVolumesToUpdate != null) {
+            _unmanagedSourceVolumesToUpdate.clear();
+        }
+        
+        if (_unmanagedTargetVolumesToUpdate != null) {
+            _unmanagedTargetVolumesToUpdate.clear();
+        }
+        
         _managedProtectionSet = null;
         _managedBlockConsistencyGroup = null;
         _managedBlockObject = null;

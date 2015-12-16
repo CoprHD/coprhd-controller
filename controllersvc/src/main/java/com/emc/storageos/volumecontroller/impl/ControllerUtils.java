@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +65,9 @@ import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
+import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * Utilities class encapsulates controller utility methods.
@@ -1274,5 +1278,18 @@ public class ControllerUtils {
             error = error + "-" + message;
         }
         return error;
+    }
+
+    /**
+     * Return snapshot sessions based on the given snapshot session instance.
+     *
+     * @param instance
+     * @param dbClient
+     * @return
+     */
+    public static List<URI> getSnapshotSessionsByInstance(String instance, DbClient dbClient) {
+        URIQueryResultList resultList = new URIQueryResultList();
+        dbClient.queryByConstraint(getBlockSnapshotSessionBySessionInstance(instance), resultList);
+        return newArrayList(resultList);
     }
 }

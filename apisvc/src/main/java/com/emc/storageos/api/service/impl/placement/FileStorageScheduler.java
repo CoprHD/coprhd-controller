@@ -10,15 +10,18 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
@@ -27,7 +30,10 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -35,11 +41,14 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.tenant.UserMappingParam;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
@@ -59,6 +68,7 @@ public class FileStorageScheduler {
     private StorageScheduler _scheduler;
     private CustomConfigHandler customConfigHandler;
     private Map<String, String> configInfo;
+    private PermissionsHelper permissionsHelper;
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -78,6 +88,10 @@ public class FileStorageScheduler {
 
 	public void setConfigInfo(Map<String, String> configInfo) {
 		this.configInfo = configInfo;
+	}
+	
+	public void setPermissionsHelper(PermissionsHelper permissionsHelper) {
+		this.permissionsHelper = permissionsHelper;
 	}
 
 	/**
@@ -482,7 +496,9 @@ public class FileStorageScheduler {
      */
     private List<VirtualNAS> getUnassignedVNASServers(URI vArrayURI,
             VirtualPool vpool, Project project,
-            List<VirtualNAS> invalidNasServers ) {
+            List<VirtualNAS> invalidNasServers) {
+    	
+    	_log.info("Get vNAS servers from the unreserved list...");
 
         List<VirtualNAS> vNASList = new ArrayList<VirtualNAS>();
 
@@ -498,31 +514,38 @@ public class FileStorageScheduler {
                     .hasNext();) {
                 VirtualNAS vNAS = iterator.next();
                 
+                _log.info("Checking vNAS - {} : {}", vNAS.getNasName(), vNAS.getId());
+                
                 if (!isVNASActive(vNAS)) {
-                    _log.debug("Removing vNAS {} as it is inactive",
-                            vNAS.getId());
+                    _log.info("Removing vNAS {} as it is inactive",
+                            vNAS.getNasName());
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 } else if (MetricsKeys.getBoolean(MetricsKeys.overLoaded,
                         vNAS.getMetrics())) {
-                    _log.debug("Removing vNAS {} as it is overloaded",
-                            vNAS.getId());
+                    _log.info("Removing vNAS {} as it is overloaded",
+                            vNAS.getNasName());
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 } else if (!vNAS.getProtocols().containsAll(
                         vpool.getProtocols())) {
-                    _log.debug("Removing vNAS {} as it does not support vpool protocols: {}",
-                            vNAS.getId(), vpool.getProtocols());
+                    _log.info("Removing vNAS {} as it does not support vpool protocols: {}",
+                            vNAS.getNasName(), vpool.getProtocols());
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 } else if (!NullColumnValueGetter.isNullURI(vNAS.getProject())) {
                 	if ( !project.getId().equals(vNAS.getProject()) ) {
-                		_log.debug("Removing vNAS {} as it is assigned to project",
-                    			vNAS.getId());
+                		_log.info("Removing vNAS {} as it is assigned to project",
+                    			vNAS.getNasName());
                 		iterator.remove();
                 		invalidNasServers.add(vNAS);
                 	} 
-                } 
+                } else if(!doesVNASDomainMatchesWithProjectDomain(project, vNAS)) {
+                	_log.info("Removing vNAS {} as its domain does not match with project's domain: {}",
+                            vNAS.getNasName(), vpool.getProtocols());
+                    iterator.remove();
+                    invalidNasServers.add(vNAS);
+                }
             }
         }
         if (vNASList != null) {
@@ -637,28 +660,29 @@ public class FileStorageScheduler {
                 VirtualNAS virtualNAS = iterator.next();
 
                 // Remove inactive, incompatible, invisible vNAS
+                _log.info("Checking vNAS - {} : {}", virtualNAS.getNasName(), virtualNAS.getId());
 
                 if (!isVNASActive(virtualNAS)) {
-                    _log.debug("Removing vNAS {} as it is inactive", virtualNAS.getId());
+                    _log.info("Removing vNAS {} as it is inactive", virtualNAS.getNasName());
                     iterator.remove();
                     invalidNasServers.add(virtualNAS);
                     
                 } else if (!virtualNAS.getAssignedVirtualArrays().contains(
                         varrayUri.toString())) {
-                    _log.debug("Removing vNAS {} as it is not part of varray: {}",
-                            virtualNAS.getId(), varrayUri.toString());
+                    _log.info("Removing vNAS {} as it is not part of varray: {}",
+                            virtualNAS.getNasName(), varrayUri.toString());
                     iterator.remove();
                     invalidNasServers.add(virtualNAS);
                 } else if (MetricsKeys.getBoolean(MetricsKeys.overLoaded,
                         virtualNAS.getMetrics())) {
-                    _log.debug("Removing vNAS {} as it is overloaded",
-                            virtualNAS.getId());
+                    _log.info("Removing vNAS {} as it is overloaded",
+                            virtualNAS.getNasName());
                     iterator.remove();
                     invalidNasServers.add(virtualNAS);
                 } else if (!virtualNAS.getProtocols().containsAll(
                         vpool.getProtocols())) {
-                    _log.debug("Removing vNAS {} as it does not support vpool protocols: {}",
-                            virtualNAS.getId(), vpool.getProtocols());
+                    _log.info("Removing vNAS {} as it does not support vpool protocols: {}",
+                            virtualNAS.getNasName(), vpool.getProtocols());
                     iterator.remove();
                     invalidNasServers.add(virtualNAS);
                 }
@@ -696,6 +720,51 @@ public class FileStorageScheduler {
             return false;
         }
         return true;
+    }
+    
+	/**
+	 * Checks if the if the domain of the virtual NAS matches with domain of the
+	 * project
+	 * 
+	 * @param project the Project object
+	 * @param vNAS the VirtualNAS object
+	 * @return true if the domain of the virtual NAS matches with domain of the
+	 *         project or the project does not have domains configured, false
+	 *         otherwise
+	 */
+    private boolean doesVNASDomainMatchesWithProjectDomain(Project project, VirtualNAS vNAS) {
+    	
+    	if (project != null) {
+    		// Get list of domains associated with the project
+            Set<String> projectDomains = new HashSet<String>();
+            NamedURI tenantUri = project.getTenantOrg();
+            TenantOrg tenant = permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
+            if (tenant != null && tenant.getUserMappings() != null) {
+                for (AbstractChangeTrackingSet<String> userMappingSet : tenant.getUserMappings().values()) {
+                    for (String existingMapping : userMappingSet) {
+                        UserMappingParam userMap = BasePermissionsHelper.UserMapping.toParam(
+                                BasePermissionsHelper.UserMapping.fromString(existingMapping));
+                        projectDomains.add(userMap.getDomain().toUpperCase());
+                    }
+                }
+            }
+            
+            if (projectDomains != null && !projectDomains.isEmpty()) {
+            	if(vNAS.getCifsServersMap() != null && !vNAS.getCifsServersMap().isEmpty() ) {
+            		Set<Entry<String, NasCifsServer>> nasCifsServers = vNAS.getCifsServersMap().entrySet();
+            		for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
+            			NasCifsServer cifsServer = nasCifsServer.getValue();
+            			if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
+            				return true;
+            			}
+            		}
+            	}
+            } else {
+                return true;
+            }
+    	}
+    	
+    	return false;
     }
 
     /**

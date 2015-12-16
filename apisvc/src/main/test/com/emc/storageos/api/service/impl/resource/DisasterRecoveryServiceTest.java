@@ -5,19 +5,6 @@
 package com.emc.storageos.api.service.impl.resource;
 
 
-import java.lang.reflect.Constructor;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.junit.Before;
-import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -34,6 +21,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+
+import java.lang.reflect.Constructor;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.junit.Before;
+import org.junit.Test;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -60,12 +62,14 @@ import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -138,7 +142,6 @@ public class DisasterRecoveryServiceTest {
         primarySite = new Site();
         primarySite.setUuid("primary-site-uuid");
         primarySite.setVip("127.0.0.1");
-        primarySite.setSecretKey("secret-key");
         primarySite.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
         primarySite.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
         primarySite.setVdcShortId("vdc1");
@@ -733,7 +736,6 @@ public class DisasterRecoveryServiceTest {
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         drService.doSwitchover(standbySite2.getUuid());
         
-        verify(coordinator, times(1)).setActiveSite(standbySite2.getUuid());
         verify(coordinator, times(2)).persistServiceConfiguration(any(Configuration.class));
     }
     
@@ -808,6 +810,23 @@ public class DisasterRecoveryServiceTest {
         }
     }
     
+    @Test
+    public void testUpdateSite() {
+        doReturn(standbySite1).when(drUtil).getSiteFromLocalVdc(standbySite1.getUuid());
+        SiteUpdateParam updateParam = new SiteUpdateParam();
+        
+        try {
+            drService.updateSite(standbySite1.getUuid(), updateParam);
+            fail();
+        } catch (InternalServerErrorException e) {
+            //Ignore expected exception
+        }
+        
+        updateParam.setName("New Name");
+        updateParam.setDescription("New Description");
+        drService.updateSite(standbySite1.getUuid(), updateParam);
+    }
+    
     protected void compareSiteResponse(SiteRestRep response, Site site) {
         assertNotNull(response);
         assertEquals(response.getUuid(), site.getUuid());
@@ -839,7 +858,7 @@ public class DisasterRecoveryServiceTest {
                 config.setHostIPv4AddressMap(new HashMap<String, String>());
                 config.setHostIPv6AddressMap(new HashMap<String, String>());
                 doReturn(config).when(site).getStandbyConfig();
-                doReturn(null).when(site).syncSite(any(SiteConfigParam.class));
+                doReturn(null).when(site).syncSite(anyString(), any(SiteConfigParam.class));
                 return site;
             }
         }

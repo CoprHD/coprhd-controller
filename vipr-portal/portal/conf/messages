@@ -8,8 +8,8 @@ CERT_OPTIONS_1=options
 #
 application.name=EMC ViPR
 # Validation messages
-#   Most of these are exact copies from the play framework and are here to make
-#   it easier to find and change validation messages for the entire application.
+# Most of these are exact copies from the play framework and are here to make
+# it easier to find and change validation messages for the entire application.
 validation.required=Required
 validation.minSize=Minimum size is %2$d
 validation.maxSize=Maximum size is %2$d
@@ -137,7 +137,7 @@ nav.computeImageServers=Compute Image Servers
 nav.sites=Sites
 nav.userGroups=User Groups
 nav.object.buckets=Buckets
-nav.disasterRecovery=Disaster Recovery
+nav.disasterRecovery=System Disaster Recovery
 nav.ipsec=IPsec
 # Override messages in the Secure plugin
 secure.title=
@@ -838,16 +838,17 @@ datetime.units.s=Seconds
 datetime.dayOfMonth.L=Last
 
 #DisasterRecovery
-disasterRecovery.title=Disaster Recovery
+disasterRecovery.title=System Disaster Recovery
 disasterRecovery.name=Site Name
-disasterRecovery.VirtualIP=Site Virtual IP
+disasterRecovery.VirtualIP=Site Virtual IP or FQDN
 disasterRecovery.status=Status
-disasterRecovery.id=Site UUId
+disasterRecovery.id=Site UUID
 disasterRecovery.actions=Actions
 disasterRecovery.userName=User Name
 disasterRecovery.userPassword=Password
 disasterRecovery.confirmPassword=Confirm Password
 disasterRecovery.description=Description
+disasterRecovery.networkHealth=Network Health
 disasterRecovery.confirmPassword.not.match=User Password and Confirm Password do not match.
 disasterRecovery.deleteConfirm=Are you sure you want to delete this standby cluster?
 
@@ -855,18 +856,24 @@ disasterRecovery.testButton=Test
 disasterRecovery.pauseButton=Pause
 disasterRecovery.resumeButton=Resume
 disasterRecovery.FailoverButton=Failover
-disasterRecovery.save.success=Added standby: '%s'
+disasterRecovery.SwitchoverButton=Switchover
+disasterRecovery.save.success=Standby add request initiated for site: '%s'
 disasterRecovery.pause.success=Pause request initiated...
 disasterRecovery.resume.success=Resume request initiated for site: '%s'
 disasterRecovery.test.success=Test Mode request initiated for site: '%s'
 disasterRecovery.save.error=Failed to add standby '%s'
 disasterRecovery.pause.error=Failed to pause standby '%s'
+disasterRecovery.update.success=Updated Site: '%s'
+disasterRecovery.update.failed=Failed to update Site: '%s'
 disasterRecovery.switchover.success=Switchover successful
 disasterRecovery.switchover.error=Switchover failed
 disasterRecovery.failover.success=Failover successful
 disasterRecovery.failover.error=Failover failed
-disasterRecovery.failover.progress=Failing over in Progress....
-disasterRecovery.switchover.progress=Switching over in Progress....
+disasterRecovery.failover.progress=Failover in Progress....
+disasterRecovery.switchover.progress=Switchover in Progress....
+disasterRecovery.failover.progress.warning=Please note, this process will take several minutes....
+disasterRecovery.failover.complete=Completed
+disasterRecovery.failover.uncomplete=Failed
 disasterRecovery.resume.error=Failed to resume standby'%s'
 disasterRecovery.test.error=Failed to initiated test mode for site: '%s'
 disasterRecovery.delete.success=Standby removal initiated...
@@ -879,26 +886,32 @@ disasterRecovery.standby.deleteConfirm=Are you sure you want to delete this Stan
 disasterRecovery.standby.stopConfirm=Are you sure you want to pause standby synchronization?
 
 disasterRecovery.create.title=Add Standby
-disasterRecovery.list.title=Disaster Recoveries
+disasterRecovery.edit.title=Edit Standby
+disasterRecovery.list.title=System Disaster Recovery
 disasterRecovery.edit.title=Edit Standby
 disasterRecovery.add.title=Enter the information needed to discover standby cluster.
-disasterRecovery.switchover=Switchover Site
-disasterRecovery.Failover=Failover Site
+disasterRecovery.switchover=Switchover
+disasterRecovery.failover=Failover
 disasterRecovery.switchover.active=Active Site
 disasterRecovery.switchover.standby=Standby Site
-disasterRecovery.switchover.subtitle=Site Switchover
-disasterRecovery.failover.subtitile=Site Failover
+disasterRecovery.switchover.subtitle=Switchover Status
+disasterRecovery.failover.subtitile=Failover Status
 disasterRecovery.switchover.description=Switching over to %s as the Active site...
-disasterRecovery.switchover.setting=Setting site
+disasterRecovery.switchover.setting=Setting site:
 disasterRecovery.switchover.active.to=as Active site and
 disasterRecovery.switchover.standby.to= as Standby site
 disasterRecovery.switchover.login.instruction=Please click here for login to new Active site:
 disasterRecovery.switchover.standby.vip= with site VIP:
-disasterRecovery.confirm.switchover=Are you sure you want to Failover?
+disasterRecovery.confirm.switchover=WARNING: Are you sure you want to Switchover to Standby site ?
+disasterRecovery.confirm.failover=WARNING: Failover could lead to Data Lost. <br/>Are you sure you want to Failover to Standby site ?
+disasterRecovery.confirm.pause=WARNING: Are you sure you want to Pause the Standby site ?
 disasterRecovery.error.code=Error Code
 disasterRecovery.error.code.name=Error Code Name
 disasterRecovery.error.message=Error Message
 disasterRecovery.error.creation.time=Creation Time
+disasterRecovery.paused.time=Paused Time
+disasterRecovery.lastOperation.time=Last Synced Time
+disasterRecovery.switchover.failed.instruction=Please contact an administrator or EMC Support
 
 # About
 system.about.introspection.title=Discovery
@@ -923,8 +936,9 @@ backup.create.description=Enter the information needed to create backup
 BackupForm.title=Add Backup
 backupForm.name=Backup Name
 backupForm.force=Force Creation
-backupForm.force.help=When checked it ignores the error during operation and force creation of backup
+backupForm.force.help=When checked, it forces backup creation even when minortity nodes are unavailable
 backup.save.success=Saved '%s'
+backup.name.invalid=Backup name cannot have character "
 backup.deleteConfirm=Are you sure you want to delete these Backup(s)?
 backups.deleted=Backup(s) deleted successfully.
 backup.upload.title=Backup Upload
@@ -1241,7 +1255,7 @@ keystores.title=Update Keystore
 keystores.description=Enter the information needed to update the Keystore.
 keystore.saved=Keystore updated successfully.
 keystore.saved.reboot=Keystore updated successfully.  ViPR will reboot for the change to take effect.
-keystore.rebootRequiredMessage=ViPR will be rebooted automatically after save and will not be operational for few minutes. 
+keystore.rebootRequiredMessage=ViPR will be rebooted automatically after save.
 keystore.certChain=Certificate Chain
 keystore.certKey=Private Key
 keystore.viewChain = View Certificate Chain
@@ -2498,7 +2512,7 @@ adminDashboard.fileCapacity=File
 adminDashboard.blockCapacity=Block
 adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File/Object
-adminDashboard.disasterRecovery=Disaster Recovery
+adminDashboard.disasterRecovery=System Disaster Recovery
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object
@@ -3236,6 +3250,7 @@ resources.filesystem.acl.fullcontrol=FullControl
 resources.filesystem.nfsacl.read=Read
 resources.filesystem.nfsacl.write=Write
 resources.filesystem.nfsacl.execute=Execute
+resources.filesystem.nfsacl.fullControl=FullControl
 resources.filesystem.nfsacl.allow=Allow
 resources.filesystem.nfsacl.deny=Deny
 resources.filesystem.share.add.subdir=Add Share
@@ -4092,7 +4107,9 @@ nfsAccessControlList.permissions=Permissions
 nfsAccessControlList.name=Name
 nfsAccessControlList.type=Type
 nfsAccessControlList.domain=Domain
+nfsAccessControlList.permissionType=Permissions Type
 nfs.subdirectory=Sub Directory
+
 
 
 subdir.share.name=Share Name

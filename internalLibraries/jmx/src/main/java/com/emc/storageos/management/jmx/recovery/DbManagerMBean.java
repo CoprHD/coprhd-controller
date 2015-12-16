@@ -70,10 +70,9 @@ public interface DbManagerMBean {
 
     /**
      * Remove nodes in a specified data center
-     * 
+     *
      * @param dcName
-     * @param unreachableNodesOnly, if true only remove unreachable nodes, remove all nodes otherwise
      */
     @ManagedOperation(description = "Remove all ndoes in a data center")
-    void removeDataCenter(String dcName, boolean unreachableNodesOnly);
+    void removeDataCenter(String dcName);
 }

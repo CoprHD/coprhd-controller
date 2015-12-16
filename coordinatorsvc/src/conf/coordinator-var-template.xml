@@ -19,6 +19,8 @@
                 <!-- auto purge interval (minutes) -->
                 <prop key="autopurge.purgeInterval">30</prop>
                 <prop key="peerType">${peer_type}</prop>
+                <!-- enable readonly mode for standby sites only -->
+                <prop key="readonlymode.enabled">${site_is_standby}</prop>
                 <foreach iterator="iter_primary">
                 <prop key="server.${iter_primary}">${primary_${iter_primary}_ipaddr_service}</prop>
                 </foreach>

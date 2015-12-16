@@ -73,7 +73,8 @@ dependencies {
     provided rootProject.toolsJar
     
     testCompile library(javassist),
-            rootProject.toolsJar
+            rootProject.toolsJar,
+            "org.mockito:mockito-all:1.9.5"
 
     runtimeOnly project(":com.emc.sa.model")
     springloaded library(spring_loaded)

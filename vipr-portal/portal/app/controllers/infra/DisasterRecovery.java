@@ -13,6 +13,7 @@ import models.datatable.DisasterRecoveryDataTable;
 import models.datatable.DisasterRecoveryDataTable.StandByInfo;
 
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
 
 import play.data.binding.As;
 import play.data.validation.MaxSize;
@@ -24,9 +25,11 @@ import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
+import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -51,6 +54,7 @@ public class DisasterRecovery extends ViprResourceController {
     protected static final String DELETED_SUCCESS = "disasterRecovery.delete.success";
     protected static final String DELETED_ERROR = "disasterRecovery.delete.error";
     protected static final String UNKNOWN = "disasterRecovery.unknown";
+    protected static final String UPDATE_SUCCESS = "disasterRecovery.update.success";
 
     private static void backToReferrer() {
         String referrer = Common.getReferrer();
@@ -107,6 +111,8 @@ public class DisasterRecovery extends ViprResourceController {
         String standby_name = null;
         String standby_vip = null;
         String active_name = null;
+        String targetURL = null;
+        Boolean iamPrimary = false;
 
         // Get active site details
         SiteRestRep activesite = DisasterRecoveryUtils.getActiveSite();
@@ -124,9 +130,11 @@ public class DisasterRecovery extends ViprResourceController {
             SiteActive currentSite = DisasterRecoveryUtils.checkPrimary();
             if (currentSite.getIsActive() == true) {
                 DisasterRecoveryUtils.doSwitchover(id);
+                iamPrimary = true;
             }
             else {
                 DisasterRecoveryUtils.doFailover(id);
+                iamPrimary = false;
             }
             standby_name = result.getName();
             standby_vip = result.getVip();
@@ -134,7 +142,8 @@ public class DisasterRecovery extends ViprResourceController {
         String site_uuid = id;
         result = DisasterRecoveryUtils.getSite(id);
         String site_state = result.getState();
-        render(active_name, standby_name, standby_vip, site_uuid, site_state);
+        targetURL = "https://" + standby_vip;
+        render(active_name, standby_name, standby_vip, site_uuid, site_state, iamPrimary, targetURL);
     }
 
     private static DisasterRecoveryDataTable createDisasterRecoveryDataTable() {
@@ -158,11 +167,19 @@ public class DisasterRecovery extends ViprResourceController {
 
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void edit(String id) {
-        render();
+        SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
+        if (siteRest != null) {
+            DisasterRecoveryForm disasterRecovery = new DisasterRecoveryForm(siteRest);
+            edit(disasterRecovery);
+        }
+        else {
+            flash.error(MessagesUtils.get(UNKNOWN, id));
+            list();
+        }
     }
 
-    private static void edit(DisasterRecoveryForm site) {
-        render("@edit", site);
+    private static void edit(DisasterRecoveryForm disasterRecovery) {
+        render("@edit", disasterRecovery);
     }
 
     @FlashException(keep = true, referrer = { "create", "edit" })
@@ -173,17 +190,26 @@ public class DisasterRecovery extends ViprResourceController {
             if (Validation.hasErrors()) {
                 Common.handleError();
             }
+            if (disasterRecovery.isNew()) {
+                SiteAddParam standbySite = new SiteAddParam();
+                standbySite.setName(disasterRecovery.name);
+                standbySite.setVip(disasterRecovery.VirtualIP);
+                standbySite.setUsername(disasterRecovery.userName);
+                standbySite.setPassword(disasterRecovery.userPassword);
+                standbySite.setDescription(disasterRecovery.description);
 
-            SiteAddParam standbySite = new SiteAddParam();
-            standbySite.setName(disasterRecovery.name);
-            standbySite.setVip(disasterRecovery.VirtualIP);
-            standbySite.setUsername(disasterRecovery.userName);
-            standbySite.setPassword(disasterRecovery.userPassword);
-            standbySite.setDescription(disasterRecovery.description);
-
-            SiteRestRep result = DisasterRecoveryUtils.addStandby(standbySite);
-            flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
-            list();
+                SiteRestRep result = DisasterRecoveryUtils.addStandby(standbySite);
+                flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
+                list();
+            }
+            else {
+                SiteUpdateParam siteUpdateParam = new SiteUpdateParam();
+                siteUpdateParam.setName(disasterRecovery.name);
+                siteUpdateParam.setDescription(disasterRecovery.description);
+                DisasterRecoveryUtils.updateSite(disasterRecovery.id, siteUpdateParam);
+                flash.success(MessagesUtils.get(UPDATE_SUCCESS, disasterRecovery.name));
+                list();
+            }
         }
     }
 
@@ -222,9 +248,34 @@ public class DisasterRecovery extends ViprResourceController {
 
     public static void errorDetails(String id) {
         SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
+        Boolean isError = false;
+        String uuid = id;
         if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
             SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
-            render(disasterSiteError);
+            isError = true;
+            if(disasterSiteError.getCreationTime() != null) {
+                DateTime creationTime = new DateTime (disasterSiteError.getCreationTime().getTime());
+                renderArgs.put("creationTime", creationTime);
+            }
+            render(isError, uuid, disasterSiteError);
+        }
+        else {
+            SiteDetailRestRep disasterSiteTime = DisasterRecoveryUtils.getSiteTime(id);
+            isError = false;
+            if(disasterSiteTime.getCreationTime() != null) {
+                DateTime creationTime = new DateTime(disasterSiteTime.getCreationTime().getTime());
+                renderArgs.put("creationTime", creationTime);
+            }
+            if(disasterSiteTime.getPausedTime() != null) {
+                DateTime pausedTime = new DateTime (disasterSiteTime.getPausedTime().getTime());
+                renderArgs.put("pausedTime", pausedTime);
+            }
+            if(disasterSiteTime.getlastUpdateTime() != null) {
+                DateTime lastUpdateTime = new DateTime (disasterSiteTime.getlastUpdateTime().getTime());
+                renderArgs.put("lastUpdateTime", lastUpdateTime);
+            }
+
+            render(isError, uuid, disasterSiteTime);
         }
     }
 
@@ -282,25 +333,31 @@ public class DisasterRecovery extends ViprResourceController {
             this.description = siteaddParam.getDescription();
         }
 
+        public DisasterRecoveryForm(SiteRestRep siteeditParam) {
+            this.id = siteeditParam.getUuid();
+            this.name = siteeditParam.getName();
+            this.description = siteeditParam.getDescription();
+            this.VirtualIP = siteeditParam.getVip();
+        }
+
         public boolean isNew() {
             return StringUtils.isBlank(id);
         }
 
         public void validate(String fieldName) {
-            Validation.valid(fieldName, this);
-
             if (isNew()) {
+                Validation.valid(fieldName, this);
                 Validation.required(fieldName + ".name", this.name);
+                Validation.required(fieldName + ".VirtualIP", this.VirtualIP);
                 Validation.required(fieldName + ".userName", this.userName);
                 Validation.required(fieldName + ".userPassword", this.userPassword);
                 Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
-            }
 
-            if (!isMatchingPasswords(userPassword, confirmPassword)) {
-                Validation.addError(fieldName + ".confirmPassword",
-                        MessagesUtils.get("storageArray.confirmPassword.not.match"));
+                if (!isMatchingPasswords(userPassword, confirmPassword)) {
+                    Validation.addError(fieldName + ".confirmPassword",
+                            MessagesUtils.get("storageArray.confirmPassword.not.match"));
+                }
             }
-
         }
 
         private boolean isMatchingPasswords(String password, String confirm) {

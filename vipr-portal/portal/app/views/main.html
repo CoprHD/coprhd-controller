@@ -22,8 +22,10 @@
     <div class="collapse navbar-collapse" id="navbar-collapse-1">
       <ul class="nav navbar-nav navbar-right">
         #{get 'navBarRight' /}
-        #{viprSystemTasks/}
-	    #{nav.vdcMenu vdcs:vdcs, token:token/}   
+        #{if controllers.infra.DisasterRecovery.isPrimarySite()}
+        	#{viprSystemTasks/}
+	    	#{nav.vdcMenu vdcs:vdcs, token:token/}
+	    #{/if}
         <li id="nav_help">
           #{if customDocLink}
             #{get 'customDocLink'/}
@@ -38,10 +40,12 @@
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">#{icon 'user'/} ${currentUser?.commonName} <b class="caret"></b></a>
           <ul class="dropdown-menu">
-            #{nav.item 'preferences', href:@Preferences.update()/}
-            #{if controllers.security.Security.isLocalUser()}
-                #{nav.item 'password', href:@security.ChangePassword.update()/}
-            #{/if}
+          	#{if controllers.infra.DisasterRecovery.isPrimarySite()}
+            	#{nav.item 'preferences', href:@Preferences.update()/}
+            	#{if controllers.security.Security.isLocalUser()}
+                	#{nav.item 'password', href:@security.ChangePassword.update()/}
+            	#{/if}
+          	#{/if}
             <li class="divider"></li>
             #{nav.item 'logout', href: @security.Security.logout()/}
           </ul>
@@ -60,15 +64,15 @@
           #{nav.menuSection 'nav.adminDashboard'}
             #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
               #{nav.item 'adminDashboardPage', href: @AdminDashboard.dashboard()/}
-              #{if controllers.infra.DisasterRecovery.isPrimarySite()}
               	#{nav.item 'systemHealthDashboard', href: @SystemHealth.systemHealth()/}
               	#{nav.item 'backup', href: @Backup.list()/}
-              	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
-                	#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
+              	#{if controllers.infra.DisasterRecovery.isPrimarySite()}
+              		#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
+                		#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
+              		#{/if}
               	#{/if}
               	#{nav.item 'dbHealthDashboard', href: @SystemHealth.dbHealth()/}
-              	#{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}
-              #{/if}
+            #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}  
             #{/deadbolt.restrict}
             #{deadbolt.restrict roles:[['SYSTEM_AUDITOR']]}
               #{nav.item 'auditLog', href: @infra.AuditLog.list()/}
@@ -214,32 +218,41 @@
   
   *{ SECURITY }*
   #{deadbolt.restrict roles:[['SECURITY_ADMIN'],['RESTRICTED_SECURITY_ADMIN'], ['TENANT_ADMIN']]}
-    #{if controllers.infra.DisasterRecovery.isPrimarySite()}
     #{nav.menu 'security', icon:'vipricon-security'}
       #{nav.menuSection 'nav.security'}
-        #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
-        #{nav.item 'vdcRoles', href: @auth.VDCRoleAssignments.list()/}
-        #{/deadbolt.restrict}
+        #{if controllers.infra.DisasterRecovery.isPrimarySite()}
+          #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+          #{nav.item 'vdcRoles', href: @auth.VDCRoleAssignments.list()/}
+          #{/deadbolt.restrict}
+
+          #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
+          #{nav.item 'providers', href: @auth.LDAPsources.list()/}
+          #{/deadbolt.restrict}
+
+          #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['TENANT_ADMIN']]}
+          #{if util.VCenterUtils.checkCompatibleVDCVersion(controllers.auth.UserGroup.EXPECTED_GEO_VERSION)}
+              #{nav.item 'userGroups', href: @auth.UserGroup.list()/}
+          #{/if}
+          #{/deadbolt.restrict}
+
+          #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
+          #{nav.item 'localPasswords', href: @infra.ConfigProperties.passwords()/}
+          #{/deadbolt.restrict}
+        #{/if}
 
         #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
-        #{nav.item 'providers', href: @auth.LDAPsources.list()/}
-        #{/deadbolt.restrict}
-
-        #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['TENANT_ADMIN']]}
-        #{if util.VCenterUtils.checkCompatibleVDCVersion(controllers.auth.UserGroup.EXPECTED_GEO_VERSION)}
-            #{nav.item 'userGroups', href: @auth.UserGroup.list()/}
-        #{/if}	
-        #{/deadbolt.restrict}
-
-        #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
-        #{nav.item 'localPasswords', href: @infra.ConfigProperties.passwords()/}
         #{nav.item 'keystores', href: @auth.Keystores.updateCertificate()/}
-        #{nav.item 'certificates', href: @auth.Certificates.list() /}
-        #{nav.item 'ipsec', href: @auth.IPsec.ipsec() /}
         #{/deadbolt.restrict}
+
+        #{if controllers.infra.DisasterRecovery.isPrimarySite()}
+          #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
+          #{nav.item 'certificates', href: @auth.Certificates.list() /}
+          #{nav.item 'ipsec', href: @auth.IPsec.ipsec() /}
+          #{/deadbolt.restrict}
+        #{/if}
+
       #{/nav.menuSection}
     #{/nav.menu}
-    #{/if}
   #{/deadbolt.restrict}
   
   *{ SETTINGS }*
@@ -255,18 +268,20 @@
             	#{nav.item 'clusterInfo', href: @infra.ClusterInfo.clusterIpInfo()/}
             #{/if}
           #{/deadbolt.restrict}
-          #{if controllers.infra.DisasterRecovery.isPrimarySite()}
-          	#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
+	       	#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
             	#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
               		#{nav.separator/}
             	#{/deadbolt.restrict}
-            	#{nav.item 'upgrade', href: @infra.Upgrade.index()/}
+            	#{if controllers.infra.DisasterRecovery.isPrimarySite()}
+            		#{nav.item 'upgrade', href: @infra.Upgrade.index()/}
+            	#{/if}
             	#{if !util.SetupUtils.isOssBuild()}
-                	#{nav.item 'license', href: @infra.Licensing.index()/}
+            		#{if controllers.infra.DisasterRecovery.isPrimarySite()}
+                		#{nav.item 'license', href: @infra.Licensing.index()/}
+                	#{/if}
                		#{nav.item 'supportRequest', href: @infra.SupportRequest.createSupportRequest()/}
             	#{/if}
         	#{/deadbolt.restrict}
-        #{/if}
       #{/nav.menuSection} 
     #{/nav.menu}
   #{/deadbolt.restrict}

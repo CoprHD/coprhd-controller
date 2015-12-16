@@ -9,17 +9,6 @@ IPSEC_CONF_FILE="/etc/ipsec.conf"
 IPSEC_SECRET_FILE="/etc/ipsec.secrets"
 FIRT_BOOT_FLAG_FILE="/.volumes/bootfs/etc/first_boot_flag"
 
-# This method returns the configured ip address of this machine
-_get_local_ip() {
-    local nodeid="${_GENCONFIG_node_id}"
-    local nodenum=${nodeid#vipr}
-    local var="_GENCONFIG_network_${nodenum}_ipaddr"
-    local var6="_GENCONFIG_network_${nodenum}_ipaddr6"
-    local ipaddr="${!var}"
-    [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
-    echo "${ipaddr}"
-}
-
 #
 # common section for all connnections in ipsec.conf
 #
@@ -101,7 +90,7 @@ _gen_ipsec_conf() {
     #
     local start_ipsec
     if [ -f "${FIRT_BOOT_FLAG_FILE}" ] ; then 
-        if [ "${_GENCONFIG_ipsec_enabled}" == "false" ] ; then
+        if [ "${_GENCONFIG_ipsec_status}" == "disabled" ] ; then
             rm -f ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
             start_ipsec=false	
         else
@@ -149,11 +138,21 @@ EOF
         done
     fi
 
-    local default_ipsec_key=$(cat /opt/storageos/conf/psk.default)
+# retrieve ipsec_key
+# the priority sequence as:
+#   1. from vdcconfig.properties
+#   2. from ovfenv.properties
+#   3. from psk.default
+    local ipsec_key=$(cat /opt/storageos/conf/psk.default)
+    if [ -n "${_GENCONFIG_ipsec_key}" ] ; then
+        ipsec_key="${_GENCONFIG_ipsec_key}"
+    elif [ -n "${_GENCONFIG_ipsec_key_ovfenv}" ] ; then
+        ipsec_key="${_GENCONFIG_ipsec_key_ovfenv}"
+    fi
 
     _genconfig_write 400 root:root "${IPSEC_CONF_FILE}" "${content}"
     _genconfig_write 400 root:root "${IPSEC_SECRET_FILE}" \
-        " : PSK ${_GENCONFIG_ipsec_key:-${default_ipsec_key}}"
+        " : PSK ${ipsec_key}"
 }
 
 _gen_ipsec_conf

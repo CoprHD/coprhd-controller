@@ -135,7 +135,9 @@ URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
 
-URI_IPSEC               = '/ipsec'
+URI_IPSEC                   = '/ipsec'
+URI_IPSEC_STATUS            = '/ipsec?status={0}'
+URI_IPSEC_KEY               = '/ipsec/key'
 
 URI_VDCINFO                 =  '/object/vdcs' 
 URI_VDCINFO_GET             = URI_VDCINFO    + '/vdc' + '/{0}'
@@ -1106,6 +1108,7 @@ class Bourne:
                 raise Exception('Timed out waiting for request in pending state: ' + op)
 
             if (obj_op['state'] == 'error' and not ignore_error):
+                self.pretty_print_json(obj_op)
                 raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
 
         return obj_op
@@ -3317,12 +3320,16 @@ class Bourne:
     # IPsec APIs
     #
 
-    def ipsc_rotate_key(self):
-        resp = self.api('POST', URI_IPSEC)
+    def ipsec_rotate_key(self):
+        resp = self.api('POST', URI_IPSEC_KEY)
         return resp
 
-    def ipsc_check(self):
+    def ipsec_check(self):
         resp = self.api('GET', URI_IPSEC)
+        return resp
+
+    def ipsec_change_status(self,status):
+        resp = self.api('POST', URI_IPSEC_STATUS.format(status))
         return resp
 
     #
@@ -4890,7 +4897,7 @@ class Bourne:
         try:
             s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         except:
-            print o;
+            s = 'error'
         return (o, s)
 
     def export_group_add_volume(self, groupId, volspec):

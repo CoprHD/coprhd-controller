@@ -291,10 +291,16 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
                 String siteId = coordConfigStoringHelper.getSiteId();
                 log.info("Found certificate from global area. Moving to site specific area");
                 try {
+                    
                     coordConfigStoringHelper.createOrUpdateConfig(entryToReturn, KEY_CERTIFICATE_PAIR_LOCK,
                         siteId, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID,
                         KEY_CERTIFICATE_PAIR_KEY);
-                    coordConfigStoringHelper.removeConfig(KEY_CERTIFICATE_PAIR_LOCK, siteId, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID);
+                    Boolean isSelfSigned = coordConfigStoringHelper.readConfig(
+                            DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_CONFIG_KIND,
+                            DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_ID,
+                            DistributedKeyStoreImpl.IS_SELF_GENERATED_KEY);
+                    KeyStoreUtil.setSelfGeneratedCertificate(coordConfigStoringHelper, isSelfSigned);
+                    coordConfigStoringHelper.removeConfig(KEY_CERTIFICATE_PAIR_LOCK, KEY_CERTIFICATE_PAIR_CONFIG_KIND, KEY_CERTIFICATE_PAIR_ID);
                 } catch (Exception ex) {
                     log.error("Failed to move key certificate pair to site specific area", ex);
                 }
@@ -330,7 +336,7 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
         Date lastCertificateAlert = null;
         try {
             lastCertificateAlert =
-                    coordConfigStoringHelper.readConfig(KEY_CERTIFICATE_PAIR_CONFIG_KIND,
+                    coordConfigStoringHelper.readConfig(coordConfigStoringHelper.getSiteId(), KEY_CERTIFICATE_PAIR_CONFIG_KIND,
                             LAST_CERTIFICATE_ALERT_ID, LAST_CERTIFICATE_ALERT_KEY);
         } catch (Exception e) {
             // don't really care about the exception here
@@ -377,7 +383,7 @@ public class DistributedKeyStoreImpl implements DistributedKeyStore {
                 logAlert(messageToLog, timeAmount, timeType, logLevel);
                 try {
                     coordConfigStoringHelper.createOrUpdateConfig(today, KEY_CERTIFICATE_PAIR_LOCK,
-                            KEY_CERTIFICATE_PAIR_CONFIG_KIND, LAST_CERTIFICATE_ALERT_ID,
+                            coordConfigStoringHelper.getSiteId(), KEY_CERTIFICATE_PAIR_CONFIG_KIND, LAST_CERTIFICATE_ALERT_ID,
                             LAST_CERTIFICATE_ALERT_KEY);
                 } catch (Exception e) {
                     log.error(

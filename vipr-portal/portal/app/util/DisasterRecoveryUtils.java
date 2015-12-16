@@ -9,10 +9,12 @@ import static util.BourneUtil.getViprClient;
 
 import java.util.List;
 
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
+import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -97,6 +99,14 @@ public class DisasterRecoveryUtils {
 
     public static SiteErrorResponse getSiteError(String uuid) {
         return getViprClient().site().getSiteError(uuid);
+    }
+
+    public static ClientResponse updateSite(String uuid, SiteUpdateParam updatesite) {
+        return getViprClient().site().updateSite(uuid, updatesite);
+    }
+
+    public static SiteDetailRestRep getSiteTime(String uuid) {
+        return getViprClient().site().getSiteTime(uuid);
     }
 
 }

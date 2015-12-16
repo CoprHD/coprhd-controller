@@ -26,8 +26,8 @@ public class InternalSiteServiceClient extends BaseServiceClient {
 
     private static final String INTERNAL_SITE_ROOT = "/site/internal";
     private static final String INTERNAL_SITE_INIT_STANDBY = INTERNAL_SITE_ROOT + "/initstandby";
-    private static final String SITE_INTERNAL_FAILOVER = "/site/internal/failover?newActiveSiteUUid=%s";
-    private static final String SITE_INTERNAL_FAILOVERPRECHECK = "/site/internal/failoverprecheck";
+    private static final String SITE_INTERNAL_FAILOVER = INTERNAL_SITE_ROOT + "/failover?newActiveSiteUUid=%s";
+    private static final String SITE_INTERNAL_FAILOVERPRECHECK = INTERNAL_SITE_ROOT + "/failoverprecheck";
 
     final private Logger log = LoggerFactory
             .getLogger(InternalSiteServiceClient.class);

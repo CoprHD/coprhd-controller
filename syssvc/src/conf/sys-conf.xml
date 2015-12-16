@@ -149,6 +149,7 @@
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>
         <property name="propertyHandlers" ref="propertyHandlers"/>
+        <property name="ipsecConfig" ref="ipsecConfig" />
     </bean>
                         
     <bean id="propertiesConfigurationValidator" class="com.emc.storageos.systemservices.impl.validate.PropertiesConfigurationValidator">
@@ -230,7 +231,6 @@
     <bean id="vdcManager" class="com.emc.storageos.systemservices.impl.vdc.VdcManager">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
-        <property name="dbClient" ref="dbclient"/>
         <property name="nodeCount" ref="nodeCount" />
         <property name="powerOffStateChangeTimeout" value="120000" />
         <property name="powerOffStateProbeInterval" value="3000" />
@@ -256,6 +256,7 @@
     </bean>
 
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
+        <property name="softwareUpdate" ref="softwareUpdate" />
         <property name="application" ref="syssvcApp" />
         <property name="keyGenerator" ref="keyGenerator" />
         <property name="upgradeManager" ref="upgradeManager" />

@@ -208,10 +208,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private void createSiteSpecificSection() throws Exception {
         addSite(siteId);
-        setActiveSite(siteId);
     }
 
     @Override
+    /**
+     * Create a znode "/site/<uuid>" for specific site. This znode should have the following sub zones
+     *  - config : site specific configurations
+     *  - service: service beacons of this site
+     *  - mutex: locks for nodes in this ste
+     */
     public void addSite(String siteId) throws Exception {
         String sitePath = getSitePrefix(siteId);
         ZkConnection zkConnection = getZkConnection();
@@ -224,38 +229,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             log.error("Failed to set site info of {}. Error {}", sitePath, e);
             throw e;
         }
-
-        String siteStatePath = String.format("%1$s/%2$s", sitePath, Constants.SITE_STATE);
-        try {
-            EnsurePath ePath = new EnsurePath(siteStatePath);
-            log.info("init site state to {}", SiteState.ACTIVE.name());
-            ePath.ensure(zkConnection.curator().getZookeeperClient());
-            zkConnection.curator().setData().forPath(siteStatePath, SiteState.ACTIVE.name().getBytes());
-        } catch (Exception e) {
-            log.error("Failed to init site state {}", SiteState.ACTIVE.name());
-            throw e;
-        }
-    }
-
-    @Override
-    public void setActiveSite(String siteId) throws Exception {
-        Configuration localVdcConfig = queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
-                Constants.CONFIG_GEO_LOCAL_VDC_ID);
-        if (localVdcConfig == null) {
-            log.info("initializing local VDC pointer to vdc1");
-            ConfigurationImpl localVdcConfigImpl = new ConfigurationImpl();
-            localVdcConfigImpl.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
-            localVdcConfigImpl.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
-            localVdcConfigImpl.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID);
-            persistServiceConfiguration(localVdcConfigImpl);
-            localVdcConfig = localVdcConfigImpl;
-        }
-        String localVdcShortId = localVdcConfig.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
-        ConfigurationImpl config = new ConfigurationImpl();
-        config.setKind(Constants.CONFIG_DR_ACTIVE_KIND);
-        config.setId(localVdcShortId);
-        config.setConfig(Constants.CONFIG_DR_ACTIVE_SITEID, siteId);
-        persistServiceConfiguration(config);
     }
 
     /**
@@ -630,7 +603,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private boolean isSiteSpecific(String kind) {
         if (kind.equals(SiteInfo.CONFIG_KIND)
             || kind.equals(SiteError.CONFIG_KIND)
-            || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND) 
             || kind.equals(PowerOffState.CONFIG_KIND)) {
             return true;
         }
@@ -1081,7 +1053,20 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public LeaderSelector getLeaderSelector(String leaderPath, LeaderSelectorListener listener)
             throws CoordinatorException {
-        StringBuilder leaderFullPath = new StringBuilder(ZkPath.LEADER.toString());
+        return getLeaderSelector(null, leaderPath, listener);
+    }
+
+    @Override
+    public LeaderSelector getLeaderSelector(String siteId, String leaderPath, LeaderSelectorListener listener)
+            throws CoordinatorException {
+        
+        StringBuilder leaderFullPath = new StringBuilder();
+        if (siteId != null) {
+            leaderFullPath.append(ZkPath.SITES);
+            leaderFullPath.append("/");
+            leaderFullPath.append(siteId);
+        }
+        leaderFullPath.append(ZkPath.LEADER);
         leaderFullPath.append("/");
         leaderFullPath.append(leaderPath);
 

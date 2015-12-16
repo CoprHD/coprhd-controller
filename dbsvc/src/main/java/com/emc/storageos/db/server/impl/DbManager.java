@@ -27,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jmx.export.annotation.ManagedResource;
 
 import java.net.InetAddress;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -50,7 +49,6 @@ public class DbManager implements DbManagerMBean {
     // repair every 24*5 hours by default, given we do a proactive repair on start
     // once per five days on demand should suffice
     private static final int DEFAULT_DB_REPAIR_FREQ_MIN = 60 * 24 * 5;
-    private static final int REMOVE_NODE_TIMEOUT_MILLIS = 5 * 60 * 1000; // 5 min
     private int repairFreqMin = DEFAULT_DB_REPAIR_FREQ_MIN;
 
     @Autowired
@@ -178,7 +176,7 @@ public class DbManager implements DbManagerMBean {
         }
 
         log.info("Removing Cassandra node {} on vipr node {}", nodeGuid, nodeId);
-        ensureRemoveNode(nodeGuid);
+        schemaUtil.ensureRemoveNode(nodeGuid);
     }
 
     @Override
@@ -218,6 +216,7 @@ public class DbManager implements DbManagerMBean {
         try {
             DbRepairJobState state = DbRepairRunnable.queryRepairState(this.coordinator, this.schemaUtil.getKeyspaceName(),
                     this.schemaUtil.isGeoDbsvc());
+            log.info("cluster state digest stored in ZK: {}", state.getCurrentDigest());
 
             DbRepairStatus retState = getLastRepairStatus(state, forCurrentNodesOnly ? DbRepairRunnable.getClusterStateDigest() : null,
                     this.repairRetryTimes);
@@ -329,51 +328,7 @@ public class DbManager implements DbManagerMBean {
     }
 
     @Override
-    public void removeDataCenter(String dcName, boolean unreachableNodesOnly) {
-        log.info("Remove Cassandra data center {}", dcName);
-        List<InetAddress> allNodes = new ArrayList<>();
-        if (!unreachableNodesOnly) {
-            Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
-            allNodes.addAll(liveNodes);
-        }
-        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
-        allNodes.addAll(unreachableNodes);
-        for (InetAddress nodeIp : allNodes) {
-            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
-            String dc = snitch.getDatacenter(nodeIp);
-            log.info("node {} belongs to data center {} ", nodeIp, dc);
-            if (dc.equals(dcName)) {
-                Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
-                String guid = hostIdMap.get(nodeIp.getHostAddress());
-                log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
-                Gossiper.instance.convict(nodeIp, 0);
-                ensureRemoveNode(guid);
-            }
-        }
-    }
-
-    /**
-     * A safer method to remove Cassandra node. Calls forceRemoveCompletion after REMOVE_NODE_TIMEOUT_MILLIS
-     * This will help to prevent node removal from hanging due to CASSANDRA-6542.
-     *
-     * @param guid
-     */
-    private void ensureRemoveNode(final String guid) {
-        Thread thread = new Thread() {
-            public void run() {
-                StorageService.instance.removeNode(guid);
-            }
-        };
-        thread.start();
-        try {
-            thread.join(REMOVE_NODE_TIMEOUT_MILLIS);
-            if (thread.isAlive()) {
-                log.warn("removenode timeout, calling forceRemoveCompletion()");
-                StorageService.instance.forceRemoveCompletion();
-                thread.join();
-            }
-        } catch (InterruptedException e) {
-            log.warn("Interrupted during node removal");
-        }
+    public void removeDataCenter(String dcName) {
+        schemaUtil.removeDataCenter(dcName, false);
     }
 }

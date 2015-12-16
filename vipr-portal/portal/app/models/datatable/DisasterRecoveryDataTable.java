@@ -11,10 +11,11 @@ import com.emc.storageos.model.dr.SiteRestRep;
 public class DisasterRecoveryDataTable extends DataTable {
 
     public DisasterRecoveryDataTable() {
-        addColumn("name");
+        addColumn("name").setRenderFunction("renderLink");
+        addColumn("description");
         addColumn("VirtualIP");
         addColumn("status").setRenderFunction("standbyStatusIcon");
-        addColumn("id");
+        addColumn("networkHealth");
         addColumn("actions").setRenderFunction("renderButtonBar");
         sortAllExcept("actions");
     }
@@ -26,6 +27,7 @@ public class DisasterRecoveryDataTable extends DataTable {
         public String status;
         public String siteId;
         public String id;
+        public String networkHealth;
 
         public StandByInfo() {
         }

@@ -108,6 +108,7 @@ public class CoordinatorClientExt {
     private String mySvcId = null;
     private int _nodeCount = 0;
     private DrUtil drUtil;
+    private volatile boolean stopCoordinatorSvcMonitor; // default to false
     
     private DbServiceStatusChecker statusChecker = null;
 
@@ -1329,6 +1330,10 @@ public class CoordinatorClientExt {
         String dbSvcId = "db" + this.mySvcId.substring(this.mySvcId.lastIndexOf("-"));
 
         Configuration config = this._coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_CONFIG, dbSvcId);
+        if (config == null) {
+            _log.warn("dbconfig not initialized");
+            return true;
+        }
 
         String numToken = config.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
         if (numToken == null) {
@@ -1421,6 +1426,10 @@ public class CoordinatorClientExt {
             exe.scheduleAtFixedRate(coordinatorSvcMonitor, 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
     }
+
+    public void stopCoordinatorSvcMonitor() {
+        stopCoordinatorSvcMonitor = true;
+    }
     
     /**
      * Monitor local coordinatorsvc on standby site
@@ -1429,6 +1438,10 @@ public class CoordinatorClientExt {
         private String initZkMode; // ZK mode during syssvc startup
         
         public void run() {
+            if (stopCoordinatorSvcMonitor) {
+                return;
+            }
+
             try {
                 checkLocalZKMode();
             } catch (Exception e) {
@@ -1445,19 +1458,6 @@ public class CoordinatorClientExt {
             
             if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
                 return; // expected situation. Standby zookeeper should be observer mode normally
-            }
-
-            try {
-                Site localSite = drUtil.getLocalSite();
-                SiteState siteState = localSite.getState();
-                if (siteState.equals(SiteState.ACTIVE_SWITCHING_OVER)
-                        || siteState.equals(SiteState.STANDBY_SWITCHING_OVER)
-                        || siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
-                    _log.info("Ignore coordinator check for site state {}", siteState);
-                    return;
-                }
-            } catch (Exception e) {
-                _log.error("Failed to get local site's state", e);
             }
             
             _log.info("Local zookeeper mode {}", state);
@@ -1500,80 +1500,6 @@ public class CoordinatorClientExt {
             } catch (Exception ex) {
                 _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);
             } 
-        }
-        
-        /**
-         * Check if DR active site is stable
-         * 
-         * @return true for stable, otherwise false
-         */
-        public boolean isActiveSiteStable() {
-            DrUtil drUtil = new DrUtil(_coordinator);
-            Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
-            
-            // Check alive coordinatorsvc on active site
-            Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();
-            if (nodeAddrList.isEmpty()) {
-                nodeAddrList = activeSite.getHostIPv6AddressMap().values();
-            }
-
-            if (nodeAddrList.size() > 1) {
-                boolean isLeaderAlive = false;
-                for (String nodeAddr : nodeAddrList) {
-                    if (isZookeeperLeader(nodeAddr, ZK_LEADER_ELECTION_PORT)){
-                        isLeaderAlive = true;
-                        break;
-                    }
-                }
-                if (!isLeaderAlive) {
-                    _log.info("No zookeeper leader alive on active site.");
-                    return false;
-                }
-            } else { // standalone
-                String nodeAddr = nodeAddrList.iterator().next();
-                // check both election ports on the active site.
-                if (!isZookeeperLeader(nodeAddr, ZK_LEADER_ELECTION_PORT) &&
-                        !isZookeeperLeader(nodeAddr, DUAL_ZK_LEADER_ELECTION_PORT)) {
-                    _log.info("No zookeeper leader alive on active site.");
-                    return false;
-                }
-            }
-            
-            // check if cluster state is stable
-            String vip = activeSite.getVip();
-            int port = _svc.getEndpoint().getPort();
-            String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, vip, port);
-            try {
-                SysClient client = SysClientFactory.getSysClient(URI.create(baseNodeURL));
-                ClusterInfo clusterInfo = client.get(URI.create(URI_INTERNAL_GET_CLUSTER_INFO), ClusterInfo.class, null);
-                _log.info("Get cluster info from active site {}", clusterInfo.getCurrentState());
-                if (ClusterState.STABLE.equals(ClusterState.valueOf(clusterInfo.getCurrentState()))) {
-                    return true;
-                }
-            } catch (Exception ex) {
-                _log.warn("Encounter error when call Sys API on active site{} ", ex.toString());
-            }
-            return false;
-        }
-        
-        /**
-         * Zookeeper leader nodes listens on 2888(see coordinator-var.xml) for follower/observers. 
-         *  We depends on this behaviour to check if leader election is started
-         * 
-         * @param nodeIP
-         * @param port
-         * @return
-         */
-        private boolean isZookeeperLeader(String nodeIP, int port) {
-            try {
-                Socket sock = new Socket();
-                sock.connect(new InetSocketAddress(nodeIP, port), 10000); // 10 seconds timeout
-                sock.close();
-                return true;
-            } catch(IOException ex) {
-                _log.warn("Unexpected IO errors when checking local coordinator state. {}", ex.toString());
-            }
-            return false;
         }
     };
 
@@ -1641,5 +1567,79 @@ public class CoordinatorClientExt {
                 //Ingore
             }
         }
+    }
+
+    /**
+     * Check if DR active site is stable
+     *
+     * @return true for stable, otherwise false
+     */
+    public boolean isActiveSiteStable() {
+        DrUtil drUtil = new DrUtil(_coordinator);
+        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+
+        // Check alive coordinatorsvc on active site
+        Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();
+        if (nodeAddrList.isEmpty()) {
+            nodeAddrList = activeSite.getHostIPv6AddressMap().values();
+        }
+
+        if (nodeAddrList.size() > 1) {
+            boolean isLeaderAlive = false;
+            for (String nodeAddr : nodeAddrList) {
+                if (isZookeeperLeader(nodeAddr, ZK_LEADER_ELECTION_PORT)){
+                    isLeaderAlive = true;
+                    break;
+                }
+            }
+            if (!isLeaderAlive) {
+                _log.info("No zookeeper leader alive on active site.");
+                return false;
+            }
+        } else { // standalone
+            String nodeAddr = nodeAddrList.iterator().next();
+            // check both election ports on the active site.
+            if (!isZookeeperLeader(nodeAddr, ZK_LEADER_ELECTION_PORT) &&
+                    !isZookeeperLeader(nodeAddr, DUAL_ZK_LEADER_ELECTION_PORT)) {
+                _log.info("No zookeeper leader alive on active site.");
+                return false;
+            }
+        }
+
+        // check if cluster state is stable
+        String vip = activeSite.getVip();
+        int port = _svc.getEndpoint().getPort();
+        String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, vip, port);
+        try {
+            SysClient client = SysClientFactory.getSysClient(URI.create(baseNodeURL));
+            ClusterInfo clusterInfo = client.get(URI.create(URI_INTERNAL_GET_CLUSTER_INFO), ClusterInfo.class, null);
+            _log.info("Get cluster info from active site {}", clusterInfo.getCurrentState());
+            if (ClusterState.STABLE.equals(ClusterState.valueOf(clusterInfo.getCurrentState()))) {
+                return true;
+            }
+        } catch (Exception ex) {
+            _log.warn("Encounter error when call Sys API on active site{} ", ex.toString());
+        }
+        return false;
+    }
+
+    /**
+     * Zookeeper leader nodes listens on 2888(see coordinator-var.xml) for follower/observers.
+     *  We depends on this behaviour to check if leader election is started
+     *
+     * @param nodeIP
+     * @param port
+     * @return
+     */
+    private boolean isZookeeperLeader(String nodeIP, int port) {
+        try {
+            Socket sock = new Socket();
+            sock.connect(new InetSocketAddress(nodeIP, port), 10000); // 10 seconds timeout
+            sock.close();
+            return true;
+        } catch(IOException ex) {
+            _log.warn("Unexpected IO errors when checking local coordinator state. {}", ex.toString());
+        }
+        return false;
     }
 }

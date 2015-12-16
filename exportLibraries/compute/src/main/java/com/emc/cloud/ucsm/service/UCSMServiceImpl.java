@@ -19,6 +19,7 @@ import java.util.Map;
 import javax.xml.bind.JAXBElement;
 import javax.xml.namespace.QName;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -497,9 +498,28 @@ public class UCSMServiceImpl implements UCSMService {
                     break;
                 }
             }
+            if(!serviceProfileNameIsDuplicate) {
+                if (serviceProfileNameToUse.length() > 32) {
+                    serviceProfileNameToUse = StringUtils.substringBefore(
+                            serviceProfileName, ".");
+                    if (serviceProfileNameToUse.length() > 32) {
+                        serviceProfileNameToUse = StringUtils.substring(
+                                serviceProfileNameToUse, 0, 32);
+                    }
+                }
+            }
             while (serviceProfileNameIsDuplicate) {
                 index++;
                 serviceProfileNameToUse = serviceProfileName + "_" + Integer.toString(index);
+                if (serviceProfileNameToUse.length() > 32) {
+                    serviceProfileNameToUse = StringUtils.substringBefore(
+                            serviceProfileName, ".") + "_" + Integer.toString(index);
+                    if (serviceProfileNameToUse.length() > 32) {
+                        serviceProfileNameToUse = StringUtils.substring(
+                                serviceProfileNameToUse, 0, 32 - (Integer
+                                        .toString(index).length() + 1));
+                    }
+                }
                 serviceProfileNameIsDuplicate = false;
                 for (LsServer lsServer : existingLsServers) {
                     if (lsServer.getName().equals(serviceProfileNameToUse)) {

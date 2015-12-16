@@ -432,8 +432,8 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
 
     /**
      * Gets the NFS ACLs for the given file system by ID.
-     * <p>
-     * API Call: <tt>GET /file/filesystems/{id}/acl?subDir=<subDirId></tt>
+     * 
+     * API Call: GET /file/filesystems/{id}/acl?subDir=subDirId
      * 
      * @param id
      *            the ID of the file system.

@@ -10,9 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-//import org.codehaus.enunciate.config.EnunciateConfiguration;
 import com.webcohesion.enunciate.EnunciateConfiguration;
-//import org.codehaus.enunciate.main.Enunciate;
 import com.webcohesion.enunciate.Enunciate;
 
 /**

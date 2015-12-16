@@ -34,7 +34,6 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface;
@@ -54,6 +53,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiException;
@@ -1430,4 +1430,23 @@ public class VPlexUtil {
 
         return false;
     }
+
+    public static boolean isBackendVolumesNotHavingBackendCG(List<? extends BlockObject> blockObjectList, DbClient dbClient) {
+        boolean result = false;
+        for (BlockObject blockObject : blockObjectList) {
+            if (blockObject instanceof Volume) {
+                Volume srcVolume = getVPLEXBackendVolume((Volume) blockObject, true, dbClient);
+                if (srcVolume.isInCG() && !ControllerUtils.checkCGCreatedOnBackEndArray(srcVolume)) {
+                    _log.error("Vplex backend volume {} is not associated with backend cg", srcVolume.getId());
+                    result = true;
+                    break;
+                }
+            } else {
+                // TODO what action we should here?
+                _log.info("Block object {} is not a Volume", blockObject.getId());
+            }
+        }
+        return result;
+    }
+
 }

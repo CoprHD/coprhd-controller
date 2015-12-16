@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1289,5 +1290,16 @@ public class ControllerUtils {
 
         s_logger.info("totalVolumeCount {} volume size {}", totalVolumeCount, volumes.size());
         return totalVolumeCount == volumes.size();
+    }
+
+    /**
+     * Check back end cg created on array or not for the given volume
+     * 
+     * @param volume
+     * @return
+     */
+    public static boolean checkCGCreatedOnBackEndArray(Volume volume) {
+
+        return (volume != null && StringUtils.isNotBlank(volume.getReplicationGroupInstance()));
     }
 }

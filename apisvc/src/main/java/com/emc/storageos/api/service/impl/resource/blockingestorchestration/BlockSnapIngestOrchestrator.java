@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
@@ -69,22 +70,24 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             snapShot = createSnapshot(system, snapNativeGuid, virtualArray, vPool, unManagedVolume, project);
 
             // See if this is a linked target for existing block snapshot sessions.
-            URIQueryResultList queryResults = new URIQueryResultList();
-            _dbClient.queryByConstraint(
-                    AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance(snapShot.getSettingsInstance()),
-                    queryResults);
-            Iterator<URI> queryResultsIter = queryResults.iterator();
-            while (queryResultsIter.hasNext()) {
-                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, queryResultsIter.next());
-                StringSet linkedTargets = snapSession.getLinkedTargets();
-                if ((linkedTargets != null)) {
-                    linkedTargets.add(snapShot.getId().toString());
-                } else {
-                    linkedTargets = new StringSet();
-                    linkedTargets.add(snapShot.getId().toString());
-                    snapSession.setLinkedTargets(linkedTargets);
+            if (!NullColumnValueGetter.isNullValue(snapShot.getSettingsInstance())) {
+                URIQueryResultList queryResults = new URIQueryResultList();
+                _dbClient.queryByConstraint(
+                        AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance(snapShot.getSettingsInstance()),
+                        queryResults);
+                Iterator<URI> queryResultsIter = queryResults.iterator();
+                while (queryResultsIter.hasNext()) {
+                    BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, queryResultsIter.next());
+                    StringSet linkedTargets = snapSession.getLinkedTargets();
+                    if ((linkedTargets != null)) {
+                        linkedTargets.add(snapShot.getId().toString());
+                    } else {
+                        linkedTargets = new StringSet();
+                        linkedTargets.add(snapShot.getId().toString());
+                        snapSession.setLinkedTargets(linkedTargets);
+                    }
+                    _dbClient.updateObject(snapSession);
                 }
-                _dbClient.updateObject(snapSession);
             }
         }
 

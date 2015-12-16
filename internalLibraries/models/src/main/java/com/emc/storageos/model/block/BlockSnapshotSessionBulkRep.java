@@ -16,7 +16,7 @@ import com.emc.storageos.model.BulkRestRep;
  * Class encapsulates the data returned in response to a bulk request
  * for multiple BlockSnapshotSession instances.
  */
-@XmlRootElement(name = "bulk_block_snapshot-sessions")
+@XmlRootElement(name = "bulk_block_snapshot_sessions")
 public class BlockSnapshotSessionBulkRep extends BulkRestRep {
 
     // A list of BlockSnapshotSession instance response objects.

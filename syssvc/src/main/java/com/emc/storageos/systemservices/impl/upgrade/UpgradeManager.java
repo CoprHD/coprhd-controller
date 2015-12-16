@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -237,12 +238,21 @@ public class UpgradeManager extends AbstractManager {
                 log.info("Step4: Current version: {} != target version: {}. Switch version.", currentVersion, targetVersion);
 
                 DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
-                // for standby site, check if the active site is stable or not
-                if (drUtil.isStandby() && !coordinator.isActiveSiteStable()) {
-                    // we don't want to sleep for too long (default 10m) or too short (retry 3s) here
-                    log.info("current site is standby and active site is not stable, sleep 1m and try again");
-                    sleep(60000);
-                    continue;
+                // for standby site, check if the active site is stable and the local site is STANDBY_SYNCED
+                if (drUtil.isStandby()) {
+                    if (!coordinator.isActiveSiteStable()) {
+                        log.info("current site is standby and active site is not stable, sleep 1m and try again");
+                        // we don't want to sleep for too long (default 10m) or too short (retry 3s) here
+                        sleep(60000);
+                        continue;
+                    }
+
+                    SiteState localSiteState = drUtil.getLocalSite().getState();
+                    if (!localSiteState.equals(SiteState.STANDBY_SYNCED)) {
+                        log.info("current site is standby and is in state {}, sleep 1m and try again", localSiteState);
+                        sleep(60000);
+                        continue;
+                    }
                 }
 
                 if (!getUpgradeLock(svcId)) {

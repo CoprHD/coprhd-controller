@@ -162,7 +162,6 @@ public class VolumeService extends TaskResourceService {
 
         URIQueryResultList uris = getVolumeUris(openstack_tenant_id);
         if (uris != null) {
-            //for (URI volumeUri : uris) {
             while (uris.iterator().hasNext()) {
             	URI volumeUri = uris.iterator().next();
                 Volume volume = _dbClient.queryObject(Volume.class, volumeUri);

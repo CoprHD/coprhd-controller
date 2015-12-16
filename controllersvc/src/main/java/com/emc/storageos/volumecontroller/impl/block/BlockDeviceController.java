@@ -10,8 +10,10 @@ import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBl
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkCloneConsistencyGroup;
 import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkSnapshotSessionConsistencyGroup;
+import static com.emc.storageos.volumecontroller.impl.ControllerUtils.getSnapshotSessionsByInstance;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 
@@ -27,6 +29,8 @@ import java.util.Map;
 
 import javax.xml.bind.DataBindingException;
 
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -5921,11 +5925,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     @Override
     public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
-        TaskCompleter completer = new BlockSnapshotSessionDeleteWorkflowCompleter(snapSessionURI, opId);
+        BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+        List<URI> snapSessionURIs = getSnapshotSessionsByInstance(snapSession.getSessionInstance(), _dbClient);
+        TaskCompleter completer = new BlockSnapshotSessionDeleteWorkflowCompleter(snapSessionURIs, opId);
         try {
             // Get a new workflow delete the snapshot session.
             Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_SNAPSHOT_SESSION_WF_NAME, false, opId);
-            _log.info("Created new workflow to delet snapshot session {} with operation id {}",
+            _log.info("Created new workflow to delete snapshot session {} with operation id {}",
                     snapSessionURI, opId);
 
             // Create the workflow step to delete the snapshot session.

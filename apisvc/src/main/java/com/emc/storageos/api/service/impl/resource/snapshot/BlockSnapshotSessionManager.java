@@ -703,7 +703,7 @@ public class BlockSnapshotSessionManager {
             Operation op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION);
             _dbClient.createTaskOpStatus(BlockSnapshotSession.class, blockSnapshotSession.getId(), taskId, op);
-            snapSession.getOpStatus().put(taskId, op);
+            blockSnapshotSession.getOpStatus().put(taskId, op);
             taskList.addTask(toTask(blockSnapshotSession, taskId));
         }
 

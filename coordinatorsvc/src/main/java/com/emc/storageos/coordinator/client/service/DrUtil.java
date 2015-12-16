@@ -40,7 +40,17 @@ public class DrUtil {
     private static final int COORDINATOR_PORT = 2181;
     public static final String ZOOKEEPER_MODE_OBSERVER = "observer";
     public static final String ZOOKEEPER_MODE_READONLY = "read-only";
-    
+
+    private static final String DR_CONFIG_KIND = "disasterRecoveryConfig";
+    private static final String DR_CONFIG_ID = "global";
+
+    public static final String KEY_ADD_STANDBY_TIMEOUT = "add_standby_timeout_millis";
+    public static final String KEY_REMOVE_STANDBY_TIMEOUT = "remove_standby_timeout_millis";
+    public static final String KEY_PAUSE_STANDBY_TIMEOUT = "pause_standby_timout_millis";
+    public static final String KEY_RESUME_STANDBY_TIMEOUT = "resume_standby_timeout_millis";
+    public static final String KEY_DATA_SYNC_TIMEOUT = "data_sync_timeout_millis";
+    public static final String KEY_SWITCHOVER_TIMEOUT = "switchover_timeout_millis";
+
     private CoordinatorClient coordinator;
 
     public DrUtil() {
@@ -57,7 +67,19 @@ public class DrUtil {
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
-    
+
+    public int getDrIntConfig(String key, int defaultValue) {
+        try {
+            Configuration config = coordinator.queryConfiguration(DR_CONFIG_KIND, DR_CONFIG_ID);
+            if (config != null && config.getConfig(key) != null) {
+                return Integer.valueOf(config.getConfig(key));
+            }
+        } catch (Exception e) {
+            log.warn("Exception happened when fetching DR config from ZK", e);
+        }
+        return defaultValue;
+    }
+
     /**
      * Check if current site is active
      * 

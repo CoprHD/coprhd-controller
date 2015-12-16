@@ -4,28 +4,36 @@
  */
 package com.emc.storageos.db.server.impl;
 
+import com.google.common.collect.Sets;
+import org.apache.cassandra.repair.RepairParallelism;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.ActiveRepairService;
 import org.apache.cassandra.service.StorageServiceMBean;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
 
+import org.apache.cassandra.utils.concurrent.SimpleCondition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.management.Notification;
 import javax.management.NotificationListener;
+import javax.management.remote.JMXConnectionNotification;
+import javax.management.remote.JMXConnector;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.locks.Condition;
 
 /**
  * Class handles running repair job and listening for messages related modeled
@@ -41,6 +49,8 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             .getLogger(RepairJobRunner.class);
     private final SimpleDateFormat format = new SimpleDateFormat(
             "yyyy-MM-dd HH:mm:ss,SSS");
+
+    private final Condition condition = new SimpleCondition();
 
     /**
      * Flag to indicate the job is successful or failed
@@ -85,6 +95,8 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
     private ProgressNotificationListener listener;
 
+    private JMXConnector jmxc;
+
     private StorageServiceMBean svcProxy;
 
     private String keySpaceName;
@@ -98,11 +110,10 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      * @param keySpaceName
      *            ViPR table name
      * @param exe
-     * @param isLocal if repair is done in local site only
      * @param listener
      * @param startToken
      */
-    public RepairJobRunner(StorageServiceMBean svcProxy, String keySpaceName, ScheduledExecutorService exe, 
+    public RepairJobRunner(JMXConnector jmxc, StorageServiceMBean svcProxy, String keySpaceName, ScheduledExecutorService exe,
             ProgressNotificationListener listener, String startToken, String clusterStateDigest) {
         this.svcProxy = svcProxy;
         this.keySpaceName = keySpaceName;
@@ -111,7 +122,12 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
         this.listener = listener;
         this.clusterStateDigest = clusterStateDigest;
 
-        this.svcProxy.addNotificationListener(this, null, null);
+        _log.info("lby add RepairJobRunner to notificationListener");
+        //this.svcProxy.addNotificationListener(this, null, null);
+
+        _log.info("lby add to JMXConnector");
+        this.jmxc = jmxc;
+        // jmxc.addConnectionNotificationListener(this, null, null);
     }
 
     public static class StringTokenRange {
@@ -219,11 +235,16 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
                 this.listener.onStartToken(range.end, getProgress());
 
-                /*
-                 TODO: The logic is from sync to async, should refine this part code, Boying is working on this.
-                  */
-                svcProxy.forceRepairRangeAsync(range.begin, range.end, this.keySpaceName,
+                int cmd = svcProxy.forceRepairRangeAsync(range.begin, range.end, this.keySpaceName,
                         true, false, true);
+
+                _log.info("lby0 waiting for db repair done cmd={}", cmd);
+                if (cmd > 0) {
+                    condition.await();
+                }
+
+                _log.info("lby repair done _success={}", _success);
+
 
                 if (!_success) {
                     _log.error("Fail to repair range {} {}. Stopping the job",
@@ -328,22 +349,43 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 // status
                 if (status[1] == ActiveRepairService.Status.SESSION_FAILED
                         .ordinal()) {
+                    _log.info("lby1 repair session failed");
                     _success = false;
                 } else if (status[1] == ActiveRepairService.Status.FINISHED
                         .ordinal()) {
 
+                    _log.info("lby1 repair session finished");
                     if (_aborted) {
                         _success = false;
                     }
+                    _log.info("lby1 notify");
+                    condition.signalAll();
                 }
             } else {
                 _log.error("Unexpected notification: status.length {}", status.length);
             }
+        } else if (JMXConnectionNotification.NOTIFS_LOST.equals(notification.getType()))
+        {
+            String message = String.format("[%s] Lost notification. You should check server log for repair status of keyspace %s",
+                                           format.format(notification.getTimeStamp()),
+                                           keySpaceName);
+            _log.error(message);
+        }
+        else if (JMXConnectionNotification.FAILED.equals(notification.getType())
+                 || JMXConnectionNotification.CLOSED.equals(notification.getType()))
+        {
+            String message = String.format("JMX connection closed. You should check server log for repair status of keyspace %s"
+                                           + "(Subsequent keyspaces are not going to be repaired).",
+                                           keySpaceName);
+            _log.error(message);
+            condition.signalAll();
         }
     }
 
     @Override
     public void close() throws Exception {
-        this.svcProxy.removeNotificationListener(this);
+        _log.info("lby remove listener");
+        svcProxy.removeNotificationListener(this);
+        jmxc.removeConnectionNotificationListener(this);
     }
 }

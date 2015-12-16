@@ -10,6 +10,7 @@ import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerMBean;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
+import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 
@@ -45,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 public class DbManager implements DbManagerMBean {
     private static final Logger log = LoggerFactory.getLogger(DbManager.class);
 
-    private static final int REPAIR_INITIAL_WAIT_FOR_DBSTART_MINUTES = 5;
+    private static final int REPAIR_INITIAL_WAIT_FOR_DBSTART_MINUTES = 1;
     // repair every 24*5 hours by default, given we do a proactive repair on start
     // once per five days on demand should suffice
     private static final int DEFAULT_DB_REPAIR_FREQ_MIN = 60 * 24 * 5;
@@ -56,6 +57,10 @@ public class DbManager implements DbManagerMBean {
 
     @Autowired
     private SchemaUtil schemaUtil;
+
+    @Autowired
+    private JmxServerWrapper jmxServer;
+
 
     ScheduledFuture<?> scheduledRepairTrigger;
 
@@ -83,11 +88,13 @@ public class DbManager implements DbManagerMBean {
      * @throws Exception
      */
     private boolean startNodeRepair(String keySpaceName, int maxRetryTimes, boolean crossVdc, boolean noNewReapir) throws Exception {
-        DbRepairRunnable runnable = new DbRepairRunnable(this.executor, this.coordinator, keySpaceName,
+        log.info("lby DbMananger.startNodeRepair()");
+        DbRepairRunnable runnable = new DbRepairRunnable(jmxServer, this.executor, this.coordinator, keySpaceName,
                 this.schemaUtil.isGeoDbsvc(), maxRetryTimes, noNewReapir);
         // call preConfig() here to set IN_PROGRESS for db repair triggered by schedule since we use it in getDbRepairStatus.
         runnable.preConfig();
         synchronized (runnable) {
+            log.info("lby00");
             this.executor.submit(runnable);
             runnable.wait();
         }
@@ -299,6 +306,8 @@ public class DbManager implements DbManagerMBean {
     }
 
     public void start() {
+        log.info("lby DbMananger.start() is invoked");
+        repairFreqMin = 60*3; //three hours
         this.scheduledRepairTrigger = this.executor.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {

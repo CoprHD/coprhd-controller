@@ -6,6 +6,7 @@ package com.emc.storageos.db.server.impl;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
+import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.Strings;
 
 import org.apache.cassandra.service.StorageService;
@@ -16,10 +17,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.management.ListenerNotFoundException;
+import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
+import javax.rmi.ssl.SslRMIClientSocketFactory;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.rmi.server.RMIClientSocketFactory;
+import java.rmi.server.RMISocketFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -47,13 +57,16 @@ public class DbRepairRunnable implements Runnable {
     private DbRepairJobState state;
     private int maxRetryTimes;
     private boolean noNewRepair;
+    private JmxServerWrapper jmxServer;
+
 
     // Status reporting to caller that scheduled this thread to run.
     private Exception threadException;
     private StartStatus status;
 
-    public DbRepairRunnable(ScheduledExecutorService executor, CoordinatorClient coordinator, String keySpaceName, boolean isGeoDbsvc,
+    public DbRepairRunnable(JmxServerWrapper jmxServer, ScheduledExecutorService executor, CoordinatorClient coordinator, String keySpaceName, boolean isGeoDbsvc,
             int maxRetryTimes, boolean noNewRepair) {
+        this.jmxServer  = jmxServer;
         this.executor = executor;
         this.coordinator = coordinator;
         this.keySpaceName = keySpaceName;
@@ -119,11 +132,11 @@ public class DbRepairRunnable implements Runnable {
     private StartStatus getRepairStatus(InterProcessLock lock) throws Exception {
         this.state = queryRepairState(this.coordinator, this.keySpaceName, this.isGeoDbsvc);
 
-        log.info("Previous repair state: {}", this.state.toString());
+        log.info("Previous repair state: {}", this.state);
 
         StartStatus status = getRepairStatus(getClusterStateDigest(), this.maxRetryTimes);
         if (status == StartStatus.STARTED) {
-            log.info("Starting repair with state: {}", this.state.toString());
+            log.info("Starting repair with state: {}", this.state);
             String workerId = getSelfLockNodeId(lock);
             if (workerId != null) {
                 this.state.setCurrentWorker(workerId);
@@ -133,7 +146,7 @@ public class DbRepairRunnable implements Runnable {
         return status;
     }
 
-    private RepairJobRunner createJobRunner() {
+    private RepairJobRunner createJobRunner(JMXConnector jmxc) {
         RepairJobRunner.ProgressNotificationListener listener = new RepairJobRunner.ProgressNotificationListener() {
             @Override
             public void onStartToken(String token, int progress) {
@@ -146,8 +159,13 @@ public class DbRepairRunnable implements Runnable {
             }
         };
 
-        return new RepairJobRunner(StorageService.instance, this.keySpaceName, this.executor,
+        RepairJobRunner runner = new RepairJobRunner(jmxc, StorageService.instance, this.keySpaceName, this.executor,
                 listener, this.state.getCurrentToken(), this.state.getCurrentDigest());
+
+        jmxc.addConnectionNotificationListener(runner, null, null);
+        StorageService.instance.addNotificationListener(runner, null, null);
+
+        return runner;
     }
 
     private static class ScopeNotifier implements AutoCloseable {
@@ -186,7 +204,28 @@ public class DbRepairRunnable implements Runnable {
 
     @Override
     public void run() {
-        try (ScopeNotifier notifier = new ScopeNotifier(this)) {
+        final String fmtUrl = "service:jmx:rmi:///jndi/rmi://[%s]:%d/jmxrmi";
+
+        log.info("lby1 jmxServer={}", jmxServer);
+        String url = String.format(fmtUrl, jmxServer.getHost(), jmxServer.getPort());
+
+        log.info("lby url={} ", url);
+
+        Map<String,Object> env = new HashMap<String,Object>();
+        JMXServiceURL jmxUrl = null;
+        try {
+            jmxUrl = new JMXServiceURL(url);
+            env.put("com.sun.jndi.rmi.factory.socket", getRMIClientSocketFactory());
+        }catch(MalformedURLException e) {
+            log.error("Invalid jmx url {} e=", url, e);
+            throw new RuntimeException(e);
+        }catch(IOException e) {
+            log.error("Exception e=", e);
+            throw new RuntimeException(e);
+        }
+
+        try (ScopeNotifier notifier = new ScopeNotifier(this);
+             JMXConnector jmxc = JMXConnectorFactory.connect(jmxUrl, env)) {
             log.info("prepare db repair");
             // use same lock:DB_REPAIR_LOCK for both local/geo db to ensure db repair sequentially
             try (InterProcessLockHolder holder = new InterProcessLockHolder(this.coordinator, DB_REPAIR_LOCK, log)) {
@@ -196,7 +235,7 @@ public class DbRepairRunnable implements Runnable {
                     return;
                 }
 
-                try (RepairJobRunner runner = createJobRunner()) {
+                try (RepairJobRunner runner = createJobRunner(jmxc)) {
                     saveStates(); // Save state to ZK before notify caller to return so it will see the result of call.
                     log.info("Repair started, notifying the triggering thread to return.");
                     notifier.close(); // Notify the thread triggering the repair before we finish
@@ -244,6 +283,14 @@ public class DbRepairRunnable implements Runnable {
         }
     }
 
+    private RMIClientSocketFactory getRMIClientSocketFactory() throws IOException
+    {
+        if (Boolean.parseBoolean(System.getProperty("ssl.enable")))
+            return new SslRMIClientSocketFactory();
+
+        return RMISocketFactory.getDefaultSocketFactory();
+    }
+
     public StartStatus getRepairStatus(String clusterDigest, int maxRetryTimes) {
         log.info(String.format("Trying to start repair with digest: %s, max retries: %d, noNewRepair: %s",
                 clusterDigest, maxRetryTimes, this.noNewRepair));
@@ -254,21 +301,23 @@ public class DbRepairRunnable implements Runnable {
             return StartStatus.STARTED;
         }
 
+        /*
         if (this.state.notSuitableForNewRepair(clusterDigest)) {
             log.info(String.format("It's not time to repair %s, last successful repair ended at %d, interval is %d minutes, now is %d",
                     this.keySpaceName, state.getLastSuccessEndTime(), INTERVAL_TIME_IN_MINUTES, System.currentTimeMillis()));
             this.state.cleanCurrentFields();
             return StartStatus.NOT_THE_TIME;
         }
+        */
 
         if (this.noNewRepair) {
-            log.info("No matching reapir to resume, and we're not allowed to start a new repair.");
+            log.info("No matching repair to resume, and we're not allowed to start a new repair.");
             this.state.cleanCurrentFields();
             return StartStatus.NOTHING_TO_RESUME;
-        } else {
-            log.info("Starting new repair");
-            this.state = new DbRepairJobState(clusterDigest);
         }
+
+        log.info("Starting new repair");
+        this.state = new DbRepairJobState(clusterDigest);
 
         return StartStatus.STARTED;
     }

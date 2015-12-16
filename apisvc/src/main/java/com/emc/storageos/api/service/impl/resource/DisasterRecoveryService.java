@@ -888,6 +888,13 @@ public class DisasterRecoveryService {
                 clientCacheMap.put(site.getUuid(), client);
             }
         }
+        
+        SiteRestRep recommendSite = findRecommendFailoverSite(responseSiteFromRemote, currentSite);
+        if (!recommendSite.getUuid().equals(currentSite.getUuid())) {
+            APIException.internalServerErrors.failoverPrecheckFailed(currentSite.getName(),
+                    String.format("Another site %s state is %s with latest data. Please failover to site %s",
+                            recommendSite.getName(), recommendSite.getState(), recommendSite.getName()));
+        }
            
         try {
             // set state
@@ -908,13 +915,13 @@ public class DisasterRecoveryService {
 
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_FAILOVER);
 
-            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_SUCCESS, null, uuid, currentSite.getVip(),
+            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_SUCCESS, null, currentSite.getVip(),
                     currentSite.getName());
 
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Error happened when failover at site %s", uuid, e);
-            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid, currentSite.getVip(),
+            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, currentSite.getVip(),
                     currentSite.getName());
             throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
         }
@@ -1339,21 +1346,18 @@ public class DisasterRecoveryService {
     }
     
     protected SiteRestRep findRecommendFailoverSite(List<SiteRestRep> responseSiteFromRemote, Site currentSite) {
-        responseSiteFromRemote.add(this.siteMapper.map(currentSite));
-        Collections.sort(responseSiteFromRemote, new Comparator<SiteRestRep>() {
-
-            @Override
-            public int compare(SiteRestRep site1, SiteRestRep site2) {
-                if (site1.getState().equalsIgnoreCase(site2.getState())) {
-                    return new Date(site1.getLastStateUpdateTime()).compareTo(new Date(site2.getLastStateUpdateTime()));
-                } else {
-                    return site1.getState().equalsIgnoreCase(SiteState.STANDBY_SYNCED.toString())? 1 : -1;
-                }
-            }
-            
-        });
         
-        return responseSiteFromRemote.get(responseSiteFromRemote.size() - 1);
+        if (currentSite.getState().equals(SiteState.STANDBY_SYNCED)) {
+            return this.siteMapper.map(currentSite);
+        }
+        
+        for (SiteRestRep site : responseSiteFromRemote) {
+            if (site.getState().equalsIgnoreCase(SiteState.STANDBY_SYNCED.toString())) {
+                return site;
+            }
+        }
+        
+        return this.siteMapper.map(currentSite);
     }
 
     protected void validateAddParam(SiteAddParam param, List<Site> existingSites) {

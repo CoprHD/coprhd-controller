@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
@@ -291,27 +293,12 @@ public class VolumeGroupService extends TaskResourceService {
             return taskList;
         }
         
-        try {
-            List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
-            for (VolumeGroupUtils util : utils) {
-                util.validateUpdateVolumesInVolumeGroup(_dbClient, param, volumeGroup);
-            }
-            for (VolumeGroupUtils util : utils) {
-                util.updateVolumesInVolumeGroup(_dbClient, param, volumeGroup, taskId, taskList);
-            }
-        } catch (Exception e) {
-            List<TaskResourceRep> systemTaskResourceReps = taskList.getTaskList();
-            for (TaskResourceRep volumeTask : systemTaskResourceReps) {
-                volumeTask.setState(Operation.Status.error.name());
-                volumeTask.setMessage(e.getMessage());
-                _dbClient.updateTaskOpStatus(Volume.class, volumeTask
-                        .getResource().getId(), taskId, new Operation(
-                        Operation.Status.error.name(), e.getMessage()));
-                _dbClient.updateTaskOpStatus(VolumeGroup.class, volumeTask
-                        .getResource().getId(), taskId, new Operation(
-                        Operation.Status.error.name(), e.getMessage()));
-            }
-            
+        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
+        for (VolumeGroupUtils util : utils) {
+            util.validateUpdateVolumesInVolumeGroup(_dbClient, param, volumeGroup);
+        }
+        for (VolumeGroupUtils util : utils) {
+            util.updateVolumesInVolumeGroup(_dbClient, param, volumeGroup, taskId, taskList);
         }
         auditOp(OperationTypeEnum.UPDATE_VOLUME_GROUP, true, null, volumeGroup.getId().toString(),
                 volumeGroup.getLabel());
@@ -671,6 +658,28 @@ public class VolumeGroupService extends TaskResourceService {
                                  "Conssitency group is not specified for the volumes not in a consistency group");
                      }
                      ArgValidator.checkFieldUriType(paramCG, BlockConsistencyGroup.class, "consistency_group");
+                     
+                     // this volume will be added to a CG as it's put in the application
+                     // check to make sure there are no other volumes in that CG that are either not in a 
+                     // application or in a different application
+                     URIQueryResultList uriQueryResultList = new URIQueryResultList();
+                     dbClient.queryByConstraint(getVolumesByConsistencyGroup(paramCG), uriQueryResultList);
+                     Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
+                     while (volumeIterator.hasNext()) {
+                         Volume otherVolInCg = volumeIterator.next();
+                         
+                         // skip if the volume is on the add list
+                         if (addVolList.contains(otherVolInCg.getId())) {
+                             continue;
+                         }
+
+                         // fail if the volume is not a member of this application
+                         if (otherVolInCg.getVolumeGroupIds() == null || !otherVolInCg.getVolumeGroupIds().contains(volumeGroup.getId().toString())) {
+                             throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                                     "Another volume in the same consistency group is not part of the application");
+                         }
+                     }
+                     
                      impactedCGs.add(paramCG);
                 }
                 URI systemUri = volume.getStorageController();

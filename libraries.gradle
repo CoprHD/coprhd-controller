@@ -298,7 +298,7 @@ ext {
         "com.webcohesion.enunciate:enunciate-docs:2.1.1",
         "com.webcohesion.enunciate:enunciate-java-json-client:2.1.1",
 		"com.webcohesion.enunciate:enunciate-java-xml-client:2.1.1",
-        "org.freemarker:freemarker:2.3.22",
+        "org.freemarker:freemarker:2.3.14",
         "org.jdom:jdom:1.1.2",
 		"org.reflections:reflections:0.9.10",
 		"org.jgrapht:jgrapht-core:0.9.1",

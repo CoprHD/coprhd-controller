@@ -831,6 +831,28 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
+     * Restores the data on the array snapshot point-in-time copy represented by the
+     * BlockSnapshotSession instance with the passed id, to the snapshot session source
+     * object.
+     *
+     * @brief Restore snapshot session to source
+     *
+     * @prereq None
+     *
+     * @param id The URI of the BlockSnapshotSession instance to be restored.
+     *
+     * @return TaskResourceRep representing the snapshot session task.
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions/{sid}/restore")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList restoreConsistencyGroupSnapshotSession(
+            @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI id) {
+        return getSnapshotSessionManager().restoreSnapshotSession(id);
+    }
+
+    /**
      * Resynchronize the specified consistency group snapshot
      * 
      * 

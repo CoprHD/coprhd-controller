@@ -1764,7 +1764,16 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
                 CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
                 String syncAspectPath = snapSession.getSessionInstance();
-                CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
+
+                CIMObjectPath settingsStatePath = null;
+                if (sourceObj.hasConsistencyGroup()) {
+                    String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
+                    settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName,
+                            syncAspectPath);
+                } else {
+                    settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
+                }
+
                 CIMArgument[] inArgs = null;
                 CIMArgument[] outArgs = new CIMArgument[5];
                 inArgs = _helper.getRestoreFromSettingsStateInputArguments(settingsStatePath);

@@ -291,12 +291,27 @@ public class VolumeGroupService extends TaskResourceService {
             return taskList;
         }
         
-        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
-        for (VolumeGroupUtils util : utils) {
-            util.validateUpdateVolumesInVolumeGroup(_dbClient, param, volumeGroup);
-        }
-        for (VolumeGroupUtils util : utils) {
-            util.updateVolumesInVolumeGroup(_dbClient, param, volumeGroup, taskId, taskList);
+        try {
+            List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
+            for (VolumeGroupUtils util : utils) {
+                util.validateUpdateVolumesInVolumeGroup(_dbClient, param, volumeGroup);
+            }
+            for (VolumeGroupUtils util : utils) {
+                util.updateVolumesInVolumeGroup(_dbClient, param, volumeGroup, taskId, taskList);
+            }
+        } catch (Exception e) {
+            List<TaskResourceRep> systemTaskResourceReps = taskList.getTaskList();
+            for (TaskResourceRep volumeTask : systemTaskResourceReps) {
+                volumeTask.setState(Operation.Status.error.name());
+                volumeTask.setMessage(e.getMessage());
+                _dbClient.updateTaskOpStatus(Volume.class, volumeTask
+                        .getResource().getId(), taskId, new Operation(
+                        Operation.Status.error.name(), e.getMessage()));
+                _dbClient.updateTaskOpStatus(VolumeGroup.class, volumeTask
+                        .getResource().getId(), taskId, new Operation(
+                        Operation.Status.error.name(), e.getMessage()));
+            }
+            
         }
         auditOp(OperationTypeEnum.UPDATE_VOLUME_GROUP, true, null, volumeGroup.getId().toString(),
                 volumeGroup.getLabel());
@@ -377,6 +392,24 @@ public class VolumeGroupService extends TaskResourceService {
                 }
             }
         }
+
+        /**
+         * @param dbClient
+         * @param uriList
+         * @param taskId
+         * @param e
+         */
+        protected void updateFailedVolumeTasks(DbClient dbClient, List<URI> uriList, String taskId, ServiceCoded e) {
+            for (URI uri : uriList) {
+                Volume vol = dbClient.queryObject(Volume.class, uri);
+                Operation op = vol.getOpStatus().get(taskId);
+                if (op != null) {
+                    op.error(e);
+                    vol.getOpStatus().updateTaskStatus(taskId, op);
+                    dbClient.updateObject(vol);
+                }
+            }
+        }
         
         /**
          * Creates tasks against consistency group associated with a request and adds them to the given task list.
@@ -442,7 +475,26 @@ public class VolumeGroupService extends TaskResourceService {
             taskList.getTaskList().add(toTask(volumeGroup, taskId, op));
             addTasksForVolumesAndCGs(dbClient, addVols, removeVols, null, taskId, taskList);
             
-            updateVolumeObjects(dbClient, addVols, removeVols, volumeGroup);
+            try {
+                updateVolumeObjects(dbClient, addVols, removeVols, volumeGroup);
+            }  catch (InternalException | APIException e) {
+                VolumeGroup app = dbClient.queryObject(VolumeGroup.class, volumeGroup.getId());
+                op = app.getOpStatus().get(taskId);
+                op.error(e);
+                app.getOpStatus().updateTaskStatus(taskId, op);
+                dbClient.updateObject(app);
+                if (param.hasVolumesToAdd()) {
+                    List<URI> addURIs = param.getAddVolumesList().getVolumes();
+                    updateFailedVolumeTasks(dbClient, addURIs, taskId, e);
+                }
+                if (param.hasVolumesToRemove()) {
+                    List<URI> removeURIs = param.getRemoveVolumesList().getVolumes();
+                    updateFailedVolumeTasks(dbClient, removeURIs, taskId, e);
+                }
+                throw e;
+            }
+            
+            updateVolumeAndGroupTasks(dbClient, addVols, removeVols, volumeGroup, taskId);
         }
 
         /* (non-Javadoc)
@@ -452,6 +504,31 @@ public class VolumeGroupService extends TaskResourceService {
         public void validateUpdateVolumesInVolumeGroup(DbClient dbClient, VolumeGroupUpdateParam param, VolumeGroup volumeGroup) {
             // TODO Auto-generated method stub
             
+        }
+        
+        protected void updateVolumeAndGroupTasks(DbClient dbClient, List<Volume> addVols, List<Volume> removeVols, VolumeGroup volumeGroup, String taskId) {
+            if (addVols != null && !addVols.isEmpty() ) {
+                updateVolumeTasks(dbClient, addVols, taskId);
+            }
+            if (removeVols != null && !removeVols.isEmpty()) {
+                updateVolumeTasks(dbClient, removeVols, taskId);
+            }
+            Operation op = volumeGroup.getOpStatus().get(taskId);
+            op.ready();
+            volumeGroup.getOpStatus().updateTaskStatus(taskId, op);
+            dbClient.updateObject(volumeGroup);
+        }
+
+        protected void updateVolumeTasks(DbClient dbClient, List<Volume> vols, String taskId) {
+            for (Volume vol : vols) {
+                vol = dbClient.queryObject(Volume.class, vol.getId());
+                Operation op = vol.getOpStatus().get(taskId);
+                if (op != null) {
+                    op.ready();
+                    vol.getOpStatus().updateTaskStatus(taskId, op);
+                    dbClient.updateObject(vol);
+                }
+            }
         }
 
     }
@@ -518,18 +595,7 @@ public class VolumeGroupService extends TaskResourceService {
                 validateUpdateVolumesInVolumeGroup(dbClient, param, volumeGroup);
             }
             
-            if ((addVols == null || addVols.isEmpty()) && (removeVols == null || removeVols.isEmpty())) {
-                // no volumes to add or remove
-                return;
-            }
-            
-            BlockServiceApi serviceAPI = getBlockService(dbClient, firstVol);
-            Operation op = dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(),
-                    taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
-            try {
-                taskList.getTaskList().add(toTask(volumeGroup, taskId, op));
-                addTasksForVolumesAndCGs(dbClient, addVols, removeVols, impactedCGs, taskId, taskList);
-                if (removeVols != null && !removeVols.isEmpty()) {
+            if (removeVols != null && !removeVols.isEmpty()) {
                 // if any of the remove volumes are not in a CG, just update the database
                 // this shouldn't happen but it will add robustness if anything goes wrong
                 List<Volume> checkVols = new ArrayList<Volume>(removeVols);
@@ -542,7 +608,19 @@ public class VolumeGroupService extends TaskResourceService {
                         removeVols.add(removeVol);
                     }
                 }
-                }
+            }
+            
+            if ((addVols == null || addVols.isEmpty()) && (removeVols == null || removeVols.isEmpty())) {
+                // no volumes to add or remove
+                return;
+            }
+            
+            BlockServiceApi serviceAPI = getBlockService(dbClient, firstVol);
+            Operation op = dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(),
+                    taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
+            try {
+                taskList.getTaskList().add(toTask(volumeGroup, taskId, op));
+                addTasksForVolumesAndCGs(dbClient, addVols, removeVols, impactedCGs, taskId, taskList);
                 serviceAPI.updateVolumesInVolumeGroup(param.getAddVolumesList(), removeVols, volumeGroup.getId(), taskId);
             }  catch (InternalException | APIException e) {
                 VolumeGroup app = dbClient.queryObject(VolumeGroup.class, volumeGroup.getId());
@@ -697,19 +775,6 @@ public class VolumeGroupService extends TaskResourceService {
                 return BLOCK;
             } else {
                 return type;
-            }
-        }
-
-
-        private void updateFailedVolumeTasks(DbClient dbClient, List<URI> uriList, String taskId, ServiceCoded e) {
-            for (URI uri : uriList) {
-                Volume vol = dbClient.queryObject(Volume.class, uri);
-                Operation op = vol.getOpStatus().get(taskId);
-                if (op != null) {
-                    op.error(e);
-                    vol.getOpStatus().updateTaskStatus(taskId, op);
-                    dbClient.updateObject(vol);
-                }
             }
         }
 

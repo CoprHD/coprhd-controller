@@ -931,6 +931,9 @@ public class Volume extends BlockObject implements ProjectResource {
     @Name("volumeGroupIds")
     @AlternateId("VolumeGroups")
     public StringSet getVolumeGroupIds() {
+        if (volumeGroupIds == null) {
+            volumeGroupIds = new StringSet();
+        }
         return volumeGroupIds;
     }
 

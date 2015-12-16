@@ -247,7 +247,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
         if (consistencyGroup.getTypes().contains(Types.SRDF.toString()) ||
                 (consistencyGroup.getTypes().contains(Types.RP.toString()) &&
                 !consistencyGroup.getTypes().contains(Types.VPLEX.toString())) ||
-                deleteUncreatedConsistencyGroup(consistencyGroup)) {
+                canDeleteConsistencyGroup(consistencyGroup)) {
             final URIQueryResultList cgVolumesResults = new URIQueryResultList();
             _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
                     cgVolumesResults);

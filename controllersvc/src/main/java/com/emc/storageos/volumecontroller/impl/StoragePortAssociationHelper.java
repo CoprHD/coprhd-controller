@@ -16,15 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.constraint.QueryResultList;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
-import com.emc.storageos.model.pools.VirtualArrayAssignments;
-import com.emc.storageos.model.vpool.VirtualPoolList;
-import com.emc.storageos.volumecontroller.AttributeMatcher;
-import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,10 +31,14 @@ import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
+import com.emc.storageos.model.pools.VirtualArrayAssignments;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 /**

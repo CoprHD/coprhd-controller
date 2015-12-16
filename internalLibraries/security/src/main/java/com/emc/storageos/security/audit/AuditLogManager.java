@@ -11,8 +11,6 @@ import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbClient;
@@ -46,8 +44,6 @@ public class AuditLogManager {
 
     private CoordinatorClient _coordinator;
     
-    private boolean isStandby = false;
-    
     // The logger.
     private static Logger s_logger = LoggerFactory.getLogger(AuditLogManager.class);
 
@@ -77,7 +73,6 @@ public class AuditLogManager {
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
         drUtil = new DrUtil(_coordinator);
-        isStandby = drUtil.isStandby();
     }
 
     /**
@@ -86,7 +81,7 @@ public class AuditLogManager {
      * @param events references to recordable auditlogs.
      */
     public void recordAuditLogs(RecordableAuditLog... auditlogs) {
-        if (isStandby && isStandbyState()) {
+        if (!drUtil.isActiveSite()) {
            s_logger.info("Ignore audit log on standby site");
            return;
         }
@@ -173,15 +168,6 @@ public class AuditLogManager {
             _log.error("Failed to record auditlog. Auditlog description id: {}. Error: {}.",
                     auditType.toString(), ex);
         }
-    }
-    
-    private boolean isStandbyState() {
-        Site site = drUtil.getLocalSite();
-        if (site.getState().equals(SiteState.STANDBY_FAILING_OVER)) {
-            return false;
-        }
-        
-        return true;
     }
 
 }

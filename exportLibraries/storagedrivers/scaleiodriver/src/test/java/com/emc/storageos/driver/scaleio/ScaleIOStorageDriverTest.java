@@ -7,6 +7,7 @@ import com.emc.storageos.storagedriver.impl.InMemoryRegistryImpl;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -179,4 +180,43 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals(USER_NAME, driver.getConnInfoFromRegistry(SYS_NATIVE_ID, ScaleIOConstants.USER_NAME));
         Assert.assertEquals(PASSWORD, driver.getConnInfoFromRegistry(SYS_NATIVE_ID, ScaleIOConstants.PASSWORD));
     }
+
+    @Test
+    public void testCreateVolumeSnapshot() throws Exception {
+        //single volume
+        //null
+        List<VolumeSnapshot> snapshots=null;
+        DriverTask task=driver.createVolumeSnapshot(snapshots,null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("Failed",task.getStatus().toString());
+
+        //create snapshot from valid volume
+        VolumeSnapshot snapshot= new VolumeSnapshot();
+        snapshot.setParentId("d584a34300000002");
+        snapshot.setStorageSystemId(SYS_NATIVE_ID);
+        snapshots.add(snapshot);
+        task=driver.createVolumeSnapshot(snapshots,null);
+
+        //create snapshot from un-existed volume
+
+        //
+        //multiple volumes from same storage system
+        //multiple volumes from different storage systems
+    }
+
+    @Test
+    public void testDeleteVolumeSnapshot() throws Exception {
+
+    }
+
+    @Test
+    public void testCreateConsistencyGroupSnapshot() throws Exception {
+
+    }
+
+    @Test
+    public void testDeleteConsistencyGroupSnapshot() throws Exception {
+
+    }
+
 }

@@ -79,12 +79,12 @@ public class IPsec extends ViprResourceController {
         protected static final String DATE_TIME_FORMAT = "yyyy MMMMM dd hh:mm:ss:SSS aaa";
         protected static final String UNKNOWN_DATE_TIME = "Unknown";
 
-        public Boolean status;
+        public String status;
         public String configGeneratedDate;
         public List<IPsecFailedNodeInfo> failureNodes;
 
         public IPSecStatusInfo(IPsecStatus ipsecStatus) {
-            status = ipsecStatus.getIsGood();
+            status = ipsecStatus.getStatus();
             configGeneratedDate = convertToDateTime(ipsecStatus.getVersion());
             failureNodes = new ArrayList<IPsecFailedNodeInfo>();
             if (!CollectionUtils.isEmpty(ipsecStatus.getDisconnectedNodes())) {

@@ -70,5 +70,11 @@
   		</div>
 	</div>
   </div>
+  #{if disasterRecoveryLastUpdated}   
+      <div class="panel-footer">
+        <small>&{'adminDashboard.lastUpdated'} <span data-format-relative-time="${disasterRecoveryLastUpdated.getTime()}"></span></small>
+      </div>
+    #{/if}
+  </div>
 </div>
 

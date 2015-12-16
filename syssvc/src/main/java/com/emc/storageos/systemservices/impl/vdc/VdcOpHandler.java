@@ -439,6 +439,7 @@ public abstract class VdcOpHandler {
                     try {
                         log.info("Releasing lock {}", LOCK_PAUSE_STANDBY);
                         lock.release();
+                        log.info("Released lock {}", LOCK_PAUSE_STANDBY);
                     } catch (Exception e) {
                         log.error("Failed to release lock {}", LOCK_PAUSE_STANDBY);
                     }

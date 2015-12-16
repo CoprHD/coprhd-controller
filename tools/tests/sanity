@@ -7425,7 +7425,7 @@ fail(){
 
 trap _failure ERR INT
 set -E
-if [ "$3" != "recoverpoint" ] && [ "$3" != "vdc" ] && [ "$3" != "dr" ]; then
+if [ "$3" != "vdc" ] && [ "$3" != "dr" ]; then
     common_setup	
 fi
 

@@ -1133,12 +1133,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         NASServer nasServer = null;
         if (nasServerMap != null && !nasServerMap.isEmpty()) {
             for (Entry<String, NASServer> entry : nasServerMap.entrySet()) {
-                if (!SYSTEM_ACCESS_ZONE_NAME.equals(entry.getValue().getNasName())) {
-                    if (fsPath.startsWith(entry.getKey())) {
-                        nasServer = entry.getValue();
-                        break;
+                    if (!SYSTEM_ACCESS_ZONE_NAME.equals(entry.getValue().getNasName())) {
+                        if (fsPath.startsWith(entry.getKey())) {
+                            nasServer = entry.getValue();
+                            break;
+                        }
                     }
-                }
             }
             if (nasServer == null) {
                 nasServer = nasServerMap.get(IFS_ROOT + "/");

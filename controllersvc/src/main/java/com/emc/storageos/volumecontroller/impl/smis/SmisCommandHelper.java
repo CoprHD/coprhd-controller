@@ -53,12 +53,12 @@ import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -69,6 +69,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
@@ -412,7 +413,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Removes the volume from storage groups if the volume is not in any Masking View.
      * This will be called just before deleting the volume (for VMAX2).
-     *
+     * 
      * @param storageSystem the storage system
      * @param volume the volume
      */
@@ -512,7 +513,7 @@ public class SmisCommandHelper implements SmisConstants {
         List<CIMArgument> args = new ArrayList<>(Arrays.asList(baseArgs));
         args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, replicationSetting));
 
-        return args.toArray(new CIMArgument[]{});
+        return args.toArray(new CIMArgument[] {});
     }
 
     public CIMArgument[] getCreateElementReplicaSnapInputArgumentsWithTargetAndSetting(
@@ -535,10 +536,10 @@ public class SmisCommandHelper implements SmisConstants {
 
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         args.addAll(Arrays.asList(baseArguments));
-        args.add(_cimArgument.referenceArray(CP_COLLECTIONS, new CIMObjectPath[]{volumeGroupPath}));
+        args.add(_cimArgument.referenceArray(CP_COLLECTIONS, new CIMObjectPath[] { volumeGroupPath }));
         args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, replicaSettingData));
 
-        return args.toArray(new CIMArgument[]{});
+        return args.toArray(new CIMArgument[] {});
     }
 
     public CIMArgument[] getCreateElementReplicaMirrorInputArguments(StorageSystem storageDevice, BlockObject volume,
@@ -561,7 +562,7 @@ public class SmisCommandHelper implements SmisConstants {
         if (pool != null) {
             addTargetPoolToArgs(storageDevice, pool, args);
         }
-        return args.toArray(new CIMArgument[]{});
+        return args.toArray(new CIMArgument[] {});
     }
 
     public CIMArgument[] getFractureMirrorInputArgumentsWithCopyState(CIMObjectPath storageSync,
@@ -597,7 +598,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FAILOVER_SYNC_PAIR),
                 _cimArgument.bool(CP_FORCE, true),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
     }
 
@@ -606,7 +607,7 @@ public class SmisCommandHelper implements SmisConstants {
         int FRACTURE_OR_SPLIT = (sync != null && sync) ? SPLIT_VALUE : FRACTURE_VALUE;
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FRACTURE_OR_SPLIT),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
     }
 
@@ -622,7 +623,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, DETACH_VALUE),
                 _cimArgument.bool(CP_FORCE, true),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
     }
 
@@ -675,7 +676,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getSRDFSplitInputArguments(Collection<CIMObjectPath> syncPaths, Object repSettingInstance) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FRACTURE_VALUE),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})),
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})),
                 _cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance) };
     }
 
@@ -693,7 +694,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, SWAP_SYNC_PAIR),
                 _cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})) };
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})) };
     }
 
     public CIMArgument[] getASyncPairFailBackInputArguments(CIMObjectPath groupSync) {
@@ -718,7 +719,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getASyncPairFailBackInputArguments(Collection<CIMObjectPath> syncPaths) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FAILBACK_SYNC_PAIR),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})) };
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})) };
     }
 
     public CIMArgument[] getASyncPairSuspendInputArguments(CIMObjectPath groupSync) {
@@ -737,7 +738,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getSyncPairResumeInputArguments(Collection<CIMObjectPath> syncPaths) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})) };
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})) };
     }
 
     public CIMArgument[] getASyncPairResumeInputArguments(CIMObjectPath groupSync) {
@@ -813,7 +814,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] {
                 _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
     }
 
@@ -1354,7 +1355,7 @@ public class SmisCommandHelper implements SmisConstants {
         ArrayList<CIMArgument> list = new ArrayList<CIMArgument>();
         try {
             CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storageDevice, volume);
-            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false, new String[]{CP_THINLY_PROVISIONED});
+            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false, new String[] { CP_THINLY_PROVISIONED });
             String isThinVolume = CIMPropertyFactory.getPropertyValue(volumeInstance, CP_THINLY_PROVISIONED);
             list.add(_cimArgument.reference(CP_THE_ELEMENT, volumePath));
             list.add(_cimArgument.uint64(CP_SIZE, size));
@@ -2160,7 +2161,7 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMArgument[] getRemoveAndUnmapMaskingGroupMembersInputArguments(CIMObjectPath maskingGroupPath, CIMObjectPath[] memberPaths,
-                                                                          StorageSystem storage, boolean forceFlag) {
+            StorageSystem storage, boolean forceFlag) {
         CIMArgument[] args = getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, forceFlag);
         // Only for 8.0.3 and up. !!! (see COP-13573)
         if (storage.getUsingSmis80()) {
@@ -2169,6 +2170,7 @@ public class SmisCommandHelper implements SmisConstants {
         return args;
 
     }
+
     public CIMArgument[] getAddOrRemoveMaskingGroupMembersInputArguments(CIMObjectPath maskingGroupPath, CIMObjectPath[] members,
             boolean forceFlag) {
         List<CIMArgument> argsList = new ArrayList<CIMArgument>();
@@ -2288,7 +2290,7 @@ public class SmisCommandHelper implements SmisConstants {
             List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
             volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));
 
-            _log.info(String.format("Volume [%s](%s) will be %s for RP", 
+            _log.info(String.format("Volume [%s](%s) will be %s for RP",
                     volume.getLabel(), volume.getId(),
                     (flag ? "tagged" : "untagged")));
             setRecoverPointTag(storageSystem, volumePathList, flag);
@@ -2720,10 +2722,10 @@ public class SmisCommandHelper implements SmisConstants {
         };
     }
 
-    public CIMArgument[] getDeleteSettingsForSnapshotInputArguments(CIMObjectPath settingsPath)
+    public CIMArgument[] getDeleteSettingsForSnapshotInputArguments(CIMObjectPath settingsPath, boolean synchronous)
             throws Exception {
         return new CIMArgument[] {
-                _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
+                _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, synchronous),
                 _cimArgument.uint16(CP_OPERATION, DELETE_FROM_SYNC_SETTINGS),
                 _cimArgument.reference(CP_SETTINGS_STATE, settingsPath)
         };
@@ -4354,12 +4356,38 @@ public class SmisCommandHelper implements SmisConstants {
         };
     }
 
-    public CIMArgument[] getCreateElementStorageAspect(StorageSystem storage, Volume volume) {
-        CIMObjectPath sourceVolumePath = _cimPath.getBlockObjectPath(storage, volume);
-        return new CIMArgument[] {
-                _cimArgument.reference(CP_SOURCE_ELEMENT, sourceVolumePath),
-                _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE)
-        };
+    /**
+     * Get the SMI-S input arguments when creating a CIM_SynchronizedAspectForSource, i.e,
+     * an array snapshot point-in-time copy, for the source with the passed path.
+     * 
+     * @param sourcePath The CIM object path for the array snapshot source.
+     * @param skipRefresh true if the skipRefresh argument should be included.
+     * @param name The name for the array snapshot, or null for no name.
+     * @param mode The update mode, or null.
+     * 
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getCreateSynchronizationAspectInput(CIMObjectPath sourcePath, boolean skipRefresh, String name, Integer mode) {
+        List<CIMArgument> argList = new ArrayList<CIMArgument>();
+        argList.add(_cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE));
+        argList.add(_cimArgument.reference(CP_SOURCE_ELEMENT, sourcePath));
+
+        // If skip refresh, add argument.
+        if (skipRefresh) {
+            argList.add(_cimArgument.bool(CP_EMC_SKIP_REFRESH, true));
+        }
+
+        // Add argument if name is specified.
+        if (name != null) {
+            argList.add(_cimArgument.string(CP_NAME, name));
+        }
+
+        // Add argument if mode is specified.
+        if (mode != null) {
+            argList.add(_cimArgument.uint16(CP_MODE, mode.intValue()));
+        }
+
+        return argList.toArray(new CIMArgument[argList.size()]);
     }
 
     public CIMArgument[] getDeleteStorageHardwareIDArgs(StorageSystem storage, Initiator
@@ -4790,7 +4818,7 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.reference(CP_SOURCE_GROUP, srcCG));
         args.add(_cimArgument.reference(CP_TARGET_GROUP, tgtCG));
         args.add(_cimArgument.referenceArray(CP_ELEMENT_SYNCHRONIZATIONS,
-                elementSynchronizations.toArray(new CIMObjectPath[]{})));
+                elementSynchronizations.toArray(new CIMObjectPath[] {})));
         return args.toArray(new CIMArgument[] {});
     }
 
@@ -6178,7 +6206,7 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, RESTORE_FROM_REPLICA),
                 _cimArgument.bool(CP_FORCE, true),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
     }
 
@@ -6367,26 +6395,27 @@ public class SmisCommandHelper implements SmisConstants {
             CIMInstance repSettingData = null;
             if (syncType == SmisConstants.CLONE_VALUE) {
                 if (createInactive && storageDevice.getUsingSmis80()) {
-                    repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName, COPY_BEFORE_ACTIVATE);
+                    repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName,
+                            COPY_BEFORE_ACTIVATE, true);
                 } else if (storageDevice.checkIfVmax3() && ControllerUtils.isVmaxUsing81SMIS(storageDevice, _dbClient)) {
                     /**
                      * VMAX3 using SMI 8.1 provider needs to send DesiredCopyMethodology=32770
                      * to create TimeFinder differential clone.
                      */
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName,
-                            SMIS810_TF_DIFFERENTIAL_CLONE_VALUE);
+                            SMIS810_TF_DIFFERENTIAL_CLONE_VALUE, true);
                 } else {
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName,
-                            DIFFERENTIAL_CLONE_VALUE);
+                            DIFFERENTIAL_CLONE_VALUE, true);
                 }
             } else if (syncType == SmisConstants.SNAPSHOT_VALUE) {
                 // For VMAX2 arrays use the VPSNAPS during createListReplica.
                 if (!storageDevice.checkIfVmax3()) {
-                    repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName, VP_SNAP_VALUE);
+                    repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName, VP_SNAP_VALUE, true);
                 } else {
                     // For VMAX3, we always create snapvx snapshots
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName,
-                            INSTRUMENTATION_DECIDES_VALUE);
+                            INSTRUMENTATION_DECIDES_VALUE, true);
                 }
             }
             args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingData));
@@ -6471,7 +6500,7 @@ public class SmisCommandHelper implements SmisConstants {
         if (replicationSettingData != null) {
             args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, replicationSettingData));
         }
-        return args.toArray(new CIMArgument[]{});
+        return args.toArray(new CIMArgument[] {});
     }
 
     /**
@@ -6489,7 +6518,7 @@ public class SmisCommandHelper implements SmisConstants {
     public List<CIMObjectPath> getSettingsDefineStatePaths(
             StorageSystem storage, BlockObject blockObject,
             BlockSnapshot snapshot) throws WBEMException {
-        if (!blockObject.hasConsistencyGroup()) {
+        if ((!blockObject.hasConsistencyGroup()) || (snapshot == null)) {
             return getSettingsDefineStateFromSource(storage, blockObject);
         } else {
             return getSettingsDefineStateFromSourceGroup(storage, snapshot);
@@ -6774,6 +6803,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Add CIMArgument to CIMArgument[]
+     * 
      * @param args
      * @param element
      * @return new CIMArgument[]
@@ -6785,20 +6815,25 @@ public class SmisCommandHelper implements SmisConstants {
         return argsList.toArray(argsNew);
     }
 
-    public CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, int desiredValue) {
-        return this.getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, null, desiredValue);
+    public CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, int desiredValue,
+            Boolean setTargetSupplier) {
+        return this.getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, null, desiredValue, setTargetSupplier);
     }
 
     /*
      * Get ReplicationSettingData instance.
      * 
-     * @param storageSystem
+     * @param storageSystem A reference to the storage system
+     * 
+     * @param elementName An optional name for the instance
      * 
      * @param desiredValue DesiredCopyMethodology value
+     * 
+     * @param steTargetSupplier Whether or not the TargetElementSupplier should also be specified.
      */
     @SuppressWarnings("rawtypes")
     public CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, final String elementName,
-            int desiredValue) {
+            int desiredValue, Boolean setTargetSupplier) {
         CIMInstance modifiedInstance = null;
         // only for vmax, otherwise, return null
         if (!storageSystem.deviceIsType(Type.vmax)) {
@@ -6822,9 +6857,12 @@ public class SmisCommandHelper implements SmisConstants {
                         CIMProperty<?> desiredMethod = new CIMProperty<Object>(SmisConstants.DESIRED_COPY_METHODOLOGY, UINT16_T,
                                 new UnsignedInteger16(desiredValue));
                         list.add(desiredMethod);
-                        CIMProperty<?> targetElementSupplier = new CIMProperty<Object>(TARGET_ELEMENT_SUPPLIER,
-                                UINT16_T, new UnsignedInteger16(CREATE_NEW_TARGET_VALUE));
-                        list.add(targetElementSupplier);
+                        if (setTargetSupplier) {
+                            CIMProperty<?> targetElementSupplier = new CIMProperty<Object>(TARGET_ELEMENT_SUPPLIER,
+                                    UINT16_T, new UnsignedInteger16(CREATE_NEW_TARGET_VALUE));
+
+                            list.add(targetElementSupplier);
+                        }
                         if (null != elementName) {
                             CIMProperty<?> elementNameProp = new CIMProperty<Object>(SmisConstants.CP_ELEMENT_NAME, STRING_T,
                                     elementName);
@@ -6844,7 +6882,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Return the CIMObjectPath representing the StoragePool to which 'volume belongs
-     *
+     * 
      * @param storage [IN] - StorageSystem object where 'volume' resides
      * @param volume [IN] - Volume object
      * @return CIMObjectPath of StoragePool where 'volume' belongs
@@ -6858,5 +6896,66 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         return poolPath;
+    }
+
+    /**
+     * Get the SMI-S input arguments when linking a target to an array snapshot.
+     * 
+     * @param system A reference to the storage system.
+     * @param settingsStatePath The CIM object path of the CIM_SettingsDefineState for the array snapshot.
+     * @param targetDevicePath The CIM object path of the target volume.
+     * @param copyMode Specifies if the array snapshot should simply be attached to the target
+     *            (i.e., no data copy), or the array snapshot should actually be copied to the target.
+     * 
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getModifySettingsDefinedStateForLinkTargets(StorageSystem system, CIMObjectPath settingsStatePath,
+            CIMObjectPath targetDevicePath, String copyMode) {
+
+        List<CIMArgument> args = new ArrayList<CIMArgument>();
+        args.add(_cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath));
+        args.add(_cimArgument.reference(CP_TARGET_ELEMENT, targetDevicePath));
+        if (copyMode.equals(BlockSnapshotSession.CopyMode.copy.name())) {
+            CIMInstance replicationsettingDataInstance = getReplicationSettingDataInstanceForDesiredCopyMethod(system,
+                    COPY_METHODOLOGY_FULL_COPY, false);
+            args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, replicationsettingDataInstance));
+            args.add(_cimArgument.uint16(CP_OPERATION, COPY_TO_TARGET_VALUE));
+            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED));
+        } else {
+            args.add(_cimArgument.uint16(CP_OPERATION, ATTACH_TO_TARGET_VALUE));
+        }
+
+        return args.toArray(new CIMArgument[args.size()]);
+    }
+
+    /**
+     * Get the SMI-S input arguments when re-linking a target to an array snapshot.
+     * 
+     * @param settingsStatePath The CIM object path of the CIM_SettingsDefineState for the target array snapshot.
+     * @param targetDevicePath The CIM object path of the target volume.
+     * 
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getModifySettingsDefinedStateForRelinkTargets(CIMObjectPath settingsStatePath,
+            CIMObjectPath targetDevicePath) {
+        return new CIMArgument[] {
+                _cimArgument.uint16(CP_OPERATION, RELINK_TARGET_VALUE),
+                _cimArgument.reference(CP_TARGET_ELEMENT, targetDevicePath),
+                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath)
+        };
+    }
+
+    /**
+     * Get the SMI-S input arguments when unlinking a target from an array snapshot.
+     * 
+     * @param syncObject The path for the CIM_StorageSynchronized instance for the linked target.
+     * 
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getUnlinkBlockSnapshotSessionTargetInputArguments(CIMObjectPath syncObject) {
+        return new CIMArgument[] {
+                _cimArgument.uint16(CP_OPERATION, DETACH_VALUE),
+                _cimArgument.reference(CP_SYNCHRONIZATION, syncObject)
+        };
     }
 }

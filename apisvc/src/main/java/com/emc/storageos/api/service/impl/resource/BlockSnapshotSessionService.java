@@ -141,7 +141,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/restore")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep restoreSnapshotSession(@PathParam("id") URI id) {
+    public TaskList restoreSnapshotSession(@PathParam("id") URI id) {
         return getSnapshotSessionManager().restoreSnapshotSession(id);
     }
 

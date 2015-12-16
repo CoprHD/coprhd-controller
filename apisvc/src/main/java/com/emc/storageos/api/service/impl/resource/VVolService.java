@@ -20,6 +20,7 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.placement.VVolPlacementManager;
 import com.emc.storageos.db.client.model.VVol;
 import com.emc.storageos.model.vasa.VVolBulkResponse;
 import com.emc.storageos.model.vasa.VVolCreateRequestParam;
@@ -37,6 +38,16 @@ public class VVolService extends AbstractVasaService{
 
     private static final Logger _log = LoggerFactory.getLogger(VVolService.class);
     
+    private VVolPlacementManager vVolPlacementManager;
+    
+    public VVolPlacementManager getvVolPlacementManager() {
+        return vVolPlacementManager;
+    }
+
+    public void setvVolPlacementManager(VVolPlacementManager vVolPlacementManager) {
+        this.vVolPlacementManager = vVolPlacementManager;
+    }
+    
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -46,6 +57,10 @@ public class VVolService extends AbstractVasaService{
         String result = getStringFromInputStream(input);
         
         _log.info("************ SOAP Request : " + result +  " **********************");
+        
+        _log.info("********* Sending for Placement Logic ************");
+        
+         getvVolPlacementManager().placementLogicForVVol(input);
         
         return Response.status(201).build();
         
@@ -96,4 +111,6 @@ public class VVolService extends AbstractVasaService{
         return sb.toString();
 
     }
+
+
 }

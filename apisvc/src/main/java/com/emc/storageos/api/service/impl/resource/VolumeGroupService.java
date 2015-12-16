@@ -518,12 +518,31 @@ public class VolumeGroupService extends TaskResourceService {
                 validateUpdateVolumesInVolumeGroup(dbClient, param, volumeGroup);
             }
             
+            if ((addVols == null || addVols.isEmpty()) && (removeVols == null || removeVols.isEmpty())) {
+                // no volumes to add or remove
+                return;
+            }
+            
             BlockServiceApi serviceAPI = getBlockService(dbClient, firstVol);
             Operation op = dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(),
                     taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
-            taskList.getTaskList().add(toTask(volumeGroup, taskId, op));
-            addTasksForVolumesAndCGs(dbClient, addVols, removeVols, impactedCGs, taskId, taskList);
             try {
+                taskList.getTaskList().add(toTask(volumeGroup, taskId, op));
+                addTasksForVolumesAndCGs(dbClient, addVols, removeVols, impactedCGs, taskId, taskList);
+                if (removeVols != null && !removeVols.isEmpty()) {
+                // if any of the remove volumes are not in a CG, just update the database
+                // this shouldn't happen but it will add robustness if anything goes wrong
+                List<Volume> checkVols = new ArrayList<Volume>(removeVols);
+                removeVols.clear();
+                for (Volume removeVol : checkVols) {
+                    if (NullColumnValueGetter.isNullURI(removeVol.getConsistencyGroup())) {
+                        removeVol.getVolumeGroupIds().remove(volumeGroup.getId().toString());
+                        dbClient.updateObject(removeVol);
+                    } else {
+                        removeVols.add(removeVol);
+                    }
+                }
+                }
                 serviceAPI.updateVolumesInVolumeGroup(param.getAddVolumesList(), removeVols, volumeGroup.getId(), taskId);
             }  catch (InternalException | APIException e) {
                 VolumeGroup app = dbClient.queryObject(VolumeGroup.class, volumeGroup.getId());
@@ -592,6 +611,32 @@ public class VolumeGroupService extends TaskResourceService {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                             "The volume type is not same as others");
                 }
+                
+                // check to make sure this volume is not part of another application
+                StringSet volumeGroups = volume.getVolumeGroupIds();
+                List<String> badVolumeGroups = new ArrayList<String>();
+                if (volumeGroups != null && !volumeGroups.isEmpty()) {
+                    for (String vgId : volumeGroups) {
+                        VolumeGroup vg = dbClient.queryObject(VolumeGroup.class, URI.create(vgId));
+                        if (vg == null || vg.getInactive()) {
+                            // this means the volume points to a non-existent volume group; 
+                            // this shouldn't happen but we can clean this dangling reference up
+                            badVolumeGroups.add(vgId);
+                        } else {
+                            if (vg.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())) {
+                                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                                        String.format("The volume is a member of another application: %s", vg.getLabel()));
+                            }
+                        }
+                    }
+                    if (!badVolumeGroups.isEmpty()) {
+                        for (String vgId : badVolumeGroups) {
+                            volume.getVolumeGroupIds().remove(vgId);
+                        }
+                        dbClient.updateObject(volume);
+                        volume = dbClient.queryObject(Volume.class, volume.getId());
+                    }
+                }
                 volumes.add(volume);
             }
             // Check if the to-add volumes are the same volume type as existing volumes in the application
@@ -632,7 +677,9 @@ public class VolumeGroupService extends TaskResourceService {
                     continue;
                 }
                 
-                removeVolumeCGs.add(vol.getConsistencyGroup());
+                if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
+                    removeVolumeCGs.add(vol.getConsistencyGroup());
+                }
 
                 removeVolumes.add(vol);
             }
@@ -715,7 +762,7 @@ public class VolumeGroupService extends TaskResourceService {
     private void checkForApplicationPendingTasks(VolumeGroup volumeGroup) {
         List<Task> newTasks = TaskUtils.findResourceTasks(_dbClient, volumeGroup.getId());
         for (Task task : newTasks) {
-            if (task.isPending()) {
+            if (task != null && !task.getInactive() && task.isPending()) {
                 throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(volumeGroup.getLabel());
             }
         }

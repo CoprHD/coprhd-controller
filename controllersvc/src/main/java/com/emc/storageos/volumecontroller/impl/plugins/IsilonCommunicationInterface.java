@@ -1133,12 +1133,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         NASServer nasServer = null;
         if (nasServerMap != null && !nasServerMap.isEmpty()) {
             for (Entry<String, NASServer> entry : nasServerMap.entrySet()) {
-                if (!SYSTEM_ACCESS_ZONE_NAME.equals(entry.getValue().getNasName())) {
-                    if (fsPath.startsWith(entry.getKey())) {
-                        nasServer = entry.getValue();
-                        break;
+                    if (!SYSTEM_ACCESS_ZONE_NAME.equals(entry.getValue().getNasName())) {
+                        if (fsPath.startsWith(entry.getKey())) {
+                            nasServer = entry.getValue();
+                            break;
+                        }
                     }
-                }
             }
             if (nasServer == null) {
                 nasServer = nasServerMap.get(IFS_ROOT + "/");
@@ -2159,11 +2159,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             for (IsilonAccessZone isilonAccessZone : accessZones) {
                 if (isilonAccessZone.isSystem() == false) {
                     nasServer = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
-
-                    accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    if (nasServer != null) {
+                        accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    }
                 } else {
                     nasServer = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
-                    accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    if (nasServer != null) {
+                        accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    }
                 }
             }
         }

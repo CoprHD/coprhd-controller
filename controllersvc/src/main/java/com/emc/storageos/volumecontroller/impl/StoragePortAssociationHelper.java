@@ -208,16 +208,16 @@ public class StoragePortAssociationHelper {
                 // If there are varrays which changed connectivity to our storage system, we need to process all their vpools to match them to
                 // our system's storage pools.
                 // Match the VPools defined in VArrays with changed connectivity to the StoragePools with all vpool matchers
-                _log.info("New varrays connected to storage system {} through port {} are {}", storageSystemURI, port.getId(), varraysWithChangedConnectivity);
+                _log.info("Varrays which changed connectivity to storage system {} are {}", storageSystemURI, varraysWithChangedConnectivity);
                 List<URI> vpoolURIs = getVpoolsForVarrays(varraysWithChangedConnectivity, dbClient);
-                _log.info("Execute all vpool matchers for vpools {}", vpoolURIs);
+                _log.info("There are {} vpools for varrays. Execute all vpool matchers for vpools {}", vpoolURIs.size(), vpoolURIs);
                 ImplicitPoolMatcher.matchModifiedStoragePoolsWithVirtualPools(pools, vpoolURIs, dbClient, coordinator, AttributeMatcher.VPOOL_MATCHERS);
             }
             if (!varraysWithOutChangedConnectivity.isEmpty()) {
                 _log.info("Varrays which did not change connection to storage system {} are {}", storageSystemURI, varraysWithOutChangedConnectivity);
                 // Match the VPools defined in VArrays without changed connectivity to the StoragePools only with num paths matcher
                 List<URI> vpoolURIs = getVpoolsForVarrays(varraysWithOutChangedConnectivity, dbClient);
-                _log.info("Execute num paths matcher for vpools {}", vpoolURIs);
+                _log.info("There are {} vpools for varrays. Execute num paths matcher for vpools {}", vpoolURIs.size(), vpoolURIs);
                 ImplicitPoolMatcher.matchModifiedStoragePoolsWithVirtualPools(pools, vpoolURIs, dbClient, coordinator, AttributeMatcher.CONNECTIVITY_PLACEMENT_MATCHERS);
             }
             // get all the system that were affected and update their virtual
@@ -326,7 +326,7 @@ public class StoragePortAssociationHelper {
                         // system and varray.
                         // We can stop here processing varray ports.
                         varraysToAddWithChangedConnectivity.remove(varrayId);
-                        _log.info("Varray {} already has connection to storage system {} through port {}", varrayId, storageSystemURI, varrayPort);
+                        _log.info("Varray {} already has connection to storage system {} through port {}", varrayId, storageSystemURI, portURI);
                         break;
                     }
                 }
@@ -350,7 +350,7 @@ public class StoragePortAssociationHelper {
                     if (!NullColumnValueGetter.isNullURI(varrayPort.getStorageDevice()) &&
                             storageSystemURI.equals(varrayPort.getStorageDevice())) {
                         // This varray port belongs to our storage system
-                        _log.info("Varray {} has connection to storage system {} through port {}", varrayId, storageSystemURI, varrayPort);
+                        _log.info("Varray {} has connection to storage system {} through port {}", varrayId, storageSystemURI, portURI);
                         // There is other port from our storage system which belongs to varray.
                         // We can stop here processing varray ports.
                         varraysToRemoveWithChangedConnectivity.remove(varrayId);

@@ -251,10 +251,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
     }
 
     /**
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> cc5c8be... add create_snapshot tests
+     * add create_snapshot tests
      * Delete block consistency group.
      *
      * @param consistencyGroup Input

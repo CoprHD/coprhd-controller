@@ -26,7 +26,7 @@ import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 public class AppSupportUtil {
     
     public static List<NamedRelatedResourceRep> getApplications() {
-        return BourneUtil.getSysClient().application().getApplications().getVolumeGroupss();
+        return BourneUtil.getViprClient().application().getApplications().getVolumeGroupss();
     }
     
     public static VolumeGroupRestRep createApplication(String name, String description, Set<String> roles){
@@ -34,11 +34,11 @@ public class AppSupportUtil {
         create.setName(name);
         create.setDescription(description);
         create.setRoles(roles);
-        return BourneUtil.getSysClient().application().createApplication(create);
+        return BourneUtil.getViprClient().application().createApplication(create);
     }
     
     public static void deleteApplication(URI id) {
-        BourneUtil.getSysClient().application().deleteApplication(id);
+        BourneUtil.getViprClient().application().deleteApplication(id);
     }
     
     public static TaskList updateApplication(String name, String description, String id) {
@@ -49,10 +49,10 @@ public class AppSupportUtil {
         if(!description.isEmpty()) {
             update.setDescription(description);
         }
-        return BourneUtil.getSysClient().application().updateApplication(uri(id), update);
+        return BourneUtil.getViprClient().application().updateApplication(uri(id), update);
     }
     
     public static VolumeGroupRestRep getApplication(String id) {
-        return BourneUtil.getSysClient().application().getApplication(uri(id));
+        return BourneUtil.getViprClient().application().getApplication(uri(id));
     }
 }

@@ -338,4 +338,8 @@ public class ViPRCoreClient {
     public IPsec ipsec() {
         return new IPsec(client);
     }
+    
+    public ApplicationSupport application() {
+        return new ApplicationSupport(client);
+    }
 }

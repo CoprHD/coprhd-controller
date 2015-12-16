@@ -111,11 +111,6 @@ public class ViPRSystemClient {
     	return new Backup(client);
     }
 
-
-    public ApplicationSupport application() {
-        return new ApplicationSupport(client);
-    }
-    
     public IPsec ipsec(){
         return new IPsec(client);
 

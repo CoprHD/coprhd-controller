@@ -551,8 +551,6 @@ public class VdcManager extends AbstractManager {
             try {
                 // update backCompatPreYoda to false everywhere
                 vdcConfigUtil.setBackCompatPreYoda(false);
-                // CoordinatorClientExt is singleton
-                coordinator.setBackCompatPreYoda(false);
                 backCompatPreYoda = false;
                 targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
@@ -562,6 +560,9 @@ public class VdcManager extends AbstractManager {
             } finally {
                 try {
                     coordinator.releasePersistentLock(svcId, vdcLockId);
+                    // Update CoordinatorClientExt AFTER releasing the persistent lock
+                    // CoordinatorClientExt is a singleton
+                    coordinator.setBackCompatPreYoda(backCompatPreYoda);
                 } catch (Exception e) {
                     log.error("Failed to release the vdc lock:", e);
                 }

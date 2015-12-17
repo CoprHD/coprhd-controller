@@ -2943,7 +2943,6 @@ recoverpoint_simulator_setup()
 
     POOLS_AUTO_MATCH=false
 
-    RECOVERPOINT=$RP_SIMULATOR
     RECOVERPOINT_IP=$RP_SIMULATOR_IP
     rp_protection_system_setup
 

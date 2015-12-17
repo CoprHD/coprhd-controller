@@ -16,6 +16,7 @@
         <property name="nodeCount" ref="nodeCount" />
         <property name="statusChecker" ref="statusChecker"/>
         <property name="drUtil" ref="drUtil"/>
+        <property name="backCompatPreYoda" ref="backCompatPreYoda" />
     </bean>
     
     <import resource="classpath:dbclient-conf.xml"/>

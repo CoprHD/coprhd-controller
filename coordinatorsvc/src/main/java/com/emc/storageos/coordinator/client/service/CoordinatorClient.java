@@ -227,7 +227,17 @@ public interface CoordinatorClient {
     public InterProcessSemaphoreMutex getSemaphoreLock(String name) throws CoordinatorException;
 
     /**
-     * Retrieves/creates a distributed persistent lock
+     * Retrieves/creates a distributed persistent lock from the global area.
+     * Remove this method once the current version cannot be upgraded from pre-Yoda releases directly.
+     *
+     * @param name lock name
+     * @return DistributedPersistentLock
+     */
+
+    public DistributedPersistentLock getGlobalPersistentLock(String name) throws CoordinatorException;
+
+    /**
+     * Retrieves/creates a distributed persistent lock. This lock becomes site-specific since Yoda
      * 
      * @param name lock name
      * @return DistributedPersistentLock

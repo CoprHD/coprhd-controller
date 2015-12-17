@@ -109,6 +109,7 @@ public class CoordinatorClientExt {
     private int _nodeCount = 0;
     private DrUtil drUtil;
     private volatile boolean stopCoordinatorSvcMonitor; // default to false
+    private volatile boolean backCompatPreYoda; //default to false
     
     private DbServiceStatusChecker statusChecker = null;
 
@@ -141,6 +142,10 @@ public class CoordinatorClientExt {
     
     public DrUtil getDrUtil() {
         return this.drUtil;
+    }
+
+    public void setBackCompatPreYoda(boolean backCompatPreYoda) {
+        this.backCompatPreYoda = backCompatPreYoda;
     }
     
     /**
@@ -713,7 +718,8 @@ public class CoordinatorClientExt {
      */
     public boolean hasPersistentLock(String svcId, String lockId) throws Exception {
         try {
-            DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+            DistributedPersistentLock lock = internalGetPersistentLock(lockId);
+
             if (lock != null) {
                 String lockOwner = lock.getLockOwner();
                 if (lockOwner != null && serviceIdMatches(lockOwner, svcId)) {
@@ -738,7 +744,7 @@ public class CoordinatorClientExt {
      */
     public boolean getPersistentLock(String svcId, String lockId) {
         try {
-            DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+            DistributedPersistentLock lock = internalGetPersistentLock(lockId);
             _log.info("Acquiring the {} lock for {}...", lockId, svcId);
             boolean result = lock.acquireLock(svcId);
             if (result) {
@@ -762,7 +768,7 @@ public class CoordinatorClientExt {
      * @throws InvalidLockOwnerException
      */
     public boolean releasePersistentLock(String svcId, String lockId) throws Exception {
-        DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+        DistributedPersistentLock lock = internalGetPersistentLock(lockId);
         if (lock != null) {
             String lockOwner = lock.getLockOwner();
 
@@ -785,6 +791,17 @@ public class CoordinatorClientExt {
         }
 
         return false;
+    }
+
+    private DistributedPersistentLock internalGetPersistentLock(String lockId) {
+        DistributedPersistentLock lock;
+        if (backCompatPreYoda) {
+            _log.info("Pre-yoda back compatible flag detected. Check persistent lock from the global area");
+            lock = _coordinator.getGlobalPersistentLock(lockId);
+        } else {
+            lock = _coordinator.getPersistentLock(lockId);
+        }
+        return lock;
     }
 
     /**

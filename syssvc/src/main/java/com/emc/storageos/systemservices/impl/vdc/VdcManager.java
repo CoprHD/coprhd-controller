@@ -551,6 +551,8 @@ public class VdcManager extends AbstractManager {
             try {
                 // update backCompatPreYoda to false everywhere
                 vdcConfigUtil.setBackCompatPreYoda(false);
+                // CoordinatorClientExt is singleton
+                coordinator.setBackCompatPreYoda(false);
                 backCompatPreYoda = false;
                 targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);

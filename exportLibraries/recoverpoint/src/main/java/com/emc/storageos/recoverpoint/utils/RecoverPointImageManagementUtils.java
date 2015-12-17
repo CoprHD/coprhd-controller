@@ -1324,14 +1324,9 @@ public class RecoverPointImageManagementUtils {
      */
     public static PipeState getPipeActiveState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID) {
     	PipeState pipeState = PipeState.ACTIVE;
-    	// DO NOT CHECK-IN!  WJEIV
-    	// If you see this as part of a pull request, point it out!
-    	// (siimulator is returning >0 snapshot value)
-    	/*
     	if (isSnapShotTechnologyEnabled(impl, cgUID)) {
             pipeState = PipeState.SNAP_IDLE;
         }
-        */
     	return pipeState;
     }
 }

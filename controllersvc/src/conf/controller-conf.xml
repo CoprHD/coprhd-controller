@@ -1248,7 +1248,8 @@
         <property name="configInfo" ref="configinfo" />
         <property name="dataObjectScanner" ref="dataObjectScanner"/>
         <property name="controlRequestTaskConsumer" ref="controlRequestTaskConsumer"/>
-        <property name="drPostFailoverHandler" ref="drPostFailoverHandler"/>
+        <property name="workflowDrCleanupHandler" ref="workflowDrCleanupHandler"/>
+        <property name="queueDrCleanupHandler" ref="queueDrCleanupHandler"/>
     </bean>
 
 	<bean id="monitoringJobConsumer"
@@ -1389,8 +1390,25 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
-    <bean id="drPostFailoverHandler" class="com.emc.storageos.volumecontroller.impl.ControllerPostFailoverHandler">
-    	<property name="name" ref="ControllersvcPostFailoverHandler"/>
+    <bean id="workflowDrCleanupHandler" class="com.emc.storageos.volumecontroller.impl.ControllerPostFailoverHandler">
+    	<property name="name" value="ControllersvcPostFailoverHandler"/>
     </bean>
     
+    <bean id="queueDrCleanupHandler" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler">
+    	<property name="name" value="ControllersvcQueueCleanupHandler"/>
+    	<property name="queueNames">
+    		<list>
+    			<value>jobqueue</value>
+    			<value>discoverjobqueue</value>
+    			<value>computediscoverjobqueue</value>
+    			<value>scanjobqueue</value>
+    			<value>monitoringjobqueue</value>
+    			<value>meteringjobqueue</value>
+    			<value>controller</value>
+    			<value>workflow_outer</value>
+    			<value>workflow_inner</value>
+    		</list>
+    	</property>
+    </bean>
+
 </beans>

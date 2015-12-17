@@ -32,6 +32,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
 import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
+import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
@@ -139,6 +140,7 @@ public class ControllerServiceImpl implements ControllerService {
     private ControlRequestTaskConsumer _controlRequestTaskConsumer;
     private DrUtil _drUtil;
     private ControllerPostFailoverHandler _drPostFailoverHandler;
+    private QueueCleanupHandler _drQueueFailoverHandler;
     
     ManagedCapacityImpl _capacityCompute;
     LeaderSelector _capacityService;
@@ -438,7 +440,7 @@ public class ControllerServiceImpl implements ControllerService {
         // Watson
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
-        _drPostFailoverHandler.cleanupQueues();
+        _drQueueFailoverHandler.run();
         
         _dispatcher.start();
 

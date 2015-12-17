@@ -70,7 +70,8 @@ public class ControllerPostFailoverHandler extends DrPostFailoverHandler {
     }
     
     private void checkAndFixDb() {
-        DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper((DbClientImpl)dbClient);
+        DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper();
+        helper.setDbClient((DbClientImpl)dbClient);
         DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
         try {
             int corruptedCount = checker.check();

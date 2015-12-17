@@ -5,7 +5,6 @@
 
 package com.emc.storageos.coordinator.client.service;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -16,14 +15,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Status;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 
 /**
  * Base class for post failover processing for DR. For a service that would do some processing after DR failover -
  * 1) Extend DrPostFailoverHandler and override execute() method. This method is called with lock acquired. 
- * 2) Give a unique name and register the name to ALL_FAILOVER_HANDLERS
+ * 2) Register the name to DrPostFailoverHandler.Factory in sys-conf.xml
+ * 3) Call run() in the middle of your service startup function
  */
 public abstract class DrPostFailoverHandler {
     private static final Logger log = LoggerFactory.getLogger(DrPostFailoverHandler.class);
@@ -44,7 +44,7 @@ public abstract class DrPostFailoverHandler {
     @Autowired
     protected DrUtil drUtil;
     
-    private String name = "Default";
+    protected String name;
     
     public DrPostFailoverHandler() {}
     
@@ -167,6 +167,30 @@ public abstract class DrPostFailoverHandler {
             }
             coordinator.persistServiceConfiguration(newConfig);
             log.info("Initialize failover handler map successfully");
+        }
+    }
+    
+    public static class QueueCleanupHandler extends DrPostFailoverHandler{
+        private List<String> queueNames;
+        
+        public QueueCleanupHandler(String name) {
+            this.name = name;
+        }
+        
+        protected void execute() {
+            for (String name : queueNames) {
+                String fullQueuePath = String.format("%s/%s", ZkPath.QUEUE, name);
+                log.info("Cleanup zk job queue path {}", fullQueuePath);
+                coordinator.deletePath(fullQueuePath);
+            }
+        }
+        
+        public List<String> getQueueNames() {
+            return queueNames;
+        }
+
+        public void setQueueNames(List<String> names) {
+            this.queueNames = names;
         }
     }
 }

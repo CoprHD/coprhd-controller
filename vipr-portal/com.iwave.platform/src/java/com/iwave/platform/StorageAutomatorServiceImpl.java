@@ -28,7 +28,7 @@ public class StorageAutomatorServiceImpl extends AbstractSecuredWebServer implem
     private ServiceBeacon serviceBeacon;
     
     @Autowired
-    private StorageAutomatorPostFailoverHandler drFailoverHandler;
+    private StorageAutomatorDrFailoverHandler drFailoverHandler;
     
     @Override
     public void start() throws Exception {

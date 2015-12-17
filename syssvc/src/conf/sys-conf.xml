@@ -556,7 +556,9 @@
     <bean id="drPostFailoverHandlerFactory" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory">
     	<property name="handlers">
             <list>
+                <value>ControllersvcQueueCleanupHandler</value>
                 <value>ControllersvcPostFailoverHandler</value>
+                <value>SasvcQueueCleanupHandler</value>
                 <value>SasvcPostFailoverHandler</value>
             </list>
         </property>

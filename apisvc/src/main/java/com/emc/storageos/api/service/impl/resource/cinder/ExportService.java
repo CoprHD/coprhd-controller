@@ -203,7 +203,7 @@ public class ExportService extends VolumeService {
 
         // Step 2: Check if the user has rights for volume modification
         verifyUserCanModifyVolume(vol);
-        _log.info("User can modify volume");
+        _log.debug("User can modify volume");
 
         // Step 3: Determine action (export/unexport) and process it
         // if ( (action.attach.connector!=null) && (action.attach.connector.ip!=null) && (action.attach.connector.ip.length() > 0)){

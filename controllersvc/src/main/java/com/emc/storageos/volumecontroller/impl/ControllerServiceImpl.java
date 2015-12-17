@@ -138,7 +138,7 @@ public class ControllerServiceImpl implements ControllerService {
     private DistributedLockQueueManager _lockQueueManager;
     private ControlRequestTaskConsumer _controlRequestTaskConsumer;
     private DrUtil _drUtil;
-    private DrPostFailoverHandler _drPostFailoverHandler;
+    private ControllerPostFailoverHandler _drPostFailoverHandler;
     
     ManagedCapacityImpl _capacityCompute;
     LeaderSelector _capacityService;
@@ -492,7 +492,8 @@ public class ControllerServiceImpl implements ControllerService {
         _monitoringJobConsumer.start();
 
         startLockQueueService();
-        _drPostFailoverHandler.execute();
+        
+        _drPostFailoverHandler.run();
         
         _jobScheduler.start();
 
@@ -732,7 +733,7 @@ public class ControllerServiceImpl implements ControllerService {
         _controlRequestTaskConsumer = consumer;
     }
 
-    public void setDrPostFailoverHandler(DrPostFailoverHandler drFailoverHandler) {
+    public void setDrPostFailoverHandler(ControllerPostFailoverHandler drFailoverHandler) {
         this._drPostFailoverHandler = drFailoverHandler;
     }
     

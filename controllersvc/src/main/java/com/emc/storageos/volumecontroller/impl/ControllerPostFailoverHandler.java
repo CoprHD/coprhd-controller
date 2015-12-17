@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
@@ -52,67 +53,39 @@ import com.emc.storageos.workflow.WorkflowService;
  * 5) Trigger device rediscovery
  * 
  */
-public class DrPostFailoverHandler {
-    private static final Logger log = LoggerFactory.getLogger(DrPostFailoverHandler.class);
-    private static final String POST_FAILOVER_HANDLER_LOCK = "drPostFailoverLock";
+public class ControllerPostFailoverHandler extends DrPostFailoverHandler {
+    private static final Logger log = LoggerFactory.getLogger(ControllerPostFailoverHandler.class);
     
-    @Autowired
-    private CoordinatorClient coordinator;
     @Autowired
     private DbClient dbClient;
-    @Autowired
-    private DrUtil drUtil;
     
-    public DrPostFailoverHandler() {}
-    
-    public void execute() {
-        try {
-            SiteState siteState = drUtil.getLocalSite().getState();
-            if (!siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
-                log.info("Ignore DR post failover handler for site state {}", siteState);
-                return;
-            }
-            
-            log.info("Acquiring lock {}", POST_FAILOVER_HANDLER_LOCK);
-            InterProcessLock lock = coordinator.getLock(POST_FAILOVER_HANDLER_LOCK);
-            lock.acquire();
-            log.info("Acquired lock {}", POST_FAILOVER_HANDLER_LOCK);
-            try {
-                Site site = drUtil.getLocalSite(); // check site state again after acquiring lock
-                siteState = site.getState();
-                if (!siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
-                    log.info("Ignore DR post failover handler for site state {}", siteState);
-                    return;
-                }
-                log.info("Site state is {}. Start post failover processing", siteState);
-                checkAndFixDb();
-                cleanupWorkflow();
-                cleanupTasks();
-                rediscoverDevices();
-                site.setState(SiteState.ACTIVE);
-                coordinator.persistServiceConfiguration(site.toConfiguration());
-            } finally {
-                lock.release();
-                log.info("Released lock {}", POST_FAILOVER_HANDLER_LOCK);
-            }
-        } catch (Exception e) {
-            log.error("Failed to execute DR failover handler", e);//todo throw a new exception
-            throw new IllegalStateException(e);
-        }
+    public ControllerPostFailoverHandler() {
     }
     
-    private void checkAndFixDb() throws Exception {
+    protected void execute() {
+        checkAndFixDb();
+        cleanupWorkflow();
+        cleanupTasks();
+        rediscoverDevices();
+    }
+    
+    private void checkAndFixDb() {
         DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper((DbClientImpl)dbClient);
         DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
-        int corruptedCount = checker.check();
-        if (corruptedCount > 0) {
-            log.info("Corrupted db data found {}. Start fixing it", corruptedCount);
-            Iterator<String> cleanupFiles = DbCheckerFileWriter.getGeneratedFiles();
-            while(cleanupFiles.hasNext()) {
-                String fileName = cleanupFiles.next();
-                log.info("File {}", fileName);
-                // Todo - fix db inconsistencies.
+        try {
+            int corruptedCount = checker.check();
+            if (corruptedCount > 0) {
+                log.info("Corrupted db data found {}. Start fixing it", corruptedCount);
+                Iterator<String> cleanupFiles = DbCheckerFileWriter.getGeneratedFiles();
+                while(cleanupFiles.hasNext()) {
+                    String fileName = cleanupFiles.next();
+                    log.info("File {}", fileName);
+                    // Todo - fix db inconsistencies.
+                }
             }
+        } catch (Exception ex) {
+            log.error("DbConsistencyChecker exception ex", ex);
+            throw new IllegalStateException(ex);
         }
     }
     

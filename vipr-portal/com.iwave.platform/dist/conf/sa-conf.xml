@@ -214,4 +214,9 @@
     <bean id="catalogConfigUtils" class="com.emc.sa.api.utils.CatalogConfigUtils">
         <property name="coordinator" ref="coordinator"/>
     </bean>
+    
+    <bean id="drPostFailoverHandler" class="com.iwave.platform.StorageAutomatorPostFailoverHandler">
+    	<property name="name" ref="SasvcPostFailoverHandler"/>
+    </bean>
+    
 </beans>

@@ -1389,6 +1389,8 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
-    <bean id="drPostFailoverHandler" class="com.emc.storageos.volumecontroller.impl.DrPostFailoverHandler">
+    <bean id="drPostFailoverHandler" class="com.emc.storageos.volumecontroller.impl.ControllerPostFailoverHandler">
+    	<property name="name" ref="ControllersvcPostFailoverHandler"/>
     </bean>
+    
 </beans>

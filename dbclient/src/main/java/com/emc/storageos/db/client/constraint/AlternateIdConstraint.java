@@ -352,7 +352,7 @@ public interface AlternateIdConstraint extends Constraint {
                     providerId);
         }
 
-        public static AlternateIdConstraint getCloneReplicationGroupInstanceConstraint(
+        public static AlternateIdConstraint getVolumeReplicationGroupInstanceConstraint(
                 String replicaGroupInstance) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),

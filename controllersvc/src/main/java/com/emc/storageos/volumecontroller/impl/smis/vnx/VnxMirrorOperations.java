@@ -33,6 +33,7 @@ import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVnxCreateCGMirrorJob;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,8 +70,11 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
             BlockMirror firstMirror = mirrors.get(0);
             Volume sourceVolume = _dbClient.queryObject(Volume.class, firstMirror.getSource());
             String sourceGroupName = _helper.getConsistencyGroupName(sourceVolume, storage);
-            // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
-            ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);
+
+            if (!StringUtils.startsWith(sourceGroupName, SmisConstants.VNX_VIRTUAL_RG)) {
+                // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
+                ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);
+            }
 
             List<String> sourceIds = new ArrayList<String>();
             targetDeviceIds = new ArrayList<String>();

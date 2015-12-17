@@ -17,6 +17,7 @@ import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,8 +78,11 @@ public class VnxCloneOperations extends AbstractCloneOperations {
             Volume sourceVolume = _dbClient.queryObject(Volume.class, first.getAssociatedSourceVolume());
             sourceGroupName = _helper.getConsistencyGroupName(sourceVolume, storage);
 
-            // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
-            ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);
+            if (!StringUtils.startsWith(sourceGroupName, SmisConstants.VNX_VIRTUAL_RG)) {
+                // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
+                ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);
+            }
+
             // Group volumes by pool and size
             List<String> sourceIds = new ArrayList<String>();
             List<Volume> clones = _dbClient.queryObject(Volume.class, cloneList);

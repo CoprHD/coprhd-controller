@@ -2502,6 +2502,16 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doFractureListReplica(StorageSystem storage, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doDeleteListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported());

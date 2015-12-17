@@ -6354,12 +6354,17 @@ public class SmisCommandHelper implements SmisConstants {
      * @param createInactive
      */
     public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice, CIMObjectPath[] sourceVolumePath,
-            List<String> labels, int syncType, String replicaName, boolean createInactive) {
+            CIMObjectPath[] targetVolumePath, List<String> labels, int syncType, String replicaName, boolean createInactive) {
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         int inactiveValue = (syncType == SmisConstants.CLONE_VALUE) ? PREPARED_VALUE : INACTIVE_VALUE;
         int waitForCopyState = (createInactive) ? inactiveValue : ACTIVATE_VALUE;
         args.add(_cimArgument.referenceArray(CP_SOURCE_ELEMENTS, sourceVolumePath));
-        args.add(_cimArgument.stringArray(CP_ELEMENT_NAMES, labels.toArray(new String[] {})));
+        if (targetVolumePath != null && targetVolumePath.length > 0) {
+            args.add(_cimArgument.referenceArray(CP_TARGET_ELEMENTS, targetVolumePath));
+        } else if (labels != null) {
+            args.add(_cimArgument.stringArray(CP_ELEMENT_NAMES, labels.toArray(new String[] {})));
+        }
+
         args.add(_cimArgument.uint16(CP_SYNC_TYPE, syncType));
         args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, waitForCopyState));
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 iWave Software LLC
+ * Copyright (c) 2015 EMC Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -28,7 +28,7 @@ public class RemoveBlockSnapshotService extends ViPRService {
     @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;
     
-    @Param(value = TYPE, required = true)
+    @Param(value = TYPE, required = false)
     protected String type;
 
     @Param(value = CONSISTENCY_GROUP, required = false)

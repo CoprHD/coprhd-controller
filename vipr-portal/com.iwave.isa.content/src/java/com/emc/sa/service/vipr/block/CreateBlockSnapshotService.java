@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 iWave Software LLC
+ * Copyright (c) 2015 EMC Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -40,7 +40,7 @@ public class CreateBlockSnapshotService extends ViPRService {
     @Param(NAME)
     protected String nameParam;
 
-    @Param(value = TYPE, required = true)
+    @Param(value = TYPE, required = false)
     protected String type;
 
     @Param(value = READ_ONLY, required = false)

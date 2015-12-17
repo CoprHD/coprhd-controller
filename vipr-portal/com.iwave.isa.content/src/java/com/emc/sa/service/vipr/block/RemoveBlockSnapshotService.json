@@ -15,6 +15,7 @@
     
     type: {
       type: "assetType.vipr.blockSnapshotType",
+      required: "false",
       lockable: true
     },
 

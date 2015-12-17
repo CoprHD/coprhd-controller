@@ -6530,11 +6530,11 @@ public class SmisCommandHelper implements SmisConstants {
     public List<CIMObjectPath> getSettingsDefineStatePaths(
             StorageSystem storage, BlockObject blockObject,
             BlockSnapshot snapshot) throws WBEMException {
-        if ((!blockObject.hasConsistencyGroup()) || (snapshot == null)) {
-            return getSettingsDefineStateFromSource(storage, blockObject);
-        } else {
-            return getSettingsDefineStateFromSourceGroup(storage, snapshot);
+
+        if (blockObject.hasConsistencyGroup()) {
+            return getSettingsDefineStateFromSourceGroup(storage, blockObject);
         }
+        return getSettingsDefineStateFromSource(storage, blockObject);
     }
 
     /**
@@ -6602,19 +6602,17 @@ public class SmisCommandHelper implements SmisConstants {
      * 
      * @param storage
      *            StorageSystem that holds the SettingsDefineState instances
-     * @param snapshot
-     *            BlockSnapshot that is part of a snapshot group
+     * @param groupMember
+     *            BlockObject that is part of a snapshot group
      * @return A List of CIMObjectPaths for SettingsDefineState instances
      * @throws WBEMException
      */
     public List<CIMObjectPath> getSettingsDefineStateFromSourceGroup(
-            StorageSystem storage, BlockSnapshot snapshot) throws WBEMException {
+            StorageSystem storage, BlockObject groupMember) throws WBEMException {
         List<CIMObjectPath> settingsDefineStatePaths = new ArrayList<>();
-        String groupName = getConsistencyGroupName(snapshot, storage);
+        String groupName = getConsistencyGroupName(groupMember, storage);
         CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(storage,
                 groupName);
-        String groupInstanceId = groupPath.getKeyValue(CP_INSTANCE_ID)
-                .toString();
 
         /*
          * Query SourceElement name with groupPath string doesn't work as it is

@@ -106,6 +106,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VdcConfigMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolVarrayIndexFix"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.SRDFTargetVolumeRDFGroupMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockSnapshotSessionMigration"/>
             </list>
         </entry>
 

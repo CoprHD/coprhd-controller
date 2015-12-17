@@ -30,7 +30,6 @@ ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE
 
 .DEFAULT: all
 .PHONY: downdloadISO downdloadRPM downdloadTGZ createREPO appliance clean destroy
-.IGNORE: $(VMDK)
 all: appliance
 
 ##################################################
@@ -48,7 +47,7 @@ endef
 downdloadISO:
 	$(call targetLog,+)
 	mkdir -p $(WORKSPACE)/iso/mount
-	@-[ -f $(WORKSPACE)/iso/$(ISO_FILE) ] || cp -pr /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) $(WORKSPACE)/iso/
+	-[ -f $(WORKSPACE)/iso/$(ISO_FILE) ] || cp -pr /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) $(WORKSPACE)/iso/
 	wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
 	$(call targetLog,-)
 
@@ -117,8 +116,8 @@ $(VMDK): | downdloadISO createREPO
 	sed -i "s|__ISO__|$(WORKSPACE)/iso/mount|g" $(WORKSPACE)/templates/config.xml
 	sed -i "s|__REPO__|$(WORKSPACE)/zypper/repo|g" $(WORKSPACE)/templates/config.xml
 	sed -i "s|__VERSION__|$(VERSION).$(JOB)|g" $(WORKSPACE)/templates/config.xml
-	@-umount $(IMAGE_DIR)/var/cache/kiwi
-	@-mount $(WORKSPACE)/iso/$(ISO_FILE) $(WORKSPACE)/iso/mount
+	-! mountpoint -q $(IMAGE_DIR)/var/cache/kiwi || umount $(IMAGE_DIR)/var/cache/kiwi
+	-mountpoint -q $(WORKSPACE)/iso/mount || mount $(WORKSPACE)/iso/$(ISO_FILE) $(WORKSPACE)/iso/mount
 	rm -fr $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 	mkdir -p $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 	mkdir -p $(WORKSPACE)/image
@@ -126,7 +125,7 @@ $(VMDK): | downdloadISO createREPO
 	mkdir -p $(WORKSPACE)/output
 	kiwi --verbose 3 --yes --prepare $(WORKSPACE)/templates --add-profile appliance --force-new-root --root $(IMAGE_DIR)
 	kiwi --verbose 3 --yes --create $(IMAGE_DIR) --add-profile appliance --type vmx --destdir $(OUTPUT_DIR)
-	@-umount $(WORKSPACE)/iso/mount
+	-umount $(WORKSPACE)/iso/mount
 	$(call targetLog,-)
 
 $(OVF): | $(VMDK)

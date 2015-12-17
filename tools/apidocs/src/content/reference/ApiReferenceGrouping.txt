@@ -4,6 +4,7 @@ BlockConsistencyGroupService
 BlockSnapshotService
 ExportGroupService
 BlockFullCopyService
+BlockSnapshotSessionService
 
 =File Services
 FileService

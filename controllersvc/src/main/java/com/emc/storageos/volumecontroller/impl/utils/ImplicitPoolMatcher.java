@@ -256,6 +256,7 @@ public class ImplicitPoolMatcher {
             Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap,
             DbClient dbClient,
             CoordinatorClient coordinator, String matcherGroupName) {
+        // By default use all vpool matchers.
         if (matcherGroupName == null) {
             matcherGroupName = AttributeMatcher.VPOOL_MATCHERS;
         }

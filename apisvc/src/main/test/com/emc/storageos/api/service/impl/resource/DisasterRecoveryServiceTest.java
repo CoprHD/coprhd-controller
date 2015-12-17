@@ -698,7 +698,7 @@ public class DisasterRecoveryServiceTest {
     public void testGetSiteError() {
         SiteErrorResponse siteError = drService.getSiteError("site-uuid-1");
 
-        assertEquals(0, siteError.getCreationTime());
+        assertEquals(null, siteError.getCreationTime());
         assertEquals(null, siteError.getErrorMessage());
 
         standbySite2.setState(SiteState.STANDBY_ERROR);
@@ -708,7 +708,7 @@ public class DisasterRecoveryServiceTest {
         
         siteError = drService.getSiteError(standbySite2.getUuid());
         
-        assertEquals(error.getCreationTime(), siteError.getCreationTime());
+        assertEquals(new Date(error.getCreationTime()), siteError.getCreationTime());
         assertEquals(error.getErrorMessage(), siteError.getErrorMessage());
         
         try {
@@ -846,17 +846,15 @@ public class DisasterRecoveryServiceTest {
         SiteRestRep site1 = new SiteRestRep();
         site1.setUuid("standby1");
         site1.setState(SiteState.STANDBY_SYNCED.toString());
-        site1.setLastStateUpdateTime((new Date()).getTime());
         responseSiteFromRemote.add(site1);
         
         SiteRestRep site2 = new SiteRestRep();
         site2.setUuid("standby2");
         site2.setState(SiteState.STANDBY_SYNCED.toString());
-        site2.setLastStateUpdateTime((new Date()).getTime()+10);
         responseSiteFromRemote.add(site2);
         
         recommendSite = drService.findRecommendFailoverSite(responseSiteFromRemote, standbySite1);
-        assertEquals(recommendSite.getUuid(), site2.getUuid());
+        assertEquals(recommendSite.getUuid(), site1.getUuid());
         
         // 3 paused
         responseSiteFromRemote = new ArrayList<SiteRestRep>();

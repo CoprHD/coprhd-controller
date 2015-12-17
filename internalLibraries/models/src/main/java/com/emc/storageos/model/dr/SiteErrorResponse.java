@@ -14,7 +14,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "site_error")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class SiteErrorResponse {
-    protected static SiteErrorResponse noError = new SiteErrorResponse();
+    private static SiteErrorResponse noError = new SiteErrorResponse();
 
     private Date creationTime;
     private int serviceCode;

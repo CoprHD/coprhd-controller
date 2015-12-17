@@ -125,7 +125,7 @@ public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {
                 DeviceControllerException ex = DeviceControllerException.exceptions.terminatedForControllerFailover();
                 task.setServiceCode(ex.getServiceCode().getCode());
                 task.setStatus(String.valueOf(Task.Status.error));
-                task.setMessage("DR failover");
+                task.setMessage(ex.getMessage());
                 task.setProgress(100);
                 task.setEndTime(Calendar.getInstance());
                 log.info("Terminate task {}", task.getId());

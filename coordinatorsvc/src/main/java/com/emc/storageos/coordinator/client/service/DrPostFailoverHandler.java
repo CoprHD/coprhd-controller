@@ -20,23 +20,26 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 
 /**
- * Base class for post failover processing for DR. For a service that would do some processing after DR failover -
- * 1) Extend DrPostFailoverHandler and override execute() method. This method is called with lock acquired. 
+ * Base class for post failover processing of DR. For a service that would do some processing after DR failover -
+ * 
+ * 1) Extend DrPostFailoverHandler and override execute() method. This method is called with lock acquired. Each handler has a unique name 
  * 2) Register the name to DrPostFailoverHandler.Factory in sys-conf.xml
- * 3) Call run() in the middle of your service startup function
+ * 3) Call run() in the middle of your service initialization function. Post DR failover is supposed to run before it starts serving request
+ * 
  */
 public abstract class DrPostFailoverHandler {
     private static final Logger log = LoggerFactory.getLogger(DrPostFailoverHandler.class);
     private static final String POST_FAILOVER_HANDLER_LOCK = "drPostFailoverLock";
     
+    // ZK configuration to persist handler execution status.
     protected static final String CONFIG_KIND = "disasterRecoveryPostFailoverHandlers";
     protected static final String CONFIG_ID = "global";
     
+    // Status for each handler. Persisted to ZK
     enum Status {
         INIT,
         EXECUTING,
-        COMPLETED,
-        ERROR
+        COMPLETED
     }
     
     @Autowired
@@ -48,6 +51,10 @@ public abstract class DrPostFailoverHandler {
     
     public DrPostFailoverHandler() {}
     
+    /**
+     * Run the handler. The handler runs only on single node. If it fails, current service should quit and another node takes over to retry
+     * 
+     */
     public void run() {
         try {
             SiteState siteState = drUtil.getLocalSite().getState();
@@ -67,15 +74,15 @@ public abstract class DrPostFailoverHandler {
                     log.info("Ignore DR post failover handler for site state {}", siteState);
                     return;
                 }
-                boolean isExecuted = isExecuted();
-                log.info("Execution status for current handler is {}", isExecuted);
+                boolean isExecuted = isCompleted();
+                log.info("Execution status is {}", isExecuted);
                 if (!isExecuted) {
-                    log.info("Start post failover processing");
+                    log.info("Start post failover processing {}", name);
                     updateStatus(Status.EXECUTING);
                     execute();
                     updateStatus(Status.COMPLETED);
                 }
-                log.info("Post failover processing done");
+                log.info("Post failover processing done for {}", name);
                 if (isAllHandlersCompleted()) {
                     log.info("All handlers successfully completed. Change site state to ACTIVE");
                     site.setState(SiteState.ACTIVE);
@@ -91,17 +98,22 @@ public abstract class DrPostFailoverHandler {
         }
     }
     
+    /**
+     * Subclass should override this method to provide actions to be done after DR failover. It should
+     * be idempotent - which means it could be retried multiple times without side effects to the system 
+     */
     protected abstract void execute();
-
-    public String getName() {
-        return name;
-    }
 
     public void setName(String name) {
         this.name = name;
     }
 
-    protected boolean isExecuted() {
+    /**
+     * Check if current handler is completed.
+     * 
+     * @return true for completed. Otherwise false
+     */
+    protected boolean isCompleted() {
         Configuration config = coordinator.queryConfiguration(CONFIG_KIND, CONFIG_ID);
         String value = config.getConfig(name);
         if (value != null && Status.COMPLETED.toString().equals(value)) {
@@ -110,6 +122,11 @@ public abstract class DrPostFailoverHandler {
         return false;
     }
     
+    /**
+     * Update execution status for current handler
+     * 
+     * @param status
+     */
     protected void updateStatus(Status status) {
         Configuration config = coordinator.queryConfiguration(CONFIG_KIND, CONFIG_ID);
         if (config == null) {
@@ -122,6 +139,11 @@ public abstract class DrPostFailoverHandler {
         coordinator.persistServiceConfiguration(config);
     }
     
+    /**
+     * Check if all handlers are completed.
+     * 
+     * @return
+     */
     protected boolean isAllHandlersCompleted() {
         Configuration config = coordinator.queryConfiguration(CONFIG_KIND, CONFIG_ID);
         Map<String, String> allHandlers = config.getAllConfigs(true);
@@ -134,6 +156,9 @@ public abstract class DrPostFailoverHandler {
         return true;
     }
     
+    /**
+     * Factory class manages all handlers
+     */
     public static class Factory {
         private static final Logger log = LoggerFactory.getLogger(Factory.class);
     
@@ -170,6 +195,9 @@ public abstract class DrPostFailoverHandler {
         }
     }
     
+    /**
+     * A default implementation for failover handler. It cleans up ZK queues  
+     */
     public static class QueueCleanupHandler extends DrPostFailoverHandler{
         private List<String> queueNames;
         

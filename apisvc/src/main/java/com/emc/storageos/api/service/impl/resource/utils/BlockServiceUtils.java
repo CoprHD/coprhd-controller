@@ -13,6 +13,8 @@ import java.util.Set;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
@@ -30,6 +32,7 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /**
  * Utility class to hold generic, reusable block service methods
@@ -187,13 +190,26 @@ public class BlockServiceUtils {
 
     /**
      * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or higher
+     * For VNX, creating/deleting volume in/from CG with existing group relationship is supported for virtual replication group
      *
      * @param volume Volume part of the CG
      * @return true if the operation is supported.
      */
     public static boolean checkCGVolumeCanBeAddedOrRemoved(Volume volume, DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-        return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
+        if (storage != null) {
+            if (storage.deviceIsType(Type.vmax)) {
+                if (storage.getUsingSmis80()) {
+                    return true;
+                }
+            } else if (storage.deviceIsType(Type.vnxblock)) {
+                if (StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
     
     /**

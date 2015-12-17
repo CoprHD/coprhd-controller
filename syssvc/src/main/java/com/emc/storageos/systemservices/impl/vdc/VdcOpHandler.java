@@ -218,8 +218,15 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             flushVdcConfigToLocal();
-            flushNtpConfigToLocal();
-            checkDataRevision();
+            
+            try {
+                flushNtpConfigToLocal();
+                checkDataRevision();
+            } catch (Exception e) {
+                //reset local vdc properties to entery retry loop again. No logs here since VdcManager will print out logs
+                resetLocalVdcConfigVersion();
+                throw e;
+            }
         }
         
         private void checkDataRevision() {

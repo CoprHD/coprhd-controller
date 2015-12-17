@@ -68,6 +68,13 @@ public class DrUtil {
         this.coordinator = coordinator;
     }
 
+    /**
+     * The original purpose of this method is to allow QE engineers to tune DR operation timeout value by inserting timeout settings
+     * into ZK via zkCli.sh so they could easily manipulate negative test cases (e.g. generate a add-standby failure in 1 minute)
+     * @param key
+     * @param defaultValue
+     * @return ZK stored configuration item value, or defaultValue if ZNode or configuration item key not found
+     */
     public int getDrIntConfig(String key, int defaultValue) {
         try {
             Configuration config = coordinator.queryConfiguration(DR_CONFIG_KIND, DR_CONFIG_ID);

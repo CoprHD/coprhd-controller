@@ -97,13 +97,13 @@ public class InternalSiteServiceClient extends BaseServiceClient {
             return FailoverPrecheckResponse.noError();
         }
         
-        FailoverPrecheckResponse errorResponse = resp.getEntity(FailoverPrecheckResponse.class);
+        FailoverPrecheckResponse response = resp.getEntity(FailoverPrecheckResponse.class);
         
-        if (FailoverPrecheckResponse.isErrorResponse(errorResponse)) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(site.getName(), errorResponse.getErrorMessage());
+        if (FailoverPrecheckResponse.isErrorResponse(response)) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(site.getName(), response.getErrorMessage());
         }
         
-        return FailoverPrecheckResponse.noError();
+        return response;
     }
     
     public void failover(String newActiveSiteUUID) {

@@ -1353,7 +1353,7 @@ public class DisasterRecoveryService {
         }
         
         for (SiteRestRep site : responseSiteFromRemote) {
-            if (site.getState().equalsIgnoreCase(SiteState.STANDBY_SYNCED.toString())) {
+            if (SiteState.STANDBY_SYNCED.toString().equalsIgnoreCase(site.getState())) {
                 return site;
             }
         }

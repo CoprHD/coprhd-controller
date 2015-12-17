@@ -1116,8 +1116,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if (nasServers != null && !nasServers.isEmpty()) {
             for (String path : nasServers.keySet()) {
                 if (StringUtils.isNotEmpty(path)) {
-                    getDiscPathsForUnManaged().add(path + "/");
-                    _log.info("setDiscPathForAccess: {}", path + "/");
+                    getDiscPathsForUnManaged().add(path);
+                    _log.info("setDiscPathForAccess: {}", path );
                 }
             }
         }
@@ -2164,14 +2164,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     if (nasServer != null) {
                         accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
                     }else{
-                        _log.debug("Nas server not available for path  {}",isilonAccessZone.getPath());
+                        _log.info("Nas server not available for path  {}, hence this filesystem will not be ingested",isilonAccessZone.getPath());
                     }
                 } else {
                     nasServer = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                     if (nasServer != null) {
                         accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
                     }else{
-                        _log.debug("Nas server not available for path  {}",isilonAccessZone.getPath());
+                        _log.info("Nas server not available for path  {}, hence this filesystem will not be ingested",isilonAccessZone.getPath());
                     }
                 }
             }

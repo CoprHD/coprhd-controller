@@ -4,32 +4,28 @@
  */
 package com.emc.storageos.db.server.impl;
 
-import com.google.common.collect.Sets;
-import org.apache.cassandra.repair.RepairParallelism;
+import com.emc.storageos.services.util.JmxServerWrapper;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.ActiveRepairService;
 import org.apache.cassandra.service.StorageServiceMBean;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
-
 import org.apache.cassandra.utils.concurrent.SimpleCondition;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.remote.JMXConnectionNotification;
-import javax.management.remote.JMXConnector;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledFuture;
@@ -95,7 +91,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
     private ProgressNotificationListener listener;
 
-    private JMXConnector jmxc;
+    private JmxServerWrapper jmxServer;
 
     private StorageServiceMBean svcProxy;
 
@@ -113,21 +109,15 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      * @param listener
      * @param startToken
      */
-    public RepairJobRunner(JMXConnector jmxc, StorageServiceMBean svcProxy, String keySpaceName, ScheduledExecutorService exe,
+    public RepairJobRunner(JmxServerWrapper jmxServer, StorageServiceMBean svcProxy, String keySpaceName, ScheduledExecutorService exe,
             ProgressNotificationListener listener, String startToken, String clusterStateDigest) {
+        this.jmxServer = jmxServer;
         this.svcProxy = svcProxy;
         this.keySpaceName = keySpaceName;
         _exe = exe;
         _lastToken = startToken;
         this.listener = listener;
         this.clusterStateDigest = clusterStateDigest;
-
-        _log.info("lby add RepairJobRunner to notificationListener");
-        //this.svcProxy.addNotificationListener(this, null, null);
-
-        _log.info("lby add to JMXConnector");
-        this.jmxc = jmxc;
-        // jmxc.addConnectionNotificationListener(this, null, null);
     }
 
     public static class StringTokenRange {
@@ -384,8 +374,8 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        _log.info("lby remove listener");
+        _log.info("remove listener");
         svcProxy.removeNotificationListener(this);
-        jmxc.removeConnectionNotificationListener(this);
+        jmxServer.removeConnectionNotificationListener(this);
     }
 }

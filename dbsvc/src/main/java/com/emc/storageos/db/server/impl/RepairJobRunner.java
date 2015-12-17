@@ -228,13 +228,12 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 int cmd = svcProxy.forceRepairRangeAsync(range.begin, range.end, this.keySpaceName,
                         true, false, true);
 
-                _log.info("lby0 waiting for db repair done cmd={}", cmd);
+                _log.info("Wait for repairing this range to be done cmd={}", cmd);
                 if (cmd > 0) {
                     condition.await();
                 }
 
-                _log.info("lby repair done _success={}", _success);
-
+                _log.info("Repair this range is done success={}", _success);
 
                 if (!_success) {
                     _log.error("Fail to repair range {} {}. Stopping the job",
@@ -339,16 +338,15 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 // status
                 if (status[1] == ActiveRepairService.Status.SESSION_FAILED
                         .ordinal()) {
-                    _log.info("lby1 repair session failed");
+                    _log.info("Repair session failed");
                     _success = false;
                 } else if (status[1] == ActiveRepairService.Status.FINISHED
                         .ordinal()) {
 
-                    _log.info("lby1 repair session finished");
+                    _log.info("Repair session finished");
                     if (_aborted) {
                         _success = false;
                     }
-                    _log.info("lby1 notify");
                     condition.signalAll();
                 }
             } else {

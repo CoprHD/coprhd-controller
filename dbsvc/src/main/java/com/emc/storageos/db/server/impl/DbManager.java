@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 public class DbManager implements DbManagerMBean {
     private static final Logger log = LoggerFactory.getLogger(DbManager.class);
 
-    private static final int REPAIR_INITIAL_WAIT_FOR_DBSTART_MINUTES = 1;
+    private static final int REPAIR_INITIAL_WAIT_FOR_DBSTART_MINUTES = 5;
     // repair every 24*5 hours by default, given we do a proactive repair on start
     // once per five days on demand should suffice
     private static final int DEFAULT_DB_REPAIR_FREQ_MIN = 60 * 24 * 5;
@@ -88,13 +88,11 @@ public class DbManager implements DbManagerMBean {
      * @throws Exception
      */
     private boolean startNodeRepair(String keySpaceName, int maxRetryTimes, boolean crossVdc, boolean noNewReapir) throws Exception {
-        log.info("lby DbMananger.startNodeRepair()");
         DbRepairRunnable runnable = new DbRepairRunnable(jmxServer, this.executor, this.coordinator, keySpaceName,
                 this.schemaUtil.isGeoDbsvc(), maxRetryTimes, noNewReapir);
         // call preConfig() here to set IN_PROGRESS for db repair triggered by schedule since we use it in getDbRepairStatus.
         runnable.preConfig();
         synchronized (runnable) {
-            log.info("lby00");
             this.executor.submit(runnable);
             runnable.wait();
         }
@@ -306,8 +304,6 @@ public class DbManager implements DbManagerMBean {
     }
 
     public void start() {
-        log.info("lby DbMananger.start() is invoked");
-        repairFreqMin = 60*3; //three hours
         this.scheduledRepairTrigger = this.executor.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {

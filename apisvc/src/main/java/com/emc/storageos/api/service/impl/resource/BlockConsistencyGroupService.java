@@ -1137,25 +1137,28 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 }
             }
 
-            // Check mirrors
-            // Adding/removing volumes to/from a consistency group
-            // is not supported when existing volumes in CG have mirrors.
-            if (cgVolumes != null && !cgVolumes.isEmpty()) {
-                Volume firstVolume = cgVolumes.get(0);
-                StringSet mirrors = firstVolume.getMirrors();
-                if (mirrors != null && !mirrors.isEmpty()) {
-                    throw APIException.badRequests.notAllowedWhenCGHasMirrors();
+            // VNX group clones and mirrors are just list of replicas, no corresponding group on array side
+            if (!cgStorageSystem.deviceIsType(Type.vnxblock)) {
+                // Check mirrors
+                // Adding/removing volumes to/from a consistency group
+                // is not supported when existing volumes in CG have mirrors.
+                if (cgVolumes != null && !cgVolumes.isEmpty()) {
+                    Volume firstVolume = cgVolumes.get(0);
+                    StringSet mirrors = firstVolume.getMirrors();
+                    if (mirrors != null && !mirrors.isEmpty()) {
+                        throw APIException.badRequests.notAllowedWhenCGHasMirrors();
+                    }
                 }
-            }
 
-            // Check clones
-            // Adding/removing volumes to/from a consistency group
-            // is not supported when the consistency group has
-            // volumes with full copies to which they are still
-            // attached or has volumes that are full copies that
-            // are still attached to their source volumes.
-            getFullCopyManager().verifyConsistencyGroupCanBeUpdated(consistencyGroup,
-                    cgVolumes);
+                // Check clones
+                // Adding/removing volumes to/from a consistency group
+                // is not supported when the consistency group has
+                // volumes with full copies to which they are still
+                // attached or has volumes that are full copies that
+                // are still attached to their source volumes.
+                getFullCopyManager().verifyConsistencyGroupCanBeUpdated(consistencyGroup,
+                        cgVolumes);
+            }
         }
 
         // Verify the volumes to be removed.

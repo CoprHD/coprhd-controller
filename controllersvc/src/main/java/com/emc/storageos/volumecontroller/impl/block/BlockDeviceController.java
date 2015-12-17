@@ -4254,7 +4254,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     String.format("Fracture restore sessions step failed - storage: %s, clone: %s",
                             storage.toString(), clone.toString()));
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            completer.error(_dbClient, serviceError);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
             doFailTask(Volume.class, clone, opId, serviceError);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
             return false;
@@ -4434,7 +4436,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public String deleteMirrorStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem, List<URI> mirrorList,
+    public String deleteListMirrorStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem, List<URI> mirrorList,
             boolean isRemoveAll) {
         String mirrorStr = Joiner.on("\t").join(mirrorList);
         _log.info("Start deleteMirror Step for mirror:{}", mirrorStr);
@@ -4444,7 +4446,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (mirrorIsPausable(mirrors)) {
                 _log.info("Adding group fracture mirror step");
                 waitFor = workflow.createStep("deactivate",
-                        String.format("Fracture mirror: %s", mirrorList.get(0)),
+                        String.format("fracture group mirror: %s", mirrorStr),
                         waitFor, storage, getDeviceType(storage),
                         this.getClass(),
                         fractureMirrorMethod(storage, mirrorList, isRemoveAll, false),
@@ -4452,35 +4454,94 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
             _log.info("Adding group detach mirror step");
             Workflow.Method detach = detachMirrorMethod(storage, mirrorList, isRemoveAll);
-            waitFor = workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, waitFor, storage,
+            waitFor = workflow.createStep("deactivate", "detaching grop mirror: " + mirrorStr, waitFor, storage,
                     storageSystem.getSystemType(), getClass(), detach, null, null);
             _log.info("Adding group delete mirror step");
             Workflow.Method delete = deleteMirrorMethod(storage, mirrorList, isRemoveAll);
-            waitFor = workflow.createStep("deactivate", "deleting mirror volume: " + mirrorStr, waitFor, storage,
+            waitFor = workflow.createStep("deactivate", "deleting group mirror: " + mirrorStr, waitFor, storage,
                     storageSystem.getSystemType(), getClass(), delete, null, null);
         } else {
-            for (BlockMirror mirror : mirrors) {
-                // Optionally create a step to pause (fracture) the mirror
-                if (mirrorIsPausable(Arrays.asList(mirror))) {
-                    _log.info("Adding fracture mirror step");
-                    waitFor = workflow.createStep("deactivate",
-                            String.format("Fracture mirror: %s", mirrorList.get(0)),
-                            waitFor, storage, getDeviceType(storage),
-                            this.getClass(),
-                            fractureMirrorMethod(storage, Arrays.asList(mirror.getId()), isRemoveAll, false),
-                            null, null);
-                }
-                _log.info("Adding detach mirror step");
-                Workflow.Method detach = detachMirrorMethod(storage, Arrays.asList(mirror.getId()), isRemoveAll);
-                waitFor = workflow.createStep("deactivate", "detaching mirror volume: " + mirror.getId(), waitFor, storage,
-                        storageSystem.getSystemType(), getClass(), detach, null, null);
-                _log.info("Adding delete mirror step");
-                Workflow.Method delete = deleteMirrorMethod(storage, Arrays.asList(mirror.getId()), isRemoveAll);
-                waitFor = workflow.createStep("deactivate", "deleting mirror volume: " + mirror.getId(), waitFor, storage,
-                        storageSystem.getSystemType(), getClass(), delete, null, null);
+            // Optionally create a step to pause (fracture) the mirrors
+            if (mirrorIsPausable(mirrors)) {
+                _log.info("Adding fracture mirror step");
+                waitFor = workflow.createStep("deactivate",
+                        String.format("fracture list mirror: %s", mirrorStr),
+                        waitFor, storage, getDeviceType(storage),
+                        this.getClass(),
+                        fractureListMirrorMethod(storage, mirrorList, false), null, null);
             }
+
+            _log.info("Adding detach mirror step");
+            Workflow.Method detach = detachListMirrorMethod(storage, mirrorList);
+            waitFor = workflow.createStep("deactivate", "detaching list mirror: " + mirrorStr, waitFor, storage,
+                    storageSystem.getSystemType(), getClass(), detach, null, null);
+            _log.info("Adding delete mirror step");
+            Workflow.Method delete = deleteListMirrorMethod(storage, mirrorList);
+            waitFor = workflow.createStep("deactivate", "deleting list mirror: " + mirrorStr, waitFor, storage,
+                    storageSystem.getSystemType(), getClass(), delete, null, null);
         }
         return waitFor;
+    }
+
+    public Workflow.Method fractureListMirrorMethod(URI storage, List<URI> mirrorList, Boolean sync) {
+        return new Workflow.Method("fractureListMirror", storage, mirrorList, sync);
+    }
+
+     public void fractureListMirror(URI storage, List<URI> mirrorList, Boolean sync, String opId) throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            completer = new BlockMirrorFractureCompleter(mirrorList, opId);
+            getDevice(storageObj.getSystemType()).doFractureListReplica(storageObj, mirrorList, sync, completer);
+        } catch (Exception e) {
+            if (completer != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                completer.error(_dbClient, serviceError);
+            }
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    public Workflow.Method detachListMirrorMethod(URI storage, List<URI> mirrorList) {
+        return new Workflow.Method("detachListMirror", storage, mirrorList);
+    }
+
+    public void detachListMirror(URI storage, List<URI> mirrorList, String opId) throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            completer = new BlockMirrorDetachCompleter(mirrorList, opId);
+            getDevice(storageObj.getSystemType()).doDetachListReplica(storageObj, mirrorList, completer);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    public Workflow.Method deleteListMirrorMethod(URI storage, List<URI> mirrorList) {
+        return new Workflow.Method("deleteListMirror", storage, mirrorList);
+    }
+
+    public void deleteListMirror(URI storage, List<URI> mirrorList, String opId) throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            completer = new BlockMirrorDeleteCompleter(mirrorList, opId);
+            getDevice(storageObj.getSystemType()).doDeleteListReplica(storageObj, mirrorList, completer);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
     }
 
     public String deleteSnapshotStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem,
@@ -4546,6 +4607,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         Workflow.Method rollbackMethod = rollbackListCloneMethod(storage, cloneList);
         waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating list clone", waitFor, storage,
                 storageSystem.getSystemType(), getClass(), createMethod, rollbackMethod, null);
+
+        if (storageSystem.deviceIsType(Type.vnxblock)) {
+            waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "fracture list clone", waitFor,
+                    storage, storageSystem.getSystemType(), BlockDeviceController.class,
+                    fractureListCloneMethod(storage, cloneList, false), null, null);
+        }
 
         return waitFor;
     }
@@ -4613,6 +4680,28 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
+    public Workflow.Method fractureListCloneMethod(URI storage, List<URI> cloneList, Boolean sync) {
+        return new Workflow.Method("fractureListClone", storage, cloneList, sync);
+    }
+
+    public void fractureListClone(URI storage, List<URI> cloneList, Boolean sync, String taskId) {
+        TaskCompleter completer = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(taskId);
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            completer = new CloneFractureCompleter(cloneList, taskId);
+            getDevice(storageSystem.getSystemType()).doFractureListReplica(storageSystem, cloneList, sync, completer);
+        } catch (Exception e) {
+            _log.error(e.getMessage(), e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            doFailTask(Volume.class, cloneList, taskId, serviceError);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+            WorkflowStepCompleter.stepFailed(taskId, serviceError);
+        }
+    }
+
     /**
      * Add Steps to create list mirror.
      *
@@ -4663,18 +4752,38 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         WorkflowStepCompleter.stepExecuting(taskId);
 
         try {
-            List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
-            List<URI> mirrorURIsToRollback = new ArrayList<URI>(transform(mirrors, FCTN_MIRROR_TO_URI));
-            String mirrorNativeIds = Joiner.on(", ").join(transform(mirrors, fctnBlockObjectToNativeID()));
-            if (mirrorIsPausable(mirrors)) {
-                _log.info("Attempting to fracture {} for rollback", mirrorNativeIds);
-                fractureMirror(storage, mirrorURIsToRollback, false, false, taskId);
+            List<BlockMirror> mirrorsNoRollback = new ArrayList<BlockMirror>();
+            List<BlockMirror> mirrorsToRollback = new ArrayList<BlockMirror>();
+            Iterator<BlockMirror> mirrorIterator = _dbClient.queryIterativeObjects(BlockMirror.class, mirrorList);
+            while (mirrorIterator.hasNext()) {
+                BlockMirror mirror = mirrorIterator.next();
+                if (mirror != null && !mirror.getInactive()) {
+                    if (isNullOrEmpty(mirror.getNativeId())) {
+                        mirror.setInactive(true);
+                        mirrorsNoRollback.add(mirror);
+                    } else {
+                        mirrorsToRollback.add(mirror);
+                    }
+                }
             }
 
-            _log.info("Attempting to detach {} for rollback", mirrorNativeIds);
-            detachMirror(storage, mirrorURIsToRollback, false, false, taskId);
-            _log.info("Attempting to delete {} for rollback", mirrorNativeIds);
-            deleteMirror(storage, mirrorURIsToRollback, false, taskId);
+            if (!mirrorsNoRollback.isEmpty()) {
+                _dbClient.updateObject(mirrorsNoRollback);
+            }
+
+            if (!mirrorsToRollback.isEmpty()) {
+                List<URI> mirrorURIsToRollback = new ArrayList<URI>(transform(mirrorsToRollback, FCTN_MIRROR_TO_URI));
+                String mirrorNativeIds = Joiner.on(", ").join(transform(mirrorsToRollback, fctnBlockObjectToNativeID()));
+                if (mirrorIsPausable(mirrorsToRollback)) {
+                    _log.info("Attempting to fracture {} for rollback", mirrorNativeIds);
+                    fractureMirror(storage, mirrorURIsToRollback, false, false, taskId);
+                }
+
+                _log.info("Attempting to detach {} for rollback", mirrorNativeIds);
+                detachMirror(storage, mirrorURIsToRollback, false, false, taskId);
+                _log.info("Attempting to delete {} for rollback", mirrorNativeIds);
+                deleteMirror(storage, mirrorURIsToRollback, false, taskId);
+            }
             WorkflowStepCompleter.stepSucceded(taskId);
         } catch (InternalException ie) {
             _log.error(String.format("rollbackListMirror failed - Array:%s, Mirror:%s", storage, Joiner.on("\t").join(mirrorList)));

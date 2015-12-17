@@ -38,13 +38,15 @@ public class SmisCreateListReplicaJob extends SmisReplicaCreationJobs {
 
     private static final Logger _log = LoggerFactory.getLogger(SmisCreateListReplicaJob.class);
     private Map<String, URI> _srcNativeIdToReplicaUriMap;
+    private Map<String, String> _tgtToSrcMap;
     private int _syncType;
     private Boolean _isSyncActive;
 
-    public SmisCreateListReplicaJob(CIMObjectPath job, URI storgeSystemURI, Map<String, URI> srcNativeIdToReplicaUriMap, int syncType,
-            Boolean syncActive, TaskCompleter taskCompleter) {
+    public SmisCreateListReplicaJob(CIMObjectPath job, URI storgeSystemURI, Map<String, URI> srcNativeIdToReplicaUriMap,
+            Map<String, String> tgtToSrcMap, int syncType, Boolean syncActive, TaskCompleter taskCompleter) {
         super(job, storgeSystemURI, taskCompleter, "CreateListReplica");
         this._srcNativeIdToReplicaUriMap = srcNativeIdToReplicaUriMap;
+        this._tgtToSrcMap = tgtToSrcMap;
         this._syncType = syncType;
         this._isSyncActive = syncActive;
     }
@@ -92,7 +94,7 @@ public class SmisCreateListReplicaJob extends SmisReplicaCreationJobs {
             DbClient dbClient, SmisCommandHelper helper, StorageSystem storage, List<? extends BlockObject> replicas, int syncType, boolean isSyncActive)
                     throws Exception {
         // Get mapping of target Id to source Id
-        Map<String, String> tgtIdToSrcIdMap = getConsistencyGroupSyncPairs(dbClient, helper, storage, _srcNativeIdToReplicaUriMap.keySet(),
+        Map<String, String> tgtIdToSrcIdMap = !_tgtToSrcMap.isEmpty() ? _tgtToSrcMap : getConsistencyGroupSyncPairs(dbClient, helper, storage, _srcNativeIdToReplicaUriMap.keySet(),
                 syncType);
 
         Calendar now = Calendar.getInstance();

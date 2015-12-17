@@ -10,7 +10,6 @@ import java.net.URI;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -18,7 +17,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.AuditLog;
 import com.emc.storageos.db.client.model.AuditLogTimeSeries;
 import com.emc.storageos.db.exceptions.DatabaseException;
-
 import com.emc.storageos.services.OperationTypeEnum;
 
 /**
@@ -46,10 +44,10 @@ public class AuditLogManager {
 
     private CoordinatorClient _coordinator;
     
-    private boolean isStandby = false;
-    
     // The logger.
     private static Logger s_logger = LoggerFactory.getLogger(AuditLogManager.class);
+
+    private DrUtil drUtil;
 
     /**
      * Default constructor.
@@ -74,8 +72,7 @@ public class AuditLogManager {
      */
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
-        DrUtil drUtil = new DrUtil(_coordinator);
-        isStandby = drUtil.isStandby();
+        drUtil = new DrUtil(_coordinator);
     }
 
     /**
@@ -84,7 +81,7 @@ public class AuditLogManager {
      * @param events references to recordable auditlogs.
      */
     public void recordAuditLogs(RecordableAuditLog... auditlogs) {
-        if (isStandby) {
+        if (!drUtil.isActiveSite()) {
            s_logger.info("Ignore audit log on standby site");
            return;
         }
@@ -172,4 +169,5 @@ public class AuditLogManager {
                     auditType.toString(), ex);
         }
     }
+
 }

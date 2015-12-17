@@ -36,7 +36,6 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BaseIngestionRequestContext;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -338,23 +337,13 @@ public class UnManagedVolumeService extends TaskResourceService {
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
                 }
+
+                VolumeIngestionContext volumeContext = requestContext.getVolumeContext(unManagedVolumeGUID);
+                volumeContext.commit();
             }
 
             _dbClient.createObject(requestContext.getObjectsToBeCreatedMap().values());
 
-            // TODO: This is workaround since RP objects are not getting saved, and .getObjectsToBeCreated() is using BlockObject, not DataObject.
-            if (requestContext.getVolumeContext() != null) {
-                if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
-                    RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
-                    if (rpContext.getManagedProtectionSet() != null) {
-                        _dbClient.createObject(rpContext.getManagedProtectionSet());
-                    }
-                    if (rpContext.getManagedBlockConsistencyGroup() != null) {
-                        _dbClient.createObject(rpContext.getManagedBlockConsistencyGroup());
-                    }
-                }
-            }
-            
             // record the events after they have been persisted
             for (BlockObject volume : requestContext.getObjectsToBeCreatedMap().values()) {
                 recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
@@ -497,7 +486,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 // Update the related objects if any after successful export mask ingestion
                 List<DataObject> updatedObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
-                    _dbClient.updateAndReindexObject(updatedObjects);
+                    _dbClient.updateObject(updatedObjects);
                 }
                 volumeContext.commit();
 
@@ -619,7 +608,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             taskList.getTaskList().addAll(taskMap.values());
 
             _dbClient.createObject(requestContext.getObjectsIngestedByExportProcessing());
-            _dbClient.persistObject(requestContext.getUnManagedVolumesToBeDeleted());
+            _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
             // record the events after they have been persisted
             for (BlockObject volume : requestContext.getObjectsIngestedByExportProcessing()) {
                 recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),

@@ -274,7 +274,7 @@ public class VolumeGroupService extends TaskResourceService {
         checkForApplicationPendingTasks(volumeGroup);
         boolean isChanged = false;
         String vgName = param.getName();
-        if (vgName != null && !vgName.isEmpty()) {
+        if (vgName != null && !vgName.isEmpty() && !vgName.equalsIgnoreCase(volumeGroup.getLabel())) {
             checkDuplicateLabel(VolumeGroup.class, vgName, "Volume Group");
             volumeGroup.setLabel(vgName);
             isChanged = true;

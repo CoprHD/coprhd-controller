@@ -277,7 +277,7 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<description>',
                                dest='description',
                                help='description for volume group')
-    create_parser.add_argument('-p', '-parent',
+    create_parser.add_argument('-pa', '-parent',
                                metavar='<parent>',
                                dest='parent',
                                help='parent volume group for volume group')
@@ -441,7 +441,7 @@ def update_parser(subcommand_parsers, common_parser):
                                        metavar='<consistency_group>',
                                        dest='consistency_group',
                                        help='A consistency group for adding volumes to the volume group')
-    update_parser.add_argument('-p', '-parent',
+    update_parser.add_argument('-pa', '-parent',
                                        metavar='<parent>',
                                        dest='parent',
                                        help='A parent volume group for the volume group')

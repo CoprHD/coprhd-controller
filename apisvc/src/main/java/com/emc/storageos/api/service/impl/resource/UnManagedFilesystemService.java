@@ -937,7 +937,7 @@ public class UnManagedFilesystemService extends TaggedResource {
 					.split(",")) {
 
 				switch (tempPermission) {
-				case "read":
+				case "Read":
 					tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_READ;
 
 					break;
@@ -947,6 +947,11 @@ public class UnManagedFilesystemService extends TaggedResource {
 				case "execute":
 					tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE;
 					break;
+				case "FullControl":
+                    tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE;
+                    break;
+
+				    
 				}
 
 				if (!isFirstPermissionSet) {

@@ -2657,7 +2657,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         for (String per : permissions) {
 
             if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_read.toString())) {
-                accessRights.add("read");
+                accessRights.add("Read");
             }
             if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.std_write_dac.toString())) {
                 accessRights.add("write");
@@ -2665,7 +2665,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_execute.toString())) {
                 accessRights.add("execute");
             }
-
+            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_all.toString())) {
+                accessRights.add("FullControl");
+            }
         }
         return accessRights;
 

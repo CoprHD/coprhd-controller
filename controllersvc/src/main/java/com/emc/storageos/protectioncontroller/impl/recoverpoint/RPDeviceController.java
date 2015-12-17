@@ -211,6 +211,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     // Methods in the expand volume workflow
     private static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
+    private static final String METHOD_DELETE_RSET_ROLLBACK_STEP = "recreateRSetStep";
     private static final String METHOD_RECREATE_RSET_STEP = "recreateRSetStep";
 
     // Methods in the create RP snapshot workflow
@@ -3214,13 +3215,23 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         for (VolumeDescriptor descriptor : volumeDescriptorsTypeFilter) {
             URI volURI = descriptor.getVolumeURI();
             ProtectionSystem rp = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
+            
+            Map<String, RecreateReplicationSetRequestParams> rsetParams =
+                    new HashMap<String, RecreateReplicationSetRequestParams>();
+
+            RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, volume.getId());
+            rsetParams.put(RPHelper.getRPWWn(volURI, _dbClient), rsetParam);
+                        
             String stepId = workflow.createStepId();
             Workflow.Method deleteRsetExecuteMethod = new Workflow.Method(METHOD_DELETE_RSET_STEP,
                     rpSystem.getId(), Arrays.asList(volURI));
-
+            
+            Workflow.Method deleteRsetRollbackeMethod = new Workflow.Method(METHOD_DELETE_RSET_ROLLBACK_STEP,
+                    rpSystem.getId(), Arrays.asList(volURI), rsetParams);
+            
             workflow.createStep(STEP_PRE_VOLUME_EXPAND, "Pre volume expand, delete replication set subtask for RP: " + volURI.toString(),
                     null, rpSystem.getId(), rp.getSystemType(), this.getClass(),
-                    deleteRsetExecuteMethod, null, stepId);
+                    deleteRsetExecuteMethod, deleteRsetRollbackeMethod, stepId);
 
             _log.info("addPreVolumeExpandSteps Replication Set in workflow");
         }

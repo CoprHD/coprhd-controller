@@ -2422,6 +2422,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException migrationCantBeCancelled(String migrationName, String status);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cancelMigrationFailed(String migrationName, String reason);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException migrationHasntStarted(String migrationId);

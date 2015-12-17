@@ -1114,8 +1114,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // number of snaps to the default value of 128. It is necessary to set
             // the default because xtremio uses snap technology for replication
             // Eventually this value should be configurable and passed as part of the VPool RecoverPoint settings
-            if (RPHelper.protectXtremioVolume(volume, _dbClient)) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_MAX_SNAPS, 128);
+            // If capabilities is null this is an expand operation no need to set the max number of snaps
+            if (RPHelper.protectXtremioVolume(volume, _dbClient) && capabilities != null) {                
+            	capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_MAX_SNAPS, 128);        	
             }
 
             VolumeDescriptor desc = null;

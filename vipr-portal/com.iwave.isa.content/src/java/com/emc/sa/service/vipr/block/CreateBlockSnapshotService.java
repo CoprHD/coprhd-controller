@@ -47,10 +47,10 @@ public class CreateBlockSnapshotService extends ViPRService {
     protected Boolean readOnly;
     
     @Param(value = LINKED_SNAPSHOT_NAME, required = false)
-    public String linkedSnapshotName;
+    protected String linkedSnapshotName;
     
     @Param(value = LINKED_SNAPSHOT_COUNT, required = false)
-    public Integer linkedSnapshotCount;
+    protected Integer linkedSnapshotCount;
 
     private List<BlockObjectRestRep> volumes;
 

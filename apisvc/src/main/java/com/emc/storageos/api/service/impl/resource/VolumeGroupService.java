@@ -870,16 +870,18 @@ public class VolumeGroupService extends TaskResourceService {
                 VolumeGroup parentVG = _dbClient.queryObject(VolumeGroup.class, parentId);
                 if (parentVG == null || parentVG.getInactive()) {
                     errorMsg = "The parent volume group does not exist";
+                } else {
+                    volumeGroup.setParent(parentId);
                 }
-                volumeGroup.setParent(parentId);
             } else {
                 List<VolumeGroup> parentVg = CustomQueryUtility
                         .queryActiveResourcesByConstraint(_dbClient, VolumeGroup.class,
                                 PrefixConstraint.Factory.getLabelPrefixConstraint(VolumeGroup.class, parent));
                 if (parentVg == null || parentVg.isEmpty()) {
                     errorMsg = "The parent volume group does not exist";
+                } else {
+                    volumeGroup.setParent(parentVg.iterator().next().getId());
                 }
-                volumeGroup.setParent(parentVg.iterator().next().getId());
             }
         }
         return errorMsg;

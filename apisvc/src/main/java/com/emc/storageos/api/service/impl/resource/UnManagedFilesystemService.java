@@ -948,10 +948,8 @@ public class UnManagedFilesystemService extends TaggedResource {
 					tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE;
 					break;
 				case "FullControl":
-                    tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE;
+                    tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_FULLCONTROL;
                     break;
-
-				    
 				}
 
 				if (!isFirstPermissionSet) {

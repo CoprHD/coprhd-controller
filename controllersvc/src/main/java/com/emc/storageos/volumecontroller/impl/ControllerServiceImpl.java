@@ -72,12 +72,12 @@ import com.emc.storageos.workflow.WorkflowService;
 public class ControllerServiceImpl implements ControllerService {
 
     // constants
-    protected static final String JOB_QUEUE_NAME = "jobqueue";
-    protected static final String DISCOVER_JOB_QUEUE_NAME = "discoverjobqueue";
-    protected static final String COMPUTE_DISCOVER_JOB_QUEUE_NAME = "computediscoverjobqueue";
-    protected static final String SCAN_JOB_QUEUE_NAME = "scanjobqueue";
+    private static final String JOB_QUEUE_NAME = "jobqueue";
+    private static final String DISCOVER_JOB_QUEUE_NAME = "discoverjobqueue";
+    private static final String COMPUTE_DISCOVER_JOB_QUEUE_NAME = "computediscoverjobqueue";
+    private static final String SCAN_JOB_QUEUE_NAME = "scanjobqueue";
     public static final String MONITORING_JOB_QUEUE_NAME = "monitoringjobqueue";
-    protected static final String METERING_JOB_QUEUE_NAME = "meteringjobqueue";
+    private static final String METERING_JOB_QUEUE_NAME = "meteringjobqueue";
     public static final String DISCOVERY = "Discovery";
     public static final String DISCOVERY_RECONCILE_TZ = "DiscoveryReconcileTZ";
     public static final String SCANNER = "Scanner";

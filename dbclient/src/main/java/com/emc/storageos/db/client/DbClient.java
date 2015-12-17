@@ -22,7 +22,6 @@ import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.netflix.astyanax.Keyspace;
 
 /**
  * The main database client API
@@ -659,5 +658,4 @@ public interface DbClient {
      * @return true if there are useful data
      */
     boolean hasUsefulData();
-
 }

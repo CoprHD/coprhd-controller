@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class OrderExecutionQueue extends GenericQueue<OrderMessage> {
-    public static String QUEUE_NAME = "OrderExecutionQueue";
+    private static String QUEUE_NAME = "OrderExecutionQueue";
     
     public OrderExecutionQueue() {
         setName(QUEUE_NAME);

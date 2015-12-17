@@ -5,7 +5,6 @@
 package com.emc.sa.zookeeper;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;

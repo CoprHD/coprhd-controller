@@ -16,9 +16,7 @@ import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO_L
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterInfo;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.URI;
+import java.net.*;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1152,6 +1150,23 @@ public class CoordinatorClientExt {
         return nodeName;
     }
 
+    /**
+     * The utility method to get all controller nodes ids
+     * Converts nodeCount to list of nodeIds regardless of availability
+     *
+     * @return List of nodeIds for all nodes in the cluster(get external id like vipr2)
+     */
+    public ArrayList<String> getAllNodeIds() {
+        ArrayList<String> fullList = new ArrayList<String>();
+
+        for (int i = 1; i <= getNodeCount(); i++) {
+            fullList.add("vipr" + i);
+        }
+
+        _log.info("getAllNodeIds(): Node Ids: {}", Strings.repr(fullList));
+        return fullList;
+    }
+
 
     /**
      * The utility method to find all the controller nodes which are not available in the
@@ -1451,26 +1466,65 @@ public class CoordinatorClientExt {
         }
 
         private void checkLocalZKMode() {
-            String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
-            if (initZkMode == null) {
-                initZkMode = state;
-            }
-            
-            if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
-                return; // expected situation. Standby zookeeper should be observer mode normally
-            }
-            
-            _log.info("Local zookeeper mode {}", state);
-            if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
-                // if zk is switched from observer mode to participant, reload syssvc
-                reconfigZKToWritable(!DrUtil.ZOOKEEPER_MODE_READONLY.equals(initZkMode));
-            } else {
-                if (isActiveSiteStable()) {
-                    _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
-                    reconnectZKToActiveSite();
-                } else {
-                    _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", state);
+            try {
+                String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
+                if (initZkMode == null) {
+                    initZkMode = state;
                 }
+
+                //standby node with vip will monitor all node states
+                InetAddress vip=InetAddress.getByName(drUtil.getLocalSite().getVip());
+                if(NetworkInterface.getByInetAddress(vip)!=null){
+
+                    List<String> readOnlyNodes = new ArrayList<>();
+                    List<String> observerNodes = new ArrayList<>();
+                    int numOnline = 1;
+
+                    for(String node : getAllNodeIds()){
+
+                        String nodeState=drUtil.getLocalCoordinatorMode(node);
+                        if (nodeState==null){
+                            continue;
+                        }
+                        else if(DrUtil.ZOOKEEPER_MODE_READONLY.equals(nodeState)){
+                            // Found another node in read only
+                            readOnlyNodes.add(node);
+                        }
+                        else if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(nodeState)) {
+                            // Found another node in read only
+                            observerNodes.add(node);
+                        }
+                        numOnline++;
+                    }
+
+                    //if all online are observer return
+                    if(observerNodes.size()==numOnline){
+                        return;
+                    }
+
+                    _log.info("All nodes are not participant, reconfig all to participant");
+                    reconfigZKToWritable(observerNodes,readOnlyNodes);
+
+                }
+
+                if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
+                    return; // expected situation. Standby zookeeper should be observer mode normally
+                }
+
+                _log.info("Local zookeeper mode {}", state);
+                if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)){
+                    return;
+
+                } else {
+                    if (isActiveSiteStable()) {
+                        _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
+                        reconnectZKToActiveSite();
+                    } else {
+                        _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", state);
+                    }
+                }
+            }catch(Exception e){
+                _log.error("Exception while monitoring node state: ",e);
             }
         }
 
@@ -1487,21 +1541,37 @@ public class CoordinatorClientExt {
                     try {
                         localRepository.reconfigCoordinator("observer");
                     } finally {
-                        _log.info("Leaving the barrier.");
-                        boolean leaved = barrier.leave(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
-                        if (!leaved) {
-                            _log.warn("Unable to leave barrier for {}", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
-                        }
+                        leaveZKDoubleBarrier(barrier,DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     }
                     localRepository.reload("reset-coordinator");
                 } else {
-                    _log.warn("Unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                    _log.warn("All nodes unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                    leaveZKDoubleBarrier(barrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                 }
             } catch (Exception ex) {
                 _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);
             } 
         }
     };
+
+    /**
+     * reconfigure ZooKeeper to participant mode within the local site
+     *
+     * @param barrier barrier to leave
+     * @param path for logging barrier
+     * @return true for successful, false for success unknown
+     */
+    private void leaveZKDoubleBarrier(DistributedDoubleBarrier barrier, String path){
+        try {
+            _log.info("Leaving the barrier {}",path);
+            boolean leaved = barrier.leave(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+            if (!leaved) {
+                _log.warn("Unable to leave barrier for {}", path);
+            }
+        } catch (Exception ex) {
+            _log.warn("Unexpected errors during leaving barrier",ex);
+        }
+    }
 
     /**
      * reconfigure ZooKeeper to participant mode within the local site
@@ -1521,7 +1591,54 @@ public class CoordinatorClientExt {
             _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
         }
     }
-    
+
+    /**
+     * reconfigure ZooKeeper to participant mode within the local site
+     *
+     * @param observerNodes to be reconfigured
+     * @param readOnlyNodes to be reconfigured
+     */
+    public void reconfigZKToWritable(List<String> observerNodes,List<String> readOnlyNodes) {
+        _log.info("Standby is running in read-only mode due to connection loss with active site. " +
+                "Reconfig coordinatorsvc of all nodes to writable");
+
+        try{
+            boolean reconfigLocal = false;
+
+            // if zk is switched from observer mode to participant, reload syssvc
+            for(String node:observerNodes){
+                //The local node cannot reboot itself before others
+                if(node.equals(getMyNodeId())){
+                    reconfigLocal=true;
+                    continue;
+                }
+                LocalRepository localRepository=LocalRepository.getInstance();
+                localRepository.remoteReconfigCoordinator(node, "participant");
+                localRepository.remoteRestart(node, "coordinatorsvc");
+                localRepository.remoteRestart(node, "syssvc");
+            }
+
+            for(String node:readOnlyNodes){
+                //The local node cannot reboot itself before others
+                if(node.equals(getMyNodeId())){
+                    reconfigLocal=true;
+                    continue;
+                }
+                LocalRepository localRepository=LocalRepository.getInstance();
+                localRepository.remoteReconfigCoordinator(node,"participant");
+                localRepository.remoteRestart(node,"coordinatorsvc");
+            }
+
+            //reconfigure local node last
+            if (reconfigLocal){
+                reconfigZKToWritable(observerNodes.contains(getMyNodeId()));
+            }
+
+        }catch(Exception ex){
+            _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
+        }
+    }
+ 
     /**
       * Get current ZK connection state
       * @return state

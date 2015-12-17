@@ -41,6 +41,7 @@ _usage() {
     echo "   or: $0 --restart service"  >&2
     echo "   or: $0 --reload ntp|ssh|connectemc" >&2
     echo "   or: $0 --reconfig-coordinator observer|participant" >&2
+    echo "   or: $0 --remote-systool node_id command parameter" >&2
     echo "   or: $0 --test"             >&2
     exit 2
 }
@@ -461,6 +462,11 @@ EOF
     fi
 }
 
+_remote_systool() {
+    exec /usr/bin/ssh storageos@${1} "sudo /etc/systool ${2} ${3}"
+    _fatal     "Failed to exec /usr/bin/ssh storageos@${1} \"sudo /etc/systool ${2} ${3}\""
+}
+
 _restart() {
     /usr/bin/systemctl restart storageos-${1%*svc} || _fatal2 67 "Unexpected restart ${1} failure. Error code $?"
 }
@@ -480,7 +486,7 @@ _reload() {
         ipsec)
             exec /usr/bin/systemctl restart ipsec ;;
         reset-coordinator)
-	    /etc/storageos/storageos stop
+            /etc/storageos/storageos stop
             rm -fR /data/zk/version-2/
             /etc/storageos/storageos drstandby
             ;;
@@ -829,8 +835,9 @@ case ${#} in
             *)                        _usage
         esac;;
     4)  case ${1} in 
-            --getprops)               _s _get_props "${2}" "${3}" "${4}" ;;
-            *)
+            --getprops)               _s _get_props      "${2}" "${3}" "${4}" ;;
+            --remote-systool)         _s _remote_systool "${2}" "${3}" "${4}" ;;
+            *)                        _usage
         esac;;
     *)  _usage
 esac

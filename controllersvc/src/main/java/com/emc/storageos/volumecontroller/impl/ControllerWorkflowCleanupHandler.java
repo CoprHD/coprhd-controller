@@ -63,29 +63,23 @@ public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {
     }
     
     protected void execute() {
-        checkAndFixDb();
+        checkDb();
         cleanupWorkflow();
         cleanupTasks();
         rediscoverDevices();
     }
     
-    private void checkAndFixDb() {
+    private void checkDb() {
         DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper();
         helper.setDbClient((DbClientImpl)dbClient);
         DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
         try {
             int corruptedCount = checker.check();
             if (corruptedCount > 0) {
-                log.info("Corrupted db data found {}. Start fixing it", corruptedCount);
-                Iterator<String> cleanupFiles = DbCheckerFileWriter.getGeneratedFiles();
-                while(cleanupFiles.hasNext()) {
-                    String fileName = cleanupFiles.next();
-                    log.info("File {}", fileName);
-                    // Todo - fix db inconsistencies.
-                }
+                log.warn("Corrupted db rows found {}", corruptedCount);
             }
         } catch (Exception ex) {
-            log.error("DbConsistencyChecker exception ex", ex);
+            log.error("Unexpected error during db consistency check", ex);
             throw new IllegalStateException(ex);
         }
     }

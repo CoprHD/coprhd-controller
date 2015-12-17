@@ -29,7 +29,7 @@ public abstract class DrPostFailoverHandler {
     private static final Logger log = LoggerFactory.getLogger(DrPostFailoverHandler.class);
     private static final String POST_FAILOVER_HANDLER_LOCK = "drPostFailoverLock";
     
-    protected static final String CONFIG_KIND = "disasterRecoveryFailoverHandlers";
+    protected static final String CONFIG_KIND = "disasterRecoveryPostFailoverHandlers";
     protected static final String CONFIG_ID = "global";
     
     enum Status {

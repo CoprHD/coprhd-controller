@@ -558,7 +558,7 @@
             <list>
                 <value>ControllersvcQueueCleanupHandler</value>
                 <value>ControllersvcWorkflowCleanupHandler</value>
-                <value>SasvcOrderQueueCleanupHandler</value>
+                <value>SasvcQueueCleanupHandler</value>
                 <value>SasvcOrderCleanupHandler</value>
             </list>
         </property>

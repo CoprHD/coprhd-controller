@@ -16,6 +16,8 @@ import com.emc.sa.catalog.OrderManager;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler;
 import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionState;
+import com.emc.storageos.db.client.model.uimodels.ExecutionStatus;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 
@@ -30,20 +32,29 @@ public class StorageAutomatorOrderCleanupHandler extends DrPostFailoverHandler {
     }
     
     protected void execute() {
-        log.info("DR post failover handler starts");
-        ExecutionLog failedLog = new ExecutionLog();
-        failedLog.setMessage("Inflight orders are failed because of DR failover");
-        failedLog.setLevel(ExecutionLog.LogLevel.ERROR.name());
-        failedLog.setDate(new Date());
-        modelClient.save(failedLog);
-        
         log.info("Start processing inflight orders");
         List<Order> orders = modelClient.orders().findByOrderStatus(OrderStatus.EXECUTING);
         for(Order order : orders) {
             log.info("Fail order for {}", order.getId());
-            order.setMessage(String.format("Order %d is failed because of DR failover", order.getOrderNumber()));
-            order.setOrderStatus(OrderStatus.ERROR.name());
-            orderManager.updateOrder(order);
+            failOrder(order);
         }
+    }
+    
+    private void failOrder(Order order) {
+        ExecutionLog failedLog = new ExecutionLog();
+        failedLog.setMessage("Terminated due to site failover from a system disaster");
+        failedLog.setLevel(ExecutionLog.LogLevel.ERROR.name());
+        failedLog.setDate(new Date());
+        modelClient.save(failedLog);
+        
+        ExecutionState state = modelClient.executionStates().findById(order.getExecutionStateId());
+        state.addExecutionLog(failedLog);
+        state.setEndDate(new Date());
+        state.setExecutionStatus(ExecutionStatus.FAILED.name());
+        modelClient.save(state);
+        
+        order.setMessage("Terminated due to site failover from a system disaster");
+        order.setOrderStatus(OrderStatus.ERROR.name());
+        orderManager.updateOrder(order);
     }
 }

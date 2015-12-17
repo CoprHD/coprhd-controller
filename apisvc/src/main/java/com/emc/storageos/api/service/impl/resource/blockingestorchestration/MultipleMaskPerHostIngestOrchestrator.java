@@ -53,7 +53,9 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
         if (null != maskUris && !maskUris.isEmpty()) {
             for (URI maskUri : maskUris) {
                 exportMask = dbClient.queryObject(ExportMask.class, maskUri);
-                if (null != exportMask) {
+                // COP-18184 : Check if the initiators are also matching
+                if (null != exportMask && exportMask.getInitiators() != null
+                        && exportMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
                     return exportMask;
                 }
             }

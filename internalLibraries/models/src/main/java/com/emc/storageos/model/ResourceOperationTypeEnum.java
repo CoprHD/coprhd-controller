@@ -47,7 +47,7 @@ public enum ResourceOperationTypeEnum {
     COMMIT_VOLUME_MIGRATION("COMMIT VOLUME MIGRATION", "commit volume migration"),
     ROLLBACK_COMMIT_VOLUME_MIGRATION("ROLLBAK COMMIT VOLUME MIGRATION", "rollback commit volume migration"),
     DELETE_MIGRATION_SOURCE_VOLUMES("DELETE MIGRATION SOURCE VOLUMES", "delete migration source volumes"),
-    PAUSE_MIGRATION("PAUSE MIGRATION", "puase migration"),
+    PAUSE_MIGRATION("PAUSE MIGRATION", "pause migration"),
     RESUME_MIGRATION("RESUME MIGRATION", "resume migration"),
     CANCEL_MIGRATION("CANCEL MIGRATION", "cancel migration"),
     DELETE_MIGRATION("DELETE MIGRATION", "delete migration"),

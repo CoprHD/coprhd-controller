@@ -432,7 +432,7 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                 if(port !=null && neighborhood !=null){
                 	
-                	if(StorageSystem.Type.isilon.equals(system.getSystemType())) {
+                	if(StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
                 	
                 		sPort = getIsilonStoragePort(port, nasUri, _dbClient,neighborhood.getId());
                 		

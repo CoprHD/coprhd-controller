@@ -338,6 +338,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("pwwnKey"), altId);
         }
 
+        public static AlternateIdConstraint getFCZoneReferenceLabelConstraint(String label) {
+            DataObjectType doType = TypeMap.getDoType(FCZoneReference.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("label"), label);
+        }
+
         public static AlternateIdConstraint getFCEndpointRemotePortNameConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(FCEndpoint.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("remotePortName"), altId);

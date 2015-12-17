@@ -5,9 +5,7 @@
 
 package com.emc.storageos.systemservices.utils;
 
-//import org.codehaus.enunciate.config.EnunciateConfiguration;
 import com.webcohesion.enunciate.EnunciateConfiguration;
-//import org.codehaus.enunciate.main.Enunciate;
 import com.webcohesion.enunciate.Enunciate;
 
 import java.io.File;

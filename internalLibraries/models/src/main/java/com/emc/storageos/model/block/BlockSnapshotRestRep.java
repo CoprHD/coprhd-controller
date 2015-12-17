@@ -100,8 +100,7 @@ public class BlockSnapshotRestRep extends BlockObjectRestRep {
     /**
      * Returns the read-only status of the snapshot.
      *
-     * @valid true
-     * @valid false
+     * 
      */
     @XmlElement(name = "read_only")
     public Boolean getReadOnly() {

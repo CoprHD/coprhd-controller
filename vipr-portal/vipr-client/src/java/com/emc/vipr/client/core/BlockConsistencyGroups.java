@@ -276,7 +276,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/continuous-copies/failover</tt>
      *
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param input
      *            the input configuration.
@@ -292,7 +292,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/continuous-copies/failover-cancel</tt>
      *
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param input
      *            the input configuration.
@@ -308,7 +308,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/continuous-copies/swap</tt>
      *
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param input
      *            the input configuration.

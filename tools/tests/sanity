@@ -2457,7 +2457,6 @@ recoverpoint_auto_snapshot_cleanup_test()
     sleep 15
     run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt_volume} rp
 
-    echo "tgt2 volume is: ${tgt2_volume} and ${4}"
     if [ "${tgt2_volume}" != "" ]; then
 	echo 'Stopping protection for the copy and then re-enabling'
 	run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt2_volume} rp

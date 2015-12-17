@@ -199,11 +199,19 @@ public class ApprovalService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     @CheckPermission(roles = { Role.TENANT_APPROVER })
+    
     public ApprovalRestRep updateApproval(@PathParam("id") URI id, ApprovalUpdateParam param) {
         ApprovalRequest approval = getApprovalById(id, true);
 
         StorageOSUser user = getUserFromContext();
         verifyAuthorizedInTenantOrg(uri(approval.getTenant()), user);
+        
+        Order order = orderManager.getOrderById(approval.getOrderId());
+        if (order.getSubmittedByUserId().equals(user.getUserName()) && 
+                param.getApprovalStatus().equals(ApprovalStatus.APPROVED.toString())) {
+            throw APIException.badRequests.updateApprovalBySameUser(
+                    user.getUserName());
+        }
 
         validateParam(param, approval);
 
@@ -212,7 +220,6 @@ public class ApprovalService extends CatalogTaggedResourceService {
         approvalManager.updateApproval(approval, user);
 
         if (approval.getOrderId() != null) {
-            Order order = orderManager.getOrderById(approval.getOrderId());
             if (order != null) {
                 orderManager.processOrder(order);
             }

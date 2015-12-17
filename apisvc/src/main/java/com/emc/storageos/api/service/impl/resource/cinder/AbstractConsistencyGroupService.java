@@ -111,7 +111,7 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
      * 
      * @return True if the CG is active and not created.
      */
-    protected boolean deleteUncreatedConsistencyGroup(
+    protected boolean canDeleteConsistencyGroup(
             final BlockConsistencyGroup consistencyGroup) {
         return (!consistencyGroup.getInactive() && !consistencyGroup.created());
     }

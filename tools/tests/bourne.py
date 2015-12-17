@@ -188,6 +188,16 @@ URI_FULL_COPY_RESTORE = URI_FULL_COPY + '/{0}/restore'
 URI_FULL_COPY_RESYNC = URI_FULL_COPY + '/{0}/resynchronize'
 URI_ADD_JOURNAL = URI_VOLUME_LIST + '/protection/addJournalCapacity'
 
+URI_BLOCK_SNAPSHOT_SESSION = URI_SERVICES_BASE + '/block/snapshot-sessions/{0}'
+URI_BLOCK_SNAPSHOT_SESSION_TASK = URI_BLOCK_SNAPSHOT_SESSION + '/tasks/{1}'
+URI_BLOCK_SNAPSHOT_SESSION_CREATE = URI_VOLUME + '/protection/snapshot-sessions'
+URI_BLOCK_SNAPSHOT_SESSION_DELETE = URI_BLOCK_SNAPSHOT_SESSION + '/deactivate'
+URI_BLOCK_SNAPSHOT_SESSION_RESTORE = URI_BLOCK_SNAPSHOT_SESSION + '/restore'
+URI_BLOCK_SNAPSHOT_SESSION_LINK_TARGETS = URI_BLOCK_SNAPSHOT_SESSION + '/link-targets'
+URI_BLOCK_SNAPSHOT_SESSION_RELINK_TARGETS = URI_BLOCK_SNAPSHOT_SESSION + '/relink-targets'
+URI_BLOCK_SNAPSHOT_SESSION_UNLINK_TARGETS = URI_BLOCK_SNAPSHOT_SESSION + '/unlink-targets'
+URI_BLOCK_SNAPSHOT_SESSIONS_LIST = URI_BLOCK_SNAPSHOT_SESSION_CREATE
+
 URI_UNMANAGED                    = URI_VDC + '/unmanaged'
 URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
 URI_UNMANAGED_VOLUMES_SEARCH     = URI_UNMANAGED + "/search"
@@ -8472,3 +8482,106 @@ class Bourne:
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.ecs_bucket_show_task)
         return (o, s)
 
+    # Snapshot session operations
+    def block_snapshot_session_show_task(self, session_uri, op_id):
+        return self.api('GET', URI_BLOCK_SNAPSHOT_SESSION_TASK.format(session_uri, op_id))
+
+    def block_snapshot_session_query(self, source_session_name):
+        if (self.__is_uri(source_session_name)):
+            return source_session_name
+
+        (source_name, session_name) = source_session_name.rsplit('/', 1)
+        source_uri = self.volume_query(source_name)
+        source_uri = source_uri.strip()
+
+        session_uris = self.block_snapshot_session_list(source_uri)
+        for session_uri in session_uris:
+            session = self.block_snapshot_session_show(session_uri)
+            if (session['name'] == session_name):
+                return session['id']
+        raise Exception('Invalid snapshot session name')
+
+    def block_snapshot_session_list(self, source_name):
+        source_uri = self.volume_query(source_name)
+        source_uri = source_uri.strip()
+        sessions_list = self.api('GET', URI_BLOCK_SNAPSHOT_SESSIONS_LIST.format(source_uri))
+        self.assert_is_dict(sessions_list)
+        source_sessions = sessions_list['snapshot-session']
+        source_session_uris = []
+        if (type(source_sessions) != list):
+            source_sessions = [source_sessions]
+        for source_session in source_sessions:
+            source_session_uris.append(source_session.get('id'))
+        return source_session_uris
+
+    def block_snapshot_session_show(self, session_uri):
+        return self.api('GET', URI_BLOCK_SNAPSHOT_SESSION.format(session_uri))
+
+    def block_snapshot_session_create(self, source_uri, name, target_count, target_name, target_copymode):
+        params = dict()
+        params['name'] = name
+        if (target_count) :
+            target_params = dict()
+            params['new_linked_targets'] = target_params
+            target_params['count'] = target_count
+            target_params['target_name'] = target_name
+            if (target_copymode) :
+                target_params['copy_mode'] = target_copymode
+
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_CREATE.format(source_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
+
+    def block_snapshot_session_delete(self, session_uri):
+        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri))
+        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
+        return task
+
+    def block_snapshot_session_restore(self, session_uri):
+        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_RESTORE.format(session_uri))
+        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
+        return task
+
+    def block_snapshot_session_link_targets(self, session_uri, count, name, copy_mode):
+        target_info = dict()
+        target_info['count'] = count
+        target_info['target_name'] = name
+        if (copy_mode):
+            target_info['copy_mode'] = copy_mode
+        params = dict()
+        params['new_linked_targets'] = target_info
+        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_LINK_TARGETS.format(session_uri), params)
+        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
+        return task
+
+    def block_snapshot_session_unlink_target(self, session_uri, target_uri, delete_target):
+        target_info = dict()
+        target_info['id'] = target_uri
+        if (delete_target):
+            target_info['delete_target'] = delete_target
+        params = dict()
+        params['linked_targets'] = [target_info]
+        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_UNLINK_TARGETS.format(session_uri), params)
+        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
+        return task
+
+    def block_snapshot_session_relink_target(self, session_uri, target_uri):
+        target_info = []
+        target_info.append(target_uri)
+        params = dict()
+        params['ids'] = target_info
+        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_RELINK_TARGETS.format(session_uri), params)
+        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
+        return task

@@ -153,10 +153,11 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
                 getUserFromContext());
         final String volume_types = param.consistencygroup.volume_types;
         if (null != project && getCinderHelper().getVpool(volume_types) != null) {
-            checkForDuplicateName(param.consistencygroup.name, BlockConsistencyGroup.class);
-
+        	
             // Validate name
             ArgValidator.checkFieldNotEmpty(param.consistencygroup.name, "name");
+            
+            checkForDuplicateName(param.consistencygroup.name, BlockConsistencyGroup.class);
 
             // Validate name not greater than 64 characters
             ArgValidator.checkFieldLengthMaximum(param.consistencygroup.name, CG_MAX_LIMIT,
@@ -234,7 +235,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
                     }
                     volume.getExtensions().put("status", ComponentStatus.DELETING.getStatus().toLowerCase());
                     volume.setInactive(true);
-                    _dbClient.persistObject(volume);
+                    _dbClient.updateObject(volume);
                 }
             }
         }
@@ -246,7 +247,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
         if (consistencyGroup.getTypes().contains(Types.SRDF.toString()) ||
                 (consistencyGroup.getTypes().contains(Types.RP.toString()) &&
                 !consistencyGroup.getTypes().contains(Types.VPLEX.toString())) ||
-                deleteUncreatedConsistencyGroup(consistencyGroup)) {
+                canDeleteConsistencyGroup(consistencyGroup)) {
             final URIQueryResultList cgVolumesResults = new URIQueryResultList();
             _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
                     cgVolumesResults);
@@ -258,7 +259,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
             }
             consistencyGroup.setStorageController(null);
             consistencyGroup.setInactive(true);
-            _dbClient.persistObject(consistencyGroup);
+            _dbClient.updateObject(consistencyGroup);
             TaskResourceRep resp = finishDeactivateTask(consistencyGroup, task);
             if (resp.getState().equals("ready") || resp.getState().equals("pending")) {
                 return Response.status(202).build();

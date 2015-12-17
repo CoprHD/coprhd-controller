@@ -1157,9 +1157,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             TaskCompleter taskCompleter)
             throws Exception {
         BlockObject blockObject = BlockObject.fetch(_dbClient, volume);
-        Collection<CIMObjectPath> syncObjects = storage.checkIfVmax3() ? _helper.getSettingsDefineStatePaths(storage, blockObject,
-                (BlockSnapshot) from) :
-                getRestoredOrMixedStateSyncObjects(storage, blockObject);
+        Collection<CIMObjectPath> syncObjects = null;
+
+        if (storage.checkIfVmax3()) {
+            syncObjects = _helper.getSettingsDefineStatePaths(storage, blockObject, (BlockSnapshot) from);
+        } else {
+            syncObjects = getRestoredOrMixedStateSyncObjects(storage, blockObject);
+        }
 
         for (CIMObjectPath syncObject : syncObjects) {
             resumeSnapshot(storage, from, blockObject, syncObject, taskCompleter);

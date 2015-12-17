@@ -578,6 +578,8 @@ public class StorageSystemService extends TaskResourceService {
         system.setSmisUserName(param.getSmisUserName());
         system.setSmisPassword(param.getSmisPassword());
         system.setSmisUseSSL(param.getSmisUseSSL());
+        system.setSupportSoftLimit(param.getSupportsSoftLimit());
+        system.setSupportNotificationLimit(param.getSupportsNotificationLimit());
 
         _dbClient.createObject(system);
         _log.info("Created Storage System with Native Guid:" + system.getNativeGuid());

@@ -276,7 +276,7 @@ public class QuotaService extends TaskResourceService {
                         if (quotaUpdates.quota_set.containsKey("snapshots_" + vpoolName))
                             quotaObj.setSnapshotsLimit(new Long(quotaUpdates.quota_set.get("snapshots_" + vpoolName)));
                         noEntriesInDB = false;
-                        _dbClient.persistObject(quotaObj);
+                        _dbClient.updateObject(quotaObj);
                         return getQuotaDetailFormat(header, quotaUpdates);
                     }
                 }
@@ -290,7 +290,7 @@ public class QuotaService extends TaskResourceService {
                     if (quotaUpdates.quota_set.containsKey("snapshots"))
                         quotaObj.setSnapshotsLimit(new Long(quotaUpdates.quota_set.get("snapshots")));
                     noEntriesInDB = false;
-                    _dbClient.persistObject(quotaObj);
+                    _dbClient.updateObject(quotaObj);
                     return getQuotaDetailFormat(header, quotaUpdates);
                 }
 
@@ -339,7 +339,6 @@ public class QuotaService extends TaskResourceService {
             }
             objQuotaOfCinder.setId(URI.create(UUID.randomUUID().toString()));
             _dbClient.createObject(objQuotaOfCinder);
-            _dbClient.persistObject(objQuotaOfCinder);
             return getQuotaDetailFormat(header, quotaUpdates);
         }
         return getQuotaDetailFormat(header, quotaUpdates);

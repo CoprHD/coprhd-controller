@@ -53,12 +53,10 @@ import com.emc.storageos.cinder.model.SnapshotCreateRequestGen;
 import com.emc.storageos.cinder.model.SnapshotCreateResponse;
 import com.emc.storageos.cinder.model.SnapshotUpdateRequestGen;
 import com.emc.storageos.cinder.model.UsageStats;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
@@ -72,10 +70,8 @@ import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -391,7 +387,7 @@ public class SnapshotService extends TaskResourceService {
             _log.debug("Update volume : stored description");
             snap.setExtensions(extensions);
         }
-        _dbClient.persistObject(snap);
+        _dbClient.updateObject(snap);
         return CinderApiUtils.getCinderResponse(
                 getSnapshotDetail(snap, isV1Call, openstack_tenant_id), header, true);
     }
@@ -418,7 +414,7 @@ public class SnapshotService extends TaskResourceService {
         }
 
         snap.getExtensions().put("status", actionRequest.updateStatus.status);
-        _dbClient.persistObject(snap);
+        _dbClient.updateObject(snap);
         return Response.status(202).build();
 
     }
@@ -469,7 +465,7 @@ public class SnapshotService extends TaskResourceService {
 
         _log.debug("Update snapshot metadata: stored metadata");
         snap.setExtensions(extensions);
-        _dbClient.persistObject(snap);
+        _dbClient.updateObject(snap);
 
         return getSnapshotMetadataDetail(snap);
     }
@@ -608,7 +604,7 @@ public class SnapshotService extends TaskResourceService {
         }
 
         snap.setExtensions(extensions);
-        _dbClient.persistObject(snap);
+        _dbClient.updateObject(snap);
 
         auditOp(OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, true,
                 AuditLogManager.AUDITOP_BEGIN, snapshot_id, snap.getLabel(),
@@ -720,7 +716,7 @@ public class SnapshotService extends TaskResourceService {
                             detail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
                             snapshot.getExtensions().put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
-                            _dbClient.persistObject(snapshot);
+                            _dbClient.updateObject(snapshot);
                         }
                         else if (tsk.getStatus().equals("pending")) {
                             if (tsk.getDescription().equals(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT.getDescription()))
@@ -736,7 +732,7 @@ public class SnapshotService extends TaskResourceService {
                             detail.status = ComponentStatus.ERROR.getStatus().toLowerCase();
                             snapshot.getExtensions().put("status", ComponentStatus.ERROR.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
-                            _dbClient.persistObject(snapshot);
+                            _dbClient.updateObject(snapshot);
                         }
                         break;
                     }
@@ -829,9 +825,9 @@ public class SnapshotService extends TaskResourceService {
         
         UsageStats stats = null;
         if (pool != null) {
-            stats = getCinderHelper().GetStorageStats(pool.getId(), proj.getId());
+            stats = getCinderHelper().getStorageStats(pool.getId(), proj.getId());
         } else {
-            stats = getCinderHelper().GetStorageStats(null, proj.getId());
+            stats = getCinderHelper().getStorageStats(null, proj.getId());
         }            
 
         totalSnapshotsUsed = stats.snapshots;

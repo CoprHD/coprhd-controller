@@ -410,9 +410,6 @@ public class CinderHelpers {
 
         _log.info("Creating default quota for project");
         _dbClient.createObject(quotaObj);
-        _log.info("Persisting default quota for project");
-        _dbClient.persistObject(quotaObj);
-
         return quotaObj;
     }
 
@@ -439,9 +436,6 @@ public class CinderHelpers {
 
         _log.info("Create vpool default quota");
         _dbClient.createObject(objQuotaOfCinder);
-        _log.info("Persisting vpool default quota");
-        _dbClient.persistObject(objQuotaOfCinder);
-
         return objQuotaOfCinder;
     }
 
@@ -456,7 +450,7 @@ public class CinderHelpers {
      * @brief get statistics
      * @return UsageStats
      */
-    public UsageStats GetStorageStats(URI vpool, URI projectId) {
+    public UsageStats getStorageStats(URI vpool, URI projectId) {
         UsageStats objStats = new UsageStats();
         long totalSnapshotsUsed = 0;
         long totalSizeUsed = 0;

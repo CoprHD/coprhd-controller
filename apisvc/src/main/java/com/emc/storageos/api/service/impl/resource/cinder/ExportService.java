@@ -285,7 +285,7 @@ public class ExportService extends VolumeService {
             }
             else {
                 vol.getExtensions().put("status", "OPENSTACK_ATTACHING_TIMED_OUT");
-                _dbClient.persistObject(vol);
+                _dbClient.updateObject(vol);
                 _log.info("After fifteen tries, the ITLs are not found yet and hence failing initilize connection");
             }
 
@@ -294,7 +294,7 @@ public class ExportService extends VolumeService {
         }
         else if (bDetach) {
             getVolExtensions(vol).put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
-            _dbClient.persistObject(vol);
+            _dbClient.updateObject(vol);
             return Response.status(202).build();
         }
         else if (bBeginDetach) {
@@ -302,7 +302,7 @@ public class ExportService extends VolumeService {
                     && getVolExtensions(vol).get("status").equals(ComponentStatus.IN_USE.getStatus().toLowerCase()))
             {
                 getVolExtensions(vol).put("status", ComponentStatus.DETACHING.getStatus().toLowerCase());
-                _dbClient.persistObject(vol);
+                _dbClient.updateObject(vol);
                 return Response.status(202).build();
             }
             else {
@@ -320,7 +320,7 @@ public class ExportService extends VolumeService {
                 getVolExtensions(vol).remove("OPENSTACK_NOVA_INSTANCE_ID");
                 getVolExtensions(vol).remove("OPENSTACK_NOVA_INSTANCE_MOUNTPOINT");
                 getVolExtensions(vol).remove("OPENSTACK_ATTACH_MODE");
-                _dbClient.persistObject(vol);
+                _dbClient.updateObject(vol);
                 return Response.status(202).build();
             }
             else {
@@ -399,7 +399,7 @@ public class ExportService extends VolumeService {
         _log.info("Changing the status of volume : " + vol + " to " + vol_status);
         StringMap extensions = vol.getExtensions();
         extensions.put(STATUS, vol_status);
-        _dbClient.persistObject(vol);
+        _dbClient.updateObject(vol);
         return Response.status(202).build();
     }
 
@@ -450,7 +450,7 @@ public class ExportService extends VolumeService {
         }
         extensions.put("status", ComponentStatus.ATTACHING.getStatus().toLowerCase());
         vol.setExtensions(extensions);
-        _dbClient.persistObject(vol);
+        _dbClient.updateObject(vol);
     }
 
     private void processUnReserveRequest(Volume vol, String openstack_tenant_id) {
@@ -460,7 +460,7 @@ public class ExportService extends VolumeService {
         }
         extensions.put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
         vol.setExtensions(extensions);
-        _dbClient.persistObject(vol);
+        _dbClient.updateObject(vol);
     }
 
     private void setBootable(Volume vol, VolumeActionRequest.BootableVolume bootableVol, String openstack_tenant_id) {
@@ -476,7 +476,7 @@ public class ExportService extends VolumeService {
         }
 
         vol.setExtensions(extensions);
-        _dbClient.persistObject(vol);
+        _dbClient.updateObject(vol);
     }
 
     private void setReadOnlyFlag(Volume vol, VolumeActionRequest.ReadOnlyVolume readonlyVolume, String openstack_tenant_id) {
@@ -491,7 +491,7 @@ public class ExportService extends VolumeService {
         }
 
         vol.setExtensions(extensions);
-        _dbClient.persistObject(vol);
+        _dbClient.updateObject(vol);
     }
 
     private void processAttachToInstance(Volume vol, VolumeActionRequest.AttachToInstance attachToInst,
@@ -509,7 +509,7 @@ public class ExportService extends VolumeService {
         vol.getExtensions().put("OPENSTACK_NOVA_INSTANCE_MOUNTPOINT", attachToInst.mountpoint.toString());
         vol.getExtensions().put("OPENSTACK_ATTACH_MODE", attachToInst.mode);
         vol.getExtensions().put("status", ComponentStatus.IN_USE.getStatus().toLowerCase());
-        _dbClient.persistObject(vol);
+        _dbClient.updateObject(vol);
     }
 
     // INTERNAL FUNCTIONS
@@ -539,7 +539,7 @@ public class ExportService extends VolumeService {
         // Step 3: Remove initiators from export group
         currentURIs.removeAll(detachURIs);
         exportGroup.setInitiators(StringSetUtil.uriListToStringSet(currentURIs));
-        _dbClient.persistObject(exportGroup);
+        _dbClient.updateObject(exportGroup);
         _log.info("updateExportGroup request is submitted.");
         // get block controller
         BlockExportController exportController =
@@ -666,7 +666,7 @@ public class ExportService extends VolumeService {
         vol.setExtensions(extensions);
         _log.debug("Volume  Status ={}", vol.getExtensions().get("status"));
         _log.debug("Volume creation task_id ={}", vol.getExtensions().get("task_id"));
-        _dbClient.persistObject(vol);
+        _dbClient.updateObject(vol);
 
         return toTask(vol, taskId, op);
     }
@@ -722,7 +722,7 @@ public class ExportService extends VolumeService {
                 }
             }
             exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
-            _dbClient.persistObject(exportGroup);
+            _dbClient.updateObject(exportGroup);
             _log.info("updateExportGroup request is submitted.");
             // get block controller
             initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
@@ -903,7 +903,7 @@ public class ExportService extends VolumeService {
                     if (varrSet.contains(varrayid.toString())) {
                         Network network = (Network) _dbClient.queryObject(ntid);
                         network.addEndpoints(initiatorPorts, false);
-                        _dbClient.persistObject(network);
+                        _dbClient.updateObject(network);
                     }
                 }
             }
@@ -958,9 +958,9 @@ public class ExportService extends VolumeService {
         UsageStats stats = null;
 
         if (pool != null)
-            stats = getCinderHelper().GetStorageStats(pool.getId(), proj.getId());
+            stats = getCinderHelper().getStorageStats(pool.getId(), proj.getId());
         else
-            stats = getCinderHelper().GetStorageStats(null, proj.getId());
+            stats = getCinderHelper().getStorageStats(null, proj.getId());
 
         totalSizeUsed = stats.spaceUsed;
 

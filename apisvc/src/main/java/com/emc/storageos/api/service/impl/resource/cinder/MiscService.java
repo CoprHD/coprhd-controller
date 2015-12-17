@@ -101,7 +101,7 @@ public class MiscService extends TaskResourceService {
         }
 
         UsageStats objUsageStats = new UsageStats();
-        objUsageStats = getCinderHelper().GetStorageStats(null, project.getId());
+        objUsageStats = getCinderHelper().getStorageStats(null, project.getId());
 
         totalVolumesUsed = (int) objUsageStats.volumes;
         totalSnapshotsUsed = (int) objUsageStats.snapshots;
@@ -120,7 +120,6 @@ public class MiscService extends TaskResourceService {
             quotaObj.setSnapshotsLimit(QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA);
             quotaObj.setTotalQuota((long) maxQuota);
             _dbClient.createObject(quotaObj);
-            _dbClient.persistObject(quotaObj);
             maxTotalSnapshots = (int) QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA;
             maxTotalVolumes = (int) QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA;
         }

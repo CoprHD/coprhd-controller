@@ -296,9 +296,6 @@ public class StoragePortAssociationHelper {
 
         // Check which varrays in "ToAdd" set already have at least one other port from our storage system.
         // For these varrays there is no connection change to the storage system.
-        // This map keeps count of ports from our storage system in each varray under change.
-        Map<String, Integer> varrayToPortCountMap = new HashMap<>();
-
         if (varraysToAddIds != null && !varraysToAddIds.isEmpty()) {
             _log.info("New varrays {} added to the port {}", varraysToAddIds, port.getId());
             Set<String> varraysToAddWithChangedConnectivity = new HashSet<>(varraysToAddIds);
@@ -315,7 +312,6 @@ public class StoragePortAssociationHelper {
                     if (!NullColumnValueGetter.isNullURI(varrayPort.getStorageDevice()) &&
                             storageSystemURI.equals(varrayPort.getStorageDevice())) {
                         // This varray port belongs to our storage system
-                        varrayToPortCountMap.put(varrayId, 1);
                         // At least one other port from our storage system belongs to varray.
                         // Addition of a new port to this varray does not change connection between our storage
                         // system and varray.

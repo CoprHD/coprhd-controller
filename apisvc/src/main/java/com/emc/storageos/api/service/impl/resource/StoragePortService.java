@@ -343,19 +343,18 @@ public class StoragePortService extends TaggedResource {
             }
         }
 
-        boolean updatePortAssociations = virtualArraysUpdated || networkUpdated || portNetworkIdUpdated;
-        if (updatePortAssociations && !(networkUpdated || portNetworkIdUpdated)) {
+        if (networkUpdated || portNetworkIdUpdated) {
+            _log.info("Storage port was moved to other network.");
+            // this method runs standard procedure for poolmatcher, rp connectivity
+            StoragePortAssociationHelper.runUpdatePortAssociationsProcess(
+                    Collections.singleton(storagePort), null, _dbClient,
+                    _coordinator, modifiedPools);
+        } else if (virtualArraysUpdated) {
             _log.info("Storage port virtual arrays have been modified.");
             // this method runs optimized procedure for poolmatcher, rp connectivity
             StoragePortAssociationHelper.runUpdatePortAssociationsProcessForVArrayChange(
                     storagePort, _dbClient,
                     _coordinator, modifiedPools, storagePortUpdates.getVarrayChanges());
-        } else if (updatePortAssociations) {
-            _log.info("Storage port was moved to other network or storage port's virtual arrays have been modified.");
-            // this method runs standard procedure for poolmatcher, rp connectivity
-            StoragePortAssociationHelper.runUpdatePortAssociationsProcess(
-                    Collections.singleton(storagePort), null, _dbClient,
-                    _coordinator, modifiedPools);
         }
 
         // Update the virtual nas virtual arrays with network virtual arrays!!!

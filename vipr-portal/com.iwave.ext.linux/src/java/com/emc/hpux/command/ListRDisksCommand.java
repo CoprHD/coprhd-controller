@@ -31,7 +31,7 @@ public class ListRDisksCommand extends HpuxResultsCommand<List<RDisk>> {
         if (StringUtils.isNotBlank(stdout)) {
             Matcher m = IQN_PATTERN.matcher(stdout);
             while (m.find()) {
-                RDisk disk = new RDisk(m.group(1), m.group(2));
+                RDisk disk = new RDisk(m.group(1).replace("/dev/rdisk", "/dev/disk"), m.group(2));
                 results.add(disk);
             }
         }

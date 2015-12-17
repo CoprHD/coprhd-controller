@@ -8,10 +8,10 @@ import org.apache.commons.lang.StringUtils;
 
 import com.iwave.ext.command.CommandException;
 
-public class MountCommand extends HpuxCommand {
+public class MakeFilesystemCommand extends HpuxCommand {
 
-    public MountCommand(String source, String mountPoint) {
-        setCommand(String.format("mount %s %s", source, mountPoint));
+    public MakeFilesystemCommand(String disk) {
+        setCommand(String.format("mkfs %s", disk));
         setRunAsRoot(true);
     }
 

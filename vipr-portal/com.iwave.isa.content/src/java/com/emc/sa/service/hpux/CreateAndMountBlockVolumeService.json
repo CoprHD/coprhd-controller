@@ -41,16 +41,6 @@
       }
     },
     
-    fileSystemType:{
-      type: "choice",
-      initialValue: "jfs2",
-      select: "one",
-      options: {
-        "jfs2": "jfs2"
-      },
-      lockable: true
-    },
-    
     blockSize:{
         type: "choice",
         initialValue: "Default",

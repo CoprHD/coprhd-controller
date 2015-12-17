@@ -5,7 +5,6 @@
 package com.emc.sa.service.hpux;
 
 import static com.emc.sa.service.ServiceParams.DO_FORMAT;
-import static com.emc.sa.service.ServiceParams.FILE_SYSTEM_TYPE;
 import static com.emc.sa.service.ServiceParams.MOUNT_POINT;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
@@ -24,9 +23,6 @@ public final class MountBlockVolumeHelper {
 
     @Param(MOUNT_POINT)
     protected String mountPoint;
-
-    @Param(FILE_SYSTEM_TYPE)
-    protected String fsType;
 
     @Param(value = DO_FORMAT, required = false)
     protected boolean doFormat = true;
@@ -63,6 +59,8 @@ public final class MountBlockVolumeHelper {
 
     public void mount(final BlockObjectRestRep volume) {
 
+        hpuxSupport.rescan();
+
         if (usePowerPath) {
             logInfo("UpdatePowerPathEntries.title");
             hpuxSupport.updatePowerPathEntries();
@@ -71,16 +69,12 @@ public final class MountBlockVolumeHelper {
         String rdisk = hpuxSupport.findRDisk(volume, usePowerPath);
 
         if (doFormat) {
-            // logInfo("aix.mount.block.create.filesystem", hostname, hdisk);
-            // hpux.makeFilesystem(rdisk, fsType);
+            hpuxSupport.makeFilesystem(rdisk);
         }
 
-        logInfo("aix.mount.block.mount.device", hostname, rdisk, mountPoint, fsType, volume.getWwn());
         hpuxSupport.createDirectory(mountPoint);
-        // hpuxSupport.addToFilesystemsConfig(rdisk, mountPoint, fsType);
-        hpuxSupport.mount(mountPoint);
+        hpuxSupport.mount(rdisk, mountPoint);
 
         hpuxSupport.setVolumeMountPointTag(volume, mountPoint);
     }
-
 }

@@ -4,20 +4,18 @@
  */
 package com.emc.sa.service.hpux.tasks;
 
-import com.emc.hpux.command.MountCommand;
+import com.emc.hpux.command.MakeFilesystemCommand;
 
-public class MountPath extends HpuxExecutionTask<Void> {
-    private String source;
+public class MakeFilesystem extends HpuxExecutionTask<Void> {
     private String path;
 
-    public MountPath(String source, String path) {
-        this.source = source;
+    public MakeFilesystem(String path) {
         this.path = path;
     }
 
     @Override
     public void execute() throws Exception {
-        MountCommand command = new MountCommand(source, path);
+        MakeFilesystemCommand command = new MakeFilesystemCommand(path);
         executeCommand(command, SHORT_TIMEOUT);
     }
 }

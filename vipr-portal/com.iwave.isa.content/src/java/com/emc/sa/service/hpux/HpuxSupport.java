@@ -21,7 +21,9 @@ import com.emc.sa.service.hpux.tasks.FindRDiskForVolume;
 import com.emc.sa.service.hpux.tasks.GetDirectoryContents;
 import com.emc.sa.service.hpux.tasks.HpuxExecutionTask;
 import com.emc.sa.service.hpux.tasks.ListMountPoints;
+import com.emc.sa.service.hpux.tasks.MakeFilesystem;
 import com.emc.sa.service.hpux.tasks.MountPath;
+import com.emc.sa.service.hpux.tasks.Rescan;
 import com.emc.sa.service.hpux.tasks.UnmountPath;
 import com.emc.sa.service.hpux.tasks.UpdatePowerPathEntries;
 import com.emc.sa.service.hpux.tasks.VerifyMountPoint;
@@ -127,13 +129,21 @@ public class HpuxSupport {
         return execute(new CheckForPowerPath());
     }
 
-    public void mount(String mountPoint) {
-        execute(new MountPath(mountPoint));
+    public void makeFilesystem(String disk) {
+        execute(new MakeFilesystem(disk));
+    }
+
+    public void mount(String source, String mountPoint) {
+        execute(new MountPath(source, mountPoint));
         addRollback(new UnmountPath(mountPoint));
     }
 
     public void unmount(String mountPoint) {
         execute(new UnmountPath(mountPoint));
+    }
+
+    public void rescan() {
+        execute(new Rescan());
     }
 
     public String findRDisk(BlockObjectRestRep volume, boolean usePowerPath) {

@@ -117,7 +117,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext) parentRequestContext.getVolumeContext();
 
-
         UnManagedVolume unManagedVolume = volumeContext.getUnmanagedVolume();
 
         // Validation checks on the unmanaged volume we're trying to ingest

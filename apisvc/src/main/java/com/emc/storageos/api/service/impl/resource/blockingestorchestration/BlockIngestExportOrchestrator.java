@@ -38,7 +38,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -68,7 +67,13 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     Joiner.on(",").join(unManagedVolume.getUnmanagedExportMasks()), unManagedVolume.getNativeGuid());
             List<UnManagedExportMask> uemsToPersist = new ArrayList<UnManagedExportMask>();
             Iterator<UnManagedExportMask> itr = unManagedMasks.iterator();
-            List<String> errorMessages = requestContext.getVolumeContext(unManagedVolume.getNativeGuid()).getErrorMessages();
+            
+            // TODO: Nathan, this value is not getting filled-in for RP, please address
+            List<String> errorMessages = new ArrayList<String>();
+            if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) != null) {
+                errorMessages = requestContext.getVolumeContext(unManagedVolume.getNativeGuid()).getErrorMessages();
+            }
+            
             ExportGroup exportGroup = requestContext.getExportGroup();
             StorageSystem system = requestContext.getStorageSystem();
             Host host = null;

@@ -887,7 +887,7 @@ public class ProjectService extends TaggedResource {
         }
         // Report error, if there are any invalid vnas servers found!!!
         if (errorMsg != null && errorMsg.length() > 0) {
-            _log.error("Failed to assigned the virtual NAS Servers to project due to {} ", errorMsg.toString());
+            _log.error("Failed to assign virtual NAS server(s) to project. Error: {} ", errorMsg.toString());
             throw APIException.badRequests.oneOrMorevNasServersNotAssociatedToProject();
         }
         return Response.ok().build();
@@ -924,7 +924,7 @@ public class ProjectService extends TaggedResource {
                 
                 // Validate the VNAS is assigned to project!!!
                 if (!shareVNASWithMultipleProjects && !vnas.isNotAssignedToProject()) {
-                    errorMsg.append(" vNas " + vnas.getNasName() + " is associated to project " + project.getLabel());
+                    errorMsg.append(" vNas: " + vnas.getNasName() + " is already associated to a project.");
                     _log.error(errorMsg.toString());
                     continue;
                 }

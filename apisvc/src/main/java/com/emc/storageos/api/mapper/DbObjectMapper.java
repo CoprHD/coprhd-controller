@@ -278,6 +278,7 @@ public class DbObjectMapper {
         mapDataObjectFields(from, rep);
         rep.setDescription(from.getDescription());
         rep.setRoles(from.getRoles());
+        rep.setParent(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, from.getParent()));
         return rep;
     }
 

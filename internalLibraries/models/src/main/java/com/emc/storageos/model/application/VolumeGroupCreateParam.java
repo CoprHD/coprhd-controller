@@ -21,6 +21,7 @@ public class VolumeGroupCreateParam {
     private String name;
     private String description;
     private Set<String> roles;
+    private String parent;
 
     public VolumeGroupCreateParam() {
     }
@@ -73,6 +74,21 @@ public class VolumeGroupCreateParam {
 
     public void setRoles(Set<String> roles) {
         this.roles = roles;
+    }
+
+    /**
+     * @return the parent
+     */
+    @XmlElement
+    public String getParent() {
+        return parent;
+    }
+
+    /**
+     * @param parent the parent to set
+     */
+    public void setParent(String parent) {
+        this.parent = parent;
     }
 
 }

@@ -9,7 +9,7 @@
 export DO_NOT_START := yes
 WORKSPACE := $(shell pwd)
 NAME := CoprHDDevKit
-VERSION := 2.4.0.0
+VERSION := 2.5.0.0
 JOB := 999
 VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso

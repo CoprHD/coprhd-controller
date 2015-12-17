@@ -9,7 +9,7 @@
 export DO_NOT_START := yes
 WORKSPACE := $(shell pwd)
 NAME := CoprHD
-VERSION := 2.4.0.0
+VERSION := 2.5.0.0
 JOB := 999
 VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso
@@ -24,8 +24,8 @@ OUTPUT_DIR := $(WORKSPACE)/output/$(JOB)
 BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 VMDK := $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
 OVF := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
-STORAGEOS_VERSION := 2.4.0.0
-STORAGEOS_STABLE := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-release-2.4-coprhd/lastStableBuild/buildNumber)
+STORAGEOS_VERSION := 2.5.0.0
+STORAGEOS_STABLE := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-master/lastStableBuild/buildNumber)
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
 
 .DEFAULT: all
@@ -80,7 +80,7 @@ createREPO: | downdloadRPM downdloadTGZ
 	rm -fr $(WORKSPACE)/zypper/repo
 	mkdir -p $(WORKSPACE)/zypper/repo
 	if [ $(SOURCE_RPM) == "jenkins" ]; then \
-		wget --no-check-certificate https://build.coprhd.org/jenkins/job/CH-coprhd-controller-release-2.4-coprhd/lastSuccessfulBuild/artifact/CH-coprhd-controller-release-2.4-coprhd/build/RPMS/x86_64/storageos-$(STORAGEOS_VERSION).$(STORAGEOS_STABLE)-1.x86_64.rpm --continue --progress=bar --output-document=$(WORKSPACE)/zypper/repo/storageos-$(STORAGEOS_VERSION).$(STORAGEOS_STABLE)-1.x86_64.rpm; \
+		wget --no-check-certificate https://build.coprhd.org/jenkins/job/CH-coprhd-controller-master/lastSuccessfulBuild/artifact/CH-coprhd-controller-master/build/RPMS/x86_64/storageos-$(STORAGEOS_VERSION).$(STORAGEOS_STABLE)-1.x86_64.rpm --continue --progress=bar --output-document=$(WORKSPACE)/zypper/repo/storageos-$(STORAGEOS_VERSION).$(STORAGEOS_STABLE)-1.x86_64.rpm; \
 	fi
 	if [ $(SOURCE_RPM) == "git" ]; then \
 		cd $(WORKSPACE)/../../../../../; \

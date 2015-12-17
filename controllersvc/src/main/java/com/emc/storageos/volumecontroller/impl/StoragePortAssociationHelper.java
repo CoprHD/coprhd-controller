@@ -357,6 +357,14 @@ public class StoragePortAssociationHelper {
     }
 
 
+    /**
+     * This method return list of VirtualPoll URIs defined in the past set of VirtualArray(s)
+     *
+     * @param varrayIDs set of virtual arrays URIs
+     * @param dbClient
+     *
+     * @return list of virtual pool URIs
+     */
     public static List<URI> getVpoolsForVarrays(Set<String> varrayIDs, DbClient dbClient) {
         List<URI> vpoolURIs = new ArrayList<>();
         for (String varrayID : varrayIDs) {

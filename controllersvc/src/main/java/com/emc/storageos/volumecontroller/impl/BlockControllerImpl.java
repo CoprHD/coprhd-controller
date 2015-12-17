@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -164,7 +165,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     @Override
     public void createSingleSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
             throws ControllerException {
-        blockRMI("createSingleSnapshot", storage,snapshotList, createInactive, readOnly, opId);
+        blockRMI("createSingleSnapshot", storage, snapshotList, createInactive, readOnly, opId);
     }
 
     @Override
@@ -269,7 +270,8 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void establishVolumeAndNativeContinuousCopyGroupRelation(URI storage, URI sourceVolume, URI mirror, String opId) throws InternalException {
+    public void establishVolumeAndNativeContinuousCopyGroupRelation(URI storage, URI sourceVolume, URI mirror, String opId)
+            throws InternalException {
         blockRMI("establishVolumeAndNativeContinuousCopyGroupRelation", storage, sourceVolume, mirror, opId);
     }
 
@@ -453,4 +455,56 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
 
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs, Map<URI,
+            List<URI>> sessionSnapshotURIMap, String copyMode, String opId)
+            throws InternalException {
+        blockRMI("createSnapshotSession", systemURI, snapSessionURIs, sessionSnapshotURIMap, copyMode, opId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
+            String copyMode, String opId) {
+        blockRMI("linkNewTargetVolumesToSnapshotSession", systemURI, snapSessionURI, snapshotURIs, copyMode, opId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void relinkTargetsToSnapshotSession(URI systemURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
+            String opId) throws InternalException {
+        blockRMI("relinkTargetsToSnapshotSession", systemURI, tgtSnapSessionURI, snapshotURIs, opId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
+            Map<URI, Boolean> snapshotDeletionMap, String opId) {
+        blockRMI("unlinkTargetsFromSnapshotSession", systemURI, snapSessionURI, snapshotDeletionMap, opId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, Boolean updateStatus, String opId) {
+        blockRMI("restoreSnapshotSession", systemURI, snapSessionURI, updateStatus, opId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
+        blockRMI("deleteSnapshotSession", systemURI, snapSessionURI, opId);
+    }
 }

@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.resource.utils.ProjectUtility;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
@@ -51,6 +52,7 @@ import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -253,12 +255,32 @@ public class FileStorageScheduler {
         StoragePort sp;
 
         if (fs.getStoragePort() == null) {
-            _log.debug("placement for file system {} with no assigned port.",
+            _log.info("Placement for file system {} with no assigned port.",
                     fs.getName());
             // if no storage port is selected yet, select one and record the
             // selection
             List<StoragePort> ports = getStorageSystemPortsInVarray(
                     fs.getStorageDevice(), fs.getVirtualArray());
+            
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+            
+            if(Type.isilon.name().equals(storageSystem.getSystemType())) {
+	            if (ports != null && !ports.isEmpty()) {
+		            //Check if these ports are associated with vNAS
+		            for (Iterator<StoragePort> iterator = ports.iterator(); iterator.hasNext();) {
+						StoragePort storagePort =  iterator.next();
+						List<VirtualNAS> vNASList = StoragePortAssociationHelper.getStoragePortVirtualNAS(storagePort, _dbClient);
+						if (vNASList != null && !vNASList.isEmpty()) {
+							/* Remove the associated port. Because during file system placement,
+							 * storage port will already be assigned to FS. In that case, this block won't
+							 * be executed.
+							 */
+							_log.info("Removing port {} as it is assigned to a vNAS.", storagePort.getNativeGuid());
+							iterator.remove();
+						}
+					}
+	            }
+            }
 
             // Filter ports based on protocol (for example, if CIFS or NFS is
             // required)
@@ -284,7 +306,7 @@ public class FileStorageScheduler {
             // if a storage port is already selected for the fileshare, use that
             // port for all exports
             sp = _dbClient.queryObject(StoragePort.class, fs.getStoragePort());
-            _log.debug("placement for file system {} with port {}.",
+            _log.info("Placement for file system {} with port {}.",
                     fs.getName(), sp.getPortName());
 
             // verify port supports new request.
@@ -510,6 +532,7 @@ public class FileStorageScheduler {
 
         vNASList = _dbClient.queryObject(VirtualNAS.class, vNASURIList);
         if (vNASList != null && !vNASList.isEmpty()) {
+        	Set<String> projectDomains = ProjectUtility.getDomainsOfProject(permissionsHelper, project);
             for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator
                     .hasNext();) {
                 VirtualNAS vNAS = iterator.next();
@@ -540,9 +563,10 @@ public class FileStorageScheduler {
                 		iterator.remove();
                 		invalidNasServers.add(vNAS);
                 	} 
-                } else if(!doesVNASDomainMatchesWithProjectDomain(project, vNAS)) {
+                } else if (!ProjectUtility.
+                		doesProjectDomainMatchesWithVNASDomain(projectDomains, vNAS)) {
                 	_log.info("Removing vNAS {} as its domain does not match with project's domain: {}",
-                            vNAS.getNasName(), vpool.getProtocols());
+                            vNAS.getNasName(), projectDomains);
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 }
@@ -722,50 +746,7 @@ public class FileStorageScheduler {
         return true;
     }
     
-	/**
-	 * Checks if the if the domain of the virtual NAS matches with domain of the
-	 * project
-	 * 
-	 * @param project the Project object
-	 * @param vNAS the VirtualNAS object
-	 * @return true if the domain of the virtual NAS matches with domain of the
-	 *         project or the project does not have domains configured, false
-	 *         otherwise
-	 */
-    private boolean doesVNASDomainMatchesWithProjectDomain(Project project, VirtualNAS vNAS) {
-    	
-    	if (project != null) {
-    		// Get list of domains associated with the project
-            Set<String> projectDomains = new HashSet<String>();
-            NamedURI tenantUri = project.getTenantOrg();
-            TenantOrg tenant = permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
-            if (tenant != null && tenant.getUserMappings() != null) {
-                for (AbstractChangeTrackingSet<String> userMappingSet : tenant.getUserMappings().values()) {
-                    for (String existingMapping : userMappingSet) {
-                        UserMappingParam userMap = BasePermissionsHelper.UserMapping.toParam(
-                                BasePermissionsHelper.UserMapping.fromString(existingMapping));
-                        projectDomains.add(userMap.getDomain().toUpperCase());
-                    }
-                }
-            }
-            
-            if (projectDomains != null && !projectDomains.isEmpty()) {
-            	if(vNAS.getCifsServersMap() != null && !vNAS.getCifsServersMap().isEmpty() ) {
-            		Set<Entry<String, NasCifsServer>> nasCifsServers = vNAS.getCifsServersMap().entrySet();
-            		for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
-            			NasCifsServer cifsServer = nasCifsServer.getValue();
-            			if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
-            				return true;
-            			}
-            		}
-            	}
-            } else {
-                return true;
-            }
-    	}
-    	
-    	return false;
-    }
+	
 
     /**
      * Fetches and returns all the storage ports for a given storage system that

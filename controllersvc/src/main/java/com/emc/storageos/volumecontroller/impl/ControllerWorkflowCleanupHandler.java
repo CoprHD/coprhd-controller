@@ -53,13 +53,13 @@ import com.emc.storageos.workflow.WorkflowService;
  * 5) Trigger device rediscovery
  * 
  */
-public class ControllerPostFailoverHandler extends DrPostFailoverHandler {
-    private static final Logger log = LoggerFactory.getLogger(ControllerPostFailoverHandler.class);
+public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {
+    private static final Logger log = LoggerFactory.getLogger(ControllerWorkflowCleanupHandler.class);
     
     @Autowired
     private DbClient dbClient;
     
-    public ControllerPostFailoverHandler() {
+    public ControllerWorkflowCleanupHandler() {
     }
     
     protected void execute() {
@@ -87,26 +87,6 @@ public class ControllerPostFailoverHandler extends DrPostFailoverHandler {
         } catch (Exception ex) {
             log.error("DbConsistencyChecker exception ex", ex);
             throw new IllegalStateException(ex);
-        }
-    }
-    
-    public void cleanupQueues() {
-        SiteState siteState = drUtil.getLocalSite().getState();
-        if (siteState.equals(SiteState.STANDBY_FAILING_OVER)) {
-            String[] queueNames = new String[]{ControllerServiceImpl.SCAN_JOB_QUEUE_NAME, 
-                    ControllerServiceImpl.JOB_QUEUE_NAME, 
-                    ControllerServiceImpl.COMPUTE_DISCOVER_JOB_QUEUE_NAME, 
-                    ControllerServiceImpl.DISCOVER_JOB_QUEUE_NAME, 
-                    ControllerServiceImpl.METERING_JOB_QUEUE_NAME,
-                    ControllerServiceImpl.MONITORING_JOB_QUEUE_NAME,
-                    Dispatcher.QueueName.controller.toString(),
-                    Dispatcher.QueueName.workflow_inner.toString(), 
-                    Dispatcher.QueueName.workflow_outer.toString()};
-            for (String name : queueNames) {
-                String fullQueuePath = String.format("%s/%s", ZkPath.QUEUE, name);
-                log.info("Cleanup zk job queue path {}", fullQueuePath);
-                coordinator.deletePath(fullQueuePath);
-            }
         }
     }
     

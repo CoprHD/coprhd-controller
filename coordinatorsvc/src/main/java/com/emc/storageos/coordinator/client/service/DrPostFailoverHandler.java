@@ -173,8 +173,7 @@ public abstract class DrPostFailoverHandler {
     public static class QueueCleanupHandler extends DrPostFailoverHandler{
         private List<String> queueNames;
         
-        public QueueCleanupHandler(String name) {
-            this.name = name;
+        public QueueCleanupHandler() {
         }
         
         protected void execute() {

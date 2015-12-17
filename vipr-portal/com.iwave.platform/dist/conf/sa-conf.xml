@@ -215,11 +215,11 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
-    <bean id="drPostFailoverHandler" class="com.iwave.platform.StorageAutomatorDrPostFailoverHandler">
-    	<property name="name" value="SasvcPostFailoverHandler"/>
+    <bean id="drOrderCleanupHandler" class="com.iwave.platform.StorageAutomatorOrderCleanupHandler">
+    	<property name="name" value="SasvcOrderCleanupHandler"/>
     </bean>
     
-    <bean id="queueDrPostFailoverHandler" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler">
+    <bean id="drQueueCleanupHandler" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler">
     	<property name="name" value="SasvcQueueCleanupHandler"/>
     	<property name="queueNames">
     		<list>

@@ -1248,8 +1248,8 @@
         <property name="configInfo" ref="configinfo" />
         <property name="dataObjectScanner" ref="dataObjectScanner"/>
         <property name="controlRequestTaskConsumer" ref="controlRequestTaskConsumer"/>
-        <property name="workflowDrCleanupHandler" ref="workflowDrCleanupHandler"/>
-        <property name="queueDrCleanupHandler" ref="queueDrCleanupHandler"/>
+        <property name="drWorkflowCleanupHandler" ref="drWorkflowCleanupHandler"/>
+        <property name="drQueueCleanupHandler" ref="drQueueCleanupHandler"/>
     </bean>
 
 	<bean id="monitoringJobConsumer"
@@ -1390,11 +1390,11 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
-    <bean id="workflowDrCleanupHandler" class="com.emc.storageos.volumecontroller.impl.ControllerPostFailoverHandler">
-    	<property name="name" value="ControllersvcPostFailoverHandler"/>
+    <bean id="drWorkflowCleanupHandler" class="com.emc.storageos.volumecontroller.impl.ControllerWorkflowCleanupHandler">
+    	<property name="name" value="ControllersvcWorkflowCleanupHandler"/>
     </bean>
     
-    <bean id="queueDrCleanupHandler" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler">
+    <bean id="drQueueCleanupHandler" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler">
     	<property name="name" value="ControllersvcQueueCleanupHandler"/>
     	<property name="queueNames">
     		<list>

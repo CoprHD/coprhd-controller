@@ -557,9 +557,9 @@
     	<property name="handlers">
             <list>
                 <value>ControllersvcQueueCleanupHandler</value>
-                <value>ControllersvcPostFailoverHandler</value>
-                <value>SasvcQueueCleanupHandler</value>
-                <value>SasvcPostFailoverHandler</value>
+                <value>ControllersvcWorkflowCleanupHandler</value>
+                <value>SasvcOrderQueueCleanupHandler</value>
+                <value>SasvcOrderCleanupHandler</value>
             </list>
         </property>
     </bean>

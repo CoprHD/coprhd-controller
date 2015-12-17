@@ -139,8 +139,8 @@ public class ControllerServiceImpl implements ControllerService {
     private DistributedLockQueueManager _lockQueueManager;
     private ControlRequestTaskConsumer _controlRequestTaskConsumer;
     private DrUtil _drUtil;
-    private ControllerPostFailoverHandler _drPostFailoverHandler;
-    private QueueCleanupHandler _drQueueFailoverHandler;
+    private ControllerWorkflowCleanupHandler _drWorkflowCleanupHandler;
+    private QueueCleanupHandler _drQueueCleanupHandler;
     
     ManagedCapacityImpl _capacityCompute;
     LeaderSelector _capacityService;
@@ -440,7 +440,7 @@ public class ControllerServiceImpl implements ControllerService {
         // Watson
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
-        _drQueueFailoverHandler.run();
+        _drQueueCleanupHandler.run();
         
         _dispatcher.start();
 
@@ -495,7 +495,7 @@ public class ControllerServiceImpl implements ControllerService {
 
         startLockQueueService();
         
-        _drPostFailoverHandler.run();
+        _drWorkflowCleanupHandler.run();
         
         _jobScheduler.start();
 
@@ -735,9 +735,12 @@ public class ControllerServiceImpl implements ControllerService {
         _controlRequestTaskConsumer = consumer;
     }
 
-    public void setDrPostFailoverHandler(ControllerPostFailoverHandler drFailoverHandler) {
-        this._drPostFailoverHandler = drFailoverHandler;
+    public void setDrWorkflowCleanupHandler(ControllerWorkflowCleanupHandler drFailoverHandler) {
+        this._drWorkflowCleanupHandler = drFailoverHandler;
     }
     
+    public void setDrQueueCleanupHandler(QueueCleanupHandler drFailoverHandler) {
+        this._drQueueCleanupHandler = drFailoverHandler;
+    }
 
 }

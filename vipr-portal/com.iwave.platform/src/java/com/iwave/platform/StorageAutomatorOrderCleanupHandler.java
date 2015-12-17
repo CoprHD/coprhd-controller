@@ -19,15 +19,14 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 
-public class StorageAutomatorDrFailoverHandler extends DrPostFailoverHandler {
-    private static final Logger log = LoggerFactory.getLogger(StorageAutomatorDrFailoverHandler.class);
+public class StorageAutomatorOrderCleanupHandler extends DrPostFailoverHandler {
+    private static final Logger log = LoggerFactory.getLogger(StorageAutomatorOrderCleanupHandler.class);
     @Autowired
     private ModelClient modelClient;
-
     @Autowired
     private OrderManager orderManager;
     
-    public StorageAutomatorDrFailoverHandler() {
+    public StorageAutomatorOrderCleanupHandler() {
     }
     
     protected void execute() {

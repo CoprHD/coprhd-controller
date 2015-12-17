@@ -4,11 +4,7 @@
  */
 package com.emc.sa.zookeeper;
 
-import java.util.Arrays;
-
 import org.springframework.stereotype.Component;
-
-import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 
 /**
  * Wraps a Zookeeper Distributed queue for passing Order requests to the execution engine.
@@ -22,13 +18,5 @@ public class OrderExecutionQueue extends GenericQueue<OrderMessage> {
     public OrderExecutionQueue() {
         setName(QUEUE_NAME);
         setWorkThreads(100);
-    }
-    
-    public void start() {
-        QueueCleanupHandler drPostFailoverHandler = new QueueCleanupHandler("OrderQueueHandler");
-        drPostFailoverHandler.setQueueNames(Arrays.asList(QUEUE_NAME));
-        drPostFailoverHandler.run();
-        
-        super.start();
     }
 }

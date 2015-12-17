@@ -222,9 +222,9 @@ public class SRDFScheduler implements Scheduler {
      * This method validate pools for the ACTIVE SRDF mode, by making sure that storageSysten
      * for the storage pool has minimum provider version of 8.1.X.
      * 
-     * @param candidatePools List of StaoragePools
+     * @param candidatePools List of storage pools
      * 
-     * @return A list of filtered storage pools.
+     * @return A list of filtered storage pools if active mode else returns the same candidatePools list
      */
     private List<StoragePool> validatePoolsForSupportedActiveModeProvider(List<StoragePool> candidatePools, VirtualPool vpool) {
         List<StoragePool> filteredCandidatePools = new ArrayList<StoragePool>();
@@ -257,14 +257,14 @@ public class SRDFScheduler implements Scheduler {
                         if (null != storageSystem && storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
                             StorageProvider provider = mapOfStorageSystemToProvider.get(storageSystemURI);
                             if (provider != null) {
-                                // example valid provision version : V8.1.0.4
+                                // example valid provider version : V8.1.0.4
                                 String providerVersion = provider.getVersionString();
                                 if (null != providerVersion) {
                                     String versionSubstring = providerVersion.split("\\.")[1];
                                     if (Integer.parseInt(versionSubstring) >= 1) {
                                         filteredCandidatePools.add(candidatePool);
                                     } else {
-                                        _log.info(String.format("Skipping Pool %s %s, as associated Storage System  "
+                                        _log.info(String.format("Skipping Pool %s %s, as associated Storage System "
                                                 + "provider is not using 8.1.X version required for SRDF ACTIVE Mode.",
                                                 candidatePool.getLabel(), candidatePool.getId()));
                                     }

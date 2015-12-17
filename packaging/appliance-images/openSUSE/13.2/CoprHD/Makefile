@@ -8,7 +8,6 @@
 ##################################################
 export DO_NOT_START := yes
 WORKSPACE := $(shell pwd)
-GIT_REVISION := $(shell git -C $(WORKSPACE)/../coprhd-controller rev-parse --short HEAD)
 NAME := CoprHD
 VERSION := 2.4.0.0
 JOB := 999
@@ -26,14 +25,12 @@ BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 VMDK := $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
 OVF := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
 STORAGEOS_VERSION := 2.4.0.0
-STORAGEOS_BRANCH := $(GIT_REVISION)-1
 STORAGEOS_STABLE := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-release-2.4-coprhd/lastStableBuild/buildNumber)
-STORAGEOS_PATH := $(WORKSPACE)/../coprhd-controller
-STORAGEOS_RPM := $(STORAGEOS_PATH)/build/RPMS/x86_64/storageos-$(STORAGEOS_VERSION).$(STORAGEOS_BRANCH).x86_64.rpm
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
 
 .DEFAULT: all
 .PHONY: downdloadISO downdloadRPM downdloadTGZ createREPO appliance clean destroy
+.IGNORE: $(VMDK)
 all: appliance
 
 ##################################################
@@ -51,7 +48,7 @@ endef
 downdloadISO:
 	$(call targetLog,+)
 	mkdir -p $(WORKSPACE)/iso/mount
-	-[ -f $(WORKSPACE)/iso/$(ISO_FILE) ] || cp -pr /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) $(WORKSPACE)/iso/
+	@-[ -f $(WORKSPACE)/iso/$(ISO_FILE) ] || cp -pr /disks/adgbuild/OPENSUSE13.2/$(ISO_FILE) $(WORKSPACE)/iso/
 	wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
 	$(call targetLog,-)
 
@@ -63,7 +60,7 @@ downdloadRPM:
 	zypper $(ZYPPER_PARAMS) addrepo --name repo-oss --no-gpgcheck --no-check http://download.opensuse.org/distribution/13.2/repo/oss repo-oss.repo
 	zypper $(ZYPPER_PARAMS) refresh
 	zypper $(ZYPPER_PARAMS) --non-interactive download python-py python-requests python-setools python-iniparse python-gpgme
-	zypper $(ZYPPER_PARAMS) --non-interactive download libserf-devel fribidi fbiterm openssh-fips perl-Tk setools-libs sshpass sysstat ca-certificates-cacert yum keepalived
+	zypper $(ZYPPER_PARAMS) --non-interactive download libserf-devel fribidi fbiterm openssh-fips perl-Tk setools-libs sshpass sysstat ca-certificates-cacert yum keepalived strongswan strongswan-ipsec strongswan-libs0
 	@# openSUSE's non-OSS packages
 	zypper $(ZYPPER_PARAMS) addrepo --name devel-languages-python --no-gpgcheck --no-check http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 devel-languages-python.repo
 	zypper $(ZYPPER_PARAMS) addrepo --name server-monitoring --no-gpgcheck --no-check http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 server-monitoring.repo
@@ -87,11 +84,9 @@ createREPO: | downdloadRPM downdloadTGZ
 		wget --no-check-certificate https://build.coprhd.org/jenkins/job/CH-coprhd-controller-release-2.4-coprhd/lastSuccessfulBuild/artifact/CH-coprhd-controller-release-2.4-coprhd/build/RPMS/x86_64/storageos-$(STORAGEOS_VERSION).$(STORAGEOS_STABLE)-1.x86_64.rpm --continue --progress=bar --output-document=$(WORKSPACE)/zypper/repo/storageos-$(STORAGEOS_VERSION).$(STORAGEOS_STABLE)-1.x86_64.rpm; \
 	fi
 	if [ $(SOURCE_RPM) == "git" ]; then \
-		if [ ! -f "$(STORAGEOS_RPM)" ]; then \
-			cd $(STORAGEOS_PATH); \
-			make clobber BUILD_TYPE=oss rpm; \
-		fi; \
-		cp -fr $(STORAGEOS_PATH)/build/RPMS/x86_64/* $(WORKSPACE)/zypper/repo/; \
+		cd $(WORKSPACE)/../../../../../; \
+		make clobber BUILD_TYPE=oss rpm; \
+		cp -fr build/RPMS/x86_64/* $(WORKSPACE)/zypper/repo/; \
 	fi
 	if [ -f $(SOURCE_RPM) ]; then \
 		cp -fr $(SOURCE_RPM) $(WORKSPACE)/zypper/repo/; \
@@ -114,11 +109,6 @@ destroy:
 
 appliance: | $(OVF)
 
-$(STORAGEOS_RPM):
-	$(call targetLog,+)
-	cd $(STORAGEOS_PATH); make clobber BUILD_TYPE=oss rpm
-	$(call targetLog,-)
-
 $(VMDK): | downdloadISO createREPO
 	$(call targetLog,+)
 	bash $(WORKSPACE)/patch.sh
@@ -127,8 +117,8 @@ $(VMDK): | downdloadISO createREPO
 	sed -i "s|__ISO__|$(WORKSPACE)/iso/mount|g" $(WORKSPACE)/templates/config.xml
 	sed -i "s|__REPO__|$(WORKSPACE)/zypper/repo|g" $(WORKSPACE)/templates/config.xml
 	sed -i "s|__VERSION__|$(VERSION).$(JOB)|g" $(WORKSPACE)/templates/config.xml
-	-umount $(IMAGE_DIR)/var/cache/kiwi
-	-mount $(WORKSPACE)/iso/$(ISO_FILE) $(WORKSPACE)/iso/mount
+	@-umount $(IMAGE_DIR)/var/cache/kiwi
+	@-mount $(WORKSPACE)/iso/$(ISO_FILE) $(WORKSPACE)/iso/mount
 	rm -fr $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 	mkdir -p $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 	mkdir -p $(WORKSPACE)/image
@@ -136,7 +126,7 @@ $(VMDK): | downdloadISO createREPO
 	mkdir -p $(WORKSPACE)/output
 	kiwi --verbose 3 --yes --prepare $(WORKSPACE)/templates --add-profile appliance --force-new-root --root $(IMAGE_DIR)
 	kiwi --verbose 3 --yes --create $(IMAGE_DIR) --add-profile appliance --type vmx --destdir $(OUTPUT_DIR)
-	-umount $(WORKSPACE)/iso/mount
+	@-umount $(WORKSPACE)/iso/mount
 	$(call targetLog,-)
 
 $(OVF): | $(VMDK)

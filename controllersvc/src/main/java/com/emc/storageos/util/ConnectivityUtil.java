@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -31,6 +32,7 @@ import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool.SystemType;
@@ -628,26 +630,29 @@ public class ConnectivityUtil {
      * @return list of virtual array URIs
      */
     public static List<URI> getRPSystemVirtualArrays(DbClient dbClient,
-            URI rpSystemId) {
-        Set<URI> virtualArrayIdSet = new HashSet<URI>();
-        List<URI> virtualArrayIdList = new ArrayList<URI>();
+    		URI rpSystemId) {
+    	Set<URI> virtualArrayIdSet = new HashSet<URI>();
+    	List<URI> virtualArrayIdList = new ArrayList<URI>();
 
-        // Get the rp system's array mappings from the RP client
-        URIQueryResultList sitelist = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getRPSiteArrayProtectionSystemConstraint(rpSystemId.toString()), sitelist);
+    	// Get the rp system's array mappings from the RP client
+    	URIQueryResultList sitelist = new URIQueryResultList();
+    	dbClient.queryByConstraint(AlternateIdConstraint.Factory
+    			.getRPSiteArrayProtectionSystemConstraint(rpSystemId.toString()), sitelist);
 
-        Iterator<URI> it = sitelist.iterator();
-        while (it.hasNext()) {
-            URI rpSiteArrayId = it.next();
-            RPSiteArray siteArray = dbClient.queryObject(RPSiteArray.class, rpSiteArrayId);
+    	Iterator<URI> it = sitelist.iterator();
+    	List<String> serialNumberSiteName = new ArrayList<String>();
+    	while (it.hasNext()) {
+    		URI rpSiteArrayId = it.next();
+    		RPSiteArray siteArray = dbClient.queryObject(RPSiteArray.class, rpSiteArrayId);
+    		if (!serialNumberSiteName.contains(siteArray.getArraySerialNumber() + siteArray.getRpSiteName())) {
+    			findAllVirtualArraysForRPSiteArray(dbClient, siteArray, virtualArrayIdSet);
+    			serialNumberSiteName.add(siteArray.getArraySerialNumber() + siteArray.getRpSiteName());
+    		}
+    	}
 
-            virtualArrayIdSet.addAll(findAllVirtualArraysForRPSiteArray(dbClient, siteArray));            
-        }
-
-        // Convert to a list
-        virtualArrayIdList.addAll(virtualArrayIdSet);
-        return virtualArrayIdList;
+    	// Convert to a list
+    	virtualArrayIdList.addAll(virtualArrayIdSet);
+    	return virtualArrayIdList;
     }
 
     /**
@@ -655,12 +660,11 @@ public class ConnectivityUtil {
      *
      * @param dbClient
      * @param siteArray
-     * @return all the URIs of the associated VSAs
+     * @param ids virtual array ids collected
+     * @return void
      */
-    private static Set<URI> findAllVirtualArraysForRPSiteArray(
-            DbClient dbClient, RPSiteArray siteArray) {
-
-        Set<URI> ids = new HashSet<URI>();
+    private static void findAllVirtualArraysForRPSiteArray(
+            DbClient dbClient, RPSiteArray siteArray, Collection<URI> ids) {
 
         if (siteArray != null) {
             // Find all the Storage Pools associated to this RPSiteArray
@@ -686,60 +690,28 @@ public class ConnectivityUtil {
             }
             
             // If the rpsite array storage system is vplex check virtual array
-            // connectivity to rpsite using front end storage ports
-            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, siteArray.getStorageSystem());    	
-            if (storageSystem != null && isAVPlex(storageSystem)) {            	
-            	List<StoragePort> storagePorts = getStoragePortsForSystem(dbClient, storageSystem.getId());    		    		
-            	for (StoragePort storagePort : storagePorts) {
-            		// For each Storage Port get all the connected VSAs
-            		if (storagePort != null && 
-            				!storagePort.getInactive() &&
-            				storagePort.getPortType() != null &&
-            				storagePort.getPortType().equalsIgnoreCase(StoragePort.PortType.frontend.toString())) { 
-
-            			if (storagePort.getConnectedVirtualArrays() != null) {
-            				for (String vArrayId : storagePort.getConnectedVirtualArrays()) {
-            					if (hasAssociatedBackendStorage(dbClient, storageSystem.getId(), vArrayId)) {
-            						_log.info(String.format("Vplex System [%s] has connectvity to RP Site [%s]", storageSystem.getLabel(), siteArray.getRpSiteName()));
-            						ids.add(URI.create(vArrayId));
-            					}
-            				}
+            // connectivity to rpsite using front end storage ports                        
+            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, siteArray.getStorageSystem());    
+            if (storageSystem != null && isAVPlex(storageSystem)) {               
+            	Map<URI, List<StoragePort>> storagePortMap = ConnectivityUtil.getStoragePortsOfType(dbClient, storageSystem.getId(), PortType.frontend);
+            	for (Map.Entry<URI, List<StoragePort>> storagePortEntry : storagePortMap.entrySet()) {
+            		for (StoragePort storagePort : storagePortEntry.getValue()) {
+            			// For each Storage Port get all the connected VSAs
+            			if (storagePort.getConnectedVirtualArrays() != null && !storagePort.getConnectedVirtualArrays().isEmpty() && 
+            					!ids.containsAll(URIUtil.toURIList(storagePort.getConnectedVirtualArrays()))) {
+            				_log.info(String.format("Vplex System [%s] has connectvity to RP Site [%s]", storageSystem.getLabel(), siteArray.getRpSiteName()));
+            				ids.addAll(URIUtil.toURIList(storagePort.getConnectedVirtualArrays()));
             			}
-
-            			if (storagePort.getAssignedVirtualArrays() != null) {
-            				for (String vArrayId : storagePort.getAssignedVirtualArrays()) {            						
-            					if (hasAssociatedBackendStorage(dbClient, storageSystem.getId(), vArrayId)) {
-            						_log.info(String.format("Vplex System [%s] has connectvity to RP Site [%s]", storageSystem.getLabel(), siteArray.getRpSiteName()));
-            						ids.add(URI.create(vArrayId));
-            					}
-            				}
+            			if (storagePort.getAssignedVirtualArrays() != null && !storagePort.getAssignedVirtualArrays().isEmpty() &&
+            					!ids.containsAll(URIUtil.toURIList(storagePort.getAssignedVirtualArrays()))) {
+            				_log.info(String.format("Vplex System [%s] has connectvity to RP Site [%s]", storageSystem.getLabel(), siteArray.getRpSiteName()));
+            				ids.addAll(URIUtil.toURIList(storagePort.getAssignedVirtualArrays()));
             			}
-            		}     			    			
+            		}                                         
             	}
             }                       
         }
-
-        return ids;
-    }
-    
-    /**
-     * Check if the vplex has associated backend arrays within the virtual array
-     * 
-     * @param dbClient - db client
-     * @param vplexURI - URI of vplex being checked for associated backend arrays
-     * @param vArrayId - URI of virtual array in check
-     * @return boolean indicating if the vplex has associated backend arrays within the virtual array
-     */
-    private static boolean hasAssociatedBackendStorage(DbClient dbClient, URI vplexURI, String vArrayId) {
-    	StringSet connVA = new StringSet();
-        connVA.add(vArrayId);
-		Set<URI> associations = getStorageSystemAssociationsByNetwork(dbClient,
-				vplexURI, StoragePort.PortType.backend, null, connVA, null);
-		if (associations != null && ! associations.isEmpty()) {			
-			return true;
-		}
-    	return false;
-    }
+    }    
     
     /**
      * Get all of the storage pools associated with the RP System

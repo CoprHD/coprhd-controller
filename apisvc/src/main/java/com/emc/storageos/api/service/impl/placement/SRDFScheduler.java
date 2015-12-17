@@ -28,7 +28,9 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -201,7 +203,7 @@ public class SRDFScheduler implements Scheduler {
                         && system.getTargetCgs().contains(
                                 capabilities.getBlockConsistencyGroup().toString())) {
                     _log.info(
-                            "Storage System {} is used as target R2 for given CG earlier, hence cannot be used as source R1 agaan for the same CG.",
+                            "Storage System {} is used as target R2 for given CG earlier, hence cannot be used as source R1 again for the same CG.",
                             system.getNativeGuid());
                 } else {
                     candidatePools.add(pool);
@@ -210,9 +212,67 @@ public class SRDFScheduler implements Scheduler {
         } else {
             candidatePools.addAll(pools);
         }
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings = vpool.getRemoteProtectionSettings(vpool, _dbClient);
+        if (remoteProtectionSettings != null) {
+            for (URI vararyURI : remoteProtectionSettings.keySet()) {
+                VpoolRemoteCopyProtectionSettings remoteCopyProtectionSettings = remoteProtectionSettings.get(vararyURI);
+                String copyMode = remoteCopyProtectionSettings.getCopyMode();
+                if (copyMode.equals(SupportedCopyModes.ACTIVE.toString())) {
+                    candidatePools = validatePoolsForSuportedActiveModeProvider(candidatePools);
+                }
+            }
+        }
         // Schedule storage based on the source pool constraint.
         return scheduleStorageSourcePoolConstraint(varray, project, vpool, capabilities,
                 candidatePools, null, capabilities.getBlockConsistencyGroup());
+    }
+
+    /**
+     * This method validate pools for the ACTIVE SRDF mode, by making sure that storageSysten
+     * for the storage pool has minimum provider version of 8.1.X.
+     * 
+     * @param candidatePools List of StaoragePools
+     * 
+     * @return A list of filtered storage pools.
+     */
+    private List<StoragePool> validatePoolsForSuportedActiveModeProvider(List<StoragePool> candidatePools) {
+        List<StoragePool> filteredCandidatePools = new ArrayList<StoragePool>();
+        Map<URI, StorageSystem> mapOfStorageSystem = new HashMap<URI, StorageSystem>();
+        Map<URI, StorageProvider> mapOfStorageSystemToProvider = new HashMap<URI, StorageProvider>();
+
+        for (StoragePool candidatePool : candidatePools) {
+            URI storageSystemURI = candidatePool.getStorageDevice();
+            if (mapOfStorageSystemToProvider.get(storageSystemURI) == null) {
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+                if (storageSystem != null) {
+                    mapOfStorageSystem.put(storageSystemURI, storageSystem);
+                    StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
+                    if (storageProvider != null) {
+                        mapOfStorageSystemToProvider.put(storageSystemURI, storageProvider);
+                    }
+                }
+            }
+
+            StorageSystem storageSystem = mapOfStorageSystem.get(storageSystemURI);
+            if (null != storageSystem && storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
+                StorageProvider provider = mapOfStorageSystemToProvider.get(storageSystemURI);
+                if (provider != null) {
+                    // example valid provision version : V8.1.0.4
+                    String providerVersion = provider.getVersionString();
+                    if (null != providerVersion) {
+                        String versionSubstring = providerVersion.split("\\.")[1];
+                        if (Integer.parseInt(versionSubstring) >= 1) {
+                            filteredCandidatePools.add(candidatePool);
+                        }
+                    }
+                }
+            } else {
+                _log.info(String.format("Skipping Pool %s %s, as associated Storage System is either not VMAX3 or "
+                        + "provider is not using 8.1.X version required for SRDF ACTIVE Mode.", candidatePool.getLabel(),
+                        candidatePool.getId()));
+            }
+        }
+        return filteredCandidatePools;
     }
 
     /**

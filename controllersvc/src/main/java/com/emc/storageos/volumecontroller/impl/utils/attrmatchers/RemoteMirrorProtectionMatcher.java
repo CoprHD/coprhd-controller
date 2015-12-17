@@ -87,8 +87,8 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
                     if (checkSupportedSRDFActiveModeprovider(system, remoteCopySettings)) {
                         matchedPools.addAll(storageToPoolsEntry.getValue());
                     } else {
-                        _logger.info(String.format("Skipping Pools %s, as associated Storage System %s Provider is not "
-                                + "using 8.1.X version required for SRDF ACTIVE Mode.",
+                        _logger.info(String.format("Skipping Pools %s, as associated Storage System %s is either not VMAX3 or "
+                                + "provider is not using 8.1.X version required for SRDF ACTIVE Mode.",
                                 Joiner.on("\t").join(storageToPoolsEntry.getValue()), system.getNativeGuid()));
                     }
                 } else {

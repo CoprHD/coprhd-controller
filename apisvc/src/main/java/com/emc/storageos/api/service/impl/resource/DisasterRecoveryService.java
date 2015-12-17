@@ -891,7 +891,7 @@ public class DisasterRecoveryService {
         
         SiteRestRep recommendSite = findRecommendFailoverSite(responseSiteFromRemote, currentSite);
         if (!recommendSite.getUuid().equals(currentSite.getUuid())) {
-            APIException.internalServerErrors.failoverPrecheckFailed(currentSite.getName(),
+            throw APIException.internalServerErrors.failoverPrecheckFailed(currentSite.getName(),
                     String.format("Another site %s state is %s with latest data. Please failover to site %s",
                             recommendSite.getName(), recommendSite.getState(), recommendSite.getName()));
         }

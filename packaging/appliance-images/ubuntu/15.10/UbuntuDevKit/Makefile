@@ -1,0 +1,143 @@
+##################################################
+#  Setup
+##################################################
+export DO_NOT_START := yes
+export KERNEL := 4.2.0-16-generic
+WORKSPACE := $(shell pwd)
+NAME := UbuntuDevKit
+VERSION := 1.0.0.0
+JOB := 999
+VENDOR := EMC
+ISO_FILE := ubuntu-15.10-server-amd64.iso
+ISO_URL := http://releases.ubuntu.com/15.10/$(ISO_FILE)
+
+##################################################
+#  Target files/folders
+##################################################
+IMAGE_DIR := $(WORKSPACE)/image/$(JOB)
+OUTPUT_DIR := $(WORKSPACE)/output/$(JOB)
+BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
+VMDK := $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
+OVF := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
+
+.DEFAULT: all
+.PHONY: downdloadISO downdloadDEB downdloadTGZ createREPO appliance clean destroy
+all: appliance
+
+##################################################
+#  Custom properties
+##################################################
+PACKAGES_BOOT := linux-image-$(KERNEL) linux-headers-$(KERNEL)
+PACKAGES_LIST := build-essential dkms keyutils kpartx memtest86+ nfs-common openssh-client openssh-server parted psmisc qemu-system-common qemu-utils vim squashfs-tools
+PACKAGES_LIST := $(PACKAGES_LIST) alien ant apparmor arping atop auditd ca-certificates ca-certificates-java createrepo expect gcc-4.8 geoip-bin geoip-database git git-core gradle keepalived libpcre3 libpcre3-dev libserf-dev libtool libssl-dev ndisc6 ntp openjdk-7-jdk openjdk-7-jre openjdk-7-jre-headless p7zip perl perl-base perl-tk python-cjson python-gpgme python-iniparse python-requests python-setools readline-common rpm sipcalc subversion sysstat virtualbox-5.0 xfsprogs xmlstarlet yum
+PACKAGES_TEST := qemu-kvm virtinst
+PACKAGES_LIST := openssh-server
+
+ISO_MOUNT := $(WORKSPACE)/iso/mount
+DIR_MOUNT := $(WORKSPACE)/dir/mount
+APT_MOUNT := $(WORKSPACE)/apt
+
+DISK_QEMU := $(shell mkdir -p $(IMAGE_DIR) && mktemp $(IMAGE_DIR)/image.XXXXXXXXXX )
+DISK_SIZE := 50
+SWAP_SIZE := 1
+SECTOR_SIZE := 512
+SECTOR_INIT := 2048
+
+##################################################
+#  Functions
+##################################################
+define targetLog
+	@echo "###############################################";
+	@echo "$(1)[$@] on $$( date )";
+	@echo "###############################################";
+endef
+
+##################################################
+#  Targets
+##################################################
+downdloadISO:
+	$(call targetLog,+)
+	mkdir -p $(ISO_MOUNT)
+	-[ -f $(WORKSPACE)/iso/$(ISO_FILE) ] || cp -pr /disks/adgbuild/UBUNTU15.10/$(ISO_FILE) $(WORKSPACE)/iso/
+	wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
+	$(call targetLog,-)
+
+downdloadDEB:
+	$(call targetLog,+)
+	mkdir -p $(APT_MOUNT) $(ISO_MOUNT)
+	-mount $(WORKSPACE)/iso/$(ISO_FILE) $(ISO_MOUNT)
+	bash functions.sh createCache $(APT_MOUNT) $(ISO_MOUNT) "$(PACKAGES_BOOT) $(PACKAGES_LIST)"
+	-umount $(ISO_MOUNT)
+	$(call targetLog,-)
+
+downdloadTGZ:
+	$(call targetLog,+)
+	wget http://nginx.org/download/nginx-1.6.2.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/nginx-1.6.2.tar.gz
+	wget https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.3.0.tar.gz
+	wget https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.25.tar.gz
+	$(call targetLog,-)
+
+createREPO: | downdloadISO downdloadDEB downdloadTGZ
+
+clean:
+	$(call targetLog,+)
+	rm -fr $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
+	rm -fr $(WORKSPACE)/image/$(JOB)
+	rm -fr $(WORKSPACE)/output
+	rm -fr $(WORKSPACE)/dir
+	$(call targetLog,-)
+
+destroy:
+	$(call targetLog,+)
+	rm -fr $(WORKSPACE)/iso
+	rm -fr $(WORKSPACE)/build
+	rm -fr $(WORKSPACE)/image
+	rm -fr $(WORKSPACE)/output
+	rm -fr $(WORKSPACE)/dir
+	rm -fr $(WORKSPACE)/apt
+	$(call targetLog,-)
+
+appliance: | $(OVF)
+
+$(VMDK): | downdloadISO createREPO
+	$(call targetLog,+)
+	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
+	sed -i "s|__NAME__|$(NAME)|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__ISO__|$(ISO_MOUNT)|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__REPO__|$(WORKSPACE)/zypper/repo|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__VERSION__|$(VERSION).$(JOB)|g" $(WORKSPACE)/templates/config.xml
+
+	mkdir -p $(DIR_MOUNT) $(ISO_MOUNT)
+	-mount $(WORKSPACE)/iso/$(ISO_FILE) $(ISO_MOUNT)
+
+	rm -fr $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
+	mkdir -p $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
+	mkdir -p $(WORKSPACE)/image
+	mkdir -p $(WORKSPACE)/build
+	mkdir -p $(WORKSPACE)/output/$(JOB)
+
+	qemu-img create -f raw $(DISK_QEMU) $(DISK_SIZE)G
+	echo -e "\x55\xaa" | dd bs=1 count=2 seek=510 of=$(DISK_QEMU) conv=notrunc
+	bash functions.sh formatDisk $(DISK_QEMU) $(DISK_SIZE) $(SWAP_SIZE) $(SECTOR_INIT) $(SECTOR_SIZE)
+	bash functions.sh createBootstrap $(DISK_QEMU) $(SECTOR_INIT) $(SECTOR_SIZE) $(DIR_MOUNT) $(APT_MOUNT) $(ISO_MOUNT) $(WORKSPACE)
+	bash functions.sh installPackages $(DISK_QEMU) $(SECTOR_INIT) $(SECTOR_SIZE) $(DIR_MOUNT) $(APT_MOUNT) $(ISO_MOUNT) "$(PACKAGES_BOOT)"
+	bash functions.sh installPackages $(DISK_QEMU) $(SECTOR_INIT) $(SECTOR_SIZE) $(DIR_MOUNT) $(APT_MOUNT) $(ISO_MOUNT) "$(PACKAGES_LIST)"
+	bash functions.sh installBootloader $(DISK_QEMU) $(SECTOR_INIT) $(SECTOR_SIZE) $(DIR_MOUNT) $(ISO_MOUNT) $(NAME)
+	bash functions.sh installConfiguration $(DISK_QEMU) $(SECTOR_INIT) $(SECTOR_SIZE) $(DIR_MOUNT) $(ISO_MOUNT) $(NAME) $(VERSION) $(JOB)
+	qemu-img convert -p -O vmdk $(DISK_QEMU) $(VMDK)
+
+	-umount $(ISO_MOUNT)
+	$(call targetLog,-)
+
+$(OVF): | $(VMDK)
+	$(call targetLog,+)
+	cp -f $(VMDK) $(VMDK).bak
+	VBoxManage createvm --name "$(NAME)-$(VERSION).$(JOB)" --register
+	VBoxManage modifyvm "$(NAME)-$(VERSION).$(JOB)" --memory 8192 --cpus 1 --acpi on --boot1 dvd --nic1 bridged --bridgeadapter1 eth0 --ostype Linux_64
+	VBoxManage storagectl "$(NAME)-$(VERSION).$(JOB)" --name "IDE Controller" --add ide
+	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(VMDK)
+	VBoxManage export "$(NAME)-$(VERSION).$(JOB)" --vsys 0 --product $(NAME) --version $(VERSION).$(JOB) --vendor $(VENDOR) --output $(OVF)
+	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)" --delete
+	mv -f $(VMDK).bak $(VMDK)
+	bash functions.sh updateOVF $(OVF)
+	$(call targetLog,-)

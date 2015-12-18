@@ -3319,6 +3319,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             throw APIException.badRequests.snapshotNotAllowedWhenCGAcrossMultipleSystems();
         }
 
+        // if the backend cg volume in the consistency group does not have back end cg on array, return error
         if (VPlexUtil.isBackendVolumesNotHavingBackendCG(volumesToSnap, _dbClient)) {
             throw APIException.badRequests.snapshotNotAllowedWhenBackendVolumeDoestHavingCG();
         }

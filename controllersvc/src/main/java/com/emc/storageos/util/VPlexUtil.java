@@ -1431,6 +1431,13 @@ public class VPlexUtil {
         return false;
     }
 
+    /**
+     * Checks vplex back end volumes having backend cg
+     * 
+     * @param blockObjectList
+     * @param dbClient
+     * @return
+     */
     public static boolean isBackendVolumesNotHavingBackendCG(List<? extends BlockObject> blockObjectList, DbClient dbClient) {
         boolean result = false;
         for (BlockObject blockObject : blockObjectList) {

@@ -729,7 +729,7 @@ public class CoordinatorClientExt {
                 }
             }
         } catch (Exception e) {
-            _log.error("Can not get {} lock owner ",lockId);
+            _log.error("Can not get {} lock owner ", lockId);
         }
         return false;
     }
@@ -1480,7 +1480,7 @@ public class CoordinatorClientExt {
                 if (initZkMode == null) {
                     initZkMode = state;
                 }
-                _log.info("Local Node: "+ state);
+                _log.info("Local zookeeper mode: {} ",state);
 
                 //standby node with vip will monitor all node states
                 InetAddress vip=InetAddress.getByName(getVip());
@@ -1511,29 +1511,30 @@ public class CoordinatorClientExt {
                         numOnline++;
                     }
 
-                    _log.info("Observer nodes: "+observerNodes.size());
-                    _log.info("Read Only nodes: "+readOnlyNodes.size());
+                    int numObserver = observerNodes.size();
+                    int numReadOnly = readOnlyNodes.size();
+                    int numParticipants = numOnline - numReadOnly + numObserver;
+
+                    _log.info("Observer nodes: "+numObserver);
+                    _log.info("Read Only nodes: "+numReadOnly);
+                    _log.info("Participant nodes: "+numParticipants);
                     _log.info("nodes Online: "+numOnline);
 
-                    //if all online are observer return
-                    if(observerNodes.size()==numOnline){
-                        return;
+                    // if there is a participant need to reconfigure or it will be stuck there
+                    // if there are only participants no need to reconfigure
+                    // if there are only read only nodes we need to reconfigure
+                    if((0 < numParticipants && numParticipants < numOnline) || (numReadOnly == numOnline)){
+                        _log.info("Reconfigure all nodes to participant");
+                        reconfigZKToWritable(observerNodes,readOnlyNodes);
                     }
 
-                    _log.info("All nodes are not participant, reconfig all to participant");
-                    reconfigZKToWritable(observerNodes,readOnlyNodes);
-
                 }
 
-                if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
-                    return; // expected situation. Standby zookeeper should be observer mode normally
-                }
+                if (!DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state) &&
+                        !DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
 
-                _log.info("Local zookeeper mode {}", state);
-                if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)){
-                    return;
+                    //node is in participant mode, check if active site is back
 
-                } else {
                     if (isActiveSiteStable()) {
                         _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
                         reconnectZKToActiveSite();

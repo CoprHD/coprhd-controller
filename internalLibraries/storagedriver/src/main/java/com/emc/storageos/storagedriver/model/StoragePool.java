@@ -26,6 +26,7 @@ public class StoragePool extends StorageObject {
         FC,                 // block
         FCoE,               // FC block protocol with Ethernet transport
         ScaleIO,            // ScaleIO Data Clients
+        Ceph,               // Ceph Data Clients
         // storage file protocols
         NFS,                // file, NFSv2 & NFSv3
         NFSv4,              // file, authenticated NFS

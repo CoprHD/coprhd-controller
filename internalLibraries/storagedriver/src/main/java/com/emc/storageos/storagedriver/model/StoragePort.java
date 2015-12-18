@@ -18,6 +18,7 @@ public class StoragePort extends StorageObject {
         IP,         // IP networks for iSCSI, NFS, CIFS
         Ethernet,   // Ethernet networks for FCoE
         ScaleIO,    // ScaleIO Data Clients
+        Ceph,       // Ceph Data Clients
     }
 
     public static enum OperationalStatus {

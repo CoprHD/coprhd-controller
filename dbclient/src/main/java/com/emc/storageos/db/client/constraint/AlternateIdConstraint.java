@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
@@ -27,6 +28,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.PhysicalNAS;
@@ -329,6 +331,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("pwwnKey"), altId);
         }
 
+        public static AlternateIdConstraint getFCZoneReferenceLabelConstraint(String label) {
+            DataObjectType doType = TypeMap.getDoType(FCZoneReference.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("label"), label);
+        }
+
         public static AlternateIdConstraint getFCEndpointRemotePortNameConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(FCEndpoint.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("remotePortName"), altId);
@@ -606,6 +613,25 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(CifsShareACL.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemShareACLIndex"), fileSystemShareACLIndex);
         }
-    }
 
+        public static AlternateIdConstraint getSnapshotNfsACLConstraint(String snapshotNfsACLIndex) {
+            DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("snapshotNfsACLIndex"), snapshotNfsACLIndex);
+        }
+
+        public static AlternateIdConstraint getFileSystemNfsACLConstraint(String fileSystemNfsACLIndex) {
+            DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemNfsACLIndex"), fileSystemNfsACLIndex);
+        }
+
+        public static AlternateIdConstraint getBlockSnapshotBySettingsInstance(String settingsInstance) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("settingsInstance"), settingsInstance);
+        }
+
+        public static AlternateIdConstraint getBlockSnapshotSessionBySessionInstance(String sessionInstance) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("sessionInstance"), sessionInstance);
+        }
+    }
 }

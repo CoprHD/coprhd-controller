@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Bucket;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.ComputeBootDef;
 import com.emc.storageos.db.client.model.ComputeBootPolicy;
@@ -39,6 +40,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Project;
@@ -136,6 +138,7 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField(PROJECT);
             return new ContainmentConstraintImpl(project, Bucket.class, field);
         }
+
         public static ContainmentConstraint getStoragePoolFileshareConstraint(URI pool) {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
             ColumnField field = doType.getColumnField("pool");
@@ -291,6 +294,18 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
             ColumnField field = doType.getColumnField("parent");
             return new ContainmentConstraintImpl(volume, BlockSnapshot.class, field);
+        }
+
+        public static ContainmentConstraint getParentSnapshotSessionConstraint(URI parentURI) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            ColumnField field = doType.getColumnField("parent");
+            return new ContainmentConstraintImpl(parentURI, BlockSnapshotSession.class, field);
+        }
+
+        public static ContainmentConstraint getLinkedTargetSnapshotSessionConstraint(URI snapshotURI) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            ColumnField field = doType.getColumnField("linkedTargets");
+            return new ContainmentConstraintImpl(snapshotURI, BlockSnapshotSession.class, field);
         }
 
         public static ContainmentConstraint getProjectBlockSnapshotConstraint(
@@ -666,6 +681,18 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(snapshotURI, CifsShareACL.class, field);
         }
 
+        public static ContainmentConstraint getFileNfsAclsConstraint(URI fsURI) {
+            DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
+            ColumnField field = doType.getColumnField(FILE_SYSTEM_ID);
+            return new ContainmentConstraintImpl(fsURI, NFSShareACL.class, field);
+        }
+
+        public static ContainmentConstraint getSnapshotNfsAclsConstraint(URI snapshotURI) {
+            DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
+            ColumnField field = doType.getColumnField("snapshotId");
+            return new ContainmentConstraintImpl(snapshotURI, NFSShareACL.class, field);
+        }
+
         public static ContainmentConstraint getVirtualNASByParentConstraint(URI physicalNAS) {
             DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
             ColumnField field = doType.getColumnField("parentNasUri");
@@ -706,6 +733,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(ComputeImageJob.class);
             ColumnField field = doType.getColumnField(COMPUTE_IMAGESERVER_ID);
             return new ContainmentConstraintImpl(imageServerURI, ComputeImageJob.class, field);
+        }
+
+        public static ContainmentConstraint getSnapshotExportGroupConstraint(URI id) {
+            DataObjectType doType = TypeMap.getDoType(ExportGroup.class);
+            ColumnField field = doType.getColumnField("snapshots");
+            return new ContainmentConstraintImpl(id, ExportGroup.class, field);
         }
     }
 }

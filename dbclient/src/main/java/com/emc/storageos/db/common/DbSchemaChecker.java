@@ -136,16 +136,7 @@ public class DbSchemaChecker {
         scanner.scan();
 
         log.info("Check the integrity of DataObject classes in packages {}", pkgs);
-        DataObjectScanner dataObjectScanner = new DataObjectScanner();
-        dataObjectScanner.setPackages(pkgs);
-        dataObjectScanner.init();
-
-        try {
-            TypeMap.check();
-        } catch (Exception e) {
-            log.error("The check on the TypeMap failed e:", e);
-            throw e;
-        }
+        checkSourceSchema(pkgs);
 
         DbSchemas currentSchemas = scanner.getSchemas();
         if (currentSchemas.hasDuplicateField()) {
@@ -185,6 +176,19 @@ public class DbSchemaChecker {
             } else {
                 log.info("The Db schemas are the SAME");
             }
+        }
+    }
+
+    public static void checkSourceSchema(String[] pkgs) throws Exception {
+        DataObjectScanner dataObjectScanner = new DataObjectScanner();
+        dataObjectScanner.setPackages(pkgs);
+        dataObjectScanner.init();
+
+        try {
+            TypeMap.check();
+        } catch (Exception e) {
+            log.error("The check on the TypeMap failed e:", e);
+            throw e;
         }
     }
 

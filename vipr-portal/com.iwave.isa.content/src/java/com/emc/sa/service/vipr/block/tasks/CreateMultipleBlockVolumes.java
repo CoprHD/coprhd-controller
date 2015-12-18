@@ -12,15 +12,16 @@ import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 
 /**
  * Task that will create multiple block volumes in parallel. Executes a single create volume API
  * call for each CreateBlockVolumeHelper instance and returns tasks for all volumes that are created.
  */
 public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
-    private final List<CreateBlockVolumeHelper> helpers;
+    private final List<? extends CreateBlockVolumeHelper> helpers;
 
-    public CreateMultipleBlockVolumes(List<CreateBlockVolumeHelper> helpers) {
+    public CreateMultipleBlockVolumes(List<? extends CreateBlockVolumeHelper> helpers) {
         this.helpers = helpers;
         if (!helpers.isEmpty()) {
             CreateBlockVolumeHelper helper = helpers.get(0);
@@ -46,17 +47,25 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             }
             create.setCount(numberOfVolumes);
             create.setConsistencyGroup(param.getConsistencyGroup());
-
-            if (tasks == null) {
-                tasks = getClient().blockVolumes().create(create);
-            } else {
-                tasks.getTasks().addAll(getClient().blockVolumes().create(create).getTasks());
+            
+            try {
+                if (tasks == null) {
+                    tasks = getClient().blockVolumes().create(create);
+                } else {
+                    tasks.getTasks().addAll(getClient().blockVolumes().create(create).getTasks());
+                }
+            } catch (ServiceErrorException ex) {
+                logError(getMessage("CreateMultipleBlockVolumes.getTask.error", create.getName(), ex.getDetailedMessage()));
             }
+        }
+        
+        if (tasks == null) {
+            throw stateException("CreateMultipleBlockVolumes.illegalState.invalid");
         }
         return tasks;
     }
 
-    private String getDetails(List<CreateBlockVolumeHelper> helpers) {
+    private String getDetails(List<? extends CreateBlockVolumeHelper> helpers) {
         String result = "";
         for (CreateBlockVolumeHelper helper : helpers) {
             result += String.format("[Name: %s, Size: %s, Count: %s] ", helper.getName(), helper.getSizeInGb(), helper.getCount());

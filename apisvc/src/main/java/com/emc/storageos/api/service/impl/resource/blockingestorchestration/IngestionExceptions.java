@@ -158,4 +158,7 @@ public interface IngestionExceptions {
     
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException vplexBackendVolumeHasNoParent(String unManagedVolume);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException vplexVolumeCannotHaveReplicasOnBothLegs(String details);
 }

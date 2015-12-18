@@ -27,6 +27,7 @@ import com.emc.storageos.api.mapper.BlockMapper;
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -69,6 +70,9 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     // A reference to a scheduler.
     protected Scheduler _scheduler = null;
 
+    // A reference to the full copy manager.
+    protected BlockFullCopyManager _fullCopyMgr;
+
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(AbstractBlockFullCopyApiImpl.class);
 
@@ -78,12 +82,14 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator.
      * @param scheduler A reference to the scheduler.
+     * @param fullCopyMgr A reference to the full copy manager.
      */
     public AbstractBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-            Scheduler scheduler) {
+            Scheduler scheduler, BlockFullCopyManager fullCopyMgr) {
         _dbClient = dbClient;
         _coordinator = coordinator;
         _scheduler = scheduler;
+        _fullCopyMgr = fullCopyMgr;
     }
 
     /**
@@ -402,6 +408,36 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         VolumeRestRep volumeRestRep = BlockMapper.map(_dbClient, fullCopyVolume);
         volumeRestRep.getProtection().getFullCopyRep().setPercentSynced(result);
         return volumeRestRep;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean volumeCanBeDeleted(Volume volume) {
+        /**
+         * Delete volume api call will delete all its related replicas for VMAX using SMI 8.0.3.
+         * Hence vmax using 8.0.3 can be delete even if volume has replicas.
+         */
+        if (volume.isInCG() && BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+            return true;
+        }
+
+        boolean volumeCanBeDeleted = true;
+
+        // Verify that a volume that is a full copy is detached.
+        if ((BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) &&
+                (!BlockFullCopyUtils.isFullCopyDetached(volume, _dbClient))) {
+            volumeCanBeDeleted = false;
+        }
+
+        // Verify that a volume that is a full copy source is detached
+        // from those full copies.
+        if ((volumeCanBeDeleted) && (BlockFullCopyUtils.isVolumeFullCopySource(volume, _dbClient))) {
+            volumeCanBeDeleted = BlockFullCopyUtils.volumeDetachedFromFullCopies(volume, _dbClient);
+        }
+
+        return volumeCanBeDeleted;
     }
 
     /**

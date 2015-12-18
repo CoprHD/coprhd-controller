@@ -11,6 +11,8 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 
 /**
  * @author burckb
@@ -157,6 +159,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         setChanged("sourceNativeId");
     }
 
+    @AlternateId("SettingsInstanceAltIdIndex")
     @Name("settingsInstance")
     public String getSettingsInstance() {
         return _settingsInstance;
@@ -379,5 +382,18 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
             return URI.create(getConsistencyGroups().iterator().next());
         }
         return null;
+    }
+
+    /**
+     * Returns true if the passed volume is in an export group, false otherwise.
+     * 
+     * @param dbClient A reference to a DbClient.
+     * 
+     * @return true if the passed volume is in an export group, false otherwise.
+     */
+    public boolean isSnapshotExported(DbClient dbClient) {
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
+        return exportGroupURIs.iterator().hasNext();
     }
 }

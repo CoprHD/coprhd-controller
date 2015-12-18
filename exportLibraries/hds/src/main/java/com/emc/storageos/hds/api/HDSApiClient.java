@@ -108,9 +108,9 @@ public class HDSApiClient {
     }
 
     public String createSnapshotVolume(String systemObjectId,
-            Long luCapacity) throws Exception {
+            Long luCapacity, String model) throws Exception {
         return hdsApiVolumeManager.createSnapshotVolume(systemObjectId,
-                luCapacity);
+                luCapacity, model);
     }
 
     /**
@@ -118,12 +118,13 @@ public class HDSApiClient {
      * 
      * @param storageSystemObjId
      * @param logicalUnitObjId
+     * @param model
      * @return
      * @throws Exception
      */
-    public String deleteSnapshotVolume(String storageSystemObjId, String logicalUnitObjId)
+    public String deleteSnapshotVolume(String storageSystemObjId, String logicalUnitObjId, String model)
             throws Exception {
-        return hdsApiVolumeManager.deleteSnapshotVolume(storageSystemObjId, logicalUnitObjId);
+        return hdsApiVolumeManager.deleteSnapshotVolume(storageSystemObjId, logicalUnitObjId, model);
     }
 
     /**
@@ -177,8 +178,8 @@ public class HDSApiClient {
      * @return
      * @throws Exception
      */
-    public String modifyThinVolume(String systemObjectId, String luObjectId, Long newLUCapacityInBytes) throws Exception {
-        return hdsApiVolumeManager.modifyVirtualVolume(systemObjectId, luObjectId, newLUCapacityInBytes);
+    public String modifyThinVolume(String systemObjectId, String luObjectId, Long newLUCapacityInBytes, String model) throws Exception {
+        return hdsApiVolumeManager.modifyVirtualVolume(systemObjectId, luObjectId, newLUCapacityInBytes, model);
     }
 
     /**
@@ -198,8 +199,8 @@ public class HDSApiClient {
      * @param logicalUnitIdList
      * @throws Exception
      */
-    public String deleteThickLogicalUnits(String systemObjectId, Set<String> logicalUnitIdList) throws Exception {
-        return hdsApiVolumeManager.deleteThickLogicalUnits(systemObjectId, logicalUnitIdList);
+    public String deleteThickLogicalUnits(String systemObjectId, Set<String> logicalUnitIdList, String model) throws Exception {
+        return hdsApiVolumeManager.deleteThickLogicalUnits(systemObjectId, logicalUnitIdList, model);
     }
 
     /**
@@ -209,8 +210,8 @@ public class HDSApiClient {
      * @param logicalUnitIdList
      * @throws Exception
      */
-    public String deleteThinLogicalUnits(String systemObjectId, Set<String> logicalUnitIdList) throws Exception {
-        return hdsApiVolumeManager.deleteThinLogicalUnits(systemObjectId, logicalUnitIdList);
+    public String deleteThinLogicalUnits(String systemObjectId, Set<String> logicalUnitIdList, String model) throws Exception {
+        return hdsApiVolumeManager.deleteThinLogicalUnits(systemObjectId, logicalUnitIdList, model);
     }
 
     /**
@@ -487,8 +488,8 @@ public class HDSApiClient {
     }
 
     public String modifyThinVolumeTieringPolicy(String systemObjectID, String luObjectID,
-            String ldevObjectID, String tieringPolicyName) {
-        return hdsApiVolumeManager.modifyThinVolumeTieringPolicy(systemObjectID, luObjectID, ldevObjectID, tieringPolicyName);
+            String ldevObjectID, String tieringPolicyName, String model) {
+        return hdsApiVolumeManager.modifyThinVolumeTieringPolicy(systemObjectID, luObjectID, ldevObjectID, tieringPolicyName, model);
     }
 
     public HDSHost getSnapshotGroupPairManagementServer(String serialNumber) throws Exception {
@@ -500,18 +501,19 @@ public class HDSApiClient {
     }
 
     public boolean createThinImagePair(String snapshotGroupObjId, String hostObjId,
-            String sourNativeId, String sanpNativeId, String thinImagePoolId) throws Exception {
-        return hdsApiProtectionManager.createThinImagePair(snapshotGroupObjId, hostObjId, sourNativeId, sanpNativeId, thinImagePoolId);
+            String sourNativeId, String sanpNativeId, String thinImagePoolId, String model) throws Exception {
+        return hdsApiProtectionManager.createThinImagePair(snapshotGroupObjId, hostObjId, sourNativeId, sanpNativeId, thinImagePoolId,
+                model);
     }
 
     public boolean restoreThinImagePair(String pairMgmtServerHostObjId, String snapshotGroupObjId,
-            String replicationInfoObjId) throws Exception {
-        return hdsApiProtectionManager.restoreThinImagePair(pairMgmtServerHostObjId, snapshotGroupObjId, replicationInfoObjId);
+            String replicationInfoObjId, String model) throws Exception {
+        return hdsApiProtectionManager.restoreThinImagePair(pairMgmtServerHostObjId, snapshotGroupObjId, replicationInfoObjId, model);
     }
 
     public void deleteThinImagePair(String pairMgmtServerHostObjId, String snapShotGrpId,
-            String replicationInfoObjId) throws Exception {
-        hdsApiProtectionManager.deleteThinImagePair(pairMgmtServerHostObjId, snapShotGrpId, replicationInfoObjId);
+            String replicationInfoObjId, String model) throws Exception {
+        hdsApiProtectionManager.deleteThinImagePair(pairMgmtServerHostObjId, snapShotGrpId, replicationInfoObjId, model);
     }
 
 }

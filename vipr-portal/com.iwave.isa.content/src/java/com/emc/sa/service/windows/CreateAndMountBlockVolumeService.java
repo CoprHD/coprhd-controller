@@ -9,14 +9,14 @@ import java.util.List;
 
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.service.Service;
-import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
+import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.windows.model.wmi.DiskDrive;
 
 @Service("Windows-CreateAndMountBlockVolume")
 public class CreateAndMountBlockVolumeService extends WindowsService {
     @Bindable
-    protected CreateBlockVolumeHelper createBlockVolumeHelper = new CreateBlockVolumeHelper();
+    protected CreateBlockVolumeForHostHelper createBlockVolumeHelper = new CreateBlockVolumeForHostHelper();
 
     protected List<MountBlockVolumeHelper> mountBlockVolumeHelpers;
 

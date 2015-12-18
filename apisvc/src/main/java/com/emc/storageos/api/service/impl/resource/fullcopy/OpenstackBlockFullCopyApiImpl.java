@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.storageos.api.service.impl.placement.Scheduler;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -29,10 +30,11 @@ public class OpenstackBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator client.
      * @param scheduler A reference to a scheduler.
+     * @param fullCopyMgr A reference to the full copy manager.
      */
-    public OpenstackBlockFullCopyApiImpl(DbClient dbClient,
-            CoordinatorClient coordinator, Scheduler scheduler) {
-        super(dbClient, coordinator, scheduler);
+    public OpenstackBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator, Scheduler scheduler,
+            BlockFullCopyManager fullCopyMgr) {
+        super(dbClient, coordinator, scheduler, fullCopyMgr);
     }
 
     /**
@@ -62,7 +64,7 @@ public class OpenstackBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
             String name, boolean createInactive, int count, String taskId) {
         // Setting createInactive to true for openstack as it is not
         // needed to wait for synchronization to complete and detach.
-        return super.create(fcSourceObjList, varray, name, false, count, taskId);
+        return super.create(fcSourceObjList, varray, name, true, count, taskId);
     }
 
     /**
@@ -103,5 +105,26 @@ public class OpenstackBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         return super.checkProgress(sourceURI, fullCopyVolume);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean volumeCanBeDeleted(Volume volume) {
+        // volume clones are by default in detached state, so no
+        // need to check if the all copies are detached 
+
+       return true;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean volumeCanBeExpanded(Volume volume) {
+        // volume clones are by default in detached state, so no
+        // need to check if the all copies are detached 
+        return true;
     }
 }

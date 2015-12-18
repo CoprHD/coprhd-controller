@@ -14,7 +14,7 @@ import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
-import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
+import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.sa.service.vmware.VMwareUtils;
 import com.emc.sa.service.vmware.VMwareUtils.DatastoreToVolumeParams;
@@ -40,7 +40,7 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
     List<String> datastoreNames = null;
     List<String> volumeNames = null;
 
-    protected List<CreateBlockVolumeHelper> createBlockVolumeHelpers = Lists.newArrayList();
+    protected List<CreateBlockVolumeForHostHelper> createBlockVolumeHelpers = Lists.newArrayList();
 
     @Override
     public void init() throws Exception {
@@ -49,7 +49,7 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
         int hluIncrement = 0;
         // for each pair of datastore / volume, bind params to createBlockVolumeHelper
         for (DatastoreToVolumeTable dsToVol : datastoreToVolume) {
-            CreateBlockVolumeHelper createBlockVolumeHelper = new CreateBlockVolumeHelper();
+            CreateBlockVolumeForHostHelper createBlockVolumeHelper = new CreateBlockVolumeForHostHelper();
             BindingUtils.bind(createBlockVolumeHelper,
                     VMwareUtils.createDatastoreVolumeParam(dsToVol, datastoreToVolumeParams, hluIncrement));
             createBlockVolumeHelpers.add(createBlockVolumeHelper);
@@ -78,7 +78,7 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
         }
 
         super.precheck();
-        for (CreateBlockVolumeHelper helper : createBlockVolumeHelpers) {
+        for (CreateBlockVolumeForHostHelper helper : createBlockVolumeHelpers) {
             helper.precheck();
         }
         acquireHostLock();

@@ -61,7 +61,7 @@ public class HDSBatchApiExportManager {
      *             - In case processing errors.
      */
     public List<HostStorageDomain> addHostStorageDomains(String systemId,
-            List<HostStorageDomain> hostGroups) throws Exception {
+            List<HostStorageDomain> hostGroups, String model) throws Exception {
         InputStream responseStream = null;
         List<HostStorageDomain> hsdList = null;
         try {
@@ -71,6 +71,7 @@ public class HDSBatchApiExportManager {
             Add addOp = new Add(HDSConstants.HOST_STORAGE_DOMAIN);
             attributeMap.put(HDSConstants.STORAGEARRAY, array);
             attributeMap.put(HDSConstants.ADD, addOp);
+            attributeMap.put(HDSConstants.MODEL, model);
             attributeMap.put(HDSConstants.HOSTGROUP_LIST, hostGroups);
 
             String addHSDToSystemQuery = InputXMLGenerationClient
@@ -127,11 +128,11 @@ public class HDSBatchApiExportManager {
      *             - In case of processing error.
      */
     public List<HostStorageDomain> addWWNsToHostStorageDomain(String systemId,
-            List<HostStorageDomain> hsdList) throws Exception {
+            List<HostStorageDomain> hsdList, String model) throws Exception {
         InputStream responseStream = null;
         List<HostStorageDomain> hsdResponseList = null;
         try {
-            String addWWNToHSDsQuery = constructWWNQuery(systemId, hsdList);
+            String addWWNToHSDsQuery = constructWWNQuery(systemId, hsdList, model);
             log.info(
                     "batch query to add FC initiators to HostStorageDomains: {}",
                     addWWNToHSDsQuery);
@@ -182,12 +183,12 @@ public class HDSBatchApiExportManager {
      *             - In case of processing error.
      */
     public List<HostStorageDomain> addISCSINamesToHostStorageDomain(
-            String systemId, List<HostStorageDomain> hsdList) throws Exception {
+            String systemId, List<HostStorageDomain> hsdList, String model) throws Exception {
         InputStream responseStream = null;
         List<HostStorageDomain> hsdResponseList = null;
         try {
             String addISCSINamesToHSDsQuery = constructISCSINamesQuery(
-                    systemId, hsdList);
+                    systemId, hsdList, model);
             log.info(
                     "batch query to add ISCSI initiators to HostStorageDomains: {}",
                     addISCSINamesToHSDsQuery);
@@ -232,17 +233,18 @@ public class HDSBatchApiExportManager {
      *            - Represents the storage system objectID.
      * @param pathList
      *            - List of Path objects.
+     * @param model - model of the system
      * @return - List of Path objects after successful creation.
      * @throws Exception
      *             - Incase of processing Error.
      */
-    public List<Path> addLUNPathsToHSDs(String systemId, List<Path> pathList)
+    public List<Path> addLUNPathsToHSDs(String systemId, List<Path> pathList, String model)
             throws Exception {
         InputStream responseStream = null;
         List<Path> pathResponseList = null;
 
         try {
-            String addLUNQuery = constructAddLUNQuery(systemId, pathList);
+            String addLUNQuery = constructAddLUNQuery(systemId, pathList, model);
             log.info("Query to addLUN Query: {}", addLUNQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI,
@@ -284,13 +286,15 @@ public class HDSBatchApiExportManager {
      *            - Represents storage system ObjectID.
      * @param hsdList
      *            - List of HostStorageDomain objects to delete.
+     * @param model - Model of the system
+     * 
+     * @throws Exception
      */
     public void deleteBatchHostStorageDomains(String systemId,
-            List<HostStorageDomain> hsdList) throws Exception {
+            List<HostStorageDomain> hsdList, String model) throws Exception {
         InputStream responseStream = null;
-        List<Path> pathResponseList = null;
         try {
-            String deleteHSDsQuery = constructDeleteHSDsQuery(systemId, hsdList);
+            String deleteHSDsQuery = constructDeleteHSDsQuery(systemId, hsdList, model);
             log.info("Batch Query to delete HSD's: {}", deleteHSDsQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI,
@@ -326,15 +330,16 @@ public class HDSBatchApiExportManager {
      *            - represents the storage system objectID.
      * @param pathList
      *            - List of Path objects to delete.
+     * @param model - Model of the system
      * @throws Exception
      *             - Incase of processing error.
      */
     public void deleteLUNPathsFromStorageSystem(String systemId,
-            List<Path> pathList) throws Exception {
+            List<Path> pathList, String model) throws Exception {
         InputStream responseStream = null;
         try {
             String deleteLUNsQuery = constructRemoveLUNsQuery(systemId,
-                    pathList);
+                    pathList, model);
             log.info("Batch query to deleteLUNs Query: {}", deleteLUNsQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI,
@@ -375,12 +380,13 @@ public class HDSBatchApiExportManager {
      * @return
      */
     private String constructISCSINamesQuery(String systemId,
-            List<HostStorageDomain> hsdList) {
+            List<HostStorageDomain> hsdList, String model) {
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         StorageArray array = new StorageArray(systemId);
         Add addOp = new Add(HDSConstants.ISCSI_NAME_FOR_HSD_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.ADD, addOp);
+        attributeMap.put(HDSConstants.MODEL, model);
         attributeMap.put(HDSConstants.HOSTGROUP_LIST, hsdList);
 
         String addWWNQuery = InputXMLGenerationClient.getInputXMLString(
@@ -404,12 +410,13 @@ public class HDSBatchApiExportManager {
      * @return - XML String to add HSD's with WWN's.
      */
     private String constructWWNQuery(String systemId,
-            List<HostStorageDomain> hsdList) {
+            List<HostStorageDomain> hsdList, String model) {
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         StorageArray array = new StorageArray(systemId);
         Add addOp = new Add(HDSConstants.ADD_WWN_TO_HSD_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.ADD, addOp);
+        attributeMap.put(HDSConstants.MODEL, model);
         attributeMap.put(HDSConstants.HOSTGROUP_LIST, hsdList);
 
         return InputXMLGenerationClient.getInputXMLString(
@@ -428,12 +435,13 @@ public class HDSBatchApiExportManager {
      *            - List of Path objects.
      * @return - XML String to remove the Paths from storage system
      */
-    private String constructRemoveLUNsQuery(String systemId, List<Path> pathList) {
+    private String constructRemoveLUNsQuery(String systemId, List<Path> pathList, String model) {
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         StorageArray array = new StorageArray(systemId);
         Delete deleteOp = new Delete(HDSConstants.LUN_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.DELETE, deleteOp);
+        attributeMap.put(HDSConstants.MODEL, model);
         attributeMap.put(HDSConstants.PATH_LIST, pathList);
 
         return InputXMLGenerationClient.getInputXMLString(
@@ -452,12 +460,13 @@ public class HDSBatchApiExportManager {
      *            - List of Path objects.
      * @return - XML String to add LUN's to storage system.
      */
-    private String constructAddLUNQuery(String systemId, List<Path> pathList) {
+    private String constructAddLUNQuery(String systemId, List<Path> pathList, String model) {
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         StorageArray array = new StorageArray(systemId);
         Add addOp = new Add(HDSConstants.LUN_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.ADD, addOp);
+        attributeMap.put(HDSConstants.MODEL, model);
         attributeMap.put(HDSConstants.PATH_LIST, pathList);
 
         return InputXMLGenerationClient.getInputXMLString(
@@ -476,13 +485,14 @@ public class HDSBatchApiExportManager {
      * @return - XML string to delete the HostStorageDomain's
      */
     private String constructDeleteHSDsQuery(String systemId,
-            List<HostStorageDomain> hsdList) {
+            List<HostStorageDomain> hsdList, String model) {
 
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         StorageArray array = new StorageArray(systemId);
         Delete deleteOp = new Delete(HDSConstants.HOST_STORAGE_DOMAIN);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.DELETE, deleteOp);
+        attributeMap.put(HDSConstants.MODEL, model);
         attributeMap.put(HDSConstants.HOSTGROUP_LIST, hsdList);
 
         return InputXMLGenerationClient.getInputXMLString(

@@ -12,18 +12,21 @@ import java.util.List;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FileExportUpdateParams;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.model.file.NfsACE;
+import com.emc.storageos.model.file.NfsACLUpdateParams;
+import com.emc.storageos.model.file.ShareACL;
 
 /**
  * Class defining input/output from File storage device interface
@@ -70,6 +73,56 @@ public class FileDeviceInputOutput {
     private List<ShareACL> shareAclsToModify = new ArrayList<>();
     private List<ShareACL> shareAclsToDelete = new ArrayList<>();
     private List<ShareACL> existingShareAcls = new ArrayList<>();
+    
+  //New additions for vNAS
+    private VirtualNAS vNAS;
+
+    // New additions for NFS ACL work
+    private String fileSystemPath;
+    private NfsACLUpdateParams nfsACLUpdateParams;
+    private List<NfsACE> nfsAclsToAdd = new ArrayList<>();
+    private List<NfsACE> nfsAclsToModify = new ArrayList<>();
+    private List<NfsACE> nfsAclsToDelete = new ArrayList<>();
+
+    public String getFileSystemPath() {
+        return fileSystemPath;
+    }
+
+    public void setFileSystemPath(String fileSystemPath) {
+        this.fileSystemPath = fileSystemPath;
+    }
+
+    public NfsACLUpdateParams getNfsACLUpdateParams() {
+        return nfsACLUpdateParams;
+    }
+
+    public void setNfsACLUpdateParams(NfsACLUpdateParams nfsACLUpdateParams) {
+        this.nfsACLUpdateParams = nfsACLUpdateParams;
+    }
+
+    public List<NfsACE> getNfsAclsToAdd() {
+        return nfsAclsToAdd;
+    }
+
+    public void setNfsAclsToAdd(List<NfsACE> nfsAclsToAdd) {
+        this.nfsAclsToAdd = nfsAclsToAdd;
+    }
+
+    public List<NfsACE> getNfsAclsToModify() {
+        return nfsAclsToModify;
+    }
+
+    public void setNfsAclsToModify(List<NfsACE> nfsAclsToModify) {
+        this.nfsAclsToModify = nfsAclsToModify;
+    }
+
+    public List<NfsACE> getNfsAclsToDelete() {
+        return nfsAclsToDelete;
+    }
+
+    public void setNfsAclsToDelete(List<NfsACE> nfsAclsToDelete) {
+        this.nfsAclsToDelete = nfsAclsToDelete;
+    }
 
     public String getComments() {
         return comments;
@@ -120,6 +173,22 @@ public class FileDeviceInputOutput {
         if (param.getAclsToDelete() != null
                 && param.getAclsToDelete().getShareACLs() != null) {
             this.shareAclsToDelete = param.getAclsToDelete().getShareACLs();
+        }
+
+    }
+
+    public void setAllNfsAcls(NfsACLUpdateParams param) {
+
+        nfsACLUpdateParams = param;
+
+        if (param.getAcesToAdd() != null && !param.getAcesToAdd().isEmpty()) {
+            this.nfsAclsToAdd = param.getAcesToAdd();
+        }
+        if (param.getAcesToModify() != null && !param.getAcesToModify().isEmpty()) {
+            this.nfsAclsToModify = param.getAcesToModify();
+        }
+        if (param.getAcesToDelete() != null && !param.getAcesToDelete().isEmpty()) {
+            this.nfsAclsToDelete = param.getAcesToDelete();
         }
 
     }
@@ -893,5 +962,13 @@ public class FileDeviceInputOutput {
     public void setExistingShareAcls(List<ShareACL> existingShareAcls) {
         this.existingShareAcls = existingShareAcls;
     }
+    
+    public VirtualNAS getvNAS() {
+		return vNAS;
+	}
+
+	public void setvNAS(VirtualNAS vNAS) {
+		this.vNAS = vNAS;
+	}
 
 }

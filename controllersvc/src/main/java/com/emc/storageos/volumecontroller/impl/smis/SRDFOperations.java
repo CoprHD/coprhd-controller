@@ -2205,7 +2205,8 @@ public class SRDFOperations implements SmisConstants {
             CIMInstance volumeInstance = helper.getInstance(storage, volumePath, false, false, null);
             if (volumeInstance != null && volume != null) {
                 String wwn = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME);
-                log.info(String.format("Updating volume %s %s wwn from %s to %s ", volume.getLabel(), volume.getId(), volume.getWWN(),
+                log.info(String.format("Updating volume %s %s wwn from %s to %s ", volume.getLabel(), volume.getId().toString(),
+                        volume.getWWN(),
                         wwn.toUpperCase()));
                 volume.setWWN(wwn.toUpperCase());
                 String accessState = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_ACCESS);

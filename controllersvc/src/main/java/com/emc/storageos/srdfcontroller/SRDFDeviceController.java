@@ -540,22 +540,22 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     private String addStepToRefreshSystem(String stepGroup, StorageSystem system, List<URI> volumeIds, String waitFor, Workflow workflow) {
-        Workflow.Method refreshTargetSystemsMethod = new Method(REFRESH_SRDF_TARGET_SYSTEM, system.getId(), volumeIds);
+        Workflow.Method refreshTargetSystemsMethod = new Method(REFRESH_SRDF_TARGET_SYSTEM, system, volumeIds);
         return workflow.createStep(stepGroup, REFRESH_SYSTEM_STEP_DESC, waitFor, system.getId(),
                 system.getSystemType(), getClass(), refreshTargetSystemsMethod, rollbackMethodNullMethod(), null);
     }
 
-    public void refreshStorageSystemStep(URI sourceSystem, List<URI> volumeIds, String opId) {
-        log.info("START refreshing system {}", sourceSystem);
+    public void refreshStorageSystemStep(StorageSystem sourceSystem, List<URI> volumeIds, String opId) {
+        log.info("START refreshing system {} {}", sourceSystem.getLabel(), sourceSystem.getId());
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            getRemoteMirrorDevice().refreshStorageSystem(sourceSystem, volumeIds);
+            getRemoteMirrorDevice().refreshStorageSystem(sourceSystem.getId(), volumeIds);
         } catch (Exception e) {
             log.warn("Refreshing system step failed", e);
         } finally {
             WorkflowStepCompleter.stepSucceded(opId);
         }
-        log.info("END refreshing system");
+        log.info("END refreshing system {} {}", sourceSystem.getLabel(), sourceSystem.getId());
     }
 
     public void rollbackMethodNull(String stepId) throws WorkflowException {
@@ -1400,7 +1400,6 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
 
         Method updateVolumePropertiesMethod = updateVolumePropertiesMethod(targetURIs, system.getId());
-        // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackMethodNullMethod();
 
         String stepId = workflow.createStep(REFRESH_VOLUME_PROPERTIES_STEP,

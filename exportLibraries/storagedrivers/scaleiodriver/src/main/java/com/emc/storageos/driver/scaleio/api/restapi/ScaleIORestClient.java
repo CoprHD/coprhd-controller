@@ -9,7 +9,6 @@ import java.util.*;
 
 import javax.ws.rs.core.MediaType;
 
-import com.sun.org.apache.bcel.internal.generic.RETURN;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -515,16 +514,9 @@ public class ScaleIORestClient extends StandardRestClient {
         ClientResponse response = post(URI.create(ScaleIOConstants.GET_VOLUMES_BYIDS_URI), getJsonForEntity(parm));
         List<ScaleIOVolume> volumes = getResponseObjects(ScaleIOVolume.class, response);
         for (ScaleIOVolume volume : volumes) {
-            result.put(volume.getName(), volume);
+            result.put(volume.getId(), volume);
         }
         return result;
     }
 
-    public String getVolumeParent(String volumeId) throws Exception{
-        String uri = ScaleIOConstants.getParentVolumeURI(volumeId);
-        ClientResponse response = get(URI.create(ScaleIOConstants.GET_VOLUMES_BYIDS_URI));
-
-
-        return null;
-    }
 }

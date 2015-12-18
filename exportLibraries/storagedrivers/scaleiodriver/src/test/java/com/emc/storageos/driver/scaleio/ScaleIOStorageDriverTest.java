@@ -1,9 +1,10 @@
 package com.emc.storageos.driver.scaleio;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-
+import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
+import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.Registry;
+import com.emc.storageos.storagedriver.impl.InMemoryRegistryImpl;
+import com.emc.storageos.storagedriver.model.*;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -12,20 +13,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
-import com.emc.storageos.storagedriver.DriverTask;
-import com.emc.storageos.storagedriver.Registry;
-import com.emc.storageos.storagedriver.impl.InMemoryRegistryImpl;
-import com.emc.storageos.storagedriver.model.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "/scaleio-driver-prov.xml" })
 public class ScaleIOStorageDriverTest {
 
-    String SYS_NATIVE_ID_A = "6ee6d94e5a3517b8";
-    String SYS_NATIVE_ID_B = "3eb4708d2b3ea454";
+    String SYS_NATIVE_ID_A = "3b51b60900000000";
+    String SYS_NATIVE_ID_B = "08af5d6100000000";
     String IP_ADDRESS_A = "10.193.17.97";
-    String IP_ADDRESS_B = "10.193.17.35";
+    String IP_ADDRESS_B = "10.193.17.88";
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";
@@ -192,9 +191,9 @@ public class ScaleIOStorageDriverTest {
 
         // create snapshots for volumes from same storage system
         snapshots = new LinkedList<>();
-        snapshots.add(initializeSnapshot(null, "d584a34000000000", SYS_NATIVE_ID_A));
+        snapshots.add(initializeSnapshot(null, "d584ca9c00000000", SYS_NATIVE_ID_A));
         // create snapshot from volume which already has a snapshot
-        snapshots.add(initializeSnapshot(null, "d584a34300000002", SYS_NATIVE_ID_A));
+        snapshots.add(initializeSnapshot(null, "d584ca9c00000000", SYS_NATIVE_ID_A));
         task = driver.createVolumeSnapshot(snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
@@ -204,15 +203,15 @@ public class ScaleIOStorageDriverTest {
 
         // create snapshots for volumes from different storage systems
         snapshots.removeAll(snapshots);
-        snapshots.add(initializeSnapshot(null, "d584a34400000003", SYS_NATIVE_ID_A)); // snapshot of a volume
-        snapshots.add(initializeSnapshot(null, "d584a34600000005", SYS_NATIVE_ID_A)); // snapshot of a snapshot
-        snapshots.add(initializeSnapshot(null, "83f1770700000000", SYS_NATIVE_ID_B));
+        snapshots.add(initializeSnapshot(null, "d584ca9d00000001", SYS_NATIVE_ID_A)); // snapshot of a volume
+        snapshots.add(initializeSnapshot(null, "d584ca9e00000002", SYS_NATIVE_ID_A)); // snapshot of a snapshot
+        snapshots.add(initializeSnapshot(null, "83f1770f00000000", SYS_NATIVE_ID_B));
         snapshots.add(initializeSnapshot(null, "83f177070000000", SYS_NATIVE_ID_B));  // volume doesn't exist
         task = driver.createVolumeSnapshot(snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
         for (VolumeSnapshot snapshot : snapshots) {
-            if (snapshot.getParentId() != "83f177070000000") {
+            if (!snapshot.getParentId().equalsIgnoreCase("83f177070000000")) {
                 Assert.assertNotNull(snapshot.getNativeId());
             } else {
                 Assert.assertNull(snapshot.getNativeId());
@@ -232,20 +231,18 @@ public class ScaleIOStorageDriverTest {
 
         // list of valid snapshot
         snapshots = new LinkedList<>();
-        snapshots.add(initializeSnapshot(null, "d584a34000000000", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584a34300000002", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584a34400000003", SYS_NATIVE_ID_A)); // snapshot of a volume
-        snapshots.add(initializeSnapshot(null, "d584a34600000005", SYS_NATIVE_ID_A)); // snapshot of a snapshot
-        snapshots.add(initializeSnapshot(null, "83f1770700000000", SYS_NATIVE_ID_B));
-        snapshots.add(initializeSnapshot(null, "83f1770800000001", SYS_NATIVE_ID_B));
+        snapshots.add(initializeSnapshot(null, "d584ca9d00000001", SYS_NATIVE_ID_A)); // volume
+        snapshots.add(initializeSnapshot(null, "d584ca9e00000002", SYS_NATIVE_ID_A)); // snapshot
+        snapshots.add(initializeSnapshot(null, "83f1770f00000000", SYS_NATIVE_ID_B));
+        snapshots.add(initializeSnapshot(null, "83f1771000000001", SYS_NATIVE_ID_B));
         driver.createVolumeSnapshot(snapshots, null);
         task = driver.deleteVolumeSnapshot(snapshots);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
 
         // some of the snapshot are not existed
-        snapshots.add(initializeSnapshot("d584a34700000006", "d584a34300000002", SYS_NATIVE_ID_A));
         // existed snapshot,other snapshot that are deleted earlier not longer exist
+        snapshots.add(initializeSnapshot("d584ca9e00000002", "d584ca9c00000000", SYS_NATIVE_ID_A));
         task = driver.deleteVolumeSnapshot(snapshots);
         Assert.assertNotNull(task);
         Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
@@ -264,10 +261,9 @@ public class ScaleIOStorageDriverTest {
 
         // volumes from same storage system
         snapshots = new LinkedList<>();
-        snapshots.add(initializeSnapshot(null, "d584a34000000000", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584a34300000002", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584a34400000003", SYS_NATIVE_ID_A)); // snapshot of a volume
-        snapshots.add(initializeSnapshot(null, "d584a34600000005", SYS_NATIVE_ID_A)); // snapshot of a snapshot
+        snapshots.add(initializeSnapshot(null, "d584ca9d00000001", SYS_NATIVE_ID_A));
+        snapshots.add(initializeSnapshot(null, "d584ca9c00000000", SYS_NATIVE_ID_A));
+        snapshots.add(initializeSnapshot(null, "d584ca9f00000003", SYS_NATIVE_ID_A)); // snapshot
         cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupSnapshot(cg, snapshots, null);
         Assert.assertNotNull(task);
@@ -287,16 +283,11 @@ public class ScaleIOStorageDriverTest {
         cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupSnapshot(cg, snapshots, null);
         Assert.assertNotNull(task);
-        Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
-        Assert.assertNotNull(cg.getNativeId());
+        Assert.assertEquals("FAILED", task.getStatus().toString());
+        Assert.assertNull(cg.getNativeId());
         for (VolumeSnapshot snapshot : snapshots) {
-            if (snapshot.getParentId() != "d584a3430000") {
-                Assert.assertNotNull(snapshot.getNativeId());
-                Assert.assertNotNull(snapshot.getConsistencyGroup());
-            } else {
-                Assert.assertNull(snapshot.getNativeId());
-                Assert.assertNull(snapshot.getConsistencyGroup());
-            }
+            Assert.assertNull(snapshot.getNativeId());
+            Assert.assertNull(snapshot.getConsistencyGroup());
         }
 
         // volumes from different storage system
@@ -326,10 +317,9 @@ public class ScaleIOStorageDriverTest {
 
         // snapshots are in same consistency group (w/o un-existed snapshot)
         snapshots = new LinkedList<>();
-        snapshots.add(initializeSnapshot(null, "d584a34000000000", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584a34300000002", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584a34400000003", SYS_NATIVE_ID_A)); // snapshot of a volume
-        snapshots.add(initializeSnapshot(null, "d584a34600000005", SYS_NATIVE_ID_A)); // snapshot of a snapshot
+        snapshots.add(initializeSnapshot(null, "d584ca9c00000000", SYS_NATIVE_ID_A));
+        snapshots.add(initializeSnapshot(null, "d584ca9d00000001", SYS_NATIVE_ID_A));
+        snapshots.add(initializeSnapshot(null, "d584caa100000005", SYS_NATIVE_ID_A)); // snapshot of a volume
         VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
         driver.createConsistencyGroupSnapshot(cg, snapshots, null);
         task = driver.deleteConsistencyGroupSnapshot(snapshots);

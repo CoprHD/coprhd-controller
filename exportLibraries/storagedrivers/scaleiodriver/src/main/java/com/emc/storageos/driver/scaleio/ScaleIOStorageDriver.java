@@ -1,11 +1,5 @@
 package com.emc.storageos.driver.scaleio;
 
-import java.util.*;
-
-import org.apache.commons.lang.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.driver.scaleio.api.restapi.response.*;
@@ -15,6 +9,11 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
@@ -354,6 +353,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_SNAP_CREATE));
         task.setStartTime(Calendar.getInstance());
         String errMsg = "";
+        int countSucc=0;
         if (ScaleIOHelper.isFromSameStorageSystem(snapshots)) {
             String systemId = snapshots.get(0).getStorageSystemId();
             ScaleIORestClient client = this.getClientBySystemId(systemId);
@@ -371,9 +371,21 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
                     // get parentID
                     List<String> nativeIds = result.getVolumeIdList();
-                    Map<String, String> snapNameIdMap = client.getVolumes(nativeIds);
-                    // get parentId info and set other snapshot value here
-                    task.setStatus(DriverTask.TaskStatus.READY);
+                    Map<String, ScaleIOVolume> snapIdInfoMap = client.getVolumeNameMap(nativeIds);
+                    String currentTime=ScaleIOHelper.getCurrentTime();
+                    for(VolumeSnapshot snapshot:snapshots){
+                        for(ScaleIOVolume snapInfo: snapIdInfoMap.values()){
+                            if( snapshot.getParentId().equalsIgnoreCase(snapInfo.getAncestorVolumeId())){
+                                snapshot.setNativeId(snapInfo.getId());
+                                snapshot.setTimestamp(currentTime);
+                                snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
+                                snapshot.setDeviceLabel(snapInfo.getName());
+                                snapshot.setConsistencyGroup(result.getSnapshotGroupId());
+                                countSucc++;
+                            }
+                        }
+                    }
+                    this.setTaskStatus(snapshots.size(),countSucc,task);
                 } catch (Exception e) {
                     errMsg = "Exception while performing Rest requests";
                     log.error(errMsg, e);
@@ -385,7 +397,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                 task.setStatus(DriverTask.TaskStatus.FAILED);
             }
         } else {
-            errMsg = "snapshots are not from same storage system";
+            errMsg = "Snapshots are not from same storage system";
             log.error(errMsg);
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }
@@ -423,7 +435,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                 task.setStatus(DriverTask.TaskStatus.FAILED);
             }
         } else {
-            errMsg = "snapshots are not from same consistency group";
+            errMsg = "Snapshots are not from same consistency group";
             log.error(errMsg);
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }

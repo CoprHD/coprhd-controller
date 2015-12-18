@@ -156,8 +156,5 @@ public class ScaleIOConstants {
     public static String getRemoveConsistencyGroupSnapshotsURI(String systemId) {
         return String.format("/api/instances/System::%1$s/action/removeConsistencyGroupSnapshots", systemId);
     }
-    public static String getParentVolumeURI(String volumeId){
-        return String.format("/api/instances/Volume::%1$s", volumeId);
 
-    }
 }

@@ -20,6 +20,7 @@ public class ScaleIOVolume {
     private String name;
     private String vtreeId;
     private String volumeType;
+    private String ancestorVolumeId;
 
     public String getSizeInKb() {
         return sizeInKb;
@@ -75,5 +76,13 @@ public class ScaleIOVolume {
             result = true;
         }
         return result;
+    }
+
+    public String getAncestorVolumeId() {
+        return ancestorVolumeId;
+    }
+
+    public void setAncestorVolumeId(String ancestorVolumeId) {
+        this.ancestorVolumeId = ancestorVolumeId;
     }
 }

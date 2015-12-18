@@ -61,6 +61,7 @@ public class IsilonApi {
 
     private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
+    private static final URI URI_SNAPSHOTIQ_SERVICE_STATUS = URI.create("/platform/1/snapshot/license");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -697,7 +698,7 @@ public class IsilonApi {
     public void modifyExport(String id, IsilonExport exp) throws IsilonException {
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
-    
+
     /**
      * Modify export in access zone
      * 
@@ -706,7 +707,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
     }
 
@@ -729,7 +730,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonExport getExport(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         return get(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "exports", IsilonExport.class);
     }
 
@@ -742,7 +743,7 @@ public class IsilonApi {
     public void deleteExport(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export");
     }
-    
+
     /**
      * Delete export in access zone
      * 
@@ -750,7 +751,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteExport(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export");
     }
 
@@ -1034,7 +1035,7 @@ public class IsilonApi {
     public void modifyShare(String id, IsilonSMBShare s) throws IsilonException {
         modify(_baseUrl.resolve(URI_SMB_SHARES), id, "share", s);
     }
-    
+
     /**
      * Modify SMB share in access zone
      * 
@@ -1043,7 +1044,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyShare(String id, String zoneName, IsilonSMBShare s) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         modify(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share", s);
     }
 
@@ -1067,7 +1068,7 @@ public class IsilonApi {
      */
     public IsilonSMBShare getShare(String id, String zoneName) throws IsilonException {
 
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         return get(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "shares", IsilonSMBShare.class);
     }
 
@@ -1080,7 +1081,7 @@ public class IsilonApi {
     public void deleteShare(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_SMB_SHARES), id, "share");
     }
-    
+
     /**
      * Delete SMB share in access zone
      * 
@@ -1088,7 +1089,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteShare(String id, String zoneName) throws IsilonException {
-    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        String uriWithZoneName = getURIWithZoneName(id, zoneName);
         delete(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share");
     }
 
@@ -1531,13 +1532,40 @@ public class IsilonApi {
         }
         return isNfsv4Enabled;
     }
-    
+
     private String getURIWithZoneName(String id, String zoneName) {
         StringBuffer buffer = new StringBuffer(id);
         buffer.append("?zone=");
         String accesszoneName = zoneName.replace(" ", "%20");
         buffer.append(accesszoneName);
-    	return buffer.toString();
+        return buffer.toString();
+    }
+
+    /**
+     * Checks to see if the SnapshotIQ service is enabled on the isilon device
+     * 
+     * @return boolean true if exists, false otherwise
+     */
+    public boolean isSnapScheduleServiceEnabled(String firmwareVersion) throws IsilonException {
+        ClientResponse resp = null;
+        boolean isSnapshotIQEnabled = false;
+
+        try {
+            // Verify whether SnapshotIQ service is enabled on ISILON array or not
+            resp = _client.get(_baseUrl.resolve(URI_SNAPSHOTIQ_SERVICE_STATUS));
+            JSONObject jsonResp = resp.getEntity(JSONObject.class);
+            String license = jsonResp.get("status").toString();
+            if ("Activated".equalsIgnoreCase(license) || "Evaluation".equalsIgnoreCase(license)) {
+                isSnapshotIQEnabled = true;
+            }
+        } catch (Exception e) {
+            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+        return isSnapshotIQEnabled;
     }
 
 }

@@ -24,8 +24,8 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
@@ -266,6 +266,7 @@ public class ImplicitPoolMatcher {
      */
     private static void updateInvalidAndMatchedPoolsForVpool(VirtualPool vpool, List<StoragePool> matchedPools,
             List<StoragePool> storagePools, DbClient dbClient) {
+        boolean isScheduleSnapCapable = false;
         URI currentVpoolId = vpool.getId();
         StringSet newMatchedPools = new StringSet();
         StringSet newInvalidPools = new StringSet();
@@ -313,12 +314,17 @@ public class ImplicitPoolMatcher {
                     newInvalidPools.add(poolIdStr);
                 }
             }
+
+            if (pool.getSupportedCopyTypes().contains("CHECKPOINT_SCHEDULE_CAPABLE")) {
+                isScheduleSnapCapable = true;
+            }
         }
         _logger.info(MessageFormatter.arrayFormat(
                 "Updating VPool {} with Matched Pools:{}, Invalid pools:{}", new Object[] { vpool.getId(),
                         newMatchedPools.size(), newInvalidPools.size() }).getMessage());
         vpool.addMatchedStoragePools(newMatchedPools);
         vpool.addInvalidMatchedPools(newInvalidPools);
+        vpool.setSupportSnapshotSchedule(isScheduleSnapCapable);
     }
 
     /**

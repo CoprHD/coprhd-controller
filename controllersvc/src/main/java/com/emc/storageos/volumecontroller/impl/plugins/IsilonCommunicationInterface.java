@@ -116,7 +116,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final Long MAX_STORAGE_OBJECTS = 40000L;
     private static final String SYSTEM_ACCESS_ZONE_NAME = "System";
     private static final Long GB_IN_BYTES = 1073741824L;
-    private static final Long GB_IN_KB =    1048576L;
+    private static final Long GB_IN_KB = 1048576L;
     private static final Long MB_IN_BYTES = 1048576L;
     private static final Long KB_IN_BYTES = 1024L;
     private static final String ONEFS_V8 = "8.0.0.0";
@@ -356,36 +356,36 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
         } while (resumeToken != null);
 
-        //get the base dir paths
+        // get the base dir paths
         List<String> baseDirPaths = null;
         if (baseDirPath.equals(IFS_ROOT)) {
             List<IsilonAccessZone> isilonAccessZoneList = isilonApi.getAccessZones(resumeToken);
             baseDirPaths = new ArrayList<String>();
-            for (IsilonAccessZone isiAccessZone: isilonAccessZoneList) {
+            for (IsilonAccessZone isiAccessZone : isilonAccessZoneList) {
                 if (isiAccessZone.isSystem() == false) {
                     baseDirPaths.add(isiAccessZone.getPath() + "/");
                 }
             }
         }
-        //snapshots count & snap capacity
+        // snapshots count & snap capacity
         resumeToken = null;
         IsilonList<IsilonSnapshot> snapshots = null;
         do {
             snapshots = isilonApi.listSnapshots(resumeToken);
             if (snapshots != null && !snapshots.getList().isEmpty()) {
-                if (!baseDirPath.equals(IFS_ROOT)) { //if it not system access zone then compare with fs path with base dir path
+                if (!baseDirPath.equals(IFS_ROOT)) { // if it not system access zone then compare with fs path with base dir path
                     _log.info("access zone base directory path {}", baseDirPath);
-                    for (IsilonSnapshot isilonSnap: snapshots.getList()) {
+                    for (IsilonSnapshot isilonSnap : snapshots.getList()) {
                         if (isilonSnap.getPath().startsWith(baseDirPath)) {
                             totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
-                            totalFsCount ++;
+                            totalFsCount++;
                         }
                     }
-                } else {//process the snapshots for system access zone
+                } else {// process the snapshots for system access zone
                     boolean snapSystem = true;
-                    for (IsilonSnapshot isilonSnap: snapshots.getList()) {
+                    for (IsilonSnapshot isilonSnap : snapshots.getList()) {
                         snapSystem = true;
-                        //first check fs path with user defined AZ's paths
+                        // first check fs path with user defined AZ's paths
                         if (baseDirPaths != null && !baseDirPaths.isEmpty()) {
                             for (String basePath : baseDirPaths) {
                                 if (isilonSnap.getPath().startsWith(basePath)) {
@@ -394,25 +394,25 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 }
                             }
                         }
-                        //if it not matched with any user define AZ's then it is belongs system AZ
+                        // if it not matched with any user define AZ's then it is belongs system AZ
                         if (snapSystem) {
                             totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
-                            totalFsCount ++;
+                            totalFsCount++;
                             _log.info("System access zone base directory path: {}", accessZone.getPath());
 
                         }
                     }
                 }
                 resumeToken = snapshots.getToken();
-               }
+            }
         } while (resumeToken != null);
 
         if (totalProvCap >= KB_IN_BYTES) {
-            totalProvCap = (totalProvCap/KB_IN_BYTES);
+            totalProvCap = (totalProvCap / KB_IN_BYTES);
         }
         _log.info("Total fs Count {} for access zone : {}", String.valueOf(totalFsCount), accessZone.getName());
         _log.info("Total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());
-	
+
         // get total exports
         int nfsExportsCount = 0;
         int cifsSharesCount = 0;
@@ -673,7 +673,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         List<PhysicalNAS> newPhysicalNASList = new ArrayList<PhysicalNAS>();
         List<PhysicalNAS> existingPhysicalNASList = new ArrayList<PhysicalNAS>();
-        
+
         List<VirtualNAS> discoveredVNASList = new ArrayList<VirtualNAS>();
 
         // Discover storage ports
@@ -749,7 +749,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     } else {
                         setMaxDbMetricsAz(storageSystem, virtualNAS.getMetrics());
                         existingvNASList.add(virtualNAS);
-                        
+
                     }
 
                     // authenticate providers
@@ -851,7 +851,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _log.info("New Physical NAS servers size {}", newPhysicalNASList.size());
                 _dbClient.createObject(newPhysicalNASList);
             }
-            
+
             DiscoveryUtils.checkVirtualNasNotVisible(discoveredVNASList, _dbClient, storageSystemId);
 
         } catch (Exception e) {
@@ -921,6 +921,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             StoragePool storagePool;
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
 
+            boolean snapScheduleServiceEnabled = isilonApi.isSnapScheduleServiceEnabled(storageSystem.getFirmwareVersion());
+
             List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
             for (IsilonStoragePool isilonPool : isilonStoragePools) {
                 // Check if this storage pool was already discovered
@@ -972,6 +974,18 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     storagePool.getProtocols().add(NFSv4);
                 } else {
                     storagePool.getProtocols().remove(NFSv4);
+                }
+
+                // Add the Copy type ScheduleSnapshot, if the Isilon is enabled with SnapshotIQ
+                StringSet copyTypesSupported = new StringSet();
+                if (snapScheduleServiceEnabled) {
+                    copyTypesSupported.add("CHECKPOINT_SCHEDULE_CAPABLE");
+                    storagePool.setSupportedCopyTypes(copyTypesSupported);
+                } else {
+                    if (storagePool.getSupportedCopyTypes() != null &&
+                            !storagePool.getSupportedCopyTypes().contains("CHECKPOINT_SCHEDULE_CAPABLE")) {
+                        storagePool.getSupportedCopyTypes().remove("CHECKPOINT_SCHEDULE_CAPABLE");
+                    }
                 }
 
                 // scale capacity size
@@ -2568,7 +2582,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         // set the max capacity in GB
         long MaxCapacity = Math.round(getClusterStorageCapacity(system));
-        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity*GB_IN_KB));
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity * GB_IN_KB));
         return;
     }
 

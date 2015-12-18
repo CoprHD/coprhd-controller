@@ -112,6 +112,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // Max retention for a Virtual Pool
     private Integer maxRetention;
 
+    private Boolean supportSnapshotSchedule;
+
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
         SINGLE_REMOTE,
@@ -294,14 +296,14 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
                     || vnxe.name().equalsIgnoreCase(name)
                     || datadomain.name().equalsIgnoreCase(name);
         }
-        
+
         public static boolean isBlockTypeSystem(final String name) {
             return vnxblock.name().equalsIgnoreCase(name) || vmax.name().equalsIgnoreCase(name)
                     || hds.name().equalsIgnoreCase(name) || openstack.name().equalsIgnoreCase(name)
                     || scaleio.name().equalsIgnoreCase(name) || xtremio.name().equalsIgnoreCase(name)
                     || ibmxiv.name().equalsIgnoreCase(name) || vnxe.name().equalsIgnoreCase(name);
         }
-        
+
         public static boolean isObjectTypeSystem(final String name) {
             return ecs.name().equalsIgnoreCase(name);
         }
@@ -868,9 +870,9 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         return highAvailability != null
                 && (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability));
     }
-    
+
     /**
-     * Returns whether or not the passed VirtualPool specifies MetroPoint.  This requires
+     * Returns whether or not the passed VirtualPool specifies MetroPoint. This requires
      * the MetroPoint flag to be enabled along with RP protection and VPLex distributed.
      * 
      * @param virtualPool A reference to the VirtualPool
@@ -1322,14 +1324,38 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         this.autoCrossConnectExport = autoCrossConnectExport;
         setChanged("autoCrossConnectExport");
     }
-    
+
     @Name("maxRetention")
     public Integer getMaxRetention() {
-        return (maxRetention==null) ? 0 : maxRetention;
+        return (maxRetention == null) ? 0 : maxRetention;
     }
 
     public void setMaxRetention(Integer maxRetention) {
-        this.maxRetention = (null==maxRetention || maxRetention == 0) ? 0 : maxRetention;
+        this.maxRetention = (null == maxRetention || maxRetention == 0) ? 0 : maxRetention;
         setChanged("maxRetention");
+    }
+
+    /**
+     * Convenience method to determine if the Virtual Pool supports schedule snapshots
+     * 
+     * @param virtualPool
+     *            Virtual Pool
+     * @return true if supports schedule snapshots
+     */
+    public static boolean vPoolSupportScheduleSnapshots(final VirtualPool virtualPool) {
+        if (virtualPool.getMaxNativeSnapshots() == null) {
+            return false;
+        }
+        return virtualPool.getMaxNativeSnapshots() != MAX_DISABLED;
+    }
+
+    @Name("supportSnapshotSchedule")
+    public Boolean getSupportSnapshotSchedule() {
+        return supportSnapshotSchedule;
+    }
+
+    public void setSupportSnapshotSchedule(Boolean supportSnapshotSchedule) {
+        this.supportSnapshotSchedule = supportSnapshotSchedule;
+        setChanged("supportSnapshotSchedule");
     }
 }

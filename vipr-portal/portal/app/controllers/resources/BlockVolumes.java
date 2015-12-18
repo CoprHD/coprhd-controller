@@ -80,6 +80,20 @@ public class BlockVolumes extends ResourceController {
         List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId));
         renderJSON(DataTablesSupport.createJSON(volumes, params));
     }
+    
+    public static void volumeDetails(String volumeId) {
+    	ViPRCoreClient client = BourneUtil.getViprClient();
+    	String consistencygroup = "";
+    	VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
+        if (volume == null) {
+            error(MessagesUtils.get(UNKNOWN, volumeId));
+        }
+        if(volume.getConsistencyGroup() != null){
+        	consistencygroup = client.blockConsistencyGroups().get(volume.getConsistencyGroup().getId()).getName();
+        }
+        render(consistencygroup);
+    }
+
 
     public static void volume(String volumeId, String continuousCopyId) {
 

@@ -188,6 +188,10 @@ public class ComputeMapper {
         to.setImageServerUser(from.getImageServerUser());
         to.setOsInstallTimeout(new Long(TimeUnit.MILLISECONDS.toSeconds(from
                 .getOsInstallTimeoutMs())).intValue());
+        to.setSshTimeout(new Long(TimeUnit.MILLISECONDS.toSeconds(from
+                .getSshTimeoutMs())).intValue());
+        to.setImageImportTimeout(new Long(TimeUnit.MILLISECONDS.toSeconds(from
+                .getImageImportTimeoutMs())).intValue());
         to.setComputeImages(new ArrayList<NamedRelatedResourceRep>());
         to.setFailedImages(new ArrayList<NamedRelatedResourceRep>());
         if (from.getComputeImages() != null) {

@@ -262,9 +262,10 @@ suseRemoveYaST
 # Simulator code goes here
 #--------------------------------------
 echo "Starting to create the simulator code"
-#WRKDIR=`pwd`
-#chmod 777 $WRKDIR/AIO_scripts/simulatorInstall.sh || exit 1
-#$WRKDIR/AIO_scripts/simulatorInstall.sh $WRKDIR || exit 1
+WRKDIR=`pwd`
+ls -ltr $WRKDIR/AIO_scripts/simulatorInstall.sh
+chmod 777 $WRKDIR/AIO_scripts/simulatorInstall.sh || exit 1
+$WRKDIR/AIO_scripts/simulatorInstall.sh $WRKDIR || exit 1
 #rm -r $WRKDIR/AIO_scripts
 echo "Ending to create the simulator code"
 

@@ -452,7 +452,7 @@ public abstract class VdcOpHandler {
         private void checkAndPauseOnStandby() {
             // wait for the coordinator to be blocked on the active site
             int retryCnt = 0;
-            while (coordinator.isActiveSiteStable()) {
+            while (coordinator.isActiveSiteHeathy()) {
                 if (++retryCnt > MAX_PAUSE_RETRY) {
                     throw new IllegalStateException("timeout waiting for coordinatorsvc to be blocked on active site.");
                 }

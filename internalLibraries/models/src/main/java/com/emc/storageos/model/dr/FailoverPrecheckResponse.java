@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.dr;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -9,7 +13,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class FailoverPrecheckResponse extends SiteErrorResponse {
     
-    protected static FailoverPrecheckResponse noError = new FailoverPrecheckResponse();
+    private static FailoverPrecheckResponse noError = new FailoverPrecheckResponse();
     private SiteRestRep site;
 
     @XmlElement(name = "site")

@@ -18,7 +18,7 @@
     <div class="btn-group-site">
 		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
 			#{if isPrimarysite }
-				<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
+				<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.pause'}')){return false;}")>{{'disasterRecovery.pauseButton' | t}}</a>
 				<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
 			#{/if}
 			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>

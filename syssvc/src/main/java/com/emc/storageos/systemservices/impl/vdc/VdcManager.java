@@ -295,6 +295,12 @@ public class VdcManager extends AbstractManager {
      */
     private PropertyInfoExt loadVdcConfig() throws Exception {
         targetVdcPropInfo = new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
+
+        // This ipsec_status and ipsec_key properties are not normal system properties,
+        // as they need be protected by double barrier to make sure they be changed and
+        // synced to all nodes at the SAME time, or else the quorum of zk and db will be
+        // broken. This is why we don't put them in system property.
+        targetVdcPropInfo.addProperty(Constants.IPSEC_STATUS,ipsecConfig.getIpsecStatus());
         targetVdcPropInfo.addProperty(Constants.IPSEC_KEY, ipsecConfig.getPreSharedKey());
         return targetVdcPropInfo;
     }
@@ -451,54 +457,62 @@ public class VdcManager extends AbstractManager {
         long lastSiteUpdateTime = site.getLastStateUpdateTime();
         long currentTime = System.currentTimeMillis();
 
+        int drOpTimeoutMillis;
         switch(site.getState()) {
             case STANDBY_ADDING:
-                if (currentTime - lastSiteUpdateTime > ADD_STANDBY_TIMEOUT_MILLIS) {
+                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_ADD_STANDBY_TIMEOUT, ADD_STANDBY_TIMEOUT_MILLIS);
+                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step5: Site {} set to error due to add standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(
-                            ADD_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000));
                 }
                 break;
             case STANDBY_PAUSING:
-                if (currentTime - lastSiteUpdateTime > PAUSE_STANDBY_TIMEOUT_MILLIS) {
+                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_PAUSE_STANDBY_TIMEOUT, PAUSE_STANDBY_TIMEOUT_MILLIS);
+                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step5: Site {} set to error due to pause standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.pauseStandbyFailedTimeout(
-                            PAUSE_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000));
                 }
                 break;
             case STANDBY_RESUMING:
-                if (currentTime - lastSiteUpdateTime > RESUME_STANDBY_TIMEOUT_MILLIS) {
+                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_RESUME_STANDBY_TIMEOUT, RESUME_STANDBY_TIMEOUT_MILLIS);
+                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step5: Site {} set to error due to resume standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.resumeStandbyFailedTimeout(
-                            RESUME_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000));
                 }
                 break;
             case STANDBY_SYNCING:
-                if (currentTime - lastSiteUpdateTime > DATA_SYNC_TIMEOUT_MILLIS) {
+                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_DATA_SYNC_TIMEOUT, DATA_SYNC_TIMEOUT_MILLIS);
+                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step5: Site {} set to error due to data sync timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.dataSyncFailedTimeout(
-                            DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000));
                 }
                 break;
             case STANDBY_REMOVING:
-                if (currentTime - lastSiteUpdateTime > REMOVE_STANDBY_TIMEOUT_MILLIS) {
+                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_REMOVE_STANDBY_TIMEOUT, REMOVE_STANDBY_TIMEOUT_MILLIS);
+                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step5: Site {} set to error due to remove standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.removeStandbyFailedTimeout(
-                            REMOVE_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000));
                 }
                 break;
             case ACTIVE_SWITCHING_OVER:
-                if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
+                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_SWITCHOVER_TIMEOUT, SWITCHOVER_TIMEOUT_MILLIS);
+                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step5: site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverActiveFailedTimeout(
-                            site.getName(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                            site.getName(), drOpTimeoutMillis / 60 / 1000));
                 }
                 break;
             case STANDBY_SWITCHING_OVER:
-                if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
+                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_SWITCHOVER_TIMEOUT, SWITCHOVER_TIMEOUT_MILLIS);
+                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.info("Step5: site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverStandbyFailedTimeout(
-                            site.getName(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                            site.getName(), drOpTimeoutMillis / 60 / 1000));
                 }
                 break;
         }

@@ -8,7 +8,6 @@ package com.emc.storageos.coordinator.client.service.impl;
 import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
 import static com.emc.storageos.coordinator.client.model.Constants.DB_CONFIG;
 import static com.emc.storageos.coordinator.client.model.Constants.GLOBAL_ID;
-import static com.emc.storageos.coordinator.client.model.Constants.KEY_CERTIFICATE_PAIR_CONFIG_KIND;
 import static com.emc.storageos.coordinator.client.model.Constants.MIGRATION_STATUS;
 import static com.emc.storageos.coordinator.client.model.Constants.NODE_DUALINETADDR_CONFIG;
 import static com.emc.storageos.coordinator.client.model.Constants.SCHEMA_VERSION;
@@ -68,12 +67,13 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
@@ -96,7 +96,6 @@ import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.sys.ClusterInfo;
-import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 
 /**
  * Default coordinator client implementation
@@ -603,7 +602,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private boolean isSiteSpecific(String kind) {
         if (kind.equals(SiteInfo.CONFIG_KIND)
             || kind.equals(SiteError.CONFIG_KIND)
-            || kind.equals(PowerOffState.CONFIG_KIND)) {
+            || kind.equals(PowerOffState.CONFIG_KIND)
+            || kind.equals(SiteMonitorResult.CONFIG_KIND)) {
             return true;
         }
         return false;

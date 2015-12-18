@@ -6778,7 +6778,7 @@ vdc_common_setup()
 
 ipsec_setup()
 {
-    echo "No setup needed"
+    echo "No ipsec test setup needed"
 }
 
 ipsec_tests() 
@@ -6786,21 +6786,41 @@ ipsec_tests()
     echo "--- IPSEC Key Rotation ---"
     ipsec keyrotate || { echo "key rotation failed."; exit 1; }
     echo "Key Rotation done"
+    assert_ipsec_status "good"
 
+    echo "--- Test IPSEC disable ---"
+    ipsec disable || { echo "ipsec disable failed."; exit 1; }
+    echo "ipsec disabled"
+    assert_ipsec_status "disabled"
+
+    echo "--- Test IPSEC enable ---"
+    ipsec enable || { echo "ipsec enable failed."; exit 1; }
+    echo "ipsec enabled"
+    assert_ipsec_status "good"
+}
+
+assert_ipsec_status()
+{
     echo "Checking IPsec status"
+    local expect_status="${1}"
+    local ipsec_status=""
     local result=1
+
+    sleep 1
     for i in {1..5}; do
-        ./ipsec check
-        [[ $? == 0 ]] && { result=0; break; }
+        ipsec_status=$(./ipsec check)
+        [[ "${ipsec_status}" == *"${expect_status}"* ]] && { result=0; break; }
         sleep 5
     done
 
-    if [[ $result == 1 ]]; then 
-        echo "ipsec is not good"
+    if [[ ${result} == 1 ]]; then
+        echo "ipsec status is not right, expect: ${expect_status}, actually is: ${ipsec_status}"
         exit 1
     fi
-    echo "IPsec status checking is done." 
+
+    echo "IPsec status verified, which is: ${ipsec_status}"
 }
+
 
 sec_start_ldap_server()
 {

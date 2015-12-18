@@ -73,14 +73,6 @@ public class BlockSnapshotSessionLinkTargetCompleter extends TaskLockingComplete
                         BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
                         StringSet linkedTargets = snapSession.getLinkedTargets();
 
-                        // TODO Remove this START
-                        for (URI snapURI : snapshotTargets) {
-                            s_logger.info("Linking target {} to session {}", snapURI, snapSessionURI);
-                        }
-                        if (true) { continue; }
-                        // TODO Remove this END
-
-
                         if (linkedTargets == null) {
                             linkedTargets = new StringSet();
                             snapSession.setLinkedTargets(linkedTargets);

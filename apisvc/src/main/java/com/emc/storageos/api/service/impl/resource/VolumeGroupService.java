@@ -290,6 +290,16 @@ public class VolumeGroupService extends TaskResourceService {
             throw APIException.badRequests.volumeGroupWithVolumesCantBeDeleted(volumeGroup.getLabel());
         }
 
+        if (!getVolumeGroupHosts(_dbClient, volumeGroup).isEmpty()) {
+            // application could not be deleted if it has hosts
+            throw APIException.badRequests.volumeGroupWithHostsCantBeDeleted(volumeGroup.getLabel());
+        }
+
+        if (!getVolumeGroupClusters(_dbClient, volumeGroup).isEmpty()) {
+            // application could not be deleted if it has clusters
+            throw APIException.badRequests.volumeGroupWithClustersCantBeDeleted(volumeGroup.getLabel());
+        }
+
         _dbClient.markForDeletion(volumeGroup);
 
         auditOp(OperationTypeEnum.DELETE_CONFIG, true, null, id.toString(),

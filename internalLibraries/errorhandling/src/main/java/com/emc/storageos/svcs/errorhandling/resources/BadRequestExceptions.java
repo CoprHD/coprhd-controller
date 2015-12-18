@@ -2643,6 +2643,9 @@ public interface BadRequestExceptions {
     public BadRequestException volumeGroupCantBeUpdated(final String volumeGroupName, final String reason);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeGroupCantBeCreated(final String volumeGroupName, final String reason);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeCantBeAddedToVolumeGroup(final String volumeName, final String reason);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

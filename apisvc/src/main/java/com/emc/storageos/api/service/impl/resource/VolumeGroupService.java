@@ -37,6 +37,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Cluster;
@@ -160,6 +161,13 @@ public class VolumeGroupService extends TaskResourceService {
         volumeGroup.setLabel(param.getName());
         volumeGroup.setDescription(param.getDescription());
         volumeGroup.addRoles(param.getRoles());
+        
+        // add parent if specified
+        String msg = setParent(volumeGroup, param.getParent());
+        if (msg != null && !msg.isEmpty()) {
+            throw APIException.badRequests.volumeGroupCantBeCreated(volumeGroup.getLabel(), msg);
+        }
+        
         _dbClient.createObject(volumeGroup);
         auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP, true, null, volumeGroup.getId().toString(),
                 volumeGroup.getLabel());
@@ -310,7 +318,7 @@ public class VolumeGroupService extends TaskResourceService {
         checkForApplicationPendingTasks(volumeGroup);
         boolean isChanged = false;
         String vgName = param.getName();
-        if (vgName != null && !vgName.isEmpty()) {
+        if (vgName != null && !vgName.isEmpty() && !vgName.equalsIgnoreCase(volumeGroup.getLabel())) {
             checkDuplicateLabel(VolumeGroup.class, vgName, "Volume Group");
             volumeGroup.setLabel(vgName);
             isChanged = true;
@@ -320,6 +328,16 @@ public class VolumeGroupService extends TaskResourceService {
             volumeGroup.setDescription(description);
             isChanged = true;
         }
+        
+        String parent = param.getParent();
+        if (parent != null && !parent.isEmpty()) {
+            String msg = setParent(volumeGroup, parent);
+            if (msg != null && !msg.isEmpty()) {
+                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), msg);
+            }
+            isChanged = true;
+        }
+        
         if (isChanged) {
             _dbClient.updateObject(volumeGroup);
         }
@@ -981,6 +999,33 @@ public class VolumeGroupService extends TaskResourceService {
                 throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(volumeGroup.getLabel());
             }
         }
+    }
+    
+    private String setParent(VolumeGroup volumeGroup, String parent) {
+        String errorMsg = null;
+        // add parent if specified
+        if (parent != null) {
+            if (URIUtil.isValid(parent)) {
+                URI parentId = URI.create(parent);
+                ArgValidator.checkFieldUriType(parentId, VolumeGroup.class, "parent");
+                VolumeGroup parentVG = _dbClient.queryObject(VolumeGroup.class, parentId);
+                if (parentVG == null || parentVG.getInactive()) {
+                    errorMsg = "The parent volume group does not exist";
+                } else {
+                    volumeGroup.setParent(parentId);
+                }
+            } else {
+                List<VolumeGroup> parentVg = CustomQueryUtility
+                        .queryActiveResourcesByConstraint(_dbClient, VolumeGroup.class,
+                                PrefixConstraint.Factory.getLabelPrefixConstraint(VolumeGroup.class, parent));
+                if (parentVg == null || parentVg.isEmpty()) {
+                    errorMsg = "The parent volume group does not exist";
+                } else {
+                    volumeGroup.setParent(parentVg.iterator().next().getId());
+                }
+            }
+        }
+        return errorMsg;
     }
 
 }

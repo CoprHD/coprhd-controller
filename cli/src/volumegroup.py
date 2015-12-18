@@ -36,7 +36,7 @@ class VolumeGroup(object):
         self.__ipAddr = ipAddr
         self.__port = port
         
-    def create(self, name, description, roles):
+    def create(self, name, description, roles, parent):
         '''
         Makes REST API call to create volume group
         Parameters:
@@ -50,6 +50,7 @@ class VolumeGroup(object):
         request["name"] = name
         request["description"] = description
         request["roles"] = roles.split(',')
+        request["parent"] = parent
 
         body = json.dumps(request)
 
@@ -153,7 +154,7 @@ class VolumeGroup(object):
         volume_group_uri = self.query_by_name(name)
         return self.delete_by_uri(volume_group_uri)
 
-    def update(self, name, new_name, new_description, add_volumes, cg_id, remove_volumes):
+    def update(self, name, new_name, new_description, add_volumes, cg_id, remove_volumes, parent):
         '''
         Makes REST API call and updates volume group name and description
         Parameters:
@@ -171,6 +172,8 @@ class VolumeGroup(object):
             request["name"] = new_name
         if(new_description and len(new_description) > 0):
             request["description"] = new_description
+        if(parent and len(parent) > 0):
+            request["parent"] = parent
         if(add_volumes and len(add_volumes) > 0):
             add_vols = dict()
             add_vols["volume"] = add_volumes.split(',')
@@ -274,13 +277,17 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<description>',
                                dest='description',
                                help='description for volume group')
+    create_parser.add_argument('-pa', '-parent',
+                               metavar='<parent>',
+                               dest='parent',
+                               help='parent volume group for volume group')
     create_parser.set_defaults(func=create)
 
 
 def create(args):
     obj = VolumeGroup(args.ip, args.port)
     try:
-        obj.create(args.name, args.description, args.roles)
+        obj.create(args.name, args.description, args.roles, args.parent)
     except SOSError as e:
         if (e.err_code in [SOSError.NOT_FOUND_ERR,
                             SOSError.ENTRY_ALREADY_EXISTS_ERR]):
@@ -434,13 +441,17 @@ def update_parser(subcommand_parsers, common_parser):
                                        metavar='<consistency_group>',
                                        dest='consistency_group',
                                        help='A consistency group for adding volumes to the volume group')
+    update_parser.add_argument('-pa', '-parent',
+                                       metavar='<parent>',
+                                       dest='parent',
+                                       help='A parent volume group for the volume group')
 
     update_parser.set_defaults(func=update)
 
 
 def update(args):
 
-    if(args.newname is None and args.description is None and args.add_volumes is None and args.remove_volumes is None):
+    if(args.newname is None and args.description is None and args.add_volumes is None and args.remove_volumes is None and args.parent is None):
         raise SOSError(SOSError.CMD_LINE_ERR,
             "viprcli volume group update: error: at least one of " +
             "the arguments -np/-newname -d/-description -a/-add_volumes " +
@@ -448,7 +459,7 @@ def update(args):
     obj = VolumeGroup(args.ip, args.port)
     try:
         obj.update(args.name, args.newname,
-                    args.description, args.add_volumes, args.consistency_group, args.remove_volumes)
+                    args.description, args.add_volumes, args.consistency_group, args.remove_volumes, args.parent)
     except SOSError as e:
         raise e
 

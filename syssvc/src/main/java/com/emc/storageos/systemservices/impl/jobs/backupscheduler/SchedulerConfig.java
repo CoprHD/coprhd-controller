@@ -123,10 +123,11 @@ public class SchedulerConfig {
         this.interval = ScheduleTimeRange.ScheduleInterval.DAY;
         this.intervalMultiple = 1;
         if (intervalStr != null && !intervalStr.isEmpty()) {
-            // Format is ###$$$, where $$$ is interval unit, and ### represents times of the interval unit
-            // E.g. "5day", ###=5, $$$=day.
+            // Format is ###$$$ or ###, where $$$ is interval unit, and ### represents times of the interval unit
+            // If is only ###, the default unit is DAY.
+            // E.g. "5day", ###=5, $$$=day; and "6" means 6day.
             int digitLen = 0;
-            while (Character.isDigit(intervalStr.charAt(digitLen))) {
+            while (digitLen < intervalStr.length() && Character.isDigit(intervalStr.charAt(digitLen))) {
                 digitLen++;
             }
 
@@ -135,7 +136,9 @@ public class SchedulerConfig {
                 log.warn("The interval string {} parse to non-positive ({}) multiple of intervals", intervalStr, this.intervalMultiple);
                 this.intervalMultiple = 1;
             }
-            this.interval = ScheduleTimeRange.parseInterval(intervalStr.substring(digitLen));
+            if (digitLen < intervalStr.length()) {
+                this.interval = ScheduleTimeRange.parseInterval(intervalStr.substring(digitLen));
+            }
         } else {
             log.warn("The interval string is absent or empty, daily backup (\"1day\") is used as default.");
         }

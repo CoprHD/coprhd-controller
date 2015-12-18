@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
@@ -118,8 +119,13 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
         }
         putAttributeInMap(Attributes.long_term_retention_policy.toString(), _vpool.getLongTermRetention());
         
-        if (_vpool.getFileReplicationType() != null) {
+        if (_vpool.getFileReplicationType() != null &&
+        		FileReplicationType.NONE.name().equalsIgnoreCase(_vpool.getFileReplicationType())) {
+        	
         	putAttributeInMap(Attributes.file_replication_type.toString(), _vpool.getFileReplicationType());
+        	if (_vpool.getFileReplicationCopyMode() != null) {
+        		putAttributeInMap(Attributes.file_replication_copy_mode.toString(), _vpool.getFileReplicationCopyMode());
+        	}
         	if (null != fileRemoteProtectionSettings && !fileRemoteProtectionSettings.isEmpty()) {
                 _logger.info("File Replication Remote Settings : {}", Joiner.on("\t").join(fileRemoteProtectionSettings.keySet()));
                 putAttributeInMap(Attributes.file_replication.toString(), fileRemoteProtectionSettings);

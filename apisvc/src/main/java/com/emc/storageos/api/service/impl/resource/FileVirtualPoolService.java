@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.VirtualPoolMapper.toFileVirtualPool;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.model.BulkIdParam;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +40,7 @@ import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyModes;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -316,12 +319,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
                     .put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
         }
 
-        // Update snapshots
+        // Update file protection parameters!!!
         if (null != param.getProtection()) {
-            if ((param.getProtection().getSnapshots() != null)
-                    && (param.getProtection().getSnapshots().getMaxSnapshots() != null)) {
-                cos.setMaxNativeSnapshots(param.getProtection().getSnapshots().getMaxSnapshots());
-            }
+        	updateFileProtectionParamsForVirtualPool(cos, param.getProtection());
         }
 
         if (null != param.getLongTermRetention()) {
@@ -557,6 +557,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                             throw APIException.badRequests.invalidCopyMode(replPolicy.getRemoteCopyMode());
                         }
                         copyMode = replPolicy.getRemoteCopyMode();
+                        vPool.setFileReplicationCopyMode(copyMode);
                     }
             		if (null != replPolicy.getRpoValue()) {
             			vPool.setFrRpoValue(replPolicy.getRpoValue());
@@ -622,7 +623,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
      */
     private boolean checkAttributeValuesChanged(FileVirtualPoolUpdateParam param, VirtualPool vpool) {
         return super.checkAttributeValuesChanged(param, vpool)
-                || checkLongTermRetentionChanged(param.getLongTermRetention(), vpool.getLongTermRetention());
+                || checkLongTermRetentionChanged(param.getLongTermRetention(), vpool.getLongTermRetention()
+                || checkProtectionChanged(vpool, param.getProtection()));
+        
     }
 
     /**
@@ -647,5 +650,193 @@ public class FileVirtualPoolService extends VirtualPoolService {
         return isModified;
 
     }
+    
+    /**
+     * Check whether the file replication attributes have changed.
+     * 
+     * @param from the source virtual pool without updates
+     * @param to the updated virtual pool 
+     * @return true if the virtual pool has changed, false otherwise
+     */
+    public static boolean checkProtectionChanged(VirtualPool from, FileVirtualPoolProtectionUpdateParam to) {
 
+        // If the update object is null there are no updates
+        if (to == null) {
+            _log.info("No virtual pool replication settings changes have been made");
+            return false;
+        }
+
+        // Check for file replication protection
+        if (to.getReplicationParam() != null) {	
+            if ((null != to.getReplicationParam().getAddRemoteCopies() 
+            		&& !to.getReplicationParam().getAddRemoteCopies().isEmpty())
+                    || (null != to.getReplicationParam().getRemoveRemoteCopies() 
+                        && !to.getReplicationParam().getRemoveRemoteCopies().isEmpty())) {
+                // File replication protection Copies are being modified on a vpool.
+                // irrespective of whether source vpool has replication protection,
+            	// any changes to remote copies is not permitted on 
+                // virtual pools with provisioned file systems.
+                _log.info("Replication copies cannot be modified to a vpool with provisioned filessystems ",
+                		from.getId());
+                return true;
+            }
+        }
+        _log.info("No protection changes");
+        return false;
+    }
+    
+    /**
+     * Performs the protection updates on VirtualPool.
+     * 
+     * @param virtualPool Reference to the virtual pool to update.
+     * @param param The updates that need to be applied to the virtual pool.
+     */
+    private void updateFileProtectionParamsForVirtualPool(VirtualPool virtualPool,
+            FileVirtualPoolProtectionUpdateParam param) {
+
+        // If the update specifies replication protection, we need to process the update.
+        if (param != null) {
+            // Handle the protection snapshot updates
+            if (param.getSnapshots() != null) {
+                // By default the maxSnapshots value should be 0 so this should never be null
+                // but good to have just in case...
+                if (param.getSnapshots().getMaxSnapshots() != null) {
+                    // Keep in mind that if an empty or 0 value is specified snapshots
+                    // will be removed from the virtual pool.
+                    virtualPool.setMaxNativeSnapshots(param.getSnapshots().getMaxSnapshots());
+                } else {
+                    // Remove snapshots by setting the disabled value
+                    virtualPool.setMaxNativeSnapshots(VirtualPool.MAX_DISABLED);
+                }
+            }
+            // Handle the replication params updates!!!
+            if (param.getReplicationParam() != null) {
+                if (param.getReplicationParam().getAddRemoteCopies() == null 
+                		&& param.getReplicationParam().getRemoveRemoteCopies() == null
+                        && param.getReplicationParam().getSourcePolicy() == null) {
+                    // Empty replication settings indicates removal of
+                    // replication protection, so remove it.
+                	deleteReplicationParams(virtualPool, param);
+                } else {
+                	// Update the replication attributes!!
+                	updateReplicationParams(virtualPool, param);
+                }
+                    
+            }
+        }
+    }
+
+    private void deleteReplicationParams(VirtualPool virtualPool,
+            FileVirtualPoolProtectionUpdateParam param) {
+    	// Remove replication settings from virtual pool
+		// 1. Reset the policy settings
+		// 2. Reset the remote copies!!!
+		virtualPool.setFrRpoType(null);
+		virtualPool.setFrRpoValue(null);
+		virtualPool.setFileReplicationType(FileReplicationType.NONE.name());
+		
+		// Remove all remote copy setttings, if any!!!
+		StringMap remoteCopySettingsMap = virtualPool.getFileRemoteCopySettings();
+		if (remoteCopySettingsMap != null && !remoteCopySettingsMap.isEmpty()) {
+			for (String varray : remoteCopySettingsMap.keySet()) {
+				String remoteCopySettingsUri = remoteCopySettingsMap.get(varray);
+				remoteCopySettingsMap.remove(varray);
+				VpoolRemoteCopyProtectionSettings remoteSettingsObj = _dbClient.queryObject(
+						VpoolRemoteCopyProtectionSettings.class, URI.create(remoteCopySettingsUri));
+				remoteSettingsObj.setInactive(true);
+				_dbClient.updateObject(remoteSettingsObj);
+			}
+		}
+		_log.info("File Replication setting removed from virtual pool {} ", virtualPool.getLabel());
+    }
+    private void updateReplicationParams(VirtualPool virtualPool,
+            FileVirtualPoolProtectionUpdateParam param) {
+        if (param.getReplicationParam() != null) {
+        	// If the source policy is omitted, do nothing.
+        	FileReplicationPolicy sourcePolicy = param.getReplicationParam().getSourcePolicy();
+        	if (sourcePolicy != null) {
+        		if (sourcePolicy.getReplicationType() != null && 
+        				sourcePolicy.getReplicationType().equalsIgnoreCase(FileReplicationType.NONE.name())) {
+        			// Delete the existing replication attributes!!
+        			deleteReplicationParams(virtualPool, param);
+        			
+        		} else {
+        			// Update the policy settings from param!!!
+        			if (sourcePolicy.getRemoteCopyMode() != null) {
+        				if (!CopyModes.lookup(sourcePolicy.getRemoteCopyMode())) {
+    						throw APIException.badRequests.invalidCopyMode(sourcePolicy.getRemoteCopyMode());
+    					}
+        				virtualPool.setReplicationCopyMode(sourcePolicy.getRemoteCopyMode());
+        			}
+        			if (sourcePolicy.getReplicationType() != null) {
+        				if (!FileReplicationType.lookup(sourcePolicy.getReplicationType())) {
+    						throw APIException.badRequests.invalidReplicationType(sourcePolicy.getRemoteCopyMode());
+    					}
+        				virtualPool.setFileReplicationType(sourcePolicy.getReplicationType());
+        			}
+        			if (sourcePolicy.getRpoType() != null) {
+        				virtualPool.setFrRpoType(sourcePolicy.getRpoType());
+        			}
+        			if (sourcePolicy.getRpoValue() != null) {
+        				virtualPool.setFrRpoValue(sourcePolicy.getRpoValue());
+        			}
+        		}
+        	}
+        	if (param.getReplicationParam().getRemoveRemoteCopies() != null ||
+        			param.getReplicationParam().getAddRemoteCopies() != null) {
+
+        		StringMap remoteCopySettingsMap = virtualPool.getFileRemoteCopySettings();
+        		if (remoteCopySettingsMap == null) {
+        			remoteCopySettingsMap = new StringMap();
+        			virtualPool.setFileRemoteCopySettings(remoteCopySettingsMap);
+        		}
+
+        		// Remove remote settings!!!
+        		if (param.getReplicationParam().getRemoveRemoteCopies() != null 
+        				&& !param.getReplicationParam().getRemoveRemoteCopies().isEmpty()) {
+        			for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteSettings : param.getReplicationParam().getRemoveRemoteCopies()) {
+
+        				if (remoteSettings.getVarray() != null && remoteCopySettingsMap.containsKey(remoteSettings.getVarray().toString())) {
+        					String remoteCopySettingsUri = remoteCopySettingsMap.get(remoteSettings.getVarray().toString());
+        					remoteCopySettingsMap.remove(remoteSettings.getVarray().toString());
+        					VpoolRemoteCopyProtectionSettings remoteSettingsObj = _dbClient.queryObject(
+        							VpoolRemoteCopyProtectionSettings.class, URI.create(remoteCopySettingsUri));
+        					remoteSettingsObj.setInactive(true);
+        					_dbClient.updateObject(remoteSettingsObj);
+        				}
+        			}
+        		}
+                // Add remote copy settings!!!
+        		if (param.getReplicationParam().getAddRemoteCopies() != null && !param.getReplicationParam().getAddRemoteCopies().isEmpty()) {
+        			List<VpoolRemoteCopyProtectionSettings> remoteSettingsList = new ArrayList<VpoolRemoteCopyProtectionSettings>();
+        			// already existing remote VArrays
+        			List<String> existingRemoteUris = new ArrayList<String>(remoteCopySettingsMap.keySet());
+        			for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteSettings : param.getReplicationParam().getAddRemoteCopies()) {
+        				VirtualArray remoteVArray = _dbClient.queryObject(VirtualArray.class, remoteSettings.getVarray());
+        				if (null == remoteVArray || remoteVArray.getInactive()) {
+        					throw APIException.badRequests.inactiveRemoteVArrayDetected(remoteSettings.getVarray());
+        				}
+        				VpoolRemoteCopyProtectionSettings remoteCopySettingsParam = new VpoolRemoteCopyProtectionSettings();
+        				remoteSettingsList.add(remoteCopySettingsParam);
+        				remoteCopySettingsParam.setId(URIUtil.createId(VpoolRemoteCopyProtectionSettings.class));
+        				remoteCopySettingsParam.setVirtualArray(remoteSettings.getVarray());
+        				remoteCopySettingsParam.setVirtualPool(remoteSettings.getVpool());
+        				if (existingRemoteUris.contains(remoteSettings.getVarray().toString()) ||
+        						remoteCopySettingsMap.containsKey(remoteSettings.getVarray().toString())) {
+        					throw APIException.badRequests.duplicateRemoteSettingsDetected(remoteSettings.getVarray());
+        				}
+        				if (null != remoteSettings.getRemoteCopyMode()) {
+        					if (!CopyModes.lookup(remoteSettings.getRemoteCopyMode())) {
+        						throw APIException.badRequests.invalidCopyMode(remoteSettings.getRemoteCopyMode());
+        					}
+        					remoteCopySettingsParam.setCopyMode(remoteSettings.getRemoteCopyMode());
+        				}
+        				remoteCopySettingsMap.put(remoteSettings.getVarray().toString(), remoteCopySettingsParam.getId().toString());
+        			}
+        			_dbClient.createObject(remoteSettingsList);
+        		}
+        	}
+        }
+        _log.info("File Replication setting are update to virtual pool {} ", virtualPool.getLabel());
+    }
 }

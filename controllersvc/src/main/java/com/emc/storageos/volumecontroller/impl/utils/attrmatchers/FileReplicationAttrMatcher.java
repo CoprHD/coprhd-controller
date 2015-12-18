@@ -71,6 +71,11 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
         ListMultimap<String, URI> remotestorageToPoolMap = null;
         ListMultimap<String, URI> remotestorageTypeMap = ArrayListMultimap.create();
         Boolean remoteReplication = false;
+        String copyMode = SupportedCopyModes.ASYNCHRONOUS.toString();
+        if ( attributeMap.get(Attributes.file_replication_copy_mode.toString()) != null) {
+        	copyMode = (String)attributeMap.get(Attributes.file_replication_copy_mode.toString());
+        }
+       
         if (remoteCopySettings != null && !remoteCopySettings.isEmpty()) {
         	
         	// Get the assigned or matched storage pools of remote virtual pool!!!
@@ -78,8 +83,7 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
             
             // Get Remote Storage Systems associated with given remote Settings via VPool's matched or
             // assigned Pools
-        	Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
-            remotestorageToPoolMap = groupStoragePoolsByStorageSystem(remotePoolUris, copyModes);
+            remotestorageToPoolMap = groupStoragePoolsByStorageSystem(remotePoolUris, copyMode);
             _logger.info("Grouped Remote Storage Devices : {}", remotestorageToPoolMap.asMap().keySet());
             remoteReplication = true;
             
@@ -140,16 +144,12 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
         return matchedPools;
     }
 
-    private Set<String> getSupportedCopyModesFromGivenRemoteSettings(Map<String, List<String>> remoteCopySettings) {
-        Set<String> copyModes = new HashSet<String>();
-        for (Entry<String, List<String>> entry : remoteCopySettings.entrySet()) {
-        	if (entry.getValue().contains(SupportedCopyModes.ASYNCHRONOUS.name())) {
-        		copyModes.add(CopyTypes.ASYNC.name());
-        	} else if (entry.getValue().contains(SupportedCopyModes.SYNCHRONOUS.name())) {
-        		copyModes.add(CopyTypes.SYNC.name());
-        	} 
-        }
-        return copyModes;
+    private String getPoolCopyTypeFromCopyModes(String supportedCopyMode) {
+    	String copyType = CopyTypes.ASYNC.name();
+    	if (SupportedCopyModes.SYNCHRONOUS.name().equals(supportedCopyMode)) {
+    		copyType = CopyTypes.SYNC.name();
+    	} 
+    	return copyType;
     }
 
     /**
@@ -185,18 +185,18 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
      * @return
      */
     private ListMultimap<String, URI> groupStoragePoolsByStorageSystem(Set<String> allPoolUris,
-    		Set<String> copyModes) {
+    		String copyMode) {
         Set<String> columnNames = new HashSet<String>();
         columnNames.add(STORAGE_DEVICE);
         columnNames.add(SUPPORTED_COPY_TYPES);
-        
+        String copyType = getPoolCopyTypeFromCopyModes(copyMode);
         Collection<StoragePool> storagePools = _objectCache.getDbClient().queryObjectFields(StoragePool.class, columnNames,
                 new ArrayList<URI>(
                         Collections2.transform(allPoolUris, CommonTransformerFunctions.FCTN_STRING_TO_URI)));
         ListMultimap<String, URI> storageToPoolMap = ArrayListMultimap.create();
         for (StoragePool pool : storagePools) {
         	if (pool.getSupportedCopyTypes() == null || 
-        			!pool.getSupportedCopyTypes().containsAll(copyModes)) {
+        			!pool.getSupportedCopyTypes().contains(copyType)) {
         		_logger.debug("Skipping the storage pool {} as it does not supports copy type", pool.getNativeGuid());
         		continue;
         	}

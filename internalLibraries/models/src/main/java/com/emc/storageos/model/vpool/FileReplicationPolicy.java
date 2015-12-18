@@ -11,6 +11,7 @@ public class FileReplicationPolicy {
     private String remoteCopyMode;
     private Long rpoValue;
     private String rpoType;
+    private String replicationType;
 
     public FileReplicationPolicy() {
     }
@@ -64,5 +65,21 @@ public class FileReplicationPolicy {
 
     public void setRpoType(String rpoType) {
         this.rpoType = rpoType;
+    }
+    
+    /**
+     * Type of file replication
+     *  
+     * @valid LOCAL
+     * @valid REMOTE
+     * @valid NONE
+     */
+    @XmlElement(name = "replication_type", required = false)
+    public String getReplicationType() {
+        return replicationType;
+    }
+
+    public void setReplicationType(String replicationType) {
+        this.replicationType = replicationType;
     }
 }

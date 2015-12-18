@@ -119,19 +119,22 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Long _frRpoValue;
     // File Replication RPO type
     private String _frRpoType;
+ // File Replication RPO type
+    private String _replicationCopyMode;
+    
     
     // File Repilcation copies
     private StringMap _fileRemoteCopySettings;
     
     public static enum FileReplicationType {
-        LOCAL, REMOTE;
-        public static FileReplicationType lookup(final String name) {
+        LOCAL, REMOTE, NONE;
+        public static boolean lookup(final String name) {
             for (FileReplicationType value : values()) {
                 if (value.name().equals(name)) {
-                    return value;
+                    return true;
                 }
             }
-            return null;
+            return false;
         }
     }
 
@@ -1417,6 +1420,16 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setFrRpoType(String frRpoType) {
         this._frRpoType = frRpoType;
         setChanged("frRpoType");
+    }
+    
+    @Name("replicationCopyMode")
+    public String getFileReplicationCopyMode() {
+        return _replicationCopyMode;
+    }
+
+    public void setFileReplicationCopyMode(String replicationCopyMode) {
+        this._replicationCopyMode = replicationCopyMode;
+        setChanged("replicationCopyMode");
     }
     
 }

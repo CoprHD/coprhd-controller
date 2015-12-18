@@ -488,7 +488,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         List<LsServer> existingLsServers = getAllLsServers(ucsmURL, username, password);
 
-        if (serviceProfileName != null && !serviceProfileName.isEmpty()) {
+        if (StringUtils.isNotBlank(serviceProfileName)) {
             String serviceProfileNameToUse = serviceProfileName;
             int index = 0;
             boolean serviceProfileNameIsDuplicate = isServiceProfileDuplicate(

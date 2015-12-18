@@ -59,7 +59,7 @@ class ComputeImageServers(object):
 
     def create_computeimageserver(self, name,imageserverip,
                 imageserversecondip,username, password, 
-                tftpbootdir, osinstalltimeout ,sshtimeout=20, imageimporttimeout=1800 ):
+                tftpbootdir, osinstalltimeout ,sshtimeout, imageimporttimeout):
 
         parms = {
                  'name': name,

@@ -666,21 +666,21 @@ public class VolumeGroupService extends TaskResourceService {
             for (URI volUri : addVolList) {
                 ArgValidator.checkFieldUriType(volUri, Volume.class, "id");
                 Volume volume = dbClient.queryObject(Volume.class, volUri);
-                if (volume.getInactive()) {
+                if (volume == null || volume.getInactive()) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(), "the volume has been deleted");
                 }
                 URI cgUri = volume.getConsistencyGroup();
                 if (NullColumnValueGetter.isNullURI(cgUri)) {
                      if (paramCG == null) {
                          throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                                 "Conssitency group is not specified for the volumes not in a consistency group");
+                                 "consistency group is not specified for the volumes not in a consistency group");
                      }
                      ArgValidator.checkFieldUriType(paramCG, BlockConsistencyGroup.class, "consistency_group");
 
                     BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, paramCG);
                     if (cg == null || cg.getInactive()) {
                         throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                                "Conssitency group does not exist or has been deleted");
+                                "consistency group does not exist or has been deleted");
                     }
 
                      // this volume will be added to a CG as it's put in the application

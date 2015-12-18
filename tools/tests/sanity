@@ -129,6 +129,14 @@ fi
 
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
+DO_SETUP_ONLY=0
+for a in $* 
+do
+    if [ "$a"x = "-setup_onlyx" ]; then
+        DO_SETUP_ONLY=1
+    fi
+done
+
 case $SS in
     all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec)
     ;;
@@ -7654,7 +7662,9 @@ snapvx_tests()
 }
 
 ${SS}_setup
-${SS}_tests
+if [ $DO_SETUP_ONLY -eq 0 ]; then
+    dd${SS}_tests
+fi
 
 if [ $WS_SETUP_MODE -eq 1 ] ; then
     output_conf

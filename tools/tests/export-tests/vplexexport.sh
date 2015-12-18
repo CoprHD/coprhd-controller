@@ -47,7 +47,7 @@ fi
 
 ARGV=$*
 CWD=$(pwd)
-export PATH=$CWD:$CWD/..:$PATH
+export PATH=$CWD:$CWD/..:$(dirname $0):$(dirname $0)/..:$PATH
 echo "PATH: " $PATH
 
 # Virtual arrays

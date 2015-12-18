@@ -1,4 +1,4 @@
-#!/bin/sh
+SN#!/bin/sh
 #
 # Copyright (c) 2015 EMC Corporation
 # All Rights Reserved
@@ -49,6 +49,20 @@ Usage()
 
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=0}
+
+# ============================================================
+# Check if there is a sanity configuration file specified
+# on the command line. In, which case, we should use that
+# ============================================================
+if [ "$1"x != "x" ]; then
+   if [ -f "$1" ]; then
+      SANITY_CONFIG_FILE=$1
+      echo Using sanity configuration file $SANITY_CONFIG_FILE
+      shift
+      source $SANITY_CONFIG_FILE
+   fi
+fi
+
 VERIFY_EXPORT_COUNT=0
 VERIFY_EXPORT_FAIL_COUNT=0
 verify_export() {
@@ -73,19 +87,26 @@ verify_export() {
             cluster_name_if_any="${CLUSTER}"
         fi
     fi
-    masking_view_name="${cluster_name_if_any}${host_name}${VMAX_ID_3DIGITS}"
+    masking_view_name="${cluster_name_if_any}${host_name}${BF_VMAX_ID_3DIGITS}"
     if [ "$host_name" = "-exact-" ]; then
         masking_view_name=$export_name
     fi
 
-    runcmd symhelper.sh $VMAX_ID $masking_view_name $*
+    runcmd symhelper.sh $BF_VMAX_SN $masking_view_name $*
     if [ $? -ne "0" ]; then
        echo There was a failure
        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
        cleanup
-       exit 1;
+       finish
     fi
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+}
+
+finish() {
+    if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then 
+        exit $VERIFY_EXPORT_FAIL_COUNT
+    fi
+    exit 0
 }
 
 verify_sg() {
@@ -94,12 +115,12 @@ verify_sg() {
     policy_name=$2
     shift 2
 
-    runcmd sghelper.sh $VMAX_ID $sg_name $policy_name $*
+    runcmd sghelper.sh $BF_VMAX_SN $sg_name $policy_name $*
     if [ $? -ne "0" ]; then
        echo There was a failure
        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
        cleanup
-       exit 1;
+       finish
     fi
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
 }
@@ -123,7 +144,7 @@ fi
 seed=`date "+%H%M%S%N"`
 ipaddr=`/sbin/ifconfig eth0 | /usr/bin/perl -nle 'print $1 if(m#inet addr:(.*?)\s+#);' | tr '.' '-'`
 export BOURNE_API_SYNC_TIMEOUT=700
-BOURNE_IP=10.247.101.39
+BOURNE_IP=localhost
 
 #
 # Zone configuration
@@ -138,22 +159,11 @@ fi
 SHORTENED_HOST=${SHORTENED_HOST:=`echo $BOURNE_IP | awk -F. '{ print $1 }'`}
 : ${TENANT=emcworld}
 : ${PROJECT=project}
-SYSADMIN=root
-SYSADMIN_PASSWORD=${SYSADMIN_PASSWORD:-ChangeMe}
 
 #
 # cos configuration
 #
 VPOOL_BASE=vpool
-
-VMAX_SMIS_IP=lglw9071.lss.emc.com
-VMAX_ID=000195701573
-VMAX_ID_3DIGITS="_573"
-VMAX_NATIVEGUID=SYMMETRIX+${VMAX_ID}
-VMAX_SMIS_DEV=smis-provider-vmax
-
-SMIS_USER=admin
-SMIS_PASSWD='#1Password'
 
 BASENUM=${BASENUM:=$RANDOM}
 VOLNAME=vmaxexp${BASENUM}
@@ -184,16 +194,16 @@ symapi_entry=`grep SYMAPI_SERVER /usr/emc/API/symapi/config/netcnfg | wc -l`
 if [ $symapi_entry -ne 0 ]; then
     sed -e "/SYMAPI_SERVER/d" -i /usr/emc/API/symapi/config/netcnfg
 fi
-echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
+echo "SYMAPI_SERVER - TCPIP  $BF_VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
 echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
 
-echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
+echo "Verifying SYMAPI connection to $BF_VMAX_SMIS_IP ..."
 symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
 echo $symapi_verify
 result=`$symapi_verify`
 if [ $? -ne 0 ]; then
     echo "SYMAPI verification failed: $result"
-    echo "Check the setup on $VMAX_SMIS_IP. See if the SYAMPI service is running"
+    echo "Check the setup on $BF_VMAX_SMIS_IP. See if the SYAMPI service is running"
     exit 1;
 fi
 echo $result
@@ -214,7 +224,7 @@ runcmd() {
     then
        echo "Command FAILED. Cleaning up"
        cleanup;
-       exit 1;
+       finish
     fi
 }
 
@@ -265,11 +275,11 @@ setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS"
-    smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP 5988 admin '#1Password' false
+    smisprovider create VMAX-PROVIDER $BF_VMAX_SMIS_IP 5988 admin '#1Password' false
     storagedevice discover_all --ignore_error
 
-    storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
-    storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
+    storagepool update $BF_VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
+    storagepool update $BF_VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
 
     neighborhood create $NH --autoSanZoning false
     
@@ -278,12 +288,12 @@ setup() {
     transportzone assign $FC_ZONE_A nh
     transportzone assign FABRIC_vplex154nbr2 nh
 
-    storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    storagepool update $BF_VMAX_NATIVEGUID --nhadd $NH --type block
+    storageport update $BF_VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
-    storagepool update ${VMAX_NATIVEGUID} --nhadd $NH --pool "$RP_VNXB_POOL" --type block --volume_type THIN_ONLY
+    storagepool update ${BF_VMAX_NATIVEGUID} --nhadd $NH --pool "$RP_VNXB_POOL" --type block --volume_type THIN_ONLY
     seed=`date "+%H%M%S%N"`
-    storageport update ${VMAX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+    storageport update ${BF_VMAX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
     project create $PROJECT --tenant $TENANT 
     echo "Project $PROJECT created."
     echo "Setup ACLs on neighborhood for $TENANT"
@@ -354,7 +364,7 @@ setup() {
 	  --neighborhoods $NH            \
           --system_type vmax
 
-    runcmd cos update block ${VPOOL_BASE} --storage ${VMAX_NATIVEGUID}
+    runcmd cos update block ${VPOOL_BASE} --storage ${BF_VMAX_NATIVEGUID}
     runcmd cos allow ${VPOOL_BASE} block $TENANT
 
     if [ "$1" != "test_20" -a "$1" != "test_24" ]
@@ -373,7 +383,7 @@ setup() {
 	  --max_snapshots 10                     \
 	  --neighborhoods $NH            \
           --system_type vmax
-      runcmd cos update block ${VPOOL_BASE}_${policy} --storage ${VMAX_NATIVEGUID}
+      runcmd cos update block ${VPOOL_BASE}_${policy} --storage ${BF_VMAX_NATIVEGUID}
       runcmd cos allow ${VPOOL_BASE}_${policy} block $TENANT
       if [ "$1" != "test_20" -a "$1" != "test_24" ]
 	  then
@@ -389,7 +399,7 @@ setup_hosts_onvmax() {
        runcmd export_group create $PROJECT ${expname}-$hostnum $NH --type Cluster --volspec "${PROJECT}/${VOLNAME}_Green-1" --cluster "${TENANT}/${CN}-${hostnum}"
     done
     echo "Recommend you delete your vipr database"
-    exit;
+    finish
 }
 
 #
@@ -458,8 +468,8 @@ verify_setup() {
         # ingesthost-05 has one MV with cascading storage groups and one MV with non-cascading
 	verify_export ingesthost-05_MV1 -exact- 2 1
 	verify_export ingesthost-05_MV2 -exact- 2 1
-	verify_sg ingesthost-05${VMAX_ID_3DIGITS}_CSG None 1 1
-	verify_sg ingesthost-05${VMAX_ID_3DIGITS}_SG_NonFast None 0 1
+	verify_sg ingesthost-05${BF_VMAX_ID_3DIGITS}_CSG None 1 1
+	verify_sg ingesthost-05${BF_VMAX_ID_3DIGITS}_SG_NonFast None 0 1
 	verify_sg ingesthost-05_SG None 1 1
     fi
 
@@ -953,22 +963,22 @@ test_8() {
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HN}-05"
     verify_export ingesthost-05_MV1 -exact- 2 1
     verify_export ingesthost-05_MV2 -exact- 2 3
-    verify_sg ingesthost-05${VMAX_ID_3DIGITS}_CSG None 1 3
-    verify_sg ingesthost-05${VMAX_ID_3DIGITS}_SG_NonFast None 0 3
+    verify_sg ingesthost-05${BF_VMAX_ID_3DIGITS}_CSG None 1 3
+    verify_sg ingesthost-05${BF_VMAX_ID_3DIGITS}_SG_NonFast None 0 3
     verify_sg ingesthost-05_SG None 1 1
 
     runcmd export_group update ${PROJECT}/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
     verify_export ingesthost-05_MV1 -exact- 2 1
     verify_export ingesthost-05_MV2 -exact- 2 2
-    verify_sg ingesthost-05${VMAX_ID_3DIGITS}_CSG None 1 2
-    verify_sg ingesthost-05${VMAX_ID_3DIGITS}_SG_NonFast None 0 2
+    verify_sg ingesthost-05${BF_VMAX_ID_3DIGITS}_CSG None 1 2
+    verify_sg ingesthost-05${BF_VMAX_ID_3DIGITS}_SG_NonFast None 0 2
     verify_sg ingesthost-05_SG None 1 1
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
     verify_export ingesthost-05_MV1 -exact- 2 1
     verify_export ingesthost-05_MV2 -exact- 2 3
-    verify_sg ingesthost-05${VMAX_ID_3DIGITS}_CSG None 1 3
-    verify_sg ingesthost-05${VMAX_ID_3DIGITS}_SG_NonFast None 0 3
+    verify_sg ingesthost-05${BF_VMAX_ID_3DIGITS}_CSG None 1 3
+    verify_sg ingesthost-05${BF_VMAX_ID_3DIGITS}_SG_NonFast None 0 3
     verify_sg ingesthost-05_SG None 1 1
 
     runcmd export_group delete $PROJECT/${expname}1
@@ -2202,38 +2212,26 @@ hostwwn() {
 # -    M A I N
 # ============================================================
 
-# ============================================================
-# Check if there is a sanity configuration file specified
-# on the command line. In, which case, we should use that
-# ============================================================
-if [ "$1"x != "x" ]; then
-   if [ -f "$1" ]; then
-      SANITY_CONFIG_FILE=$1
-      echo Using sanity configuration file $SANITY_CONFIG_FILE
-      shift
-   fi
-fi
-
 login
 
 if [ "$1" = "verify" ]
 then
-   verify_setup;
-   exit;
+   verify_setup
+   finish
 fi
 
 if [ "$1" = "delete" ]
 then
-  cleanup;
-  exit;
+  cleanup
+  finish
 fi
 
 if [ "$1" = "prime" ]
 then
-   setup;
-   setup_hosts_onvmax;
-   exit;
-fi;
+   setup
+   setup_hosts_onvmax
+   finish
+fi
 
 if [ "$1" = "setup" -o "$1" = "full" ]
 then
@@ -2242,11 +2240,11 @@ then
     if [ $? -eq 0 ]
     then
         echo "Volumes from a previous run were found!  Not running setup."
-        exit 1;
+        finish
     fi
 
-    setup $2;
-fi;
+    setup $2
+fi
 
 if [ "$1" = "-only" ]
 then
@@ -2258,7 +2256,7 @@ then
     do
       ${test} 
     done
-    exit
+    finish
 fi
 
 
@@ -2299,8 +2297,8 @@ then
     #$0 -only ${TRACK_6} > results/${BASENUM}/t6 2>&1 &
     #$0 -only ${TRACK_7} > results/${BASENUM}/t7 2>&1 &
     #$0 -only ${TRACK_8} > results/${BASENUM}/t8 2>&1 &
-
-    exit;
+    
+    finish
 fi
 
 # Scatter is good to run if you want to run it as fast as possible and it's OK if a failure requires some picking around.
@@ -2331,7 +2329,7 @@ then
     #$0 -only ${TRACK_7} > results/${BASENUM}/t7 2>&1 &
     #$0 -only ${TRACK_8} > results/${BASENUM}/t8 2>&1 &
 
-    exit;
+    finish
 fi
 
 if [ "$1" = "-start" ]
@@ -2345,7 +2343,7 @@ else
    then
        echo Request to run $2
        $2
-       exit
+       finish
    fi
 fi
 
@@ -2404,4 +2402,4 @@ then
    cleanup_vols;
 fi
 
-exit;
+finish

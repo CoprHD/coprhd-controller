@@ -7,6 +7,7 @@
 # Export Test Suite for ScaleIO
 #
 #
+# set -x
 
 if [ "$DEBUG_SCRIPT" -eq 1 ]; then 
   set -x
@@ -23,7 +24,7 @@ PATH=$(dirname $0):$(dirname $0)/..:/bin:/usr/bin:
 
 BOURNE_IPS=${1:-$BOURNE_IPADDR}
 IFS=',' read -ra BOURNE_IP_ARRAY <<< "$BOURNE_IPS"
-BOURNE_IP=${BOURNE_IP_ARRAY[0]}
+BOURNE_IP=localhost
 IP_INDEX=0
 
 macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`
@@ -40,21 +41,9 @@ fi
 SHORTENED_HOST=${SHORTENED_HOST:=`echo $BOURNE_IP | awk -F. '{ print $1 }'`}
 : ${TENANT=tenant}
 : ${PROJECT=sanity}
-SYSADMIN=root
-SYSADMIN_PASSWORD=${SYSADMIN_PASSWORD:-ChangeMe}
 SIO_CLI=/opt/emc/scaleio/mdm/bin/cli
 SIO_CLI_OUTPUT_FILE=/tmp/.sio-cli-output${RANDOM}.txt
-# ============================================================
-# - ScaleIO test environment parameters                      -
-# ============================================================
-SCALEIO_PROVIDER=LGLBG045
-SCALEIO_IP=10.247.78.45
-SCALEIO_PROTECTION_DOMAIN="SCALEIO+359b47bd5ef67abe+PD-1"
-SCALEIO_VARRAY=$SCALEIO_PROTECTION_DOMAIN
-SCALEIO_VPOOL="${SCALEIO_PROTECTION_DOMAIN}+VirtualPool"
-HOST1=10.247.78.46
-HOST2=10.247.78.47
-HOST3=10.63.20.175
+
 # ============================================================
 # - Export testing parameters                                -
 # ============================================================
@@ -108,12 +97,14 @@ verify_export() {
             cat $SIO_CLI_OUTPUT_FILE
             VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
             cleanup
+            finish
         fi
         echo PASSED: No more volumes mapped to $host
     elif [ $expected_mapped_volumes -ne $actual_count ]; then
             echo === FAILED: Expected $expected_mapped_volumes for $host, but found $actual_count
             VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
             cleanup
+            finish
     else
         echo PASSED: $expected_mapped_volumes volumes mapped to $host
     fi
@@ -126,13 +117,14 @@ runcmd() {
        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
        echo === FAILED: $*
        cleanup
+       finish
     fi
 }
 
 login() {
     security login $SYSADMIN $SYSADMIN_PASSWORD
     syssvc $SANITY_CONFIG_FILE localhost setup
-    security add_authn_provider ad ldap://10.247.100.165 CN=Administrator,CN=Users,DC=sanity,DC=local P@ssw0rd CN=Users,DC=sanity,DC=local userPrincipalName=%u CN 'ad configuration' SANITY.LOCAL '*Admins*,*Test*'
+    security add_authn_provider ldap ldap://10.247.101.43 cn=manager,dc=viprsanity,dc=com secret    ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
     echo "Tenant $TENANT being used."
     TENANT=`tenant root|head -1`
     echo "Tenant is ${TENANT}";
@@ -159,12 +151,12 @@ setup() {
 }
 
 set_hosts() {
-    HOST1ID=`hosts list $TENANT | grep ${HOST1} | awk '{print $4}'`
-    H1PI1=`initiator list $HOST1ID | grep YES | gawk '{ print $1 }'`
-    HOST2ID=`hosts list $TENANT | grep ${HOST2} | awk '{print $4}'`
-    H2PI1=`initiator list $HOST2ID | grep YES | gawk '{ print $1 }'`
-    HOST3ID=`hosts list $TENANT | grep ${HOST3} | awk '{print $4}'`
-    H3PI1=`initiator list $HOST3ID | grep YES | gawk '{ print $1 }'`
+    SIO_HOST1ID=`hosts list $TENANT | grep ${SIO_HOST1} | awk '{print $4}'`
+    H1PI1=`initiator list $SIO_HOST1ID | grep YES | gawk '{ print $1 }'`
+    SIO_HOST2ID=`hosts list $TENANT | grep ${SIO_HOST2} | awk '{print $4}'`
+    H2PI1=`initiator list $SIO_HOST2ID | grep YES | gawk '{ print $1 }'`
+    SIO_HOST3ID=`hosts list $TENANT | grep ${SIO_HOST3} | awk '{print $4}'`
+    H3PI1=`initiator list $SIO_HOST3ID | grep YES | gawk '{ print $1 }'`
 }
 
 # Export Test 0
@@ -174,12 +166,12 @@ set_hosts() {
 test_0() {
     echo "Test 0 Begins"
     expname=${EXPORT_GROUP_NAME}_t0
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2 --hosts "${HOST1ID},${HOST2ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 2
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2 --hosts "${SIO_HOST1ID},${SIO_HOST2ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 2
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
 }
 
 # Export Test 1
@@ -189,21 +181,21 @@ test_0() {
 test_1() {
     echo "Test 1 Begins"
     expname=${EXPORT_GROUP_NAME}t1_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID},${HOST2ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
-    runcmd export_group update $PROJECT/${expname}1 --addHosts "${HOST3ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
-    verify_export ${HOST3} 1
-    runcmd export_group update $PROJECT/${expname}1 --remHosts "${HOST3ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
-    verify_export ${HOST3} gone
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST1ID},${SIO_HOST2ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group update $PROJECT/${expname}1 --addHosts "${SIO_HOST3ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
+    verify_export ${SIO_HOST3} 1
+    runcmd export_group update $PROJECT/${expname}1 --remHosts "${SIO_HOST3ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
+    verify_export ${SIO_HOST3} gone
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
-    verify_export ${HOST3} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
+    verify_export ${SIO_HOST3} gone
 }
 
 # Export Test 2
@@ -213,18 +205,18 @@ test_1() {
 test_2() {
     echo "Test 2 Begins"
     expname=${EXPORT_GROUP_NAME}t2_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID},${HOST2ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST1ID},${SIO_HOST2ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
     runcmd export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 2
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 2
     runcmd export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
 }
 
 # Export Test 3
@@ -241,24 +233,24 @@ test_2() {
 test_3() {
     echo "Test 3 Begins"
     expname=${EXPORT_GROUP_NAME}t3_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST2ID},${HOST1ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
-    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 1
-    runcmd export_group create $PROJECT ${expname}3 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${HOST2ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 2
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST2ID},${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group create $PROJECT ${expname}3 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${SIO_HOST2ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 2
     runcmd export_group delete $PROJECT/${expname}3
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 1
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 1
     runcmd export_group delete $PROJECT/${expname}2
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
 }
 
 # Export Test 4
@@ -276,24 +268,24 @@ test_3() {
 test_4() {
     echo "Test 4 Begins"
     expname=${EXPORT_GROUP_NAME}t4_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST2ID},${HOST1ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
-    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 1
-    runcmd export_group create $PROJECT ${expname}3 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${HOST2ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 2
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST2ID},${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group create $PROJECT ${expname}3 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${SIO_HOST2ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 2
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
     runcmd export_group delete $PROJECT/${expname}2
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} 1
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} 1
     runcmd export_group delete $PROJECT/${expname}3
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
 }
 
 # Export Test 5
@@ -308,36 +300,36 @@ test_4() {
 test_5() {
     echo "Test 5 Begins"
     expname=${EXPORT_GROUP_NAME}t5_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST2ID},${HOST1ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
-    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 1
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST2ID},${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 1
     runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 2
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 2
     runcmd export_group update ${PROJECT}/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 1
-    runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST1ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
-    runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST1ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 1
-    runcmd export_group create $PROJECT ${expname}3 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${HOST2ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 2
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group create $PROJECT ${expname}3 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${SIO_HOST2ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 2
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
     runcmd export_group delete $PROJECT/${expname}2
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} 1
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} 1
     runcmd export_group delete $PROJECT/${expname}3
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
 }
 
 # Export Test 6
@@ -348,14 +340,14 @@ test_5() {
 test_6() {
     echo "Test 6 Begins"
     expname=${EXPORT_GROUP_NAME}t6_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID},${HOST2ID},${HOST3ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
-    verify_export ${HOST3} 1
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST1ID},${SIO_HOST2ID},${SIO_HOST3ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
+    verify_export ${SIO_HOST3} 1
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
-    verify_export ${HOST3} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
+    verify_export ${SIO_HOST3} gone
 }
 
 # Export Test 7
@@ -365,29 +357,29 @@ test_6() {
 test_7() {
     echo "Test 7 Begins"
     expname=${EXPORT_GROUP_NAME}t7_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST2ID},${HOST1ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 2
-    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID},${HOST2ID},${HOST3ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 2
-    verify_export ${HOST3} 1
-    runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST1ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 2
-    verify_export ${HOST3} 1
-    runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST1ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 2
-    verify_export ${HOST3} 1
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${SIO_HOST2ID},${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 2
+    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST1ID},${SIO_HOST2ID},${SIO_HOST3ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 2
+    verify_export ${SIO_HOST3} 1
+    runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 2
+    verify_export ${SIO_HOST3} 1
+    runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 2
+    verify_export ${SIO_HOST3} 1
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
-    verify_export ${HOST3} 1
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
+    verify_export ${SIO_HOST3} 1
     runcmd export_group delete $PROJECT/${expname}2
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
-    verify_export ${HOST3} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
+    verify_export ${SIO_HOST3} gone
 }
 
 # Export Test 8
@@ -398,30 +390,30 @@ test_7() {
 test_8() {
     echo "Test 8 Begins"
     expname=${EXPORT_GROUP_NAME}t8_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID},${HOST3ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST3} 1
-    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST2ID}"
-    verify_export ${HOST2} 1
-    runcmd export_group create $PROJECT ${expname}3 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${HOST2ID},${HOST1ID}"
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 2
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST1ID},${SIO_HOST3ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST3} 1
+    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${SIO_HOST2ID}"
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group create $PROJECT ${expname}3 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${SIO_HOST2ID},${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 2
     echo "running remove host, expect to remove reference to mask 1 in export group 1"
-    runcmd export_group update $PROJECT/${expname}1 --remHosts "${HOST1ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 2
-    verify_export ${HOST3} 1
+    runcmd export_group update $PROJECT/${expname}1 --remHosts "${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 2
+    verify_export ${SIO_HOST3} 1
     echo "running delete export 1"
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 2
-    verify_export ${HOST3} gone
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 2
+    verify_export ${SIO_HOST3} gone
     runcmd export_group delete $PROJECT/${expname}2
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
     runcmd export_group delete $PROJECT/${expname}3
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
 }
 
 # Export Test 9
@@ -431,14 +423,14 @@ test_8() {
 test_9() {
     echo "Test 9 Begins"
     expname=${EXPORT_GROUP_NAME}t9_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID}"
-    verify_export ${HOST1} 1
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 1
     runcmd export_group update ${PROJECT}/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
-    verify_export ${HOST1} gone
+    verify_export ${SIO_HOST1} gone
     runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
-    verify_export ${HOST1} 1
+    verify_export ${SIO_HOST1} 1
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
+    verify_export ${SIO_HOST1} gone
 }
 
 # Export Test 10
@@ -452,18 +444,18 @@ test_10_standalone() {
     echo "Test 10 Begins"
     expname=${EXPORT_GROUP_NAME}t10_
     echo "AS LONG AS THERE'S A GROUP RETURNED WITH ANY NUMBER OF LUNS, YOU'RE GOOD HERE"
-    verify_export ${HOST1} 1
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID}"
+    verify_export ${SIO_HOST1} 1
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST1ID}"
     # comment-out this "exit" after the first exportgroup create is done, recreate your DB, then run again.
     exit; 
     echo "AS LONG AS THERE'S A GROUP RETURNED WITH ANY NUMBER OF LUNS + ONE, YOU'RE GOOD HERE"
-    verify_export ${HOST1} 2
+    verify_export ${SIO_HOST1} 2
     runcmd export_group update ${PROJECT}/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
-    verify_export ${HOST1} 1
+    verify_export ${SIO_HOST1} 1
     runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
-    verify_export ${HOST1} 2
+    verify_export ${SIO_HOST1} 2
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} 1
+    verify_export ${SIO_HOST1} 1
 }
 
 # Export Test 11
@@ -481,18 +473,18 @@ test_11_standalone() {
     echo "Test 11 Begins"
     expname=${EXPORT_GROUP_NAME}t11_
     echo "AS LONG AS THERE'S A GROUP RETURNED WITH ANY NUMBER OF LUNS, YOU'RE GOOD HERE"
-    verify_export ${HOST1} 1
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID},${HOST2ID}"
+    verify_export ${SIO_HOST1} 1
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST1ID},${SIO_HOST2ID}"
     # comment-out this "exit" after the first exportgroup create is done, recreate your DB, then run again.
     exit; 
     echo "AS LONG AS THERE'S A GROUP RETURNED WITH ANY NUMBER OF LUNS + ONE, YOU'RE GOOD HERE"
-    verify_export ${HOST1} 2
+    verify_export ${SIO_HOST1} 2
     runcmd export_group update ${PROJECT}/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
-    verify_export ${HOST1} 1
+    verify_export ${SIO_HOST1} 1
     runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
-    verify_export ${HOST1} 2
+    verify_export ${SIO_HOST1} 2
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} 1
+    verify_export ${SIO_HOST1} 1
 }
  
 # Export Test 12
@@ -502,16 +494,16 @@ test_11_standalone() {
 test_12() {
     echo "Test 12 Begins"
     expname=${EXPORT_GROUP_NAME}t12_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID}"
-    verify_export ${HOST1} 1
-    runcmd export_group update $PROJECT/${expname}1 --addHosts "${HOST2ID},${HOST3ID}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
-    verify_export ${HOST3} 1
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 1
+    runcmd export_group update $PROJECT/${expname}1 --addHosts "${SIO_HOST2ID},${SIO_HOST3ID}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
+    verify_export ${SIO_HOST3} 1
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
-    verify_export ${HOST3} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
+    verify_export ${SIO_HOST3} gone
 }
 
 # Export Test 13
@@ -522,14 +514,14 @@ test_12() {
 test_13() {
     echo "Test 13 Begins"
     expname=${EXPORT_GROUP_NAME}t13_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Initiator --volspec "${PROJECT}/${VOLNAME}-1" --inits "${HOST1ID}/${H1PI1}"
-    verify_export ${HOST1} 1
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Initiator --volspec "${PROJECT}/${VOLNAME}-1" --inits "${SIO_HOST1ID}/${H1PI1}"
+    verify_export ${SIO_HOST1} 1
     runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
-    verify_export ${HOST1} 2
+    verify_export ${SIO_HOST1} 2
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
-    verify_export ${HOST1} 1
+    verify_export ${SIO_HOST1} 1
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
+    verify_export ${SIO_HOST1} gone
 }
 
 # Export Test 14
@@ -541,36 +533,36 @@ test_13() {
 test_14() {
     echo "Test 14 Begins"
     expname=${EXPORT_GROUP_NAME}t14_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts ${HOST1ID}
-    verify_export ${HOST1} 1
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts ${SIO_HOST1ID}
+    verify_export ${SIO_HOST1} 1
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
-    verify_export ${HOST1} gone
+    verify_export ${SIO_HOST1} gone
     runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-1"
-    verify_export ${HOST1} 1
-    runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST1ID}
-    verify_export ${HOST1} gone
-    runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST1ID}
-    verify_export ${HOST1} 1
+    verify_export ${SIO_HOST1} 1
+    runcmd export_group update $PROJECT/${expname}1 --remHosts ${SIO_HOST1ID}
+    verify_export ${SIO_HOST1} gone
+    runcmd export_group update $PROJECT/${expname}1 --addHosts ${SIO_HOST1ID}
+    verify_export ${SIO_HOST1} 1
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
+    verify_export ${SIO_HOST1} gone
 }
 
 test_15() {
     expname=${EXPORT_GROUP_NAME}t15_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${HOST1ID}
-    runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST2ID}
-    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts ${HOST1ID}
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} 1
-    runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST2ID}
-    verify_export ${HOST1} 2
-    verify_export ${HOST2} gone
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts ${SIO_HOST1ID}
+    runcmd export_group update $PROJECT/${expname}1 --addHosts ${SIO_HOST2ID}
+    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts ${SIO_HOST1ID}
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group update $PROJECT/${expname}1 --remHosts ${SIO_HOST2ID}
+    verify_export ${SIO_HOST1} 2
+    verify_export ${SIO_HOST2} gone
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} gone
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} gone
     runcmd export_group delete $PROJECT/${expname}2
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
 }
 
 #
@@ -584,17 +576,17 @@ test_16() {
     expname=${EXPORT_GROUP_NAME}t16_
     runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host
     runcmd export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-1
-    runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST1ID}
-    verify_export ${HOST1} 1
-    runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST2ID}
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
-    runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST2ID}
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} gone
+    runcmd export_group update $PROJECT/${expname}1 --addHosts ${SIO_HOST1ID}
+    verify_export ${SIO_HOST1} 1
+    runcmd export_group update $PROJECT/${expname}1 --addHosts ${SIO_HOST2ID}
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group update $PROJECT/${expname}1 --remHosts ${SIO_HOST2ID}
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} gone
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
 }
 
 #
@@ -606,14 +598,14 @@ test_17() {
     expname=${EXPORT_GROUP_NAME}t17_
     hostXP1=${expname}H1
     hostXP2=${expname}H2
-    runcmd export_group create ${PROJECT} $hostXP1 $SCALEIO_VARRAY --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1ID}" --type Host
-    verify_export ${HOST1} 1
-    runcmd export_group create ${PROJECT} $hostXP2 $SCALEIO_VARRAY --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1ID}" --type Host
-    verify_export ${HOST1} 2
+    runcmd export_group create ${PROJECT} $hostXP1 $SCALEIO_VARRAY --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${SIO_HOST1ID}" --type Host
+    verify_export ${SIO_HOST1} 1
+    runcmd export_group create ${PROJECT} $hostXP2 $SCALEIO_VARRAY --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${SIO_HOST1ID}" --type Host
+    verify_export ${SIO_HOST1} 2
     runcmd export_group update ${PROJECT}/$hostXP1 --remVols ${PROJECT}/${VOLNAME}-1
-    verify_export ${HOST1} 1
+    verify_export ${SIO_HOST1} 1
     runcmd export_group update ${PROJECT}/$hostXP2 --remVols ${PROJECT}/${VOLNAME}-2
-    verify_export ${HOST1} gone
+    verify_export ${SIO_HOST1} gone
     runcmd export_group delete ${PROJECT}/$hostXP1
     runcmd export_group delete ${PROJECT}/$hostXP2
 }
@@ -625,26 +617,26 @@ test_17() {
 test_18() {
     echo "Test initiator remove volume defect Begins"
     expname=${EXPORT_GROUP_NAME}t18_
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Initiator --volspec "${PROJECT}/${VOLNAME}-1" --inits "${HOST1ID}/${H1PI1}"
-    verify_export ${HOST1} 1
-    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Initiator --volspec "${PROJECT}/${VOLNAME}-1" --inits "${HOST2ID}/${H2PI1}"
-    verify_export ${HOST2} 1
-    runcmd export_group create $PROJECT ${expname}3 $SCALEIO_VARRAY --type Initiator --volspec "${PROJECT}/${VOLNAME}-3,${PROJECT}/${VOLNAME}-2" --inits "${HOST1ID}/${H1PI1}"
-    verify_export ${HOST1} 3
-    verify_export ${HOST2} 1
-    # I expect this to remove VOLNAME-2 from HOST2's mask, but it will not
-    runcmd export_group update $PROJECT/${expname}3 --remInits "${HOST1ID}/${H1PI1}"
-    verify_export ${HOST1} 1
-    verify_export ${HOST2} 1
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Initiator --volspec "${PROJECT}/${VOLNAME}-1" --inits "${SIO_HOST1ID}/${H1PI1}"
+    verify_export ${SIO_HOST1} 1
+    runcmd export_group create $PROJECT ${expname}2 $SCALEIO_VARRAY --type Initiator --volspec "${PROJECT}/${VOLNAME}-1" --inits "${SIO_HOST2ID}/${H2PI1}"
+    verify_export ${SIO_HOST2} 1
+    runcmd export_group create $PROJECT ${expname}3 $SCALEIO_VARRAY --type Initiator --volspec "${PROJECT}/${VOLNAME}-3,${PROJECT}/${VOLNAME}-2" --inits "${SIO_HOST1ID}/${H1PI1}"
+    verify_export ${SIO_HOST1} 3
+    verify_export ${SIO_HOST2} 1
+    # I expect this to remove VOLNAME-2 from SIO_HOST2's mask, but it will not
+    runcmd export_group update $PROJECT/${expname}3 --remInits "${SIO_HOST1ID}/${H1PI1}"
+    verify_export ${SIO_HOST1} 1
+    verify_export ${SIO_HOST2} 1
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} 1
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} 1
     runcmd export_group delete $PROJECT/${expname}2
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
     runcmd export_group delete $PROJECT/${expname}3
-    verify_export ${HOST1} gone
-    verify_export ${HOST2} gone
+    verify_export ${SIO_HOST1} gone
+    verify_export ${SIO_HOST2} gone
 }
 
 # Export Test
@@ -656,18 +648,18 @@ test_19() {
     expname=${EXPORT_GROUP_NAME}t19_
     runcmd blocksnapshot create $PROJECT/${VOLNAME}-1 ${BLOCKSNAPSHOT_NAME}
     runcmd volume full_copy ${VOLNAME}-copy $PROJECT/${VOLNAME}-1
-    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec "${PROJECT}/${VOLNAME}-1","${PROJECT}/${VOLNAME}-1/${BLOCKSNAPSHOT_NAME}" --hosts "${HOST1ID}"
-    verify_export ${HOST1} 2
+    runcmd export_group create $PROJECT ${expname}1 $SCALEIO_VARRAY --type Host --volspec "${PROJECT}/${VOLNAME}-1","${PROJECT}/${VOLNAME}-1/${BLOCKSNAPSHOT_NAME}" --hosts "${SIO_HOST1ID}"
+    verify_export ${SIO_HOST1} 2
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1/${BLOCKSNAPSHOT_NAME}"
-    verify_export ${HOST1} 1
+    verify_export ${SIO_HOST1} 1
     runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-1/${BLOCKSNAPSHOT_NAME}"
-    verify_export ${HOST1} 2
+    verify_export ${SIO_HOST1} 2
     runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-copy"
-    verify_export ${HOST1} 3
+    verify_export ${SIO_HOST1} 3
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-copy"
-    verify_export ${HOST1} 2
+    verify_export ${SIO_HOST1} 2
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${HOST1} gone
+    verify_export ${SIO_HOST1} gone
     runcmd blocksnapshot delete $PROJECT/${VOLNAME}-1/${BLOCKSNAPSHOT_NAME}
 }
 
@@ -691,7 +683,13 @@ cleanup() {
    if [ -e $SIO_CLI_OUTPUT_FILE ]; then
       rm $SIO_CLI_OUTPUT_FILE
    fi
-   exit
+}
+
+finish() {
+   if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then 
+       exit $VERIFY_EXPORT_FAIL_COUNT
+   fi
+   exit 0
 }
 
 # ============================================================
@@ -706,6 +704,7 @@ if [ "$1"x != "x" ]; then
    if [ -f "$1" ]; then 
       SANITY_CONFIG_FILE=$1
       echo Using sanity configuration file $SANITY_CONFIG_FILE
+      source $SANITY_CONFIG_FILE
       shift
    fi
 fi
@@ -721,13 +720,13 @@ fi
 if [ "$1" = "deletevol" ]
 then
   deletevols;
-  exit;
+  finish
 fi
 
 if [ "$1" = "delete" ]
 then
-  cleanup;
-  exit;
+  cleanup
+  finish
 fi
 
 if [ "$1" = "setup" ]
@@ -745,7 +744,7 @@ then
    echo Request to run $2
    $2
    cleanup
-   exit
+   finish
 fi
 
 test_0
@@ -767,3 +766,4 @@ test_17
 test_18
 test_19
 cleanup
+finish

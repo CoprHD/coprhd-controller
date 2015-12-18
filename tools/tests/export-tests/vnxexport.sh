@@ -76,23 +76,9 @@ fi
 SHORTENED_HOST=${SHORTENED_HOST:=`echo $BOURNE_IP | awk -F. '{ print $1 }'`}
 : ${TENANT=tenant}
 : ${PROJECT=sanity}
-SYSADMIN=root
-SYSADMIN_PASSWORD=${SYSADMIN_PASSWORD:-ChangeMe}
 
 COS_BASE=cosbase
-VNX_SMIS_DEV=smis-provider
-VNX_SMIS_IP=10.247.99.68
-VNX_SP_IP=10.247.55.31
-VNXB_NATIVEGUID=CLARIION+APM00140801303
-VNXB_INITIATOR='50:06:01:64:3E:A0:59:B0'
 
-#VNX_SMIS_IP=10.247.99.25
-#VNX_SP_IP=10.247.27.168
-#VNXB_NATIVEGUID=CLARIION+APM00140844981
-#VNXB_INITIATOR='50:06:01:64:46:EF:3A:38'
-
-SMIS_USER=admin
-SMIS_PASSWD='#1Password'
 PROJECT=project
 
 # If you want to change all the managed resource object names, change this value
@@ -144,7 +130,15 @@ verify_export() {
        echo There was a failure
        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
        cleanup
+       finish
     fi
+}
+
+finish() {
+    if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then 
+        exit $VERIFY_EXPORT_FAIL_COUNT
+    fi
+    exit 0
 }
 
 login() {
@@ -1191,7 +1185,6 @@ cleanup() {
    runcmd volume delete --project $PROJECT --wait
    echo There were $VERIFY_EXPORT_COUNT export verifications
    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
-   exit
 }
 
 # call this to generate a random WWN for exports.
@@ -1237,6 +1230,7 @@ if [ "$1"x != "x" ]; then
       SANITY_CONFIG_FILE=$1
       echo Using sanity configuration file $SANITY_CONFIG_FILE
       shift
+      source $SANITY_CONFIG_FILE
    fi
 fi
 
@@ -1264,14 +1258,14 @@ fi
 
 if [ "$1" = "deletevol" ]
 then
-  deletevols;
-  exit;
+  deletevols
+  finish
 fi
 
 if [ "$1" = "delete" ]
 then
-  cleanup;
-  exit;
+  cleanup
+  finish
 fi
 
 if [ "$1" = "setup" ]
@@ -1294,7 +1288,7 @@ then
       $t
    done
    cleanup
-   exit
+   finish
 fi
 
 #test_608072;
@@ -1330,3 +1324,4 @@ test_22;
 test_23;
 test_24;
 cleanup
+finish

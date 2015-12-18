@@ -33,7 +33,7 @@
 #
 #
 #
-# set -x
+#  set -x
 
 Usage()
 {
@@ -64,7 +64,7 @@ fi
 seed=`date "+%H%M%S%N"`
 ipaddr=`/sbin/ifconfig eth0 | /usr/bin/perl -nle 'print $1 if(m#inet addr:(.*?)\s+#);' | tr '.' '-'`
 export BOURNE_API_SYNC_TIMEOUT=700
-BOURNE_IP=10.247.101.39
+BOURNE_IP=localhost
 
 #
 # Zone configuration
@@ -78,23 +78,11 @@ fi
 SHORTENED_HOST=${SHORTENED_HOST:=`echo $BOURNE_IP | awk -F. '{ print $1 }'`}
 : ${TENANT=emcworld}
 : ${PROJECT=project}
-SYSADMIN=root
-SYSADMIN_PASSWORD=${SYSADMIN_PASSWORD:-ChangeMe}
 
 #
 # cos configuration
 #
 VPOOL_BASE=vpool
-
-VNX_SMIS_IP=10.247.99.68
-VNX_SP_IP=10.247.55.31
-VNX_ID=APM00140801303
-VNX_ID_3DIGITS="_303"
-VNX_NATIVEGUID=CLARIION+APM00140801303
-VNX_SMIS_DEV=smis-provider
-
-SMIS_USER=admin
-SMIS_PASSWD='#1Password'
 
 BASENUM=${BASENUM:=$RANDOM}
 VOLNAME=vnxexp${BASENUM}
@@ -120,12 +108,20 @@ VERIFY_EXPORT_FAIL_COUNT=0
 verify_export() {
     INIT_PATTERN="${I2}:${I3}:${I4}"
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
-    runcmd navihelper.sh $VNX_SP_IP ${INIT_PATTERN} $*
+    runcmd navihelper.sh $BF_VNX_SP_IP ${INIT_PATTERN} $*
     if [ $? -ne "0" ]; then
        echo There was a failure
        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
        cleanup
+       finish
     fi
+}
+
+finish() {
+    if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then 
+        exit $VERIFY_EXPORT_FAIL_COUNT
+    fi
+    exit 0
 }
 
 runcmd() {
@@ -170,8 +166,8 @@ login() {
 
 setup() {
     syssvc $SANITY_CONFIG_FILE localhost setup
-    security add_authn_provider ad ldap://10.247.100.165 CN=Administrator,CN=Users,DC=sanity,DC=local P@ssw0rd CN=Users,DC=sanity,DC=local userPrincipalName=%u CN 'ad configuration' SANITY.LOCAL '*Admins*,*Test*'
-    tenant create $TENANT sanity.local OU sanity.local
+    security add_authn_provider ldap ldap://10.247.101.43 cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
+    tenant create $TENANT VIPRSANITY.COM OU VIPRSANITY.COM
     echo "Tenant $TENANT created."
 
     # increase the pool subscription percentage
@@ -180,21 +176,21 @@ setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS"
-    smisprovider create VMAX-PROVIDER $VNX_SMIS_IP 5988 admin '#1Password' false
+    smisprovider create $BF_VNX_SMIS_DEV $BF_VNX_SMIS_IP 5988 admin '#1Password' false
     storagedevice discover_all --ignore_error
 
-    storagepool update $VNX_NATIVEGUID --type block --volume_type THIN_ONLY
-    storagepool update $VNX_NATIVEGUID --type block --volume_type THICK_ONLY
+    storagepool update $BF_VNX_NATIVEGUID --type block --volume_type THIN_ONLY
+    storagepool update $BF_VNX_NATIVEGUID --type block --volume_type THICK_ONLY
 
     neighborhood create $NH
     transportzone create $FC_ZONE_A $NH --type FC
 
-    storagepool update $VNX_NATIVEGUID --nhadd $NH --type block
-    storageport update $VNX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    storagepool update $BF_VNX_NATIVEGUID --nhadd $NH --type block
+    storageport update $BF_VNX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
-    storagepool update ${VNX_NATIVEGUID} --nhadd $NH --pool "$RP_VNXB_POOL" --type block --volume_type THIN_ONLY
+    storagepool update ${BF_VNX_NATIVEGUID} --nhadd $NH --pool "$RP_VNXB_POOL" --type block --volume_type THIN_ONLY
     seed=`date "+%H%M%S%N"`
-    storageport update ${VNX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+    storageport update ${BF_VNX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
     project create $PROJECT --tenant $TENANT 
     echo "Project $PROJECT created."
     echo "Setup ACLs on neighborhood for $TENANT"
@@ -261,7 +257,7 @@ setup() {
 	  --max_snapshots 10                     \
 	  --neighborhoods $NH
 
-    runcmd cos update block ${VPOOL_BASE} --storage ${VNX_NATIVEGUID}
+    runcmd cos update block ${VPOOL_BASE} --storage ${BF_VNX_NATIVEGUID}
     runcmd cos allow ${VPOOL_BASE} block $TENANT
 
     runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
@@ -280,7 +276,7 @@ setup_hosts_onvnx() {
        runcmd export_group create $PROJECT ${expname}-$hostnum $NH --type Cluster --volspec "${PROJECT}/${VOLNAME}-1" --cluster "${TENANT}/${CN}-${hostnum}"
     done
     echo "Recommend you delete your vipr database"
-    exit;
+    finish
 }
 
 verify_setup() {
@@ -604,7 +600,6 @@ cleanup() {
    # runcmd volume delete $PROJECT --project --wait
    echo There were $VERIFY_EXPORT_COUNT export verifications
    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
-   exit;
 }
 
 # Fixed initiator fields
@@ -647,6 +642,7 @@ if [ "$1"x != "x" ]; then
       SANITY_CONFIG_FILE=$1
       echo Using sanity configuration file $SANITY_CONFIG_FILE
       shift
+      source $SANITY_CONFIG_FILE
    fi
 fi
 
@@ -655,19 +651,19 @@ login
 if [ "$1" = "verify" ]
 then
    verify_setup;
-   exit;
+   finish
 fi
 
 if [ "$1" = "delete" ]
 then
   cleanup;
-  exit;
+  finish
 fi
 
 if [ "$1" = "setup" ]
 then
     setup;
-    exit;
+    finish
 fi
 
 # If there's a 2nd parameter, take that 
@@ -676,7 +672,7 @@ if [ "$2" != "" ]
 then
    echo Request to run $2
    $2
-   exit
+   finish
 fi
 
 verify_setup;
@@ -688,6 +684,6 @@ test_5;
 test_6;
 test_7;
 test_8;
-#cleanup;
 verify_setup;
-exit;
+cleanup
+finish

@@ -49,6 +49,20 @@ Usage()
 
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=1}
+
+# ============================================================
+# Check if there is a sanity configuration file specified
+# on the command line. In, which case, we should use that
+# ============================================================
+if [ "$1"x != "x" ]; then
+   if [ -f "$1" ]; then
+      SANITY_CONFIG_FILE=$1
+      echo Using sanity configuration file $SANITY_CONFIG_FILE
+      shift
+      source $SANITY_CONFIG_FILE
+   fi
+fi
+
 VERIFY_EXPORT_COUNT=0
 VERIFY_EXPORT_FAIL_COUNT=0
 verify_export() {
@@ -79,13 +93,21 @@ verify_export() {
     fi
 
     sleep 10
-    runcmd symhelper.sh $VMAX_ID $masking_view_name $*
+    runcmd symhelper.sh $VMAX_SN $masking_view_name $*
     if [ $? -ne "0" ]; then
        echo There was a failure
        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
        cleanup
+       finish
     fi
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+}
+
+finish() {
+    if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
+        exit $VERIFY_EXPORT_FAIL_COUNT
+    fi
+    exit 0
 }
 
 # The token file name will have a suffix which is this shell's PID
@@ -107,7 +129,7 @@ fi
 seed=`date "+%H%M%S%N"`
 ipaddr=`/sbin/ifconfig eth0 | /usr/bin/perl -nle 'print $1 if(m#inet addr:(.*?)\s+#);' | tr '.' '-'`
 export BOURNE_API_SYNC_TIMEOUT=700
-BOURNE_IP=10.247.101.39
+BOURNE_IP=localhost
 
 #
 # Zone configuration
@@ -121,24 +143,12 @@ fi
 SHORTENED_HOST=${SHORTENED_HOST:=`echo $BOURNE_IP | awk -F. '{ print $1 }'`}
 : ${TENANT=emcworld}
 : ${PROJECT=project}
-SYSADMIN=root
-SYSADMIN_PASSWORD=${SYSADMIN_PASSWORD:-ChangeMe}
 
 #
 # cos configuration
 #
 VPOOL_BASE=vpool
 VPOOL_FAST=${VPOOL_BASE}-fast
-FAST_POLICY="SYMMETRIX+000198700406+FASTPOLICY+TomFastPolicy"
-
-VMAX_SMIS_IP=lglw9071.lss.emc.com
-VMAX_ID=000195701573
-VMAX_ID_3DIGITS="_573"
-VMAX_NATIVEGUID=SYMMETRIX+${VMAX_ID}
-VMAX_SMIS_DEV=smis-provider-vmax
-
-SMIS_USER=admin
-SMIS_PASSWD='#1Password'
 
 BASENUM=${BASENUM:=$RANDOM}
 VOLNAME=vmaxexp${BASENUM}
@@ -158,7 +168,7 @@ which symhelper.sh
 if [ $? -ne 0 ]; then
     echo Could not find symhelper.sh path. Please add the directory where the script exists to the path
     locate symhelper.sh
-    exit
+    exit 1
 fi
 
 if [ ! -f /usr/emc/API/symapi/config/netcnfg ]; then
@@ -858,7 +868,7 @@ test_15a() {
     runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${HOST1}"
     verify_export ${expname}1 -x- 6 2
     verify_export ${expname}2 ${HOST1} 2 1
-    exit
+    finish
 }
 
 test_15b() {
@@ -886,7 +896,7 @@ test_15b() {
     verify_export ${expname}1 -x- 6 2
     verify_export ${expname}2 ${HOST1} 2 1
     runcmd volume delete $PROJECT --project --wait
-    exit
+    finish
 }
 
 test_15c() {
@@ -902,7 +912,7 @@ test_15c() {
     runcmd export_group delete ${PROJECT}/${expname}2a
     verify_export ${expname}2 ${HOST1} 2 1
     runcmd volume delete $PROJECT --project --wait
-    exit
+    finish
 }
 
 # Export Test 16
@@ -1555,8 +1565,7 @@ cleanup() {
    done
    runcmd volume delete --project $PROJECT --wait
    echo There were $VERIFY_EXPORT_COUNT export verifications
-   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
-   exit;
+   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures/
 }
 
 # call this to generate a random WWN for exports.
@@ -1593,18 +1602,6 @@ randwwn() {
 # -    M A I N
 # ============================================================
 
-# ============================================================
-# Check if there is a sanity configuration file specified
-# on the command line. In, which case, we should use that
-# ============================================================
-if [ "$1"x != "x" ]; then
-   if [ -f "$1" ]; then
-      SANITY_CONFIG_FILE=$1
-      echo Using sanity configuration file $SANITY_CONFIG_FILE
-      shift
-   fi
-fi
-
 login
 
 H1PI1=`pwwn 00`
@@ -1629,8 +1626,8 @@ fi
 
 if [ "$1" = "delete" ]
 then
-  cleanup;
-  exit;
+  cleanup
+  finish
 fi
 
 if [ "$1" = "setup" ]
@@ -1650,7 +1647,7 @@ then
       $t
    done
    cleanup
-   exit
+   finish
 fi
 
 # Passing tests:
@@ -1684,4 +1681,5 @@ test_28;
 test_29;
 test_30;
 cleanup;
+finish
 

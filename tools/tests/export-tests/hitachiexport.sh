@@ -28,7 +28,7 @@
 # -     Add Volume to export
 # -     Remove Volume from export
 #
-# set -x
+#set -x
 
 Usage()
 {
@@ -57,7 +57,7 @@ fi
 seed=`date "+%H%M%S%N"`
 ipaddr=`/sbin/ifconfig eth0 | /usr/bin/perl -nle 'print $1 if(m#inet addr:(.*?)\s+#);' | tr '.' '-'`
 export BOURNE_API_SYNC_TIMEOUT=700
-BOURNE_IP=10.63.20.85
+BOURNE_IP=localhost
 
 #
 # Zone configuration
@@ -76,20 +76,8 @@ fi
 SHORTENED_HOST=${SHORTENED_HOST:=`echo $BOURNE_IP | awk -F. '{ print $1 }'`}
 : ${TENANT=tenant}
 : ${PROJECT=sanity}
-SYSADMIN=root
-SYSADMIN_PASSWORD=${SYSADMIN_PASSWORD:-ChangeMe}
 
 VPOOL_BASE=vpool
-
-HITACHI_PROVIDER_IP=10.247.96.89
-HITACHI_PROVIDER_PORT=2001
-HITACHI_PROVIDER_USER=system
-HITACHI_PROVIDER_PASSWD=manager
-HITACHI_NATIVEGUID=HDS+ARRAY.HM700.211643
-HDS_PROVIDER=Hitachi-Provider
-HDS_PROVIDER_INTERFACE_TYPE=hicommand
-HDSB_INITIATOR='50:06:0E:80:13:2D:7B:12'
-
 PROJECT=project
 
 # If you want to change all the managed resource object names, change this value
@@ -179,7 +167,7 @@ setup() {
     
     echo "Setting up StorageProvider for Hitachi arrays."
     HITACHIPASS=0
-    storageprovider create $HDS_PROVIDER $HITACHI_PROVIDER_IP $HITACHI_PROVIDER_PORT $HITACHI_PROVIDER_USER '$HITACHI_PROVIDER_PASSWD' $HDS_PROVIDER_INTERFACE_TYPE --usessl false
+    storageprovider create $HDS_PROVIDER $HDS_PROVIDER_IP $HDS_PROVIDER_PORT $HDS_PROVIDER_USER "$HDS_PROVIDER_PASSWD" $HDS_PROVIDER_INTERFACE_TYPE --usessl false
     while [ ${HITACHIPASS} -eq 0 ]
       do
       storagedevice discover_all
@@ -195,10 +183,10 @@ setup() {
     neighborhood create $NH
     transportzone create $FC_ZONE_A $NH --type FC
     transportzone add $NH/$FC_ZONE_A $HDSB_INITIATOR 
-    storagepool update $HITACHI_NATIVEGUID --nhadd $NH --pool "$HITACHIB_POOL" --type block --volume_type THIN_ONLY
-    storagepool update $HITACHI_NATIVEGUID --nhadd $NH --pool "$HITACHIB_POOL" --type block --volume_type THIN_ONLY
+    storagepool update $HDS_NATIVEGUID --nhadd $NH --pool "$HITACHIB_POOL" --type block --volume_type THIN_ONLY
+    storagepool update $HDS_NATIVEGUID --nhadd $NH --pool "$HITACHIB_POOL" --type block --volume_type THIN_ONLY
     seed=`date "+%H%M%S%N"`
-    storageport update --name 'None' $HITACHI_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    storageport update --name 'None' $HDS_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
     project create $PROJECT --tenant $TENANT 
     echo "Project $PROJECT created."
     echo "Setup ACLs on neighborhood for $TENANT"
@@ -235,7 +223,7 @@ setup() {
 	--provisionType 'Thick'			\
 	--neighborhoods $NH                    
 
-    cos update block ${VPOOL_BASE} --storage ${HITACHI_NATIVEGUID}
+    cos update block ${VPOOL_BASE} --storage ${HDS_NATIVEGUID}
     cos allow $VPOOL_BASE block $TENANT
     runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 3
 
@@ -1074,6 +1062,7 @@ if [ "$1"x != "x" ]; then
    if [ -f "$1" ]; then
       SANITY_CONFIG_FILE=$1
       echo Using sanity configuration file $SANITY_CONFIG_FILE
+      source $SANITY_CONFIG_FILE
       shift
    fi
 fi

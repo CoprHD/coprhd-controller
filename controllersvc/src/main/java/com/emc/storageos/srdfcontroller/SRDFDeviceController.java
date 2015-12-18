@@ -351,18 +351,6 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         if (group.getVolumes() == null) {
             group.setVolumes(new StringSet());
         }
-        /*
-         * New pairs cannot be added to an existing RA group due to SMIS issue
-         * till OPT 489689 is fixed.
-         */
-        if (!group.getVolumes().isEmpty() || !volumesInRDFGroupsOnProvider.isEmpty()) {
-            // throw Exception cannot add more active pairs
-            log.info("RDF Group {} is not empty", group.getNativeGuid());
-            clearSourceAndTargetVolumes(sourceDescriptors, targetDescriptors);
-            throw DeviceControllerException.exceptions.createNonCGSRDFActiveModeVolumesStepFailed(group
-                    .getNativeGuid());
-
-        }
 
         if ((group.getVolumes().isEmpty() && !volumesInRDFGroupsOnProvider.isEmpty())
                 || (!group.getVolumes().isEmpty() && volumesInRDFGroupsOnProvider.isEmpty())) {
@@ -384,11 +372,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             waitFor = createNonCGSrdfPairStepsOnEmptyGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor, workflow);
         } else {
             log.info("RA Group {} not empty", group.getId());
-            // TODO : This code path is not tested as its dependent on OPT 489689
             waitFor = createNonCGSrdfPairStepsOnPopulatedGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor,
                     workflow);
         }
-        // Generate workflow step to refresh target system after CG creation.
+        // Generate workflow step to refresh source and target system .
         if (null != system) {
             waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, system, null, waitFor, workflow);
         }
@@ -1358,7 +1345,6 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private String createNonCGSrdfPairStepsOnPopulatedGroup(List<VolumeDescriptor> sourceDescriptors,
             List<VolumeDescriptor> targetDescriptors, RemoteDirectorGroup group, Map<URI, Volume> uriVolumeMap,
             String waitFor, Workflow workflow) {
-        String stepId = waitFor;
 
         StorageSystem system = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
         URI vpoolChangeUri = getVirtualPoolChangeVolume(sourceDescriptors);
@@ -1376,13 +1362,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
 
         /*
-         * Invoke Suspend on the SRDF group as more pairs cannot added until all other
+         * Invoke Suspend on the SRDF group as more ACTIVE pairs cannot added until all other
          * existing pairs are in NOT-READY state
          */
         Method suspendGroupMethod = suspendSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
         Method resumeRollbackMethod = resumeSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
 
-        stepId = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
+        waitFor = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
                 SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
                 system.getSystemType(), getClass(), suspendGroupMethod, resumeRollbackMethod, null);
 
@@ -1393,7 +1379,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 
-        stepId = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
+        waitFor = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
                 CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_DESC, waitFor, system.getId(),
                 system.getSystemType(), getClass(), createListMethod, rollbackMethod, null);
 
@@ -1401,11 +1387,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
          * Invoke Resume on the SRDF group to get all pairs back in the READY state.
          */
         Method resumeGroupMethod = resumeSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
-        stepId = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
+        waitFor = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
                 RESUME_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
                 system.getSystemType(), getClass(), resumeGroupMethod, rollbackMethodNullMethod(), null);
 
-        return stepId;
+        return waitFor;
     }
 
     private String refreshVolumeProperties(List<VolumeDescriptor> volumeDescriptors, StorageSystem system,

@@ -56,7 +56,6 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -2206,8 +2205,8 @@ public class SRDFOperations implements SmisConstants {
             CIMInstance volumeInstance = helper.getInstance(storage, volumePath, false, false, null);
             if (volumeInstance != null && volume != null) {
                 String wwn = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME);
-                // _log.info(String.format("Updating volume %s %s wwn from %s to %s ", volume.getLabel(), volume.getId(), volume.getWWN(),
-                // wwn.toUpperCase()));
+                log.info(String.format("Updating volume %s %s wwn from %s to %s ", volume.getLabel(), volume.getId(), volume.getWWN(),
+                        wwn.toUpperCase()));
                 volume.setWWN(wwn.toUpperCase());
                 String accessState = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_ACCESS);
                 String[] statusDescriptions = CIMPropertyFactory.getPropertyArray(volumeInstance,
@@ -2216,9 +2215,9 @@ public class SRDFOperations implements SmisConstants {
                 // If this volume is managed by RP, RP owns the volume access field.
                 if (!volume.checkForRp()) {
                     String newAccessState = SmisUtils.generateAccessState(accessState, statusDescriptionList);
-                    // _log.info(String.format(
-                    // "Updating volume %s %s access state from %s to %s ", volume.getLabel(), volume.getId().toString(),
-                    // volume.getAccessState(), newAccessState));
+                    log.info(String.format(
+                            "Updating volume %s %s access state from %s to %s ", volume.getLabel(), volume.getId().toString(),
+                            volume.getAccessState(), newAccessState));
                     volume.setAccessState(newAccessState);
                 }
                 dbClient.updateObject(volume);

@@ -719,7 +719,7 @@ public class UpgradeManager extends AbstractManager {
         if (backCompatPreYoda) {
             log.info("Pre-yoda back compatible flag detected. Check upgrade lock from the global area");
             DistributedPersistentLock lock = coordinator.getCoordinatorClient()
-                    .getGlobalPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
+                    .getPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
             log.info("Acquiring the upgrade lock for {}...", svcId);
 
             if (lock != null) {
@@ -747,7 +747,7 @@ public class UpgradeManager extends AbstractManager {
         if (backCompatPreYoda) {
             log.info("Pre-yoda back compatible flag detected. Check upgrade lock from the global area");
             DistributedPersistentLock lock = coordinator.getCoordinatorClient()
-                    .getGlobalPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
+                    .getPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
             log.info("Acquiring the upgrade lock for {}...", svcId);
 
             boolean result = lock.acquireLock(svcId);
@@ -775,7 +775,7 @@ public class UpgradeManager extends AbstractManager {
             log.info("Pre-yoda back compatible flag detected. Check upgrade lock from the global area");
             try {
                 DistributedPersistentLock lock = coordinator.getCoordinatorClient()
-                        .getGlobalPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
+                        .getPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
                 if (lock != null) {
                     String lockOwner = lock.getLockOwner();
 

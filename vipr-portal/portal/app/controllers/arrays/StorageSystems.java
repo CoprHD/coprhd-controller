@@ -722,6 +722,8 @@ public class StorageSystems extends ViprResourceController {
         public Integer resourceLimit;
         public String resourceType;
         public boolean unlimitResource;
+        public Boolean supportsSoftLimit;
+        public Boolean supportsNotificationLimit;
 
         //
         // a flag to set if unlimitResource control was previously visible.
@@ -801,7 +803,8 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setIsUnlimitedResourcesSet(true);
                 storageArray.setMaxResources(null);
             }
-
+            storageArray.setSupportsSoftLimit(supportsSoftLimit);
+            storageArray.setSupportsNotificationLimit(supportsNotificationLimit);
             if (isVnxFile()) {
                 storageArray.setSmisProviderIP(smisProviderIpAddress);
                 storageArray.setSmisPortNumber(smisProviderPortNumber);
@@ -833,6 +836,8 @@ public class StorageSystems extends ViprResourceController {
             storageArray.setUserName(userName);
             storageArray.setPortNumber(portNumber);
             storageArray.setIpAddress(ipAddress);
+            storageArray.setSupportsSoftLimit(supportsSoftLimit);
+            storageArray.setSupportsNotificationLimit(supportsNotificationLimit);
             // storageArray.setRegistrationMode(RegistrationMode.SYSTEM);
 
             if (isVnxFile()) {

@@ -147,9 +147,9 @@ class ComputeImageServers(object):
             parms['tftpBootDir'] = tftpbootdir
         if(osinstalltimeout):
             parms['osinstall_timeout'] = osinstalltimeout
-        if(osinstalltimeout):
+        if(sshtimeout):
             parms['ssh_timeout'] = sshtimeout
-        if(osinstalltimeout):
+        if(imageimporttimeout):
             parms['imageimport_timeout'] = imageimporttimeout            
 
         uri = self.query_computeimageserver(name)

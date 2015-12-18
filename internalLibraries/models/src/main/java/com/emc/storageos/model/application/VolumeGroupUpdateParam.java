@@ -120,6 +120,23 @@ public class VolumeGroupUpdateParam {
         return removeVolumesList != null && removeVolumesList.volumes != null &&
                 !removeVolumesList.volumes.isEmpty();
     }
+
+    public boolean hasHostsToAdd() {
+        return addHostsList != null && !addHostsList.isEmpty();
+    }
+
+    public boolean hasHostsToRemove() {
+        return removeHostsList != null && !removeHostsList.isEmpty();
+    }
+
+    public boolean hasClustersToAdd() {
+        return addClustersList != null && !addClustersList.isEmpty();
+    }
+
+    public boolean hasClustersToRemove() {
+        return removeClustersList != null && !removeClustersList.isEmpty();
+    }
+
     /**
      * volume group unique name
      * 

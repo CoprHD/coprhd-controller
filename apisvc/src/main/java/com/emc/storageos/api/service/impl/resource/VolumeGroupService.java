@@ -382,8 +382,32 @@ public class VolumeGroupService extends TaskResourceService {
          * @param taskId
          * @param taskList
          */
-        public abstract void validateUpdateVolumesInVolumeGroup(DbClient dbClient, final VolumeGroupUpdateParam param, VolumeGroup volumeGroup);
-        
+        public abstract void validateUpdateVolumesInVolumeGroup(DbClient dbClient, final VolumeGroupUpdateParam param,
+                VolumeGroup volumeGroup);
+
+        protected void updateHostObjects(DbClient dbClient, List<Host> addHosts, List<Host> removeHosts, VolumeGroup volumeGroup) {
+            for (Host addHost : addHosts) {
+                addHost.getVolumeGroupIds().add(volumeGroup.getId().toString());
+            }
+            for (Host remHost : removeHosts) {
+                remHost.getVolumeGroupIds().remove(volumeGroup.getId().toString());
+            }
+            dbClient.updateObject(addHosts);
+            dbClient.updateObject(removeHosts);
+        }
+
+        protected void updateClusterObjects(DbClient dbClient, List<Cluster> addClusters, List<Cluster> removeClusters,
+                VolumeGroup volumeGroup) {
+            for (Cluster addCluster : addClusters) {
+                addCluster.getVolumeGroupIds().add(volumeGroup.getId().toString());
+            }
+            for (Cluster remCluster : removeClusters) {
+                remCluster.getVolumeGroupIds().remove(volumeGroup.getId().toString());
+            }
+            dbClient.updateObject(addClusters);
+            dbClient.updateObject(removeClusters);
+        }
+
         protected void updateVolumeObjects(DbClient dbClient, List<Volume> addVols, List<Volume> removeVols, VolumeGroup volumeGroup) {
             for (Volume addVol : addVols) {
                 addVol.getVolumeGroupIds().add(volumeGroup.getId().toString());
@@ -500,7 +524,39 @@ public class VolumeGroupService extends TaskResourceService {
                     removeVols.add(remVolItr.next());
                 }
             }
-            
+
+            List<Host> removeHosts = new ArrayList<Host>();
+            List<Host> addHosts = new ArrayList<Host>();
+
+            if (param.hasHostsToAdd()) {
+                Iterator<Host> addHostItr = dbClient.queryIterativeObjects(Host.class, param.getAddHostsList());
+                while (addHostItr.hasNext()) {
+                    addHosts.add(addHostItr.next());
+                }
+            }
+            if (param.hasHostsToRemove()) {
+                Iterator<Host> remHostItr = dbClient.queryIterativeObjects(Host.class, param.getRemoveHostsList());
+                while (remHostItr.hasNext()) {
+                    removeHosts.add(remHostItr.next());
+                }
+            }
+
+            List<Cluster> removeClusters = new ArrayList<Cluster>();
+            List<Cluster> addClusters = new ArrayList<Cluster>();
+
+            if (param.hasClustersToAdd()) {
+                Iterator<Cluster> addClusterItr = dbClient.queryIterativeObjects(Cluster.class, param.getAddClustersList());
+                while (addClusterItr.hasNext()) {
+                    addClusters.add(addClusterItr.next());
+                }
+            }
+            if (param.hasClustersToRemove()) {
+                Iterator<Cluster> remClusterItr = dbClient.queryIterativeObjects(Cluster.class, param.getRemoveClustersList());
+                while (remClusterItr.hasNext()) {
+                    removeClusters.add(remClusterItr.next());
+                }
+            }
+
             Operation op = dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(),
                     taskId, ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
             taskList.getTaskList().add(toTask(volumeGroup, taskId, op));
@@ -508,7 +564,9 @@ public class VolumeGroupService extends TaskResourceService {
             
             try {
                 updateVolumeObjects(dbClient, addVols, removeVols, volumeGroup);
-            }  catch (InternalException | APIException e) {
+                updateHostObjects(dbClient, addHosts, removeHosts, volumeGroup);
+                updateClusterObjects(dbClient, addClusters, removeClusters, volumeGroup);
+            } catch (InternalException | APIException e) {
                 VolumeGroup app = dbClient.queryObject(VolumeGroup.class, volumeGroup.getId());
                 op = app.getOpStatus().get(taskId);
                 op.error(e);

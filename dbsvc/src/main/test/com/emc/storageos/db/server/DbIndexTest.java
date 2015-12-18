@@ -695,7 +695,7 @@ public class DbIndexTest extends DbsvcTestBase {
     private DbClientTest.DbClientImplUnitTester createClient() {
         DbClientTest.DbClientImplUnitTester dbClient = new DbClientTest.DbClientImplUnitTester();
         dbClient.setCoordinatorClient(_coordinator);
-        dbClient.setDbVersionInfo(_dbVersionInfo);
+        dbClient.setDbVersionInfo(sourceVersion);
         dbClient.setBypassMigrationLock(true);
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);

@@ -186,12 +186,24 @@ task upgradeTests(type:Test, dependsOn:compileTestJava) {
 
     reports.junitXml.destination = file("${reporting.baseDir}/upgrade-tests")
     reports.html.destination = reports.junitXml.destination
-
+    
     include "com/emc/storageos/db/server/upgrade/**/*.class"
     exclude "com/emc/storageos/db/server/upgrade/impl/negative/**/*.class"
     exclude "com/emc/storageos/db/server/upgrade/impl/callback/AddFooToProjectTest.class"
     exclude "com/emc/storageos/db/server/upgrade/impl/callback/AddPrefixToProjectOwner.class"
 }
+
+task migrationTest(type:Test, dependsOn:compileTestJava) {
+    forkEvery = 1
+    maxHeapSize = '4096m'
+
+    reports.junitXml.destination = file("${reporting.baseDir}/upgrade-tests")
+    reports.html.destination = reports.junitXml.destination
+
+    exclude "com/emc/storageos/db/server/*.class"
+    include "com/emc/storageos/db/server/upgrade/impl/callback/YourMigrationTest.class"
+}
+
 testUsingJavassist(upgradeTests, [
     "com.emc.storageos.db.server.upgrade.impl.DbUpgradeTest",
 ])

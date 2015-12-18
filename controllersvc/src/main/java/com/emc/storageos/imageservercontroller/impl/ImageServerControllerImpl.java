@@ -464,7 +464,7 @@ public class ImageServerControllerImpl implements ImageServerController {
      */
     private boolean checkOSVersion(ComputeImage os) {
         return "esxi".equals(os.getOsName()) && os.getOsVersion() != null
-                && (os.getOsVersion().startsWith("5.") || os.getOsVersion().startsWith("6.0"));
+                && (os.getOsVersion().startsWith("5.") || os.getOsVersion().startsWith("6."));
     }
 
     /**

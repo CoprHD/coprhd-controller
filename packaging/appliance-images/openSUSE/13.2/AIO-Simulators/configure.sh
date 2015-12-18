@@ -44,10 +44,6 @@ cat >> ${OVF}.tmp <<EOF
         <Label>DNS Server(s) (comma separated)</Label>
         <Description>The IPv4 domain name servers for this VM.</Description>
       </Property>
-      <Property ovf:key="vip" ovf:userConfigurable="true" ovf:type="string">
-        <Label>It will be used as the virtual IP (vip) address for AIO-Simulators (comma separated)</Label>
-        <Description>The IPv4 address for this interface.</Description>
-      </Property>
     </ProductSection>
     <ProductSection ovf:class="system" ovf:required="false">
       <Info>System Properties</Info>

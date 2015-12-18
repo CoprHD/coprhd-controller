@@ -83,14 +83,14 @@ public class ExportUtils {
             for (ExportMask exportMask : exportMasks.keySet()) {
                 // now process the initiators - Every initiator must see the volume
                 initiators = getInitiators(exportMask, dbClient);
-                _log.info("Found {} initiators in export mask {}", initiators.size(), exportMask.getMaskName());
+                _log.debug("Found {} initiators in export mask {}", initiators.size(), exportMask.getMaskName());
                 ports = getStoragePorts(exportMask, dbClient);
-                _log.info("Found {} storage ports in export mask {}", ports.size(), exportMask.getMaskName());
+                _log.debug("Found {} storage ports in export mask {}", ports.size(), exportMask.getMaskName());
                 String hlu = exportMask.getVolumes().get(bo.getId().toString());
-                _log.info("Start pairing initiators and targets in export mask {}.", exportMask.getMaskName());
+                _log.debug("Start pairing initiators and targets in export mask {}.", exportMask.getMaskName());
                 for (Initiator initiator : initiators) {
                     initiatorPorts = getInitiatorPorts(exportMask, initiator, ports, dbClient);
-                    zoneRefs = getInitiatorsZoneReferences(initiator, initiatorPorts, dbClient);
+                    zoneRefs = getInitiatorsZoneReferencesForBlockObject(initiator, initiatorPorts, bo, dbClient);
                     list.getExportList().addAll(getItlsForMaskInitiator(dbClient,
                             exportMasks.get(exportMask), exportMask, initiator, hlu, blockObject, initiatorPorts, zoneRefs));
                 }
@@ -295,10 +295,10 @@ public class ExportUtils {
         // Find the block object that would appear in the Export Mask
         BlockObject bo = Volume.fetchExportMaskBlockObject(dbClient, blockObject.getId());
         if (bo != null) {
-            _log.info("Finding target ports for initiator {} and block object {}",
+            _log.debug("Finding target ports for initiator {} and block object {}",
                     initiator.getInitiatorPort(), bo.getNativeGuid());
             initiatorZoneRefs = getZoneReferences(bo.getId(), initiator, initiatorPorts, zoneRefs);
-            _log.info("{} target ports and {} SAN zones were found for initiator {} and block object {}",
+            _log.debug("{} target ports and {} SAN zones were found for initiator {} and block object {}",
                     new Object[] { initiatorPorts.size(), initiatorZoneRefs.size(),
                             initiator.getInitiatorPort(), bo.getNativeGuid() });
             // TODO - Should we add special handling of iscsi initiators?
@@ -468,7 +468,7 @@ public class ExportUtils {
             List<FCZoneReference> refs = null;
             for (StoragePort port : ports) {
                 String key = FCZoneReference.makeEndpointsKey(
-                        Arrays.asList(new String[] { initiator.getInitiatorPort(), port.getPortNetworkId() }));
+                        Arrays.asList(initiator.getInitiatorPort(), port.getPortNetworkId()));
                 refs = new ArrayList<FCZoneReference>();
                 targetPortReferences.put(port, refs);
                 URIQueryResultList queryList = new URIQueryResultList();
@@ -508,11 +508,49 @@ public class ExportUtils {
                 }
             }
         }
-        _log.info("Found {} san zone references for initiator {} and block object {}", new Object[]
+        _log.debug("Found {} san zone references for initiator {} and block object {}", new Object[]
         { targetPortReferences.size(), initiator.getInitiatorPort(), blockObjectUri });
         return targetPortReferences;
     }
 
+    /**
+     * Find the san zone information for the initiator and storage ports. Returns
+     * a map of zone references per port.
+     * 
+     * @param initiator the initiator
+     * @param ports the target ports
+     * @param bo block object
+     * @param dbClient an instance of {@link DbClient}
+     * @return a map of san zones created for the initiator grouped by port for
+     *         the list of target ports. Otherwise, an returns empty map.
+     */
+    private static Map<StoragePort, List<FCZoneReference>> getInitiatorsZoneReferencesForBlockObject(
+            Initiator initiator,
+            List<StoragePort> ports, BlockObject bo, DbClient dbClient) {
+        Map<StoragePort, List<FCZoneReference>> targetPortReferences = new HashMap<StoragePort, List<FCZoneReference>>();
+        if (initiator.getProtocol().equals(Block.FC.name())) {
+            List<FCZoneReference> refs = null;
+            for (StoragePort port : ports) {
+                String key = FCZoneReference.makeLabel(
+                        Arrays.asList(initiator.getInitiatorPort(), port.getPortNetworkId(),
+                                        bo.getId().toString()));
+                refs = new ArrayList<FCZoneReference>();
+                targetPortReferences.put(port, refs);
+                URIQueryResultList queryList = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFCZoneReferenceLabelConstraint(key),
+                        queryList);
+
+                while (queryList.iterator().hasNext()) {
+                    FCZoneReference ref = dbClient.queryObject(FCZoneReference.class, queryList.iterator().next());
+                    if (ref != null && !ref.getInactive()) {
+                        refs.add(ref);
+                    }
+                }
+            }
+        }
+        return targetPortReferences;
+    }
+    
     /**
      * Fetches and returns the storage ports for an export mask
      * 
@@ -531,7 +569,7 @@ public class ExportUtils {
                 }
             }
         }
-        _log.info("Found {} stoarge ports in export mask {}", ports.size(), exportMask.getMaskName());
+        _log.debug("Found {} stoarge ports in export mask {}", ports.size(), exportMask.getMaskName());
         return ports;
     }
 
@@ -603,7 +641,7 @@ public class ExportUtils {
                     }
                 }
             }
-            _log.info("Found {} export masks for block object {}", exportMasks.size(), bo.getLabel());
+            _log.debug("Found {} export masks for block object {}", exportMasks.size(), bo.getLabel());
         }
         return exportMasks;
     }

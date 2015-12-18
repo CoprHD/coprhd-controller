@@ -23,6 +23,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
+import com.emc.storageos.systemservices.impl.upgrade.UpgradeManager;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -41,6 +42,8 @@ public class VdcManager extends AbstractManager {
     private IPsecConfig ipsecConfig;
     @Autowired
     private IPsecManager ipsecMgr;
+    @Autowired
+    private UpgradeManager upgradeManager;
 
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
@@ -145,25 +148,25 @@ public class VdcManager extends AbstractManager {
         while (doRun) {
             log.debug("Main loop: Start");
 
-            // Step0: check if we have the vdc lock
+            // Step0: check if we have the reboot lock
             boolean hasLock;
             try {
-                hasLock = coordinator.hasPersistentLock(svcId, vdcLockId);
+                hasLock = hasRebootLock(svcId);
             } catch (Exception e) {
-                log.info("Step1: Failed to verify if the current node has the vdc lock ", e);
+                log.info("Step1: Failed to verify if the current node has the reboot lock ", e);
                 retrySleep();
                 continue;
             }
 
             if (hasLock) {
                 try {
-                    coordinator.releasePersistentLock(svcId, vdcLockId);
-                    log.info("Step0: Released vdc lock for node: {}", svcId);
+                    releaseRebootLock(svcId);
+                    log.info("Step0: Released reboot lock for node: {}", svcId);
                     wakeupOtherNodes();
                 } catch (InvalidLockOwnerException e) {
-                    log.error("Step0: Failed to release the vdc lock: Not owner.");
+                    log.error("Step0: Failed to release the reboot lock: Not owner.");
                 } catch (Exception e) {
-                    log.info("Step0: Failed to release the vdc lock and will retry: {}", e.getMessage());
+                    log.info("Step0: Failed to release the reboot lock and will retry: {}", e.getMessage());
                     retrySleep();
                     continue;
                 }
@@ -331,15 +334,11 @@ public class VdcManager extends AbstractManager {
         String action = targetSiteInfo.getActionRequired();
         if (targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
                 || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")) {
-            log.info("Step3: Acquiring vdc lock for vdc properties change.");
-            if (!getVdcLock(svcId)) {
+            log.info("Step3: Acquiring reboot lock for vdc properties change.");
+            if (!getRebootLock(svcId)) {
                 retrySleep();
             } else if (!isQuorumMaintained()) {
-                try {
-                    coordinator.releasePersistentLock(svcId, vdcLockId);
-                } catch (Exception e) {
-                    log.error("Failed to release the vdc lock:", e);
-                }
+                releaseRebootLock(svcId);
                 retrySleep();
             } else {
                 log.info("Step3: Setting vdc properties and reboot");
@@ -368,35 +367,6 @@ public class VdcManager extends AbstractManager {
             throw new IllegalStateException(String.format("No VdcOpHandler defined for action %s" , action));
         }
         return opHandler;
-    }
-    
-    
-    /**
-     * Try to acquire the vdc lock, like upgrade lock, this also requires rolling reboot
-     * so upgrade lock should be acquired at the same time
-     *
-     * @param svcId
-     * @return
-     */
-    private boolean getVdcLock(String svcId) {
-        if (!coordinator.getPersistentLock(svcId, vdcLockId)) {
-            log.info("Acquiring vdc lock failed. Retrying...");
-            return false;
-        }
-
-        if (!coordinator.getPersistentLock(svcId, upgradeLockId)) {
-            log.info("Acquiring upgrade lock failed. Retrying...");
-            return false;
-        }
-
-        // release the upgrade lock
-        try {
-            coordinator.releasePersistentLock(svcId, upgradeLockId);
-        } catch (Exception e) {
-            log.error("Failed to release the upgrade lock:", e);
-        }
-        log.info("Successfully acquired the vdc lock.");
-        return true;
     }
 
     /**
@@ -542,16 +512,12 @@ public class VdcManager extends AbstractManager {
         if (ipsecMgr.isKeyRotationDone()) {
             log.info("IPsec key rotation for upgrade is done. Starting rolling reboot.");
             final String svcId = coordinator.getMySvcId();
-            if (!getVdcLock(svcId)) {
+            if (!getRebootLock(svcId)) {
                 retrySleep();
                 return;
             }
             if (!isQuorumMaintained()) {
-                try {
-                    coordinator.releasePersistentLock(svcId, vdcLockId);
-                } catch (Exception e) {
-                    log.error("Failed to release the vdc lock:", e);
-                }
+                releaseRebootLock(svcId);
                 retrySleep();
                 return;
             }
@@ -559,6 +525,7 @@ public class VdcManager extends AbstractManager {
             try {
                 // update backCompatPreYoda to false everywhere
                 vdcConfigUtil.setBackCompatPreYoda(false);
+                upgradeManager.setBackCompatPreYoda(false);
                 backCompatPreYoda = false;
                 targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
@@ -566,14 +533,7 @@ public class VdcManager extends AbstractManager {
                 log.info("Rolling restart the db and geodb");
                 restartdb();
             } finally {
-                try {
-                    coordinator.releasePersistentLock(svcId, vdcLockId);
-                    // Update CoordinatorClientExt AFTER releasing the persistent lock
-                    // CoordinatorClientExt is a singleton
-                    coordinator.setBackCompatPreYoda(backCompatPreYoda);
-                } catch (Exception e) {
-                    log.error("Failed to release the vdc lock:", e);
-                }
+                releaseRebootLock(svcId);
             }
         }
     }

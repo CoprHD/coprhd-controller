@@ -8,7 +8,6 @@ package com.emc.storageos.coordinator.client.service.impl;
 import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
 import static com.emc.storageos.coordinator.client.model.Constants.DB_CONFIG;
 import static com.emc.storageos.coordinator.client.model.Constants.GLOBAL_ID;
-import static com.emc.storageos.coordinator.client.model.Constants.KEY_CERTIFICATE_PAIR_CONFIG_KIND;
 import static com.emc.storageos.coordinator.client.model.Constants.MIGRATION_STATUS;
 import static com.emc.storageos.coordinator.client.model.Constants.NODE_DUALINETADDR_CONFIG;
 import static com.emc.storageos.coordinator.client.model.Constants.SCHEMA_VERSION;
@@ -68,7 +67,6 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -921,9 +919,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public DistributedPersistentLock getGlobalPersistentLock(String lockName) throws CoordinatorException {
+    public DistributedPersistentLock getSiteLocalPersistentLock(String lockName) throws CoordinatorException {
         DistributedPersistentLock lock = new DistributedPersistentLockImpl(_zkConnection,
-                ZkPath.PERSISTENTLOCK.toString(), lockName);
+                String.format("%s/%s%s", ZkPath.SITES, getSiteId(), ZkPath.PERSISTENTLOCK.toString()), lockName);
         try {
             lock.start();
         } catch (Exception e) {
@@ -935,7 +933,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public DistributedPersistentLock getPersistentLock(String lockName) throws CoordinatorException {
         DistributedPersistentLock lock = new DistributedPersistentLockImpl(_zkConnection,
-                String.format("%s/%s%s", ZkPath.SITES, getSiteId(), ZkPath.PERSISTENTLOCK.toString()), lockName);
+                ZkPath.PERSISTENTLOCK.toString(), lockName);
         try {
             lock.start();
         } catch (Exception e) {
@@ -1568,7 +1566,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public String getUpgradeLockOwner(String lockId) {
         try {
-            DistributedPersistentLock lock = getPersistentLock(lockId);
+            DistributedPersistentLock lock = getSiteLocalPersistentLock(lockId);
             if (lock != null) {
                 String lockOwner = lock.getLockOwner();
                 if (lockOwner != null) {

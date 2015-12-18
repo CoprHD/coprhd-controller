@@ -47,7 +47,6 @@ import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
@@ -713,7 +712,7 @@ public class CoordinatorClientExt {
      */
     public boolean hasPersistentLock(String svcId, String lockId) throws Exception {
         try {
-            DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+            DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
 
             if (lock != null) {
                 String lockOwner = lock.getLockOwner();
@@ -739,7 +738,7 @@ public class CoordinatorClientExt {
      */
     public boolean getPersistentLock(String svcId, String lockId) {
         try {
-            DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+            DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
             _log.info("Acquiring the {} lock for {}...", lockId, svcId);
             boolean result = lock.acquireLock(svcId);
             if (result) {
@@ -763,7 +762,7 @@ public class CoordinatorClientExt {
      * @throws InvalidLockOwnerException
      */
     public boolean releasePersistentLock(String svcId, String lockId) throws Exception {
-        DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+        DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
         if (lock != null) {
             String lockOwner = lock.getLockOwner();
 
@@ -798,7 +797,7 @@ public class CoordinatorClientExt {
      * @throws Exception
      */
     public boolean releasePersistentLock(String lockId) throws Exception {
-        DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+        DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
         if (lock != null) {
             String lockOwner = lock.getLockOwner();
 

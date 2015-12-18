@@ -36,6 +36,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.job.*;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,9 +56,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
 import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.text.MessageFormat.format;
@@ -1661,7 +1664,21 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 // the sync object path representing the linked target so
                 // that it can be detached.
                 boolean syncObjectFound = false;
-                CIMObjectPath syncObjectPath = getSyncObject(system, snapshot);
+                CIMObjectPath syncObjectPath = null;
+                List<BlockSnapshot> snapshots = null;
+
+                if (snapshot.hasConsistencyGroup()) {
+                    List<CIMObjectPath> groupSyncs = getAllGroupSyncObjects(system, snapshot);
+                    if (groupSyncs != null && !groupSyncs.isEmpty()) {
+                        syncObjectPath = groupSyncs.get(0);
+                    }
+                    snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
+                            snapshot.getReplicationGroupInstance(), _dbClient);
+                } else {
+                    syncObjectPath = getSyncObject(system, snapshot);
+                    snapshots = Lists.newArrayList(snapshot);
+                }
+
                 if (!SmisConstants.NULL_CIM_OBJECT_PATH.equals(syncObjectPath)) {
                     syncObjectFound = true;
                     CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
@@ -1673,8 +1690,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                             outArgs, job);
 
                     // Succeeded in unlinking the target from the snapshot.
-                    snapshot.setSettingsInstance(NullColumnValueGetter.getNullStr());
-                    _dbClient.updateObject(snapshot);
+                    for (BlockSnapshot snapshotToUpdate : snapshots) {
+                        snapshotToUpdate.setSettingsInstance(NullColumnValueGetter.getNullStr());
+                    }
+                    _dbClient.updateObject(snapshots);
                 } else {
                     // For some reason we could not find the path for the
                     // CIM_StorageSychronized instance for the linked target.
@@ -1699,9 +1718,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
                 if (deleteTarget) {
                     _log.info("Delete target device {}:{}", targetDeviceId, snapshotURI);
-                    List<String> targetDeviceIds = new ArrayList<String>();
-                    targetDeviceIds.add(targetDeviceId);
-                    deleteTargetDevices(system, targetDeviceIds.toArray(new String[1]), completer);
+                    Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
+                    deleteTargetDevices(system, nativeIds.toArray(new String[]{}), completer);
                     _log.info("Delete target device complete");
                 } else if (!syncObjectFound) {
                     // Need to be sure the completer is called.

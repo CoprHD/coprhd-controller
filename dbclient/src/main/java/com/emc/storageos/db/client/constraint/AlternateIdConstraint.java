@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.CifsShareACL;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DecommissionedResource;
@@ -25,6 +26,7 @@ import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.NFSShareACL;
@@ -620,6 +622,16 @@ public interface AlternateIdConstraint extends Constraint {
         
         public static AlternateIdConstraint getVolumesByVolumeGroupId(String volumeGroupId) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
+        }
+
+        public static AlternateIdConstraint getHostsByVolumeGroupId(String volumeGroupId) {
+            DataObjectType doType = TypeMap.getDoType(Host.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
+        }
+
+        public static AlternateIdConstraint getClustersByVolumeGroupId(String volumeGroupId) {
+            DataObjectType doType = TypeMap.getDoType(Cluster.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
         }
     }

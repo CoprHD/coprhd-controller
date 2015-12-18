@@ -959,7 +959,7 @@ public class VolumeGroupService extends TaskResourceService {
         List<Host> result = new ArrayList<Host>();
         final List<Host> hosts = CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Host.class,
-                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+                        AlternateIdConstraint.Factory.getHostsByVolumeGroupId(volumeGroup.getId().toString()));
         for (Host host : hosts) {
             if (!host.getInactive()) {
                 result.add(host);
@@ -978,7 +978,7 @@ public class VolumeGroupService extends TaskResourceService {
         List<Cluster> result = new ArrayList<Cluster>();
         final List<Cluster> clusters = CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Cluster.class,
-                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+                        AlternateIdConstraint.Factory.getClustersByVolumeGroupId(volumeGroup.getId().toString()));
         for (Cluster cluster : clusters) {
             if (!cluster.getInactive()) {
                 result.add(cluster);

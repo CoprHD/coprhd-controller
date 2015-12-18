@@ -1,0 +1,178 @@
+[
+    {
+        "id": "11",
+        "name": "VSAN 11",
+        "zonesets": [
+            {
+                "active": "false",
+                "name": "default",
+                "zones": [
+                    {
+                        "members": [
+                            {
+                                "pwwn": "10:00:00:00:c9:65:59:ee"
+                            },
+                            {
+                                "pwwn": "50:00:09:73:10:06:a1:45"
+                            }
+                        ],
+                        "name": "zone1"
+                    }
+                ]
+            },
+            {
+                "active": "true",
+                "name": "Zoneset_11",
+                "zones": [
+                    {
+                        "members": [
+                            {
+                                "pwwn": "10:00:00:00:c9:65:59:ee"
+                            },
+                            {
+                                "pwwn": "50:00:09:73:10:06:a1:45"
+                            }
+                        ],
+                        "name": "zone3"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "12",
+        "name": "VSAN 12",
+        "zonesets": [
+            {
+                "active": "false",
+                "name": "default",
+                "zones": [
+                    {
+                        "members": [
+                            {
+                                "pwwn": "50:06:01:6e:3e:a0:57:a0"
+                            },
+                            {
+                                "pwwn": "21:01:00:e0:8b:3f:3c:e8"
+                            }
+                        ],
+                        "name": "zone5"
+                    }
+                ]
+            },
+            {
+                "active": "true",
+                "name": "Zoneset_12",
+                "zones": [
+                    {
+                        "members": [
+                            {
+                                "pwwn": "21:01:00:e0:8b:3f:3c:e9"
+                            },
+                            {
+                                "pwwn": "21:01:00:E0:8B:3F:3C:E9"
+                            },
+                            {
+                                "pwwn": "50:00:09:82:8D:28:C6:4F"
+                            }
+                        ],
+                        "name": "SDS_10_247_98_183_00E08B3F3CE9_1302_FA1A0"
+                    },
+                    {
+                        "members": [
+                            {
+                                "pwwn": "10:00:71:56:FA:14:00:01"
+                            },
+                            {
+                                "pwwn": "50:00:09:82:15:B8:01:6C"
+                            }
+                        ],
+                        "name": "SDS_lglw_vlinux1_7156FA140001_4197_FA1A0"
+                    },
+                    {
+                        "members": [
+                            {
+                                "pwwn": "10:00:71:56:FA:14:00:01"
+                            },
+                            {
+                                "pwwn": "50:00:09:82:34:6F:12:50"
+                            }
+                        ],
+                        "name": "SDS_foo_van12_7156FA140001_8923_FA1A0"
+                    },
+                    {
+                        "members": [
+                            {
+                                "pwwn": "10:00:71:56:FA:14:00:01"
+                            },
+                            {
+                                "pwwn": "50:00:09:82:C0:3F:DD:D7"
+                            }
+                        ],
+                        "name": "SDS_foo_van12_7156FA140001_1302_FA0B1"
+                    },
+                    {
+                        "members": [
+                            {
+                                "pwwn": "50:00:50:56:9F:01:3B:A1"
+                            },
+                            {
+                                "pwwn": "50:00:09:82:30:0F:8E:56"
+                            }
+                        ],
+                        "name": "SDS_host013b1011_lss_emc_com_50569F013BA1_7618_FA1A1"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "13",
+        "name": "VSAN 13 with smartzone",
+        "zonesets": [
+            {
+                "active": "false",
+                "name": "default smart zone",
+                "zones": [
+                    {
+                        "members": [
+                            {
+                                "pwwn": "10:00:00:00:77:32:59:ee",
+                                "type": "init"
+                            },
+                            {
+                                "pwwn": "10:00:00:00:77:32:59:ff",
+                                "type": "init"
+                            },
+                            {
+                                "pwwn": "50:00:09:73:3f:d3:a1:45",
+                                "type": "target"
+                            },
+                            {
+                                "pwwn": "50:00:09:73:3f:d3:a1:46"
+                            }
+                        ],
+                        "name": "smart zone 1"
+                    }
+                ]
+            },
+            {
+                "active": "true",
+                "name": "default regular zone",
+                "zones": [
+                    {
+                        "members": [
+                            {
+                                "pwwn": "10:00:00:00:77:32:60:00"
+                            },
+                            {
+                                "pwwn": "50:00:09:73:3f:d3:a1:47"
+                            }
+                        ],
+                        "name": "regular zone 1"
+                    }
+                ]
+            }
+        ]
+    }
+]

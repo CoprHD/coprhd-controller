@@ -1,0 +1,14 @@
+[Unit]
+Description=The LDAP simulator
+After=SimService.service
+
+[Service]
+Type=forking
+TimeoutStartSec="3min"
+ExecStart=/etc/init.d/LDAP start
+ExecStop=/etc/init.d/LDAP stop
+
+[Install]
+WantedBy=multi-user.target
+
+

@@ -619,7 +619,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                     imageServer.getLabel());
         } else {
             throw ImageServerControllerException.exceptions
-                    .fileDownloadFailed(ci.getImageUrl());
+                    .fileDownloadFailed(maskImageURLPassword(ci.getImageUrl()));
         }
 
         log.info("create temp dir {}", tempDir);
@@ -1272,5 +1272,20 @@ public class ImageServerControllerImpl implements ImageServerController {
             }
         }
         return password;
+    }
+
+    /**
+     * Mask the encrypted password for UI
+     * @param imageUrl {@link String} image url
+     * @return {@link String} password masked image url
+     */
+    public static String maskImageURLPassword(String imageUrl) {
+        String password = extractPasswordFromImageUrl(imageUrl);
+        if (StringUtils.isNotBlank(password)) {
+            String maskedPassword = StringUtils.repeat("*", password.length());
+            imageUrl = StringUtils.replace(imageUrl, ":" + password + "@", ":"
+                    + maskedPassword + "@");
+        }
+        return imageUrl;
     }
 }

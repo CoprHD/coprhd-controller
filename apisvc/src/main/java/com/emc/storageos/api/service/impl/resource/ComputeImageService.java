@@ -262,13 +262,20 @@ public class ComputeImageService extends TaskResourceService {
                         .extractPasswordFromImageUrl(param.getImageUrl());
 
                 if (StringUtils.isNotBlank(oldPassword)
-                        && StringUtils.isNotBlank(newPassword)
-                        && oldPassword.equals(newPassword)) {
-                    isEncrypted = true;
+                        && StringUtils.isNotBlank(newPassword)) {
+                    String maskedPassword = StringUtils.repeat("*",
+                            oldPassword.length());
+                    if (maskedPassword.equals(newPassword)) {
+                        isEncrypted = true;
+                    }
                 }
-                ci.setImageUrl(encryptImageURLPassword(param.getImageUrl(),
-                        isEncrypted));
-
+                if(isEncrypted) {
+                    ci.setImageUrl( StringUtils.replace(param.getImageUrl(), ":" + newPassword + "@", ":"
+                            + oldPassword + "@"));
+                } else {
+                    ci.setImageUrl(encryptImageURLPassword(param.getImageUrl(),
+                            isEncrypted));
+                }
                 ci.setComputeImageStatus(ComputeImageStatus.IN_PROGRESS.name());
                 reImport = true;
             } else {

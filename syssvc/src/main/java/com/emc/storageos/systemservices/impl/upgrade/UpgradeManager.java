@@ -18,7 +18,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
@@ -27,17 +26,14 @@ import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
-import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.DownloadingInfo;
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.systemservices.exceptions.*;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
-import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
 import com.emc.vipr.model.sys.ClusterInfo.NodeState;
 import com.emc.vipr.model.sys.NodeProgress.DownloadStatus;
@@ -54,9 +50,6 @@ public class UpgradeManager extends AbstractManager {
     // standby site upgrade retry interval if the active site is not STABLE or the current site is not SYNCED
     // we don't want to sleep for too long (default 10m) or too short (retry 3s) here
     private final static int STANDBY_UPGRADE_RETRY_INTERVAL = 60 * 1000; // 1m
-
-    @Autowired
-    PropertyManager propertyManager;
 
     private RemoteRepository remoteRepository;
 
@@ -75,7 +68,6 @@ public class UpgradeManager extends AbstractManager {
     public void setBackCompatPreYoda(boolean backCompatPreYoda) {
         this.backCompatPreYoda = backCompatPreYoda;
     }
-
 
     public LocalRepository getLocalRepository() {
         return localRepository;

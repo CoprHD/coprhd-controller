@@ -65,6 +65,7 @@
         <property name="nodeCount" ref="nodeCount" />   
         <property name="loopInterval"  value="600000" />
         <property name="retryInterval"  value="3000" />
+        <property name="backCompatPreYoda" ref="backCompatPreYoda" />
     </bean>
 
     <bean id="recoveryManager" class="com.emc.storageos.systemservices.impl.recovery.RecoveryManager"/>

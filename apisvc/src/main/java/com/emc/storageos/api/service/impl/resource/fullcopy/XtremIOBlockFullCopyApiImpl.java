@@ -28,10 +28,11 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator client.
      * @param scheduler A reference to a scheduler.
+     * @param fullCopyMgr A reference to the full copy manager.
      */
-    public XtremIOBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-            Scheduler scheduler) {
-        super(dbClient, coordinator, scheduler);
+    public XtremIOBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator, Scheduler scheduler,
+            BlockFullCopyManager fullCopyMgr) {
+        super(dbClient, coordinator, scheduler, fullCopyMgr);
     }
 
     /**

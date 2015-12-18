@@ -13,6 +13,14 @@
 
 include ../Makefile.common
 
+# This branding switch is intended only for the nginx error files at the moment
+# but we should investigate switching the branding throughout the build
+ifeq ($(BUILD_TYPE),emc)
+PRODUCT_BRAND_FULL = EMC ${PRODUCT_BRAND}
+else
+PRODUCT_BRAND_FULL = CoprHD
+endif
+
 CONNECTEMC_DIR = $(BUILD_BASE)/connectemc
 
 all:: install_etc
@@ -40,10 +48,12 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/ssh_auth_key \
     $(ETCDIR)/genconfig.d/ssl \
     $(ETCDIR)/genconfig.d/syssvc \
+    $(ETCDIR)/genconfig.d/ipsec \
     $(ETCDIR)/genconfig.d/test \
     $(ETCDIR)/gentmpl \
     $(ETCDIR)/diagtool \
     $(ETCDIR)/powerofftool \
+    $(ETCDIR)/ipsectool \
     $(ETCDIR)/gatherheapdumps \
     $(ETCDIR)/patch-props.defaults \
     $(ETCDIR)/ovf-env.README \
@@ -145,7 +155,9 @@ ETCFILES_COMMON = \
     $(ETCDIR)/systemd/system/connectemc.service \
     $(ETCDIR)/systemd/system/syncntp.service \
     $(ETCDIR)/systemd/system/ipchecktool.service \
-    $(ETCDIR)/systemd/system/storageos-installer.service
+    $(ETCDIR)/systemd/system/storageos-installer.service \
+    $(ETCDIR)/systemd/system/ipsec.service
+
 
 SYSTEMD_DIR = ${BUILD_BASE}/etc/systemd/system
 SYSTEMD_TMPL = $(SYSTEMD_DIR)/storageos-template.service
@@ -193,6 +205,7 @@ endif
 
 SED_SCRIPT = $(SED) \
     -e 's,@product_brand@,$(PRODUCT_BRAND),g' \
+    -e 's,@product_brand_full@,$(PRODUCT_BRAND_FULL),g' \
     -e 's,@product_name@,$(PRODUCT_NAME),g' \
     -e 's,@product_caps@,$(PRODUCT_CAPS),g' \
     -e 's,@product_prefix@,$(PRODUCT_PREFIX),g' \

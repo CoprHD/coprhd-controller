@@ -119,7 +119,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         VPLEX_BACKEND_CLUSTER_ID("vplexBackendClusterId", "vplexBackendClusterId"),
         // native GUID of the VPLEX virtual volume containing this volume
         VPLEX_PARENT_VOLUME("vplexParentVolume", "vplexParentVolume"),
-        // map of backend clone volume GUID to virtual volume GUID 
+        // map of backend clone volume GUID to virtual volume GUID
         VPLEX_FULL_CLONE_MAP("vplexFullCloneMap", "vplexFullCloneMap"),
         // map of unmanaged volume GUID mirror to vplex device info context path
         VPLEX_MIRROR_MAP("vplexMirrorMap", "vplexMirrorMap"),
@@ -145,6 +145,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         SYNCHRONIZED_INSTANCE("synchronizedInstance", "synchronizedInstance"),
         // for block snapshot
         SNAPSHOTS("snapshots", "snapshots"), // snapshots of a source volume, for internal ingestion use only
+        SNAPSHOT_SESSIONS("snapshotSessions", "snapshotSessions"), // snapshot session for a source volume
         NEEDS_COPY_TO_TARGET("needsCopyToTarget", "needsCopyToTarget"),
         TECHNOLOGY_TYPE("technologyType", "technologyType"),
         SETTINGS_INSTANCE("settingsInstance", "settingsInstance"),
@@ -329,7 +330,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
             return REGULAR == types;
         }
     }
-    
+
+    @Override
     public String toString() {
         return this.getLabel() + " (" + this.getId() + ")";
     }

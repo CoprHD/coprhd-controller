@@ -93,6 +93,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 import com.emc.storageos.volumecontroller.RPRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.collect.Lists;
@@ -2250,6 +2251,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         throw APIException.badRequests.notSupportedSnapshotWithMixedArrays(cg.getId());
                     }
                 }
+            }
+        }
+
+        // All the RP CG volumes should be having backend cg created on array to perform createGroupReplica
+
+        for (Volume volumeToSnap : volumesToSnap) {
+            // TODO Do we need to verify this check for journal volumes too?
+            if (volumeToSnap.isInCG() && !ControllerUtils.checkCGCreatedOnBackEndArray(volumeToSnap)) {
+                _log.error("Volume {} is not associated with backend cg", volumeToSnap.getId());
+                throw APIException.badRequests.snapshotNotAllowedWhenBackendVolumeDoestHavingCG();
             }
         }
 

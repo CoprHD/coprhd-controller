@@ -602,7 +602,12 @@ public class DiscoveryUtils {
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedProtectionSetsByProtectionSystemUriConstraint(protectionSystemUri), result);
 
-        return new HashSet<URI>(result);
+        Set<URI> cgSet = new HashSet<URI>();
+        Iterator<URI> results = result.iterator(); 
+        while (results.hasNext()) {
+            cgSet.add(results.next());
+        }
+        return cgSet;
     }
 
     /**

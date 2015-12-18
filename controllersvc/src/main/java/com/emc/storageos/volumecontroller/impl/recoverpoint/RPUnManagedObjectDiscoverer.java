@@ -499,8 +499,8 @@ public class RPUnManagedObjectDiscoverer {
 
                 // If this is not an RP source, the vpool should be filtered out if:
                 // The vpool is an RP vpool (has settings) and target vpools are non-null
-                if (vpool.getProtectionVarraySettings() != null && (Volume.PersonalityTypes.TARGET.name().equalsIgnoreCase(personality)) ||
-                        Volume.PersonalityTypes.METADATA.name().equalsIgnoreCase(personality)) {
+                if (vpool.getProtectionVarraySettings() != null && ((Volume.PersonalityTypes.TARGET.name().equalsIgnoreCase(personality)) ||
+                        Volume.PersonalityTypes.METADATA.name().equalsIgnoreCase(personality))) {
                     boolean foundEmptyTargetVpool = false;
                     Map<URI, VpoolProtectionVarraySettings> settings = VirtualPool.getProtectionSettings(vpool, dbClient);
                     for (Map.Entry<URI, VpoolProtectionVarraySettings> setting : settings.entrySet()) {
@@ -524,7 +524,7 @@ public class RPUnManagedObjectDiscoverer {
                 }
 
                 // If this an RP source, the vpool must be an RP vpool
-                if (vpool.getProtectionVarraySettings() == null && (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality))) {
+                if (vpool.getProtectionVarraySettings() == null && Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality)) {
                     remove = true;
                 }
 

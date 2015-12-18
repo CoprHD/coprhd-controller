@@ -38,15 +38,17 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -59,6 +61,8 @@ import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.host.HostList;
+import com.emc.storageos.model.host.cluster.ClusterList;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -211,6 +215,46 @@ public class VolumeGroupService extends TaskResourceService {
         List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
         for (Volume volume: volumes) {
             result.getVolumes().add(toNamedRelatedResource(volume));
+        }
+        return result;
+    }
+
+    /**
+     * Get application hosts
+     * 
+     * @param id Application Id
+     * @return HostList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/hosts")
+    public HostList getHosts(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, id);
+        HostList result = new HostList();
+        List<Host> hosts = getVolumeGroupHosts(_dbClient, volumeGroup);
+        for (Host host : hosts) {
+            result.getHosts().add(toNamedRelatedResource(host));
+        }
+        return result;
+    }
+
+    /**
+     * Get application clusters
+     * 
+     * @param id Application Id
+     * @return ClusterList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/clusters")
+    public ClusterList getClusters(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, id);
+        ClusterList result = new ClusterList();
+        List<Cluster> clusters = getVolumeGroupClusters(_dbClient, volumeGroup);
+        for (Cluster cluster : clusters) {
+            result.getClusters().add(toNamedRelatedResource(cluster));
         }
         return result;
     }
@@ -830,7 +874,46 @@ public class VolumeGroupService extends TaskResourceService {
     
     
     /**
-     * Check if the application has any pending task        
+     * Get volume group hosts
+     * 
+     * @param volumeGroup
+     * @return The list of hosts in volume group
+     */
+    private static List<Host> getVolumeGroupHosts(DbClient dbClient, VolumeGroup volumeGroup) {
+        List<Host> result = new ArrayList<Host>();
+        final List<Host> hosts = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Host.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+        for (Host host : hosts) {
+            if (!host.getInactive()) {
+                result.add(host);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get volume group clusters
+     * 
+     * @param volumeGroup
+     * @return The list of clusters in volume group
+     */
+    private static List<Cluster> getVolumeGroupClusters(DbClient dbClient, VolumeGroup volumeGroup) {
+        List<Cluster> result = new ArrayList<Cluster>();
+        final List<Cluster> clusters = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Cluster.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+        for (Cluster cluster : clusters) {
+            if (!cluster.getInactive()) {
+                result.add(cluster);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Check if the application has any pending task
+     * 
      * @param application
      */
     private void checkForApplicationPendingTasks(VolumeGroup volumeGroup) {

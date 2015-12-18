@@ -22,7 +22,13 @@ import com.emc.storageos.model.valid.Length;
 public class VolumeGroupUpdateParam {
     private String name;
     private String description;
-    
+
+    private List<URI> addHostsList;
+    private List<URI> removeHostsList;
+
+    private List<URI> addClustersList;
+    private List<URI> removeClustersList;
+
     public static class VolumeGroupVolumeList {
         private List<URI> volumes;
         // The name of the backend replication group that the volumes would add to
@@ -141,5 +147,60 @@ public class VolumeGroupUpdateParam {
     public void setDescription(String description) {
         this.description = description;
     }
-    
+
+    /**
+     * List of hosts to add to the volume group
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "add_hosts")
+    public List<URI> getAddHostsList() {
+        return addHostsList;
+    }
+
+    public void setAddHostsList(List<URI> addHostsList) {
+        this.addHostsList = addHostsList;
+    }
+
+    /**
+     * List of hosts to remove from the volume group
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "remove_hosts")
+    public List<URI> getRemoveHostsList() {
+        return removeHostsList;
+    }
+
+    public void setRemoveHostsList(List<URI> removeHostsList) {
+        this.removeHostsList = removeHostsList;
+    }
+
+    /**
+     * List of clusters to add to the volume group
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "add_clusters")
+    public List<URI> getAddClustersList() {
+        return addClustersList;
+    }
+
+    public void setAddClustersList(List<URI> addClustersList) {
+        this.addClustersList = addClustersList;
+    }
+
+    /**
+     * List of clusters to remove from the volume group
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "remove_clusters")
+    public List<URI> getRemoveClustersList() {
+        return removeClustersList;
+    }
+
+    public void setRemoveClustersList(List<URI> removeClustersList) {
+        this.removeClustersList = removeClustersList;
+    }
 }

@@ -39,7 +39,7 @@ public class ScaleIOConstants {
     public static final String USER_NAME="UserName";
     public static final String PASSWORD="Password";
     public static final String DRIVER_NAME="ScaleIO";
-    public static final String MINIMUM_SUPPORTED_VERSION="1.32";
+    public static final Double MINIMUM_SUPPORTED_VERSION=1.32;
     public static final Boolean INCOMPATIBLE=false;
     public static final Boolean COMPATIBLE=true;
     enum PoolCapacityMultiplier {

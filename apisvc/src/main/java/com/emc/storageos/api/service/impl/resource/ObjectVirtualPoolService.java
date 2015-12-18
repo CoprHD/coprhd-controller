@@ -132,6 +132,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         if (null != vpool.getMaxRetention()) {
             restRep.setMaxRetention(vpool.getMaxRetention());
         }
+        if (null != vpool.getMinDataCenters()) {
+            restRep.setMinDataCenters(vpool.getMinDataCenters());
+        }
         return restRep;
     }
 

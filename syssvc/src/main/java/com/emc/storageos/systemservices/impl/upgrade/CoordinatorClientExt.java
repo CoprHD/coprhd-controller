@@ -105,6 +105,7 @@ public class CoordinatorClientExt {
     // EX: syssvc-1, syssvc-2, syssvc-10_247_100_15
     private String mySvcId = null;
     private int _nodeCount = 0;
+    private String _vip;
     private DrUtil drUtil;
     private volatile boolean stopCoordinatorSvcMonitor; // default to false
     
@@ -159,8 +160,16 @@ public class CoordinatorClientExt {
         _nodeCount = count;
     }
 
+    public void setVip(String vip) {
+        _vip = vip;
+    }
+
     public int getNodeCount() {
         return _nodeCount;
+    }
+
+    public String getVip() {
+        return _vip;
     }
     
     public void setStatusChecker(DbServiceStatusChecker checker) {
@@ -1471,21 +1480,25 @@ public class CoordinatorClientExt {
                 if (initZkMode == null) {
                     initZkMode = state;
                 }
+                _log.info("Local Node: "+ state);
 
                 //standby node with vip will monitor all node states
-                InetAddress vip=InetAddress.getByName(drUtil.getLocalSite().getVip());
+                InetAddress vip=InetAddress.getByName(getVip());
                 if(NetworkInterface.getByInetAddress(vip)!=null){
+                    _log.info("Local Node is leader");
 
                     List<String> readOnlyNodes = new ArrayList<>();
                     List<String> observerNodes = new ArrayList<>();
-                    int numOnline = 1;
+                    int numOnline = 0;
 
                     for(String node : getAllNodeIds()){
 
                         String nodeState=drUtil.getLocalCoordinatorMode(node);
                         if (nodeState==null){
+                            _log.info("State for "+node+": null");
                             continue;
                         }
+                        
                         else if(DrUtil.ZOOKEEPER_MODE_READONLY.equals(nodeState)){
                             // Found another node in read only
                             readOnlyNodes.add(node);
@@ -1494,8 +1507,13 @@ public class CoordinatorClientExt {
                             // Found another node in read only
                             observerNodes.add(node);
                         }
+                        _log.info("State for "+node+": "+nodeState);
                         numOnline++;
                     }
+
+                    _log.info("Observer nodes: "+observerNodes.size());
+                    _log.info("Read Only nodes: "+readOnlyNodes.size());
+                    _log.info("nodes Online: "+numOnline);
 
                     //if all online are observer return
                     if(observerNodes.size()==numOnline){

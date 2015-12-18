@@ -108,6 +108,14 @@ public class VolumeGroupUpdateParam {
         return hasVolumesToAdd() || hasVolumesToRemove();
     }
 
+    public boolean hasEitherAddOrRemoveHosts() {
+        return hasHostsToAdd() || hasHostsToRemove();
+    }
+
+    public boolean hasEitherAddOrRemoveClusters() {
+        return hasClustersToAdd() || hasClustersToRemove();
+    }
+
     public boolean hasBothAddAndRemoveVolumes() {
         return hasVolumesToAdd() && hasVolumesToRemove();
     }

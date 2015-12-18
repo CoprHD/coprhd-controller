@@ -337,14 +337,14 @@ public class VolumeGroupService extends TaskResourceService {
             }
             isChanged = true;
         }
-        
+
         if (isChanged) {
             _dbClient.updateObject(volumeGroup);
         }
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
         Operation op = null;
-        if (!param.hasEitherAddOrRemoveVolumes()) {
+        if (!param.hasEitherAddOrRemoveVolumes() || !param.hasEitherAddOrRemoveHosts() || !param.hasEitherAddOrRemoveClusters()) {
             op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP);
             op.ready();

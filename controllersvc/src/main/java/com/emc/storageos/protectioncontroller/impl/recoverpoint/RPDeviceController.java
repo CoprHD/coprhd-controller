@@ -44,10 +44,8 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -1031,28 +1029,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         rpSiteName, varray.getLabel()));
 
                 // Setup the export group - we may or may not need to create it, but we need to have everything ready in case we do
-                ExportGroup exportGroup = new ExportGroup();
-                exportGroup.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE, Flag.RECOVERPOINT);
-                exportGroup.setLabel(params.getCgName());
-                exportGroup.setId(URIUtil.createId(ExportGroup.class));
-                exportGroup.setProject(new NamedURI(params.getProject(), exportGroup.getLabel()));
-                exportGroup.setVirtualArray(varrayURI);
-                exportGroup.setTenant(new NamedURI(params.getTenant(), exportGroup.getLabel()));
-                exportGroup.setType(ExportGroupType.Cluster.name());
-                // This name generation needs to match ingestion code found in BlockRecoverPointIngestOrchestrator until
-                // we come up with better export group matching criteria.
-                String exportGroupGeneratedName = rpSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + rpSiteName + "_"
-                        + varray.getLabel();
-                // Remove all non alpha-numeric characters, excluding "_".
-                exportGroupGeneratedName = exportGroupGeneratedName.replaceAll(ALPHA_NUMERICS, "");
-                exportGroup.setGeneratedName(exportGroupGeneratedName);
-                // Set the option to Zone all initiators. If we dont do this, only available Storage Ports will be zoned to initiators. This
-                // means that if there are 4 available storage
-                // ports on the storage array, then only 4 RP initiators will be zoned to those ports. No storage ports will be re-used for
-                // other initiators.
-                // This might be OK for storage arrays that are not of type VPLEX, but VPLEX will have an issue with this preventing the
-                // exporting of VPLEX volumes to RPAs.
-                exportGroup.setZoneAllInitiators(true);
+                ExportGroup exportGroup = RPHelper.createRPExportGroup(internalSiteName, varray, _dbClient.queryObject(Project.class, 
+                        params.getProject()), rpSystem, storageSystem, 0);
 
                 // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
                 Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);

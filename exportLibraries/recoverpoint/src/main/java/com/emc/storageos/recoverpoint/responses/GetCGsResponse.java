@@ -14,7 +14,6 @@ import java.util.List;
 public class GetCGsResponse implements Serializable {
     private static final long serialVersionUID = 6619541304723730047L;
 
-    private boolean isJunitTest;
     // Name of the CG Group
     private String cgName;
     // CG ID
@@ -29,15 +28,6 @@ public class GetCGsResponse implements Serializable {
     private List<GetRSetResponse> rsets;
 
     public GetCGsResponse() {
-        isJunitTest = false;
-    }
-
-    public boolean isJunitTest() {
-        return isJunitTest;
-    }
-
-    public void setJunitTest(boolean isJunitTest) {
-        this.isJunitTest = isJunitTest;
     }
 
     public String getCgName() {

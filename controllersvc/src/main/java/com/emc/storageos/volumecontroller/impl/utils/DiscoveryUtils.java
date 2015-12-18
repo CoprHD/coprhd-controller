@@ -573,9 +573,9 @@ public class DiscoveryUtils {
     /**
      * check unmanaged Protection Set exists in DB
      * 
-     * @param dbClient
-     * @param nativeGuid
-     * @return
+     * @param dbClient a reference to the database client
+     * @param nativeGuid native guid of the protection set
+     * @return the unmanaged protection set associated with the native guid
      * @throws IOException
      */
     public static UnManagedProtectionSet checkUnManagedProtectionSetExistsInDB(DbClient dbClient, String nativeGuid)
@@ -602,12 +602,7 @@ public class DiscoveryUtils {
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedProtectionSetsByProtectionSystemUriConstraint(protectionSystemUri), result);
 
-        Set<URI> cgSet = new HashSet<URI>();
-        Iterator<URI> results = result.iterator(); 
-        while (results.hasNext()) {
-            cgSet.add(results.next());
-        }
-        return cgSet;
+        return new HashSet<URI>(result);
     }
 
     /**

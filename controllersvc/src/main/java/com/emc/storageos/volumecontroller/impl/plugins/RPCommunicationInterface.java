@@ -76,7 +76,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
  * Class for RecoverPoint discovery and collecting stats from RecoverPoint storage device
  */
 public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl {
-    private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
+    private static final String NON_ALPHA_NUMERICS = "[^A-Za-z0-9_]";
     private static final String RPA = "-rpa-";
     private static final String RP_INITIATOR_PREFIX = "50:01:24";
 
@@ -151,7 +151,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 isNewlyCreated = true;
             }
 
-            if (accessProfile.getnamespace().equals(StorageSystem.Discovery_Namespaces.UNMANAGED_CGS.toString())) {
+            if (StorageSystem.Discovery_Namespaces.UNMANAGED_CGS.toString().equalsIgnoreCase(accessProfile.getnamespace())) {
                 try {
                     unManagedCGDiscoverer.discoverUnManagedObjects(accessProfile, _dbClient, _partitionManager);
                 } catch (RecoverPointException rpe) {
@@ -673,7 +673,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                                 Initiator initiator = new Initiator();
                                 initiator.addInternalFlags(Flag.RECOVERPOINT);
                                 // Remove all non alpha-numeric characters, excluding "_", from the hostname
-                                String rpClusterName = site.getSiteName().replaceAll(ALPHA_NUMERICS, "");
+                                String rpClusterName = site.getSiteName().replaceAll(NON_ALPHA_NUMERICS, "");
                                 _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
                                 initiator.setClusterName(rpClusterName);
                                 initiator.setProtocol("FC");
@@ -682,7 +682,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                                 // Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
                                 // A child RP IG will be created containing all the RPA IGs
                                 String hostName = rpClusterName + RPA + rpaId;
-                                hostName = hostName.replaceAll(ALPHA_NUMERICS, "");
+                                hostName = hostName.replaceAll(NON_ALPHA_NUMERICS, "");
                                 _log.info(String.format("Setting RP initiator host name : %s", hostName));
                                 initiator.setHostName(hostName);
 

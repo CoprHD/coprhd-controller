@@ -40,6 +40,7 @@ public class StorageAutomatorOrderCleanupHandler extends DrPostFailoverHandler {
             String message = "Order processing terminated because of site failover, order was not completed. " +
                     "You may see partial completion on storage arrays. Check with your administrator to do cleanup if necessary.";
             monitor.killOrder(order.getId(), message);
+            monitor.removeOrder(order);
         }
     }
 }

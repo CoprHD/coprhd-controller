@@ -43,11 +43,10 @@ public abstract class DrPostFailoverHandler {
     }
     
     @Autowired
-    protected CoordinatorClient coordinator;
+    private CoordinatorClient coordinator;
     @Autowired
-    protected DrUtil drUtil;
-    
-    protected String name;
+    private DrUtil drUtil;
+    private String name;
     
     public DrPostFailoverHandler() {}
     
@@ -75,14 +74,14 @@ public abstract class DrPostFailoverHandler {
                     return;
                 }
                 boolean isExecuted = isCompleted();
-                log.info("Execution status is {}", isExecuted);
                 if (!isExecuted) {
                     log.info("Start post failover processing {}", name);
                     updateStatus(Status.EXECUTING);
                     execute();
                     updateStatus(Status.COMPLETED);
+                } else {
+                    log.info("Handler {} was completed on other node", name);
                 }
-                log.info("Post failover processing done for {}", name);
                 if (isAllHandlersCompleted()) {
                     log.info("All handlers successfully completed. Change site state to ACTIVE");
                     site.setState(SiteState.ACTIVE);
@@ -104,8 +103,21 @@ public abstract class DrPostFailoverHandler {
      */
     protected abstract void execute();
 
+    
+    public String getName() {
+        return name;
+    }
+
     public void setName(String name) {
         this.name = name;
+    }
+
+    public CoordinatorClient getCoordinator() {
+        return coordinator;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
     }
 
     /**
@@ -196,7 +208,7 @@ public abstract class DrPostFailoverHandler {
     }
     
     /**
-     * A default implementation for failover handler. It cleans up ZK queues  
+     * Implementation for failover handler to clean up ZK queues  
      */
     public static class QueueCleanupHandler extends DrPostFailoverHandler{
         private List<String> queueNames;
@@ -204,11 +216,12 @@ public abstract class DrPostFailoverHandler {
         public QueueCleanupHandler() {
         }
         
+        @Override
         protected void execute() {
             for (String name : queueNames) {
                 String fullQueuePath = String.format("%s/%s", ZkPath.QUEUE, name);
                 log.info("Cleanup zk job queue path {}", fullQueuePath);
-                coordinator.deletePath(fullQueuePath);
+                getCoordinator().deletePath(fullQueuePath);
             }
         }
         

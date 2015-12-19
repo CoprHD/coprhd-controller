@@ -46,10 +46,10 @@ import com.emc.storageos.workflow.WorkflowService;
  * some db/zk data may not be replicated to standby site and we may lose some data after failover. So we
  * need do the following before we announce standby is ready
  * 
- * 1) Db scan. We need check db index/object CF inconsistencies and fix inconsistencies if there are
- * 2) Remove all pending tasks, workflows
- * 3) Set all in-progress workflow steps/workflow as error
- * 4) Release persistant locks
+ * 1) Db scan. We need check db index/object CF inconsistencies
+ * 2) Release persistent lock
+ * 3) Remove all pending tasks, workflows
+ * 4) Set all in-progress workflow steps/workflow as error
  * 5) Trigger device rediscovery
  * 
  */
@@ -62,8 +62,10 @@ public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {
     public ControllerWorkflowCleanupHandler() {
     }
     
+    @Override
     protected void execute() {
         checkDb();
+        checkPersistentLocks();
         cleanupWorkflow();
         cleanupTasks();
         rediscoverDevices();
@@ -82,6 +84,12 @@ public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {
             log.error("Unexpected error during db consistency check", ex);
             throw new IllegalStateException(ex);
         }
+    }
+    
+    private void checkPersistentLocks() {
+        CoordinatorClient coordinator = getCoordinator();
+        coordinator.deletePath(ZkPath.PERSISTENTLOCK.toString());
+        log.info("Released all persistent locks");
     }
     
     private void cleanupWorkflow() {

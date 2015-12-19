@@ -1,10 +1,14 @@
+#
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+
 ##################################################
 #  Setup
 ##################################################
-export DO_NOT_START := yes
 export KERNEL := 4.2.0-16-generic
 WORKSPACE := $(shell pwd)
-NAME := UbuntuDevKit
+NAME := CoprHDDevKit-Ubuntu
 VERSION := 2.5.0.0
 JOB := 999
 VENDOR := EMC
@@ -21,7 +25,7 @@ VMDK := $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
 OVF := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
 
 .DEFAULT: all
-.PHONY: downdloadISO downdloadDEB downdloadTGZ createREPO appliance clean destroy
+.PHONY: downloadISO downloadDEB downloadTGZ createREPO appliance clean destroy
 all: appliance
 
 ##################################################
@@ -29,15 +33,15 @@ all: appliance
 ##################################################
 PACKAGES_BOOT := linux-image-$(KERNEL) linux-headers-$(KERNEL)
 PACKAGES_LIST := build-essential dkms keyutils kpartx memtest86+ nfs-common openssh-client openssh-server parted psmisc qemu-system-common qemu-utils vim squashfs-tools
-PACKAGES_LIST := $(PACKAGES_LIST) alien ant apparmor arping atop auditd ca-certificates ca-certificates-java createrepo expect gcc-4.8 geoip-bin geoip-database git git-core gradle keepalived libpcre3 libpcre3-dev libserf-dev libtool libssl-dev ndisc6 ntp openjdk-7-jdk openjdk-7-jre openjdk-7-jre-headless p7zip perl perl-base perl-tk python-cjson python-gpgme python-iniparse python-requests python-setools readline-common rpm sipcalc subversion sysstat virtualbox-5.0 xfsprogs xmlstarlet yum
+PACKAGES_LIST := $(PACKAGES_LIST) alien ant apparmor arping atop auditd ca-certificates ca-certificates-java createrepo expect gcc-4.8 geoip-bin geoip-database git git-core gradle keepalived libpcre3 libpcre3-dev libserf-dev libtool libssl-dev ndisc6 ntp openjdk-7-jdk openjdk-7-jre openjdk-7-jre-headless p7zip perl perl-base perl-tk python-cjson python-gpgme python-iniparse python-requests python-setools readline-common rpm sipcalc subversion sysstat virtualbox-5.0 xfsprogs xmlstarlet yum strongswan libstrongswan
 
 ISO_MOUNT := $(WORKSPACE)/iso/mount
 DIR_MOUNT := $(WORKSPACE)/dir/mount
 APT_MOUNT := $(WORKSPACE)/apt
 
 DISK_QEMU := $(shell mkdir -p $(IMAGE_DIR) && mktemp $(IMAGE_DIR)/image.XXXXXXXXXX )
-DISK_SIZE := 50
-SWAP_SIZE := 1
+DISK_SIZE := 60
+SWAP_SIZE := 4
 SECTOR_SIZE := 512
 SECTOR_INIT := 2048
 
@@ -53,29 +57,29 @@ endef
 ##################################################
 #  Targets
 ##################################################
-downdloadISO:
+downloadISO:
 	$(call targetLog,+)
 	mkdir -p $(ISO_MOUNT)
-	-[ -f $(WORKSPACE)/iso/$(ISO_FILE) ] || cp -pr /disks/adgbuild/UBUNTU15.10/$(ISO_FILE) $(WORKSPACE)/iso/
-	wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
+	[ ! -f /disks/adgbuild/UBUNTU15.10/$(ISO_FILE) ] || ln -fs /disks/adgbuild/UBUNTU15.10/$(ISO_FILE) $(WORKSPACE)/iso/
+	[ -s $(WORKSPACE)/iso/$(ISO_FILE) ] || wget $(ISO_URL) --continue --progress=bar --output-document=$(WORKSPACE)/iso/$(ISO_FILE)
 	$(call targetLog,-)
 
-downdloadDEB:
+downloadDEB:
 	$(call targetLog,+)
 	mkdir -p $(APT_MOUNT) $(ISO_MOUNT)
-	-mount $(WORKSPACE)/iso/$(ISO_FILE) $(ISO_MOUNT)
+	-mountpoint -q $(ISO_MOUNT) || mount $(WORKSPACE)/iso/$(ISO_FILE) $(ISO_MOUNT)
 	bash functions.sh createCache $(APT_MOUNT) $(ISO_MOUNT) "$(PACKAGES_BOOT) $(PACKAGES_LIST)"
 	-umount $(ISO_MOUNT)
 	$(call targetLog,-)
 
-downdloadTGZ:
+downloadTGZ:
 	$(call targetLog,+)
 	wget http://nginx.org/download/nginx-1.6.2.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/nginx-1.6.2.tar.gz
 	wget https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.3.0.tar.gz
 	wget https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.25.tar.gz
 	$(call targetLog,-)
 
-createREPO: | downdloadISO downdloadDEB downdloadTGZ
+createREPO: | downloadISO downloadDEB downloadTGZ
 
 clean:
 	$(call targetLog,+)
@@ -97,10 +101,10 @@ destroy:
 
 appliance: | $(OVF)
 
-$(VMDK): | downdloadISO createREPO
+$(VMDK): | downloadISO createREPO
 	$(call targetLog,+)
 	mkdir -p $(DIR_MOUNT) $(ISO_MOUNT)
-	-mount $(WORKSPACE)/iso/$(ISO_FILE) $(ISO_MOUNT)
+	-mountpoint -q $(ISO_MOUNT) || mount $(WORKSPACE)/iso/$(ISO_FILE) $(ISO_MOUNT)
 
 	rm -fr $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 	mkdir -p $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)

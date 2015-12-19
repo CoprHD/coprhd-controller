@@ -98,7 +98,7 @@ public class ContextManagerImpl implements ContextManager {
                     catalogDirStr = catalogDirStr.replace("%20", " ");
                 }
 
-            } catch (Exception e) {
+            } catch (java.lang.Exception e) {
                 log.error(methodName
                         + "Exception attempting to locate catalog files", e);
                 throw FaultUtil.StorageFault("runtime", e);
@@ -173,7 +173,7 @@ public class ContextManagerImpl implements ContextManager {
                     calendar.setTimeInMillis(catalog.lastModified());
                     mc.setLastModified(calendar);
                     mcList.add(mc);
-                } catch (Exception e) {
+                } catch (java.lang.Exception e) {
                     log.error(methodName
                             + "Exception attempting to locate catalog files", e);
                     throw FaultUtil.StorageFault("runtime", e);
@@ -261,7 +261,7 @@ public class ContextManagerImpl implements ContextManager {
             // thrown by verifyPassword();
             log.error(methodName + "Invalid login", il);
             throw il;
-        } catch (Exception e) {
+        } catch (java.lang.Exception e) {
             log.error(methodName + "registration failed: ", e);
             throw FaultUtil.StorageFault(methodName + "registration failed: ",
                     e);
@@ -349,7 +349,7 @@ public class ContextManagerImpl implements ContextManager {
         } catch (InvalidSession is) {
             log.error(methodName + "Invalid session exception", is);
             throw is;
-        } catch (Exception e) {
+        } catch (java.lang.Exception e) {
             log.error("unknown exception occured", e);
             throw FaultUtil.StorageFault("runtime ", e);
         }
@@ -375,7 +375,7 @@ public class ContextManagerImpl implements ContextManager {
                     SessionContext.INVALID_SESSION_ID);
             log.trace(methodName + "Set value of current session ID as invalid");
             _vpInfo.setSessionId(SessionContext.INVALID_SESSION_ID);
-        } catch (Exception e) {
+        } catch (java.lang.Exception e) {
             log.error(methodName + "Could not find session context", e);
             throw FaultUtil.InvalidSession("Could not find session context "
                     + e);
@@ -418,7 +418,7 @@ public class ContextManagerImpl implements ContextManager {
         } catch (InvalidSession is) {
             log.error(methodName + "Invalid session exception", is);
             throw is;
-        } catch (Exception e) {
+        } catch (java.lang.Exception e) {
             log.error(methodName + "unknown exception occured", e);
             throw FaultUtil.StorageFault("runtime ", e);
         }
@@ -463,7 +463,7 @@ public class ContextManagerImpl implements ContextManager {
         } catch (StorageFault sf) {
             log.error(methodName + "storage fault occured ", sf);
             throw sf;
-        } catch (Exception e) {
+        } catch (java.lang.Exception e) {
             log.error(methodName + "unknown exception", e);
             throw FaultUtil.StorageFault("runtime ", e);
         }
@@ -556,7 +556,7 @@ public class ContextManagerImpl implements ContextManager {
         } catch (InvalidSession is) {
             log.error(methodName + "invalid session", is);
             throw is;
-        } catch (Exception e) {
+        } catch (java.lang.Exception e) {
             log.error(methodName + "unexpected error", e);
             throw FaultUtil.InvalidSession("runtime", e);
         }
@@ -601,7 +601,7 @@ public class ContextManagerImpl implements ContextManager {
         } catch (InvalidSession is) {
             log.error(methodName + "invalid session", is);
             throw is;
-        } catch (Exception e) {
+        } catch (java.lang.Exception e) {
             log.error(methodName + "unexpected error", e);
             throw FaultUtil.InvalidSession("runtime", e);
         }

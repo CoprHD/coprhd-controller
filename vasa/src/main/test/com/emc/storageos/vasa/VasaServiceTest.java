@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -238,7 +239,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
         _stub._getServiceClient().setOptions(options);
     }
 
-    public static void disableCertificateValidation() {
+    public static void disableCertificateValidation() throws VasaException, Throwable {
         // this method is basically bypasses certificate validation.
         // Bourne appliance uses expired certificate!
 
@@ -264,20 +265,15 @@ public class VasaServiceTest extends junit.framework.TestCase {
             }
         };
 
-        // Install the all-trusting trust manager
-        try {
-            final SSLContext sc = SSLContext.getInstance("SSL");
-            sc.init(null, trustAllCerts, new SecureRandom());
-            HttpsURLConnection
-                    .setDefaultSSLSocketFactory(sc.getSocketFactory());
-            HttpsURLConnection.setDefaultHostnameVerifier(hv);
-        } catch (final Exception e) {
-            System.out.println("Unexpeted error occured" + e);
-        }
+        final SSLContext sc = SSLContext.getInstance("SSL");
+        sc.init(null, trustAllCerts, new SecureRandom());
+        HttpsURLConnection
+                .setDefaultSSLSocketFactory(sc.getSocketFactory());
+        HttpsURLConnection.setDefaultHostnameVerifier(hv);
     }
 
     @Override
-    protected void setUp() throws Exception {
+    protected void setUp() {
 
         System.setProperty("javax.net.ssl.trustStore",
                 _prop.getProperty(ClientConfig.KEYSTORE_PATH));
@@ -291,7 +287,15 @@ public class VasaServiceTest extends junit.framework.TestCase {
                 _prop.getProperty(ClientConfig.KEYSTORE_PASSWORD));
         System.setProperty("javax.net.ssl.keyStoreType", "jks");
 
-        disableCertificateValidation();
+        try {
+            disableCertificateValidation();
+        } catch (VasaException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (Throwable e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 
     public void testRegisterVASACertificate() throws java.lang.Exception {
@@ -592,7 +596,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 
     }
 
-    public void testQueryUniqueIdentifiersForLuns() throws Exception {
+    public void testQueryUniqueIdentifiersForLuns() throws VasaException, java.lang.Exception {
 
         QueryUniqueIdentifiersForLuns request = (QueryUniqueIdentifiersForLuns) getTestObject(QueryUniqueIdentifiersForLuns.class);
         System.out.println("Array ID: [" + arrayId + "]");
@@ -607,7 +611,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
         assertTrue(volumeIds.length > 0);
     }
 
-    public void testQueryStorageLuns() throws Exception {
+    public void testQueryStorageLuns() throws java.lang.Exception {
 
         QueryStorageLuns request = (QueryStorageLuns) getTestObject(QueryStorageLuns.class);
         useExistingSession();
@@ -633,7 +637,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 
     }
 
-    public void testQueryUniqueIdentifiersForFileSystems() throws Exception {
+    public void testQueryUniqueIdentifiersForFileSystems() throws java.lang.Exception {
 
         QueryUniqueIdentifiersForFileSystems request = (QueryUniqueIdentifiersForFileSystems) getTestObject(QueryUniqueIdentifiersForFileSystems.class);
         useExistingSession();
@@ -648,7 +652,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 
     }
 
-    public void testQueryStorageFileSystems() throws Exception {
+    public void testQueryStorageFileSystems() throws java.lang.Exception {
 
         QueryStorageFileSystems request = (QueryStorageFileSystems) getTestObject(QueryStorageFileSystems.class);
         request.setFsUniqueId(fileSystemIds);
@@ -660,7 +664,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
     }
 
     public void testQueryAssociatedCapabilitiesForFileSystems()
-            throws Exception {
+            throws VasaException, java.lang.Exception {
 
         QueryAssociatedCapabilityForFileSystem request = (QueryAssociatedCapabilityForFileSystem) getTestObject(QueryAssociatedCapabilityForFileSystem.class);
         useExistingSession();
@@ -672,7 +676,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
     }
 
     public void testQueryAssociatedCapabilitiesForStorageLuns()
-            throws Exception {
+            throws java.lang.Exception {
 
         QueryAssociatedCapabilityForLun request = (QueryAssociatedCapabilityForLun) getTestObject(QueryAssociatedCapabilityForLun.class);
         useExistingSession();
@@ -698,7 +702,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
     }
 
     public void testQueryUniqueIdentifiersForStorageCapabilites()
-            throws Exception {
+            throws java.lang.Exception {
         QueryUniqueIdentifiersForEntity request = (QueryUniqueIdentifiersForEntity) getTestObject(QueryUniqueIdentifiersForEntity.class);
         request.setEntityType("StorageCapability");
         useExistingSession();

@@ -54,7 +54,7 @@ import java.util.Properties;
  */
 public class InstallCert {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws java.lang.Exception {
         ClientConfig config = ClientConfig.getInstance();
 
         Properties prop = config.getProperties();

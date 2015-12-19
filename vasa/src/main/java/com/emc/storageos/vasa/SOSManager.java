@@ -572,7 +572,7 @@ public class SOSManager {
         try {
             String storageProcessorId = this.getProcessorId();
             processorIds.add(storageProcessorId);
-        } catch (Exception e) {
+        } catch (java.lang.Exception e) {
             log.error(methodName + "Unexpected exception occured", e);
             throw FaultUtil.StorageFault(e);
         }
@@ -661,7 +661,7 @@ public class SOSManager {
         } catch (NotImplemented e) {
             log.error(methodName + "NotImplemented occured", e);
             throw FaultUtil.StorageFault(e);
-        } catch (Exception e) {
+        } catch (java.lang.Exception e) {
             log.error(methodName + "Unexpected exception occured", e);
             throw FaultUtil.StorageFault(e);
         }
@@ -2472,7 +2472,7 @@ public class SOSManager {
                         long portWWN = Long.parseLong(initiator.getPortWwn());
                         initiator.setPortWwn("0x"
                                 + Long.toHexString(portWWN).toLowerCase());
-                    } catch (Exception e) {
+                    } catch (java.lang.Exception e) {
                         log.warn(methodName + "Unable to parse portWWN: "
                                 + initiator.getPortWwn());
                         continue;

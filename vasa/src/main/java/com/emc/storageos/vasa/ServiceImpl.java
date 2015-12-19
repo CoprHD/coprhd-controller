@@ -358,7 +358,7 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
         } catch (InvalidArgument ia) {
             log.error(methodName + "invalid argument", ia);
             throw (ia);
-        } catch (Exception e) {
+        } catch (java.lang.Exception e) {
             log.error(methodName + "unknown exception occured", e);
             handleExceptionsAsStorageFault(e);
         }
@@ -1078,7 +1078,7 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
             log.debug(methodName + "Service life cycle initiated");
 
             log.info(methodName + "Exit ");
-        } catch (Exception e) {
+        } catch (java.lang.Exception e) {
             /**
              * Be careful here. Catch the expection and print it. If this
              * routine returns an Exception it is silently ignored by tomcat.
@@ -1087,7 +1087,7 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
         }
     }
 
-    protected void handleExceptionsAsStorageFault(Exception e)
+    protected void handleExceptionsAsStorageFault(java.lang.Exception e)
             throws InvalidArgument, InvalidSession, StorageFault {
         if (e instanceof InvalidArgument) {
             throw (InvalidArgument) e;

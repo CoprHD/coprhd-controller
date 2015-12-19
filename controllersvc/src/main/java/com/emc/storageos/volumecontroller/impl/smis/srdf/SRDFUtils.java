@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations;
+import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.CollectorFactory;
@@ -239,8 +240,13 @@ public class SRDFUtils implements SmisConstants {
             result.addAll(getConsistencyGroupSyncPairs(sourceSystem, sourceVolume, targetSystem, targetVolume,
                     activeProviderSystem));
         } else {
-            CIMObjectPath objectPath = getStorageSynchronizedObject(sourceSystem, sourceVolume, targetVolume,
-                    activeProviderSystem);
+            CIMObjectPath objectPath = null;
+            if (Mode.ACTIVE.equals(Mode.valueOf(targetVolume.getSrdfCopyMode()))) {
+                objectPath = getStorageSynchronizationFromVolume(sourceSystem, sourceVolume, targetVolume, activeProviderSystem);
+            } else {
+                objectPath = getStorageSynchronizedObject(sourceSystem, sourceVolume, targetVolume,
+                        activeProviderSystem);
+            }
             if (objectPath != null) {
                 result.add(objectPath);
             }
@@ -670,6 +676,30 @@ public class SRDFUtils implements SmisConstants {
         }
 
         throw new RuntimeException("Failed to acquire storage synchronization");
+    }
+
+    private CIMObjectPath getStorageSynchronizationFromVolume(final StorageSystem sourceSystem, final Volume source,
+            final Volume target, final StorageSystem activeProviderSystem) {
+
+        // If the Source Provider is down, make use of target provider to
+        // find the Sync Paths.
+        // null check makes the caller not to check liveness for multiple volumes in loop.
+        boolean isSourceActiveNow = (null == activeProviderSystem || URIUtil.identical(activeProviderSystem.getId(),
+                sourceSystem.getId()));
+        String nativeIdToUse = (isSourceActiveNow) ? source.getNativeId() : target.getNativeId();
+        // Use the activeSystem always.
+        StorageSystem systemToUse = (isSourceActiveNow) ? sourceSystem : activeProviderSystem;
+        if (null != activeProviderSystem) {
+            log.info("sourceSystem, activeProviderSystem: {} {}", sourceSystem.getNativeGuid(), activeProviderSystem.getNativeGuid());
+        }
+
+        CIMObjectPath volumePath = cimPath.getVolumePath(systemToUse, nativeIdToUse);
+        if (volumePath == null) {
+            throw new IllegalStateException("Volume not found : " + source.getNativeId());
+        }
+        log.info("Volume Path {}", volumePath.toString());
+        return getStorageSynchronizationFromVolume(systemToUse, volumePath);
+
     }
 
     private Collection<CIMObjectPath> getConsistencyGroupSyncPairs(StorageSystem sourceSystem, Volume source,

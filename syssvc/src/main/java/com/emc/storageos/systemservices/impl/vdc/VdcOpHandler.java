@@ -874,16 +874,23 @@ public abstract class VdcOpHandler {
     }
     
     /**
-     * remove a site from cassandra gossip ring of dbsvc and geodbsvc
+     * remove a site from cassandra gossip ring of dbsvc and geodbsvc without force
      */
     protected void removeDbNodesFromGossip(Site site) {
+        removeDbNodesFromGossip(site, false);
+    }
+    
+    /**
+     * remove a site from cassandra gossip ring of dbsvc and geodbsvc with force
+     */
+    protected void removeDbNodesFromGossip(Site site, boolean force) {
         String dcName = drUtil.getCassandraDcId(site);
         try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
                 DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
-            if (!dbOps.isDataCenterUnreachable(dcName)) {
+            if (!force && !dbOps.isDataCenterUnreachable(dcName)) {
                 throw new IllegalStateException(String.format("dbsvc of site %s is still reachable", dcName));
             }
-            if (!geodbOps.isDataCenterUnreachable(dcName)) {
+            if (!force && !geodbOps.isDataCenterUnreachable(dcName)) {
                 throw new IllegalStateException(String.format("geodbsvc of site %s is still reachable", dcName));
             }
             dbOps.removeDataCenter(dcName);

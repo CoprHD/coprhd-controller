@@ -47,7 +47,6 @@ import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
@@ -142,7 +141,7 @@ public class CoordinatorClientExt {
     public DrUtil getDrUtil() {
         return this.drUtil;
     }
-    
+
     /**
      * Get property
      * 
@@ -713,10 +712,11 @@ public class CoordinatorClientExt {
      */
     public boolean hasPersistentLock(String svcId, String lockId) throws Exception {
         try {
-            DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+            DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
+
             if (lock != null) {
                 String lockOwner = lock.getLockOwner();
-                if (lockOwner != null && serviceIdMatches(lockOwner, svcId)) {
+                if (lockOwner != null && lockOwner.equals(svcId)) {
                     _log.info("Current owner of the {} lock: {} ", lockId, lockOwner);
                     return true;
                 }
@@ -738,7 +738,7 @@ public class CoordinatorClientExt {
      */
     public boolean getPersistentLock(String svcId, String lockId) {
         try {
-            DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+            DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
             _log.info("Acquiring the {} lock for {}...", lockId, svcId);
             boolean result = lock.acquireLock(svcId);
             if (result) {
@@ -762,7 +762,7 @@ public class CoordinatorClientExt {
      * @throws InvalidLockOwnerException
      */
     public boolean releasePersistentLock(String svcId, String lockId) throws Exception {
-        DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+        DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
         if (lock != null) {
             String lockOwner = lock.getLockOwner();
 
@@ -771,7 +771,7 @@ public class CoordinatorClientExt {
                 return true;
             }
 
-            if (!serviceIdMatches(lockOwner, svcId)) {
+            if (!lockOwner.equals(svcId)) {
                 throw SyssvcException.syssvcExceptions.invalidLockOwnerError("Lock owner is " + lockOwner);
             } else {
                 boolean result = lock.releaseLock(lockOwner);
@@ -788,21 +788,6 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Check if the service ID matches the current ID or
-     * The ID in a previous release
-     * 
-     * @param previousSvcId the previous service ID
-     * @param currentSvcId the ID of the service
-     * @return
-     */
-    private boolean serviceIdMatches(String previousSvcId, String currentSvcId) {
-        // In 1.1 datanodes had _ and now they have - instead
-        // If the current and previous IDs match return true or
-        // If this is a datanode return true if the previous ID is just 1.1 format
-        return previousSvcId.equals(currentSvcId) || (!isControlNode() && currentSvcId.equals(previousSvcId.replace('_', '-')));
-    }
-
-    /**
      * The method to release the persistent upgrade lock.
      * Any node which calls the method can release the lock.
      * 
@@ -812,7 +797,7 @@ public class CoordinatorClientExt {
      * @throws Exception
      */
     public boolean releasePersistentLock(String lockId) throws Exception {
-        DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+        DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
         if (lock != null) {
             String lockOwner = lock.getLockOwner();
 

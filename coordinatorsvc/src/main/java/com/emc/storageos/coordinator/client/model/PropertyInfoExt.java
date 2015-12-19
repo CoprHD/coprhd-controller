@@ -36,7 +36,6 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
     public static final String ENCODING_EQUAL = "=";
     public static final String ENCODING_NEWLINE = "\n";
     public static final String TARGET_PROPERTY = "upgradetargetpropertyoverride";
-    public static final String OLD_TARGET_PROPERTY = "upgradetargetproperty";
     public static final String TARGET_PROPERTY_ID = "global";
     public static final String TARGET_INFO = "targetInfo";
 

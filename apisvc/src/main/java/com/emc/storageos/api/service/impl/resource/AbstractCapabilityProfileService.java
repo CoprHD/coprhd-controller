@@ -6,9 +6,6 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.CapabilityProfile;
-import com.emc.storageos.db.client.model.StorageContainer.ProtocolEndpointTypeEnum;
-import com.emc.storageos.db.client.model.StorageContainer.ProtocolType;
-import com.emc.storageos.db.client.model.StorageContainer.ProvisioningType;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.exceptions.DatabaseException;

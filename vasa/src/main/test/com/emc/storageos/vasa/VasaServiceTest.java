@@ -239,7 +239,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
         _stub._getServiceClient().setOptions(options);
     }
 
-    public static void disableCertificateValidation() throws VasaException, Throwable {
+    public static void disableCertificateValidation() throws java.lang.Exception {
         // this method is basically bypasses certificate validation.
         // Bourne appliance uses expired certificate!
 
@@ -289,7 +289,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 
         try {
             disableCertificateValidation();
-        } catch (VasaException e) {
+        } catch (java.lang.Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         } catch (Throwable e) {
@@ -664,7 +664,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
     }
 
     public void testQueryAssociatedCapabilitiesForFileSystems()
-            throws VasaException, java.lang.Exception {
+            throws java.lang.Exception {
 
         QueryAssociatedCapabilityForFileSystem request = (QueryAssociatedCapabilityForFileSystem) getTestObject(QueryAssociatedCapabilityForFileSystem.class);
         useExistingSession();

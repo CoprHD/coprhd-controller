@@ -23,11 +23,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.model.BulkIdParam;
 
-<<<<<<< HEAD
-import org.apache.commons.lang.StringUtils;
-=======
 import com.emc.storageos.volumecontroller.AttributeMatcher;
->>>>>>> master
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -926,8 +926,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
 
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
-<<<<<<< HEAD
-            
             boolean syncServiceEnabled = isilonApi.isSyncIQEnabled(storageSystem.getFirmwareVersion());
             //Set file replication type for Isilon storage system!!!
             if (syncServiceEnabled) {
@@ -937,11 +935,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             	storageSystem.setSupportedReplicationTypes(supportReplicationTypes);
             }
             
-            
-            List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
-            for (IsilonStoragePool isilonPool : isilonStoragePools) {
-=======
-
             _log.info("Isilon OneFS version: {}", storageSystem.getFirmwareVersion());
             List<? extends IsilonPool> isilonPools = null;
             if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, storageSystem.getFirmwareVersion()) >= 0) {
@@ -953,7 +946,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
             
             for (IsilonPool isilonPool : isilonPools) {
->>>>>>> master
                 // Check if this storage pool was already discovered
             	StoragePool storagePool = null;
                 String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(

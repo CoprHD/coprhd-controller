@@ -241,12 +241,8 @@ public class ImplicitPoolMatcher {
             CoordinatorClient coordinator, String matcherGroupName) {
         List<StoragePool> filterPools = getMatchedPoolWithStoragePools(vpool, pools,
                 VirtualPool.getProtectionSettings(vpool, dbClient),
-<<<<<<< HEAD
                 VirtualPool.getRemoteProtectionSettings(vpool, dbClient),
-                VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator);
-=======
-                VirtualPool.getRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator, matcherGroupName);
->>>>>>> master
+                VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator, matcherGroupName);
         updateInvalidAndMatchedPoolsForVpool(vpool, filterPools, pools, dbClient);
     }
 
@@ -266,7 +262,7 @@ public class ImplicitPoolMatcher {
         if (matcherGroupName == null) {
             matcherGroupName = AttributeMatcher.VPOOL_MATCHERS;
         }
-        _logger.info("Started matching {} pools with {} vpool, matcher group {}", pools.size(), vpool.getId(), matcherGroupName);
+        _logger.info("Started matching pools with {} vpool, matcher group {}", vpool.getId(), matcherGroupName);
         AttributeMapBuilder vpoolMapBuilder = new VirtualPoolAttributeMapBuilder(vpool, protectionVarraySettings,
                 VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap),
                 VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), fileRemoteSettingsMap));

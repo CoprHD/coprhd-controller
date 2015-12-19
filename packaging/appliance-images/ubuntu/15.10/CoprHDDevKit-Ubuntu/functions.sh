@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
 
 function formatDisk
 {
@@ -94,16 +98,16 @@ function createBootstrap
   unsquashfs -f -d ${DIR_MOUNT} ${ISO_MOUNT}/install/filesystem.squashfs
   chroot ${DIR_MOUNT} locale-gen "en_US.UTF-8"
 
-  mkdir -p ${DIR_MOUNT}${ISO_MOUNT}
+  mkdir -p ${DIR_MOUNT}/tmp/iso/${ISO_MOUNT}
   mkdir -p ${DIR_MOUNT}/tmp/archives
-  mount --bind ${ISO_MOUNT} ${DIR_MOUNT}${ISO_MOUNT}
+  mount --bind ${ISO_MOUNT} ${DIR_MOUNT}/tmp/iso/${ISO_MOUNT}
   mount --bind ${APT_MOUNT}/var/cache/apt/archives ${DIR_MOUNT}/tmp/archives
   cp -pr ${WORKSPACE}/templates ${DIR_MOUNT}/tmp/
 
   # UPDATE REPOSITORY
   cat > ${DIR_MOUNT}/etc/apt/sources.list <<EOF
 #
-deb file:${ISO_MOUNT}/ubuntu/ wily main restricted
+deb file:/tmp/iso/${ISO_MOUNT}/ubuntu/ wily main restricted
 deb file:/tmp/archives /
 #deb http://us.archive.ubuntu.com/ubuntu/ wily main restricted universe
 #deb http://download.virtualbox.org/virtualbox/debian wily contrib
@@ -160,7 +164,7 @@ function installPackages
   LOOP_DISK1=$( losetup -f )
   losetup -o $((${SECTOR_SIZE}*${SECTOR_INIT})) ${LOOP_DISK1} ${LOOP_DISK0}
   mount ${LOOP_DISK1} ${DIR_MOUNT}
-  mount --bind ${ISO_MOUNT} ${DIR_MOUNT}${ISO_MOUNT}
+  mount --bind ${ISO_MOUNT} ${DIR_MOUNT}/tmp/iso/${ISO_MOUNT}
   mount --bind ${APT_MOUNT}/var/cache/apt/archives ${DIR_MOUNT}/tmp/archives
   # START MOUNT IMAGE
 
@@ -192,6 +196,8 @@ function installPackages
 
   # END MOUNT IMAGE
   umount -R ${DIR_MOUNT}
+  rm -fr ${DIR_MOUNT}/tmp/iso
+  rm -fr ${DIR_MOUNT}/tmp/archives
   losetup -d ${LOOP_DISK1}
   losetup -d ${LOOP_DISK0}
   # END MOUNT IMAGE
@@ -212,7 +218,7 @@ function installBootloader
   LOOP_DISK1=$( losetup -f )
   losetup -o $((${SECTOR_SIZE}*${SECTOR_INIT})) ${LOOP_DISK1} ${LOOP_DISK0}
   mount ${LOOP_DISK1} ${DIR_MOUNT}
-  mount --bind ${ISO_MOUNT} ${DIR_MOUNT}${ISO_MOUNT}
+  mount --bind ${ISO_MOUNT} ${DIR_MOUNT}/tmp/iso/${ISO_MOUNT}
   # START MOUNT IMAGE
 
   cat > ${DIR_MOUNT}/boot/grub/device.map <<EOF
@@ -262,7 +268,7 @@ function installConfiguration
   LOOP_DISK1=$( losetup -f )
   losetup -o $((${SECTOR_SIZE}*${SECTOR_INIT})) ${LOOP_DISK1} ${LOOP_DISK0}
   mount ${LOOP_DISK1} ${DIR_MOUNT}
-  mount --bind ${ISO_MOUNT} ${DIR_MOUNT}${ISO_MOUNT}
+  mount --bind ${ISO_MOUNT} ${DIR_MOUNT}/tmp/iso/${ISO_MOUNT}
   # START MOUNT IMAGE
 
   cat << EOF | chroot ${DIR_MOUNT} passwd root

@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
 
 workspace=$( pwd )
 cd /tmp/templates
@@ -128,10 +132,6 @@ useradd -r -d /opt/storageos -c "StorageOS" -g 444 -u 444 -s /bin/bash storageos
 
 # COPRHD environment build workarounds:
 cat > /opt/ADG/README.coprhd << EOF
-## /bluemoon share (Brazil only)
-mkdir -p /bluemoon
-mount -o nolock bluemoon.tpa-eld.localdomain:/VAPP /bluemoon
-
 ## The following commands are to setup the environment like SLES:
 ln -fs /bin/sed /usr/bin/sed
 ln -fs /bin/systemctl /usr/bin/systemctl

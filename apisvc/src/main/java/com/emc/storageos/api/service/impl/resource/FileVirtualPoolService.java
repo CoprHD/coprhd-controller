@@ -565,7 +565,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                         // Verify the remote copies given for remote replication!!!
                         if (FileReplicationType.REMOTE.name().equals(replPolicy.getReplicationType())) {
                         	if (copies == null || copies.isEmpty()) {
-                        		throw APIException.badRequests.noReplicationRemoteCopies();
+                        		throw APIException.badRequests.noReplicationRemoteCopies(replPolicy.getReplicationType());
                         	}
                         }
                     } else {
@@ -742,6 +742,22 @@ public class FileVirtualPoolService extends VirtualPoolService {
             }
         }
     }
+    
+    private void deleteRemoteCopies(VirtualPool virtualPool,
+    		FileVirtualPoolProtectionUpdateParam param) {
+    	// Remove all remote copy setttings, if any!!!
+    	StringMap remoteCopySettingsMap = virtualPool.getFileRemoteCopySettings();
+    	if (remoteCopySettingsMap != null && !remoteCopySettingsMap.isEmpty()) {
+    		for (String varray : remoteCopySettingsMap.keySet()) {
+    			String remoteCopySettingsUri = remoteCopySettingsMap.get(varray);
+    			remoteCopySettingsMap.remove(varray);
+    			VpoolRemoteCopyProtectionSettings remoteSettingsObj = _dbClient.queryObject(
+    					VpoolRemoteCopyProtectionSettings.class, URI.create(remoteCopySettingsUri));
+    			remoteSettingsObj.setInactive(true);
+    			_dbClient.updateObject(remoteSettingsObj);
+    		}
+    	}
+    }
 
     private void deleteReplicationParams(VirtualPool virtualPool,
             FileVirtualPoolProtectionUpdateParam param) {
@@ -751,19 +767,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
 		virtualPool.setFrRpoType(null);
 		virtualPool.setFrRpoValue(null);
 		virtualPool.setFileReplicationType(FileReplicationType.NONE.name());
+		// Clear the remote copies!!
+		deleteRemoteCopies(virtualPool, param);
 		
-		// Remove all remote copy setttings, if any!!!
-		StringMap remoteCopySettingsMap = virtualPool.getFileRemoteCopySettings();
-		if (remoteCopySettingsMap != null && !remoteCopySettingsMap.isEmpty()) {
-			for (String varray : remoteCopySettingsMap.keySet()) {
-				String remoteCopySettingsUri = remoteCopySettingsMap.get(varray);
-				remoteCopySettingsMap.remove(varray);
-				VpoolRemoteCopyProtectionSettings remoteSettingsObj = _dbClient.queryObject(
-						VpoolRemoteCopyProtectionSettings.class, URI.create(remoteCopySettingsUri));
-				remoteSettingsObj.setInactive(true);
-				_dbClient.updateObject(remoteSettingsObj);
-			}
-		}
 		_log.info("File Replication setting removed from virtual pool {} ", virtualPool.getLabel());
     }
     private void updateReplicationParams(VirtualPool virtualPool,
@@ -790,6 +796,10 @@ public class FileVirtualPoolService extends VirtualPoolService {
     						throw APIException.badRequests.invalidReplicationType(sourcePolicy.getRemoteCopyMode());
     					}
         				virtualPool.setFileReplicationType(sourcePolicy.getReplicationType());
+        				if (FileReplicationType.LOCAL.name().equalsIgnoreCase(virtualPool.getFileReplicationType())) {
+        					// Clear the remote copies!!
+        					deleteRemoteCopies(virtualPool, param);
+        				}
         			}
         			if (sourcePolicy.getRpoType() != null) {
         				virtualPool.setFrRpoType(sourcePolicy.getRpoType());
@@ -799,8 +809,10 @@ public class FileVirtualPoolService extends VirtualPoolService {
         			}
         		}
         	}
-        	if (param.getReplicationParam().getRemoveRemoteCopies() != null ||
-        			param.getReplicationParam().getAddRemoteCopies() != null) {
+        	// Update the remote copies!!!
+        	if (FileReplicationType.REMOTE.name().equalsIgnoreCase(virtualPool.getFileReplicationType()) &&
+        			(param.getReplicationParam().getRemoveRemoteCopies() != null ||
+        			param.getReplicationParam().getAddRemoteCopies() != null)) {
 
         		StringMap remoteCopySettingsMap = virtualPool.getFileRemoteCopySettings();
         		if (remoteCopySettingsMap == null) {

@@ -137,7 +137,7 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
             			}
             		}
             		if (!storagePools.isEmpty()) {
-            			matchedPools.addAll(storageToPoolsEntry.getValue());
+            			matchedPools.addAll(storagePools);
             		}else {
             			 _logger.info(
                                  "Skipping Pools {}, as the Storage pools are not supported copy type",

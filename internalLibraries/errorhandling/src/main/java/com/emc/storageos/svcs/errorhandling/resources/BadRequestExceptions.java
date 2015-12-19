@@ -1107,7 +1107,7 @@ public interface BadRequestExceptions {
     public BadRequestException invalidReplicationType(String copyMode);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException noReplicationRemoteCopies();
+    public BadRequestException noReplicationRemoteCopies(String replicationType);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException noReplicationTypesSpecified();

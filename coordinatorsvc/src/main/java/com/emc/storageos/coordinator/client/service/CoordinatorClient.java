@@ -227,13 +227,26 @@ public interface CoordinatorClient {
     public InterProcessSemaphoreMutex getSemaphoreLock(String name) throws CoordinatorException;
 
     /**
-     * Retrieves/creates a distributed persistent lock
+     * Retrieves/creates a distributed persistent lock from site-specific area.
+     * This should be the default choice of persistent lock.
+     *
+     * @param name lock name
+     * @return DistributedPersistentLock
+     */
+
+    DistributedPersistentLock getSiteLocalPersistentLock(String name) throws CoordinatorException;
+
+    /**
+     * Retrieves/creates a distributed persistent lock from the global area.
+     * This is primarily used by controllersvc and UpgradeManager to provide backward compatibility.
+     * Use with extreme caution since all the DR sites are sharing this lock and there will be race conditions.
+     * Right now it's probably fine to controllersvc since we don't have controllersvc running on standby sites.
      * 
      * @param name lock name
      * @return DistributedPersistentLock
      */
 
-    public DistributedPersistentLock getPersistentLock(String name) throws CoordinatorException;
+    DistributedPersistentLock getPersistentLock(String name) throws CoordinatorException;
 
     /**
      * Starts coordinator client service. Default implementation attempts to connect

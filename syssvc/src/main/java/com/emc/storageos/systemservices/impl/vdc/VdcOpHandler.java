@@ -179,7 +179,7 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             if (drUtil.isActiveSite()) {
                 log.info("Acquiring lock {} to update default properties of standby", LOCK_ADD_STANDBY);
-                InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_ADD_STANDBY);
+                InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_ADD_STANDBY);
                 lock.acquire();
                 log.info("Acquired lock successfully");
                 try {
@@ -218,8 +218,15 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             flushVdcConfigToLocal();
-            flushNtpConfigToLocal();
-            checkDataRevision();
+            
+            try {
+                flushNtpConfigToLocal();
+                checkDataRevision();
+            } catch (Exception e) {
+                //reset local vdc properties to entery retry loop again. No logs here since VdcManager will print out logs
+                resetLocalVdcConfigVersion();
+                throw e;
+            }
         }
         
         private void checkDataRevision() {
@@ -330,7 +337,7 @@ public abstract class VdcOpHandler {
         }
         
         private void removeDbNodes() throws Exception {
-            InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_REMOVE_STANDBY);
+            InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_REMOVE_STANDBY);
             while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING)) {
                 log.info("Acquiring lock {}", LOCK_REMOVE_STANDBY); 
                 lock.acquire();
@@ -398,7 +405,7 @@ public abstract class VdcOpHandler {
                 return;
             }
 
-            InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_PAUSE_STANDBY);
+            InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_PAUSE_STANDBY);
             while (drUtil.hasSiteInState(SiteState.STANDBY_PAUSING)) {
                 try {
                     log.info("Acquiring lock {}", LOCK_PAUSE_STANDBY);
@@ -439,6 +446,7 @@ public abstract class VdcOpHandler {
                     try {
                         log.info("Releasing lock {}", LOCK_PAUSE_STANDBY);
                         lock.release();
+                        log.info("Released lock {}", LOCK_PAUSE_STANDBY);
                     } catch (Exception e) {
                         log.error("Failed to release lock {}", LOCK_PAUSE_STANDBY);
                     }
@@ -688,7 +696,7 @@ public abstract class VdcOpHandler {
             
             InterProcessLock lock = null;
             try {
-                lock = coordinator.getCoordinatorClient().getLock(LOCK_FAILOVER_REMOVE_OLD_ACTIVE);
+                lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_FAILOVER_REMOVE_OLD_ACTIVE);
                 log.info("Acquiring lock {}", LOCK_FAILOVER_REMOVE_OLD_ACTIVE);
                 
                 lock.acquire();

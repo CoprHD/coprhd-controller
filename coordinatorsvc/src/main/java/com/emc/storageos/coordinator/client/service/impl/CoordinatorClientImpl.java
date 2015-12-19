@@ -921,6 +921,18 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public DistributedPersistentLock getSiteLocalPersistentLock(String lockName) throws CoordinatorException {
+        DistributedPersistentLock lock = new DistributedPersistentLockImpl(_zkConnection,
+                String.format("%s/%s%s", ZkPath.SITES, getSiteId(), ZkPath.PERSISTENTLOCK.toString()), lockName);
+        try {
+            lock.start();
+        } catch (Exception e) {
+            throw CoordinatorException.fatals.unableToGetPersistentLock(lockName, e);
+        }
+        return lock;
+    }
+
+    @Override
     public DistributedPersistentLock getPersistentLock(String lockName) throws CoordinatorException {
         DistributedPersistentLock lock = new DistributedPersistentLockImpl(_zkConnection,
                 ZkPath.PERSISTENTLOCK.toString(), lockName);
@@ -1556,7 +1568,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public String getUpgradeLockOwner(String lockId) {
         try {
-            DistributedPersistentLock lock = getPersistentLock(lockId);
+            DistributedPersistentLock lock = getSiteLocalPersistentLock(lockId);
             if (lock != null) {
                 String lockOwner = lock.getLockOwner();
                 if (lockOwner != null) {

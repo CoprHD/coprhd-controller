@@ -645,7 +645,7 @@ public class LocalRepository {
         try {
             Files.delete(filePath);
         } catch (Exception e) {
-            _log.warn("Failed to delete tmp file");
+            _log.warn("Failed to delete tmp file {}", filePath);
         }
     }
 }

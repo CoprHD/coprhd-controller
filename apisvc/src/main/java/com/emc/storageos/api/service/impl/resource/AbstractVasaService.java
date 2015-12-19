@@ -1,27 +1,14 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.StorageContainer;
-import com.emc.storageos.db.client.model.StorageContainer.ProtocolEndpointTypeEnum;
-import com.emc.storageos.db.client.model.StorageContainer.ProtocolType;
-import com.emc.storageos.db.client.model.StorageContainer.ProvisioningType;
-import com.emc.storageos.db.client.model.StorageContainer.SystemType;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.vasa.StorageContainerRequestParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public abstract class AbstractVasaService extends TaggedResource{

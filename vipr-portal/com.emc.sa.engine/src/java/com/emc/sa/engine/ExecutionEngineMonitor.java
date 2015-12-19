@@ -45,7 +45,9 @@ public class ExecutionEngineMonitor extends SingletonService {
     private ModelClient modelClient;
     private String uniqueId = UUID.randomUUID().toString();
     private DistributedDataManager dataManager;
-
+    @Autowired
+    private OrderCleanupHandler drOrderCleanupHandler;
+    
     private volatile Thread keepAliveThread;
 
     @PostConstruct
@@ -61,6 +63,7 @@ public class ExecutionEngineMonitor extends SingletonService {
         keepAliveThread.setDaemon(true);
         keepAliveThread.start();
 
+        drOrderCleanupHandler.run();
         log.info("Created SA Engine Monitor with ID " + uniqueId);
     }
 

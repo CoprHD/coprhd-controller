@@ -27,15 +27,11 @@ public class StorageAutomatorServiceImpl extends AbstractSecuredWebServer implem
     @Autowired
     private ServiceBeacon serviceBeacon;
     
-    @Autowired
-    private StorageAutomatorOrderCleanupHandler drOrderCleanupHandler;
-    
     @Override
     public void start() throws Exception {
         log.info("Starting sasvc service");
         initValidator();
         initServer();
-        drOrderCleanupHandler.run();
         _server.start();
         serviceBeacon.start();
         log.info("Starting sasvc service done");

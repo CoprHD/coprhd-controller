@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.iwave.platform;
+package com.emc.sa.engine;
 
 
 import java.util.List;
@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.sa.engine.ExecutionEngineMonitor;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler;
 import com.emc.storageos.db.client.model.uimodels.Order;
@@ -21,14 +20,14 @@ import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 /**
  * Dr failover handler for inflight order cleanup. It goes through all EXECUTING orders and kill them. 
  */
-public class StorageAutomatorOrderCleanupHandler extends DrPostFailoverHandler {
-    private static final Logger log = LoggerFactory.getLogger(StorageAutomatorOrderCleanupHandler.class);
+public class OrderCleanupHandler extends DrPostFailoverHandler {
+    private static final Logger log = LoggerFactory.getLogger(OrderCleanupHandler.class);
     @Autowired
     private ModelClient modelClient;
     @Autowired
     private ExecutionEngineMonitor monitor;
     
-    public StorageAutomatorOrderCleanupHandler() {
+    public OrderCleanupHandler() {
     }
     
     @Override

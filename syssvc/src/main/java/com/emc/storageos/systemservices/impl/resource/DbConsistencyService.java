@@ -36,6 +36,11 @@ public class DbConsistencyService {
     private CoordinatorClient coordinator;
     private JobProducer jobProducer;
 
+    /**
+     * Trigger db consistency check
+     * @brief Trigger db consistency check
+     * @return boolean to indicate if start db consistency check successfully or not
+     */
     @POST
     @Path("consistency")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -51,6 +56,11 @@ public class DbConsistencyService {
         return Response.ok().build();
     }
 
+    /**
+     * Get the status of db consistency check
+     * @brief Get the status of db consistency check
+     * @return DbConsistencyStatusRestRep the status of db consistency check
+     */
     @GET
     @Path("consistency")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -61,6 +71,11 @@ public class DbConsistencyService {
         return toStatusRestRep(status);
     }
     
+    /**
+     * Cancel db consistency check if it's in progress
+     * @brief Cancel db consistency check if it's in progress
+     * @return boolean to indicate if db consistency check cancelled or not
+     */
     @POST
     @Path("consistency/cancel")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -94,7 +109,6 @@ public class DbConsistencyService {
     private DbConsistencyStatus getStatusFromZk() {
         return this.coordinator.queryRuntimeState(Constants.DB_CONSISTENCY_STATUS,  DbConsistencyStatus.class);
     }
-    
     
     private void enqueueDbConsistencyJob() {
         DbConsistencyJob job = new DbConsistencyJob();

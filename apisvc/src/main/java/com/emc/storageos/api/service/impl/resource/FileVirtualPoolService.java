@@ -23,7 +23,11 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.model.BulkIdParam;
 
+<<<<<<< HEAD
 import org.apache.commons.lang.StringUtils;
+=======
+import com.emc.storageos.volumecontroller.AttributeMatcher;
+>>>>>>> master
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -190,7 +194,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                 null,
                 VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient),
                 _dbClient,
-                _coordinator);
+                _coordinator, AttributeMatcher.VPOOL_MATCHERS);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
         }

@@ -56,6 +56,9 @@ public interface BadRequestExceptions {
     public BadRequestException cannotCreateVolumeAsConsistencyGroupHasSnapshots(String label, URI id);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotCreateVolumeAsConsistencyGroupHasMirrors(String label, URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeactivateStorageSystem();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -1981,6 +1984,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException updatingCompletedApproval();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException updateApprovalBySameUser(final String name);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidVarrayForVplex(final String vplex, final String varray);
@@ -2429,9 +2435,24 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException migrationCantBeCancelled(String migrationName, String status);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cancelMigrationFailed(String migrationName, String reason);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException migrationHasntStarted(String migrationId);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException siteIdNotFound();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationOnlyAllowedOnSyncedSite(final String siteId, final String siteState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationOnlyAllowedOnPausedSite(final String siteId, final String siteState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationNotAllowedOnActiveSite();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidQuotaRequestForObjectStorage(String type);
@@ -2633,4 +2654,58 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException canNotCanceldbConsistencyCheck();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidSnapshotSessionSource(final String sourceId);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidCopyModeForLinkedTarget(String copyMode);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNewLinkedTargetsCount(int requestedCount, String sourceId, int validCount);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException createSnapSessionNotSupportForSnapshotSource();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException createSnapSessionNotSupportedForRPProtected();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidZeroLinkedTargetsRequested();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionDoesNotHaveAnyTargets(final String snapSessionId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException targetIsNotLinkedToSnapshotSession(final String targetId, final String snapSessionIdd);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionSourceHasActiveMirrors(final String sourceId, final int mirrorCount);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException relinkTargetNotLinkedToActiveSnapshotSession(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException relinkSnapshotSessionsNotOfSameSource();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException relinkTgtSnapshotSessionHasDifferentSource(final String snapSessionSourceId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException canDeactivateSnapshotSessionWithLinkedTargets();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantUnlinkExportedSnapshotSessionTarget(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException maximumNumberVpoolSnapshotsReached(final String sourceId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException maximumNumberSnapshotsForSourceReached(final String sourceId);
+
+    @DeclareServiceCode(ServiceCode.API_UNSUPPORTED_CHANGE)
+    public BadRequestException cannotImportVolumeWithSnapshotSessions(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_UNSUPPORTED_CHANGE)
+    public BadRequestException volumeForRPVpoolChangeHasSnapshotSessions(final String volumeId);
 }

@@ -469,8 +469,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("volumeExport")
     @AssetDependencies("exportedBlockVolume")
     public List<AssetOption> getExportsForExportedVolume(AssetOptionsContext ctx, URI volumeId) {
+        final ViPRCoreClient client = api(ctx);
         Set<NamedRelatedResourceRep> exports = getUniqueExportsForVolume(ctx, volumeId);
-        return createBaseResourceOptions(api(ctx).blockExports().getByRefs(exports));
+        return createExportWithVarrayOptions(client, client.blockExports().getByRefs(exports));
     }
 
     /**
@@ -498,6 +499,32 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             relatedRestReps.add(export.getExport());
         }
         return relatedRestReps;
+    }
+    
+    protected static List<AssetOption> createExportWithVarrayOptions(ViPRCoreClient client,
+            Collection<? extends ExportGroupRestRep> exportObjects) {
+        List<URI> varrayIds = getExportVirtualArrayIds(exportObjects);
+        Map<URI, VirtualArrayRestRep> varrayNames = getVirutalArrayNames(client, varrayIds);
+        List<AssetOption> options = Lists.newArrayList();
+        for (ExportGroupRestRep export : exportObjects) {
+            options.add(createExportWithVarrayOption(export, varrayNames));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    protected static AssetOption createExportWithVarrayOption(ExportGroupRestRep export, Map<URI, VirtualArrayRestRep> varrayNames) {
+        String varrayName = varrayNames.get(export.getVirtualArray().getId()).getName();
+        String label = getMessage("block.unexport.export", export.getName(), varrayName);
+        return new AssetOption(export.getId(), label);
+    }
+    
+    private static List<URI> getExportVirtualArrayIds(Collection<? extends ExportGroupRestRep> exportObjects) {
+        List<URI> varrayIds = Lists.newArrayList();
+        for (ExportGroupRestRep export : exportObjects) {
+            varrayIds.add(export.getVirtualArray().getId());
+        }
+        return varrayIds;
     }
 
     @Asset("unassignedBlockVolume")
@@ -851,18 +878,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     @Asset("blockSnapshotOrConsistencyGroup")
     @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType" })
-    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String type, URI consistencyGroupId) {
-        if (NONE_TYPE.equals(type)) {
+    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, URI consistencyGroupId, String type) {
+        if (isVolumeType(type)) {
             debug("getting blockSnapshots (project=%s)", project);
             return getVolumeSnapshotOptionsForProject(ctx, project);
         } else {
-            if (type == null) {
-                error("Consistency type invalid : %s", type);
+            if (consistencyGroupId == null) {
+                error("Consistency type invalid : %s", consistencyGroupId);
                 return new ArrayList<AssetOption>();
             }
-            URI consistencyGroup = uri(type);
+            URI consistencyGroup = consistencyGroupId;
             if (!BlockProviderUtils.isType(consistencyGroup, BLOCK_CONSISTENCY_GROUP_TYPE)) {
-                error("Consistency Group field is required for Storage Type [%s, %s]", type, consistencyGroupId);
+                error("Consistency Group field is required for Storage Type [%s, %s]", consistencyGroupId, type);
                 return new ArrayList<AssetOption>();
             }
             return getConsistencyGroupSnapshots(ctx, consistencyGroup);

@@ -1,0 +1,21 @@
+%{
+  resourceId = _resource.resourceId;
+  blockConsistencyGroup = _resource.blockConsistencyGroup;
+}%
+#{AffectedResources.resource img: 'Consistency_Group.png', classes: 'blockConsistencyGroup', typeKey: 'affectedResources.blockConsistencyGroup'}
+#{AffectedResources.singleColumn}
+  <dt>&{'affectedResources.blockConsistencyGroup'}:</dt>
+  <dd>#{spaceForNull resourceId/}</dd>
+  #{if blockConsistencyGroup}
+    <dt>&{'affectedResources.blockConsistencyGroup.name'}:</dt>
+    <dd>
+      <a href="@{resources.BlockConsistencyGroups.consistencyGroupDetails(resourceId)}"
+      >#{spaceForNull blockConsistencyGroup?.name/}#{if blockConsistencyGroup.inactive} (&{'affectedResources.inactive'})#{/if}</a>
+    </dd>
+  #{/if}
+  #{else}
+    <dt></dt>
+    <dd>&{'affectedResources.notFound', messages.get('affectedResources.blockConsistencyGroup')}</dd>
+  #{/else}
+#{/AffectedResources.singleColumn}
+#{/AffectedResources.resource}

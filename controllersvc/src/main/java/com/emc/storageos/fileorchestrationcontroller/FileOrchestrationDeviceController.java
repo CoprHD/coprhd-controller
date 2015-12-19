@@ -6,16 +6,10 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.io.Serializable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.Serializable;
-
-
-
-
-
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -28,6 +22,7 @@ import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
+
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -66,6 +61,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 		// Generate the Workflow.
         Workflow workflow = null;
         List<URI> fsUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
+        
         FileCreateWorkflowCompleter completer = new FileCreateWorkflowCompleter(fsUris, taskId, fileDescriptors);
         try {
             // Generate the Workflow.
@@ -77,7 +73,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             // First, call the FileDeviceController to add its methods.
             waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, 
             													fileDescriptors, taskId);
-            //second, call create replication session
+            //second, call create replication link or pair
             waitFor = _fileReplicationDeviceController.addStepsForCreateFileSystems(workflow, waitFor, 
             													fileDescriptors, taskId);
 
@@ -129,7 +125,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 		    		waitFor, fileDescriptors, taskId);
 		
 		
-		     // Next, call the FileDeviceController to add its methods.
+		     // Next, call the FileDeviceController to add its delete methods.
 		     waitFor = _fileDeviceController.addStepsForDeleteFileSystems(workflow, waitFor, fileDescriptors, taskId);
 		  
 		     // Finish up and execute the plan.

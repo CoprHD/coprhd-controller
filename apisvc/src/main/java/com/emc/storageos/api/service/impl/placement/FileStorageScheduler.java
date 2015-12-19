@@ -939,9 +939,10 @@ public class FileStorageScheduler implements Scheduler{
     }
     
     
-    public List<FileShare> prepareFileSystem(FileSystemParam param, String task, TaskList taskList,
+    public List<FileShare> prepareFileSystems(FileSystemParam param, String task, TaskList taskList,
             Project project, VirtualArray varray, VirtualPool vpool, 
             List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
+    	
     	List<FileShare> preparedFileSystems = new ArrayList<>();
     	Iterator<Recommendation> recommendationsIter = recommendations.iterator();
         while (recommendationsIter.hasNext()) {
@@ -954,12 +955,15 @@ public class FileStorageScheduler implements Scheduler{
             if (recommendation.getFileType().toString().equals(
             		FileRecommendation.FileType.FILE_SYSTEM_DATA.toString())) {
             	// Grab the existing volume and task object from the incoming task list
-                FileShare fileShare = getPrecreatedFile(_dbClient, taskList, param.getLabel());
-                
-                //set the recommendation
-                setFileRecommendation(_dbClient, recommendation, fileShare, vpool);
-                preparedFileSystems.add(fileShare);
             	
+                FileShare fileShare = getPrecreatedFile(_dbClient, taskList, param.getLabel());
+                                               
+                //set the recommendation
+                _log.info(String.format( "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
+                	      fileShare.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
+                
+                setFileRecommendation(_dbClient, recommendation, fileShare, vpool, createInactive);
+                preparedFileSystems.add(fileShare);
             	
             } else if (recommendation.getFileType().toString().equals(
             		FileRecommendation.FileType.FILE_SYSTEM_LOCAL_MIRROR.toString())) {
@@ -973,7 +977,7 @@ public class FileStorageScheduler implements Scheduler{
     }
     
     public static void setFileRecommendation(DbClient dbClient, FileRecommendation placement, 
-    							FileShare fileShare, VirtualPool vpool) {
+    							FileShare fileShare, VirtualPool vpool, Boolean createInactive) {
     	StoragePool pool = null;
         if (null != placement.getSourceStoragePool()) {
         	pool = dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
@@ -982,8 +986,14 @@ public class FileStorageScheduler implements Scheduler{
         		fileShare.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
         	}
         }
-
+        
+        //fileShare.setSyncActive(!Boolean.valueOf(createInactive));
+        
         fileShare.setStorageDevice(placement.getSourceStorageSystem());
+        
+        //fixed issue duplicate entries
+        //TBD
+        
         fileShare.setPool(placement.getSourceStoragePool());
         if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
         	fileShare.setStoragePort(placement.getStoragePorts().get(0));
@@ -992,11 +1002,10 @@ public class FileStorageScheduler implements Scheduler{
         if (placement.getvNAS() != null) {
         	fileShare.setVirtualNAS(placement.getvNAS());
         }
-        dbClient.updateObject(fileShare);
-       // set file share id in recommendation
-        placement.setId(fileShare.getId());
-
         
+        dbClient.updateObject(fileShare);
+       // finally set file share id in recommendation
+        placement.setId(fileShare.getId());
     }
     
      

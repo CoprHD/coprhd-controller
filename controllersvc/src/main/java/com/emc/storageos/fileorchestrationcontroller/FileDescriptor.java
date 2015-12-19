@@ -45,15 +45,13 @@ public class FileDescriptor implements Serializable {
         /* ******************************
          * The ordering of these are important for the sortByType() method,
          * be mindful when adding/removing/changing the list.
-         * Especially the RP Values, keep them in sequential order.
-         * ******************************
-         */
-        FILE_DATA(1),               // user's data filesystem
-        FILE_MIRROR(2),             // array level mirror
-        FILE_SNAPSHOT(3),           // array level snapshot
-        FILE_EXISTING_SOURCE(4), // RecoverPoint existing source file
-        FILE_RP_SOURCE(5),          // RecoverPoint source
-        FILE_RP_TARGET(6);          // RecoverPoint target
+        */
+        FILE_DATA(1),                   // user's data filesystem
+        FILE_LOCAL_MIRROR(2),           // array level mirror
+        FILE_SNAPSHOT(3),               // array level snapshot
+        FILE_EXISTING_SOURCE(4),        //  existing source file
+        FILE_MIRROR_SOURCE(5),          // remote mirror source
+        FILE_MIRROR_TARGET(6);          // remote mirror target
 
         private final int order;
         private Type(int order) {
@@ -69,15 +67,15 @@ public class FileDescriptor implements Serializable {
     	VIPR_ONLY
     }
 
-    private Type _type;              // The type of this file
-    private URI _deviceURI;          // Device this file will be created on
-    private URI _fsURI;              // The file id or FileObject id to be created
-    private URI _poolURI;            // The pool id to be used for creation
-    private Long _fileSize;          // Used to separate multi-file create requests
-    private VirtualPoolCapabilityValuesWrapper _capabilitiesValues;  // Non-file-specific RP policy is stored in here
-    private URI _migrationId;        // Reference to the migration object for this file
-    private String _suggestedNativeFsId;
-    private String deleteType;
+    private Type _type;                  // The type of this file
+    private URI _deviceURI;              // Device this file will be created on
+    private URI _fsURI;                  // The file id or FileObject or FileShare id to be created
+    private URI _poolURI;                // The pool id to be used for creation
+    private Long _fileSize;              // Used to separate multi-file create requests
+    private VirtualPoolCapabilityValuesWrapper _capabilitiesValues;  // mirror policy is stored in here
+    private URI _migrationId;            // Reference to the migration object for this file
+    private String _suggestedNativeFsId; //user suggested native id
+    private String deleteType;           //delete type either FULL or VIPR_ONLY
     
     public String getDeleteType() {
 		return deleteType;

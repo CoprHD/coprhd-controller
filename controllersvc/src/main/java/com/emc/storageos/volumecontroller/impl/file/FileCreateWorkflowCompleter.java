@@ -17,9 +17,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.google.common.base.Joiner;
 
 public class FileCreateWorkflowCompleter extends FileWorkflowCompleter{
-	/**
-	 * 
-	 */
+	
 	private static final long serialVersionUID = -494348560407624019L;
 	@XmlTransient
     private List<FileDescriptor> _fileDescriptors = new ArrayList<FileDescriptor>();

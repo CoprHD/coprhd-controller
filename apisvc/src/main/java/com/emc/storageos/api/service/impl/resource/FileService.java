@@ -279,27 +279,19 @@ public class FileService extends TaskResourceService {
         if (!VirtualPool.Type.file.name().equals(cos.getType())) {
             throw APIException.badRequests.virtualPoolNotForFileBlockStorage(VirtualPool.Type.file.name());
         }
-
+        
+        //prepare vpool capability values
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fsSize);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(cos.getSupportedProvisioningType())) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
         }
+        
 
         // verify quota
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, fsSize, "filesystem");
-
-        List<FileRecommendation> placement;
-        placement = _fileScheduler.placeFileShare(neighborhood, cos, capabilities, project);
-        if (placement.isEmpty()) {
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(cos.getId(), neighborhood.getId());
-        }
-
-        // Randomly select a recommended pool
-        Collections.shuffle(placement);
-        FileRecommendation recommendation = placement.get(0);
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
+       
 
         // List the FileSystesm with the label received.
         List<FileShare> objectList = listFileSystemsWithLabelName(param.getLabel(), FileShare.class, null, null);
@@ -313,36 +305,15 @@ public class FileService extends TaskResourceService {
             }
         }
         
-        //add new method to handle task
+        // Find the implementation that services this vpool and fileshare 
         FileServiceApi fileServiceApi = getFileServiceImpl(cos, _dbClient);
         TaskList taskList = createFileTaskList(param, project, tenant, neighborhood, cos, flags, task);
-
-//        FileController controller = getController(FileController.class, system.getSystemType());
-//        FileShare fs = prepareEmptyFileSystem(param, project, tenant, neighborhood, cos, flags, task);
-//
-//        String suggestedNativeFsId = param.getFsId() == null ? "" : param.getFsId();
-//
-//        _log.info(String.format(
-//                "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
-//                fs.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
-//        try {
-//            //controller.createFS(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), fs.getId(),
-//            //        suggestedNativeFsId, task);
-//        	
-//        } catch (InternalException e) {
-//            fs.setInactive(true);
-//            _dbClient.persistObject(fs);
-//
-//            // treating all controller exceptions as internal error for now. controller
-//            // should discriminate between validation problems vs. internal errors
-//            throw e;
-//        }
         
+        // call thread that does the work.
     	CreateFileSystemSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, 
-    			neighborhood, project, cos, tenant, flags, 
-    			capabilities, taskList, task, requestedTypes, param, fileServiceApi, null);
-
-
+    													neighborhood, project, cos, tenant, flags, 
+    													capabilities, taskList, task, requestedTypes, param, fileServiceApi, null);
+    	
         auditOp(OperationTypeEnum.CREATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getLabel(), param.getSize(), neighborhood.getId().toString(),
                 project == null ? null : project.getId().toString());
@@ -384,28 +355,10 @@ public class FileService extends TaskResourceService {
         fs.setTenant(new NamedURI(tenantOrg.getId(), param.getLabel()));
         fs.setVirtualArray(varray.getId());
 
-//        if (null != placement.getSourceStoragePool()) {
-//            pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
-//            if (null != pool) {
-//                fs.setProtocol(new StringSet());
-//                fs.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
-//            }
-//        }
-//
-//        fs.setStorageDevice(placement.getSourceStorageSystem());
-//        fs.setPool(placement.getSourceStoragePool());
-//        if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
-//            fs.setStoragePort(placement.getStoragePorts().get(0));
-//        }
-
         // When a VPool supports "thin" provisioning
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
             fs.setThinlyProvisioned(Boolean.TRUE);
         }
-
-//        if (placement.getvNAS() != null) {
-//            fs.setVirtualNAS(placement.getvNAS());
-//        }
 
         fs.setOpStatus(new OpStatusMap());
         Operation op = new Operation();
@@ -418,6 +371,17 @@ public class FileService extends TaskResourceService {
         return fs;
     }
     
+    /**
+     * A method that pre-creates task and FileShare object to return to the caller of the API.
+     * @param param
+     * @param project - project of the FileShare
+     * @param tenantOrg - tenant of the FileShare
+     * @param varray - varray of the FileShare
+     * @param vpool - vpool of the Fileshare
+     * @param flags -
+     * @param task 
+     * @return
+     */
     TaskList createFileTaskList(FileSystemParam param, Project project, TenantOrg tenantOrg,
             VirtualArray varray, VirtualPool vpool, DataObject.Flag[] flags, String task) {
     	TaskList taskList = new TaskList();

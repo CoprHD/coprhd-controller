@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.placement;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Project;
@@ -44,7 +48,7 @@ public class FilePlacementManager {
         // Select an implementation of the right scheduler
         Scheduler scheduler;
         if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
-            scheduler = storageSchedulers.get("rpfile");
+            scheduler = storageSchedulers.get("mirrorfile");
         } else {
             scheduler = storageSchedulers.get("file");
         }

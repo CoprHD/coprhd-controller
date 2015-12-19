@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.*;
@@ -18,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 
 public class CreateFileSystemSchedulingThread implements Runnable  {
 	static final Logger _log = LoggerFactory.getLogger(CreateFileSystemSchedulingThread.class);
+	
 	private final FileService fileService;
     private VirtualArray varray;
     private Project project;
@@ -31,7 +36,6 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
     private String SuggestedNativeFsId;
     private TenantOrg tenantOrg;
     DataObject.Flag[] flags;
-
 
     public CreateFileSystemSchedulingThread(FileService fileService, VirtualArray varray, Project project,
             VirtualPool vpool,
@@ -58,28 +62,27 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
     }
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
+		_log.info("Starting scheduling/placement thread...");
 		try {
+			// Call out placementManager to get the recommendation for placement.
             List recommendations = this.fileService._filePlacementManager.getRecommendationsForFileCreateRequest(
-                    varray, project, vpool, capabilities);
-
+                    															varray, project, vpool, capabilities);
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+            } else {
+            	// Call out to the respective file service implementation to prepare
+                // and create the fileshares based on the recommendations.
+                fileServiceImpl.createFileSystems(param, project, varray, vpool, tenantOrg, 
+                									flags, recommendations, taskList, task, capabilities);
             }
-
-
-
-            // Call out to the respective file service implementation to prepare
-            // and create the fileshares based on the recommendations.
-            fileServiceImpl.createFileSystems(param, project, varray, vpool, tenantOrg, flags, recommendations, taskList, task, capabilities);
         } catch (Exception ex) {
             for (TaskResourceRep taskObj : taskList.getTaskList()) {
                 if (ex instanceof ServiceCoded) {
                     this.fileService._dbClient.error(FileShare.class, taskObj.getResource().getId(), taskObj.getOpId(), (ServiceCoded) ex);
                 } else {
                     this.fileService._dbClient.error(FileShare.class, taskObj.getResource().getId(), taskObj.getOpId(),
-                            InternalServerErrorException.internalServerErrors
-                                    .unexpectedErrorVolumePlacement(ex));
+                            							InternalServerErrorException.internalServerErrors
+                            							.unexpectedErrorVolumePlacement(ex));
                 }
                 _log.error(ex.getMessage(), ex);
                 taskObj.setMessage(ex.getMessage());
@@ -94,7 +97,7 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
 	}
 	
 	 /**
-     * Static method to execute the API task in the background to create an export group.
+     * Static method to execute the API task in the background 
      *
      * @param fileService file service ("this" from caller)
      * @param executorService executor service that manages the thread pool
@@ -107,7 +110,7 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
      * @param task task ID
      * @param requestedTypes requested types
      * @param param file creation request params
-     * @param fileServiceImpl block service impl to call
+     * @param fileServiceImpl file service impl to call
      */
     
     public static void executeApiTask(FileService fileService, ExecutorService executorService, DbClient dbClient, VirtualArray varray,
@@ -119,8 +122,8 @@ public class CreateFileSystemSchedulingThread implements Runnable  {
                                       FileSystemParam param,
                                       FileServiceApi fileServiceImpl, String suggestedNativeFsId) {
     	CreateFileSystemSchedulingThread schedulingThread = new CreateFileSystemSchedulingThread(
-    			fileService, varray, project, vpool, tenantOrg, flags, capabilities, taskList, task, requestedTypes, param, fileServiceImpl, suggestedNativeFsId);
-        
+    			fileService, varray, project, vpool, tenantOrg, flags, capabilities, taskList, task, 
+    									requestedTypes, param, fileServiceImpl, suggestedNativeFsId);
         try {
             executorService.execute(schedulingThread);
         } catch (Exception e) {

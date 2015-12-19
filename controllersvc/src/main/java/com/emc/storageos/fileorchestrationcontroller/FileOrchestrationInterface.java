@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.fileorchestrationcontroller;
 
-import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.workflow.Workflow;
@@ -29,7 +28,7 @@ public interface FileOrchestrationInterface {
 
     /**
      * Adds the steps necessary for deleting one or more filesystems of a given
-     * technology (Block, RP, VPlex, etc.) to the given Workflow.
+     * technology (syncIQ, replicator, SnapshotMirror etc.) to the given Workflow.
      *
      * @param workflow -- a Workflow
      * @param waitFor -- The String key that should be used in the Workflow.createStep
@@ -46,7 +45,7 @@ public interface FileOrchestrationInterface {
     
     
     /**
-     * Add the necessary steps for expanding filesystems with mixed technology attributes.
+     * Add the necessary steps for expanding filesystems 
      *
      * @param workflow - Workflow being constructed
      * @param waitFor - The String key that should be used for waiting on previous steps in Workflow.createStep
@@ -58,7 +57,5 @@ public interface FileOrchestrationInterface {
     public String addStepsForExpandFileSystems(
             Workflow workflow, String waitFor, java.util.List<FileDescriptor> fileDescriptors, String taskId)
             throws InternalException;
-
-
 
 }

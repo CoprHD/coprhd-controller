@@ -13,7 +13,6 @@ import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
@@ -49,7 +48,7 @@ public abstract class  AbstractFileStorageDevice implements FileStorageDevice,
 	public BiosCommandResult doCreateFS(StorageSystem storage,
 			FileDeviceInputOutput fd) throws ControllerException {
 		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
@@ -63,107 +62,97 @@ public abstract class  AbstractFileStorageDevice implements FileStorageDevice,
 	public BiosCommandResult doDeleteFS(StorageSystem storage,
 			FileDeviceInputOutput fd) throws ControllerException {
 		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult doExport(StorageSystem storage,
 			FileDeviceInputOutput fd, List<FileExport> exportList)
 			throws ControllerException {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult doShare(StorageSystem storage,
 			FileDeviceInputOutput args, SMBFileShare smbFileShare)
 			throws ControllerException {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult doDeleteShare(StorageSystem storage,
 			FileDeviceInputOutput args, SMBFileShare smbFileShare)
 			throws ControllerException {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult doDeleteShares(StorageSystem storage,
 			FileDeviceInputOutput args) throws ControllerException {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult doUnexport(StorageSystem storage,
 			FileDeviceInputOutput fd, List<FileExport> exportList)
 			throws ControllerException {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult doModifyFS(StorageSystem storage,
 			FileDeviceInputOutput fd) throws ControllerException {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult doExpandFS(StorageSystem storage,
 			FileDeviceInputOutput fd) throws ControllerException {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult doSnapshotFS(StorageSystem storage,
 			FileDeviceInputOutput fd) throws ControllerException {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult doRestoreFS(StorageSystem storage,
 			FileDeviceInputOutput fd) throws ControllerException {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult getFSSnapshotList(StorageSystem storage,
 			FileDeviceInputOutput fd, List<String> snapshots)
 			throws ControllerException {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult doDeleteSnapshot(StorageSystem storage,
 			FileDeviceInputOutput fd) throws ControllerException {
 		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public void doConnect(StorageSystem storage) throws ControllerException {
 		// TODO Auto-generated method stub
-
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public void doDisconnect(StorageSystem storage) throws ControllerException {
 		// TODO Auto-generated method stub
-
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult getPhysicalInventory(StorageSystem storage) {
 		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
@@ -171,14 +160,14 @@ public abstract class  AbstractFileStorageDevice implements FileStorageDevice,
 			FileDeviceInputOutput fd, QuotaDirectory qt)
 			throws ControllerException {
 		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult doDeleteQuotaDirectory(StorageSystem storage,
 			FileDeviceInputOutput fd) throws ControllerException {
 		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
@@ -186,49 +175,45 @@ public abstract class  AbstractFileStorageDevice implements FileStorageDevice,
 			FileDeviceInputOutput fd, QuotaDirectory qt)
 			throws ControllerException {
 		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult updateExportRules(StorageSystem storage,
 			FileDeviceInputOutput args) {
 		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult deleteExportRules(StorageSystem storage,
 			FileDeviceInputOutput args) {
 		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult updateShareACLs(StorageSystem storage,
 			FileDeviceInputOutput args) {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult deleteShareACLs(StorageSystem storageObj,
 			FileDeviceInputOutput args) {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult updateNfsACLs(StorageSystem storage,
 			FileDeviceInputOutput args) {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override
 	public BiosCommandResult deleteNfsACLs(StorageSystem storageObj,
 			FileDeviceInputOutput args) {
-		// TODO Auto-generated method stub
-		return null;
+		throw DeviceControllerException.exceptions.operationNotSupported();
 	}
 
 	@Override

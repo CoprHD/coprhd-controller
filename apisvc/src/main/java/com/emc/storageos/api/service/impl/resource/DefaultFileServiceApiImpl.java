@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.List;
@@ -13,7 +17,9 @@ import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor.DeleteType;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -30,34 +36,34 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
     		VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags,
     		List<Recommendation> recommendations, TaskList taskList, String task, 
     		VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+		
 		List<FileShare> fileList = null;
 		List<FileShare> fileShares = new ArrayList<FileShare>();
+		
+		//we should handle error, if we don't have any recommendations.
 		FileRecommendation placement = (FileRecommendation)recommendations.get(0);
 		
-		fileList = _scheduler.prepareFileSystem(param, task, taskList, project, 
-				varray, vpool, recommendations, vpoolCapabilities, false);
 		
-//		_log.info(String.format(
-//                "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
-//                fileShare.getId(), placement.getSourceStoragePool(), placement.getSourceStorageSystem()));
-		
+		fileList = _scheduler.prepareFileSystems(param, task, taskList, project, 
+										varray, vpool, recommendations, vpoolCapabilities, false);
 		
 		fileShares.addAll(fileList);
 		//prepare the file descriptors
-		final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null, false, null, null);
+		String suggestedNativeFsId = param.getFsId() == null ? "" : param.getFsId();
+		final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, suggestedNativeFsId);
 		final FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
 
         try {
-            // Execute the volume creations requests
+            // Execute the fileshare creations requests
             controller.createFileSystems(fileDescriptors, task);
         } catch (InternalException e) {
             _log.error("Controller error when creating filesystems", e);
-            //failVolumeCreateRequest(task, taskList, preparedVolumes, e.getMessage());
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
             throw e;
         } catch (Exception e) {
             _log.error("Controller error when creating filesystems", e);
-            //failVolumeCreateRequest(task, taskList, preparedVolumes, e.getMessage());
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
             throw e;
         }
         return taskList;
@@ -70,9 +76,7 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
     }
     
     private List<FileDescriptor> prepareFileDescriptors(List<FileShare> filesystems, 
-    		VirtualPoolCapabilityValuesWrapper cosCapabilities, String deletionType, 
-    		boolean forceDelete, String suggestedId, String migrationId) {
-    	
+    		VirtualPoolCapabilityValuesWrapper cosCapabilities, String suggestedId) {
     	
         // Build up a list of FileDescriptors based on the fileshares
         final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
@@ -80,11 +84,9 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
             FileDescriptor desc = new FileDescriptor(FileDescriptor.Type.FILE_DATA,
                     filesystem.getStorageDevice(), filesystem.getId(),
                     filesystem.getPool(), filesystem.getCapacity(), cosCapabilities, null, suggestedId);
-            desc.setForceDelete(forceDelete);
-            desc.setDeleteType(deletionType);
+            
             fileDescriptors.add(desc);
         }
-
         return fileDescriptors;
     }
     
@@ -104,6 +106,21 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
         	fileDescriptors.add(fileDescriptor);
         }
         return fileDescriptors;
+    }
+    
+    private void failFileShareCreateRequest(String task, TaskList taskList, List<FileShare> preparedFileShares, String errorMsg) {
+        String errorMessage = String.format("Controller error: %s", errorMsg);
+        for (TaskResourceRep volumeTask : taskList.getTaskList()) {
+            volumeTask.setState(Operation.Status.error.name());
+            volumeTask.setMessage(errorMessage);
+            Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMessage);
+            _dbClient.updateTaskOpStatus(Volume.class, volumeTask.getResource()
+                    .getId(), task, statusUpdate);
+        }
+        for (FileShare fileShare : preparedFileShares) {
+        	fileShare.setInactive(true);
+            _dbClient.persistObject(fileShare);
+        }
     }
 
 }

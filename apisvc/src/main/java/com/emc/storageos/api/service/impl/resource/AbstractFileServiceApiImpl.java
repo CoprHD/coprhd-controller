@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.ArrayList;
@@ -27,8 +31,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-
-
 
 public abstract class AbstractFileServiceApiImpl <T> implements FileServiceApi{
 	private static final Logger s_logger = LoggerFactory.getLogger(AbstractFileServiceApiImpl.class);

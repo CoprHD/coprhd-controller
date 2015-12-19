@@ -4,7 +4,6 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFieldsNoL
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
-import java.util.Set;
 
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.model.CapabilityProfile;
@@ -32,15 +31,21 @@ public class VasaObjectMapper {
         
         to.setType(from.getType());
         to.setDescription(from.getDescription());
-        to.setProtocols(from.getProtocols());
-        to.setProvisioningType(from.getProvisioningType()); 
         
         to.setProtocolEndPointType(from.getProtocolEndPointType());
         to.setMaxVvolSizeMB(from.getMaxVvolSizeMB());
-        to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystem()));
+        if (from.getStorageSystem() != null) {
+            to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystem()));
+        }
         if (from.getVirtualArrays() != null) {
             for (String neighborhood : from.getVirtualArrays()) {
                 to.getVirtualArrays().add(toRelatedResource(ResourceTypeEnum.VARRAY, URI.create(neighborhood)));
+            }
+        }
+        
+        if(from.getVirtualPools() != null) {
+            for(String vPool : from.getVirtualPools()){
+                to.getVpools().add(toRelatedResource(ResourceTypeEnum.VPOOL, URI.create(vPool)));
             }
         }
         

@@ -41,6 +41,7 @@ public abstract class AbstractVasaService extends TaggedResource{
     protected static final String MAXVVOLSIZEMB = "maxVvolSizeMB";
     protected static final String SYSTEM_TYPE = "system_type";
     protected static final String QUOTA_GB = "quotaGB";
+    protected static final String TYPE = "type";
     
     private static Set<String> protocols = new HashSet<String>();
     static {

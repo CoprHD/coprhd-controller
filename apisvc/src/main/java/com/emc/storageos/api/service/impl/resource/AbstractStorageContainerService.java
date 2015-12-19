@@ -7,15 +7,13 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageContainer;
+import com.emc.storageos.db.client.model.StorageContainer.ProtocolEndpointTypeEnum;
+import com.emc.storageos.db.client.model.StorageContainer.Type;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.StorageContainer.ProtocolEndpointTypeEnum;
-import com.emc.storageos.db.client.model.StorageContainer.ProtocolType;
-import com.emc.storageos.db.client.model.StorageContainer.ProvisioningType;
-import com.emc.storageos.db.client.model.StorageContainer.SystemType;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.vasa.StorageContainerRequestParam;
 
@@ -40,6 +38,13 @@ public class AbstractStorageContainerService extends AbstractVasaService{
              storageContainer.setDescription(param.getDescription());
          }
          
+         ArgValidator.checkFieldNotEmpty(param.getType(), TYPE);
+         ArgValidator.checkFieldValueFromEnum(param.getType(), TYPE,
+                 EnumSet.of(Type.geo, Type.physical));
+         if(null != param.getProtocolEndPointType()){
+             storageContainer.setProtocolEndPointType(param.getProtocolEndPointType());
+         }
+         
          ArgValidator.checkFieldNotEmpty(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE);
          ArgValidator.checkFieldValueFromEnum(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE,
                  EnumSet.of(ProtocolEndpointTypeEnum.NFS, ProtocolEndpointTypeEnum.NFS4x, ProtocolEndpointTypeEnum.SCSI));
@@ -49,37 +54,6 @@ public class AbstractStorageContainerService extends AbstractVasaService{
          
          ArgValidator.checkFieldMaximum(param.getMaxVvolSizeMB(), 2000000, MAXVVOLSIZEMB);
          storageContainer.setMaxVvolSizeMB(param.getMaxVvolSizeMB());
-         
-         ArgValidator.checkFieldNotEmpty(param.getSystemType(), SYSTEM_TYPE);
-         ArgValidator.checkFieldValueFromEnum(param.getSystemType(), SYSTEM_TYPE,
-                 EnumSet.of(SystemType.vmax, SystemType.vnxe, SystemType.vnxblock));
-         
-         if (null != param.getSystemType()) {
-             storageContainer.setSystemType(param.getSystemType());
-         }
-         
-         
-         if (null != param.getProtocolType()) {
-             storageContainer.setProtocolType(param.getProtocolType());
-         }
-
-
-         ArgValidator.checkFieldNotEmpty(param.getProvisionType(), PROVISIONING_TYPE);
-         ArgValidator.checkFieldValueFromEnum(param.getProvisionType(), PROVISIONING_TYPE,
-                 EnumSet.of(ProvisioningType.Thick, ProvisioningType.Thin));
-
-         storageContainer.setId(URIUtil.createId(StorageContainer.class));
-         if (null != param.getProvisionType()) {
-             storageContainer.setProvisioningType(param.getProvisionType());
-         }
-         
-         storageContainer.setProtocols(new StringSet());
-
-         // Validate the protocols for not null and non-empty values
-         ArgValidator.checkFieldNotEmpty(param.getProtocols(), PROTOCOLS);
-         // Validate the protocols for type of StorageContianer.
-         validateProtocol(storageContainer.getProtocolType(), param.getProtocols());
-         storageContainer.getProtocols().addAll(param.getProtocols());
          
          //validate and set storage system
          if(param.getStorageSystem() != null){
@@ -99,6 +73,18 @@ public class AbstractStorageContainerService extends AbstractVasaService{
                  VirtualArray varray = _dbClient.queryObject(VirtualArray.class, neighborhoodURI);
                  ArgValidator.checkEntity(varray, neighborhoodURI, isIdEmbeddedInURL(neighborhoodURI));
                  storageContainer.getVirtualArrays().add(neighborhood);
+             }
+         }
+         
+         //validate and set virtual pools
+         if(param.getvPools() != null) {
+             storageContainer.setVirtualPools(new StringSet());
+             for(String vPool : param.getvPools()){
+                 URI vPoolURI = URI.create(vPool);
+                 ArgValidator.checkUri(vPoolURI);
+                 VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, vPoolURI);
+                 ArgValidator.checkEntity(virtualPool, vPoolURI, isIdEmbeddedInURL(vPoolURI));
+                 storageContainer.getVirtualPools().add(vPool);
              }
          }
          

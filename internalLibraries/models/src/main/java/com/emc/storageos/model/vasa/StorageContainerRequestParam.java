@@ -1,7 +1,12 @@
 package com.emc.storageos.model.vasa;
 
+import java.util.Set;
+
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import org.codehaus.jackson.annotate.JsonProperty;
 
 @XmlRootElement(name = "storage_container_create")
 public class StorageContainerRequestParam extends VasaCommonRestRequest{
@@ -12,27 +17,12 @@ public class StorageContainerRequestParam extends VasaCommonRestRequest{
 	private Long maxVvolSizeMB;
 	
 	private String storageSystem;
-    private String systemType;
-
-    /**
-     * The supported system type for the Storage Container
-     * 
-     * @valid NONE
-     * @valid vnxblock (Block)
-     * @valid vmax (Block)
-     * @valid openstack (Block)
-     * @valid vnxfile (File)
-     * @valid isilon (File)
-     * @valid netapp (File)
-     */
-    @XmlElement(name = "system_type")
-    public String getSystemType() {
-        return systemType;
-    }
-
-    public void setSystemType(String systemType) {
-        this.systemType = systemType;
-    }
+	
+	private Set<String> varrays;
+	
+	private Set<String> vPools;
+	
+	private String type;
     
 	@XmlElement(name = "protocolEndPointType")
 	public String getProtocolEndPointType() {
@@ -59,6 +49,46 @@ public class StorageContainerRequestParam extends VasaCommonRestRequest{
 
     public void setStorageSystem(String storageSystem) {
         this.storageSystem = storageSystem;
+    }
+    
+    @XmlElementWrapper(name = "varrays")
+    /**
+     * The virtual arrays for the Storage Container
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "varray")
+    @JsonProperty("varray")
+    public Set<String> getVarrays() {
+        return varrays;
+    }
+
+    public void setVarrays(Set<String> varrays) {
+        this.varrays = varrays;
+    }
+
+    @XmlElementWrapper(name = "vpools")
+    /**
+     * The virtual pools for the Storage Container
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "vpool")
+    @JsonProperty("vpool")
+    public Set<String> getvPools() {
+        return vPools;
+    }
+
+    public void setvPools(Set<String> vPools) {
+        this.vPools = vPools;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
 	

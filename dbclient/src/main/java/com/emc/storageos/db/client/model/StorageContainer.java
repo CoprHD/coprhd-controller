@@ -17,13 +17,7 @@ public class StorageContainer extends DataObjectWithACLs {
     
     private String protocolEndPointType;
     
-    private String provisioningType;
-    
-    private StringSet protocols;
-    
-    private String systemType;
-    
-    private String protocolType;
+    private StringSet virtualPools;
     
     @Name("type")
     public String getType() {
@@ -89,46 +83,16 @@ public class StorageContainer extends DataObjectWithACLs {
         setChanged("protocolEndPointType");
     }
 
-    @Name("provisioningType")
-    public String getProvisioningType() {
-        return provisioningType;
+    @RelationIndex(cf = "RelationIndex", type = VirtualPool.class)
+    @IndexByKey
+    @Name("virtualPools")
+    public StringSet getVirtualPools() {
+        return virtualPools;
     }
 
-    public void setProvisioningType(String provisioningType) {
-        this.provisioningType = provisioningType;
-        setChanged("provisioningType");
-    }
-
-    @Name("protocols")
-    public StringSet getProtocols() {
-        return protocols;
-    }
-
-    public void setProtocols(StringSet protocols) {
-        this.protocols = protocols;
-        setChanged("protocols");
-    }
-
-
-    @Name("systemType")
-    public String getSystemType() {
-        return systemType;
-    }
-
-    public void setSystemType(String systemType) {
-        this.systemType = systemType;
-        setChanged("systemType");
-    }
-
-    
-    @Name("protocolType")
-    public String getProtocolType() {
-        return protocolType;
-    }
-
-    public void setProtocolType(String protocolType) {
-        this.protocolType = protocolType;
-        setChanged("protocolType");
+    public void setVirtualPools(StringSet virtualPools) {
+        this.virtualPools = virtualPools;
+        setChanged("virtualPools");
     }
 
 
@@ -146,17 +110,6 @@ public class StorageContainer extends DataObjectWithACLs {
         }
     }
     
-    public static enum ProvisioningType {
-        NONE, Thin, Thick;
-        public static ProvisioningType lookup(final String name) {
-            for (ProvisioningType value : values()) {
-                if (value.name().equals(name)) {
-                    return value;
-                }
-            }
-            return null;
-        }
-    }
     
     public static enum ProtocolEndpointTypeEnum{
         SCSI, NFS, NFS4x;
@@ -171,31 +124,6 @@ public class StorageContainer extends DataObjectWithACLs {
             return null;
         }
     }
-    
-    public static enum SystemType {
-        NONE, isilon, vnxblock, vnxfile, vmax, netapp, netappc, hds, openstack, vnxe, scaleio, datadomain, xtremio, ibmxiv, ecs;
-        private static final SystemType[] copyOfValues = values();
 
-        public static SystemType lookup(final String name) {
-            for (SystemType value : copyOfValues) {
-                if (value.name().equals(name)) {
-                    return value;
-                }
-            }
-            return null;
-        }
-    }
-    
-    public static enum ProtocolType {
-        file, block;
-        public static ProtocolType lookup(final String name) {
-            for (ProtocolType value : values()) {
-                if (value.name().equals(name)) {
-                    return value;
-                }
-            }
-            return null;
-        }
-    }
     
 }

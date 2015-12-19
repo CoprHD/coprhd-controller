@@ -57,8 +57,7 @@ public class StorageContainerService extends AbstractStorageContainerService {
 
     private StorageContainer prepareStorageContainer(StorageContainerRequestParam param) {
         StorageContainer storageContainer = new StorageContainer();
-        storageContainer.setType(StorageContainer.Type.geo.name());
-        // set common VirtualPool parameters.
+        // set common storage container parameters
         populateCommonStorageContainerCreateParams(storageContainer, param);
         _dbClient.createObject(storageContainer);
         return storageContainer;

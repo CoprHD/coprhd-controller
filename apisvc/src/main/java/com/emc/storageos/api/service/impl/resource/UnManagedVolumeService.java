@@ -464,7 +464,9 @@ public class UnManagedVolumeService extends TaskResourceService {
                             processedUnManagedVolume.getLabel(), "check the logs for more details");
                 }
                 requestContext.getObjectsIngestedByExportProcessing().add(blockObject);
-                if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
+                // If the ingested object is internal, flag an error.  If it's an RP volume, it's exempt from this check.
+                if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) && 
+                        !(blockObject instanceof Volume && ((Volume)blockObject).getRpCopyName() != null)) {
                     StringBuffer taskStatus = requestContext.getTaskStatusMap().get(processedUnManagedVolume.getNativeGuid());
                     String taskMessage = "";
                     if (taskStatus == null) {

@@ -162,22 +162,6 @@ public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {
         }
     }
     
-    public CoordinatorClient getCoordinator() {
-        return coordinator;
-    }
-
-    public void setCoordinator(CoordinatorClient coordinator) {
-        this.coordinator = coordinator;
-    }
-
-    public DrUtil getDrUtil() {
-        return drUtil;
-    }
-
-    public void setDrUtil(DrUtil drUtil) {
-        this.drUtil = drUtil;
-    }
-
     public DbClient getDbClient() {
         return dbClient;
     }

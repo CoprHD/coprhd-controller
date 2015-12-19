@@ -70,12 +70,12 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
         Set<String> remotePoolUris = null;
         ListMultimap<String, URI> remotestorageToPoolMap = null;
         ListMultimap<String, URI> remotestorageTypeMap = ArrayListMultimap.create();
-        Boolean remoteReplication = false;
+        String  replicationType = (String)attributeMap.get(Attributes.file_replication_type.toString());
         String copyMode = SupportedCopyModes.ASYNCHRONOUS.toString();
         if ( attributeMap.get(Attributes.file_replication_copy_mode.toString()) != null) {
         	copyMode = (String)attributeMap.get(Attributes.file_replication_copy_mode.toString());
         }
-       
+        
         if (remoteCopySettings != null && !remoteCopySettings.isEmpty()) {
         	
         	// Get the assigned or matched storage pools of remote virtual pool!!!
@@ -85,7 +85,6 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
             // assigned Pools
             remotestorageToPoolMap = groupStoragePoolsByStorageSystem(remotePoolUris, copyMode);
             _logger.info("Grouped Remote Storage Devices : {}", remotestorageToPoolMap.asMap().keySet());
-            remoteReplication = true;
             
             // Group the remote storage system based on storage device type!!!
             for (Entry<String, Collection<URI>> storageToPoolsEntry : remotestorageToPoolMap
@@ -107,7 +106,7 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
                 continue;
             }
             // In case of remote replication, verify the target copies have valid storage pools.
-            if(remoteReplication) {
+            if(replicationType.equalsIgnoreCase(SupportedFileReplicationTypes.REMOTE.toString())) {
             	// Remote replication!!
             	if (system.getSupportedReplicationTypes().contains(SupportedFileReplicationTypes.REMOTE.toString()) ) {         	
             		// Get the remote pool of storage system same type!!!
@@ -126,18 +125,31 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
                             "Skipping Pools {}, as associated Storage System is not replication supported",
                             Joiner.on("\t").join(storageToPoolsEntry.getValue()));
                 }	
-            }else {
+            }else if (replicationType.equalsIgnoreCase(SupportedFileReplicationTypes.LOCAL.toString())) {
             	// Local replication!!!
+            	Set<StoragePool> storagePools = new HashSet<StoragePool>();
+            	String copyType = getPoolCopyTypeFromCopyModes(copyMode);
             	// Add all the storage pools of storage system which supports local replication!!!
             	if (system.getSupportedReplicationTypes().contains(SupportedFileReplicationTypes.LOCAL.toString())) {
-            		matchedPools.addAll(storageToPoolsEntry.getValue());
-            		// TODO
-            		// Filter the pools which supports copy type!!
+            		for (StoragePool sp: storageToPoolsEntry.getValue()) {
+            			if (sp.getSupportedCopyTypes().contains(copyType)) {
+            				storagePools.add(sp);
+            			}
+            		}
+            		if (!storagePools.isEmpty()) {
+            			matchedPools.addAll(storageToPoolsEntry.getValue());
+            		}else {
+            			 _logger.info(
+                                 "Skipping Pools {}, as the Storage pools are not supported copy type",
+                                 Joiner.on("\t").join(storageToPoolsEntry.getValue()));
+            		}
             	}else {
                     _logger.info(
                             "Skipping Pools {}, as associated Storage System is not replication supported",
                             Joiner.on("\t").join(storageToPoolsEntry.getValue()));
                 }
+            } else {
+            	_logger.info("Invalid replication type given {}",replicationType);
             }
         }
         _logger.info("Pools matching file replication protection Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));

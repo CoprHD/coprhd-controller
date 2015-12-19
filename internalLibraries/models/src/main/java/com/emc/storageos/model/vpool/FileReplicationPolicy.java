@@ -16,10 +16,12 @@ public class FileReplicationPolicy {
     public FileReplicationPolicy() {
     }
 
-    public FileReplicationPolicy(String remoteCopyMode, Long rpoValue, String rpoType) {
+    public FileReplicationPolicy(String remoteCopyMode, Long rpoValue,
+    		String rpoType, String replicationType) {
         this.remoteCopyMode = remoteCopyMode;
         this.rpoValue = rpoValue;
         this.rpoType = rpoType;
+        this.replicationType = replicationType;
     }
 
     /**

@@ -120,7 +120,7 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
         putAttributeInMap(Attributes.long_term_retention_policy.toString(), _vpool.getLongTermRetention());
         
         if (_vpool.getFileReplicationType() != null &&
-        		FileReplicationType.NONE.name().equalsIgnoreCase(_vpool.getFileReplicationType())) {
+        		!FileReplicationType.NONE.name().equalsIgnoreCase(_vpool.getFileReplicationType())) {
         	
         	putAttributeInMap(Attributes.file_replication_type.toString(), _vpool.getFileReplicationType());
         	if (_vpool.getFileReplicationCopyMode() != null) {

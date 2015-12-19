@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.StorageSystem.SupportedFileReplicationTypes;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyModes;
@@ -549,9 +550,27 @@ public class FileVirtualPoolService extends VirtualPoolService {
             }
             if (param.getProtection().getReplicationParam() != null ) {
             	String copyMode = CopyModes.ASYNCHRONOUS.name();
+            	Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = 
+            			param.getProtection().getReplicationParam().getCopies();
+            	
             	FileReplicationPolicy replPolicy = 
             			param.getProtection().getReplicationParam().getSourcePolicy();
             	if ( replPolicy != null) {
+            		if (null != replPolicy.getReplicationType()) {
+            			//SupportedFileReplicationTypes.LOCAL.toString()
+                        if (!FileReplicationType.lookup(replPolicy.getReplicationType())) {
+                            throw APIException.badRequests.invalidReplicationType(replPolicy.getReplicationType());
+                        }
+                        vPool.setFileReplicationType(replPolicy.getReplicationType());
+                        // Verify the remote copies given for remote replication!!!
+                        if (FileReplicationType.REMOTE.name().equals(replPolicy.getReplicationType())) {
+                        	if (copies == null || copies.isEmpty()) {
+                        		throw APIException.badRequests.noReplicationRemoteCopies();
+                        	}
+                        }
+                    } else {
+                    	throw APIException.badRequests.noReplicationTypesSpecified();
+                    }
             		if (null != replPolicy.getRemoteCopyMode()) {
                         if (!CopyModes.lookup(replPolicy.getRemoteCopyMode())) {
                             throw APIException.badRequests.invalidCopyMode(replPolicy.getRemoteCopyMode());
@@ -564,13 +583,11 @@ public class FileVirtualPoolService extends VirtualPoolService {
                     }
             		if (null != replPolicy.getRpoType()) {
                         vPool.setFrRpoType(replPolicy.getRpoType());
-                    }
-            		vPool.setFileReplicationType(FileReplicationType.LOCAL.name());
+                    }           		
             	}
             	
-            	Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = 
-            			param.getProtection().getReplicationParam().getCopies();
-            	if( copies != null & !copies.isEmpty()) {
+            	if( FileReplicationType.REMOTE.name().equals(vPool.getFileReplicationType()) && 
+            			copies != null && !copies.isEmpty()) {
             		// Create a Map with remote copies 
             		StringMap remoteCopiesMap = new StringMap();
             		for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteCopy : copies) {
@@ -766,7 +783,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
         				if (!CopyModes.lookup(sourcePolicy.getRemoteCopyMode())) {
     						throw APIException.badRequests.invalidCopyMode(sourcePolicy.getRemoteCopyMode());
     					}
-        				virtualPool.setReplicationCopyMode(sourcePolicy.getRemoteCopyMode());
+        				virtualPool.setFileReplicationCopyMode(sourcePolicy.getRemoteCopyMode());
         			}
         			if (sourcePolicy.getReplicationType() != null) {
         				if (!FileReplicationType.lookup(sourcePolicy.getReplicationType())) {

@@ -241,7 +241,7 @@ public class UpgradeManager extends AbstractManager {
                 DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
                 // for standby site, check if the active site is stable and the local site is STANDBY_SYNCED
                 if (drUtil.isStandby()) {
-                    if (!coordinator.isActiveSiteStable()) {
+                    if (!coordinator.isActiveSiteHeathy()) {
                         log.info("current site is standby and active site is not stable, sleep 1m and try again");
                         sleep(STANDBY_UPGRADE_RETRY_INTERVAL);
                         continue;

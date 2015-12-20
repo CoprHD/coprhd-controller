@@ -15,6 +15,12 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
 
+/**
+ * 
+ * In object virtual pool, select storage pools that are spread across data centers(VDC)
+ * specified in the vpool. Include all pools which have datacenter >= minDatacenters specified 
+ *
+ */
 public class MinDataCenterMatcher extends AttributeMatcher {
     private static final Logger _logger = LoggerFactory.getLogger(MinDataCenterMatcher.class);
     
@@ -42,7 +48,7 @@ public class MinDataCenterMatcher extends AttributeMatcher {
             	allPools.remove(pool);
             }
         }
-        _logger.info("Pools Matching Minimum Data Centers Started {}, {}", minDataCenters,
+        _logger.info("Pools Matching Minimum Data Centers Ended {}, {}", minDataCenters,
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         return filteredPoolList;
 	}

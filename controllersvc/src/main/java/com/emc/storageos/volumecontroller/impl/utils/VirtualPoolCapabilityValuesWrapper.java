@@ -36,6 +36,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String ADD_JOURNAL_CAPACITY = "add_journal_capacity";
     public static final String RP_COPY_TYPE = "rp_copy_type";
     public static final String RP_MAX_SNAPS = "rp_max_snaps";
+    public static final String QUOTA = "quota";
     
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";

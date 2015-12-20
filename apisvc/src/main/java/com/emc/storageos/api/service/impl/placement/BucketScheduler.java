@@ -76,7 +76,7 @@ public class BucketScheduler {
     }
 
     /**
-     * Select the right StorageHADomain matching vpool protocols.
+     * Select the right matching storage pools
      * 
      * @param vpool
      * @param poolRecommends recommendations after selecting matching storage pools.

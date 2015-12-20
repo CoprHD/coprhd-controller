@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Initiator;
@@ -97,6 +98,10 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator {
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockRecoverPointIngestOrchestrator.class);
+
+    // We want to allow customers to inventory-only delete volumes of volumes whose CG isn't fully ingested yet.
+    private static final DataObject.Flag[] RP_INTERNAL_VOLUME_FLAGS = new DataObject.Flag[] { Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE, 
+            Flag.NO_METERING };
 
     // The ingest strategy factory, used for ingesting the volumes using the appropriate orchestrator (VPLEX, block, etc)
     private IngestStrategyFactory ingestStrategyFactory;
@@ -224,7 +229,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 _logger.info(
                         "Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
                         unManagedVolume.getNativeGuid());
-                volume.addInternalFlags(INTERNAL_VOLUME_FLAGS);
+                volume.addInternalFlags(RP_INTERNAL_VOLUME_FLAGS);
             }
         }
 
@@ -270,7 +275,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         String rpInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);
 
-        volume.addInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS); // Add internal flags
+        volume.addInternalFlags(RP_INTERNAL_VOLUME_FLAGS); // Add internal flags
         volume.setRpCopyName(rpCopyName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setRSetName(rpRSetName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setInternalSiteName(rpInternalSiteName); // This comes from UNMANAGED_CG discovery of Protection System
@@ -494,7 +499,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // Set references to protection set/CGs properly in each volume
             volume.setConsistencyGroup(cg.getId());
             volume.setProtectionSet(new NamedURI(pset.getId(), pset.getLabel()));
-            volume.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+            volume.clearInternalFlags(RP_INTERNAL_VOLUME_FLAGS);
             _logger.info("Updating volume " + volume.getLabel() + " flags/settings");
 
             // For sources and targets, peg an RP journal volume to be associated with each.

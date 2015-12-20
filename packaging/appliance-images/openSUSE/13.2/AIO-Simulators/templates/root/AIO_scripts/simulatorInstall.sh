@@ -168,7 +168,7 @@ cp -r rp-*/* /data/simulators/rp-sim/
 sed -i "s/\(^\|#\)*NUM_CLUSTERS=.*/NUM_CLUSTERS=2/" /data/simulators/rp-sim/rp_config.properties
 
 rm -r rp-*
-rm rp-simulators-*.zip
+rm -f rp-simulators-*.zip
 
 					#############################
 					# VPLEX                     #
@@ -189,7 +189,7 @@ cp -r vplex-*/* /data/simulators/vplex-sim_2/
 mv /data/simulators/vplex-sim_2/vplex-simulators-*.jar /data/simulators/vplex-sim_2/vplex-simulators2-$VERSION
 ./bin/setupSim --setup-default
 rm -r vplex-*
-rm vplex-simulators-*.zip
+rm -f vplex-simulators-*.zip
 
 					#############################
 					# WINDOWS                   #
@@ -222,7 +222,7 @@ cp -r xio-*/* /data/simulators/xio/
 cp -r xio-*/* /data/simulators/xio_2/
 mv /data/simulators/xio_2/xio-simulators-*.jar /data/simulators/xio_2/xio-simulators2-$VERSION 
 rm -r xio-*
-rm xio-simulators-*.zip
+rm -f xio-simulators-*.zip
 
 #####################################################################
 # Install update scripts                                            #

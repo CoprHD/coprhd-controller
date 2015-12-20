@@ -710,7 +710,7 @@ public abstract class VdcOpHandler {
                 }
 
                 poweroffRemoteSite(oldActiveSite);    
-                removeDbNodesFromGossip(oldActiveSite);
+                removeDbNodesFromGossip(oldActiveSite, true);
                 removeDbNodesFromStrategyOptions(oldActiveSite);
                 drUtil.removeSiteConfiguration(oldActiveSite);
             } catch (Exception e) {

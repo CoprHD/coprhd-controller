@@ -148,7 +148,8 @@ public interface Constants {
     public static final String ZK_SERVER_CONFIG_PREFIX= "server.";
     public static final String STANDBY_PROPERTY_REGEX=".*standby\\d_network_\\d_ipaddr6?";
     
-    public static final String SWITCHOVER_BARRIER = "switchoverBarrier";
+    public static final String SWITCHOVER_BARRIER_ACTIVE_SITE = "switchoverBarrierActiveSite";
+    public static final String SWITCHOVER_BARRIER_STANDBY_SITE = "switchoverBarrierStandbySite";
     public static final String FAILOVER_BARRIER = "failoverBarrier";
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
     public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";

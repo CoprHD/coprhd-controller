@@ -1561,7 +1561,7 @@ public class CoordinatorClientExt {
      */
     public boolean isActiveSiteStable() {
         DrUtil drUtil = new DrUtil(_coordinator);
-        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getSiteIdInActiveState());
 
         // Check alive coordinatorsvc on active site
         Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();

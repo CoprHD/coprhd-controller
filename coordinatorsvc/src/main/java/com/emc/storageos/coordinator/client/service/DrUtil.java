@@ -125,6 +125,15 @@ public class DrUtil {
     public String getActiveSiteId() {
         return getActiveSiteId(getLocalVdcShortId());
     }
+    
+    /**
+     * Get site id working as active site current vdc
+     * 
+     * @return
+     */
+    public String getSiteIdInActiveState() {
+        return getSiteIdInActiveState(getLocalVdcShortId());
+    }
 
     /**
      * Get active site in a specific vdc
@@ -133,6 +142,22 @@ public class DrUtil {
      * @return uuid of the active site
      */
     public String getActiveSiteId(String vdcShortId) {
+        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
+        for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
+            Site site = new Site(siteConfig);
+            if (site.getState().equals(SiteState.ACTIVE)) {
+                return site.getUuid();
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Get site id working as active site specified vdc
+     * @param vdcShortId
+     * @return
+     */
+    public String getSiteIdInActiveState(String vdcShortId) {
         String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
         for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
             Site site = new Site(siteConfig);

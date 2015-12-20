@@ -99,20 +99,7 @@ public class VdcConfigUtil {
     }
 
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
-        String activeSiteId = drUtil.getActiveSiteId(vdcShortId);
-        if (activeSiteId == null) {
-            List<Site> failingOverTargetSite = drUtil.listSitesInState(vdcShortId, SiteState.STANDBY_FAILING_OVER);
-            if (!failingOverTargetSite.isEmpty()) {
-                activeSiteId = failingOverTargetSite.iterator().next().getUuid();
-                log.info("Found failover target site {} of vdc {}", activeSiteId, vdcShortId);
-            } else {
-                List<Site> switchOverTargetSite = drUtil.listSitesInState(vdcShortId, SiteState.STANDBY_SWITCHING_OVER);
-                if (!switchOverTargetSite.isEmpty()) {
-                    activeSiteId = switchOverTargetSite.iterator().next().getUuid();
-                    log.info("Found switchover target site {} of vdc {}", activeSiteId, vdcShortId);
-                }
-            }
-        }
+        String activeSiteId = drUtil.getSiteIdInActiveState(vdcShortId);
         
         Collections.sort(sites, new Comparator<Site>() {
             @Override

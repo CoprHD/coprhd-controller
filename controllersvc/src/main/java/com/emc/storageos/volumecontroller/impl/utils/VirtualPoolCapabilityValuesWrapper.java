@@ -282,6 +282,6 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     
     public long getQuota() {
         Object value = _vpoolCapabilities.get(QUOTA);
-        return value != null ? (Long) value : 0L;
+        return value != null ? (Long) value : null;
     }
 }

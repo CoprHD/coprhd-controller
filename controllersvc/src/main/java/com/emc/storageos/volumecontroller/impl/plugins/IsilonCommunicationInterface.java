@@ -845,7 +845,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         	 * Smart connect zones are dissociated with this access zone.
         	 * So mark this access zone as not visible.
         	 */
-        	_log.info("Setting discovery status of vnas {} as NOTVISIBLE", virtualNAS.getNasName());
+        	_log.info("Setting discovery status of vnas {} as NOTVISIBLE", nasServer.getNasName());
         	nasServer.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
         	nasServer.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
         }

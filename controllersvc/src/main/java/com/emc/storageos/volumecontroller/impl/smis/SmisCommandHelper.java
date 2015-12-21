@@ -6841,13 +6841,8 @@ public class SmisCommandHelper implements SmisConstants {
      * @param steTargetSupplier Whether or not the TargetElementSupplier should also be specified.
      */
     @SuppressWarnings("rawtypes")
-<<<<<<< HEAD
     public CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, String elementName,
-            int desiredValue) {
-=======
-    public CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, final String elementName,
             int desiredValue, Boolean setTargetSupplier) {
->>>>>>> master
         CIMInstance modifiedInstance = null;
         // only for vmax, otherwise, return null
         if (!storageSystem.deviceIsType(Type.vmax)) {

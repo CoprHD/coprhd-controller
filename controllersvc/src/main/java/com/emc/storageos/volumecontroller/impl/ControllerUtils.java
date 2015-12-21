@@ -1321,18 +1321,6 @@ public class ControllerUtils {
         return error;
     }
 
-
-    /**
-     * Check back end cg created on array or not for the given volume
-     * 
-     * @param volume
-     * @return
-     */
-    public static boolean checkCGCreatedOnBackEndArray(Volume volume) {
-
-        return (volume != null && StringUtils.isNotBlank(volume.getReplicationGroupInstance()));
-    }
-
     /*
      * Check CG contains all and only volumes provided
      *

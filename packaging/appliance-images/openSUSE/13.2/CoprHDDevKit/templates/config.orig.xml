@@ -152,6 +152,10 @@
         <package name="python-gpgme"/>
         <package name="yum"/>
         <package name="keepalived"/>
+        <package name="strongswan"/>
+        <package name="strongswan-ipsec"/>
+        <package name="strongswan-libs0"/>
+        <package name="SuSEfirewall2"/>
         <!-- archives to build source -->
         <archive name="nginx-1.6.2.tar.gz"/>
         <archive name="v0.3.0.tar.gz"/>

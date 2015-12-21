@@ -41,11 +41,13 @@ import com.emc.sa.util.StringComparator;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
+import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
@@ -425,6 +427,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getTargetVirtualPools(AssetOptionsContext ctx, URI volumeId, String vpoolChangeOperation) {
         List<VirtualPoolChangeRep> vpoolChanges = api(ctx).blockVolumes().listVirtualPoolChangeCandidates(volumeId);
         return createVpoolChangeOptions(vpoolChangeOperation, vpoolChanges);
+    }
+
+    @Asset("targetVirtualPool")
+    public List<AssetOption> getTargetVirtualPools(AssetOptionsContext ctx) {
+        return this.createBaseResourceOptions(api(ctx).blockVpools().getAll());
     }
 
     @Asset("targetVirtualPool")
@@ -1560,6 +1567,22 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         } else {
             return getConsistencyGroupFullCopies(ctx, volumeId);
         }
+    }
+
+    @Asset("mobilityGroup")
+    public List<AssetOption> getMobilityGroups(AssetOptionsContext ctx) {
+        final ViPRCoreClient client = api(ctx);
+        List<VolumeGroupRestRep> volumeGroups = client.application().getApplications(new DefaultResourceFilter<VolumeGroupRestRep>() {
+            @Override
+            public boolean accept(VolumeGroupRestRep volumeGroup) {
+                if (volumeGroup.getRoles() != null && volumeGroup.getRoles().contains(VolumeGroup.VolumeGroupRole.MOBILITY)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        });
+        return createBaseResourceOptions(volumeGroups);
     }
 
     class VirtualPoolFilter extends DefaultResourceFilter<VolumeRestRep> {

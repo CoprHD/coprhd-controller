@@ -1,0 +1,17 @@
+{
+  baseKey:"VolumeMigration.Migration",
+  serviceId:"VolumeMigration",
+  fields:{
+    mobilityGroup:{
+      type:"assetType.vipr.mobilityGroup"
+    },
+    
+    targetVirtualPool:{
+      type:"assetType.vipr.migrationTargetVirtualPool"
+    },
+    
+    targetStorageSystem:{
+      type:"assetType.vipr.blockStorageSystem"
+    }
+  }
+}

@@ -429,7 +429,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createVpoolChangeOptions(vpoolChangeOperation, vpoolChanges);
     }
 
-    @Asset("targetVirtualPool")
+    @Asset("migrationTargetVirtualPool")
     public List<AssetOption> getTargetVirtualPools(AssetOptionsContext ctx) {
         return this.createBaseResourceOptions(api(ctx).blockVpools().getAll());
     }

@@ -943,14 +943,6 @@ public class StorageSystems extends ViprResourceController {
                 Validation.required(fieldName + ".smisProviderIpAddress", this.smisProviderIpAddress);
                 Validation.required(fieldName + ".smisProviderPortNumber", this.smisProviderPortNumber);
             }
-            if (isIsilon()) {
-                if (!supportsSoftLimit) {
-                    Validation.addError(fieldName + ".supportsSoftLimit", MessagesUtils.get("storageArray.softLimit.support.required"));
-                }
-                if (!supportsNotificationLimit) {
-                    Validation.addError(fieldName + ".supportsNotificationLimit", MessagesUtils.get("storageArray.supportsNotificationLimit.support.required"));
-                }
-            }
         }
 
         private boolean isMatchingPasswords(String password, String confirm) {

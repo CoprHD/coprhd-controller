@@ -6,11 +6,14 @@ package controllers.arrays;
 
 import static controllers.Common.flashException;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
 
 import models.datatable.ApplicationSupportDataTable;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+
 import org.apache.commons.lang.StringUtils;
 
 import play.data.binding.As;
@@ -44,6 +47,7 @@ public class ApplicationSupport extends Controller {
     
     protected static final String SAVED_SUCCESS = "application.save.success";
     protected static final String UNKNOWN = "Applications.unknown";
+    protected static final Set<String> ROLE = new HashSet(Arrays.asList(new String[] {"COPY"}));
     
     public static void list() {
         ApplicationSupportDataTable dataTable = new ApplicationSupportDataTable();
@@ -56,7 +60,6 @@ public class ApplicationSupport extends Controller {
     }
     
     public static void create() {
-        renderArgs.put("roleOptions",StringOption.options(new String[] { "COPY", "DR", "MOBILITY"}));
         render();
     }
 
@@ -77,7 +80,6 @@ public class ApplicationSupport extends Controller {
     }
     
     private static void edit(ApplicationForm applicationForm) {
-        renderArgs.put("roleOptions",StringOption.options(new String[] { "COPY", "DR", "MOBILITY"}));
         render("@create",applicationForm);
     }
 
@@ -156,7 +158,7 @@ public class ApplicationSupport extends Controller {
 
         public void save() throws ViPRException {
             if (isNew()) {
-                AppSupportUtil.createApplication(name, description, roles);
+                AppSupportUtil.createApplication(name, description, ROLE);
             } else {
                 VolumeGroupRestRep oldApplication = AppSupportUtil.getApplication(id);
                 if(oldApplication.getName().equals(name)) {

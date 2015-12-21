@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
 import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
@@ -39,7 +40,8 @@ public abstract class SmisBlockMirrorJob extends SmisReplicaCreationJobs {
         }
 
         mirror.setSynchronizedInstance(syncInstance.getObjectPath().toString());
-        mirror.setSyncState(CIMPropertyFactory.getPropertyValue(syncInstance, SmisConstants.CP_SYNC_STATE));
+        mirror.setSyncState(SynchronizationState.fromState(CIMPropertyFactory.getPropertyValue(syncInstance, SmisConstants.CP_SYNC_STATE))
+                .name());
         mirror.setSyncType(CIMPropertyFactory.getPropertyValue(syncInstance, SmisConstants.CP_SYNC_TYPE));
     }
 

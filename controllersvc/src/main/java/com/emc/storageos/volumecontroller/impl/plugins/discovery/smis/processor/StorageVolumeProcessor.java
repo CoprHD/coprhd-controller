@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -213,7 +214,8 @@ public class StorageVolumeProcessor extends StorageProcessor {
             mirror.setAllocatedCapacity(Long.parseLong(spaceConsumed));
         }
         if (null != syncObject) {
-            mirror.setSyncState(CIMPropertyFactory.getPropertyValue(syncObject, SmisConstants.CP_SYNC_STATE));
+            mirror.setSyncState(
+                    SynchronizationState.fromState(CIMPropertyFactory.getPropertyValue(syncObject, SmisConstants.CP_SYNC_STATE)).name());
         }
 
         mirror.setProvisionedCapacity(returnProvisionedCapacity(volumeInstance,

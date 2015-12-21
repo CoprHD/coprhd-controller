@@ -26,7 +26,6 @@ import java.util.Map;
 import javax.xml.bind.DataBindingException;
 
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -2615,7 +2614,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (!isCG) {
                 for (BlockMirror blockMirror : mirrorList) {
-                    if (SynchronizationState.FRACTURED.toString().equals(blockMirror.getSyncState())) {
+                    if (SynchronizationState.FRACTURED.name().equals(blockMirror.getSyncState())) {
                         workflow.createStep("resumeStep", "resume", null, storage, storageObj.getSystemType(),
                                 this.getClass(), resumeNativeContinuousCopyMethod(storage, asList(blockMirror.getId()), isCG), null, null);
                     }
@@ -2643,7 +2642,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     // Any of mirrors in Fractured state will return true
     private boolean hasFracturedState(List<BlockMirror> mirrorList) {
         for (BlockMirror mirror : mirrorList) {
-            if (SynchronizationState.FRACTURED.toString().equals(mirror.getSyncState())) {
+            if (SynchronizationState.FRACTURED.name().equals(mirror.getSyncState())) {
                 return true;
             }
         }
@@ -3849,8 +3848,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             try {
                 boolean hasPausableMirror = mirror != null &&
                         mirror.getInactive() == false &&
-                        !SynchronizationState.FRACTURED.toString().equals(mirror.getSyncState()) &&
-                        !SynchronizationState.RESYNCHRONIZING.toString().equals(mirror.getSyncState());
+                        !SynchronizationState.FRACTURED.name().equals(mirror.getSyncState()) &&
+                        !SynchronizationState.RESYNCHRONIZING.name().equals(mirror.getSyncState());
                 if (hasPausableMirror) { // will continue to look up if it is false
                     return hasPausableMirror;
                 }

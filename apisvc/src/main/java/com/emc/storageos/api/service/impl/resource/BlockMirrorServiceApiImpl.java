@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +35,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -45,6 +44,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -671,17 +671,17 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     private boolean mirrorIsPausable(BlockMirror mirror) {
         return mirror.getInactive() == false &&
-                !SynchronizationState.FRACTURED.toString().equals(mirror.getSyncState());
+                !SynchronizationState.FRACTURED.name().equals(mirror.getSyncState());
     }
 
     private boolean mirrorIsResumable(BlockMirror mirror) {
         return !mirror.getInactive() &&
-                SynchronizationState.FRACTURED.toString().equals(mirror.getSyncState());
+                SynchronizationState.FRACTURED.name().equals(mirror.getSyncState());
     }
 
     private boolean mirrorIsResynchronizing(BlockMirror mirror) {
         return !mirror.getInactive() &&
-                SynchronizationState.RESYNCHRONIZING.toString().equals(mirror.getSyncState());
+                SynchronizationState.RESYNCHRONIZING.name().equals(mirror.getSyncState());
     }
 
     /**

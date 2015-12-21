@@ -17,7 +17,6 @@ import javax.cim.UnsignedInteger32;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +25,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -101,7 +101,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                         storage.getId(), !createInactive, taskCompleter)));
                 // Resynchronizing state applies to the initial copy as well as future
                 // re-synchronization's.
-                mirrorObj.setSyncState(SynchronizationState.RESYNCHRONIZING.toString());
+                mirrorObj.setSyncState(SynchronizationState.RESYNCHRONIZING.name());
                 _dbClient.persistObject(mirrorObj);
             }
         } catch (final InternalException e) {
@@ -185,7 +185,9 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                 } else {
                     CIMInstance syncObject = _helper.getInstance(storage, storageSync, false, false,
                             new String[] { SmisConstants.CP_SYNC_STATE });
-                    mirrorObj.setSyncState(CIMPropertyFactory.getPropertyValue(syncObject, SmisConstants.CP_SYNC_STATE));
+                    mirrorObj.setSyncState(
+                            SynchronizationState.fromState(CIMPropertyFactory.getPropertyValue(syncObject, SmisConstants.CP_SYNC_STATE))
+                                    .name());
                     _dbClient.persistObject(mirrorObj);
                     taskCompleter.ready(_dbClient);
                 }

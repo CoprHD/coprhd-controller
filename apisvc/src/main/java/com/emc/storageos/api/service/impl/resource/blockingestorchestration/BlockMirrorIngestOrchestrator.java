@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -102,7 +104,12 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         mirror.setSynchronizedInstance(syncInstance);
         String syncState = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.SYNC_STATE.toString(), unManagedVolume.getVolumeInformation());
-        mirror.setSyncState(syncState);
+        if (StringUtils.isAlpha(syncState)) {
+            mirror.setSyncState(syncState);
+        } else {
+            mirror.setSyncState(SynchronizationState.fromState(syncState).name());
+        }
+
         String syncType = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.SYNC_TYPE.toString(), unManagedVolume.getVolumeInformation());
         mirror.setSyncType(syncType);

@@ -728,10 +728,8 @@ public class SRDFOperations implements SmisConstants {
 
     public void createListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
         try {
-            List<Volume> sourceVolumes = dbClient.queryObject(Volume.class, sources);
-            List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targets);
 
-            Volume firstTarget = targetVolumes.get(0);
+            Volume firstTarget = dbClient.queryObject(Volume.class, targets.get(0));
             RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, firstTarget.getSrdfGroup());
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, firstTarget.getStorageController());
             int modeValue = Mode.valueOf(firstTarget.getSrdfCopyMode()).getMode();
@@ -741,16 +739,26 @@ public class SRDFOperations implements SmisConstants {
 
             List<CIMObjectPath> sourcePaths = new ArrayList<>();
             List<CIMObjectPath> targetPaths = new ArrayList<>();
-            for (Volume sourceVolume : sourceVolumes) {
+            // Note: If dbclient query object is used to fetch sources and targets Volume objects
+            // at once it changes the order of volumes and then R1 and R2 pairs are created
+            // with different volume pairing than what is persisted in database.
+            // If that happens then during delete of a volume where we try to delete volume as
+            // persisted in database but because R2 volume is still in RDF group delete fails.
+            // Due to this reason code is changed to fetch one volume at a time in the loop.
+            for (URI sourceVolumeURI : sources) {
+                Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolumeURI);
+                log.debug("sourceVolumeId:{} sourceNativeId {}", sourceVolume.getId(), sourceVolume.getNativeId());
                 sourcePaths.add(cimPath.getVolumePath(system, sourceVolume.getNativeId()));
             }
-            for (Volume targetVolume : targetVolumes) {
+            for (URI targetVolumeURI : targets) {
+                Volume targetVolume = dbClient.queryObject(Volume.class, targetVolumeURI);
+                log.debug("targetVolumeId:{} targetNativeId {}", targetVolume.getId(), targetVolume.getNativeId());
                 targetPaths.add(cimPath.getVolumePath(targetSystem, targetVolume.getNativeId()));
             }
 
             CIMArgument[] inArgs = helper.getCreateListReplicaInputArguments(system,
-                    sourcePaths.toArray(new CIMObjectPath[] {}),
-                    targetPaths.toArray(new CIMObjectPath[] {}),
+                    sourcePaths.toArray(new CIMObjectPath[sourcePaths.size()]),
+                    targetPaths.toArray(new CIMObjectPath[targetPaths.size()]),
                     modeValue, repCollectionPath, replicationSettingDataInstance);
             CIMArgument[] outArgs = new CIMArgument[5];
 

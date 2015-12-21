@@ -351,12 +351,12 @@ class Authentication(object):
             whitelist_array = whitelist.split(',')
             parms['group_whitelist_values'] = whitelist_array
             
-        if(groupobjectclasses is not ""):
+        if(groupobjectclasses is not None and groupobjectclasses is not ""):
             groupobjectclasses_array = []
             groupobjectclasses_array = groupobjectclasses.split(',')
             parms['group_object_class'] = groupobjectclasses_array
         
-        if(groupmemberattributes is not ""):
+        if(groupmemberattributes is not None and groupmemberattributes is not ""):
             groupmemberattributes_array = []
             groupmemberattributes_array = groupmemberattributes.split(',')
             parms['group_member_attribute'] = groupmemberattributes_array

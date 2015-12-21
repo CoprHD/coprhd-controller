@@ -364,7 +364,9 @@ public class SnapshotService extends TaskResourceService {
                 }
             }
 
-            //ToDo if the backend system is vplex, rp 
+            //ToDo if the backend system is vplex, rp  
+            //we cannot use the default blockservice implemenation
+            //we need to use other APIs(for vplex adn RP), that need to be implemented
             BlockServiceApi api = BlockService.getBlockServiceImpl("default");
 
             List<Volume> volumesToSnap = new ArrayList<Volume>();

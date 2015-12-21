@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.storagedriver.BlockStorageDriver;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +32,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 
-public class StorageDriverSimulator extends AbstractStorageDriver {
+public class StorageDriverSimulator extends AbstractStorageDriver implements BlockStorageDriver {
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
     private static final String DRIVER_NAME = "SimulatorDriver";

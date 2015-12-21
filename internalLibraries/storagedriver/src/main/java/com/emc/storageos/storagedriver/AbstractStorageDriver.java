@@ -5,9 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Drivers should extend this class and implement methods in DiscoveryDriver and BlockStorageDriver interfaces.
+ * Drivers should extend this class and implement methods in DiscoveryDriver and BlockStorageDriver or FileStorageDevice interfaces.
  */
-public abstract class AbstractStorageDriver implements DiscoveryDriver, BlockStorageDriver {
+public abstract class AbstractStorageDriver implements DiscoveryDriver {
 
     private static final Logger _log = LoggerFactory.getLogger(AbstractStorageDriver.class);
     protected Registry driverRegistry;

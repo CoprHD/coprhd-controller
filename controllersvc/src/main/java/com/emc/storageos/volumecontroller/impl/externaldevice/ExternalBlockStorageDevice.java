@@ -87,8 +87,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 throw ExternalDeviceException.exceptions.noDriverDefinedForDevice(driverType);
             }
             init(driver);
-            blockDrivers.put(driverType, driver);
-            return driver;
+            blockDrivers.put(driverType, (BlockStorageDriver)driver);
+            return (BlockStorageDriver)driver;
         }
     }
 

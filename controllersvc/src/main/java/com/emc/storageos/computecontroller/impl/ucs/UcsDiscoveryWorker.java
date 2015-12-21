@@ -92,6 +92,8 @@ public class UcsDiscoveryWorker {
     private static final String ASSOCIATED_SERVER_POOL = "associatedServerPool";
     private static final String VHBA_COUNT = "vhbaCount";
     private static final String VNIC_COUNT = "vnicCount";
+    private static final String BLADE_REMOVED = "removed";
+    private static final String BLADE_CFG_FAILURE = "config-failure";
     private static final String BLADE_AVAILABLE = "available";
 
     private UCSMService ucsmService;
@@ -2033,6 +2035,13 @@ public class UcsDiscoveryWorker {
         if(BLADE_AVAILABLE.equalsIgnoreCase(bladeAvailability)) {
             availability = true;
         } else {
+            availability = false;
+        }
+        if (BLADE_REMOVED.equalsIgnoreCase(blade.getOperState())) {
+            availability = false;
+        }
+        // CTRL-8728 check for the blade operstate as config-failure
+        if (BLADE_CFG_FAILURE.equalsIgnoreCase(blade.getOperState())) {
             availability = false;
         }
         return availability;

@@ -35,7 +35,7 @@ public class VVolPlacementManagerUtil {
             Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
             Marshaller marshaller = JAXBContext.newInstance(CreateVirtualVolume.class).createMarshaller();
             marshaller.marshal(vvol, document);
-            SOAPMessage soapMessage = MessageFactory.newInstance().createMessage();
+            SOAPMessage soapMessage = MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL).createMessage();
             soapMessage.getSOAPBody().addDocument(document);
             outputStream = new ByteArrayOutputStream();
             soapMessage.writeTo(outputStream);

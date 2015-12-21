@@ -150,7 +150,7 @@ public class RecoverPointClient {
         PAUSED,	// All CG copies paused
         STOPPED,        // All CG copies stopped
         MIXED,	// CG copies are in different states
-        GONE	// CG no longer exists
+        DELETED	// CG no longer exists
     }
 
     public enum RecoverPointCGCopyState {
@@ -484,7 +484,7 @@ public class RecoverPointClient {
                 // We assume CG health until we see something that indicates otherwise.
                 cgResp.cgState = GetCGsResponse.GetCGStateResponse.HEALTHY;
                 RecoverPointCGState cgState = this.getCGState(cg);
-                if (cgState.equals(RecoverPointCGState.GONE)) {
+                if (cgState.equals(RecoverPointCGState.DELETED)) {
                     cgResp.cgState = GetCGStateResponse.UNHEALTHY_ERROR;
                 } else if (cgState.equals(RecoverPointCGState.MIXED)) {
                     cgResp.cgState = GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED;
@@ -2085,10 +2085,10 @@ public class RecoverPointClient {
             cgState = functionalAPI.getGroupState(cgUID);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             // No longer exists
-            return RecoverPointCGState.GONE;
+            return RecoverPointCGState.DELETED;
         } catch (FunctionalAPIInternalError_Exception e) {
             // No longer exists
-            return RecoverPointCGState.GONE;
+            return RecoverPointCGState.DELETED;
         }
         if (!cgSettings.isEnabled()) {
             return RecoverPointCGState.STOPPED;
@@ -2116,10 +2116,10 @@ public class RecoverPointClient {
             cgLinkStateList = functionalAPI.getGroupState(cgUID).getLinksStates();
         } catch (FunctionalAPIActionFailedException_Exception e) {
             // No longer exists
-            return RecoverPointCGState.GONE;
+            return RecoverPointCGState.DELETED;
         } catch (FunctionalAPIInternalError_Exception e) {
             // No longer exists
-            return RecoverPointCGState.GONE;
+            return RecoverPointCGState.DELETED;
         }
 
         for (ConsistencyGroupLinkState cgLinkState : cgLinkStateList) {

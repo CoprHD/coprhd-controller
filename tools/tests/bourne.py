@@ -8545,9 +8545,22 @@ class Bourne:
         return (tasklist, task['state'], task['message'])
 
     def block_snapshot_session_delete(self, session_uri):
-        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri))
-        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
-        return task
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri))
+        
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        
+        # Deleting multiple would be a group operation and if one is
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
 
     def block_snapshot_session_restore(self, session_uri):
         task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_RESTORE.format(session_uri))

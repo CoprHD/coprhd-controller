@@ -53,7 +53,9 @@ public class IngestExportStrategy {
                 MutableInt masksIngestedCount = new MutableInt(0);
                 List<String> errorMessages = new ArrayList<String>();
 
-                // TODO: Nathan, please take a look at the intent of this block wrt context object.
+                // get a reference to the error messages List for the UnManagedVolume being ingested.
+                // this List is a collector of any errors found in the layers below and will be used 
+                // by the exceptions below by concatenating the List items into a comma-separated String
                 if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) != null) {
                     errorMessages = requestContext.getVolumeContext(
                         unManagedVolume.getNativeGuid()).getErrorMessages();

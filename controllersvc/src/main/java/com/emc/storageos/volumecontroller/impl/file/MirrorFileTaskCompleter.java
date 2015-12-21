@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.file;
 
 import java.net.URI;
@@ -10,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -30,7 +33,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 	}
 	
 	public MirrorFileTaskCompleter(URI sourceURI, URI targetURI, String opId) {
-        super(Volume.class, asList(sourceURI, targetURI), opId);
+        super(FileShare.class, asList(sourceURI, targetURI), opId);
     }
 
 	/**
@@ -50,10 +53,10 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 		// TODO Auto-generated method stub
         setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
-        updateVolumeStatus(dbClient, status);
+        updateFileSystemStatus(dbClient, status);
 	}
 	
-    protected void updateVolumeStatus(DbClient dbClient, Operation.Status status) {
+    protected void updateFileSystemStatus(DbClient dbClient, Operation.Status status) {
         try {
             if (Operation.Status.ready.equals(status)) {
                 List<FileShare> fileshares = dbClient.queryObject(FileShare.class, getIds());

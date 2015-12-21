@@ -275,7 +275,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setTenantOrg(tenant);
             args.setProject(proj);
             
-            //work flow
+            //work flow and we need to add TaskCompleter(TBD)
             WorkflowStepCompleter.stepExecuting(opId);
             
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateFS(storageObj, args);
@@ -295,13 +295,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (!result.getCommandPending()) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, result.isCommandSuccess(), "", "", fsObj);
             }
-            //work flow
+            //work flow 
             WorkflowStepCompleter.stepSucceded(opId); 
         } catch (Exception e) {
             String[] params = { storage.toString(), pool.toString(), fs.toString(), e.getMessage() };
             _log.error("Unable to create file system: storage {}, pool {}, FS {}: {}", params);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+           
             //work flow fail
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
             updateTaskStatus(opId, fileObject, e);
             if ((fsObj != null) && (storageObj != null)) {
@@ -335,16 +336,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.addFileShare(fsObj);
                 args.setFileOperation(isFile);
                 BiosCommandResult result;
-
+                //work flow service
+            	WorkflowStepCompleter.stepExecuting(opId);
                 if (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType) && !fsObj.getInactive()) {
                     result = BiosCommandResult.createSuccessfulResult();
                 } else {
                     if (!fsObj.getInactive()) {
-                    	//work flow service
-                    	WorkflowStepCompleter.stepExecuting(opId);
                         result = getDevice(storageObj.getSystemType()).doDeleteFS(storageObj, args);
-                        // work flow service
-                        WorkflowStepCompleter.stepSucceded(opId); 
                     } else {
                         result = BiosCommandResult.createSuccessfulResult();
                     }
@@ -353,7 +351,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     return;
                 }
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
-
+                // work flow service
+                WorkflowStepCompleter.stepSucceded(opId); 
                 if (result.isCommandSuccess() && (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(deleteType))) {
                     fsObj.setInactive(true);
                     if (forceDelete) {
@@ -433,6 +432,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     e.getMessage().toString() };
             _log.error("Unable to delete file system or snapshot: storage {}, FS/snapshot {}, forceDelete {}: {}", params);
             updateTaskStatus(opId, fileObject, e);
+            
+            //work flow fail for fileshare delete
+            if (URIUtil.isType(uri, FileShare.class)) {
+            	ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            	WorkflowStepCompleter.stepFailed(opId, serviceError);
+            }
+            
             if (URIUtil.isType(uri, FileShare.class)) {
                 if ((fsObj != null) && (storageObj != null)) {
                     recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, false, e.getMessage(), "", fsObj,

@@ -48,7 +48,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     
     /**
      * Creates one or more filesystem
-     * (File, FileMirroring). This method is responsible for creating
+     * (FileShare, FileMirroring). This method is responsible for creating
      * a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystems
      * @param filesystems
      * @param taskId
@@ -87,7 +87,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         	 s_logger.error("Could not create filesystems: " + fsUris, ex);
              releaseWorkflowLocks(workflow);
              String opName = ResourceOperationTypeEnum.CREATE_FILE_SYSTEM.getName();
-             ServiceError serviceError = DeviceControllerException.errors.createVolumesFailed(
+             ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
                      fsUris.toString(), opName, ex);
              completer.error(s_dbClient, _locker, serviceError);
         }
@@ -118,9 +118,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 		 try {
 		     // Generate the Workflow.
 		     workflow = _workflowService.getNewWorkflow(this,
-		    		DELETE_FILESYSTEMS_WF_NAME, true, taskId);
+		    		 								DELETE_FILESYSTEMS_WF_NAME, true, taskId);
 		    
-		     // Call the FileReplicationDeviceController to add its methods if there are Mirror FileShares.
+		     // Call the FileReplicationDeviceController to add its delete methods if there are Mirror FileShares.
 		     waitFor = _fileReplicationDeviceController.addStepsForDeleteFileSystems(workflow, 
 		    		waitFor, fileDescriptors, taskId);
 		
@@ -138,7 +138,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 			 s_logger.error("Could not delete FileShares: " + fileShareUris, ex);
 		     releaseWorkflowLocks(workflow);
 		     String opName = ResourceOperationTypeEnum.DELETE_FILE_SYSTEM.getName();
-		     ServiceError serviceError = DeviceControllerException.errors.deleteVolumesFailed(
+		     ServiceError serviceError = DeviceControllerException.errors.deleteFileSharesFailed(
 		    		fileShareUris.toString(), opName, ex);
 		     completer.error(s_dbClient, _locker, serviceError);
 		 }

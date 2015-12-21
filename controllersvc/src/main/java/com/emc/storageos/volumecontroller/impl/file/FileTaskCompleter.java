@@ -61,7 +61,7 @@ public abstract class FileTaskCompleter extends TaskLockingCompleter {
     }
 
     /**
-     * Record block file related event and audit
+     * Record file related event and audit
      * 
      * @param dbClient db client
      * @param opType operation type

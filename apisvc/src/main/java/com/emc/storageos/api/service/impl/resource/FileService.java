@@ -241,7 +241,8 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(project, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
-        return createFSInternal(param, project, tenant, null);
+        createFSInternal(param, project, tenant, null);
+        return null;
     }
 
     /*
@@ -249,7 +250,7 @@ public class FileService extends TaskResourceService {
      * the internal object case
      * NOTE - below method should always work with project being null
      */
-    public TaskResourceRep createFSInternal(FileSystemParam param, Project project,
+    public TaskList createFSInternal(FileSystemParam param, Project project,
             TenantOrg tenant, DataObject.Flag[] flags) throws InternalException {
         ArgValidator.checkFieldUriType(param.getVpool(), VirtualPool.class, "vpool");
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
@@ -291,19 +292,7 @@ public class FileService extends TaskResourceService {
 
         // verify quota
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, fsSize, "filesystem");
-       
-
-        // List the FileSystesm with the label received.
-        List<FileShare> objectList = listFileSystemsWithLabelName(param.getLabel(), FileShare.class, null, null);
-        _log.debug("No of FileSystems found {} with the label {}", objectList.size(), param.getLabel());
-        // Now check whether the label used in the storage system or not.
-        for (FileShare fs : objectList) {
-            _log.debug("Looking for File System label {} in storage system {}", fs.getLabel(), system.getId());
-            if (fs.getStorageDevice().equals(system.getId())) {
-                _log.info("Duplicate label found {} on Storage System {}", param.getLabel(), system.getId());
-                throw APIException.badRequests.duplicateLabel(param.getLabel());
-            }
-        }
+        String suggestedNativeFsId = param.getFsId() == null ? "" : param.getFsId();
         
         // Find the implementation that services this vpool and fileshare 
         FileServiceApi fileServiceApi = getFileServiceImpl(cos, _dbClient);
@@ -312,13 +301,13 @@ public class FileService extends TaskResourceService {
         // call thread that does the work.
     	CreateFileSystemSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, 
     													neighborhood, project, cos, tenant, flags, 
-    													capabilities, taskList, task, requestedTypes, param, fileServiceApi, null);
+    													capabilities, taskList, task, requestedTypes, param, fileServiceApi, suggestedNativeFsId);
     	
         auditOp(OperationTypeEnum.CREATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getLabel(), param.getSize(), neighborhood.getId().toString(),
                 project == null ? null : project.getId().toString());
 
-        return null;
+        return taskList;
     }
     /**
      * Allocate, initialize and persist state of the fileSystem being created.

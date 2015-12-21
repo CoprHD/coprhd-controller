@@ -25,6 +25,7 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
@@ -46,6 +47,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -188,9 +190,9 @@ public class FileStorageScheduler implements Scheduler{
             _log.error(
                     "Could not find matching pools for virtual array {} & vpool {}",
                     vArray.getId(), vPool.getId());
-        } else { // joseph add code for file orchestration
+        } else { // add code for file for default recommendations for file data
         	for(FileRecommendation recommendation : fileRecommendations) {
-        		FileRecommendation fileRecommendation = (FileRecommendation)recommendation;        		
+        		FileRecommendation fileRecommendation = (FileRecommendation)recommendation;
         		fileRecommendation.setFileType(FileType.FILE_SYSTEM_DATA);
         	}
         }
@@ -956,19 +958,19 @@ public class FileStorageScheduler implements Scheduler{
             		FileRecommendation.FileType.FILE_SYSTEM_DATA.toString())) {
             	// Grab the existing volume and task object from the incoming task list
             	
-                FileShare fileShare = getPrecreatedFile(_dbClient, taskList, param.getLabel());
+                FileShare fileShare = getPrecreatedFile(taskList, param.getLabel());
                                                
                 //set the recommendation
                 _log.info(String.format( "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
                 	      fileShare.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
                 
-                setFileRecommendation(_dbClient, recommendation, fileShare, vpool, createInactive);
+                setFileRecommendation(recommendation, fileShare, vpool, createInactive);
                 preparedFileSystems.add(fileShare);
             	
             } else if (recommendation.getFileType().toString().equals(
             		FileRecommendation.FileType.FILE_SYSTEM_LOCAL_MIRROR.toString())) {
             	//prepare the mirror file share
-            	
+            	//TBD
             }
             
         
@@ -976,24 +978,38 @@ public class FileStorageScheduler implements Scheduler{
     	return preparedFileSystems;
     }
     
-    public static void setFileRecommendation(DbClient dbClient, FileRecommendation placement, 
+    public void setFileRecommendation(FileRecommendation placement, 
     							FileShare fileShare, VirtualPool vpool, Boolean createInactive) {
+    	
+    	// Now check whether the label used in the storage system or not
+    	StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
+    	List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
+    	if (fileShareList != null && fileShareList.isEmpty()) {
+    		for (FileShare fs : fileShareList) {
+    			if (fs.getStorageDevice() != null) {
+	                if (fs.getStorageDevice().equals(system.getId())) {
+	                    _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
+	                    throw APIException.badRequests.duplicateLabel(fileShare.getLabel());
+	                }
+    			}
+            }
+    	}
+    	
+    	//set the storage pool
     	StoragePool pool = null;
         if (null != placement.getSourceStoragePool()) {
-        	pool = dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
+        	pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
         	if (null != pool) {
         		fileShare.setProtocol(new StringSet());
         		fileShare.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
         	}
         }
-        
+        //need for protection support
         //fileShare.setSyncActive(!Boolean.valueOf(createInactive));
         
+        
         fileShare.setStorageDevice(placement.getSourceStorageSystem());
-        
-        //fixed issue duplicate entries
-        //TBD
-        
         fileShare.setPool(placement.getSourceStoragePool());
         if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
         	fileShare.setStoragePort(placement.getStoragePorts().get(0));
@@ -1003,7 +1019,7 @@ public class FileStorageScheduler implements Scheduler{
         	fileShare.setVirtualNAS(placement.getvNAS());
         }
         
-        dbClient.updateObject(fileShare);
+        _dbClient.updateObject(fileShare);
        // finally set file share id in recommendation
         placement.setId(fileShare.getId());
     }
@@ -1017,15 +1033,20 @@ public class FileStorageScheduler implements Scheduler{
      * @param label base label
      * @return file object
      */
-    public static FileShare getPrecreatedFile(DbClient dbClient, TaskList taskList, String label) {
+    public FileShare getPrecreatedFile(TaskList taskList, String label) {
  
         for (TaskResourceRep task : taskList.getTaskList()) {
-            FileShare fileShare = dbClient.queryObject(FileShare.class, task.getResource().getId());
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, task.getResource().getId());
             if (fileShare.getLabel().equalsIgnoreCase(label)) {
                 return fileShare;
             }
         }
         return null;
     }
+    
+    
+    
+    
+    
 
 }

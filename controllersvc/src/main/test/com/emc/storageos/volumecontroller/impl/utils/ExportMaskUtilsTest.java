@@ -297,5 +297,42 @@ public class ExportMaskUtilsTest {
         initiatorSet.add(i5);
         initiatorSet.add(i5);
         Assert.assertEquals("Size of initiatorHashSet is unexpected", 5, initiatorSet.size());
+
+        // Test Initiator.hashCode
+        System.out.println("################# Testing Initiator.hashCode #################");
+        // Make same as i5
+        Initiator i6 = new Initiator("FC", "200000000005", HOST3, "cluster1", true);
+        i6.setId(i5.getId());
+        Assert.assertEquals("i5 and i6 should be equal", i5, i6);
+        Assert.assertEquals("Hash codes are different", i5.hashCode(), i6.hashCode());
+        System.out.println(String.format("i5.hashCode = %d i6.hashCode = %d", i5.hashCode(), i6.hashCode()));
+
+        // Strange case 1: Same port WWN, but different ID
+        Initiator i7 = new Initiator("FC", "200000000005", HOST3, "cluster1", true);
+        i7.setId(URIUtil.createId(Initiator.class));
+        Assert.assertNotEquals("i5 and i7 should not be equal", i5, i7);
+        Assert.assertNotEquals("Hash codes are the same", i5.hashCode(), i7.hashCode());
+        System.out.println(String.format("i5.hashCode = %d i7.hashCode = %d", i5.hashCode(), i7.hashCode()));
+
+        // Strange case 2: Different port WWN, but same ID
+        Initiator i8 = new Initiator("FC", "200000000008", HOST3, "cluster1", true);
+        i8.setId(i5.getId());
+        Assert.assertNotEquals("i5 and i8 should not be equal", i5, i8);
+        Assert.assertNotEquals("Hash codes are the same", i5.hashCode(), i8.hashCode());
+        System.out.println(String.format("i5.hashCode = %d i8.hashCode = %d", i5.hashCode(), i8.hashCode()));
+
+        Map<Initiator, String> map = new HashMap<>();
+        map.put(i1, "Initiator 1");
+        map.put(i2, "Initiator 2");
+        map.put(i3, "Initiator 3");
+        map.put(i4, "Initiator 4");
+        map.put(i5, "Initiator 5");
+        map.put(i6, "Initiator 6");
+        map.put(i7, "Initiator 7");
+        map.put(i8, "Initiator 8");
+        // map.size() should be 7 because i5 and i6 are equivalent based on hashCode
+        Assert.assertEquals("Unexpected map size", 7, map.size());
+        System.out.println(String.format("map.keys = %s", Joiner.on(',').join(map.keySet())));
+        System.out.println(String.format("map.entries = %s", Joiner.on(',').join(map.entrySet())));
     }
 }

@@ -65,7 +65,7 @@ public class CapabilityProfileService extends AbstractCapabilityProfileService{
         CapabilityProfileBulkResponse capabilityProfileBulkResponse = new CapabilityProfileBulkResponse();
         if(null != capabilityProfiles){
             for(VirtualPool capabilityProfile : capabilityProfiles){
-                if(capabilityProfile != null){
+                if(capabilityProfile != null && capabilityProfile.getType().equals("storagecontainer")){
                     capabilityProfileBulkResponse.getCapabilityProfiles().add(toCapabilityProfile(capabilityProfile));
                 }
             }

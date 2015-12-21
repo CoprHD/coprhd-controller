@@ -32,7 +32,7 @@ public abstract class AbstractCapabilityProfileService extends AbstractVasaServi
         ArgValidator.checkFieldValueFromEnum(param.getProvisioningType(), PROVISIONING_TYPE,
                 EnumSet.of(VirtualPool.ProvisioningType.Thick, VirtualPool.ProvisioningType.Thin));
 
-        capabilityProfile.setId(URIUtil.createId(CapabilityProfile.class));
+        capabilityProfile.setId(URIUtil.createId(VirtualPool.class));
         if (null != param.getProvisioningType()) {
             capabilityProfile.setSupportedProvisioningType(param.getProvisioningType());
         }

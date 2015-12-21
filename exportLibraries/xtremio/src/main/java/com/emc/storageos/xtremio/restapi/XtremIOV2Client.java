@@ -174,7 +174,7 @@ public class XtremIOV2Client extends XtremIOClient {
     }
     
     @Override
-    public List<XtremIOObjectInfo> getXtremIOConsistencyGroupVolumes(String clusterName) throws Exception {
+    public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception {
         String uriString = XtremIOConstants.XTREMIO_V2_CONSISTENCY_GROUP_VOLUMES_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
         ClientResponse response = get(URI.create(uriString));
         XtremIOConsistencyGroupVolume cgLinks = getResponseObject(XtremIOConsistencyGroupVolume.class, response);

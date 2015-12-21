@@ -33,6 +33,10 @@ public class XtremIOVolume {
     @SerializedName("dest-snap-list")
     @JsonProperty(value = "dest-snap-list")
     private List<List<Object>> snaps;
+    
+    @SerializedName("related-consistency-groups")
+    @JsonProperty(value = "related-consistency-groups")
+    private List<List<Object>> consistencyGroups;
 
     @SerializedName("ancestor-vol-id")
     @JsonProperty(value = "ancestor-vol-id")
@@ -81,6 +85,14 @@ public class XtremIOVolume {
     public void setSnaps(List<List<Object>> snaps) {
         this.snaps = snaps;
     }
+    
+    public List<List<Object>> getConsistencyGroups() {
+        return consistencyGroups;
+    }
+
+    public void setConsistencyGroups(List<List<Object>> consistencyGroups) {
+        this.consistencyGroups = consistencyGroups;
+    }
 
     public List<String> getAncestoVolInfo() {
         return ancestoVolInfo;
@@ -101,6 +113,6 @@ public class XtremIOVolume {
     @Override
     public String toString() {
         return "XtremIOVolume [volInfo=" + volInfo + ", wwn=" + wwn + ", allocatedCapacity=" + allocatedCapacity + ", lunMaps=" + lunMaps
-                + ", snaps=" + snaps + ", ancestoVolInfo=" + ancestoVolInfo + ", snapshotType=" + snapshotType + "]";
+                + ", snaps=" + snaps + ", ancestoVolInfo=" + ancestoVolInfo + ", snapshotType=" + snapshotType + ", consistencyGroups=" + consistencyGroups +"]";
     }
 }

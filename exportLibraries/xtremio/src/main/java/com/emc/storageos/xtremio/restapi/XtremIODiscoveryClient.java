@@ -88,7 +88,7 @@ public interface XtremIODiscoveryClient {
      * @return
      * @throws Exception
      */
-    public List<XtremIOObjectInfo> getXtremIOConsistencyGroupVolumes(String clusterName) throws Exception;
+    public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception;
     
     /**
      * Get all the Consistency groups for a given cluster

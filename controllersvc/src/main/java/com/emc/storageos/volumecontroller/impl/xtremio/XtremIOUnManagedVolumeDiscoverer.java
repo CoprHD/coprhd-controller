@@ -180,8 +180,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
         //If the version of XtremIO is 4 or above, discover consistency group
         boolean isXioV2 = xtremIOClient.isVersion2();
         if(isXioV2){
-        	//Get the Consistency group details 
-        	List<XtremIOObjectInfo> consistencyGroupVolInfo = xtremIOClient.getXtremIOConsistencyGroupVolumes(xioClusterName);
+        	// get the list of consistency groups 
+        	List<XtremIOObjectInfo> consistencyGroupVolInfo = xtremIOClient.getXtremIOConsistencyGroups(xioClusterName);
         	//Get the volumes associated to the Consistency Group
         	volumesToCgs = getConsistencyGroupVolumeDetails(xtremIOClient, storageSystem, dbClient, partitionManager, consistencyGroupVolInfo, xioClusterName);
         }

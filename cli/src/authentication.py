@@ -176,7 +176,6 @@ class Authentication(object):
                 if(login_response.status_code ==
                    requests.codes['unauthorized']):
                     # Now provide the credentials
-		    print url
                     login_response = requests.get(
                         url, headers=self.HEADERS, auth=(username, password),
                         verify=False, cookies=cookiejar, allow_redirects=False)

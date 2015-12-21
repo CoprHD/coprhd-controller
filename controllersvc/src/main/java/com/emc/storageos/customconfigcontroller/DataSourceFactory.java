@@ -17,8 +17,8 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.DataObjectUtils;
-import com.google.common.base.Strings;
 
 /**
  * This factory creates instances of {@link DataSource} from a list
@@ -174,6 +174,24 @@ public class DataSourceFactory {
     }
 
     /**
+     * Creates a data source for resolving VPLEX virtual volume name using the provided
+     * parameters.
+     * 
+     * @param hostName the name of the host for which the zone will be created
+     * @param storageSystem the instance of the storage system of the zone's port
+     * @param nativeId the nativeId of the volume for which virtual volume is created
+     * @return a data source populated with the properties needed to resolve
+     *         VPLEX virtual volume name
+     */
+    public DataSource createVirtualVolumeNameDataSource(StorageSystem storageSystem, String nativeId, String hostName) {
+        Volume volume = new Volume();
+        volume.setNativeId(nativeId);
+        DataSource source = createDataSource(CustomConfigConstants.VPLEX_VIRTUAL_VOLUME_NAME,
+                new DataObject[] { getHostByName(hostName), storageSystem, volume });
+        return source;
+    }
+
+    /**
      * Creates a datasource used for export operations
      * 
      * @param configName - name of the config for which the export datasource should be created
@@ -201,9 +219,7 @@ public class DataSourceFactory {
 
         // for cluster, just create an in-memory object, cluster has no other attributes
         Cluster cluster = new Cluster();
-        if (!Strings.isNullOrEmpty(clusterName)) {
-            cluster.setLabel(clusterName);
-        }
+        cluster.setLabel(clusterName);
 
         return createExportMaskDataSource(configName, host, cluster, storageSystem);
 
@@ -277,9 +293,7 @@ public class DataSourceFactory {
     public DataSource createXtremIOClusterInitiatorGroupFolderNameDataSource(String clusterName, StorageSystem storageSystem) {
 
         Cluster cluster = new Cluster();
-        if (!Strings.isNullOrEmpty(clusterName)) {
-            cluster.setLabel(clusterName);
-        }
+        cluster.setLabel(clusterName);
         return createDataSource(CustomConfigConstants.XTREMIO_CLUSTER_INITIATOR_GROUP_FOLDER_NAME,
                 new DataObject[] { cluster, storageSystem });
 

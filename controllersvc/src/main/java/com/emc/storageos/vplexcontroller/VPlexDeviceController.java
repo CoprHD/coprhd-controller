@@ -214,6 +214,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String UNEXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String VPLEX_STEP = "vplexVirtual";
+    private static final String VPLEX_VIRTUAL_VOLUME_RENAME_STEP = "vplexVirtualVolumeRename";
     private static final String MIGRATION_CREATE_STEP = "migrate";
     private static final String MIGRATION_COMMIT_STEP = "commit";
     private static final String DELETE_MIGRATION_SOURCES_STEP = "deleteSources";
@@ -1900,6 +1901,26 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     storageViewStepId, exportMask, shared);
 
         }
+        
+        for (URI volURI : filteredBlockObjectMap.keySet()) {
+            BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, volURI);
+            if (bo.getStorageController().equals(vplexURI)) {
+                // Added a workflow step to rename a VPLEX virtual volume using the resolved value from Custom Config template
+                for(String associatedVolume : ((Volume)bo).getAssociatedVolumes()) {
+                    Volume storageVolume = getDataObject(Volume.class, new URI(associatedVolume), _dbClient);
+                    StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageVolume.getStorageController());
+                    DataSource dataSource = dataSourceFactory.createVirtualVolumeNameDataSource(storage, storageVolume.getNativeId(), exportGroup.getLabel());
+                    String newVirtualVolName = customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.VPLEX_VIRTUAL_VOLUME_NAME, vplexSystem.getSystemType(), dataSource);
+                    String oldVirtualVolumeName = bo.getDeviceLabel();
+                    _log.info(String.format("Custom config name for VPLEX Virtual Name is resolved to %s", newVirtualVolName));
+        			_log.info(String.format("Old VPLEX Virtual Name is %s", oldVirtualVolumeName));
+                    _log.info("Renaming VPLEX virtual volume");
+                    client = getVPlexAPIClient(_vplexApiFactory, vplexURI, _dbClient);
+                    storageViewStepId = handleVirtualVolumeRenaming(vplexURI, vplexSystem.getSystemType(), bo.getId(), newVirtualVolName, oldVirtualVolumeName, storageViewStepId, workflow);
+                }
+            }
+        }
 
         long elapsed = new Date().getTime() - startAssembly;
         _log.info("TIMER: export mask assembly took {} ms", elapsed);
@@ -3221,6 +3242,24 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             String.format("Deleting storage view: %s (%s)", exportMask.getMaskName(), exportMask.getId()),
                             null, vplexURI, vplex.getSystemType(), this.getClass(), deleteStorageView, null, null);
 
+                }
+                for(URI volumeUri : volumeURIList) {
+                	Volume volume = getDataObject(Volume.class, volumeUri, _dbClient);
+                	if(volume.getStorageController().equals(vplex.getId())) {
+                		for(String associatedVolume : volume.getAssociatedVolumes()) {
+                			Volume storageVolume = getDataObject(Volume.class, new URI(associatedVolume), _dbClient);
+                			StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageVolume.getStorageController());
+                			DataSource dataSource = dataSourceFactory.createVirtualVolumeNameDataSource(storage, storageVolume.getNativeId(), exportGroup.getLabel());
+                			String newVirtualVolName = customConfigHandler.getComputedCustomConfigValue(
+                					CustomConfigConstants.VPLEX_VIRTUAL_VOLUME_NAME, CustomConfigConstants.GLOBAL_KEY, dataSource);
+                			String oldVirtualVolumeName = volume.getDeviceLabel();
+                			_log.info(String.format("Custom config name for VPLEX Virtual Name is resolved to %s", newVirtualVolName));
+                			_log.info(String.format("Old VPLEX Virtual Name is %s", oldVirtualVolumeName));
+//                            VPlexVirtualVolumeInfo vplexVirtualVolumeInfo = client.findVirtualVolume(volume.getDeviceLabel());
+                			hasSteps = true;
+                            String virtualVolumeRenamingStepId = handleVirtualVolumeRenaming(vplexURI, vplex.getSystemType(), volumeUri, newVirtualVolName, oldVirtualVolumeName, null, workflow);
+                		}
+                	}
                 }
             }
 
@@ -10807,5 +10846,94 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _log.info("Created workflow step to restore snapshot session {}", snapSessionURI);
 
         return RESTORE_SNAP_SESSION_STEP;
+    }
+    
+    private String handleVirtualVolumeRenaming(URI vplexURI, String deviceType, URI boURI, 
+    		String newVirtualVolumeName, String oldVirtualVolumeName, String waitFor, Workflow workflow) {
+        // Add a step to rename VPLEX virtual volume.
+        String virtualVolumeRenamingStepId = workflow.createStepId();
+        Workflow.Method virtualVolumeRenamingExecuteMethod = renameVPLEXVirtualVolumeMethod(vplexURI, oldVirtualVolumeName, newVirtualVolumeName, boURI, workflow);
+        Workflow.Method virtualVolumeRenamingRollbackMethod = rollbackRenameVPLEXVirtualVolumeMethod(vplexURI, newVirtualVolumeName, oldVirtualVolumeName, boURI, virtualVolumeRenamingStepId);
+        virtualVolumeRenamingStepId = workflow.createStep(VPLEX_VIRTUAL_VOLUME_RENAME_STEP,
+        		String.format("Rename VPLEX virtual volume: %s to %s", oldVirtualVolumeName, newVirtualVolumeName),
+        		waitFor, vplexURI, deviceType,
+                this.getClass(), virtualVolumeRenamingExecuteMethod, virtualVolumeRenamingRollbackMethod, virtualVolumeRenamingStepId);
+        return virtualVolumeRenamingStepId;
+    }
+    
+    /**
+     * Creates a Workflow Method for renaming VPLEX virtual volume.
+     * 
+     * @param vplexVirtualVolumeInfo -- VPLEX virtual Volume Info
+     * @param newVirtualVolumeName -- New Name for VPLEX virtual volume
+     * @return
+     */
+    public Workflow.Method renameVPLEXVirtualVolumeMethod(
+            URI vplexURI, String oldVirtualVolumeName, String newVirtualVolumeName, URI boURI, Workflow workflow) {
+        return new Workflow.Method("renameVPLEXVirtualVolume", vplexURI, oldVirtualVolumeName, newVirtualVolumeName, boURI, workflow);
+    }
+    
+    public boolean renameVPLEXVirtualVolume(URI vplexURI, String oldVirtualVolumeName,
+            String virtualVolumeName, URI boURI, Workflow workflow, String stepId) {
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexURI, _dbClient);
+            // Find virtual volume that should have been created while creating volume
+            // Virtual volume is created with the same name as the device name.
+            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(oldVirtualVolumeName);
+            // Rename the vplex volume
+            vvInfo = client.renameResource(vvInfo, virtualVolumeName);
+            BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, boURI);
+            bo.setNativeId(vvInfo.getPath());
+            bo.setNativeGuid(vvInfo.getPath());
+            bo.setDeviceLabel(vvInfo.getName());
+            _dbClient.persistObject(bo);
+            WorkflowStepCompleter.stepSucceded(stepId);
+            return true;
+        } catch (Exception ex) {
+            _log.error("Exception renaming virtual volume", ex);
+            ServiceError svcError = VPlexApiException.errors.renameVirtualVolumeFailed(
+                    ex.getMessage(), ex);
+            WorkflowStepCompleter.stepFailed(stepId, svcError);
+        }
+        return false;
+    }
+    
+    /**
+     * Creates a Workflow Method for rolling back renaming VPLEX virtual volume.
+     * 
+     * @param vplexVirtualVolumeInfo -- VPLEX virtual Volume Info
+     * @param newVirtualVolumeName -- New Name for VPLEX virtual volume
+     * @return
+     */
+    public Workflow.Method rollbackRenameVPLEXVirtualVolumeMethod(
+            URI vplexURI, String newVirtualVolumeName, String oldVirtualVolumeName, URI boURI, String executeStepId) {
+        return new Workflow.Method("rollbackRenameVPLEXVirtualVolume", vplexURI, newVirtualVolumeName, oldVirtualVolumeName, boURI, executeStepId);
+    }
+    
+    public boolean rollbackRenameVPLEXVirtualVolume(URI vplexURI, String newVirtualVolumeName,
+            String virtualVolumeName, URI boURI, String executeStepId) {
+        try {
+            WorkflowStepCompleter.stepExecuting(executeStepId);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexURI, _dbClient);
+            // Find virtual volume that should have been created while creating volume
+            // Virtual volume is created with the same name as the device name.
+            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(newVirtualVolumeName);
+            // Rename the vplex volume
+            vvInfo = client.renameResource(vvInfo, virtualVolumeName);
+            BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, boURI);
+            bo.setNativeId(vvInfo.getPath());
+            bo.setNativeGuid(vvInfo.getPath());
+            bo.setDeviceLabel(vvInfo.getName());
+            _dbClient.persistObject(bo);
+            WorkflowStepCompleter.stepSucceded(executeStepId);
+            return true;
+        } catch (Exception ex) {
+            _log.error("Exception renaming virtual volume", ex);
+            ServiceError svcError = VPlexApiException.errors.renameVirtualVolumeRollbackFailed(
+                    newVirtualVolumeName, virtualVolumeName, ex);
+            WorkflowStepCompleter.stepFailed(executeStepId, svcError);
+        }
+        return false;
     }
 }

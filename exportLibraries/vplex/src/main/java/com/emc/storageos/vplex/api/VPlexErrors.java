@@ -52,6 +52,13 @@ public interface VPlexErrors {
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError createVirtualVolumesRollbackFailed(final String stepId,
             final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public ServiceError renameVirtualVolumeFailed(final String message, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public ServiceError renameVirtualVolumeRollbackFailed(final String newName, final String oldName,
+            final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError deleteVirtualVolumesFailed(final String opName,

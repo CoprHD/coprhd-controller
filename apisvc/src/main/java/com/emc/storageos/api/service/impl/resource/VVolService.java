@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.placement.VVolPlacementManager;
 import com.emc.storageos.db.client.model.VVol;
 import com.emc.storageos.model.vasa.VVolBulkResponse;
-import com.emc.storageos.model.vasa.VVolCreateRequestParam;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -98,15 +97,16 @@ public class VVolService extends AbstractVasaService{
 
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        } 
+//        finally {
+//            if (br != null) {
+//                try {
+//                    br.close();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
 
         return sb.toString();
 

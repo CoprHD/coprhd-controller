@@ -124,7 +124,9 @@ public class ExportService extends VolumeService {
      * 
      * os-reserve: reserve a volume for initiating the attach operation.
      * os-unreserve: unreserve the volume to indicate the attach operation being performed is over.
-     * os-detach
+     * os-begin_detaching: Initiate the detach operation by setting the status to detaching.
+     * os-detach: Set the detach related status in the db.
+     * os-terminate_connection: detach int hebackend.
      * os-initialize_connection: create export of the volume to the nova node.
      * os-attach: perform the mount of the volume that has been exported to the nova instance.
      * os-extend: extend size of volume.

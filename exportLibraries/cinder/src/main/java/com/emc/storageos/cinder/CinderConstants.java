@@ -119,8 +119,7 @@ public interface CinderConstants {
         OS_INITIALIZE_CONNECTION("os-initialize_connection"),
         OS_ATTACH("os-attach"),
         OS_EXTEND("os-extend"),
-        OS_RESET_STATUS("os-reset_status"),
-        STATUS("status"),
+        OS_RESET_STATUS("os-reset_status"),        
         OS_SET_BOOTABLE("os-set_bootable"),
         OS_UPDATE_READONLY("os-update_readonly_flag");
 

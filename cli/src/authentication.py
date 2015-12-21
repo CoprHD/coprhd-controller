@@ -62,21 +62,22 @@ class Authentication(object):
         self.__port = port
 
 
-    def create_secret_file(self, secret_file, username, password):
+    def create_security_file(self, security_file, username, password):
         from Crypto.Cipher import ARC4
-        obj1 = ARC4.new('0591325586554389')
+        #obj1 = ARC4.new('0591325586554389')
+        obj1 = ARC4.new(getpass.getuser())
 
         cipher_text = obj1.encrypt(username)
-        secret_file = open(secret_file, 'w+')
-        secret_file.write(cipher_text)
-        secret_file.write("\n")
+        security_file = open(security_file, 'w+')
+        security_file.write(cipher_text)
+        security_file.write("\n")
         cipher_text = obj1.encrypt(password)
-        secret_file.write(cipher_text)
-        secret_file.write("\n")
-        secret_file.close()
+        security_file.write(cipher_text)
+        security_file.write("\n")
+        security_file.close()
 
 
-    def authenticate_user(self, username, password, cookiedir, cookiefile, secret_file_name=None):
+    def authenticate_user(self, username, password, cookiedir, cookiefile, security_file_name=None):
         '''
         Makes REST API call to generate the cookiefile for the
         specified user after validation.
@@ -97,15 +98,16 @@ class Authentication(object):
 
 
         try:
-            if( not (secret_file_name == 'None') and (secret_file_name is not '')):
+            if( not (security_file_name == 'None') and (security_file_name is not '') 
+               and (security_file_name is not None)):
                 from Crypto.Cipher import ARC4
-                obj1 = ARC4.new('0591325586554389')
-                secret_file = open(secret_file_name, 'r')
-                cipher_text = secret_file.readline().rstrip()
+                obj1 = ARC4.new(getpass.getuser())
+                security_file = open(security_file_name, 'r')
+                cipher_text = security_file.readline().rstrip()
                 username = obj1.decrypt(cipher_text)
-                cipher_text = secret_file.readline().rstrip()
+                cipher_text = security_file.readline().rstrip()
                 password = obj1.decrypt(cipher_text)
-                secret_file.close()
+                security_file.close()
 
         except Exception as e:
             raise e
@@ -174,6 +176,7 @@ class Authentication(object):
                 if(login_response.status_code ==
                    requests.codes['unauthorized']):
                     # Now provide the credentials
+		    print url
                     login_response = requests.get(
                         url, headers=self.HEADERS, auth=(username, password),
                         verify=False, cookies=cookiejar, allow_redirects=False)
@@ -1189,16 +1192,18 @@ def list_authentication_provider(args):
 def authenticate_user(args):
     obj = Authentication(args.ip, args.port)
     try:
+        passwd_user = None
         if (args.username):
             if sys.stdin.isatty():
                 passwd_user = getpass.getpass(prompt="Password : ")
             else:
                 passwd_user = sys.stdin.readline().rstrip()
-        else:
+        elif (args.securityfile is None):
             raise SOSError(SOSError.CMD_LINE_ERR,
-                           args.username + " : invalid username")
+                           "Either -username or -securityfile should be specified")
+
         res = obj.authenticate_user(args.username, passwd_user, args.cookiedir,
-                                    args.cookiefile)
+                                    args.cookiefile, args.securityfile)
         print res                            
         # check the target version for upgrade.
         common.COOKIE = None
@@ -1259,17 +1264,26 @@ def authenticate_parser(parent_subparser, sos_ip, sos_port):
     mandatory_args = authenticate_parser.add_argument_group(
         'mandatory arguments')
     mandatory_args.add_argument(
-        '-u', '-username',
-        metavar='<username>',
-        help='username for login',
-        dest='username',
-        required=True)
-    mandatory_args.add_argument(
         '-d', '-cookiedir',
         metavar='<cookiedir>',
         help='cookie directory to store cookie files',
         dest='cookiedir',
         required=True)
+
+    group = authenticate_parser.add_mutually_exclusive_group(required=True)
+
+    group.add_argument(
+        '-u', '-username',
+        metavar='<username>',
+        help='username for login',
+        dest='username')
+
+    group.add_argument(
+        '-sf', '-securityfile',
+        metavar='<securityfile>',
+        help='security file',
+        dest='securityfile')
+
     authenticate_parser.set_defaults(func=authenticate_user)
 
 
@@ -1968,16 +1982,16 @@ def list_user_group(args):
             else:
                 raise e
 
-def create_secret_file_parser(subcommand_parsers, common_parser):
+def create_security_file_parser(subcommand_parsers, common_parser):
     # register command parser
-    create_secret_file_parser = subcommand_parsers.add_parser(
+    create_security_file_parser = subcommand_parsers.add_parser(
         'create-secretfile',
         description='ViPR secret file CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
         help='Creates a secret file for user')
 
-    mandatory_args = create_secret_file_parser.add_argument_group(
+    mandatory_args = create_security_file_parser.add_argument_group(
         'mandatory arguments')
 
     mandatory_args.add_argument('-securityfile',
@@ -1998,14 +2012,14 @@ def create_secret_file_parser(subcommand_parsers, common_parser):
                                 dest='password',
                                 required=True)
 
-    create_secret_file_parser.set_defaults(func=create_secret_file)
+    create_security_file_parser.set_defaults(func=create_security_file)
 
 
-def create_secret_file(args):
+def create_security_file(args):
     obj = Authentication(args.ip, args.port)
 
     try:
-        res = obj.create_secret_file(args.securityfile, args.username, args.password)
+        res = obj.create_security_file(args.securityfile, args.username, args.password)
     except SOSError as e:
         raise e
 
@@ -2054,5 +2068,5 @@ def authentication_parser(parent_subparser, common_parser):
 
     list_user_group_parser(subcommand_parsers, common_parser)
 
-    create_secret_file_parser(subcommand_parsers, common_parser)
+    create_security_file_parser(subcommand_parsers, common_parser)
 

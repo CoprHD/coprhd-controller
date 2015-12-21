@@ -8506,7 +8506,7 @@ class Bourne:
         source_uri = source_uri.strip()
         sessions_list = self.api('GET', URI_BLOCK_SNAPSHOT_SESSIONS_LIST.format(source_uri))
         self.assert_is_dict(sessions_list)
-        source_sessions = sessions_list['snapshot-session']
+        source_sessions = sessions_list['snapshot_session']
         source_session_uris = []
         if (type(source_sessions) != list):
             source_sessions = [source_sessions]

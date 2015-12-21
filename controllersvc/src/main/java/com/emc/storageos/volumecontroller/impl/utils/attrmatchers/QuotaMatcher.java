@@ -37,6 +37,8 @@ private static final Logger _logger = LoggerFactory.getLogger(QuotaMatcher.class
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap) {
         String quota = attributeMap.get(Attributes.quota.toString()).toString();
         Long hardQuota = Long.parseLong(quota);
+        //convert to GB
+        hardQuota = hardQuota/(1024 * 1024 * 1024);
         _logger.info("Pools Matching hard quota Started {}, {} :", hardQuota,
                 Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
         Iterator<StoragePool> poolIterator = allPools.iterator();

@@ -159,7 +159,8 @@ public enum ServiceCode {
     DBSVC_QUERY_ERROR(8006),
     DBSVC_ANNOTATION_ERROR(8007),
     DBSVC_GEO_UPDATE_ERROR(8008),
-
+    DBSVC_FIELD_LENGTH_ERROR(8009),
+    
     // Retryable Database Client Errors (8500 - 8999):
     DBSVC_CONNECTION_ERROR(8500),
     DBSVC_DUMMY_ERROR(8501),

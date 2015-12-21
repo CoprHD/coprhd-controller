@@ -757,7 +757,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     virtualNAS.setProtocols(protocols);
                     // set the smart connect
                     
-                    setStoragePortsForNASServer(isilonNetworkPools, virtualNAS);
+                    setStoragePortsForNASServer(isilonNetworkPools, storageSystem, virtualNAS);
 
                 } else {
                     _log.info("Process the System access zone {} ", isilonAccessZone.toString());
@@ -783,7 +783,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     setCifsServerMap(isilonAccessZone, physicalNAS);
 
                     // set the smart connect zone
-                    setStoragePortsForNASServer(isilonNetworkPoolsSysAZ, physicalNAS);
+                    setStoragePortsForNASServer(isilonNetworkPoolsSysAZ, storageSystem, physicalNAS);
                 }
             }
 
@@ -826,7 +826,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
     }
     
-    private void setStoragePortsForNASServer(List<IsilonNetworkPool> isilonNetworkPools, NASServer nasServer) {
+    private void setStoragePortsForNASServer(List<IsilonNetworkPool> isilonNetworkPools,
+    		StorageSystem storageSystem, NASServer nasServer) {
     	
     	StringSet storagePorts = null;
     	

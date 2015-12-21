@@ -722,8 +722,8 @@ public class StorageSystems extends ViprResourceController {
         public Integer resourceLimit;
         public String resourceType;
         public boolean unlimitResource;
-        public Boolean supportsSoftLimit;
-        public Boolean supportsNotificationLimit;
+        public boolean supportsSoftLimit;
+        public boolean supportsNotificationLimit;
 
         //
         // a flag to set if unlimitResource control was previously visible.

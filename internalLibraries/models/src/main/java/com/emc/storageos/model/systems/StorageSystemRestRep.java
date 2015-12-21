@@ -51,6 +51,8 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
     private Set<String> remotelyConnectedTo;
     private Boolean hasSRDFActiveRAGroups;
     private Double averagePortMetrics;
+    private Boolean supportsSoftLimit = false;
+    private Boolean supportsNotificationLimit = false;
 
     public StorageSystemRestRep() {
     }
@@ -340,5 +342,23 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
 
     public void setAveragePortMetrics(Double averagePortMetrics) {
         this.averagePortMetrics = averagePortMetrics;
+    }
+
+    @XmlElement(name = "supports_soft_limit", required = false)
+    public Boolean getSupportsSoftLimit() {
+        return supportsSoftLimit;
+    }
+
+    public void setSupportsSoftLimit(Boolean supportsSoftLimit) {
+        this.supportsSoftLimit = supportsSoftLimit;
+    }
+
+    @XmlElement(name = "supports_notification_limit", required = false)
+    public Boolean getSupportsNotificationLimit() {
+        return supportsNotificationLimit;
+    }
+
+    public void setSupportsNotificationLimit(Boolean supportsNotificationLimit) {
+        this.supportsNotificationLimit = supportsNotificationLimit;
     }
 }

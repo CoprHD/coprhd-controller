@@ -72,6 +72,7 @@ import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
 import com.emc.storageos.model.valid.Endpoint;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
+import com.emc.storageos.svcs.errorhandling.utils.MessageUtils;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
@@ -757,6 +758,8 @@ public class StorageSystems extends ViprResourceController {
             this.id = storageArray.getId().toString();
             this.name = StorageSystemUtils.getName(storageArray);
             this.type = storageArray.getSystemType();
+            this.supportsSoftLimit = storageArray.getSupportsSoftLimit();
+            this.supportsNotificationLimit = storageArray.getSupportsNotificationLimit();
             // VNX Block uses the same select option as VMAX
             if (StorageSystemTypes.isVnxBlock(type)) {
                 this.type = StorageSystemTypes.VMAX;
@@ -803,8 +806,10 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setIsUnlimitedResourcesSet(true);
                 storageArray.setMaxResources(null);
             }
-            storageArray.setSupportsSoftLimit(supportsSoftLimit);
-            storageArray.setSupportsNotificationLimit(supportsNotificationLimit);
+            if (isIsilon()) { //It's mandatory for and isilon to support these with smart quota
+                storageArray.setSupportsSoftLimit(true);
+                storageArray.setSupportsNotificationLimit(true);
+            }
             if (isVnxFile()) {
                 storageArray.setSmisProviderIP(smisProviderIpAddress);
                 storageArray.setSmisPortNumber(smisProviderPortNumber);
@@ -836,8 +841,10 @@ public class StorageSystems extends ViprResourceController {
             storageArray.setUserName(userName);
             storageArray.setPortNumber(portNumber);
             storageArray.setIpAddress(ipAddress);
-            storageArray.setSupportsSoftLimit(supportsSoftLimit);
-            storageArray.setSupportsNotificationLimit(supportsNotificationLimit);
+            if (isIsilon()){ //It's mandatory for and isilon to support these with smart quota
+                storageArray.setSupportsSoftLimit(true);
+                storageArray.setSupportsNotificationLimit(true);
+            }
             // storageArray.setRegistrationMode(RegistrationMode.SYSTEM);
 
             if (isVnxFile()) {
@@ -936,6 +943,14 @@ public class StorageSystems extends ViprResourceController {
                 Validation.required(fieldName + ".smisProviderIpAddress", this.smisProviderIpAddress);
                 Validation.required(fieldName + ".smisProviderPortNumber", this.smisProviderPortNumber);
             }
+            if (isIsilon()) {
+                if (!supportsSoftLimit) {
+                    Validation.addError(fieldName + ".supportsSoftLimit", MessagesUtils.get("storageArray.softLimit.support.required"));
+                }
+                if (!supportsNotificationLimit) {
+                    Validation.addError(fieldName + ".supportsNotificationLimit", MessagesUtils.get("storageArray.supportsNotificationLimit.support.required"));
+                }
+            }
         }
 
         private boolean isMatchingPasswords(String password, String confirm) {
@@ -956,6 +971,10 @@ public class StorageSystems extends ViprResourceController {
         
         private boolean isScaleIOApi() {
         	return StorageSystemTypes.isScaleIOApi(type);
+        }
+        
+        private boolean isIsilon() {
+            return StorageSystemTypes.isIsilon(type);
         }
     }
 

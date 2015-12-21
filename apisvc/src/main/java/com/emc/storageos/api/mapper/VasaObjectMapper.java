@@ -49,6 +49,12 @@ public class VasaObjectMapper {
             }
         }
         
+        if(from.getPhysicalStorageContainers() != null) {
+            for(String physicalStorageContainer : from.getPhysicalStorageContainers()){
+                to.getPhysicalStorageContainers().add(toRelatedResource(ResourceTypeEnum.STORAGE_CONTAINER, URI.create(physicalStorageContainer)));
+            }
+        }
+        
         return mapCommonVasaFields(from, to);
     }
 

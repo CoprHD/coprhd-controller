@@ -22,6 +22,8 @@ public class StorageContainerRequestParam extends VasaCommonRestRequest{
 	
 	private Set<String> vPools;
 	
+	private Set<String> physicalStorageContainers;
+	
 	private String type;
     
 	@XmlElement(name = "protocolEndPointType")
@@ -89,6 +91,22 @@ public class StorageContainerRequestParam extends VasaCommonRestRequest{
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    @XmlElementWrapper(name = "physical_storagecontainers")
+    /**
+     * The virtual pools for the Storage Container
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "physical_storagecontainer")
+    @JsonProperty("physical_storagecontainer")
+    public Set<String> getPhysicalStorageContainers() {
+        return physicalStorageContainers;
+    }
+
+    public void setPhysicalStorageContainers(Set<String> physicalStorageContainers) {
+        this.physicalStorageContainers = physicalStorageContainers;
     }
 
 	

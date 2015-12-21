@@ -23,6 +23,8 @@ public class StorageContainerCreateResponse extends VasaCommonRestResponse {
     
     private List<RelatedResourceRep> vpools;
     
+    private List<RelatedResourceRep> physicalStorageContainers;
+    
     private Long maxVvolSizeMB;
     
     private RelatedResourceRep storageSystem;
@@ -82,13 +84,27 @@ public class StorageContainerCreateResponse extends VasaCommonRestResponse {
     @JsonProperty("vpool")
     public List<RelatedResourceRep> getVpools() {
         if(vpools == null){
-            return vpools = new ArrayList<RelatedResourceRep>();
+            vpools = new ArrayList<RelatedResourceRep>();
         }
         return vpools;
     }
 
     public void setVpools(List<RelatedResourceRep> vpools) {
         this.vpools = vpools;
+    }
+
+    @XmlElementWrapper(name = "physical_storagecontainers")
+    @XmlElement(name = "physical_storagecontainer")
+    @JsonProperty("physical_storagecontainer")
+    public List<RelatedResourceRep> getPhysicalStorageContainers() {
+        if(physicalStorageContainers == null){
+            physicalStorageContainers = new ArrayList<RelatedResourceRep>();
+        }
+        return physicalStorageContainers;
+    }
+
+    public void setPhysicalStorageContainers(List<RelatedResourceRep> physicalStorageContainers) {
+        this.physicalStorageContainers = physicalStorageContainers;
     }
 
 

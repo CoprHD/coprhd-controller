@@ -19,6 +19,8 @@ public class StorageContainer extends DataObjectWithACLs {
     
     private StringSet virtualPools;
     
+    private StringSet physicalStorageContainers;
+    
     @Name("type")
     public String getType() {
         return type;
@@ -93,6 +95,19 @@ public class StorageContainer extends DataObjectWithACLs {
     public void setVirtualPools(StringSet virtualPools) {
         this.virtualPools = virtualPools;
         setChanged("virtualPools");
+    }
+
+
+    @RelationIndex(cf = "RelationIndex", type = StorageContainer.class)
+    @IndexByKey
+    @Name("physicalStorageContainers")
+    public StringSet getPhysicalStorageContainers() {
+        return physicalStorageContainers;
+    }
+
+    public void setPhysicalStorageContainers(StringSet physicalStorageContainers) {
+        this.physicalStorageContainers = physicalStorageContainers;
+        setChanged("physicalStorageContainers");
     }
 
 

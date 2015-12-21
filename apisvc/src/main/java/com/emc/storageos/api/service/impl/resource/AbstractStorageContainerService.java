@@ -88,6 +88,19 @@ public class AbstractStorageContainerService extends AbstractVasaService{
              }
          }
          
+         if(param.getPhysicalStorageContainers() != null){
+             storageContainer.setPhysicalStorageContainers(new StringSet());
+             for(String physicalStorageContainer : param.getPhysicalStorageContainers()){
+                 URI physicalStorageContainerURI = URI.create(physicalStorageContainer);
+                 ArgValidator.checkUri(physicalStorageContainerURI);
+                 StorageContainer storageContainerObj = _dbClient.queryObject(StorageContainer.class, physicalStorageContainerURI);
+                 ArgValidator.checkEntity(storageContainerObj, physicalStorageContainerURI, isIdEmbeddedInURL(physicalStorageContainerURI));
+                 if(storageContainerObj.getType().equals("physical") && storageContainer.getType().equals("geo")){
+                     storageContainer.getPhysicalStorageContainers().add(physicalStorageContainer);
+                 }
+             }
+         }
+         
      }
 
 }

@@ -53,9 +53,9 @@ public class VVolService extends AbstractVasaService{
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response createVVol(InputStream input){
         
-        String result = getStringFromInputStream(input);
+//        String result = getStringFromInputStream(input);
         
-        _log.info("************ SOAP Request : " + result +  " **********************");
+//        _log.info("************ SOAP Request : " + result +  " **********************");
         
         _log.info("********* Sending for Placement Logic ************");
         

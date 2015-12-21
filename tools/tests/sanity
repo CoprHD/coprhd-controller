@@ -6742,9 +6742,7 @@ dr_multisite_tests()
 
     echo "Failover to promote site $DR_SITE_C_NAME as active"
     dr failover --ip $DR_SITE_C_IP $standby_site_c
-
-    echo "---WAIT 6m AFTER FAILOVER FOR THE REBOOT---"
-    sleep 360
+    sleep 300
 
     echo "Wait for stable"
     BOURNE_IPADDR=$DR_SITE_C_IP

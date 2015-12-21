@@ -352,16 +352,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
-    
-     <bean id="keystoneFactory" class="com.emc.storageos.keystone.restapi.KeystoneRestClientFactory"
-          init-method="init" destroy-method="shutdown">
-        <property name="connectionTimeoutMs" value="30000"/>
-        <property name="maxConnections" value="300"/>
-        <property name="maxConnectionsPerHost" value="100"/>
-        <property name="socketConnectionTimeoutMs" value="3600000" />
-        <property name="needCertificateManager" value="true"/>
-    </bean>
-    
+        
     <bean id="userGroupService" class="com.emc.storageos.api.service.impl.resource.UserGroupService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>

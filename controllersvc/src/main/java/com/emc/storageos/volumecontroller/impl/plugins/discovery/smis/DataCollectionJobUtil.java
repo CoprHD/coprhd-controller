@@ -196,7 +196,7 @@ public class DataCollectionJobUtil {
             profile.setSslEnable(Boolean.TRUE.toString());
             profile.setserialID(system.getInstallationId());
         }
-        if (null != nameSpace) {
+        if (!NullColumnValueGetter.isNullValue(nameSpace)) {
             profile.setnamespace(nameSpace);
         }
     }

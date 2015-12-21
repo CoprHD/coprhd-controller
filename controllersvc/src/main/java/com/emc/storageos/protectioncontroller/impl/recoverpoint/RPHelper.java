@@ -177,7 +177,7 @@ public class RPHelper {
         List<Volume> allVolumesInRSet = new ArrayList<Volume>();
 
         Volume sourceVol = null;
-        if (volume.getRpTargets() != null && !volume.getRpTargets().isEmpty()) {
+        if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
             sourceVol = volume;
         } else {
             sourceVol = getRPSourceVolumeFromTarget(_dbClient, volume);
@@ -1980,6 +1980,7 @@ public class RPHelper {
     /**
      * Fetch the RP Protected target virtual pool uris.
      * 
+     * @param dbClient db client
      * @return set of vpools that are RP target virtual pools
      */
     public static Set<URI> fetchRPTargetVirtualPools(DbClient dbClient) {

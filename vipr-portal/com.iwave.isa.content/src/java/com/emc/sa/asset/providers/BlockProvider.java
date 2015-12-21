@@ -1575,7 +1575,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<VolumeGroupRestRep> volumeGroups = client.application().getApplications(new DefaultResourceFilter<VolumeGroupRestRep>() {
             @Override
             public boolean accept(VolumeGroupRestRep volumeGroup) {
-                if (volumeGroup.getRoles() != null && volumeGroup.getRoles().contains(VolumeGroup.VolumeGroupRole.MOBILITY)) {
+                if (volumeGroup.getRoles() != null && volumeGroup.getRoles().contains(VolumeGroup.VolumeGroupRole.MOBILITY.name())) {
                     return true;
                 } else {
                     return false;

@@ -7,6 +7,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageContainer;
 import com.emc.storageos.db.client.model.StorageContainer.ProtocolEndpointTypeEnum;
 import com.emc.storageos.db.client.model.StorageContainer.Type;
@@ -38,12 +39,11 @@ public class AbstractStorageContainerService extends AbstractVasaService{
              storageContainer.setDescription(param.getDescription());
          }
          
+         storageContainer.setId(URIUtil.createId(StorageContainer.class));
+         
          ArgValidator.checkFieldNotEmpty(param.getType(), TYPE);
          ArgValidator.checkFieldValueFromEnum(param.getType(), TYPE,
                  EnumSet.of(Type.geo, Type.physical));
-         if(null != param.getProtocolEndPointType()){
-             storageContainer.setProtocolEndPointType(param.getProtocolEndPointType());
-         }
          
          ArgValidator.checkFieldNotEmpty(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE);
          ArgValidator.checkFieldValueFromEnum(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE,

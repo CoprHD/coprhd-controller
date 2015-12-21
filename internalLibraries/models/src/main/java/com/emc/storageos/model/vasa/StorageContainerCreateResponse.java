@@ -78,8 +78,8 @@ public class StorageContainerCreateResponse extends VasaCommonRestResponse {
     }
 
     @XmlElementWrapper(name = "vpools")
-    @XmlElement(name = "vpools")
-    @JsonProperty("vpools")
+    @XmlElement(name = "vpool")
+    @JsonProperty("vpool")
     public List<RelatedResourceRep> getVpools() {
         if(vpools == null){
             return vpools = new ArrayList<RelatedResourceRep>();

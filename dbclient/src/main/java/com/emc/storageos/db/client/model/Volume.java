@@ -90,8 +90,8 @@ public class Volume extends BlockObject implements ProjectResource {
     private String _linkStatus;
     // volume access state from array; can be overridden by protection (RP)
     private String _accessState;
-    // application that the volume belongs to
-    private StringSet applicationIds;
+    // volume group that the volume belongs to
+    private StringSet volumeGroupIds;
 
     // The value alignments 0-4 correspond to SMIS values. Other storage types must map to these values.
     public static enum VolumeAccessState {
@@ -924,21 +924,24 @@ public class Volume extends BlockObject implements ProjectResource {
     }
     
     /**
-     * Getter for the ids of the applications
+     * Getter for the ids of the volume groups
      *
      * @return The set of application ids 
      */
-    @Name("applicationIds")
-    @AlternateId("Applications")
-    public StringSet getApplicationIds() {
-        return applicationIds;
+    @Name("volumeGroupIds")
+    @AlternateId("VolumeGroups")
+    public StringSet getVolumeGroupIds() {
+        if (volumeGroupIds == null) {
+            volumeGroupIds = new StringSet();
+        }
+        return volumeGroupIds;
     }
 
     /**
-     * Setter for the application ids 
+     * Setter for the volume group ids 
      */
-    public void setApplicationIds(StringSet applicationIds) {
-        this.applicationIds = applicationIds;
+    public void setVolumeGroupIds(StringSet applicationIds) {
+        this.volumeGroupIds = applicationIds;
         setChanged("applicationIds");
     }
 

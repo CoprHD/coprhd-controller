@@ -13,13 +13,17 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.codehaus.jackson.annotate.JsonProperty;
+
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.RelatedResourceRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
-@XmlRootElement(name = "application")
-public class ApplicationRestRep extends DataObjectRestRep {
+@XmlRootElement(name = "volume_group")
+public class VolumeGroupRestRep extends DataObjectRestRep {
     private String description;
     private Set<String> roles;
+    private RelatedResourceRep parent;
 
     @XmlElement
     public String getDescription() {
@@ -32,7 +36,7 @@ public class ApplicationRestRep extends DataObjectRestRep {
 
     @XmlElementWrapper(name = "roles")
     /**
-     * Roles of the application
+     * Roles of the volume group
      * 
      * @valid none
      */
@@ -46,5 +50,20 @@ public class ApplicationRestRep extends DataObjectRestRep {
 
     public void setRoles(Set<String> roles) {
         this.roles = roles;
+    }
+
+    /**
+     * Related parent volume group
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "parent")
+    @JsonProperty("parent")
+    public RelatedResourceRep getParent() {
+        return parent;
+    }
+
+    public void setParent(RelatedResourceRep parent) {
+        this.parent = parent;
     }
 }

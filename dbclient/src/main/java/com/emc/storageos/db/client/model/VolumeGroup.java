@@ -4,22 +4,27 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
 import java.util.Set;
 
-@Cf("Application")
-public class Application extends DataObject {
+@Cf("VolumeGroup")
+public class VolumeGroup extends DataObject {
 
     private static final long serialVersionUID = 2559507385303958088L;
 
-    // Description of the application
+    // Description of the volume group
     private String description;
 
-    // The role of the application, either COPY or DR
+    // The role of the volume group, either COPY or DR
     private StringSet roles;
+    
+    // parent volume group
+    private URI parent;
 
-    public static enum ApplicationRole {
+    public static enum VolumeGroupRole {
         COPY,
-        DR
+        DR,
+        MOBILITY
     }
 
     @Name("description")
@@ -54,5 +59,22 @@ public class Application extends DataObject {
         if (newRoles != null && !newRoles.isEmpty()) {
             roles.addAll(newRoles);
         }
+    }
+
+    /**
+     * @return the parent
+     */
+    @RelationIndex(cf = "VolumeGroupParent", type = VolumeGroup.class)
+    @Name("parent")
+    public URI getParent() {
+        return parent;
+    }
+
+    /**
+     * @param parent the parent to set
+     */
+    public void setParent(URI parent) {
+        this.parent = parent;
+        setChanged("parent");
     }
 }

@@ -59,6 +59,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEvent;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
@@ -849,6 +850,34 @@ public class ControllerUtils {
     }
 
     /**
+     * Gets the volumes part of a given replication group.
+     */
+    public static List<Volume> getVolumesPartOfRG(StorageSystem storage, URI cgURI /* TODO - use replicaitonGroupInstance */, DbClient dbClient) {
+        List<Volume> volumes = new ArrayList<Volume>();
+        final BlockConsistencyGroup group =
+                dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+        String rgGroup = null;
+        if (group != null && storage != null) {
+            rgGroup = group.getCgNameOnStorageSystem(storage.getId());
+            if (rgGroup != null) {
+                final URIQueryResultList uriQueryResultList = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeReplicationGroupInstanceConstraint(rgGroup), uriQueryResultList);
+                Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                        uriQueryResultList);
+                while (volumeIterator.hasNext()) {
+                    Volume volume = volumeIterator.next();
+                    if (volume != null && !volume.getInactive()) {
+                        volumes.add(volume);
+                    }
+                }
+            }
+        }
+
+        return volumes;
+    }
+
+    /**
      * Gets the mirrors part of a given replication group.
      */
     public static List<BlockMirror> getMirrorsPartOfReplicationGroup(
@@ -877,7 +906,7 @@ public class ControllerUtils {
         List<Volume> fullCopies = new ArrayList<Volume>();
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getCloneReplicationGroupInstanceConstraint(replicationGroupInstance),
+                .getVolumeReplicationGroupInstanceConstraint(replicationGroupInstance),
                 uriQueryResultList);
         Iterator<Volume> itr = dbClient.queryIterativeObjects(Volume.class,
                 uriQueryResultList);
@@ -975,37 +1004,39 @@ public class ControllerUtils {
      *
      * As a result, getting associator names cannot be used to check if CG has group relationship.
      */
-    public static boolean checkCGHasGroupRelationship(URI cgURI, DbClient dbClient) {
+    public static boolean checkCGHasGroupRelationship(StorageSystem storage, URI cgURI, DbClient dbClient) {
         // get volumes part of this CG
         List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(cgURI, dbClient);
-
+        boolean isVNX = storage.deviceIsType(Type.vnxblock);
         // check if replica of any of these volumes have replicationGroupInstance set
         for (Volume volume : volumes) {
-            // clone
-            URIQueryResultList cloneList = new URIQueryResultList();
-            dbClient.queryByConstraint(ContainmentConstraint.Factory
-                    .getAssociatedSourceVolumeConstraint(volume.getId()), cloneList);
-            Iterator<URI> iter = cloneList.iterator();
-            while (iter.hasNext()) {
-                URI cloneID = iter.next();
-                Volume clone = dbClient.queryObject(Volume.class, cloneID);
-                if (clone != null && !clone.getInactive()
-                        && NullColumnValueGetter.isNotNullValue(clone.getReplicationGroupInstance())) {
-                    return true;
+            if (!isVNX) { // VNX doesn't have group clones/mirrors
+                // clone
+                URIQueryResultList cloneList = new URIQueryResultList();
+                dbClient.queryByConstraint(ContainmentConstraint.Factory
+                        .getAssociatedSourceVolumeConstraint(volume.getId()), cloneList);
+                Iterator<URI> iter = cloneList.iterator();
+                while (iter.hasNext()) {
+                    URI cloneID = iter.next();
+                    Volume clone = dbClient.queryObject(Volume.class, cloneID);
+                    if (clone != null && !clone.getInactive()
+                            && NullColumnValueGetter.isNotNullValue(clone.getReplicationGroupInstance())) {
+                        return true;
+                    }
                 }
-            }
 
-            // mirror
-            URIQueryResultList mirrorList = new URIQueryResultList();
-            dbClient.queryByConstraint(ContainmentConstraint.Factory
-                    .getVolumeBlockMirrorConstraint(volume.getId()), mirrorList);
-            Iterator<URI> itr = mirrorList.iterator();
-            while (itr.hasNext()) {
-                URI mirrorID = itr.next();
-                BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorID);
-                if (mirror != null && !mirror.getInactive()
-                        && NullColumnValueGetter.isNotNullValue(mirror.getReplicationGroupInstance())) {
-                    return true;
+                // mirror
+                URIQueryResultList mirrorList = new URIQueryResultList();
+                dbClient.queryByConstraint(ContainmentConstraint.Factory
+                        .getVolumeBlockMirrorConstraint(volume.getId()), mirrorList);
+                Iterator<URI> itr = mirrorList.iterator();
+                while (itr.hasNext()) {
+                    URI mirrorID = itr.next();
+                    BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorID);
+                    if (mirror != null && !mirror.getInactive()
+                            && NullColumnValueGetter.isNotNullValue(mirror.getReplicationGroupInstance())) {
+                        return true;
+                    }
                 }
             }
 
@@ -1209,6 +1240,30 @@ public class ControllerUtils {
     public static boolean isVmaxVolumeUsing803SMIS(Volume volume, DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
+    }
+
+    /**
+     * Check whether the given volume is VNX volume
+     *
+     * @param volume
+     * @param dbClient
+     * @return
+     */
+    public static boolean isVnxVolume(Volume volume, DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+        return storage != null && storage.deviceIsType(Type.vnxblock);
+    }
+
+    /**
+     * Check whether the given volume is in VNX virtual replication group
+     *
+     * @param volume
+     * @param dbClient
+     * @return
+     */
+    public static boolean isInVNXVirtualRG(Volume volume, DbClient dbClient) {
+        return volume != null && ControllerUtils.isVnxVolume(volume, dbClient) &&
+                StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG);
     }
 
     /**

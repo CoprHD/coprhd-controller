@@ -875,6 +875,27 @@ public interface BlockStorageDevice {
      */
     public void doDetachListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws Exception;
 
+    /**
+     * Fracture list replica.
+     *
+     * @param storage the storage system
+     * @param replicaList the replicas
+     * @param sync
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doFractureListReplica(StorageSystem storage, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter) throws Exception;
+
+    /**
+     * Delete list replica.
+     *
+     * @param storage the storage system
+     * @param replicaList the replicas
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doDeleteListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws Exception;
+
     /*
      * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs
      *

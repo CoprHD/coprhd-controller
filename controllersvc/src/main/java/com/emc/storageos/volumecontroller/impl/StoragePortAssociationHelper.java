@@ -294,13 +294,13 @@ public class StoragePortAssociationHelper {
     }
 
     /**
-     * it return VirtualNAS contains the given StoragePort
+     * Returns VirtualNAS associated with the given storage port
      * 
      * @param sp StorgaePort
      * @param dbClient
      * @return VirtualNAS associated with StorgaePort
      */
-    private static List<VirtualNAS> getStoragePortVirtualNAS(StoragePort sp, DbClient dbClient) {
+    public static List<VirtualNAS> getStoragePortVirtualNAS(StoragePort sp, DbClient dbClient) {
         List<VirtualNAS> virtualNASList = new ArrayList<VirtualNAS>();
         URIQueryResultList vNasUriList = new URIQueryResultList();
         dbClient.queryByConstraint(
@@ -311,7 +311,7 @@ public class StoragePortAssociationHelper {
             VirtualNAS vNas = dbClient.queryObject(VirtualNAS.class, vNasIter.next());
             if (vNas != null && !vNas.getInactive()) {
                 virtualNASList.add(vNas);
-                _log.info("found virtual NAS: {} for storageport: {}", vNas.getNasName(), sp.getLabel());
+                _log.info("Found virtual NAS: {} for storageport: {}", vNas.getNasName(), sp.getLabel());
             }
         }
         return virtualNASList;

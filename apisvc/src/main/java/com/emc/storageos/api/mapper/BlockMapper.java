@@ -229,12 +229,12 @@ public class BlockMapper {
             }
             to.setHaVolumes(backingVolumes);
         }
-        if ((from.getApplicationIds() != null) && (!from.getApplicationIds().isEmpty())) {
-            List<RelatedResourceRep> applications = new ArrayList<RelatedResourceRep>();
-            for (String application : from.getApplicationIds()) {
-                applications.add(toRelatedResource(ResourceTypeEnum.APPLICATION, URI.create(application)));
+        if ((from.getVolumeGroupIds() != null) && (!from.getVolumeGroupIds().isEmpty())) {
+            List<RelatedResourceRep> volumeGroups = new ArrayList<RelatedResourceRep>();
+            for (String volumeGroup : from.getVolumeGroupIds()) {
+                volumeGroups.add(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, URI.create(volumeGroup)));
             }
-            to.setApplications(applications);
+            to.setVolumeGroups(volumeGroups);
         }
 
         return to;

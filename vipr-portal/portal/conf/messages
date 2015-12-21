@@ -137,8 +137,10 @@ nav.computeImageServers=Compute Image Servers
 nav.sites=Sites
 nav.userGroups=User Groups
 nav.object.buckets=Buckets
+nav.app=Applications
 nav.disasterRecovery=Disaster Recovery
 nav.ipsec=IPsec
+
 # Override messages in the Secure plugin
 secure.title=
 secure.username=Username:
@@ -649,6 +651,22 @@ VCenters.detachStorageModal=Detach Storage
 VCenters.detachStorageModal.help=Detach any storage from the selected vCenter(s) before deactivating.
 VCenters.detachStorageConfirm=Are you sure you want to detach storage from the selected vCenter(s)?
 VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s).
+
+#Application Support
+Application.list.title=Applications
+application.name=Application	
+application.description=Description	
+application.role=Role
+Application.deleteConfirm=Are you sure you want to delete the Application(s).
+ApplicationForm.create.title=Create Application
+ApplicationForm.edit.title=Edit Application
+application.create.description=Enter information needed for an Application
+applicationForm.name=Application Name
+applicationForm.description=Description
+applicationForm.roles=Roles
+application.save.success=Saved '%s'
+applications.deleted=Application(s) deleted successfully
+Application.unknown=Unknown Application with ID '%s'
 
 # Custom Config
 CustomConfigs.list.title=Controller Configurations
@@ -2937,7 +2955,8 @@ affectedResources.blockSnapshot.volume=Volume
 affectedResources.blockSnapshot.varray=Virtual Array
 
 affectedResources.blockConsistencyGroup=Consistency Group
-affectedResources.blockConsistencyGroup.image=serviceCatalog/Snapshot.png
+affectedResources.blockConsistencyGroup.image=assets/Consistency_Group.png
+affectedResources.blockConsistencyGroup.name=Name
 
 affectedResources.fileSnapshot=File Snapshot
 affectedResources.fileSnapshot.image=serviceCatalog/Snapshot.png

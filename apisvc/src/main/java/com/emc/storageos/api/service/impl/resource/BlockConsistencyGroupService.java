@@ -73,6 +73,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -1121,25 +1122,28 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 }
             }
 
-            // Check mirrors
-            // Adding/removing volumes to/from a consistency group
-            // is not supported when existing volumes in CG have mirrors.
-            if (cgVolumes != null && !cgVolumes.isEmpty()) {
-                Volume firstVolume = cgVolumes.get(0);
-                StringSet mirrors = firstVolume.getMirrors();
-                if (mirrors != null && !mirrors.isEmpty()) {
-                    throw APIException.badRequests.notAllowedWhenCGHasMirrors();
+            // VNX group clones and mirrors are just list of replicas, no corresponding group on array side
+            if (!cgStorageSystem.deviceIsType(Type.vnxblock)) {
+                // Check mirrors
+                // Adding/removing volumes to/from a consistency group
+                // is not supported when existing volumes in CG have mirrors.
+                if (cgVolumes != null && !cgVolumes.isEmpty()) {
+                    Volume firstVolume = cgVolumes.get(0);
+                    StringSet mirrors = firstVolume.getMirrors();
+                    if (mirrors != null && !mirrors.isEmpty()) {
+                        throw APIException.badRequests.notAllowedWhenCGHasMirrors();
+                    }
                 }
-            }
 
-            // Check clones
-            // Adding/removing volumes to/from a consistency group
-            // is not supported when the consistency group has
-            // volumes with full copies to which they are still
-            // attached or has volumes that are full copies that
-            // are still attached to their source volumes.
-            getFullCopyManager().verifyConsistencyGroupCanBeUpdated(consistencyGroup,
-                    cgVolumes);
+                // Check clones
+                // Adding/removing volumes to/from a consistency group
+                // is not supported when the consistency group has
+                // volumes with full copies to which they are still
+                // attached or has volumes that are full copies that
+                // are still attached to their source volumes.
+                getFullCopyManager().verifyConsistencyGroupCanBeUpdated(consistencyGroup,
+                        cgVolumes);
+            }
         }
 
         // Verify the volumes to be removed.
@@ -1158,6 +1162,16 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     }
                     if (!BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) {
                         blockServiceApiImpl.verifyRemoveVolumeFromCG(volume, cgVolumes);
+                    }
+                    // Check if the volume is assigned to an application
+                    StringSet volumeGroups = volume.getVolumeGroupIds();
+                    if (volumeGroups != null && !volumeGroups.isEmpty()) {
+                        for (String appString : volumeGroups) {
+                            VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, URI.create(appString));
+                            if(application != null && !application.getInactive()) {
+                                throw APIException.badRequests.removeVolumeFromCGNotAllowed(volume.getLabel(), application.getLabel());
+                            }
+                        }
                     }
                 }
                 removeVolumesList.add(volumeURI);

@@ -352,7 +352,7 @@ public interface AlternateIdConstraint extends Constraint {
                     providerId);
         }
 
-        public static AlternateIdConstraint getCloneReplicationGroupInstanceConstraint(
+        public static AlternateIdConstraint getVolumeReplicationGroupInstanceConstraint(
                 String replicaGroupInstance) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),
@@ -618,9 +618,9 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemNfsACLIndex"), fileSystemNfsACLIndex);
         }
         
-        public static AlternateIdConstraint getVolumesByApplicationId(String applicationId) {
+        public static AlternateIdConstraint getVolumesByVolumeGroupId(String volumeGroupId) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("applicationIds"), applicationId);
+            return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
         }
     }
 

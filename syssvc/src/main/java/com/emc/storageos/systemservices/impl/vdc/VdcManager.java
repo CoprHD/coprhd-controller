@@ -138,7 +138,9 @@ public class VdcManager extends AbstractManager {
     
     @Override
     protected void innerRun() {
-        final String svcId = coordinator.getMySvcId();
+        // need to distinguish persistent locks acquired from UpgradeManager/VdcManager/PropertyManager
+        // otherwise they might release locks acquired by others when they start
+        final String svcId = String.format("%s,vdc", coordinator.getMySvcId());
         currentSiteId = coordinator.getCoordinatorClient().getSiteId();
         vdcConfigUtil = new VdcConfigUtil(coordinator.getCoordinatorClient());
         vdcConfigUtil.setBackCompatPreYoda(backCompatPreYoda);

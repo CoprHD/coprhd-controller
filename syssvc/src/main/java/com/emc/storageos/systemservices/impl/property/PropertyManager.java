@@ -88,7 +88,9 @@ public class PropertyManager extends AbstractManager {
 
     @Override
     protected void innerRun() {
-        final String svcId = coordinator.getMySvcId();
+        // need to distinguish persistent locks acquired from UpgradeManager/VdcManager/PropertyManager
+        // otherwise they might release locks acquired by others when they start
+        final String svcId = String.format("%s,property", coordinator.getMySvcId());
 
         addPropertyInfoListener();
 

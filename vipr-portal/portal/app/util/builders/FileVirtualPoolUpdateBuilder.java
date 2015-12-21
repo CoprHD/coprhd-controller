@@ -7,6 +7,7 @@ package util.builders;
 import org.apache.commons.lang.ObjectUtils;
 
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionParam;
+import com.emc.storageos.model.vpool.FileVirtualPoolProtectionUpdateParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionSnapshotsParam;
@@ -35,9 +36,9 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         return virtualPool;
     }
 
-    protected FileVirtualPoolProtectionParam getProtection() {
+    protected FileVirtualPoolProtectionUpdateParam getProtection() {
         if (virtualPool.getProtection() == null) {
-            virtualPool.setProtection(new FileVirtualPoolProtectionParam());
+            virtualPool.setProtection(new FileVirtualPoolProtectionUpdateParam());
         }
         return virtualPool.getProtection();
     }

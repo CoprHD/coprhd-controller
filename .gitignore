@@ -13,6 +13,7 @@ build
 *.ipr
 *.iml
 *.pyc
+*.jar
 Makefile.version
 generated/
 dbtest/

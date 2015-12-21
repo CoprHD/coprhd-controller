@@ -22,10 +22,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.db.client.model.CifsShareACL;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
-import com.emc.storageos.model.BulkIdParam;
-
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,12 +36,15 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
-import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -58,11 +58,13 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.file.FileSystemIngest;
 import com.emc.storageos.model.file.NamedFileSystemList;
@@ -735,13 +737,22 @@ public class UnManagedFilesystemService extends TaggedResource {
     
     private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, DbClient dbClient,URI virtualArray){
     	StoragePort sp= null;
+    	NASServer nasServer=null;
+    	   	
     	
-    	VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+    	if(StringUtils.equals("VirtualNAS", URIUtil.getTypeName(nasUri))){
+    	nasServer = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+    	}
+    	else{
+    	    nasServer = dbClient.queryObject(PhysicalNAS.class, URI.create(nasUri)); 
+    	}
     	
     	List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray);
     	StringSet virtualArrayPortsSet = new StringSet();
     	    	
-    	StringSet storagePorts=virtualNAS.getStoragePorts();
+    	StringSet storagePorts=nasServer.getStoragePorts();
+    	
+    	
     	
     	for(URI tempVarrayPort : virtualArrayPorts){
     		virtualArrayPortsSet.add(tempVarrayPort.toString());

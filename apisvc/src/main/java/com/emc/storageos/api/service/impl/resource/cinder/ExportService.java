@@ -33,6 +33,7 @@ import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.cinder.CinderConstants.ComponentStatus;
+import com.emc.storageos.cinder.CinderConstants.ExportOperations;
 import com.emc.storageos.cinder.model.CinderInitConnectionResponse;
 import com.emc.storageos.cinder.model.Connector;
 import com.emc.storageos.cinder.model.UsageStats;
@@ -98,20 +99,8 @@ public class ExportService extends VolumeService {
     private static final Logger _log = LoggerFactory.getLogger(ExportService.class);
     private static final long GB = 1024 * 1024 * 1024;
     private static final int RETRY_COUNT = 15;
-    private static final String OS_RESERVE = "os-reserve";
-    private static final String OS_UNRESERVE = "os-unreserve";
-    private static final String OS_TERMINATE_CONNECTION = "os-terminate_connection";
-    private static final String OS_BEGIN_DETACHING = "os-begin_detaching";
-    private static final String OS_DETACH = "os-detach";
-    private static final String OS_INITIALIZE_CONNECTION = "os-initialize_connection";
-    private static final String OS_ATTACH = "os-attach";
-    private static final String OS_EXTEND = "os-extend";
-    private static final String OS_RESET_STATUS = "os-reset_status";
-    private static final String STATUS = "status";
-    private static final String OS_SET_BOOTABLE = "os-set_bootable";
-    private static final String OS_UPDATE_READONLY = "os-update_readonly_flag";
-
     private NameGenerator _nameGenerator;
+    private static final String STATUS = "status";
 
     public NameGenerator getNameGenerator() {
         return _nameGenerator;
@@ -129,6 +118,19 @@ public class ExportService extends VolumeService {
      * @prereq none
      * 
      * @param param POST data containing the volume action information.
+     * The different kinds of operations that are part of the export are
+     * Reserve, unreserve, terminate, begin detach, detach, attach, init connection,
+     * extend, set bootable, set Readonly
+     * 
+     * os-reserve: reserve a volume for initiating the attach operation.
+     * os-unreserve: unreserve the volume to indicate the attach operation being performed is over.
+     * os-detach
+     * os-initialize_connection: create export of the volume to the nova node.
+     * os-attach: perform the mount of the volume that has been exported to the nova instance.
+     * os-extend: extend size of volume.
+     * os-reset_status: reset the status of the volume.
+     * os-set_bootable: set bootable flag on volume.
+     * os-update_readonly_flag: update the volume as readonly.
      * 
      * @brief Export/Unexport volume
      * @return A reference to a BlockTaskList containing a list of
@@ -160,28 +162,27 @@ public class ExportService extends VolumeService {
         boolean bBootable = false;
         boolean bReadonly = false;
 
-        if (input.contains(OS_RESERVE))
+        if (input.contains(ExportOperations.OS_RESERVE.getOperation()))
             bReserve = true;
-        if (input.contains(OS_UNRESERVE))
+        if (input.contains(ExportOperations.OS_UNRESERVE.getOperation()))
             bUnReserve = true;
-        if (input.contains(OS_TERMINATE_CONNECTION))
+        if (input.contains(ExportOperations.OS_TERMINATE_CONNECTION.getOperation()))
             bTerminate = true;
-        if (input.contains(OS_BEGIN_DETACHING))
+        if (input.contains(ExportOperations.OS_BEGIN_DETACHING.getOperation()))
             bBeginDetach = true;
-        if (input.contains(OS_DETACH))
+        if (input.contains(ExportOperations.OS_DETACH.getOperation()))
             bDetach = true;
-        if (input.contains(OS_ATTACH))
+        if (input.contains(ExportOperations.OS_ATTACH.getOperation()))
             bAttach = true;
-        if (input.contains(OS_INITIALIZE_CONNECTION))
+        if (input.contains(ExportOperations.OS_INITIALIZE_CONNECTION.getOperation()))
             bInitCon = true;
-        if (input.contains(OS_EXTEND)) // for expand volume
+        if (input.contains(ExportOperations.OS_EXTEND.getOperation())) // for expand volume
             bExtend = true;
-        if (input.contains(OS_SET_BOOTABLE))
+        if (input.contains(ExportOperations.OS_SET_BOOTABLE.getOperation()))
             bBootable = true;
-        if (input.contains(OS_UPDATE_READONLY))
+        if (input.contains(ExportOperations.OS_UPDATE_READONLY.getOperation()))
             bReadonly = true;
-
-        if (input.contains(OS_RESET_STATUS)) {
+        if (input.contains(ExportOperations.OS_RESET_STATUS.getOperation())) {
             Volume vol = findVolume(volume_id, openstack_tenant_id);
             if (vol != null) {
                 return changeVolumeStatus(vol, input);
@@ -410,7 +411,7 @@ public class ExportService extends VolumeService {
      * @return
      */
     private String getRequestedStatusFromRequest(String jsonInput) {
-        String jsonString[] = new String[] { OS_RESET_STATUS, STATUS };
+        String jsonString[] = new String[] { ExportOperations.OS_RESET_STATUS.getOperation(), STATUS };
         Gson gson = new GsonBuilder().create();
         for (int i = 0; i < jsonString.length; i++) {
             Map<String, Object> r = gson.fromJson(jsonInput, Map.class);

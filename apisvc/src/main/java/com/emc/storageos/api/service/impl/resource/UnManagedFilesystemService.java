@@ -343,10 +343,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                             new Object[] { dataMover.getAdapterName(), dataMover.getName(), dataMover.getLabel() });
                 }
                 
-                //check ingest is valid for given project
-                
+                //check ingestion is valid for given project
                 if(!isIngestUmfsValidForProject(project, _dbClient, nasUri)) {
-                    _logger.info("ingest umfs {} is mounted to vNAS Uri {} invalid for project", path, nasUri);
+                    _logger.info("UnManaged FileSystem path {} is mounted on vNAS URI {} which is invalid for project.", path, nasUri);
                     continue;
                 }
                 
@@ -692,31 +691,26 @@ public class UnManagedFilesystemService extends TaggedResource {
     }
     
     /**
-     * Validate vnas of unmanaged file system association with project       
+     * Validate vNAS of unmanaged file system association with project       
      * @param project
      * @param dbClient
      * @param nasUri
-     * @return
+     * @return true if ingestion is possible for a project against a vNAS; false otherwise
      */
     public boolean isIngestUmfsValidForProject(Project project, DbClient dbClient, String nasUri) {
-        boolean isIngestValid = true;
+        boolean isIngestValid = false;
         //step -1 check file system is mounted to VNAS
-        if( nasUri != null && URIUtil.getTypeName(nasUri).equals("VirtualNAS")) {
+        if (nasUri != null && "VirtualNAS".equals(URIUtil.getTypeName(nasUri))) {
             VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
             
-            //step -2 if project has any associated vNAS
-            StringSet vnasStringSet = project.getAssignedVNasServers();
-            if(vnasStringSet != null && !vnasStringSet.isEmpty()) {
-                //step -3 then check nasUri in project associated vnas list
-                if(vnasStringSet.contains(nasUri) == false && virtualNAS.isNotAssignedToProject() == false) {
-                    _logger.info("vNAS {} is assicated with other project", nasUri);
-                    isIngestValid = false;
-                }
-            } else {//then check vnas associated with any other project
-                //step -3 //if is associated with other project then don't ingest
-                if(virtualNAS.isNotAssignedToProject() == false) {
-                    _logger.info("vNAS {} is assicated with other project", nasUri);
-                    isIngestValid = false;
+            //Step -2 if project has any associated vNAS
+            StringSet projectVNASServerSet = project.getAssignedVNasServers();
+            if (vnasStringSet != null && !vnasStringSet.isEmpty()) {
+                //Step -3 then check nasUri in project associated vnas list
+                if (projectVNASServerSet.contains(nasUri) && !virtualNAS.isNotAssignedToProject()) {
+                    _logger.info("vNAS: {} is associated with project: {}",
+                    		virtualNAS.getNasName(), project.getLabel());
+                    isIngestValid = true;
                 }
             }
         }

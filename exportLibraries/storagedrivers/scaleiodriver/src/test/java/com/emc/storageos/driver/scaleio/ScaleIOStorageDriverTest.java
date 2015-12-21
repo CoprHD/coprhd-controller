@@ -64,7 +64,7 @@ public class ScaleIOStorageDriverTest {
             storageVolumes.add(volume);
         }
 
-        task = (DriverTaskImpl) driver.createVolumes(storageVolumes, capabilities);
+        task = driver.createVolumes(storageVolumes, capabilities);
         Assert.assertNotNull(task);
         Assert.assertEquals(task.getStatus().toString(), "READY");
 
@@ -79,7 +79,7 @@ public class ScaleIOStorageDriverTest {
 
         storageVolumes.add(volume);
 
-        task = (DriverTaskImpl) driver.createVolumes(storageVolumes, capabilities);
+        task = driver.createVolumes(storageVolumes, capabilities);
         Assert.assertNotNull(task);
         Assert.assertEquals(task.getStatus().toString(), "FAILED");
 
@@ -89,29 +89,34 @@ public class ScaleIOStorageDriverTest {
     @Test
     public void testExpandVolume() throws Exception {
         StorageVolume volume = new StorageVolume();
+        List<StorageVolume> storageVolumes = new ArrayList<>();
+        StorageCapabilities capabilities = null;
+
         volume.setStorageSystemId("a817f58300000000");
         volume.setStoragePoolId("84c44afd00000000");
         volume.setRequestedCapacity(Long.valueOf(10));
         volume.setThinVolumePreAllocationSize(Long.valueOf(10));
+
+        driver.createVolumes(storageVolumes, capabilities);
 
         Long capacity = volume.getProvisionedCapacity();
         System.out.println(capacity);
         capacity += 100;
 
         //Expand storage volume
-        task = (DriverTaskImpl) driver.expandVolume(volume, capacity);
+        task = driver.expandVolume(volume, capacity);
         Assert.assertNotNull(task);
         Assert.assertEquals(task.getStatus().toString(), "READY");
 
         //Expand storage volume to invalid size
-        task = (DriverTaskImpl) driver.expandVolume(volume, -100);
+        task = driver.expandVolume(volume, -100);
         Assert.assertNotNull(task);
         Assert.assertEquals(task.getStatus().toString(), "FAILED");
 
         //Expand storage volume that does not already exist in the storage system
         StorageVolume newVolume = new StorageVolume();
 
-        task = (DriverTaskImpl) driver.expandVolume(newVolume, capacity);
+        task = driver.expandVolume(newVolume, capacity);
         Assert.assertNotNull(task);
         Assert.assertEquals(task.getStatus().toString(), "FAILED");
 
@@ -121,6 +126,8 @@ public class ScaleIOStorageDriverTest {
     @Test
     public void testDeleteVolumes() throws Exception {
         List<StorageVolume> storageVolumes = new ArrayList<>();
+        StorageCapabilities capabilities = null;
+
         StorageVolume volume1 = new StorageVolume();
         StorageVolume volume2 = new StorageVolume();
 
@@ -128,17 +135,18 @@ public class ScaleIOStorageDriverTest {
         volume1.setStoragePoolId("84c44afd00000000");
         volume1.setRequestedCapacity(Long.valueOf(20));
         volume1.setThinVolumePreAllocationSize(Long.valueOf(20));
+        storageVolumes.add(volume1);
 
         volume2.setStorageSystemId("a817f58300000000");
         volume2.setStoragePoolId("84c44afd00000000");
         volume2.setRequestedCapacity(Long.valueOf(10));
         volume2.setThinVolumePreAllocationSize(Long.valueOf(10));
-
-        storageVolumes.add(volume1);
         storageVolumes.add(volume2);
 
+        driver.createVolumes(storageVolumes, capabilities);
+
         //Delete storage volumes
-        task = (DriverTaskImpl) driver.deleteVolumes(storageVolumes);
+        task = driver.deleteVolumes(storageVolumes);
         Assert.assertNotNull(task);
         Assert.assertEquals(task.getStatus().toString(), "READY");
 
@@ -147,7 +155,7 @@ public class ScaleIOStorageDriverTest {
         storageVolumes.clear();
         storageVolumes.add(newVolume);
 
-        task = (DriverTaskImpl) driver.deleteVolumes(storageVolumes);
+        task = driver.deleteVolumes(storageVolumes);
         Assert.assertNotNull(task);
         Assert.assertEquals(task.getStatus().toString(), "FAILED");
 

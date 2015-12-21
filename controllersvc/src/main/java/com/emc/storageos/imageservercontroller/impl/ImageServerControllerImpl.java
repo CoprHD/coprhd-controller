@@ -118,6 +118,7 @@ public class ImageServerControllerImpl implements ImageServerController {
     private static final String IMAGEURL_PASSWORD_SPLIT_REGEX = "(.*?:){2}((?<=\\:).*(?=\\@))";
 
     private static final String IMAGEURL_HOST_REGEX = "^*(?<=@)([^/@]++)/.*+$";
+    public static final String MASKED_PASSWORD = "*********";
 
 
     public void setDbClient(DbClient dbClient) {
@@ -150,7 +151,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * Check if the given {@link ComputeImageServer} instance has valid details
-     * 
+     *
      * @param imageServer {@link ComputeImageServer} instance
      * @return true if valid else false
      */
@@ -324,7 +325,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * Import image to all availabe imageServer
-     * 
+     *
      * @param task {@link AsyncTask} instance
      */
     @Override
@@ -499,7 +500,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * check OS version
-     * 
+     *
      * @param os {@link ComputeIamge} instance
      * @return
      */
@@ -510,7 +511,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * check OS build and architecture type
-     * 
+     *
      * @param os {@link ComputeIamge} instance
      * @return
      */
@@ -531,7 +532,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * Method to import an image
-     * 
+     *
      * @param ciId {@link URI} computeImage URI
      * @param imageServer {@link ComputeImageServer} imageServer instance
      * @param opName operation Name
@@ -584,7 +585,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * Utility method to import an image to the given computeimage server
-     * 
+     *
      * @param imageServer {@link ComputeImageServer} instance.
      * @param ci {@link ComputeImage} instance
      * @param imageserverDialog {@link ImageServerDialog} instance
@@ -1125,7 +1126,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * Method to fetch all compute images present in the db.
-     * 
+     *
      * @return {@link List<ComputeImage>}
      */
     private List<ComputeImage> getAllComputeImages() {
@@ -1146,7 +1147,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * This method verifies if the given image Server is a valid imageServer.
-     * 
+     *
      * @param imageServerId {@link URI} of ComputeImageServer
      * @param stepId workflow stepid being executed.
      */
@@ -1281,11 +1282,11 @@ public class ImageServerControllerImpl implements ImageServerController {
      */
     public static String maskImageURLPassword(String imageUrl) {
         String password = extractPasswordFromImageUrl(imageUrl);
+        String maskedPasswordURL = imageUrl;
         if (StringUtils.isNotBlank(password)) {
-            String maskedPassword = StringUtils.repeat("*", password.length());
             imageUrl = StringUtils.replace(imageUrl, ":" + password + "@", ":"
-                    + maskedPassword + "@");
+                    + MASKED_PASSWORD + "@");
         }
-        return imageUrl;
+        return maskedPasswordURL;
     }
 }

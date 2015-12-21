@@ -32,14 +32,18 @@ public class OrderCleanupHandler extends DrPostFailoverHandler {
     
     @Override
     protected void execute() {
+        
+        // cleanup enginer monitor 
+        getCoordinator().deletePath(ExecutionEngineMonitor.BASE_PATH);
+        
         log.info("Start processing inflight orders");
         List<Order> orders = modelClient.orders().findByOrderStatus(OrderStatus.EXECUTING);
         for(Order order : orders) {
-            log.info("Kill order for {}", order.getId());
             String message = "Order processing terminated because of site failover, order was not completed. " +
                     "You may see partial completion on storage arrays. Check with your administrator to do cleanup if necessary.";
+            order.setMessage(message);
+            modelClient.save(order);
             monitor.killOrder(order.getId(), message);
-            monitor.removeOrder(order);
         }
     }
 }

@@ -39,7 +39,7 @@ public class ExecutionEngineMonitor extends SingletonService {
     private static final long HEART_BEAT = 60000;
     private static final long MAX_AGE = 5 * HEART_BEAT;
 
-    private static final String BASE_PATH = "/config/sa/engine";
+    public static final String BASE_PATH = "/config/sa/engine";
 
     @Autowired
     private ModelClient modelClient;
@@ -54,6 +54,8 @@ public class ExecutionEngineMonitor extends SingletonService {
     public void init() {
         dataManager = getCoordinatorClient().getWorkflowDataManager();
 
+        drOrderCleanupHandler.run();
+        
         // Start a keep-alive thread
         keepAliveThread = new Thread(new Runnable() {
             public void run() {
@@ -62,8 +64,7 @@ public class ExecutionEngineMonitor extends SingletonService {
         }, "engine-monitor");
         keepAliveThread.setDaemon(true);
         keepAliveThread.start();
-
-        drOrderCleanupHandler.run();
+        
         log.info("Created SA Engine Monitor with ID " + uniqueId);
     }
 

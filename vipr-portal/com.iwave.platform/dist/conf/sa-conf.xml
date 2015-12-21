@@ -215,7 +215,7 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
-    <bean id="drOrderCleanupHandler" class="com.iwave.platform.StorageAutomatorOrderCleanupHandler">
+    <bean id="drOrderCleanupHandler" class="com.emc.sa.engine.OrderCleanupHandler">
     	<property name="name" value="SasvcOrderCleanupHandler"/>
     </bean>
     

@@ -18,6 +18,7 @@ import javax.xml.transform.dom.DOMSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 
 import com.emc.storageos.vasa.CreateVirtualVolume;
 
@@ -62,7 +63,14 @@ public class VVolPlacementManagerUtil {
             
             SOAPMessage message = MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL).createMessage(null,is);
             SOAPBody sb = message.getSOAPBody();
-            DOMSource source = new DOMSource(sb.getFirstChild().getNextSibling());
+            DOMSource source;
+            Node node;
+            node = sb.getFirstChild();
+            if(node != null){
+                source = new DOMSource(sb.getFirstChild());
+            } else {
+                source = new DOMSource(sb.getFirstChild().getNextSibling());
+            }
             createVirtualVol = (CreateVirtualVolume)JAXB.unmarshal(source, CreateVirtualVolume.class);
             _log.info("####### Virtual Volume Create Request Information ###########");
             _log.info("ContainerId : " + createVirtualVol.getContainerId());

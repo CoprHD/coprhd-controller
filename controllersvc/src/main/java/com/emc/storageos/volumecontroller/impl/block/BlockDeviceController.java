@@ -2158,7 +2158,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // 5. Unlink the source from the temporary session.
                 // 6. Delete the temporary session.
 
-                // Create a workflow step to terminate stale restore sessionson the source.
+                // Create a workflow step to terminate stale restore sessions on the source.
                 waitFor = workflow.createStep(BLOCK_VOLUME_RESTORE_GROUP,
                         String.format("Terminating VMAX restore session from %s to %s", blockSnapshot.getId(), sourceVolume.getId()),
                         waitFor, system.getId(), system.getSystemType(), BlockDeviceController.class,

@@ -199,6 +199,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 UnManagedVolume unManagedVolume = null;
                 boolean isExported = !volume.getLunMaps().isEmpty();
                 boolean hasSnaps = !volume.getSnaps().isEmpty();
+                boolean hasCGs = !volume.getConsistencyGroups().isEmpty();
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), volume.getVolInfo().get(0));
                 Volume viprVolume = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid);
@@ -231,16 +232,25 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         storageSystem, storagePool, dbClient);
                 
                 //Verify if this volume is associated to a CG. If so, update the appropriate parameters. 
-                if (isXioV2){
-                	if (volumesToCgs.containsKey(volume.getVolInfo().get(0))) {
-                		unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());
-                		StringSet cgName = new StringSet();
-                		cgName.add(volumesToCgs.get(volume.getVolInfo().get(0)));
-                		unManagedVolume.getVolumeInformation().put(
-                				SupportedVolumeInformation.CONSISTENCY_GROUP_NAME.toString(), cgName);
-                	
-                	} 
+                if (hasCGs) {
+                	unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());
+                	for (List<Object> cg : volume.getConsistencyGroups()) {
+                		Object cgNameToProcess = cg.get(1);
+                		int x = 0;
+                	}
+
+                	//StringSet cgName = new StringSet();
+                	//cgName.add(volumesToCgs.get(volume.getVolInfo().get(0)));
+                	//unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.CONSISTENCY_GROUP_NAME.toString(), cgName);
                 }
+//                	if (volumesToCgs.containsKey(volume.getVolInfo().get(0))) {
+//                		unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());
+//                		StringSet cgName = new StringSet();
+//                		cgName.add(volumesToCgs.get(volume.getVolInfo().get(0)));
+//                		unManagedVolume.getVolumeInformation().put(
+//                				SupportedVolumeInformation.CONSISTENCY_GROUP_NAME.toString(), cgName);
+//                	
+//                	}                
 
                 if (hasSnaps) {
                     StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();

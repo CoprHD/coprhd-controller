@@ -49,97 +49,14 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner("VMAX");
         _log.info("Beginning logging");
 
-        List<Initiator> initA = getHostInitiators(2);
-        System.out.println("Beginning NBS test");
-        Map<URI, List<Initiator>> net2InitiatorsMap = makeNet2InitiatorsMap(initA, 3, 4);
-        for (int i = 0; i < 10; i++) {
-            testVMAX2NetNBSAllocAssign(net2InitiatorsMap, 2, 2, 1);
-        }
-        System.out.println("Ended NBS test\n\n");
-
-//        for (int j=1; j <= 2; j++) { // pathsPerInitiator
-//            for (int i=1; i <= 10; i++) { // maxPaths
-//                System.out.println("2 initiators across 2 networks: " + "max_paths = " + i + " paths_per_initiator = " + j);
-//                try {
-//                    ExportPathParams pathParam = new ExportPathParams(i, 1, j);
-//                    Map<URI, Integer> portsPerNetwork = assigner.getPortsNeededPerNetwork(
-//                            net2InitiatorsMap,pathParam, null, null);
-//                    for (Integer ival : portsPerNetwork.values()) {
-//                        System.out.println("   " + ival);
-//                    }
-//                } catch (PlacementException ex) {
-//                    System.out.println("PlacementException: " + ex.getMessage());
-//                }
-//            }
-//        }
-
-//        System.out.println("Testing calculation of number of ports per network required");
-//        initA = getHostInitiators(8);
-//        net2InitiatorsMap = makeNet2InitiatorsMap(initA, 2);
-//        for (int j=1; j <= 2; j++) { // pathsPerInitiator
-//            for (int i=1; i <= 10; i++) { // maxPaths
-//                System.out.println("8 initiators across 2 networks: " + "max_paths = " + i + " paths_per_initiator = " + j);
-//                try {
-//                    ExportPathParams pathParam = new ExportPathParams(i, 1, j);
-//                    Map<URI, Integer> portsPerNetwork = assigner.getPortsNeededPerNetwork(
-//                            net2InitiatorsMap, pathParam, null, null);
-//                    for (Integer ival : portsPerNetwork.values()) {
-//                        System.out.println("   " + ival);
-//                    }
-//                } catch (PlacementException ex) {
-//                    System.out.println("PlacementException: " + ex.getMessage());
-//                }
-//            }
-//        }
-//        
-        
-
-//        net2InitiatorsMap = makeNet2InitiatorsMap(initA, 3);
-//        for (int j=1; j <= 2; j++) { // pathsPerInitiator
-//            for (int i=1; i <= 10; i++) { // maxPaths
-//                System.out.println("8 initiators across 3 networks: " + "max_paths = " + i + " paths_per_initiator = " + j);
-//                try {
-//                    ExportPathParams pathParam = new ExportPathParams(i, 1, j);
-//                    Map<URI, Integer> portsPerNetwork =
-//                            assigner.getPortsNeededPerNetwork(net2InitiatorsMap,pathParam, null, null);
-//                    for (Integer ival : portsPerNetwork.values()) {
-//                        System.out.println("   " + ival);
-//                    }
-//                } catch (PlacementException ex) {
-//                    System.out.println("throws PlacementException: " + ex.getMessage());
-//                }
-//            }
-//        }
-        
-
-//        initA = getHostInitiators(2);
-//        net2InitiatorsMap = makeNet2InitiatorsMap(initA, 2);
-//        for (int j = 1; j <= 2; j++) {
-//            for (int i = 1; i <= 6; i++) {
-//                System.out.println("*** 2 initiators across 2 networks: max_paths = " + i
-//                        + " min_paths " + i
-//                        + " paths_per_initiator = " + j);
-//                if (2 * j > i) {
-//                    int initiatorCap = j / i;
-//                    if (initiatorCap * j < i) {
-//                        System.out.println("Expecting PlacementException due to insufficient max_paths for paths_per_initiator");
-//                    }
-//                }
-//                if (2 * j < i) {
-//                    System.out.println("Expecting PlacementException due to insufficient initiators");
-//                }
-//                testVMAX2NetAllocAssign(net2InitiatorsMap, i, i, j);
-//            }
-//        }
-
-        initA = getHostInitiators(4);
+        List<Initiator> initA = getHostInitiators(4);
         Map<URI, List<Initiator>> net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
         List<Initiator> initB = getHostInitiators(4);
         Map<URI, List<Initiator>> net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 1,2);
         for (int k=1; k <= 2; k++) {  //initiators per port
         for (int j = 1; j <= 2; j++) {  // paths per initiator
             for (int i = 1; i <= 8; i++) {  // max paths
-                System.out.println("*** 4 initiators across 2 networks: " 
+                System.out.println("*** Two hosts each 4 initiators across 2 networks: " 
                     + "max_paths = " + i + " paths_per_initiator = " + j + " initiators per port " + k);
                 testVMAX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 0, j, k);
             }
@@ -156,12 +73,31 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
         for (int k=1; k <= 2; k++) {  //initiators per port
         for (int j = 1; j <= 2; j++) {  // paths per initiator
             for (int i = 1; i <= 8; i++) {  // max paths
-                System.out.println("*** 4 initiators across 2 networks: " 
+                System.out.println("*** Three hosts (net1,net2), (net3,net4), (net4), each 4 initiators: " 
                     + "max_paths = " + i + " paths_per_initiator = " + j + " initiators per port " + k);
                 testVMAX4NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, net2InitiatorsMapC, null, i, 0, j, k);
             }
         }
         }
+        
+        initA = getHostInitiators(4);
+        net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
+        initB = getHostInitiators(4);
+        net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 3,4);
+        initC = getHostInitiators(4);
+        net2InitiatorsMapC = makeNet2InitiatorsMap(initC, 4, 4);
+        List<Initiator> initD = getHostInitiators(4);
+        Map<URI, List<Initiator>> net2InitiatorsMapD = makeNet2InitiatorsMap(initD, 1, 4);
+        for (int k=1; k <= 2; k++) {  //initiators per port
+        for (int j = 1; j <= 2; j++) {  // paths per initiator
+            for (int i = 1; i <= 8; i++) {  // max paths
+                System.out.println("*** Four hosts (net1,net2), (net3,net4), (net4), (net1,net2, net3, net4) each 4 initiators: " 
+                    + "max_paths = " + i + " paths_per_initiator = " + j + " initiators per port " + k);
+                testVMAX4NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, net2InitiatorsMapC, net2InitiatorsMapD, i, 0, j, k);
+            }
+        }
+        }
+                
         System.out.println("End Testing Hosts on non-overlapping networks!\n\n");
         
         System.out.println("Testing VNX two hosts");
@@ -171,37 +107,16 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
         net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 1,2);
         for (int j = 1; j <= 2; j++) {
             for (int i = 2; i <= 6; i++) {
-                System.out.println("*** 4 initiators across 2 networks: max_paths = " + i + " paths_per_initiator = " + j);
+                System.out.println("*** Two VNX hosts, each 4 initiators across 2 networks: max_paths = " + i + " paths_per_initiator = " + j);
                 testVNX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 1, j, 1);
             }
         }
         System.out.println("End of Testing VNX two hosts");
 
-//        // Four hosts, each 2 initiators, across 2 networks
-//        initA = getHostInitiators(2);
-//        List<Initiator> initB = getHostInitiators(2);
-//        initA.addAll(initB);
-//        initB = getHostInitiators(2);
-//        initA.addAll(initB);
-//        initB = getHostInitiators(2);
-//        initA.addAll(initB);
-//        net2InitiatorsMap = makeNet2InitiatorsMap(initA, 2);
-//        for (int j = 1; j <= 2; j++) {
-//            for (int i = 1; i <= 6; i++) {
-//                System.out.println("*** Four hosts 2 initiators across 2 networks: max_paths = " + i + " paths_per_initiator = " + j);
-//                testVMAX2NetAllocAssign(net2InitiatorsMap, i, 0, j);
-//            }
-//        }
-
-//        for (int i = 1; i <= 6; i++) {
-//            int j = 1;
-//            System.out.println("*** Four hosts 2 initiators across 2 networks: max_paths = " + i + " paths_per_initiator = " + j);
-//            testVNXSmallAllocAssign(net2InitiatorsMap, i, j);
-//        }
 
         // Test incremental initiator / port addition
         initA = getHostInitiators(2);
-        net2InitiatorsMap = makeNet2InitiatorsMap(initA, 1, 2);
+        Map<URI, List<Initiator>> net2InitiatorsMap = makeNet2InitiatorsMap(initA, 1, 2);
         initB = getHostInitiators(2);
         net2InitiatorsMapB = makeNet2InitiatorsMap(initB,1,2);
 
@@ -324,17 +239,7 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
                 pathsPerInitiator, initiatorsPerPort, "vmax", null);
     }
 
-    public static void testVMAX2NetNBSAllocAssign(
-            Map<URI, List<Initiator>> net2InitiatorsMap, int maxPaths, int minPaths, int pathsPerInitiator)
-            throws Exception {
-        Map<URI, Map<URI, List<Initiator>>> hostToNetToInitiatorsMap = new HashMap<URI, Map<URI, List<Initiator>>>();
-        URI hostA = getHostURI(net2InitiatorsMap);
-        hostToNetToInitiatorsMap.put(hostA, net2InitiatorsMap);
-        PortAllocationContext net1ctx = createVmaxNet3();
-        PortAllocationContext net2ctx = createVmaxNet4();
-        PortAllocationContext[] contexts = new PortAllocationContext[] { net1ctx, net2ctx };
-        testAllocationAssignment(contexts, hostToNetToInitiatorsMap, maxPaths, minPaths, pathsPerInitiator, 1, "vmax", null);
-    }
+    
 
     public static void testVMAX2NetAllocIncrementalAssign(
             Map<URI, List<Initiator>> net2InitiatorsMapA,
@@ -456,14 +361,6 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
                 maxPaths, minPaths, pathsPerInitiator, initiatorsPerPort, "vnxblock", null);
     }
 
-//    public static void testVNXSmallAllocAssign(
-//            Map<URI, List<Initiator>> net2InitiatorsMap, int maxPaths, int pathsPerInitiator) throws Exception {
-//        PortAllocationContext net1ctx = createVNXNet3();
-//        PortAllocationContext net2ctx = createVNXNet4();
-//        PortAllocationContext[] contexts = new PortAllocationContext[] { net1ctx, net2ctx };
-//        testAllocationAssignment(contexts, net2InitiatorsMap, maxPaths, 0, pathsPerInitiator, "vnxblock", null);
-//    }
-
     /**
      * Test port allocation and assignment.
      * 
@@ -531,16 +428,16 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
                 }
                 previousContext = context;
                 List<StoragePort> portsAllocated =
-                        allocator.allocatePortsForNetwork(portsNeeded, context, false, existingPortsMap.get(netURI), false);
+                        allocator.allocatePortsForNetwork(portsNeeded, context, false, existingPortsMap.get(netURI), true);
                 netToPortsAllocated.put(netURI,portsAllocated);
                 
             }
             
-            // Noew for each host, do the port assignment.
+            // Now for each host, do the port assignment.
             for (Map.Entry<URI, Map<URI, List<Initiator>>> entry: hostToNetToInitiators.entrySet()) {
                 System.out.println("Assign ports for host " + entry.getKey());
                 assigner.assignPortsToHost(assignments, entry.getValue(), netToPortsAllocated, 
-                        pathParams, existingAssignments, entry.getKey());   
+                        pathParams, existingAssignments, entry.getKey(), null);   
 
             }
 
@@ -722,9 +619,11 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
     }
 
     /**
-     * Partials out the initiators against the number of networks specified.
+     * Partials out the initiators against networks specified.
      * 
      * @param initiators List<Initiator>
+     * @param lowNet integer (lowest network to be used like net1)
+     * @param highNet integer (highest network to be used like net2)
      * @param split the initiators across lowNet to highNet inclusive
      * @return Map<URI, List<Initiator>> map from network URI to list of Initiators
      */

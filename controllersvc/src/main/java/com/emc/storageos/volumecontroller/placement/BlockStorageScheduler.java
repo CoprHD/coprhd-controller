@@ -96,39 +96,6 @@ public class BlockStorageScheduler {
     }
 
     /**
-     * Determine if an Initiator has connectivity to a StorageSystem.
-     * This check requires only one port be connectable.
-     * 
-     * @param storage StorageSystem
-     * @param varray VirtualArray
-     * @param initiator Initiator
-     * @return the ports determined to be usable
-     * @throws PlacementException
-     */
-    // DEAD CODE? TLW
-//    public List<URI> getAllocatableStorageSystemTargetPorts(StorageSystem storage, URI varray, Initiator initiator) {
-//        List<URI> sports = new ArrayList<URI>();
-//        NetworkLite network = getInitiatorNetwork(initiator, _dbClient);
-//        if (network == null) {
-//            return sports;
-//        }
-//        Map<URI, NetworkLite> networkMap = new HashMap<URI, NetworkLite>();
-//        networkMap.put(network.getId(), network);
-//        StoragePortsAllocator allocator = new StoragePortsAllocator();
-//        Set<StoragePort> previouslyAllocatedPorts = new HashSet<StoragePort>();
-//        List<URI> orderedNetworks = new ArrayList<URI>();
-//        Map<URI, Map<StoragePort, Long>> portUsageMap =
-//                computeStoragePortUsageMap(storage.getId(), networkMap, varray, orderedNetworks);
-//        if (portUsageMap.get(network.getId()).isEmpty()) {
-//            throw PlacementException.exceptions.cannotAllocateRequestedPorts(
-//                    network.getLabel(), storage.getNativeGuid(), 1, 0, 0);
-//        }
-//        sports.addAll(getPortURIs(allocatePortsFromNetwork(storage.getId(), network, varray, 1,
-//                portUsageMap.get(network.getId()), allocator, previouslyAllocatedPorts, false)));
-//        return sports;
-//    }
-
-    /**
      * Invoke placement to select storage ports for export, and then
      * to assign specific storage ports to specific initiators.
      * 
@@ -182,6 +149,7 @@ public class BlockStorageScheduler {
      * @param volumeURIs - list of volumes
      * @param pathParams - Export path parameters (maxPaths, pathsPerInitiator)
      * @param existingZoningMap - A map of initiators to a set of previously allocated port URI strings.
+     * @param initiatorToNetworkLiteMap -- map of Initiator to Networklite 
      * @return Map<URI, List<URI>> Initiator URI to list of Target StoragePort URIs
      */
     private Map<URI, List<URI>> internalAssignStoragePorts(StorageSystem system,
@@ -202,6 +170,7 @@ public class BlockStorageScheduler {
                 generateInitiatorsToStoragePortsMap(existingZoningMap, varray);
         // Group the new initiators by their networks - filter out those not in a network or already in the existingZoningMap
         Map<NetworkLite, List<Initiator>> initiatorsByNetwork = getNewInitiatorsByNetwork(newInitiators, existingZoningMap, _dbClient);
+        Map<Initiator, NetworkLite> initiatorsToNetworkLiteMap = getInitiatorToNetworkLiteMap(initiatorsByNetwork);
         // Get the storage ports in the storage system that can be used in the initiators networks
         Map<NetworkLite, List<StoragePort>> portsByNetwork =
                 selectStoragePortsInNetworks(system.getId(), initiatorsByNetwork.keySet(), varray, pathParams);
@@ -216,24 +185,13 @@ public class BlockStorageScheduler {
         Map <URI, Map<URI, List<Initiator>>> hostsToNetToInitiators = 
                 getHostInitiatorsMapFromNetworkLite(initiatorsByNetwork);
         Map<URI, List<StoragePort>> allocatedPortsMap = getAllocatedPortsMap(allocatedPorts);
-//        Map<URI, List<Initiator>> hostsToNewInitiators = DefaultStoragePortsAssigner.makeHostInitiatorsMap(newInitiators);
-//        Map<URI, List<Initiator>> hostToExistingInitiators = 
-//                DefaultStoragePortsAssigner.makeHostInitiatorsMap(existingAssignments.keySet());
         
         // For each host, assign the ports to the appropriate initiators.
         for (URI hostURI : hostsToNetToInitiators.keySet()) {
             assigner.assignPortsToHost(assignments, hostsToNetToInitiators.get(hostURI), 
-                    allocatedPortsMap, pathParams, existingAssignments, hostURI);
+                    allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap);
             
         }
-        
-
-//        for (NetworkLite network : allocatedPorts.keySet()) {
-//            // Assign the Storage Ports.
-//            assigner.assign(assignments, initiatorsByNetwork.get(network),
-//                    allocatedPorts.get(network), pathParams,
-//                    existingAssignments, network);
-//        }
 
         // Validate that minPaths was met across all assignments (existing and new).
         validateMinPaths(system, pathParams, existingAssignments, assignments, newInitiators);
@@ -2006,6 +1964,7 @@ public class BlockStorageScheduler {
                 Collection<StoragePort> ports = ExportUtils.getStorageSystemAssignablePorts(
                         _dbClient, storage.getId(), virtualArrayUri, pathParams);
                 Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(newInitiators, _dbClient);
+                Map<Initiator, NetworkLite> initiatorToNetworkLiteMap = getInitiatorToNetworkLiteMap(initiatorsByNetwork);
                 Map<NetworkLite, List<StoragePort>> portByNetwork = ExportUtils.mapStoragePortsToNetworks(ports,
                         initiatorsByNetwork.keySet(), _dbClient);
                 Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
@@ -2020,15 +1979,19 @@ public class BlockStorageScheduler {
                     Map<NetworkLite, List<StoragePort>> allocatedPortsByNetwork = allocatePorts(
                             storage, virtualArrayUri, initiatorsByNetwork,
                             preZonedPortsByNetwork, volumeURIs, prezoningPathParams, existingZoningMap);
+                    Map<URI, List<StoragePort>> allocatedPortsMap = getAllocatedPortsMap(allocatedPortsByNetwork);
+                    // Get a map of Host to Network to Initiators
+                    Map <URI, Map<URI, List<Initiator>>> hostsToNetToInitiators = 
+                            getHostInitiatorsMapFromNetworkLite(initiatorsByNetwork);
                     // Compute the number of Ports needed for each Network
                     StoragePortsAssigner assigner = StoragePortsAssignerFactory
                             .getAssignerForZones(storage.getSystemType(), zonesByNetwork);
-
-                    for (NetworkLite network : allocatedPortsByNetwork.keySet()) {
-                        // Assign the Storage Ports.
-                        assigner.assign(assignments, initiatorsByNetwork.get(network),
-                                allocatedPortsByNetwork.get(network), prezoningPathParams,
-                                existingAssignments, network);
+                    
+                    // Assign the storage ports on a per host basis.
+                    for (Map.Entry<URI, Map<URI, List<Initiator>>> entry : hostsToNetToInitiators.entrySet()) {
+                        URI hostURI = entry.getKey();
+                        assigner.assignPortsToHost(assignments, entry.getValue(), allocatedPortsMap, prezoningPathParams,
+                                existingAssignments, hostURI, initiatorToNetworkLiteMap);
                     }
                     addAssignmentsToZoningMap(assignments, newZoningMap);
                 }
@@ -2152,6 +2115,21 @@ public class BlockStorageScheduler {
             StringMapUtil.addToListMap(map, network, initiator);
         }
         return map;
+    }
+    
+    /**
+     * Inverts the sense of the initiatorsByNetwork map to get a map of InitiatorTonetworkLite
+     * @param initiatorsByNetwork Map of NetworkLite to a list of Initiators it contains
+     * @return map of Initiator to Network Lite
+     */
+    public Map<Initiator, NetworkLite> getInitiatorToNetworkLiteMap(Map<NetworkLite, List<Initiator>> initiatorsByNetwork) {
+        Map<Initiator, NetworkLite> initiatorToNetworkLiteMap = new HashMap<Initiator, NetworkLite>();
+        for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetwork.entrySet()) {
+            for (Initiator initiator : entry.getValue()) {
+                initiatorToNetworkLiteMap.put(initiator, entry.getKey());
+            }
+        }
+        return initiatorToNetworkLiteMap;
     }
 
     /**

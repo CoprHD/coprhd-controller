@@ -145,7 +145,7 @@ public class ExportPathParams extends DataObject {
         this.allowFewerPorts = allowFewerPorts;
     }
 
-    @Name("maxInitiatorsPerPort")
+    @Transient
     public Integer getMaxInitiatorsPerPort() {
         return maxInitiatorsPerPort;
     }

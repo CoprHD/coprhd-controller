@@ -100,7 +100,7 @@ public class SnapshotService extends TaskResourceService {
             .getLogger(SnapshotService.class);
     private static final String EVENT_SERVICE_TYPE = "block";
 
-    private static final long halfGB = 512 * 1024 * 1024;
+    private static final long HALF_GB = 512 * 1024 * 1024;
     private static final long GB = 1024 * 1024 * 1024;
     private static final String ZERO_PERCENT_COMPLETION = "0%";
     private static final String HUNDRED_PERCENT_COMPLETION = "100%";
@@ -267,7 +267,8 @@ public class SnapshotService extends TaskResourceService {
 
                 String[] splits = snapshotUri.toString().split(":");
                 String tagName = splits[3];
-
+                
+                //this check will verify whether  retrieved data is not corrupted
                 if (tagName == null || tagName.isEmpty()
                         || tagName.length() < 2) {
                     throw APIException.badRequests
@@ -279,10 +280,10 @@ public class SnapshotService extends TaskResourceService {
                 ScopedLabel tagLabel = new ScopedLabel(
                         tenantOwner.toString(), tagName);
                 tagSet.add(tagLabel);
-                _dbClient.updateAndReindexObject(snap);
+                _dbClient.updateObject(snap);
 
                 snapCreateResp.snapshot = snapCreateResp.new Snapshot();
-                int sizeInGB = (int) ((snap.getProvisionedCapacity() + halfGB) / GB);
+                int sizeInGB = (int) ((snap.getProvisionedCapacity() + HALF_GB) / GB);
                 snapCreateResp.snapshot.size = sizeInGB;
                 snapCreateResp.snapshot.id = getCinderHelper().trimId(
                         snap.getId().toString());
@@ -363,6 +364,7 @@ public class SnapshotService extends TaskResourceService {
                 }
             }
 
+            //ToDo if the backend system is vplex, rp 
             BlockServiceApi api = BlockService.getBlockServiceImpl("default");
 
             List<Volume> volumesToSnap = new ArrayList<Volume>();
@@ -691,7 +693,7 @@ public class SnapshotService extends TaskResourceService {
         detail.volume_id = getCinderHelper().trimId(snapshot.getParent().getURI().toString());
         detail.created_at = date(snapshot.getCreationTime().getTimeInMillis());
         detail.project_id = openstack_tenant_id;
-        detail.size = (int) ((snapshot.getProvisionedCapacity() + halfGB) / GB);
+        detail.size = (int) ((snapshot.getProvisionedCapacity() + HALF_GB) / GB);
 
         StringMap extensions = snapshot.getExtensions();
         String description = null;

@@ -152,6 +152,10 @@
         <package name="python-gpgme"/>
         <package name="yum"/>
         <package name="keepalived"/>
+        <package name="strongswan"/>
+        <package name="strongswan-ipsec"/>
+        <package name="strongswan-libs0"/>
+        <package name="SuSEfirewall2"/>
         <!-- storageOS RPM install -->
         <package name="storageos"/>
         <!-- archives to build source -->

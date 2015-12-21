@@ -111,8 +111,7 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
             	if (system.getSupportedReplicationTypes().contains(SupportedFileReplicationTypes.REMOTE.toString()) ) {         	
             		// Get the remote pool of storage system same type!!!
             		// If we find valid storage pools in remote system, add the source storage system pools matched pools!!!
-            		List<URI> remoteSystemsSameType = remotestorageTypeMap.get(system.getSystemType());
-                    if (remoteSystemsSameType != null && !remoteSystemsSameType.isEmpty() ) {
+                    if (remoteStoragePoolsOfSourceType(system, remotestorageTypeMap)){
                         _logger.info(String.format("Adding Pools %s, as associated Storage System %s is remote replication Storage System",
                                 Joiner.on("\t").join(storageToPoolsEntry.getValue()), system.getNativeGuid()));
                         matchedPools.addAll(storageToPoolsEntry.getValue());
@@ -162,6 +161,32 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
     		copyType = CopyTypes.SYNC.name();
     	} 
     	return copyType;
+    }
+    
+    /**
+     * remoteStoragePoolsOfSourceType - verifies that the target system is different than source!!!
+     * 1. Source and target storage system should be of same type
+     * 2. Target storage system should be different one of same type
+     * 
+     * @param remoteCopySettings
+     * @return
+     */
+    private boolean remoteStoragePoolsOfSourceType(StorageSystem sourceSystem,
+    		ListMultimap<String, URI> remotestorageTypeMap) {
+    	if (remotestorageTypeMap != null && !remotestorageTypeMap.isEmpty()) {
+    		List<URI> remoteSystems = remotestorageTypeMap.get(sourceSystem.getSystemType());
+    		if (remoteSystems != null && !remoteSystems.isEmpty()) {
+    			List<StorageSystem> targetSystems = _objectCache.queryObject(StorageSystem.class, remoteSystems);
+    			for (StorageSystem targetSystem : targetSystems) {
+    				if (!targetSystem.getInactive() && 
+    						!targetSystem.getNativeGuid().equalsIgnoreCase(sourceSystem.getNativeGuid())){
+    					return true;
+    				}
+    			}
+    		}
+    	}
+    	
+    	return false;
     }
 
     /**

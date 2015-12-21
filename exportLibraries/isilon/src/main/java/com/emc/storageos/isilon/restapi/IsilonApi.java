@@ -64,6 +64,7 @@ public class IsilonApi {
     private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
     private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
+    private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -1578,6 +1579,21 @@ public class IsilonApi {
             }
         }
         return isSyncIqEnabled;
+    }
+    
+    /**
+     * Get SyncIq license information from the Isilon array
+     * 
+     * @return IsilonReplicationLicenseInfo object
+     * @throws IsilonException
+     * @throws JSONException
+     */
+
+    public String getReplicationLicenseInfo() throws IsilonException, JSONException {
+        ClientResponse clientResp = _client.get(_baseUrl.resolve(URI_REPLICATION_LICENSE_INFO));
+        JSONObject jsonResp = clientResp.getEntity(JSONObject.class);
+        String licenseStatus = jsonResp.get("status").toString();
+        return licenseStatus;
     }
     
     private String getURIWithZoneName(String id, String zoneName) {

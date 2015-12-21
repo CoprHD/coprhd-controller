@@ -14,22 +14,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface;
-
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.file.RemoteFileMirrorOperation;
-
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
-
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.DbClient;
 
 import static java.util.Arrays.asList;
 
 public class FileReplicationDeviceController implements FileOrchestrationInterface, FileReplicationController{
+	
+
 	private static final Logger log = LoggerFactory.getLogger(FileReplicationDeviceController.class);
 	
     private WorkflowService workflowService;
@@ -115,5 +116,15 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 		// TBD
 		return null;
 	}
+	
+	
+	@Override
+	public void attachNativeContinuousCopies(URI storage, URI sourceVolume,
+			String opId) throws ControllerException {
+		// TODO Auto-generated method stub
+		//corresponding storage device mirror step
+	}
+	
+	
 
 }

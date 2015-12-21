@@ -18,17 +18,22 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -165,11 +170,34 @@ public abstract class AbstractFileServiceApiImpl <T> implements FileServiceApi{
         controller.deleteFileSystems(fileDescriptors, task);
 	}
 	
-	// different constrator to File descriptor delete
+	/**
+	 * get delete file share Descriptors
+	 * @param systemURI
+	 * @param fileShareURIs
+	 * @param deletionType
+	 * @param forceDelete
+	 * @return
+	 */
 	abstract protected  List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
             List<URI> fileShareURIs, String deletionType, boolean forceDelete);
 	
 	
-
+	@Override
+	public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
+			FileShare sourceFileShare, VirtualPool sourceVirtualPool,
+			VirtualPoolCapabilityValuesWrapper capabilities,
+			NativeContinuousCopyCreate param, String taskId)
+			throws ControllerException {
+		// TODO Auto-generated method stub
+		throw APIException.methodNotAllowed.notSupported();
+	}
+	
+	@Override
+	public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
+			Volume sourceFileShare, List<URI> mirrorFSUris, String taskId)
+			throws ControllerException {
+		// TODO Auto-generated method stub
+		throw APIException.methodNotAllowed.notSupported();
+	}
 
 }

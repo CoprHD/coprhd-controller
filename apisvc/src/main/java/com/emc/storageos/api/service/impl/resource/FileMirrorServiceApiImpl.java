@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -29,6 +30,7 @@ import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -82,4 +84,29 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 		// TODO Auto-generated method stub
 		return null;
 	}
+    
+    @Override
+	public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
+												FileShare sourceFileShare, VirtualPool sourceVirtualPool,
+												VirtualPoolCapabilityValuesWrapper capabilities,
+												NativeContinuousCopyCreate param, String taskId)
+												throws ControllerException {
+		// TODO Auto-generated method stub
+    	TaskList taskList = new TaskList();
+    	//TBD call the FileReplicationDevice controller
+    	return taskList;
+	}
+    
+
+	
+
+	@Override
+	public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
+			Volume sourceFileShare, List<URI> mirrorFSUris, String taskId)
+			throws ControllerException {
+		// TODO Auto-generated method stub
+		TaskList taskList = new TaskList();
+		return taskList;
+	}
+
 }

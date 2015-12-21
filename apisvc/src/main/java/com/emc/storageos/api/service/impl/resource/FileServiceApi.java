@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -65,6 +66,34 @@ public interface FileServiceApi {
      * @throws InternalException
      */
     public <T extends DataObject> String checkForDelete(T object) throws InternalException;
+    
+    /**
+     * start the native continuous copies of source fileshare or it single local mirror replication
+     * @param storageSystem
+     * @param sourceFileShare
+     * @param sourceVirtualPool
+     * @param capabilities
+     * @param param
+     * @param taskId
+     * @return
+     * @throws ControllerException
+     */
+    public TaskList startNativeContinuousCopies(StorageSystem storageSystem, FileShare sourceFileShare,
+                                                VirtualPool sourceVirtualPool, VirtualPoolCapabilityValuesWrapper capabilities,
+                                                NativeContinuousCopyCreate param, String taskId)
+            throws ControllerException;
+    
+    /**
+     * detach the continuous copies
+     * @param storageSystem
+     * @param sourceFileShare
+     * @param mirrorFSUris
+     * @param taskId
+     * @return
+     * @throws ControllerException
+     */
+    public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
+            Volume sourceFileShare, List<URI> mirrorFSUris, String taskId) throws ControllerException;
     
     
     

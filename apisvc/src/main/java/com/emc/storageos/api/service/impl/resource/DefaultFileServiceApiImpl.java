@@ -40,10 +40,10 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
 		List<FileShare> fileList = null;
 		List<FileShare> fileShares = new ArrayList<FileShare>();
 		
-		//we should handle error, if we don't have any recommendations.
+		
 		FileRecommendation placement = (FileRecommendation)recommendations.get(0);
 		
-		
+		// Prepare the FileShares
 		fileList = _scheduler.prepareFileSystems(param, task, taskList, project, 
 										varray, vpool, recommendations, vpoolCapabilities, false);
 		
@@ -53,7 +53,6 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
 		final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, suggestedNativeFsId);
 		final FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
-
         try {
             // Execute the fileshare creations requests
             controller.createFileSystems(fileDescriptors, task);
@@ -75,6 +74,13 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
     	super.deleteFileSystems(systemURI, fileSystemURIs, deletionType, forceDelete, task);
     }
     
+    /**
+     * prepare the file descriptors
+     * @param filesystems
+     * @param cosCapabilities
+     * @param suggestedId
+     * @return
+     */
     private List<FileDescriptor> prepareFileDescriptors(List<FileShare> filesystems, 
     		VirtualPoolCapabilityValuesWrapper cosCapabilities, String suggestedId) {
     	

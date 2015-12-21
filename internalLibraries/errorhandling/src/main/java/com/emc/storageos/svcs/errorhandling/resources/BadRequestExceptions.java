@@ -2650,6 +2650,13 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException removeVolumeFromCGNotAllowed(final String volumeName, final String applicationName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotNotAllowedWhenBackendVolumeDoestHavingCG();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException fullcopyNotAllowedWhenBackendVolumeDoestHavingCG();
+
 }
 
 

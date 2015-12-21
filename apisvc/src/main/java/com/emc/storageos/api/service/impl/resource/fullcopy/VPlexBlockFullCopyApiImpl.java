@@ -196,6 +196,10 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             }
 
             // Platform specific checks.
+            // all the volumes in vplex cg should be having association with back end cg/Volume Group.
+            if (VPlexUtil.isBackendVolumesNotHavingBackendCG(fcSourceObjList, _dbClient)) {
+                throw APIException.badRequests.fullcopyNotAllowedWhenBackendVolumeDoestHavingCG();
+            }
             for (BlockObject fcSourceObj : fcSourceObjList) {
 
                 if (fcSourceObj instanceof Volume) {

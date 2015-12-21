@@ -2253,6 +2253,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         }
 
+
         // If not an RP bookmark snapshot, then do what the base class does, else
         // we just need to verify the volumes and name.
         if (!snapshotType.equalsIgnoreCase(TechnologyType.RP.toString())) {

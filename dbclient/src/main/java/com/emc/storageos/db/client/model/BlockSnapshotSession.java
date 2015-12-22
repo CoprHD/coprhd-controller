@@ -68,6 +68,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     }
 
     @Override
+    @NamedRelationIndex(cf = "NamedRelationIndex", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;

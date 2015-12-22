@@ -115,4 +115,7 @@ public interface ServiceParams {
     public String TENANT = "tenant";
     public String OWNER = "owner";
     public String BUCKET = "bucket";
+    
+    public String LINKED_SNAPSHOT_NAME = "linkedSnapshotName";
+    public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
 }

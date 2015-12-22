@@ -68,11 +68,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             List<UnManagedExportMask> uemsToPersist = new ArrayList<UnManagedExportMask>();
             Iterator<UnManagedExportMask> itr = unManagedMasks.iterator();
             
-            // TODO: Nathan, this value is not getting filled-in for RP, please address
-            List<String> errorMessages = new ArrayList<String>();
-            if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) != null) {
-                errorMessages = requestContext.getVolumeContext(unManagedVolume.getNativeGuid()).getErrorMessages();
-            }
+            List<String> errorMessages = requestContext.getErrorMessagesForVolume(unManagedVolume.getNativeGuid());
             
             ExportGroup exportGroup = requestContext.getExportGroup();
             StorageSystem system = requestContext.getStorageSystem();

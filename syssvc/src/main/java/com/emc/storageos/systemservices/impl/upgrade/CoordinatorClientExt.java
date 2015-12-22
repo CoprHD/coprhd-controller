@@ -48,6 +48,7 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
@@ -1562,7 +1563,23 @@ public class CoordinatorClientExt {
      */
     public boolean isActiveSiteHeathy() {
         DrUtil drUtil = new DrUtil(_coordinator);
-        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+        String activeSiteId = drUtil.getActiveSiteId();
+        //find active site according state, these codes will be refactor later
+        if (activeSiteId == null) {
+            List<Site> failingOverTargetSite = drUtil.listSitesInState(SiteState.STANDBY_FAILING_OVER);
+            if (!failingOverTargetSite.isEmpty()) {
+                activeSiteId = failingOverTargetSite.iterator().next().getUuid();
+                _log.info("Found failover target site {}", activeSiteId);
+            } else {
+                List<Site> switchOverTargetSite = drUtil.listSitesInState(SiteState.STANDBY_SWITCHING_OVER);
+                if (!switchOverTargetSite.isEmpty()) {
+                    activeSiteId = switchOverTargetSite.iterator().next().getUuid();
+                    _log.info("Found switchover target site {}", activeSiteId);
+                }
+            }
+        }
+        
+        Site activeSite = drUtil.getSiteFromLocalVdc(activeSiteId);
 
         boolean isActiveSiteLeaderAlive = isActiveSiteZKLeaderAlive(activeSite);
         boolean isActiveSiteStable =  isActiveSiteStable(activeSite);

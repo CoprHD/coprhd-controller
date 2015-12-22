@@ -2104,45 +2104,43 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
     
     
-    //remote mirror related operation
+    // remote mirror related operation
 
-	@Override
-	public void doCreateMirrorLink(StorageSystem system, URI source, URI target,
-			TaskCompleter completer) {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public void doCreateMirrorLink(StorageSystem system, URI source, URI target,
+            TaskCompleter completer) {
+        // TODO Auto-generated method stub
 
-	@Override
-	public void doDetachMirrorLink(StorageSystem system, URI source, URI target,
-			TaskCompleter completer) {
-		// TODO Auto-generated method stub
-		
-	}
+    }
 
-	@Override
-	public void doStartMirrorLink(StorageSystem system, FileShare target,
-			TaskCompleter completer) {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	
-	//local mirror related operations
-	
-	@Override
-    public void doCreateMirror(StorageSystem storage, URI mirror, Boolean createInactive, 
-    		TaskCompleter taskCompleter) throws DeviceControllerException {
+    @Override
+    public void doDetachMirrorLink(StorageSystem system, URI source, URI target,
+            TaskCompleter completer) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void doStartMirrorLink(StorageSystem system, FileShare target,
+            TaskCompleter completer) {
+        // TODO Auto-generated method stub
+
+    }
+
+    // local mirror related operations
+
+    @Override
+    public void doCreateMirror(StorageSystem storage, URI mirror, Boolean createInactive,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         mirrorOperations.createSingleMirrorFileShare(storage, mirror, createInactive, taskCompleter);
     }
 
-	@Override
-	public void doDeleteMirror(StorageSystem storage, URI mirror,
-			Boolean createInactive, TaskCompleter taskCompleter)throws DeviceControllerException {
-		// TODO Auto-generated method stub
-		mirrorOperations.deleteSingleMirrorFileShare(storage, mirror, taskCompleter);
-		
-	}
-	
+    @Override
+    public void doDeleteMirror(StorageSystem storage, URI mirror,
+            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+        // TODO Auto-generated method stub
+        mirrorOperations.deleteSingleMirrorFileShare(storage, mirror, taskCompleter);
+
+    }
 	
 }

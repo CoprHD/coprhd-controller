@@ -30,19 +30,18 @@ import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class FileMirrorSchedular implements Scheduler {
-	public final Logger _log = LoggerFactory
+    public final Logger _log = LoggerFactory
             .getLogger(FileMirrorSchedular.class);
 
     private DbClient _dbClient;
     private StorageScheduler _storageScheduler;
     private FileStorageScheduler _fileScheduler;
-    
+
     public void setStorageScheduler(final StorageScheduler storageScheduler) {
         _storageScheduler = storageScheduler;
     }
@@ -50,25 +49,24 @@ public class FileMirrorSchedular implements Scheduler {
     public void setDbClient(final DbClient dbClient) {
         _dbClient = dbClient;
     }
-    
+
     public void setFileScheduler(FileStorageScheduler fileScheduler) {
         _fileScheduler = fileScheduler;
     }
-    
+
     @Autowired
     protected PermissionsHelper _permissionsHelper = null;
-    
+
     /**
      * get list mirror recommendation for mirror file shares
      */
-	@Override
-	public List getRecommendationsForResources(VirtualArray varray,
-										Project project, VirtualPool vpool,
-			VirtualPoolCapabilityValuesWrapper capabilities) {
-		//TBD
-		//call for preparing mirror file shares 
-		return null;
-	}
-
+    @Override
+    public List getRecommendationsForResources(VirtualArray varray,
+            Project project, VirtualPool vpool,
+            VirtualPoolCapabilityValuesWrapper capabilities) {
+        // TBD
+        // call for preparing mirror file shares
+        return null;
+    }
 
 }

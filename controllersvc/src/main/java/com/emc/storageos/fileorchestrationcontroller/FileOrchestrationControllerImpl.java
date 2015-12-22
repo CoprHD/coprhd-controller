@@ -12,31 +12,31 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
 public class FileOrchestrationControllerImpl implements FileOrchestrationController {
-	
-	private Dispatcher _dispatcher;
+
+    private Dispatcher _dispatcher;
     private FileOrchestrationController _controller;
     private DbClient _dbClient;
 
-	@Override
-	public void createFileSystems(List<FileDescriptor> fileDescriptors,
-			String taskId) throws ControllerException {
+    @Override
+    public void createFileSystems(List<FileDescriptor> fileDescriptors,
+            String taskId) throws ControllerException {
 
-		execOrchestration("createFileSystems", fileDescriptors, taskId);
-	}
+        execOrchestration("createFileSystems", fileDescriptors, taskId);
+    }
 
-	@Override
-	public void deleteFileSystems(List<FileDescriptor> fileDescriptors,
-			String taskId) throws ControllerException {
-		execOrchestration("deleteFileSystems", fileDescriptors, taskId);
-	}
+    @Override
+    public void deleteFileSystems(List<FileDescriptor> fileDescriptors,
+            String taskId) throws ControllerException {
+        execOrchestration("deleteFileSystems", fileDescriptors, taskId);
+    }
 
-	@Override
-	public void expandFileSystem(List<FileDescriptor> fileDescriptors,
-			String taskId) throws ControllerException {
-		execOrchestration("expandFileSystem", fileDescriptors, taskId);
-	}
-	
-	//getter and setter methods
+    @Override
+    public void expandFileSystem(List<FileDescriptor> fileDescriptors,
+            String taskId) throws ControllerException {
+        execOrchestration("expandFileSystem", fileDescriptors, taskId);
+    }
+
+    // getter and setter methods
     public FileOrchestrationController getController() {
         return _controller;
     }
@@ -61,7 +61,7 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         this._dbClient = dbClient;
     }
 
-	private void execOrchestration(String methodName, Object... args) throws ControllerException {
+    private void execOrchestration(String methodName, Object... args) throws ControllerException {
         _dispatcher.queue(NullColumnValueGetter.getNullURI(), FILE_ORCHESTRATION_DEVICE,
                 getController(), methodName, args);
     }

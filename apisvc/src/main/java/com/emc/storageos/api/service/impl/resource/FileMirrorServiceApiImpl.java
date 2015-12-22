@@ -3,6 +3,7 @@
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource;
+
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
@@ -44,69 +45,76 @@ import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMirrorSchedular>{
+/**
+ * Block Service subtask (parts of larger operations) Replication implementation.
+ */
+public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMirrorSchedular> {
 
-	private static final Logger _log = LoggerFactory.getLogger(FileMirrorServiceApiImpl.class);
-	public FileMirrorServiceApiImpl() {
+    private static final Logger _log = LoggerFactory.getLogger(FileMirrorServiceApiImpl.class);
+
+    public FileMirrorServiceApiImpl() {
         super(null);
     }
-	
-	private DefaultFileServiceApiImpl _defaultFileServiceApiImpl;
 
-	public DefaultFileServiceApiImpl getDefaultFileServiceApiImpl() {
-		return _defaultFileServiceApiImpl;
-	}
+    private DefaultFileServiceApiImpl _defaultFileServiceApiImpl;
 
-	public void setDefaultFileServiceApiImpl(
-			DefaultFileServiceApiImpl defaultFileServiceApiImpl) {
-		this._defaultFileServiceApiImpl = defaultFileServiceApiImpl;
-	}
+    public DefaultFileServiceApiImpl getDefaultFileServiceApiImpl() {
+        return _defaultFileServiceApiImpl;
+    }
 
-	@Override
-    public TaskList createFileSystems(FileSystemParam param, Project project, VirtualArray varray, 
-    		VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags, List<Recommendation> recommendations, 
-    		TaskList taskList, String taskId, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
-		//TBD
+    public void setDefaultFileServiceApiImpl(
+            DefaultFileServiceApiImpl defaultFileServiceApiImpl) {
+        this._defaultFileServiceApiImpl = defaultFileServiceApiImpl;
+    }
+
+    /**
+     * it take mirror recommendation and then creates source and mirror fileshare
+     */
+    @Override
+    public TaskList createFileSystems(FileSystemParam param, Project project, VirtualArray varray,
+            VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags, List<Recommendation> recommendations,
+            TaskList taskList, String taskId, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        // TBD
+        return _defaultFileServiceApiImpl.createFileSystems(param, project, varray, vpool, tenantOrg, flags,
+                recommendations, taskList, taskId, vpoolCapabilities);
+    }
+
+    @Override
+    public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType,
+            boolean forceDelete, String task) throws InternalException {
+        _log.info("Request to delete {} FileShare(s) with Mirror Protection", fileSystemURIs.size());
+        super.deleteFileSystems(systemURI, fileSystemURIs, deletionType, forceDelete, task);
+
+    }
+
+    @Override
+    protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(
+            URI systemURI, List<URI> fileShareURIs, String deletionType,
+            boolean forceDelete) {
+        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
-    public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType, 
-    								boolean forceDelete, String task) throws InternalException {
-    	//TBD
-    	return;
+    public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
+            FileShare sourceFileShare, VirtualPool sourceVirtualPool,
+            VirtualPoolCapabilityValuesWrapper capabilities,
+            NativeContinuousCopyCreate param, String taskId)
+            throws ControllerException {
+        // TODO Auto-generated method stub
+        TaskList taskList = new TaskList();
+        // TBD call the FileReplicationDevice controller
+        return taskList;
     }
-    
-    @Override
-	protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(
-			URI systemURI, List<URI> fileShareURIs, String deletionType,
-			boolean forceDelete) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-    
-    @Override
-	public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
-												FileShare sourceFileShare, VirtualPool sourceVirtualPool,
-												VirtualPoolCapabilityValuesWrapper capabilities,
-												NativeContinuousCopyCreate param, String taskId)
-												throws ControllerException {
-		// TODO Auto-generated method stub
-    	TaskList taskList = new TaskList();
-    	//TBD call the FileReplicationDevice controller
-    	return taskList;
-	}
-    
 
-	
-
-	@Override
-	public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
-			Volume sourceFileShare, List<URI> mirrorFSUris, String taskId)
-			throws ControllerException {
-		// TODO Auto-generated method stub
-		TaskList taskList = new TaskList();
-		return taskList;
-	}
+    @Override
+    public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
+            Volume sourceFileShare, List<URI> mirrorFSUris, String taskId)
+            throws ControllerException {
+        // TODO Auto-generated method stub
+        TaskList taskList = new TaskList();
+        // TBD call the FileReplicationDevice controller
+        return taskList;
+    }
 
 }

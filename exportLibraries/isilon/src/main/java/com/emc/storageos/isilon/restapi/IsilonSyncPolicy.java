@@ -1,14 +1,17 @@
 package com.emc.storageos.isilon.restapi;
+
 import java.util.ArrayList;
 import java.util.List;
+
 public class IsilonSyncPolicy {
-	 //mandatory source_root_path, target_host, name, target_path, action
+    // mandatory source_root_path, target_host, name, target_path, action
     public static enum Action {
         copy,
         sync
     }
+
     public IsilonSyncPolicy(String sourceRootPath, String targetHost,
-                     String name, String targetPath, IsilonSyncPolicy.Action action) {
+            String name, String targetPath, IsilonSyncPolicy.Action action) {
         this.name = name;
         this.source_root_path = sourceRootPath;
         this.action = action;
@@ -17,15 +20,15 @@ public class IsilonSyncPolicy {
     }
 
     String name;
-    /*The root directory on the source cluster the files will be synced from*/
+    /* The root directory on the source cluster the files will be synced from */
     String source_root_path;
     IsilonSyncPolicy.Action action;
     String target_path;
-    /*Hostname or IP address of sync target cluster*/
+    /* Hostname or IP address of sync target cluster */
     String target_host;
 
     String schedule;
-    /*If true, jobs will be automatically run based on this policy*/
+    /* If true, jobs will be automatically run based on this policy */
     Boolean enabled = false;
     String description;
     Boolean target_compare_initial_sync = false;
@@ -73,12 +76,11 @@ public class IsilonSyncPolicy {
         this.target_host = target_host;
     }
 
-
-
     public Boolean getEnabled() {
         return enabled;
     }
-    /*If true, jobs will be automatically run based on this policy*/
+
+    /* If true, jobs will be automatically run based on this policy */
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
     }

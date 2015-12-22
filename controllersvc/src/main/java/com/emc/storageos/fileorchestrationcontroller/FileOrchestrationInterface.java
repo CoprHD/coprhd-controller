@@ -10,7 +10,7 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 public interface FileOrchestrationInterface {
-	/**
+    /**
      * Adds the steps necessary for creating one or more filesystems of a given
      * 
      * @param workflow -- a Workflow
@@ -42,10 +42,9 @@ public interface FileOrchestrationInterface {
     public String addStepsForDeleteFileSystems(
             Workflow workflow, String waitFor, List<FileDescriptor> filesystems, String taskId)
             throws InternalException;
-    
-    
+
     /**
-     * Add the necessary steps for expanding filesystems 
+     * Add the necessary steps for expanding filesystems
      *
      * @param workflow - Workflow being constructed
      * @param waitFor - The String key that should be used for waiting on previous steps in Workflow.createStep

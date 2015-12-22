@@ -236,12 +236,12 @@ public interface FileStorageDevice {
             FileDeviceInputOutput args);
     
     
-    //file mirror related operations
-    public void doCreateMirror(StorageSystem storage, URI mirror, 
-    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
-    
-    public void doDeleteMirror(StorageSystem storage, URI mirror, 
-    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
+    // file mirror related operations
+    public void doCreateMirror(StorageSystem storage, URI mirror,
+            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
+
+    public void doDeleteMirror(StorageSystem storage, URI mirror,
+            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
     	
     
 }

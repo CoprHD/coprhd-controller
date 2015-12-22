@@ -3,6 +3,7 @@
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.placement;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -12,8 +13,13 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 
+ * this call specific implementation of Scheduler based on Vpool capability(default, local, remote)
+ *
+ */
 public class FilePlacementManager {
-	private DbClient dbClient;
+    private DbClient dbClient;
     // Storage schedulers
     private Map<String, Scheduler> storageSchedulers;
 
@@ -30,7 +36,7 @@ public class FilePlacementManager {
     }
 
     public List getRecommendationsForFileCreateRequest(VirtualArray virtualArray,
-                                  Project project, VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
+            Project project, VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         // Get the file placement based on passed parameters.
         Scheduler scheduler = getFileServiceImpl(vPool);

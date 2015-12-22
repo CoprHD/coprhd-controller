@@ -16,13 +16,13 @@ import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 
-public class IsilonMirrorOperations implements FileMirrorOperations{
-	private static final Logger log = LoggerFactory.getLogger(IsilonMirrorOperations.class);
-	
-	private DbClient _dbClient;
-	private IsilonApiFactory _factory;
-	
-	/**
+public class IsilonMirrorOperations implements FileMirrorOperations {
+    private static final Logger log = LoggerFactory.getLogger(IsilonMirrorOperations.class);
+
+    private DbClient _dbClient;
+    private IsilonApiFactory _factory;
+
+    /**
      * Set Isilon API factory
      * 
      * @param factory
@@ -30,22 +30,22 @@ public class IsilonMirrorOperations implements FileMirrorOperations{
     public void setIsilonApiFactory(IsilonApiFactory factory) {
         _factory = factory;
     }
-    
+
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
     }
-	
-	@Override
-	public void createSingleMirrorFileShare(StorageSystem storage, URI mirror,
-			Boolean createInactive, TaskCompleter taskCompleter)throws DeviceControllerException {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
-	public void deleteSingleMirrorFileShare(StorageSystem storage, URI mirror,
-			TaskCompleter taskCompleter) throws DeviceControllerException {
-		// TODO Auto-generated method stub
-		
-	}
+
+    @Override
+    public void createSingleMirrorFileShare(StorageSystem storage, URI mirror,
+            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void deleteSingleMirrorFileShare(StorageSystem storage, URI mirror,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        // TODO Auto-generated method stub
+
+    }
 }

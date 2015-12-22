@@ -14,6 +14,7 @@ public class IsilonSyncJob {
         pending,
         unknown,
     }
+
     public static enum Action {
         copy,
         sync
@@ -28,27 +29,30 @@ public class IsilonSyncJob {
         fofb,
         domainmark,
     }
-    /*A unique identifier for this object.*/
+
+    /* A unique identifier for this object. */
     private String id;
 
-    /*The ID of the job*/
+    /* The ID of the job */
     private Integer jobId;
 
-    /*The name of the policy*/
+    /* The name of the policy */
     private String policyName;
 
-    /*The time the job started and ended in unix epoch seconds.
-    The field is null if the job hasn't started or ended.*/
+    /*
+     * The time the job started and ended in unix epoch seconds.
+     * The field is null if the job hasn't started or ended.
+     */
     private Integer startTime;
     private Integer endTime;
 
-    /*The state of the job.*/
+    /* The state of the job. */
     private IsilonSyncJob.State state;
 
-    /*The action to be taken by this job*/
+    /* The action to be taken by this job */
     private IsilonSyncJob.Action action;
 
-    /*The type of sync being performed by this job*/
+    /* The type of sync being performed by this job */
     private IsilonSyncJob.SyncType syncType;
 
     public String getId() {

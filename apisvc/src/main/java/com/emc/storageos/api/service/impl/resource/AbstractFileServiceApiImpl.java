@@ -3,6 +3,7 @@
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,17 +38,17 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-public abstract class AbstractFileServiceApiImpl <T> implements FileServiceApi{
-	private static final Logger s_logger = LoggerFactory.getLogger(AbstractFileServiceApiImpl.class);
-	
-	@Autowired
+public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
+    private static final Logger s_logger = LoggerFactory.getLogger(AbstractFileServiceApiImpl.class);
+
+    @Autowired
     private PermissionsHelper _permissionsHelper;
     @Autowired
     protected DependencyChecker _dependencyChecker;
     protected T _scheduler;
     protected DbClient _dbClient;
     private CoordinatorClient _coordinator;
-    
+
     // Permissions helper getter/setter
     public void setPermissionsHelper(PermissionsHelper permissionsHelper) {
         _permissionsHelper = permissionsHelper;
@@ -92,7 +93,7 @@ public abstract class AbstractFileServiceApiImpl <T> implements FileServiceApi{
     public T getFileScheduler() {
         return _scheduler;
     }
-    
+
     /**
      * Map of implementing class instances; used for iterating through them for
      * connectivity purposes.
@@ -118,7 +119,6 @@ public abstract class AbstractFileServiceApiImpl <T> implements FileServiceApi{
         return s_protectionImplementations;
     }
 
-    
     /**
      * Check if a resource can be deactivated safely
      *
@@ -146,58 +146,57 @@ public abstract class AbstractFileServiceApiImpl <T> implements FileServiceApi{
         return _coordinator.locateService(clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
     }
 
-	@Override
-	public TaskList createFileSystems(FileSystemParam param, Project project,
-			VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags,
-			List<Recommendation> recommendations, TaskList taskList,
-			String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-			throws InternalException {
+    @Override
+    public TaskList createFileSystems(FileSystemParam param, Project project,
+            VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags,
+            List<Recommendation> recommendations, TaskList taskList,
+            String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
 
-		
-	}
+    }
 
-	@Override
-	public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs,
-			String deletionType, boolean forceDelete, String task) throws InternalException {
-		 // Get volume descriptor for all volumes to be deleted.
+    @Override
+    public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs,
+            String deletionType, boolean forceDelete, String task) throws InternalException {
+        // Get volume descriptor for all volumes to be deleted.
         List<FileDescriptor> fileDescriptors = getDescriptorsOfFileShareDeleted(
                 systemURI, fileSystemURIs, deletionType, forceDelete);
-        
+
         FileOrchestrationController controller = getController(
                 FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         controller.deleteFileSystems(fileDescriptors, task);
-	}
-	
-	/**
-	 * get delete file share Descriptors
-	 * @param systemURI
-	 * @param fileShareURIs
-	 * @param deletionType
-	 * @param forceDelete
-	 * @return
-	 */
-	abstract protected  List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
+    }
+
+    /**
+     * get delete file share Descriptors
+     * 
+     * @param systemURI
+     * @param fileShareURIs
+     * @param deletionType
+     * @param forceDelete
+     * @return
+     */
+    abstract protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
             List<URI> fileShareURIs, String deletionType, boolean forceDelete);
-	
-	
-	@Override
-	public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
-			FileShare sourceFileShare, VirtualPool sourceVirtualPool,
-			VirtualPoolCapabilityValuesWrapper capabilities,
-			NativeContinuousCopyCreate param, String taskId)
-			throws ControllerException {
-		// TODO Auto-generated method stub
-		throw APIException.methodNotAllowed.notSupported();
-	}
-	
-	@Override
-	public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
-			Volume sourceFileShare, List<URI> mirrorFSUris, String taskId)
-			throws ControllerException {
-		// TODO Auto-generated method stub
-		throw APIException.methodNotAllowed.notSupported();
-	}
+
+    @Override
+    public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
+            FileShare sourceFileShare, VirtualPool sourceVirtualPool,
+            VirtualPoolCapabilityValuesWrapper capabilities,
+            NativeContinuousCopyCreate param, String taskId)
+            throws ControllerException {
+        // TODO Auto-generated method stub
+        throw APIException.methodNotAllowed.notSupported();
+    }
+
+    @Override
+    public TaskList stopNativeContinuousCopies(StorageSystem storageSystem,
+            Volume sourceFileShare, List<URI> mirrorFSUris, String taskId)
+            throws ControllerException {
+        // TODO Auto-generated method stub
+        throw APIException.methodNotAllowed.notSupported();
+    }
 
 }

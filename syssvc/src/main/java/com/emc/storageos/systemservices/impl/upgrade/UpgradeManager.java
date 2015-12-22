@@ -13,12 +13,12 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.*;
-import java.util.Map.Entry;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -35,7 +35,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.systemservices.exceptions.*;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
-import com.emc.vipr.model.sys.ClusterInfo.NodeState;
 import com.emc.vipr.model.sys.NodeProgress.DownloadStatus;
 
 public class UpgradeManager extends AbstractManager {
@@ -59,6 +58,7 @@ public class UpgradeManager extends AbstractManager {
 
     private static boolean isValidRepo;
     private DrUtil drUtil;
+    private Service service;
 
     // current number of tries of connecting remote repository
     private int tryRepoCnt = 0;
@@ -76,6 +76,10 @@ public class UpgradeManager extends AbstractManager {
 
     public RemoteRepository getRemoteRepository() {
         return remoteRepository;
+    }
+
+    public void setService(Service service) {
+        this.service = service;
     }
 
     @Override
@@ -425,25 +429,27 @@ public class UpgradeManager extends AbstractManager {
                     coordinator.releaseRemoteDownloadLock(svcId);
                     wakeupOtherNodes();
                 }
-            } else if (drUtil.isStandby()) {
-                // standby sites will always try to get the image from the active site
-                try {
-                    String activeSiteId = drUtil.getActiveSiteId();
-                    String activeNodeInSync = getAControlNodeInSync(activeSiteId, targetInfo);
-                    if (syncToNodeInSync(activeSiteId, activeNodeInSync, syncinfo)) {
-                        coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
-                        wakeupOtherNodes();
-                    }
-                } catch (Exception e) {
-                    log.error("Step3a: {}", e);
-                }
             } else if (coordinator.hasRemoteDownloadLock(svcId) || coordinator.getRemoteDownloadLock(svcId)) {
-                log.info("Step3a: Leader block");
                 try {
-                    if (syncWithRemote(localInfo, targetInfo, syncinfo)) {
-                        coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
-                        coordinator.releaseRemoteDownloadLock(svcId);
-                        wakeupOtherNodes();
+                    if (drUtil.isStandby()) {
+                        log.info("Step3a: Leader block from standby site");
+                        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+                        URI activeVipEndpoint = URI.create(String.format(SysClientFactory.BASE_URL_FORMAT,
+                                activeSite.getVip(), service.getEndpoint().getPort()));
+                        if (!coordinator.isActiveSiteStable(activeSite)) {
+                            log.info("Step3a: active site not sync'ed yet");
+                        } else if (syncToNodeInSync(activeVipEndpoint, syncinfo)) {
+                            coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
+                            coordinator.releaseRemoteDownloadLock(svcId);
+                            wakeupOtherNodes();
+                        }
+                    } else {
+                        log.info("Step3a: Leader block");
+                        if (syncWithRemote(localInfo, targetInfo, syncinfo)) {
+                            coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
+                            coordinator.releaseRemoteDownloadLock(svcId);
+                            wakeupOtherNodes();
+                        }
                     }
                 } catch (Exception e) {
                     log.error("Step3a: ", e);
@@ -462,7 +468,7 @@ public class UpgradeManager extends AbstractManager {
             }
         } else if (controlNodeInSync != null) {
             try {
-                if (syncToNodeInSync(coordinator.getCoordinatorClient().getSiteId(), controlNodeInSync, syncinfo)) {
+                if (syncToNodeInSync(coordinator.getNodeEndpointForSvcId(controlNodeInSync), syncinfo)) {
                     coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
                     wakeupOtherNodes();
                 }
@@ -513,14 +519,14 @@ public class UpgradeManager extends AbstractManager {
         return true;
     }
 
-    private boolean syncToNodeInSync(final String siteId, final String leader,
+    private boolean syncToNodeInSync(final URI leaderEndpoint,
             final SyncInfo syncinfo)
             throws SysClientException, LocalRepositoryException {
         // Step1 - if something to install, install
         if (syncinfo.getToInstall() != null && !syncinfo.getToInstall().isEmpty()) {
             final SoftwareVersion toInstall = syncinfo.getToInstall().get(0);
             File image = null;
-            if (toInstall != null && (image = getLeaderImage(siteId, toInstall, leader)) == null) {
+            if (toInstall != null && (image = getLeaderImage(toInstall, leaderEndpoint)) == null) {
                 return false;
             }
             if (image != null) {
@@ -624,9 +630,11 @@ public class UpgradeManager extends AbstractManager {
         }
     }
 
-    private File getLeaderImage(final String siteId, final SoftwareVersion version, final String leader) throws SysClientException {
+    private File getLeaderImage(final SoftwareVersion version, final URI leaderEndpoint)
+            throws SysClientException {
         final File file = new File(DOWNLOAD_DIR + '/' + version + SOFTWARE_IMAGE_SUFFIX);
-        final String prefix = MessageFormat.format("Step3b(): path=\"{0}\" leader=\"{1}\": ", file, leader);
+        final String prefix = MessageFormat.format("Step3b(): path=\"{0}\" leaderEndpoint=\"{1}\": ",
+                file, leaderEndpoint);
 
         log.info(prefix);
 
@@ -656,8 +664,7 @@ public class UpgradeManager extends AbstractManager {
         log.info(prefix + "Opening remote image stream");
         try {
             String uri = SysClientFactory.URI_GET_IMAGE + "?version=" + version;
-            final InputStream in = SysClientFactory.getSysClient(coordinator
-                    .getNodeEndpointForSvcId(siteId, leader))
+            final InputStream in = SysClientFactory.getSysClient(leaderEndpoint)
                     .get(new URI(uri),
                             InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
 

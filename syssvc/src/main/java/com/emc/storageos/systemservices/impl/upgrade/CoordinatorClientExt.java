@@ -694,9 +694,9 @@ public class CoordinatorClientExt {
      * @param svcId
      * @return
      */
-    public URI getNodeEndpointForSvcId(String siteId, String svcId) {
+    public URI getNodeEndpointForSvcId(String svcId) {
         try {
-            List<Service> svcs = _coordinator.locateAllServices(siteId,_svc.getName(),_svc.getVersion(),null,null);
+            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),null,null);
             for (Service svc : svcs) {
                 if (svc.getId().equals(svcId)) {
                     return svc.getEndpoint();
@@ -706,10 +706,6 @@ public class CoordinatorClientExt {
             _log.info("Fail to get the cluster information "+e.getMessage());
         }
         return null;
-    }
-
-    public URI getNodeEndpointForSvcId(String svcId) {
-        return getNodeEndpointForSvcId(_coordinator.getSiteId(), svcId);
     }
 
     /**
@@ -1632,7 +1628,7 @@ public class CoordinatorClientExt {
         return true;
     }
 
-    private boolean isActiveSiteStable(Site activeSite) {
+    public boolean isActiveSiteStable(Site activeSite) {
         // check if cluster state is stable
         String vip = activeSite.getVip();
         int port = _svc.getEndpoint().getPort();

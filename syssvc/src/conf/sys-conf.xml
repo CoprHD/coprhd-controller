@@ -61,7 +61,8 @@
     
     <bean id="upgradeManager" class="com.emc.storageos.systemservices.impl.upgrade.UpgradeManager">
         <property name="coordinator" ref="coordinatorclientext" />
-        <property name="localRepository" ref="localRepository" />   
+        <property name="localRepository" ref="localRepository" />
+        <property name="service" ref="serviceinfo" />
         <property name="nodeCount" ref="nodeCount" />   
         <property name="loopInterval"  value="600000" />
         <property name="retryInterval"  value="3000" />

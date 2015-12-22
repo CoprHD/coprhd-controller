@@ -127,7 +127,9 @@ public class UpgradeManager extends AbstractManager {
 
     @Override
     protected void innerRun() {
-        final String svcId = coordinator.getMySvcId();
+        // need to distinguish persistent locks acquired from UpgradeManager/VdcManager/PropertyManager
+        // otherwise they might release locks acquired by others when they start
+        final String svcId = String.format("%s,upgrade", coordinator.getMySvcId());
         boolean dbEncrypted = false;
         boolean dbCurrentVersionEncrypted = false;
         boolean isDBMigrationDone = false;
@@ -718,13 +720,15 @@ public class UpgradeManager extends AbstractManager {
     private boolean hasUpgradeLock(String svcId) throws Exception {
         if (backCompatPreYoda) {
             log.info("Pre-yoda back compatible flag detected. Check upgrade lock from the global area");
+            // The lock content has changed in Yoda, previously there's only svcId in the lock node
+            String oldSvcId = coordinator.getMySvcId();
             DistributedPersistentLock lock = coordinator.getCoordinatorClient()
                     .getPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
-            log.info("Acquiring the upgrade lock for {}...", svcId);
+            log.info("Acquiring the upgrade lock for {}...", oldSvcId);
 
             if (lock != null) {
                 String lockOwner = lock.getLockOwner();
-                if (lockOwner != null && lockOwner.equals(svcId)) {
+                if (lockOwner != null && lockOwner.equals(oldSvcId)) {
                     log.info("Current owner of the upgrade lock: {} ", lockOwner);
                     return true;
                 }
@@ -746,11 +750,13 @@ public class UpgradeManager extends AbstractManager {
     private boolean getUpgradeLock(String svcId) throws Exception {
         if (backCompatPreYoda) {
             log.info("Pre-yoda back compatible flag detected. Check upgrade lock from the global area");
+            // The lock content has changed in Yoda, previously there's only svcId in the lock node
+            String oldSvcId = coordinator.getMySvcId();
             DistributedPersistentLock lock = coordinator.getCoordinatorClient()
                     .getPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
-            log.info("Acquiring the upgrade lock for {}...", svcId);
+            log.info("Acquiring the upgrade lock for {}...", oldSvcId);
 
-            boolean result = lock.acquireLock(svcId);
+            boolean result = lock.acquireLock(oldSvcId);
             if (!result) {
                 log.info("Acquiring reboot lock failed. Retrying...");
                 return false;
@@ -773,6 +779,8 @@ public class UpgradeManager extends AbstractManager {
     private void releaseUpgradeLock(String svcId) {
         if (backCompatPreYoda) {
             log.info("Pre-yoda back compatible flag detected. Check upgrade lock from the global area");
+            // The lock content has changed in Yoda, previously there's only svcId in the lock node
+            String oldSvcId = coordinator.getMySvcId();
             try {
                 DistributedPersistentLock lock = coordinator.getCoordinatorClient()
                         .getPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
@@ -784,7 +792,7 @@ public class UpgradeManager extends AbstractManager {
                         return;
                     }
 
-                    if (!lockOwner.equals(svcId)) {
+                    if (!lockOwner.equals(oldSvcId)) {
                         log.error("Lock owner is {}", lockOwner);
                     } else {
                         boolean result = lock.releaseLock(lockOwner);

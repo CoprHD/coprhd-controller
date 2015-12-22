@@ -1788,6 +1788,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public void deletePath(String path) {
         try {
+            List<String> subPaths = _zkConnection.curator().getChildren().forPath(path);
+            for (String subPath : subPaths) {
+                log.info("Subpath {} is going to be deleted", subPath);
+            }
+            
             DeleteBuilder deleteOp = _zkConnection.curator().delete();
             deleteOp.deletingChildrenIfNeeded();
             deleteOp.forPath(path);

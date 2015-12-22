@@ -27,6 +27,7 @@ import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
+import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
@@ -667,6 +668,8 @@ public abstract class VdcOpHandler {
      *  - other standby   - exclude old active from vdc config and reconfig
      */
     public static class DrFailoverHandler extends VdcOpHandler {
+        private Factory postHandlerFactory;
+        
         public DrFailoverHandler() {
         }
         
@@ -679,6 +682,7 @@ public abstract class VdcOpHandler {
                     reconfigVdc();
                     coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
                     removeDbNodesOfOldActiveSite();
+                    postHandlerFactory.initializeAllHandlers();
                     waitForAllNodesAndReboot(site);
                 } catch (Exception e) {
                     log.error("Error occurs during failover: {}", e);
@@ -688,6 +692,10 @@ public abstract class VdcOpHandler {
             } else {
                 reconfigVdc();
             }
+        }
+        
+        public void setPostHandlerFactory(Factory postHandlerFactory) {
+            this.postHandlerFactory = postHandlerFactory;
         }
         
         private boolean isNewActiveSiteForFailover(Site site) {

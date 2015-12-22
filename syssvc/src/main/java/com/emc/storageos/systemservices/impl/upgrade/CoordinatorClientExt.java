@@ -47,6 +47,8 @@ import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
@@ -1450,7 +1452,7 @@ public class CoordinatorClientExt {
                 // if zk is switched from observer mode to participant, reload syssvc
                 reconfigZKToWritable(!DrUtil.ZOOKEEPER_MODE_READONLY.equals(initZkMode));
             } else {
-                if (isActiveSiteStable()) {
+                if (isActiveSiteHeathy()) {
                     _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
                     reconnectZKToActiveSite();
                 } else {
@@ -1555,14 +1557,25 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Check if DR active site is stable
+     * Check if DR active site is stable and there is ZK leader in active site
      *
      * @return true for stable, otherwise false
      */
-    public boolean isActiveSiteStable() {
+    public boolean isActiveSiteHeathy() {
         DrUtil drUtil = new DrUtil(_coordinator);
-        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getSiteIdInActiveState());
+        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
 
+        boolean isActiveSiteLeaderAlive = isActiveSiteZKLeaderAlive(activeSite);
+        boolean isActiveSiteStable =  isActiveSiteStable(activeSite);
+        _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
+        
+        SiteMonitorResult montiorResult = new SiteMonitorResult(isActiveSiteLeaderAlive, isActiveSiteStable);
+        _coordinator.setTargetInfo(montiorResult);
+        
+        return isActiveSiteLeaderAlive && isActiveSiteStable;
+    }
+    
+    private boolean isActiveSiteZKLeaderAlive(Site activeSite) {
         // Check alive coordinatorsvc on active site
         Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();
         if (nodeAddrList.isEmpty()) {
@@ -1590,7 +1603,11 @@ public class CoordinatorClientExt {
                 return false;
             }
         }
+        
+        return true;
+    }
 
+    private boolean isActiveSiteStable(Site activeSite) {
         // check if cluster state is stable
         String vip = activeSite.getVip();
         int port = _svc.getEndpoint().getPort();

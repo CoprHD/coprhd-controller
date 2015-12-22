@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
+import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
@@ -40,6 +42,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -460,7 +463,7 @@ public abstract class VdcOpHandler {
         private void checkAndPauseOnStandby() {
             // wait for the coordinator to be blocked on the active site
             int retryCnt = 0;
-            while (coordinator.isActiveSiteStable()) {
+            while (coordinator.isActiveSiteHeathy()) {
                 if (++retryCnt > MAX_PAUSE_RETRY) {
                     throw new IllegalStateException("timeout waiting for coordinatorsvc to be blocked on active site.");
                 }
@@ -665,6 +668,8 @@ public abstract class VdcOpHandler {
      *  - other standby   - exclude old active from vdc config and reconfig
      */
     public static class DrFailoverHandler extends VdcOpHandler {
+        private Factory postHandlerFactory;
+        
         public DrFailoverHandler() {
         }
         
@@ -672,14 +677,25 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             if (isNewActiveSiteForFailover(site)) {
-                coordinator.stopCoordinatorSvcMonitor();
-                reconfigVdc();
-                coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
-                removeDbNodesOfOldActiveSite();
-                waitForAllNodesAndReboot(site);
+                try {
+                    coordinator.stopCoordinatorSvcMonitor();
+                    reconfigVdc();
+                    coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
+                    removeDbNodesOfOldActiveSite();
+                    postHandlerFactory.initializeAllHandlers();
+                    waitForAllNodesAndReboot(site);
+                } catch (Exception e) {
+                    log.error("Error occurs during failover: {}", e);
+                    resetLocalVdcConfigVersion();
+                    throw e;
+                }
             } else {
                 reconfigVdc();
             }
+        }
+        
+        public void setPostHandlerFactory(Factory postHandlerFactory) {
+            this.postHandlerFactory = postHandlerFactory;
         }
         
         private boolean isNewActiveSiteForFailover(Site site) {
@@ -714,7 +730,6 @@ public abstract class VdcOpHandler {
                 removeDbNodesFromStrategyOptions(oldActiveSite);
                 drUtil.removeSiteConfiguration(oldActiveSite);
             } catch (Exception e) {
-                populateStandbySiteErrorIfNecessary(drUtil.getLocalSite(), APIException.internalServerErrors.failoverReconfigFailed(e.getMessage()));
                 log.error("Failed to remove old acitve site in failover, {}", e);
                 throw e;
             } finally {

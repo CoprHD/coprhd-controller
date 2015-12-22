@@ -20,7 +20,7 @@ public class SiteErrorResponse {
     private int serviceCode;
     private String serviceCodeName;
     private String errorMessage;
-
+    
     @XmlElement(name = "creationTime")
     public Date getCreationTime() {
         return creationTime;

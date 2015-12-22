@@ -67,11 +67,13 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
@@ -94,7 +96,6 @@ import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.sys.ClusterInfo;
-import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 
 /**
  * Default coordinator client implementation
@@ -601,7 +602,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private boolean isSiteSpecific(String kind) {
         if (kind.equals(SiteInfo.CONFIG_KIND)
             || kind.equals(SiteError.CONFIG_KIND)
-            || kind.equals(PowerOffState.CONFIG_KIND)) {
+            || kind.equals(PowerOffState.CONFIG_KIND)
+            || kind.equals(SiteMonitorResult.CONFIG_KIND)) {
             return true;
         }
         return false;
@@ -1786,6 +1788,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public void deletePath(String path) {
         try {
+            List<String> subPaths = _zkConnection.curator().getChildren().forPath(path);
+            for (String subPath : subPaths) {
+                log.info("Subpath {} is going to be deleted", subPath);
+            }
+            
             DeleteBuilder deleteOp = _zkConnection.curator().delete();
             deleteOp.deletingChildrenIfNeeded();
             deleteOp.forPath(path);

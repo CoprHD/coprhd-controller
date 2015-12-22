@@ -99,7 +99,7 @@ public class VdcConfigUtil {
     }
 
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
-        String activeSiteId = drUtil.getSiteIdInActiveState(vdcShortId);
+        String activeSiteId = drUtil.getActiveSiteId(vdcShortId);
         
         Collections.sort(sites, new Comparator<Site>() {
             @Override

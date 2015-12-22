@@ -22,7 +22,7 @@ public class ComputeImageMigration extends BaseCustomMigrationCallback {
     private EncryptionProvider encryptionProvider;
     private static final String IMAGEURL_PASSWORD_SPLIT_REGEX = "(.*?:){2}((?<=\\:).*(?=\\@))";
     private static final String IMAGEURL_HOST_REGEX = "^*(?<=@)([^/@]++)/.*+$";
-    
+
     @Override
     public void process() {
         log.info("Starting Compute Image Migration");
@@ -32,21 +32,26 @@ public class ComputeImageMigration extends BaseCustomMigrationCallback {
             encryptionProviderImpl.start();
             encryptionProvider = encryptionProviderImpl;
         }
-        List<URI> computeImageURIList = dbClient.queryByType(ComputeImage.class, true);
-        Iterator<ComputeImage> computeImageItr = dbClient.queryIterativeObjects(ComputeImage.class, computeImageURIList, true);
-        while(computeImageItr.hasNext()) {
+        List<URI> computeImageURIList = dbClient.queryByType(
+                ComputeImage.class, true);
+        Iterator<ComputeImage> computeImageItr = dbClient
+                .queryIterativeObjects(ComputeImage.class, computeImageURIList,
+                        true);
+        while (computeImageItr.hasNext()) {
             ComputeImage image = computeImageItr.next();
             String imageUrl = image.getImageUrl();
             String password = extractPasswordFromImageUrl(imageUrl);
             String encryptedPassword = password;
             if (StringUtils.isNotBlank(password)) {
-                encryptedPassword = encryptionProvider.getEncryptedString(password);
-                imageUrl = StringUtils.replace(imageUrl, ":" + password + "@", ":"
-                        + encryptedPassword + "@");
+                encryptedPassword = encryptionProvider
+                        .getEncryptedString(password);
+                imageUrl = StringUtils.replace(imageUrl, ":" + password + "@",
+                        ":" + encryptedPassword + "@");
             }
             image.setImageUrl(imageUrl);
             dbClient.updateObject(image);
-            log.info("Successfully migrated compute image : {} - {}", image.getLabel(), image.getId());
+            log.info("Successfully migrated compute image : {} - {}",
+                    image.getLabel(), image.getId());
         }
         log.info("Completed Compute Image Migration");
     }

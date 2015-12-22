@@ -275,7 +275,7 @@ public class ComputeImageService extends TaskResourceService {
                 //and we encrypt and updated the DB, if the user does not change the password part but
                 //changes any other parts (username, hostname or the file part) the password of masked asterisks
                 //and the constant will be same and we do not update the password but update other parts if changed.
-                if(isEncrypted) {
+                if (isEncrypted) {
                     ci.setImageUrl( StringUtils.replace(param.getImageUrl(), ":" + newPassword + "@", ":"
                             + oldPassword + "@"));
                 } else {

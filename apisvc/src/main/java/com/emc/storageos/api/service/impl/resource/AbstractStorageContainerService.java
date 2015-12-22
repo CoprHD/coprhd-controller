@@ -44,6 +44,7 @@ public class AbstractStorageContainerService extends AbstractVasaService{
          ArgValidator.checkFieldNotEmpty(param.getType(), TYPE);
          ArgValidator.checkFieldValueFromEnum(param.getType(), TYPE,
                  EnumSet.of(Type.geo, Type.physical));
+         storageContainer.setType(param.getType());
          
          ArgValidator.checkFieldNotEmpty(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE);
          ArgValidator.checkFieldValueFromEnum(param.getProtocolEndPointType(), PROTOCOL_ENDPOINT_TYPE,

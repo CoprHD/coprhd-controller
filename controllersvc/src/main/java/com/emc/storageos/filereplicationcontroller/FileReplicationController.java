@@ -8,6 +8,8 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.volumecontroller.ControllerException;
 
 import java.net.URI;
+
+import java.util.List;
 /**
  * 
  * class define to process File Mirror replication operations
@@ -15,12 +17,27 @@ import java.net.URI;
  */
 public interface FileReplicationController extends Controller {
 	
+	
 	/**
-	 * Attach new mirror(s) for the given fileShare (local Mirror)
-	 * @param storage
-	 * @param sourceVolume
-	 * @param opId
+	 * Perform remote protection operations
+	 * @param storage -source storage system
+	 * @param sourceFileShare -source file share
+	 * @param mirrorURIs - mirror file share
+	 * @param opType - operation performed 
+	 * @param opId - task object
 	 * @throws ControllerException
 	 */
-    public void attachNativeContinuousCopies(URI storage, URI sourceVolume, String opId) throws ControllerException;
+    public void performNativeContinuousCopies(URI storage, URI sourceFileShare, List<URI> mirrorURIs, String opType, String opId) throws ControllerException;
+    
+    /**
+     * Perform remote protection operation
+     * @param storage
+     * @param copyId
+     * @param opType - operation to perform(pause, cancel , resume)
+     * @param opId
+     * @throws ControllerException
+     */
+    public void performRemoteContinuousCopies(URI storage, URI copyId, String opType, String opId)throws ControllerException;
+    
+    
 }

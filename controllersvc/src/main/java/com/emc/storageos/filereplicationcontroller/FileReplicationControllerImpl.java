@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.filereplicationcontroller;
 import java.net.URI;
+import java.util.List;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -13,9 +14,15 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+
+
 
 public class FileReplicationControllerImpl extends AbstractDiscoveredSystemController implements  FileReplicationController{
+	
 	private static final Logger log = LoggerFactory.getLogger(FileReplicationControllerImpl.class);
     
 	private Set<FileReplicationController> deviceImpl;
@@ -51,5 +58,27 @@ public class FileReplicationControllerImpl extends AbstractDiscoveredSystemContr
 		// TODO Auto-generated method stub
 		return deviceImpl.iterator().next();
 	}
+	
+	@Override
+	public void performNativeContinuousCopies(URI storage, URI sourceFileShare,
+					List<URI> mirrorURIs, String opType, String opId)
+								throws ControllerException {
+		// TODO Auto-generated method stub
+		execFS("performNativeContinuousCopies", storage, sourceFileShare, mirrorURIs, opType, opId);
+	}
+
+	@Override
+	public void performRemoteContinuousCopies(URI storage, URI copyId,
+			String opType, String opId) throws ControllerException {
+		// TODO Auto-generated method stub
+		execFS("performRemoteContinuousCopies", storage, copyId, opType, opId);
+	}
+	
+	
+	private void execFS(String method, Object... args) throws InternalException {
+        queueTask(dbClient, StorageSystem.class, dispatcher, method, args);
+    }
+	
+	
 
 }

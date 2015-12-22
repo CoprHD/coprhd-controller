@@ -162,6 +162,10 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
         unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();
+        
+        unManagedCGToCreate = new ArrayList<UnManagedConsistencyGroup>();
+        unManagedCGToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+        
         Map<String, String> volumesToCgs = null;
 
         // get the storage pool associated with the xtremio system
@@ -178,14 +182,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         String xioClusterName = xtremIOClient.getClusterDetails(storageSystem.getSerialNumber()).getName();
         // get the xtremio volume links and process them in batches
         List<XtremIOObjectInfo> volLinks = xtremIOClient.getXtremIOVolumeLinks(xioClusterName);
-        //If the version of XtremIO is 4 or above, discover consistency group
-        boolean isXioV2 = xtremIOClient.isVersion2();
-//        if(isXioV2){
-//        	// get the list of consistency groups 
-//        	List<XtremIOObjectInfo> consistencyGroupVolInfo = xtremIOClient.getXtremIOConsistencyGroups(xioClusterName);
-//        	//Get the volumes associated to the Consistency Group
-//        	volumesToCgs = getConsistencyGroupVolumeDetails(xtremIOClient, storageSystem, dbClient, partitionManager, consistencyGroupVolInfo, xioClusterName);
-//        }
+        
         // Get the volume details
         List<List<XtremIOObjectInfo>> volume_partitions = Lists.partition(volLinks, Constants.DEFAULT_PARTITION_SIZE);
         for (List<XtremIOObjectInfo> partition : volume_partitions) {
@@ -232,24 +229,22 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 unManagedVolume = createUnManagedVolume(unManagedVolume, unManagedVolumeNatvieGuid, volume, igUnmanagedVolumesMap,
                         storageSystem, storagePool, dbClient);
                 
-                //Verify if this volume is associated to a CG. If so, update the appropriate parameters. 
+                // if the volume is associated with CGs, set up unmanaged CGs
                 if (hasCGs) {
                 	unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());
                 	for (List<Object> cg : volume.getConsistencyGroups()) {                		
                 		Object cgNameToProcess = cg.get(1);
-                		// Joe maybe use this info later: XtremIOConsistencyGroup xioCG = xtremIOClient.getConsistencyGroupDetails(cgNameToProcess.toString(), xioClusterName);
+                		XtremIOConsistencyGroup xioCG = xtremIOClient.getConsistencyGroupDetails(cgNameToProcess.toString(), xioClusterName);
                 		String unManagedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(storageSystem.getNativeGuid(), cgNameToProcess.toString());
                 		UnManagedConsistencyGroup unManagedCG = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient, unManagedCGNativeGuid);
                 		if(null == unManagedCG) {
-                			unManagedCG = createUnManagedCG2(unManagedCGNativeGuid, cgNameToProcess.toString(), storageSystem.getId());
+                			unManagedCG = createUnManagedCG(unManagedCG, unManagedCGNativeGuid,
+                					xioCG, storageSystem, dbClient);
+                			
                 		}                		                		
                 		unManagedCG.getUnManagedVolumes().add(unManagedVolume.getId().toString());
                 		unManagedCG.set_numberOfVols(new Integer(unManagedCG.getUnManagedVolumes().size()).toString());
-                	}
-
-                	//StringSet cgName = new StringSet();
-                	//cgName.add(volumesToCgs.get(volume.getVolInfo().get(0)));
-                	//unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.CONSISTENCY_GROUP_NAME.toString(), cgName);
+                	}                	
                 }
 //                	if (volumesToCgs.containsKey(volume.getVolInfo().get(0))) {
 //                		unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());
@@ -295,6 +290,17 @@ public class XtremIOUnManagedVolumeDiscoverer {
             }
         }
 
+        if (!unManagedCGToCreate.isEmpty()) {
+            partitionManager.insertInBatches(unManagedCGToCreate,
+                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_CONSISTENCY_GROUP);
+            unManagedCGToCreate.clear();
+        }
+        if (!unManagedCGToUpdate.isEmpty()) {
+            partitionManager.updateAndReIndexInBatches(unManagedCGToUpdate,
+                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_CONSISTENCY_GROUP);
+            unManagedCGToUpdate.clear();
+        }
+                
         if (!unManagedVolumesToCreate.isEmpty()) {
             partitionManager.insertInBatches(unManagedVolumesToCreate,
                     Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_VOLUME);
@@ -335,7 +341,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
             unManagedConsistencyGroup = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient,
             		unManagedCGNativeGuid);
             
-            unManagedConsistencyGroup = createUnManagedCG(unManagedConsistencyGroup, unManagedCGNativeGuid, cgVol, storageSystem, dbClient);
+            //unManagedConsistencyGroup = createUnManagedCG(unManagedConsistencyGroup, unManagedCGNativeGuid, cgVol, storageSystem, dbClient);
             
             if (!unManagedCGToCreate.isEmpty()) {
                 partitionManager.insertInBatches(unManagedCGToCreate,
@@ -616,10 +622,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
      * Creates UnManagedConsistencyGroup
      */
     private UnManagedConsistencyGroup createUnManagedCG(UnManagedConsistencyGroup unManagedCG, String unManagedCGNativeGuid,
-    		XtremIOConsistencyGroupVolInfo consistencyGroup, StorageSystem system, DbClient dbClient){
-    	
-        unManagedCGToCreate = new ArrayList<UnManagedConsistencyGroup>();
-        unManagedCGToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+    		XtremIOConsistencyGroup consistencyGroup, StorageSystem system, DbClient dbClient){    	        
     	boolean created = false;
     	
     	if (null == unManagedCG){
@@ -627,15 +630,15 @@ public class XtremIOUnManagedVolumeDiscoverer {
     		unManagedCG.setId(URIUtil.createId(UnManagedConsistencyGroup.class));
     		unManagedCG.setNativeGuid(unManagedCGNativeGuid);
     		unManagedCG.set_storageSystemUri(system.getId());
+    		unManagedCG.set_numberOfVols("0");
     		created = true; 
     	}
     	
-    	unManagedCG.set_name(consistencyGroup.getContent().getName());
-    	unManagedCG.set_numberOfVols(consistencyGroup.getContent().getNumOfVols());
+    	unManagedCG.set_name(consistencyGroup.getName());
     	
     	StringSet associatedVolumes = new StringSet(); 
     	
-    	List<List<Object>> volDetails = consistencyGroup.getContent().getVolList();
+    	List<List<Object>> volDetails = consistencyGroup.getVolList();
     	for (List<Object> volDetail: volDetails ) {
     		associatedVolumes.add(volDetail.get(1).toString());
     	}
@@ -649,27 +652,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         }
         
     	return unManagedCG; 
-    }
-
-    
-    private UnManagedConsistencyGroup createUnManagedCG2(String unManagedCGNativeGuid,
-    		String cgName, URI storageSystemURI){    	            
-    	UnManagedConsistencyGroup unManagedCG = new UnManagedConsistencyGroup();
-    	unManagedCG.setId(URIUtil.createId(UnManagedConsistencyGroup.class));
-    	unManagedCG.setNativeGuid(unManagedCGNativeGuid);
-    	unManagedCG.set_name(cgName);
-    	unManagedCG.set_storageSystemUri(storageSystemURI);
-    	unManagedCG.set_numberOfVols("0");
-    	return unManagedCG; 
-    }
-    
-    private boolean doesUnManagedConsistencyGroupExist(String unManagedCGNativeGuid, DbClient dbClient) {         
-    	if (null == DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient, unManagedCGNativeGuid)) {
-    		return false;
-    	}    	
-    	return true;
-    }
-    
+    }    
     
     /**
      * Creates a new UnManagedVolume with the given arguments.

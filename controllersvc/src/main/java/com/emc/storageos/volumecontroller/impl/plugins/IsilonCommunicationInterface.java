@@ -1115,7 +1115,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     void setDiscPathForAccess(Map<String, NASServer> nasServers) {
         if (nasServers != null && !nasServers.isEmpty()) {
             for (String path : nasServers.keySet()) {
-                if (StringUtils.isNotEmpty(path)) {
+                String nasType = URIUtil.getTypeName(nasServers.get(path).getId());
+                if (StringUtils.isNotEmpty(path) && StringUtils.equals(nasType, "VirtualNAS")) {
                     getDiscPathsForUnManaged().add(path);
                     _log.info("setDiscPathForAccess: {}", path );
                 }

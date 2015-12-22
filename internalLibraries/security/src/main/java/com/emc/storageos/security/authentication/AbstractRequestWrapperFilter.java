@@ -63,7 +63,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
     @Autowired
     protected StorageOSUserRepository _userRepo;
     @Autowired
-    protected KeystoneRestClientFactory _keystoneFactory;
+    private KeystoneRestClientFactory _keystoneFactory;
 
     @Context
     protected HttpHeaders headers;

@@ -53,7 +53,6 @@ public class InvalidLoginManager {
 
     protected int _maxAuthnLoginAttemtsCount;
     protected int _maxAuthnLoginAttemtsLifeTimeInMins;
-    protected int _cleanupThreadInitialDelay;
 
     public int getMaxAuthnLoginAttemtsCount() {
         return _maxAuthnLoginAttemtsCount;

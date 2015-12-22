@@ -1083,7 +1083,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             CIMObjectPath syncObject = null;
             if (storageSystem.deviceIsType(Type.vmax) &&
                     ConsistencyUtils.isCloneInConsistencyGroup(targetObject.getId(), _dbClient)) {
-                String consistencyGroupName = _helper.getConsistencyGroupName(sourceObj, storageSystem);
+                String consistencyGroupName = _helper.getSourceConsistencyGroupName(sourceObj);
                 String replicationGroupName = targetObject.getReplicationGroupInstance();
                 syncObject = _cimPath.getGroupSynchronizedPath(storageSystem, consistencyGroupName, replicationGroupName);
             } else {
@@ -1359,7 +1359,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     return;
                 }
             } else {
-                groupName = _helper.getConsistencyGroupName(volume, storage);
+                groupName = _helper.getSourceConsistencyGroupName(volume);
             }
 
             storage = findProviderFactory.withGroup(storage, groupName).find();
@@ -1477,7 +1477,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     private void cleanupAnyGroupBackupSnapshots(final StorageSystem storage, final Volume volume) {
         CloseableIterator<CIMObjectPath> settingsIterator = null;
         try {
-            String groupName = _helper.getConsistencyGroupName(volume, storage);
+            String groupName = _helper.getSourceConsistencyGroupName(volume);
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
@@ -1929,7 +1929,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (storageObj.deviceIsType(Type.vmax)) {
                 Volume clone = _dbClient.queryObject(Volume.class, targets.get(0));
                 Volume sourceVol = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
-                String consistencyGroupName = _helper.getConsistencyGroupName(sourceVol, storageObj);
+                String consistencyGroupName = _helper.getSourceConsistencyGroupName(sourceVol);
                 String replicationGroupName = clone.getReplicationGroupInstance();
                 CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storageObj, consistencyGroupName, replicationGroupName);
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisWaitForGroupSynchronizedJob(groupSynchronized,
@@ -2232,7 +2232,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 consistencyGroupId);
         try {
             // Check if the consistency group exists
-            String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
+            // String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
+            // get group name from BlockObject
+            String groupName = BlockObject.fetch(_dbClient, blockObjects.get(0)).getReplicationGroupInstance();
             storage = findProviderFactory.withGroup(storage, groupName).find();
 
             if (storage == null) {
@@ -2341,9 +2343,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     replicaObj.setConsistencyGroup(consistencyGroupId);
 
                     if (replicaObj instanceof BlockMirror) {
-                        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
-                                consistencyGroupId);
-                        String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
+                        String groupName = _helper.getSourceConsistencyGroupName(replicaObj);
                         CIMObjectPath syncPath = _cimPath.getGroupSynchronizedPath(storage, groupName, replicationGroupName);
                         ((BlockMirror) replicaObj).setSynchronizedInstance(syncPath.toString());
                     } else if (replicaObj instanceof BlockSnapshot) {

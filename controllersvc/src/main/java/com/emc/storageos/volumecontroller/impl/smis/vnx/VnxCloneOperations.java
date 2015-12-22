@@ -76,7 +76,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
         try {
             final Volume first = _dbClient.queryObject(Volume.class, cloneList.get(0));
             Volume sourceVolume = _dbClient.queryObject(Volume.class, first.getAssociatedSourceVolume());
-            sourceGroupName = _helper.getConsistencyGroupName(sourceVolume, storage);
+            sourceGroupName = _helper.getSourceConsistencyGroupName(sourceVolume);
 
             if (!StringUtils.startsWith(sourceGroupName, SmisConstants.VNX_VIRTUAL_RG)) {
                 // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.

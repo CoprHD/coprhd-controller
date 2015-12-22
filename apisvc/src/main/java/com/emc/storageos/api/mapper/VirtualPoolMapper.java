@@ -269,7 +269,7 @@ public class VirtualPoolMapper {
         to.setProvisioningType(from.getSupportedProvisioningType());
         to.setNumPaths(from.getNumPaths());
         
-        return null;
+        return to;
         
     }
 

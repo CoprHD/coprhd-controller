@@ -17,6 +17,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.RestoreBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.RestoreBlockSnapshotSession;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.vipr.client.Task;
 
@@ -41,7 +42,7 @@ public class RestoreBlockSnapshotService extends ViPRService {
             Task<? extends DataObjectRestRep> task;
             if (ConsistencyUtils.isVolumeStorageType(storageType)) {
                 if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {
-                    task = execute(new RestoreBlockSnapshot(snapshotId));
+                    task = execute(new RestoreBlockSnapshotSession(snapshotId));
                 } else {
                     task = execute(new RestoreBlockSnapshot(snapshotId));
                 }

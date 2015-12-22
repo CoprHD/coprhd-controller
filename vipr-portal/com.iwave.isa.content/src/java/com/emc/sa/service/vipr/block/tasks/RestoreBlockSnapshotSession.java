@@ -11,21 +11,21 @@ import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.vipr.client.Task;
 
 public class RestoreBlockSnapshotSession extends WaitForTask<BlockSnapshotSessionRestRep> {
-    private URI snapshotId;
+    private URI snapshotSessionId;
 
-    public RestoreBlockSnapshotSession(String snapshotId) {
-        this(uri(snapshotId));
+    public RestoreBlockSnapshotSession(String snapshotSessionId) {
+        this(uri(snapshotSessionId));
     }
 
-    public RestoreBlockSnapshotSession(URI snapshotId) {
+    public RestoreBlockSnapshotSession(URI snapshotSessionId) {
         super();
-        this.snapshotId = snapshotId;
+        this.snapshotSessionId = snapshotSessionId;
 
-        provideDetailArgs(snapshotId);
+        provideDetailArgs(snapshotSessionId);
     }
 
     @Override
     protected Task<BlockSnapshotSessionRestRep> doExecute() throws Exception {
-        return getClient().blockSnapshotSessions().restore(snapshotId);
+        return getClient().blockSnapshotSessions().restore(snapshotSessionId);
     }
 }

@@ -263,10 +263,18 @@ public class ComputeImageService extends TaskResourceService {
 
                 if (StringUtils.isNotBlank(oldPassword)
                         && StringUtils.isNotBlank(newPassword)) {
+                    //MASKED_PASSWORD is a constant string and UI/REST feeds displays it as bunch
+                    //of asterixk's, if user does not update the password then the newPassword and masked
+                    //password will be same there by we know that password is not updated and same as encrypted
+                    //password present in the DB.
                     if (ImageServerControllerImpl.MASKED_PASSWORD.equals(newPassword)) {
                         isEncrypted = true;
                     }
                 }
+                //Any change to the password section of the URL, we will get to know that password is updated
+                //and we encrypt and updated the DB, if the user does not change the password part but
+                //changes any other parts (username, hostname or the file part) the password of masked asterisks
+                //and the constant will be same and we do not update the password but update other parts if changed.
                 if(isEncrypted) {
                     ci.setImageUrl( StringUtils.replace(param.getImageUrl(), ":" + newPassword + "@", ":"
                             + oldPassword + "@"));

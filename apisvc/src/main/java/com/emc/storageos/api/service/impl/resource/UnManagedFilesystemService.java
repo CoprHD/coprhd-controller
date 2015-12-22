@@ -22,6 +22,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.model.BulkIdParam;
@@ -94,6 +96,12 @@ public class UnManagedFilesystemService extends TaggedResource {
      */
     private static final Logger _logger = LoggerFactory
             .getLogger(UnManagedFilesystemService.class);
+    
+    private CustomConfigHandler customConfigHandler;
+    
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        this.customConfigHandler = customConfigHandler;
+    }
 
     @Override
     protected DataObject queryResource(URI id) {
@@ -698,22 +706,55 @@ public class UnManagedFilesystemService extends TaggedResource {
      * @return true if ingestion is possible for a project against a vNAS; false otherwise
      */
     public boolean isIngestUmfsValidForProject(Project project, DbClient dbClient, String nasUri) {
-        boolean isIngestValid = false;
-        //step -1 check file system is mounted to VNAS
+    	
+    	boolean shareVNASWithMultipleProjects = Boolean.valueOf(customConfigHandler.getComputedCustomConfigValue(
+                CustomConfigConstants.SHARE_VNAS_WITH_MULTIPLE_PROJECTS, "global", null));
+    	
+    	_logger.info("Inside isIngestUmfsValidForProject() project name: {}", project.getLabel());
+        boolean isIngestValid = true;
+        
         if (nasUri != null && "VirtualNAS".equals(URIUtil.getTypeName(nasUri))) {
+        	
             VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
-            
-            //Step -2 if project has any associated vNAS
+            _logger.info("vNAS name: {}", virtualNAS.getNasName());
             StringSet projectVNASServerSet = project.getAssignedVNasServers();
             if (projectVNASServerSet != null && !projectVNASServerSet.isEmpty()) {
-                //Step -3 then check nasUri in project associated vnas list
-                if (projectVNASServerSet.contains(nasUri) && !virtualNAS.isNotAssignedToProject()) {
-                    _logger.info("vNAS: {} is associated with project: {}",
-                    		virtualNAS.getNasName(), project.getLabel());
-                    isIngestValid = true;
-                }
+			    if (!shareVNASWithMultipleProjects) {
+			        /* 
+			         * Step 1: check file system is mounted to VNAS
+			         * Step 2: if project has any associated vNAS
+			         * Step 3: then check nasUri in project associated vNAS list
+			         */
+			        if (!projectVNASServerSet.contains(nasUri) && !virtualNAS.isNotAssignedToProject()) {
+			            _logger.info("vNAS: {} is associated with other project.",
+			           		virtualNAS.getNasName());
+			            isIngestValid = false;
+			        } else {
+			           	if (!virtualNAS.isNotAssignedToProject()) {
+			            	_logger.info("vNAS: {} is associated with other project.",
+			                    	virtualNAS.getNasName());
+			                isIngestValid = false;
+			            }
+			        }
+		        } else {
+		        	isIngestValid = false;
+		        	if (!projectVNASServerSet.contains(nasUri)) {
+		        		_logger.info("vNAS: {} is not associated project: {}",
+		                    	virtualNAS.getNasName(), project.getLabel());
+		        		isIngestValid = true;
+		        	} else {
+		        		_logger.info("vNAS: {} is associated project: {}",
+		                    	virtualNAS.getNasName(), project.getLabel());
+		        		if (!virtualNAS.isNotAssignedToProject()) {
+		        			isIngestValid = true;
+		        		}
+		        	}
+		        }
             }
         }
+        _logger.info("Exit isIngestUmfsValidForProject() returning: {}",
+        		isIngestValid);
+        
         return isIngestValid;
     }
     

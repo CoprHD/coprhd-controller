@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -40,6 +41,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -672,11 +674,17 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             if (isNewActiveSiteForFailover(site)) {
-                coordinator.stopCoordinatorSvcMonitor();
-                reconfigVdc();
-                coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
-                removeDbNodesOfOldActiveSite();
-                waitForAllNodesAndReboot(site);
+                try {
+                    coordinator.stopCoordinatorSvcMonitor();
+                    reconfigVdc();
+                    coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
+                    removeDbNodesOfOldActiveSite();
+                    waitForAllNodesAndReboot(site);
+                } catch (Exception e) {
+                    log.error("Error occurs during failover: {}", e);
+                    resetLocalVdcConfigVersion();
+                    throw e;
+                }
             } else {
                 reconfigVdc();
             }
@@ -714,7 +722,6 @@ public abstract class VdcOpHandler {
                 removeDbNodesFromStrategyOptions(oldActiveSite);
                 drUtil.removeSiteConfiguration(oldActiveSite);
             } catch (Exception e) {
-                populateStandbySiteErrorIfNecessary(drUtil.getLocalSite(), APIException.internalServerErrors.failoverReconfigFailed(e.getMessage()));
                 log.error("Failed to remove old acitve site in failover, {}", e);
                 throw e;
             } finally {

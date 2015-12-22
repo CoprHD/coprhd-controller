@@ -233,7 +233,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
 
     private boolean checkSupportedSRDFActiveModeProvider(StorageSystem storageSystem, Map<String, List<String>> remoteCopySettings) {
         Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
-        if (copyModes.contains(SupportedCopyModes.ACTIVE.toString())) {
+        if (null != copyModes && copyModes.contains(SupportedCopyModes.ACTIVE.toString())) {
             if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
                 try {
                     StorageProvider storageProvider = _objectCache.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
@@ -245,6 +245,8 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
                             storageSystem.getId());
                     return false;
                 }
+            } else {
+                return false;
             }
         }
         return true;

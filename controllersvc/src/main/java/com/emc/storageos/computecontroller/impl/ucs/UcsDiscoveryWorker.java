@@ -2036,7 +2036,7 @@ public class UcsDiscoveryWorker {
     private Boolean isBladeAvailable(ComputeBlade blade) {
         boolean availability = true;
         String bladeAvailability = blade.getAvailability();
-        if(BLADE_AVAILABLE.equalsIgnoreCase(bladeAvailability)) {
+        if (BLADE_AVAILABLE.equalsIgnoreCase(bladeAvailability)) {
             availability = true;
         } else {
             availability = false;

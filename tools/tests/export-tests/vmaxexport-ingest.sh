@@ -13,7 +13,7 @@ SN#!/bin/sh
 # Requirements:
 # -------------
 # - SYMAPI should be installed, which is included in the SMI-S install. Install tars can be found on
-#   ftp://Administrator:dangerous@10.247.73.123/<version dir>. Download the tar file for Linux, untar, run seinstall -install
+#   Download the tar file for Linux, untar, run seinstall -install
 # - The provider host should allow for NOSECURE SYMAPI REMOTE access. See https://asdwiki.isus.emc.com:8443/pages/viewpage.action?  pageId=28778911 for more information.
 # 
 # How to read this script:
@@ -265,7 +265,7 @@ login() {
 
 setup() {
     syssvc $SANITY_CONFIG_FILE localhost setup
-    security add_authn_provider ldap ldap://10.247.101.43 cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
+    security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
     tenant create $TENANT VIPRSANITY.COM OU VIPRSANITY.COM
     echo "Tenant $TENANT created."
 
@@ -284,7 +284,7 @@ setup() {
     neighborhood create $NH --autoSanZoning false
     
     # transportzone create $FC_ZONE_A $NH --type FC
-    networksystem create --smisip 10.247.99.250 --smisuser administrator --smispw password --smisport 5988 lglw9250 brocade
+    networksystem create --smisip $BROCADE_IP --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisport 5988 $BROCADE_NETWORK brocade
     transportzone assign $FC_ZONE_A nh
     transportzone assign FABRIC_vplex154nbr2 nh
 

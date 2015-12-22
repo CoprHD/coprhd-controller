@@ -31,7 +31,11 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 	//Number of Volumes ingested
 	private static int _ingestedVolumes; 
 	
-	private StringSet associatedVolumes; 
+	private StringSet associatedVolumes;
+	
+	private StringSet unManagedVolumes;
+	
+	private StringSet managedVolumes;
 	
 	private URI _storageSystemUri;
 	
@@ -83,6 +87,26 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 	public void setAssociatedVolumes(StringSet associatedVolumes) {
 		this.associatedVolumes = associatedVolumes;
 	}
-	
 
+	public StringSet getUnManagedVolumes() {
+		if (unManagedVolumes == null) {
+			setUnManagedVolumes(new StringSet());
+        }
+		return unManagedVolumes;
+	}
+
+	public void setUnManagedVolumes(StringSet unManagedVolumes) {
+		this.unManagedVolumes = unManagedVolumes;
+	}
+
+	public StringSet getManagedVolumes() {
+		if (managedVolumes == null) {
+			setManagedVolumes(new StringSet());
+        }
+		return managedVolumes;
+	}
+
+	public void setManagedVolumes(StringSet managedVolumes) {
+		this.managedVolumes = managedVolumes;
+	}
 }

@@ -230,7 +230,7 @@ public class FileService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskResourceRep createFileSystem(FileSystemParam param, @QueryParam("project") URI id) throws InternalException {
+    public TaskList createFileSystem(FileSystemParam param, @QueryParam("project") URI id) throws InternalException {
         // check project
         ArgValidator.checkFieldUriType(id, Project.class, "project");
 
@@ -241,8 +241,9 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(project, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
-        createFSInternal(param, project, tenant, null);
-        return null;
+        
+        return createFSInternal(param, project, tenant, null);
+        
     }
 
     /*
@@ -250,7 +251,7 @@ public class FileService extends TaskResourceService {
      * the internal object case
      * NOTE - below method should always work with project being null
      */
-    public TaskList createFSInternal(FileSystemParam param, Project project,
+	public TaskList createFSInternal(FileSystemParam param, Project project,
             TenantOrg tenant, DataObject.Flag[] flags) throws InternalException {
         ArgValidator.checkFieldUriType(param.getVpool(), VirtualPool.class, "vpool");
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");

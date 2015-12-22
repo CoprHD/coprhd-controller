@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.*;
 import com.emc.storageos.security.authorization.Role;
@@ -64,7 +65,8 @@ public class InternalFileResource extends ResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public TaskResourceRep createFileSystemInternal(FileSystemParam param) {
+    public TaskList createFileSystemInternal(FileSystemParam param) {
+    	TaskList taskList = new TaskList();
         TenantOrg tenant = _permissionsHelper.getRootTenant();
         TaskResourceRep rep = null;
         if (!_permissionsHelper.userHasGivenRole(getUserFromContext(), tenant.getId(),
@@ -73,18 +75,20 @@ public class InternalFileResource extends ResourceService {
             _log.error("Unable to process the request as Only [system_admin, tenant_admin] can provision file systems for object");
             rep.setMessage("Only [system_admin, tenant_admin] can provision file systems for object");
             rep.setState(Operation.Status.error.name());
-            return rep;
+            taskList.getTaskList().add(rep);
+            
         }
         try {
-            rep = _fileService.createFSInternal(param, _internalProject, tenant, INTERNAL_FILESHARE_FLAGS);
+        	taskList = _fileService.createFSInternal(param, _internalProject, tenant, INTERNAL_FILESHARE_FLAGS);
         } catch (Exception ex) {
             rep = new TaskResourceRep();
             _log.error("Exception occurred while creating file system due to:", ex);
             rep.setMessage(ex.getMessage());
             rep.setState(Operation.Status.error.name());
+            taskList.getTaskList().add(rep);
         }
 
-        return rep;
+        return taskList;
     }
 
     /*

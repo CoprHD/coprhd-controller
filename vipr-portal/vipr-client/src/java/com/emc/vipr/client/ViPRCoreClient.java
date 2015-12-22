@@ -15,6 +15,7 @@ import com.emc.vipr.client.core.BlockConsistencyGroups;
 import com.emc.vipr.client.core.BlockExports;
 import com.emc.vipr.client.core.BlockFullCopies;
 import com.emc.vipr.client.core.BlockMigrations;
+import com.emc.vipr.client.core.BlockSnapshotSessions;
 import com.emc.vipr.client.core.BlockSnapshots;
 import com.emc.vipr.client.core.BlockVirtualPools;
 import com.emc.vipr.client.core.BlockVolumes;
@@ -257,6 +258,10 @@ public class ViPRCoreClient {
 
     public BlockSnapshots blockSnapshots() {
         return new BlockSnapshots(this, client);
+    }
+
+    public BlockSnapshotSessions blockSnapshotSessions() {
+        return new BlockSnapshotSessions(this, client);
     }
 
     public FileSystems fileSystems() {

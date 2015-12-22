@@ -315,6 +315,13 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("linkedTargets");
             return new ContainmentConstraintImpl(snapshotURI, BlockSnapshotSession.class, field);
         }
+        
+        public static ContainmentConstraint getProjectBlockSnapshotSessionConstraint(
+                URI project) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            ColumnField field = doType.getColumnField(PROJECT);
+            return new ContainmentConstraintImpl(project, BlockSnapshotSession.class, field);
+        }
 
         public static ContainmentConstraint getProjectBlockSnapshotConstraint(
                 URI project) {

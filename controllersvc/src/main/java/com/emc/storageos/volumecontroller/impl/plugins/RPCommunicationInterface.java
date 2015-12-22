@@ -398,7 +398,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
             if (protectionVolume.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
                 switch (rp.getCGState(protectionVolume)) {
-                    case GONE:
+                    case DELETED:
                         protectionSet.setProtectionStatus(ProtectionStatus.DELETED.toString());
                         break;
                     case STOPPED:

@@ -7529,50 +7529,50 @@ vplexsnap_tests()
 snapvx_vpool_setup()
 {
     echo "**** Creating snapvx virtual pools"
-    cos create block $COS_VMAX3BLOCK_FC true \
-			 --description 'CoS for VMAX3 block FC' \
-                      --protocols FC \
-                      --numpaths 2 \
-                      --max_snapshots 10 \
-	               --system_type vmax \
-                      --provisionType 'Thin' \
-			 --neighborhoods $NH
+#    cos create block $COS_VMAX3BLOCK_FC true \
+#			 --description 'CoS for VMAX3 block FC' \
+#                      --protocols FC \
+#                      --numpaths 2 \
+#                      --max_snapshots 10 \
+#	               --system_type vmax \
+#                      --provisionType 'Thin' \
+#			 --neighborhoods $NH
 }
 
 snapvx_setup_once()
 {
-    # Do this only once
+#    # Do this only once
     echo "**** Checking for the existance of the VMAX3 provider"
-    smisprovider show $VMAX3_SMIS_DEV &> /dev/null && return $?
+#    smisprovider show $VMAX3_SMIS_DEV &> /dev/null && return $?
+#
+#    # Create provider for VMAX3 array.
+#    echo "**** Creating VMAX3 provider"
+#    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+#
+#    # Discover the vmax3 array.
+#    echo "**** Discovering VMAX3 array"
+#    storagedevice discover_all --ignore_error
+#
+#    # Set up virtual pools
+#    echo "**** Setting up virtual pools"
+#    snapvx_vpool_setup
+#
+#    # Assign the storage pools of the VMAX3 array to our virtual array.
+#    echo "**** Assiging storage pools to virtual array"
+#    storagepool update $VMAX3_NATIVEGUID --nhadd $NH
 
-    # Create provider for VMAX3 array.
-    echo "**** Creating VMAX3 provider"
-    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
-
-    # Discover the vmax3 array.
-    echo "**** Discovering VMAX3 array"
-    storagedevice discover_all --ignore_error
-
-    # Set up virtual pools
-    echo "**** Setting up virtual pools"
-    snapvx_vpool_setup
-
-    # Assign the storage pools of the VMAX3 array to our virtual array.
-    echo "**** Assiging storage pools to virtual array"
-    storagepool update $VMAX3_NATIVEGUID --nhadd $NH
- 
-    # Assign storage ports if necessary.     
-    if [ $DISCOVER_SAN -eq 0 ]; then
-        echo "**** Updating storage port networks"
-        for porta in ${VMAX3_PORTS_A}
-            do
-	         storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
-            done
-    fi
-
-    # Update virtual pool to use mathcing pools on the system.
-    echo "**** Assiging system storage pools to virtual pool"
-    cos update block $COS_VMAX3BLOCK_FC --storage $VMAX3_NATIVEGUID
+#    # Assign storage ports if necessary.     
+#    if [ $DISCOVER_SAN -eq 0 ]; then
+#        echo "**** Updating storage port networks"
+#        for porta in ${VMAX3_PORTS_A}
+#            do
+#	         storageport update $VMAX3_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
+#            done
+#    fi
+#
+#    # Update virtual pool to use mathcing pools on the system.
+#    echo "**** Assiging system storage pools to virtual pool"
+#    cos update block $COS_VMAX3BLOCK_FC --storage $VMAX3_NATIVEGUID
 }
 
 
@@ -7601,52 +7601,52 @@ snapvx_tests()
     # Create snapvx sessions with no linked targets.
     echo "**** Creating SnapVx sessions 1 and 2 with no linked targets"
     snapshotsession create $PROJECT/$VOLUME_NAME $SNAP_SESSION_NAME1
-    snapshotsession show $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
+#snapshotsession show $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
     snapshotsession create $PROJECT/$VOLUME_NAME $SNAP_SESSION_NAME2
-    snapshotsession show $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2
+#snapshotsession show $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2
 
     # Restore the snapvx session.
     echo "**** Restoring SnapVx session 1"
-    snapshotsession restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
+#snapshotsession restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
 
     # Link target to the snapvx session 1 in default nocopy mode.
     echo "**** Linking target to SnapVx session 1"
-    snapshotsession link_targets $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
+#snapshotsession link_targets $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
 
     # Relink target to the snapvx session 2.
     echo "**** Relinking target to SnapVx session 2"
-    snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1
+#snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1
 
     # Unlink target from the snapvx session and delete target volume.
     echo "**** unlinking target from SnapVx session 2"
-    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1 --delete_target true
+#snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1 --delete_target true
 
     # Delete the snapvx sessions.
     echo "**** Deleting SnapVx sessions 1 and 2"
     snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
     snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2
 
-    # Create a snapvx session with multiple linked targets in copy mode
-    echo "**** Creating SnapVx session 3 with multiple linked targets"
-    snapshotsession create $PROJECT/$VOLUME_NAME $SNAP_SESSION_NAME3 --target_count 2 --target_name $SNAP_SESSION_TGT_NAME2 --target_copymode copy
-
-    # Link another target to the snapvx session.
-    echo "**** Linking another target to SnapVx session 3 in copy mode"
-    snapshotsession link_targets $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 1 $SNAP_SESSION_TGT_NAME3 --target_copymode copy
-
-    # Restore the source from a linked target
-    echo "**** Restoring source from linked target"
-    blocksnapshot restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3
-
-    # Unlink target from the snapvx session and delete target volume.
-    echo "**** Unlinking all targets from SnapVx session 3"
-    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-1 --delete_target true
-    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-2 --delete_target true
-    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3 --delete_target true
-
-    # Delete the snapvx session.
-    echo "**** Deleting SnapVx sessions 3"
-    snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3
+#    # Create a snapvx session with multiple linked targets in copy mode
+#    echo "**** Creating SnapVx session 3 with multiple linked targets"
+#    snapshotsession create $PROJECT/$VOLUME_NAME $SNAP_SESSION_NAME3 --target_count 2 --target_name $SNAP_SESSION_TGT_NAME2 --target_copymode copy
+#
+#    # Link another target to the snapvx session.
+#    echo "**** Linking another target to SnapVx session 3 in copy mode"
+#    snapshotsession link_targets $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 1 $SNAP_SESSION_TGT_NAME3 --target_copymode copy
+#
+#    # Restore the source from a linked target
+#    echo "**** Restoring source from linked target"
+#    blocksnapshot restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3
+#
+#    # Unlink target from the snapvx session and delete target volume.
+#    echo "**** Unlinking all targets from SnapVx session 3"
+#    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-1 --delete_target true
+#    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-2 --delete_target true
+#    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3 --delete_target true
+#
+#    # Delete the snapvx session.
+#    echo "**** Deleting SnapVx sessions 3"
+#    snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3
 
     # Delete the snapshot session source volume.
     echo "**** Deleting the VMAX3 source volume"

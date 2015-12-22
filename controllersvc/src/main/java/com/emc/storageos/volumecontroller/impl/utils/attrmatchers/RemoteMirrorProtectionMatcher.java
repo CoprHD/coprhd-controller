@@ -84,7 +84,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
                 if (!copies.isEmpty() && isRemotelyConnectedViaExpectedCopyMode(system, remoteCopySettings)) {
                     _logger.info(String.format("Adding Pools %s, as associated Storage System %s is connected to any remote Storage System",
                             Joiner.on("\t").join(storageToPoolsEntry.getValue()), system.getNativeGuid()));
-                    if (checkSupportedSRDFActiveModeprovider(system, remoteCopySettings)) {
+                    if (checkSupportedSRDFActiveModeProvider(system, remoteCopySettings)) {
                         matchedPools.addAll(storageToPoolsEntry.getValue());
                     } else {
                         _logger.info(String.format("Skipping Pools %s, as associated Storage System %s is either not VMAX3 or "
@@ -231,11 +231,10 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
         return availableAttrMap;
     }
 
-    private boolean checkSupportedSRDFActiveModeprovider(StorageSystem storageSystem, Map<String, List<String>> remoteCopySettings) {
-
-        if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
-            Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
-            if (copyModes.contains(SupportedCopyModes.ACTIVE.toString())) {
+    private boolean checkSupportedSRDFActiveModeProvider(StorageSystem storageSystem, Map<String, List<String>> remoteCopySettings) {
+        Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
+        if (copyModes.contains(SupportedCopyModes.ACTIVE.toString())) {
+            if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
                 try {
                     StorageProvider storageProvider = _objectCache.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
                     String providerVersion = storageProvider.getVersionString();

@@ -30,6 +30,7 @@ import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.storageos.systemservices.impl.jobs.common.JobConstants;
 import com.emc.storageos.systemservices.impl.property.Notifier;
 import com.emc.storageos.systemservices.impl.resource.BackupService;
+import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.util.SkipOutputStream;
 
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
@@ -39,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.model.EncryptionProvider;
@@ -53,8 +55,8 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     private static volatile BackupScheduler singletonInstance;
 
     @Autowired
-    private CoordinatorClient coordinatorClient;
-
+    private CoordinatorClientExt coordinator;
+    
     @Autowired
     private DbClient dbClient;
 
@@ -77,6 +79,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     @Autowired
     private Service serviceinfo;
+    
+    @Autowired
+    private DrUtil drUtil;
 
     private SchedulerConfig cfg;
     private BackupExecutor backupExec;
@@ -202,11 +207,11 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     }
 
     public void createBackup(String tag) {
-        this.backupOps.createBackup(tag, true);
+        this.backupService.createBackup(tag, true);
     }
 
     public void deleteBackup(String tag) {
-        this.backupOps.deleteBackup(tag);
+        this.backupService.deleteBackup(tag);
     }
 
     /**
@@ -249,7 +254,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     public String generateZipFileName(String tag, BackupFileSet files) {
         Set<String> availableNodes = files.uniqueNodes();
-        Set<String> nodeIds = this.coordinatorClient.getInetAddessLookupMap().getControllerNodeIPLookupMap().keySet();
+        Set<String> nodeIds = this.coordinator.getCoordinatorClient().getInetAddessLookupMap().getControllerNodeIPLookupMap().keySet();
         String[] allNodes = nodeIds.toArray(new String[nodeIds.size()]);
         Arrays.sort(allNodes);
         int backupNodeCount = 0;
@@ -259,7 +264,11 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             }
         }
 
-        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount);
+        String drSiteName = drUtil.getLocalSite().getName();
+        // Remove all non alphanumeric characters
+        drSiteName = drSiteName.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
+        
+        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteName);
     }
 
     public List<String> getDescParams(final String tag) {
@@ -299,7 +308,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
      * Called when initializing Spring bean, make sure only one node(leader node) performs backup job
      * */
     public void startLeaderSelector() throws InterruptedException {
-        while (!this.coordinatorClient.isConnected()) {
+        while (!coordinator.getCoordinatorClient().isConnected()) {
             log.info("waiting for connecting to zookeeper");
             try {
                 Thread.sleep(BackupConstants.BACKUP_WAINT_BEFORE_RETRY_ZK_CONN);
@@ -310,9 +319,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         }
 
         singletonInstance = this;
-        this.cfg = new SchedulerConfig(this.coordinatorClient, this.encryptionProvider, this.dbClient);
+        this.cfg = new SchedulerConfig(coordinator, this.encryptionProvider, this.dbClient);
 
-        LeaderSelector leaderSelector = this.coordinatorClient.getLeaderSelector(BackupConstants.BACKUP_LEADER_PATH,
+        LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(BackupConstants.BACKUP_LEADER_PATH,
                 new BackupLeaderSelectorListener());
         leaderSelector.autoRequeue();
         leaderSelector.start();

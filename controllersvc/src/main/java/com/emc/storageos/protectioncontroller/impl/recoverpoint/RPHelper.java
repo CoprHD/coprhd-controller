@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.ProtectionSet;
@@ -69,9 +70,6 @@ import com.google.common.base.Joiner;
  */
 public class RPHelper {
 
-    /**
-     *
-     */
     private static final String VOL_DELIMITER = "-";
     private static final double RP_DEFAULT_JOURNAL_POLICY = 0.25;
     public static final String REMOTE = "remote";
@@ -87,12 +85,12 @@ public class RPHelper {
     private static final String HTTPS = "https";
     private static final String WSDL = "wsdl";
     private static final String RP_ENDPOINT = "/fapi/version4_1";
-    
+
     private static final String LOG_MSG_OPERATION_TYPE_DELETE = "delete";
-    private static final String LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION = "remove protection from";    
+    private static final String LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION = "remove protection from";
     private static final String LOG_MSG_VOLUME_TYPE_RP = "RP_SOURCE";
     private static final String LOG_MSG_VOLUME_TYPE_RPVPLEX = "RP_VPLEX_VIRT_SOURCE";
-    
+
     public static final String REMOVE_PROTECTION = "REMOVE_PROTECTION";
 
     public void setDbClient(DbClient dbClient) {
@@ -102,7 +100,7 @@ public class RPHelper {
     /**
      * Get all of the volumes in this replication set; the source and all of its targets.
      * For a multi-CG protection, it only returns the targets (and source) associated with this one volume.
-     *
+     * 
      * @param volume volume object
      * @return list of volume URIs
      * @throws DeviceControllerException
@@ -124,7 +122,7 @@ public class RPHelper {
     /**
      * Helper Method: The caller wants to get the protection settings associated with a specific virtual array
      * and virtual pool. Handle the exceptions appropriately.
-     *
+     * 
      * @param vpool VirtualPool to look for
      * @param varray VirtualArray to protect to
      * @return the stored protection settings object
@@ -144,7 +142,7 @@ public class RPHelper {
 
     /**
      * Gets the virtual pool of the target copy.
-     *
+     * 
      * @param tgtVarray
      * @param srcVpool the base virtual pool
      * @return
@@ -161,7 +159,7 @@ public class RPHelper {
 
     /**
      * given one volume in an rset (either source or any target) return all source and target volumes in that rset
-     *
+     * 
      * @param vol
      * @return
      */
@@ -199,7 +197,7 @@ public class RPHelper {
 
     /**
      * Gets a volume's associated target volumes.
-     *
+     * 
      * @param volume the volume whose targets we want to find.
      * @return the list of associated target volumes.
      */
@@ -222,7 +220,7 @@ public class RPHelper {
     /**
      * This method will return all volumes that should be deleted based on the entire list of volumes to be deleted.
      * If this is the last source volume in the CG, this method will return all journal volumes as well.
-     *
+     * 
      * @param reqDeleteVolumes all volumes in the delete request
      * @return list of volumes to unexport and delete
      * @throws InternalException
@@ -286,14 +284,16 @@ public class RPHelper {
             }
         }
 
-        // if we're deleting all of the volumes in this consistency group, we can add the journal volumes
+        // Determine if we're deleting all of the volumes in this consistency group
         for (Map.Entry<URI, Set<URI>> cgToVolumesForDelete : cgsToVolumesForDelete.entrySet()) {
-            List<Volume> cgVolumes = getCgVolumes(cgToVolumesForDelete.getKey(), _dbClient);
+            BlockConsistencyGroup cg = null;
+            URI cgURI = cgToVolumesForDelete.getKey();
+            cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            List<Volume> cgVolumes = getCgVolumes(cgURI, _dbClient);
 
             // determine if all of the source and target volumes in the consistency group are on the list
             // of volumes to delete; if so, we will add the journal volumes to the list.
             // also create a list of stale volumes to be removed from the protection set
-            Set<URI> journalVols = new HashSet<URI>();
             boolean wholeCG = true;
             if (cgVolumes != null) {
                 for (Volume cgVol : cgVolumes) {
@@ -315,20 +315,25 @@ public class RPHelper {
             }
 
             if (wholeCG) {
-                // Determine all the journals in the CG based on the source/target volume journal
-                // references.
-                Set<URI> cgVolsToDelete = cgToVolumesForDelete.getValue();
-                for (URI volToDeleteUri : cgVolsToDelete) {
-                    Volume volToDelete = _dbClient.queryObject(Volume.class, volToDeleteUri);
-                    if (!NullColumnValueGetter.isNullURI(volToDelete.getRpJournalVolume())) {
-                        journalVols.add(volToDelete.getRpJournalVolume());
+                // We are removing the CG, determine all the journal volumes in it and
+                // add them to the list of volumes to be removed
+                if (cg != null) {
+                    List<Volume> allJournals = getCgVolumes(cg.getId(), Volume.PersonalityTypes.METADATA.toString());
+                    if (allJournals != null && !allJournals.isEmpty()) {
+                        Set<URI> allJournalURIs = new HashSet<URI>();
+                        for (Volume journalVolume : allJournals) {
+                            allJournalURIs.add(journalVolume.getId());
+                        }
+                        _log.info(String
+                                .format("Determined that this is a request to delete consistency group %s.  Adding journal volumes to the list of volumes to delete: %s",
+                                        cgURI, allJournalURIs.toString()));
+                        volumeIDs.addAll(allJournalURIs);
                     }
+                } else {
+                    _log.info(String.format(
+                            "Could not determine journal volumes for consistency group %s .",
+                            cgToVolumesForDelete.getKey()));
                 }
-
-                _log.info(String
-                        .format("Determined that this is a request to delete consistency group %s.  Adding journal volumes to the list of volumes to delete: %s",
-                                cgToVolumesForDelete.getKey(), journalVols.toString()));
-                volumeIDs.addAll(journalVols);
             } else {
                 _log.info(String.format(
                         "Consistency group %s will not be removed.  Only a subset of the replication sets are being removed.",
@@ -386,11 +391,11 @@ public class RPHelper {
         try {
             Set<URI> allVolumeIds = getVolumesToDelete(volumeURIs);
 
-            for (URI volumeURI : allVolumeIds) {                
-                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);                
+            for (URI volumeURI : allVolumeIds) {
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
                 VolumeDescriptor descriptor = null;
                 boolean isSourceVolume = false;
-                
+
                 // if RP source, add a descriptor for the RP source
                 if (volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                     isSourceVolume = true;
@@ -398,31 +403,31 @@ public class RPHelper {
                     String operationType = LOG_MSG_OPERATION_TYPE_DELETE;
                     if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
                         volumeType = LOG_MSG_VOLUME_TYPE_RPVPLEX;
-                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE, 
+                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE,
                                 volume.getStorageController(), volume.getId(), null, null);
-                    } else {                        
-                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_SOURCE, 
+                    } else {
+                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_SOURCE,
                                 volume.getStorageController(), volume.getId(), null, null);
                     }
-                    
+
                     if (REMOVE_PROTECTION.equals(deletionType)) {
                         operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
-                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE); 
-                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId()); 
+                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
-                                                        
-                    _log.info(String.format("Adding %s descriptor to %s%s volume [%s] (%s)", 
-                            volumeType, operationType, 
-                            (volumeType.equals(LOG_MSG_VOLUME_TYPE_RP) ? "" : "virtual "), 
+
+                    _log.info(String.format("Adding %s descriptor to %s%s volume [%s] (%s)",
+                            volumeType, operationType,
+                            (volumeType.equals(LOG_MSG_VOLUME_TYPE_RP) ? "" : " virtual"),
                             volume.getLabel(), volume.getId()));
-                    volumeDescriptors.add(descriptor);                                        
+                    volumeDescriptors.add(descriptor);
                 }
-                
+
                 // If this is a virtual volume, add a descriptor for the virtual volume
                 if (RPHelper.isVPlexVolume(volume)) {
-                    // VPLEX virtual volume                                      
+                    // VPLEX virtual volume
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(),
                             volume.getId(), null, null);
                     String operationType = LOG_MSG_OPERATION_TYPE_DELETE;
@@ -434,25 +439,25 @@ public class RPHelper {
                         volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
                         descriptor.setParameters(volumeParams);
                     }
-                    
-                    _log.info(String.format("Adding VPLEX_VIRT_VOLUME descriptor to %s virtual volume [%s] (%s)", 
-                            operationType, volume.getLabel(), volume.getId()));                    
-                    volumeDescriptors.add(descriptor);                    
-                    
+
+                    _log.info(String.format("Adding VPLEX_VIRT_VOLUME descriptor to %s virtual volume [%s] (%s)",
+                            operationType, volume.getLabel(), volume.getId()));
+                    volumeDescriptors.add(descriptor);
+
                     // Next, add all the BLOCK volume descriptors for the VPLEX back-end volumes
                     for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                         operationType = LOG_MSG_OPERATION_TYPE_DELETE;
                         Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeId));
                         // a previous failed delete may have already removed associated volumes
-                        if (associatedVolume != null && !associatedVolume.getInactive()) {                            
+                        if (associatedVolume != null && !associatedVolume.getInactive()) {
                             descriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, associatedVolume.getStorageController(),
-                                    associatedVolume.getId(), null, null);
+                                    associatedVolume.getId(), associatedVolume.getPool(), associatedVolume.getConsistencyGroup(), null);
                             // Add a flag to not delete these backing volumes if this is a Source volume and
                             // the deletion type is Remove Protection
                             if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
                                 operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                                 Map<String, Object> volumeParams = new HashMap<String, Object>();
-                                volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);                    
+                                volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
                                 descriptor.setParameters(volumeParams);
                             }
                             _log.info(String.format("Adding BLOCK_DATA descriptor to %s virtual volume backing volume [%s] (%s)",
@@ -460,7 +465,7 @@ public class RPHelper {
                             volumeDescriptors.add(descriptor);
                         }
                     }
-                } else {                    
+                } else {
                     String operationType = LOG_MSG_OPERATION_TYPE_DELETE;
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, volume.getStorageController(), volume.getId(),
                             null, null);
@@ -469,11 +474,11 @@ public class RPHelper {
                     if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
                         operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
-                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE); 
+                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
                         volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
-                    _log.info(String.format("Adding BLOCK_DATA descriptor to %s volume [%s] (%s)", 
+                    _log.info(String.format("Adding BLOCK_DATA descriptor to %s volume [%s] (%s)",
                             operationType, volume.getLabel(), volume.getId()));
                     volumeDescriptors.add(descriptor);
                 }
@@ -505,7 +510,7 @@ public class RPHelper {
     /**
      * Determine if the protection set's source volumes are represented in the volumeIDs list.
      * Used to figure out if we can perform full CG operations or just partial CG operations.
-     *
+     * 
      * @param dbClient db client
      * @param protectionSet protection set
      * @param volumeIDs volume IDs
@@ -543,7 +548,7 @@ public class RPHelper {
     /**
      * Determine if the consistency group's source volumes are represented in the volumeIDs list.
      * Used to figure out if we can perform full CG operations or just partial CG operations.
-     *
+     * 
      * @param dbClient db client
      * @param consistencyGroupUri the BlockConsistencyGroup ID
      * @param volumeIDs volume IDs
@@ -583,7 +588,7 @@ public class RPHelper {
 
     /**
      * Determines if a journal volume is shared by multiple replication sets.
-     *
+     * 
      * @param protectionSetVolumes volumes from a protection set
      * @param journalVolume journal volume
      * @return true if journal is shared between more than one volume in a protection set
@@ -598,7 +603,7 @@ public class RPHelper {
 
     /**
      * Determines if a journal volume is active in a list of volumes.
-     *
+     * 
      * @param protectionSetVolumes volumes from a protection set
      * @param journalVolume journal volume
      * @return true if journal is active with any active volume in a protection set
@@ -613,7 +618,7 @@ public class RPHelper {
 
     /**
      * Given an RP source volume and a protection virtual array, give me the corresponding target volume.
-     *
+     * 
      * @param id source volume id
      * @param virtualArray virtual array protected to
      * @return Volume of the target
@@ -636,7 +641,7 @@ public class RPHelper {
 
     /**
      * Given a RP target volume, this method gets the corresponding source volume.
-     *
+     * 
      * @param dbClient the database client.
      * @param id target volume id.
      */
@@ -663,7 +668,7 @@ public class RPHelper {
     /**
      * Given a RP journal volume, this method gets the corresponding parent volume. The
      * parent will either be a source or target volume.
-     *
+     * 
      * @param dbClient the database client.
      * @param id target volume id.
      */
@@ -702,7 +707,7 @@ public class RPHelper {
      * volume is found and returned. For a target journal volume, the associated target
      * volume is found and then its source volume is found and returned. For a target volume,
      * the associated source volume is found and returned.
-     *
+     * 
      * @param dbClient the database client.
      * @param volume the volume for which we find the associated source volume.
      * @return the associated source volume.
@@ -749,9 +754,9 @@ public class RPHelper {
     /**
      * Convenience method that determines if the passed network is connected to the
      * passed varray.
-     *
+     * 
      * Check the assigned varrays list if it exist, if not check against the connect varrays.
-     *
+     * 
      * @param network
      * @param virtualArray
      * @return
@@ -766,7 +771,7 @@ public class RPHelper {
 
     /**
      * Check if initiator being added to export-group is good.
-     *
+     * 
      * @param exportGroup
      * @param initiator
      * @throws InternalException
@@ -798,7 +803,7 @@ public class RPHelper {
      * Check if any of the networks containing the RP site initiators contains storage
      * ports that are explicitly assigned or implicitly connected to the passed virtual
      * array.
-     *
+     * 
      * @param storageSystemURI The storage system who's connected networks we want to find.
      * @param protectionSystemURI The protection system used to find the site initiators.
      * @param siteId The side id for which we need to lookup associated initiators.
@@ -870,7 +875,7 @@ public class RPHelper {
     /**
      * Determines if the given storage system has any active RecoverPoint protected
      * volumes under management.
-     *
+     * 
      * @param id the storage system id
      * @return true if the storage system has active RP volumes under management. false otherwise.
      */
@@ -894,7 +899,7 @@ public class RPHelper {
     /**
      * Helper method that determines what the potential provisioned capacity is of a VMAX volume.
      * The size returned may or may not be what the eventual provisioned capacity will turn out to be, but its pretty accurate estimate.
-     *
+     * 
      * @param requestedSize Size of the volume requested
      * @param volume volume
      * @param storageSystem storagesystem of the volume
@@ -922,7 +927,7 @@ public class RPHelper {
 
     /**
      * Get the FAPI RecoverPoint Client using the ProtectionSystem
-     *
+     * 
      * @param ps ProtectionSystem object
      * @return RecoverPointClient object
      * @throws RecoverPointException
@@ -955,7 +960,7 @@ public class RPHelper {
 
     /**
      * Determines if the given volume descriptor applies to an RP source volume.
-     *
+     * 
      * @param volumeDescriptor the volume descriptor.
      * @return true if the descriptor applies to an RP source volume, false otherwise.
      */
@@ -973,7 +978,7 @@ public class RPHelper {
 
     /**
      * Determines if the given volume descriptor applies to an RP target volume.
-     *
+     * 
      * @param volumeDescriptor the volume descriptor.
      * @return true if the descriptor applies to an RP target volume, false otherwise.
      */
@@ -988,7 +993,7 @@ public class RPHelper {
 
     /**
      * Determines if a volume is part of a MetroPoint configuration.
-     *
+     * 
      * @param volume the volume.
      * @return true if this is a MetroPoint volume, false otherwise.
      */
@@ -1004,7 +1009,7 @@ public class RPHelper {
     /**
      * Checks to see if the volume is a production journal. We check to see if the
      * volume's rp copy name lines up with any of the given production copies.
-     *
+     * 
      * @param productionCopies the production copies.
      * @param volume the volume.
      * @return true if the volume is a production journal, false otherwise.
@@ -1021,7 +1026,7 @@ public class RPHelper {
     /**
      * Returns an existing journal volume to be used as journal for a new source volume.
      * In 2.2, the largest sized journal volume already allocated to the CG will be returned.
-     *
+     * 
      * @param cgSourceVolumes
      * @param isMetropointStandby true only in the case when picking journals for MetroPoint stand-by copy
      * @return
@@ -1069,7 +1074,7 @@ public class RPHelper {
     /**
      * Returns an existing journal volume to be used as journal for a new target volume.
      * In 2.2, the largest sized journal volume already allocated to the CG will be returned.
-     *
+     * 
      * @param cgTargetVolumes Volumes in the consistency group
      * @param varray protection varray
      * @param copyInternalSiteName RP internal site of the volume
@@ -1112,7 +1117,7 @@ public class RPHelper {
      * The logic for this is simple - if a journal volume in protection set is part of only those volumes that
      * are in the delete request, then that journal can be delete. If there are other protection set volumes
      * not part of the deleted that reference this journal then this journal will not be removed.
-     *
+     * 
      * @param protectionSet - protection set of the volumes that are deleted
      * @param rsetSrcVolumesToDelete - given the list of volumes to delete, determine journals corresponding to those that can be deleted.
      * @return List<URI> of primary or secondary (if valid) journals that can be deleted
@@ -1209,7 +1214,7 @@ public class RPHelper {
 
     /**
      * Gets a list of RecoverPoint consistency group volumes.
-     *
+     * 
      * @param blockConsistencyGroupUri The CG to check
      * @param dbClient The dbClient instance
      * @return List of volumes in the CG
@@ -1225,7 +1230,7 @@ public class RPHelper {
     /**
      * Gets all the source volumes that belong in the specified RecoverPoint
      * consistency group.
-     *
+     * 
      * @param blockConsistencyGroupUri The CG to check
      * @param dbClient The dbClient instance
      * @return All Source volumes in the CG
@@ -1237,7 +1242,7 @@ public class RPHelper {
         // Filter only source volumes
         if (cgVolumes != null) {
             for (Volume cgVolume : cgVolumes) {
-                if (NullColumnValueGetter.isNotNullValue(cgVolume.getPersonality()) 
+                if (NullColumnValueGetter.isNotNullValue(cgVolume.getPersonality())
                         && PersonalityTypes.SOURCE.toString().equals(cgVolume.getPersonality())) {
                     cgSourceVolumes.add(cgVolume);
                 }
@@ -1250,7 +1255,7 @@ public class RPHelper {
     /**
      * Gets all the volumes of the specified personality type in RecoverPoint
      * consistency group.
-     *
+     * 
      * @param blockConsistencyGroupUri The CG to check
      * @param personality The personality of the volumes to filter with
      * @return All Source volumes in the CG
@@ -1273,9 +1278,9 @@ public class RPHelper {
     }
 
     /**
-     *
+     * 
      * Helper method that computes if journal volumes are required to be provisioned and added to the RP CG.
-     *
+     * 
      * @param journalPolicy
      * @param cg
      * @param size
@@ -1369,11 +1374,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     *
+     * 
      * @param sourceSizeStr size of the source volume
-     *
+     * 
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     *
+     * 
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1425,7 +1430,7 @@ public class RPHelper {
     /**
      * Determines if a Volume is being referenced as an associated volume by an RP+VPlex
      * volume of a specified personality type (SOURCE, TARGET, METADATA, etc.).
-     *
+     * 
      * @param volume the volume we are trying to find a parent RP+VPlex volume reference for.
      * @param dbClient the DB client.
      * @param types the personality types.
@@ -1454,7 +1459,7 @@ public class RPHelper {
     /**
      * returns the list of copies residing on the standby varray given the active production volume in a
      * Metropoint environment
-     *
+     * 
      * @param volume the active production volume
      * @return
      */
@@ -1501,7 +1506,7 @@ public class RPHelper {
 
     /**
      * Check to see if the target volume (based on varray) has already been provisioned
-     *
+     * 
      * @param volume Source volume to check
      * @param varrayToCheckURI URI of the varray we're looking for Targets
      * @param dbClient DBClient
@@ -1529,7 +1534,7 @@ public class RPHelper {
 
     /**
      * Helper method to retrieve all related volumes from a Source Volume
-     *
+     * 
      * @param sourceVolumeURI The source volume URI
      * @param dbClient DBClient
      * @param includeBackendVolumes Flag to optionally have backend volumes included (VPLEX)
@@ -1593,7 +1598,7 @@ public class RPHelper {
 
     /**
      * Determines if a volume is part of a MetroPoint configuration.
-     *
+     * 
      * @param volume the volume.
      * @return true if this is a MetroPoint volume, false otherwise.
      */
@@ -1605,9 +1610,9 @@ public class RPHelper {
      * Rollback protection specific fields on the existing volume. This is normally invoked if there are
      * errors during a change vpool operation. We want to return the volume back to it's un-protected state
      * or in the case of upgrade to MP then to remove any MP features from the protected volume.
-     *
+     * 
      * One of the biggest motivations is to ensure that the old vpool is set back on the existing volume.
-     *
+     * 
      * @param volume Volume to remove protection from
      * @param oldVpool The old vpool, this the original vpool of the volume before trying to add protection
      * @param dbClient DBClient object
@@ -1645,11 +1650,6 @@ public class RPHelper {
                         rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
                     }
                 }
-
-                // Set the old vpool back on the volume
-                _log.info(String.format("Resetting Vpool on volume from (%s) back to it's original vpool (%s)",
-                        volume.getVirtualPool(), oldVpool.getId()));
-                volume.setVirtualPool(oldVpool.getId());
 
                 // Null out any RP specific fields on the volume
                 volume.setRpJournalVolume(NullColumnValueGetter.getNullURI());
@@ -1697,7 +1697,7 @@ public class RPHelper {
                             protectionSet.setInactive(true);
                         }
 
-                        dbClient.persistObject(protectionSet);
+                        dbClient.updateObject(protectionSet);
                     }
                 }
 
@@ -1705,33 +1705,58 @@ public class RPHelper {
             } else {
                 _log.info(String.format("Rollback changes for existing protected RP volume [%s]...", volume.getLabel()));
 
-                _log.info("Rollback the secondary journal");
-                // Rollback the secondary journal volume if it was created
-                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
                 if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
+                    _log.info("Rollback the secondary journal");
+                    // Rollback the secondary journal volume if it was created
                     rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
-                }
-                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
 
-                // Clean up the Protection Set
-                if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
-                    ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                    if (protectionSet != null) {
-                        // Remove volume ID from the Protection Set
-                        protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
-                        dbClient.persistObject(protectionSet);
+                    // Clean up the Protection Set
+                    if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
+                        ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                        if (protectionSet != null) {
+                            // Remove volume ID from the Protection Set
+                            protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
+                            dbClient.updateObject(protectionSet);
+                        }
                     }
-                }
 
-                // remove consistency group from volume
-                if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                    List<Volume> allSourceVolumesInCG = getCgSourceVolumes(volume.getConsistencyGroup(), dbClient);
+                    if (!allSourceVolumesInCG.isEmpty()) {
+                        for (Volume vol : allSourceVolumesInCG) {
+                            // Remove the secondary journal reference
+                            vol.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
+                        }
+                    }
                 }
             }
 
+            // If this is a VPLEX volume, update the virtual pool references to the old vpool on
+            // the backing volumes if they were set to the new vpool.
+            if (RPHelper.isVPlexVolume(volume)) {
+                for (String associatedVolId : volume.getAssociatedVolumes()) {
+                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                    if (associatedVolume != null && !associatedVolume.getInactive()) {
+                        if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
+                                && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
+                            associatedVolume.setVirtualPool(oldVpool.getId());
+                            _log.info(String.format("Backing volume [%s] has had it's virtual pool rolled back to [%s].",
+                                    associatedVolume.getLabel(),
+                                    oldVpool.getLabel()));
+                        }
+                        associatedVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                        dbClient.updateObject(associatedVolume);
+                    }
+                }
+            }
+
+            // Set the old vpool back on the volume
+            _log.info(String.format("Resetting vpool on volume [%s](%s) from (%s) back to it's original vpool (%s)",
+                    volume.getLabel(), volume.getId(), volume.getVirtualPool(), oldVpool.getId()));
+            volume.setVirtualPool(oldVpool.getId());
+
+            dbClient.updateObject(volume);
             _log.info(String.format("Rollback of RP protection changes for volume [%s] (%s) has completed.", volume.getLabel(),
                     volume.getId()));
-            dbClient.persistObject(volume);
         }
     }
 
@@ -1739,7 +1764,7 @@ public class RPHelper {
      * Cassandra level rollback of a volume. We set the volume to inactive and rename
      * the volume to indicate that rollback has occured. We do this so as to not
      * prevent subsequent use of the same volume name in the case of rollback/error.
-     *
+     * 
      * @param volumeURI URI of the volume to rollback
      * @param dbClient DBClient Object
      * @return The rolled back volume
@@ -1748,21 +1773,39 @@ public class RPHelper {
         Volume volume = dbClient.queryObject(Volume.class, volumeURI);
         if (volume != null && !volume.getInactive()) {
             _log.info(String.format("Rollback volume [%s]...", volume.getLabel()));
-            volume.setInactive(true);
-            volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
-            volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-            dbClient.persistObject(volume);
+            if (volume.getProvisionedCapacity() == null
+                    || volume.getProvisionedCapacity() == 0) {
+                // Only set the volume to inactive if it has never
+                // been provisioned. Otherwise let regular rollback
+                // steps take care of cleaning it up.
+                dbClient.markForDeletion(volume);
+            } else {
+                // Normal rollback should clean up the volume, change the label
+                // to allow re-orders.
+                String rollbackLabel = "-ROLLBACK-" + Math.random();
+                volume.setLabel(volume.getLabel() + rollbackLabel);
+
+                dbClient.updateObject(volume);
+            }
 
             // Rollback any VPLEX backing volumes too
-            if (volume.getAssociatedVolumes() != null
-                    && !volume.getAssociatedVolumes().isEmpty()) {
+            if (RPHelper.isVPlexVolume(volume)) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {
                         _log.info(String.format("Rollback volume [%s]...", associatedVolume.getLabel()));
-                        associatedVolume.setInactive(true);
-                        associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
-                        dbClient.persistObject(associatedVolume);
+                        if (associatedVolume.getProvisionedCapacity() == null
+                                || associatedVolume.getProvisionedCapacity() == 0) {
+                            // Only set the volume to inactive if it has never
+                            // been provisioned. Otherwise let regular rollback
+                            // steps take care of cleaning it up.
+                            dbClient.markForDeletion(associatedVolume);
+                        } else {
+                            // Normal rollback should clean up the volume, change the label
+                            // to allow re-orders.
+                            associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
+                            dbClient.updateObject(associatedVolume);
+                        }
                     }
                 }
             }
@@ -1773,9 +1816,9 @@ public class RPHelper {
 
     /**
      * returns the list of journal volumes for one site
-     *
+     * 
      * If this is a CDP volume, journal volumes from both the production and target copies are returned
-     *
+     * 
      * @param varray
      * @param consistencyGroup
      * @return
@@ -1797,7 +1840,7 @@ public class RPHelper {
     /**
      * returns a unique journal volume name by evaluating all journal volumes for the copy and increasing the count journal volume name is
      * in the form varrayName-cgname-journal-[count]
-     *
+     * 
      * @param varray
      * @param consistencyGroup
      * @return a journal name unique within the site
@@ -1841,7 +1884,7 @@ public class RPHelper {
     /**
      * Determine the wwn of the volume in the format RP is looking for. For xtremio
      * this is the 128 bit identifier. For other array types it is the deafault.
-     *
+     * 
      * @param volumeURI the URI of the volume the operation is being performed on
      * @param dbClient
      * @return the wwn of the volume which rp requires to perform the operation
@@ -1857,7 +1900,7 @@ public class RPHelper {
 
     /**
      * Determine if the volume being protected is provisioned on an Xtremio Storage array
-     *
+     * 
      * @param volume The volume being provisioned
      * @param dbClient DBClient object
      * @return boolean indicating if the volume being protected is provisioned on an Xtremio Storage array
@@ -1865,6 +1908,30 @@ public class RPHelper {
     public static boolean protectXtremioVolume(Volume volume, DbClient dbClient) {
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         if (storageSystem.getSystemType() != null && storageSystem.getSystemType().equalsIgnoreCase(Type.xtremio.toString())) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Does this snapshot require any sort of protection intervention? If it's a local array-based
+     * snapshot, probably not. If it's a protection-based snapshot or a remote array-based snapshot
+     * that requires protection intervention to ensure consistency between the source and target, then
+     * you should go to the protection controller
+     * 
+     * @param volume source volume
+     * @param snapshotType The snapshot technology type.
+     * 
+     * @return true if this is a protection based snapshot, false otherwise.
+     */
+    public static boolean isProtectionBasedSnapshot(Volume volume, String snapshotType) {
+        // This is a protection based snapshot request if:
+        // The volume allows for bookmarking (it's under protection) and
+        // - The param either asked for a bookmark, or
+        // - The param didn't ask for a bookmark, but the volume is a remote volume
+        if (volume.getProtectionController() != null
+                && (snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString()) || volume
+                        .getPersonality().equals(Volume.PersonalityTypes.TARGET.toString()))) {
             return true;
         }
         return false;

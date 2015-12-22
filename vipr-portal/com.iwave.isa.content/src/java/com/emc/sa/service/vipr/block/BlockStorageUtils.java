@@ -77,6 +77,7 @@ import com.emc.sa.service.vipr.block.tasks.GetExportsForBlockObject;
 import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
 import com.emc.sa.service.vipr.block.tasks.RestoreFromFullCopy;
+import com.emc.sa.service.vipr.block.tasks.ResynchronizeBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.ResynchronizeFullCopy;
 import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
@@ -272,7 +273,6 @@ public class BlockStorageUtils {
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();
-            addRollback(new DeactivateVolume(volumeId, VolumeDeleteTypeEnum.FULL));
             addAffectedResource(volumeId);
             volumeIds.add(volumeId);
         }
@@ -469,6 +469,16 @@ public class BlockStorageUtils {
         Tasks<BlockSnapshotRestRep> task = execute(new DeactivateBlockSnapshot(snapshotId));
         addAffectedResources(task);
     }
+    
+    public static void resynchronizeBlockSnapshots(Collection<URI> fullCopyIds) {
+        for (URI fullCopyId : fullCopyIds) {
+            resynchronizeBlockSnaptshot(fullCopyId);
+        }
+    }
+
+    public static void resynchronizeBlockSnaptshot(URI fullCopyId) {
+        execute(new ResynchronizeBlockSnapshot(fullCopyId));
+    }
 
     public static List<URI> getActiveContinuousCopies(URI volumeId) {
         return ResourceUtils.ids(execute(new GetActiveContinuousCopiesForVolume(volumeId)));
@@ -532,7 +542,10 @@ public class BlockStorageUtils {
         List<ITLRestRep> bulkResponse = execute(new FindBlockVolumeHlus(volumeIds));
         Map<URI, Integer> volumeHLUs = Maps.newHashMap();
         for (ITLRestRep export : bulkResponse) {
-            volumeHLUs.put(export.getBlockObject().getId(), export.getHlu());
+            ExportGroupRestRep exportGroup = getExport(export.getExport().getId());
+            if (!exportGroup.getInternal()) {
+                volumeHLUs.put(export.getBlockObject().getId(), export.getHlu());
+            }
         }
         return volumeHLUs;
     }

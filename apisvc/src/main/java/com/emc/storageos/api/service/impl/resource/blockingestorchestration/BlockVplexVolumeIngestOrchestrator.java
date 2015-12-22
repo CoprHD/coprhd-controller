@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -43,7 +44,6 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -68,14 +68,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     private static final int DEFAULT_BACKEND_NUMPATHS = 4;
 
     // maps storage system URIs to StorageSystem objects
-    private Map<String, StorageSystem> _systemMap = new HashMap<String, StorageSystem>();
-
-    // the ingest strategy factory, used for ingesting the backend volume
-    private IngestStrategyFactory ingestStrategyFactory;
-
-    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
-        this.ingestStrategyFactory = ingestStrategyFactory;
-    }
+    private final Map<String, StorageSystem> _systemMap = new HashMap<String, StorageSystem>();
 
     // the tenants service, used to generate the Project for the backend volumes
     private TenantsService _tenantsService;
@@ -243,6 +236,62 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
         // validate the supporting device structure is compatible with vipr
         context.validateSupportingDeviceStructure();
+
+        // validate that there are not too many replicas on a distributed volume
+        // as we can only support ingesting snaps or clones on one leg
+        if (context.isDistributed()) {
+            _logger.info("checking for presence of replicas on both legs of this distributed volume");
+            
+            // each entry in these collections is a concatenated list of replica names
+            // on each backend volume, so if their size is more than one, that means there
+            // are replicas present on both legs.
+            // for example: all the backend volume name strings on leg 1 are concatenated, 
+            // added to snapshotsList at position 0.  All the backend volumes on leg2 (if 
+            // present) are concatenated and added to snapshotsList at position 1.  So, 
+            // if the size snapshotsList is greater than 1, we've got snaps on both legs.
+            List<String> snapshotsList = new ArrayList<String>();
+            List<String> clonesList = new ArrayList<String>();
+            for (UnManagedVolume vol : unManagedBackendVolumes) {
+                StringSet snapshots = VplexBackendIngestionContext.extractValuesFromStringSet(
+                        SupportedVolumeInformation.SNAPSHOTS.name(), vol.getVolumeInformation());
+                if (snapshots != null && !snapshots.isEmpty()) {
+                    snapshotsList.add(Joiner.on(", ").join(snapshots));
+                }
+                StringSet clones = VplexBackendIngestionContext.extractValuesFromStringSet(
+                        SupportedVolumeInformation.FULL_COPIES.name(), vol.getVolumeInformation());
+                if (clones != null && !clones.isEmpty()) {
+                    clonesList.add(Joiner.on(", ").join(clones));
+                }
+            }
+            
+            // build up an error message
+            int counter = 0;
+            StringBuilder message = new StringBuilder("");
+            if (snapshotsList.size() > 1) {
+                for (String snapshots : snapshotsList) {
+                    if (counter > 0) {
+                        message.append(" and");
+                    }
+                    message.append(" one distributed volume component has snapshots ").append(snapshots);
+                    counter++;
+                }
+                counter = 0;
+            }
+            if (clonesList.size() > 1) {
+                for (String clones : clonesList) {
+                    if (counter > 0) {
+                        message.append(" and");
+                    }
+                    message.append(" one distributed volume component has full copies ").append(clones);
+                    counter++;
+                }
+            }
+            if (message.length() > 0) {
+                String reason = message.toString();
+                _logger.error(reason);
+                throw IngestionException.exceptions.vplexVolumeCannotHaveReplicasOnBothLegs(reason);
+            }
+        }
 
         for (UnManagedVolume vol : unManagedBackendVolumes) {
             _logger.info("checking for non native mirrors on backend volume " + vol.getNativeGuid());
@@ -506,7 +555,46 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                             associatedVolume.getLabel(), "check the logs for more details");
                 }
 
-                context.getCreatedObjectMap().put(blockObject.getNativeGuid(), blockObject);
+                // Note that a VPLEX backend volume could also be a snapshot target volume.
+                // When this is the case, the local volume ingest strategy is what will be
+                // retrieved and executed. As a result, the object returned will be a
+                // Volume instance not a BlockSnapshot instance. However, the local volume
+                // ingest strategy realizes that the volume may also be a snapshot target
+                // volume and creates the BlockSnapshot instance to represent the snapshot
+                // target volume and adds this BlockSnapshot instance to the created objects
+                // list. Because the BlockSnapshot and Volume instances will have the same
+                // native GUID, as they represent the same physical volume, we can't
+                // add the Volume to the created objects list as it would just replace
+                // the BlockSnapshot instance and only the Volume would get created. So,
+                // we first move the snapshot to the created snapshots list before adding
+                // the volume to the created objects list.
+                Map<String, BlockObject> createdObjectMap = context.getCreatedObjectMap();
+                String blockObjectNativeGuid = blockObject.getNativeGuid();
+                if (createdObjectMap.containsKey(blockObjectNativeGuid)) {
+                    BlockObject createdBlockObject = createdObjectMap.get(blockObjectNativeGuid);
+                    if (createdBlockObject instanceof BlockSnapshot) {
+                        _logger.info("Backend ingestion created block snapshot {}", blockObjectNativeGuid);
+
+                        // The snapshot will be created with the backend volume project, so we
+                        // need to update that to the frontend project.
+                        ((BlockSnapshot) createdBlockObject).setProject(new NamedURI(context.getFrontendProject().getId(),
+                                createdBlockObject.getLabel()));
+
+                        context.getCreatedSnapshotMap().put(blockObjectNativeGuid, (BlockSnapshot) createdBlockObject);
+                        createdObjectMap.put(blockObjectNativeGuid, blockObject);
+                    } else {
+                        // This should not happen. If there is an instance in the created
+                        // objects list with the same guid as the ingested block object
+                        // it must be that the backend volume is also a snapshot target
+                        // volume and the strategy created the BlockSnapshot instance and
+                        // added it to the created objects list.
+                        _logger.warn("Unexpected object in created objects list during backend ingestion {}:{}",
+                                blockObjectNativeGuid, createdBlockObject.getLabel());
+                    }
+                } else {
+                    createdObjectMap.put(blockObjectNativeGuid, blockObject);
+                }
+
                 context.getProcessedUnManagedVolumeMap().put(associatedVolume.getNativeGuid(), associatedVolume);
                 _logger.info("Ingestion ended for backend volume {}", associatedVolume.getNativeGuid());
             } catch (Exception ex) {
@@ -677,6 +765,21 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 _dbClient.updateAndReindexObject(o);
             }
         }
+
+        // Look to see if the backend ingestion resulted in the creation of a
+        // BlockSnapshot instance, which would occur if the backend volume is
+        // also a snapshot target volume. It is possible that the snapshot is
+        // still marked internal if the VPLEX volume built on the snapshot
+        // is ingested after the VPLEX volume whose backend volume is the
+        // snapshot source volume. If the snapshot source is set, then snapshot
+        // and source are fully ingested and we need to make sure the snapshot
+        // is public.
+        for (BlockSnapshot snapshot : context.getCreatedSnapshotMap().values()) {
+            if (!NullColumnValueGetter.isNullValue(snapshot.getSourceNativeId())) {
+                snapshot.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
+                _dbClient.updateObject(snapshot);
+            }
+        }
     }
 
     /**
@@ -775,6 +878,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     private void handleBackendPersistence(VplexBackendIngestionContext context) {
         _dbClient.createObject(context.getIngestedObjects());
         _dbClient.createObject(context.getCreatedObjectMap().values());
+        _dbClient.createObject(context.getCreatedSnapshotMap().values());
         for (List<DataObject> dos : context.getUpdatedObjectMap().values()) {
             _dbClient.persistObject(dos);
         }

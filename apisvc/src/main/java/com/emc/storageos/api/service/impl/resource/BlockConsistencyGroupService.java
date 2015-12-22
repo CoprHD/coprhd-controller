@@ -9,12 +9,15 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
 import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.CONTROLLER_ERROR;
+import static com.google.common.collect.Collections2.transform;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -66,6 +69,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
@@ -1026,7 +1030,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep updateConsistencyGroup(@PathParam("id") final URI id,
             final BlockConsistencyGroupUpdate param) {
-
         // Get the consistency group.
         BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(id);
 
@@ -1073,19 +1076,29 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Get the specific BlockServiceApiImpl based on the storage system type.
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(cgStorageSystem);
 
-        // Adding/removing volumes to/from a consistency group
-        // is not supported when the consistency group has active
-        // snapshots.
-        // - This is supported for SMIS 8.0.3
-        if (!cgStorageSystem.getUsingSmis80()) {
-            URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
-            _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(id), cgSnapshotsResults);
-            Iterator<URI> cgSnapshotsIter = cgSnapshotsResults.iterator();
-            while (cgSnapshotsIter.hasNext()) {
-                BlockSnapshot cgSnapshot = _dbClient.queryObject(BlockSnapshot.class, cgSnapshotsIter.next());
-                if ((cgSnapshot != null) && (!cgSnapshot.getInactive())) {
-                    throw APIException.badRequests.notAllowedWhenCGHasSnapshots();
+        List<URI> volIds = null;
+        Set<URI> addSet = new HashSet<URI>();
+        boolean isReplica = true;
+        if (param.hasVolumesToAdd()) {
+            volIds = param.getAddVolumesList().getVolumes();
+            addSet.addAll(volIds);
+            URI volId = volIds.get(0);
+            if (URIUtil.isType(volId, Volume.class)) {
+                Volume volume = _permissionsHelper.getObjectById(volId, Volume.class);
+                ArgValidator.checkEntity(volume, volId, false);
+                if (!BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) {
+                    isReplica = false;
                 }
+            }
+        }
+
+        List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
+        // check if add volume list is same as existing volumes in CG
+        boolean volsAlreadyInCG = false;
+        if (!isReplica && cgVolumes != null && !cgVolumes.isEmpty()) {
+            Collection<URI> cgVolIds = transform(cgVolumes, fctnDataObjectToID());
+            if (addSet.size() == cgVolIds.size()) {
+                volsAlreadyInCG = addSet.containsAll(cgVolIds);
             }
         }
 
@@ -1095,7 +1108,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
              * Make sure the add and remove lists are unique by getting the intersection and
              * verifying the size is 0.
              */
-            Set<URI> addSet = new HashSet<URI>(param.getAddVolumesList().getVolumes());
             Set<URI> removeSet = new HashSet<URI>(param.getRemoveVolumesList().getVolumes());
             addSet.retainAll(removeSet);
             if (!addSet.isEmpty()) {
@@ -1103,16 +1115,39 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
         }
 
-        List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
+        if (param.hasVolumesToRemove() || (!isReplica && !volsAlreadyInCG)) {
+            // CG cannot have replicas when adding/removing volumes to/from CG
+            // Check snapshots
+            // Adding/removing volumes to/from a consistency group
+            // is not supported when the consistency group has active
+            // snapshots.
+            URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
+            _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(id), cgSnapshotsResults);
+            Iterator<URI> cgSnapshotsIter = cgSnapshotsResults.iterator();
+            while (cgSnapshotsIter.hasNext()) {
+                BlockSnapshot cgSnapshot = _dbClient.queryObject(BlockSnapshot.class, cgSnapshotsIter.next());
+                if ((cgSnapshot != null) && (!cgSnapshot.getInactive())) {
+                    throw APIException.badRequests.notAllowedWhenCGHasSnapshots();
+                }
+            }
 
-        // Adding/removing volumes to/from a consistency group
-        // is not supported when the consistency group has
-        // volumes with full copies to which they are still
-        // attached or has volumes that are full copies that
-        // are still attached to their source volumes.
+            // Check mirrors
+            // Adding/removing volumes to/from a consistency group
+            // is not supported when existing volumes in CG have mirrors.
+            if (cgVolumes != null && !cgVolumes.isEmpty()) {
+                Volume firstVolume = cgVolumes.get(0);
+                StringSet mirrors = firstVolume.getMirrors();
+                if (mirrors != null && !mirrors.isEmpty()) {
+                    throw APIException.badRequests.notAllowedWhenCGHasMirrors();
+                }
+            }
 
-        // - This is supported for SMIS 8.0.3
-        if (!cgStorageSystem.getUsingSmis80()) {
+            // Check clones
+            // Adding/removing volumes to/from a consistency group
+            // is not supported when the consistency group has
+            // volumes with full copies to which they are still
+            // attached or has volumes that are full copies that
+            // are still attached to their source volumes.
             getFullCopyManager().verifyConsistencyGroupCanBeUpdated(consistencyGroup,
                     cgVolumes);
         }
@@ -1147,21 +1182,18 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Verify the volumes to be added.
         List<URI> addVolumesList = new ArrayList<URI>();
+        List<Volume> volumes = new ArrayList<Volume>();
         if (param.hasVolumesToAdd()) {
             for (URI volumeURI : param.getAddVolumesList().getVolumes()) {
                 // Validate the volume to be added exists.
                 Volume volume = null;
-                boolean isReplica = true;
-                if (URIUtil.isType(volumeURI, Volume.class)) {
+                if (!isReplica) {
                     volume = _permissionsHelper.getObjectById(volumeURI, Volume.class);
                     ArgValidator.checkEntity(volume, volumeURI, false);
-                    if (!BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) {
-                        isReplica = false;
-                        blockServiceApiImpl.verifyAddVolumeToCG(volume, consistencyGroup,
-                                cgVolumes, cgStorageSystem);
-                    }
-                }
-                if (isReplica) {
+                    blockServiceApiImpl.verifyAddVolumeToCG(volume, consistencyGroup,
+                            cgVolumes, cgStorageSystem);
+                    volumes.add(volume);
+                } else {
                     verifyAddReplicaToCG(volumeURI, consistencyGroup, cgStorageSystem);
                 }
 
@@ -1180,6 +1212,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
                 // Add the volume to list.
                 addVolumesList.add(volumeURI);
+            }
+
+            if (!volumes.isEmpty()) {
+                blockServiceApiImpl.verifyReplicaCount(volumes, cgVolumes, volsAlreadyInCG);
             }
         }
 

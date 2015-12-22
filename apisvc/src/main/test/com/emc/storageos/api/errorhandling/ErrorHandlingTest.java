@@ -246,16 +246,6 @@ public class ErrorHandlingTest {
     }
 
     @Test
-    public void snapshotFailed() {
-        // snapshotFailed method will throw a ServiceCodeException
-        final ClientResponse response = baseResource.path("snapshotFailed")
-                .get(ClientResponse.class);
-        final int statusCode = HTTP_INTERNAL_SERVER_ERROR;
-        final int serviceCode = ServiceCode.CONTROLLER_ERROR.getCode();
-        assertResponse(response, statusCode, serviceCode);
-    }
-
-    @Test
     public void noTenantForUser() {
         // noTenantForUser method will throw a ServiceCodeException
         final ClientResponse response = baseResource.path("noTenantForUser")

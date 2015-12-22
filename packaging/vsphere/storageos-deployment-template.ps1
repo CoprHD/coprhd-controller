@@ -110,7 +110,10 @@ param(
     [switch]$interactive,
 
     [Parameter(Mandatory=$false, ParameterSetName="Operation")]
-    [string]$file
+    [string]$file,
+
+    [Parameter(Mandatory=$false, ParameterSetName="Operation")]
+    [string]$ipsec_key
 )
 
 $result="succeed"
@@ -191,6 +194,7 @@ function Usage() {
 	Write-Host "    -username           (Optional) Username of vSphere client"
 	Write-Host "    -password           (Optional) Password of vSphere client"
 	Write-Host "    -interactive        (Optional) Interactive way to deploy"
+    Write-Host "    -ipsec_key          (Optional) IPSec pre-shared key"
 	Write-Host ""
 	Write-Host "    example: .\$scriptName -mode redeploy -file your_setting_file_path -nodeid 1 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron"
 	Write-Host ""
@@ -504,6 +508,9 @@ function ReadParamsFromFile($file, $isDotSettingsFile) {
 						}
 						"-clusterversion" {
 							$Script:clusterVersion=$value
+						}
+						"-ipsec_key" {
+							$Script:ipsec_key=$value
 						}
 						"-username" {
 							if ([String]::IsNullOrEmpty($Script:username)) {

@@ -77,7 +77,10 @@ public class Backup extends Controller {
     }
 
     @FlashException(keep = true, referrer = { "create" })
-    public static void save(@Valid BackupForm backupForm) {
+    public static void save() {
+        BackupForm backupForm = new BackupForm();
+        backupForm.name = params.get("backupForm.name");
+        backupForm.force = params.get("backupForm.force", boolean.class);
         backupForm.validate("name");
         if (Validation.hasErrors()) {
             Common.handleError();

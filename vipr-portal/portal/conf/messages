@@ -2980,6 +2980,8 @@ affectedResources.vcenter.image=assets/VCenter.png
 
 affectedResources.computeSystem.image=assets/Host.png
 
+affectedResources.application=Applications
+affectedResources.application.image=assets/Application.png
 resources.hosts=Hosts
 resources.host=Host
 resources.host.image=serviceCatalog/icon_host.png

@@ -7,7 +7,7 @@ package com.emc.vipr.client.core;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DELETE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
-
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
 import java.net.URI;
 
 import javax.ws.rs.core.UriBuilder;
@@ -17,6 +17,7 @@ import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
+import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.vipr.client.impl.RestClient;
 
 
@@ -73,5 +74,13 @@ public class ApplicationSupport {
      */
     public VolumeGroupRestRep getApplication(URI id) {
         return client.get(VolumeGroupRestRep.class, APP_SUPPORT_UPDATE_APP_URL, id);
+    }
+    
+    /*
+     * Get volumes for application
+     * GET /volume-groups/block/{id}/volumes
+     */
+    public NamedVolumesList getVolumeByApplication(URI id) {
+        return client.get(NamedVolumesList.class, APP_SUPPORT_VOLUME_URL, id);
     }
 }

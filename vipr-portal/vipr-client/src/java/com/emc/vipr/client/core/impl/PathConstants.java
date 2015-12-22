@@ -155,4 +155,5 @@ public class PathConstants {
     public static final String APP_SUPPORT_CREATE_APP_URL = "/volume-groups/block";
     public static final String APP_SUPPORT_DELETE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/deactivate";
     public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL +"/{id}";
+    public static final String APP_SUPPORT_VOLUME_URL = APP_SUPPORT_CREATE_APP_URL +"/{id}/volumes";
 }

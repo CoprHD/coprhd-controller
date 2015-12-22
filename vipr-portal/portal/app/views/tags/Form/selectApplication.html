@@ -1,0 +1,21 @@
+%{
+  fieldName = _fieldName ?: 'application'
+  application = _application ?: _caller.application
+  selectedApplication = _selectedApplication ?: _caller.selectedApplication
+  addEmptyOption = true
+  emptyOptionLabel = messages.get("common.none")
+}%
+<span class="application-select">
+  #{field fieldName}
+    %{
+      field.addEmptyOption = true;
+      field.emptyOptionLabel = messages.get("common.none")
+      field.options = application
+      field.value = selectedApplication
+      field.cssClass = 'input-sm'
+     
+    }%
+    <label for="${field.id}">&{'Application.list.title'}:</label>
+    #{Form.selectOne field:field /}
+  #{/field}
+</span>

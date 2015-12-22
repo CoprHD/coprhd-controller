@@ -64,20 +64,25 @@ public class BlockVolumes extends ResourceController {
 
     private static BlockVolumesDataTable blockVolumesDataTable = new BlockVolumesDataTable();
 
-    public static void volumes(String projectId) {
+    public static void volumes(String projectId, String applicationId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockVolumesDataTable);
         addReferenceData();
         render();
     }
 
-    public static void volumesJson(String projectId) {
+    public static void volumesJson(String projectId, String applicationId) {
+        if (StringUtils.isNotBlank(applicationId)) {
+            setActiveApplicationId(applicationId);
+        } else if (applicationId == null) {
+            applicationId = getActiveApplicationId();
+        }
         if (StringUtils.isNotBlank(projectId)) {
             setActiveProjectId(projectId);
         } else {
             projectId = getActiveProjectId();
         }
-        List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId));
+        List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId), uri(applicationId));
         renderJSON(DataTablesSupport.createJSON(volumes, params));
     }
 
@@ -98,7 +103,7 @@ public class BlockVolumes extends ResourceController {
                 } catch (ViPRHttpException e) {
                     if (e.getHttpCode() == 404) {
                         flash.error(MessagesUtils.get(UNKNOWN, volumeId));
-                        volumes(null);
+                        volumes(null, null);
                     }
                     throw e;
                 }
@@ -297,7 +302,7 @@ public class BlockVolumes extends ResourceController {
             Tasks<VolumeRestRep> tasks = client.blockVolumes().deactivate(ids, type);
             flash.put("info", MessagesUtils.get("resources.volumes.deactivate", tasks.getTasks().size()));
         }
-        volumes(null);
+        volumes(null, null);
     }
 
     @Util

@@ -15,9 +15,11 @@ import org.apache.commons.lang.StringUtils;
 
 import play.mvc.Controller;
 import play.mvc.Util;
+import util.AppSupportUtil;
 import util.ProjectUtils;
 
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 
 import controllers.tenant.TenantSelector;
@@ -26,12 +28,15 @@ import controllers.util.Models;
 public class ResourceController extends Controller {
 
     public static final String ACTIVE_PROJECT_ID = "activeProjectId";
+    public static final String ACTIVE_APP_ID = "activeApplicationId";
 
     protected static void addReferenceData() {
         TenantSelector.addRenderArgs();
         String tenantId = Models.currentAdminTenant();
         renderArgs.put("projects", getProjects(tenantId));
+        renderArgs.put("application", getApplications());
         getActiveProjectId(); // called here to make sure active project id is init
+        getActiveApplicationId();
     }
 
     @Util
@@ -48,6 +53,19 @@ public class ResourceController extends Controller {
     }
 
     @Util
+    public static List<NamedRelatedResourceRep> getApplications() {
+        List<NamedRelatedResourceRep> application = AppSupportUtil.getApplications();
+        Collections.sort(application, new Comparator<NamedRelatedResourceRep>() {
+            @Override
+            public int compare(NamedRelatedResourceRep app1, NamedRelatedResourceRep app2)
+            {
+                return app1.getName().compareTo(app2.getName());
+            }
+        });
+        return application;
+    }
+    
+    @Util
     public static String getActiveProjectId() {
         String tenantId = Models.currentAdminTenant();
         String activeProjectId = session.get(ACTIVE_PROJECT_ID);
@@ -59,6 +77,17 @@ public class ResourceController extends Controller {
             }
         }
         return activeProjectId;
+    }
+    
+    @Util
+    public static String getActiveApplicationId() {
+        String activeApplicationId = session.get(ACTIVE_APP_ID);
+        List<NamedRelatedResourceRep> application = AppSupportUtil.getApplications();
+        if(!application.isEmpty()) {
+            activeApplicationId = id(application.get(0)).toString();
+            setActiveApplicationId(activeApplicationId);
+        }
+        return activeApplicationId;
     }
 
     @Util
@@ -81,6 +110,13 @@ public class ResourceController extends Controller {
         if (StringUtils.isNotBlank(activeProjectId)
                 && ResourceType.PROJECT.equals(ResourceType.fromResourceId(activeProjectId))) {
             session.put(ACTIVE_PROJECT_ID, activeProjectId);
+        }
+    }
+    
+    @Util
+    public static void setActiveApplicationId(String activeApplicationId) {
+        if (StringUtils.isNotBlank(activeApplicationId)) {
+            session.put(ACTIVE_APP_ID, activeApplicationId);
         }
     }
 

@@ -2,7 +2,7 @@
 #{set navSelected: ['nav.storage', 'nav.block.volumes'] /}
 
   <script type="text/javascript">
-    var route = #{jsAction @volumesJson(':id')/};
+    var route = #{jsAction @volumesJson(':id',':appId')/};
    
     function reloadVolumes() {
       var table = $('#volumes table'); 
@@ -11,7 +11,8 @@
           xhr.abort();
       }
       var projectId = $('#project option:selected').val();
-      table.dataTable().fnReloadAjax(route({id: projectId}));
+      var applicationId = $('#application option:selected').val();
+      table.dataTable().fnReloadAjax(route({id: projectId, appId:applicationId}));
     }
     
     function disableSRDFSource() {
@@ -33,10 +34,11 @@
     
     $(document).ready(function() {
       $('#project').on('change', reloadVolumes);
+      $('#application').on('change' , reloadVolumes);
     });
   </script>
 
-#{Resources.projectsControl projects:projects /}
+#{Resources.applicationControl projects:projects /}
 
 <p id="srdfAlert" class="alert alert-info" style="display:none">&{'resources.volume.disabledSRDF'}</p> 
 

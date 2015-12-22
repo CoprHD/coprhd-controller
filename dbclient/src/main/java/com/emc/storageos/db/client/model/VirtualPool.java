@@ -111,7 +111,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Boolean autoCrossConnectExport = false;
     // Max retention for a Virtual Pool
     private Integer maxRetention;
-
+    // It indicates whether virtual pool supports schedule snapshot
     private Boolean supportSnapshotSchedule;
 
     public static enum MetroPointType {

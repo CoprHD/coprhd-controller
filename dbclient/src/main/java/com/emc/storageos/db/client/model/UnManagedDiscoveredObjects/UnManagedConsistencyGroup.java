@@ -88,6 +88,7 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 		this.associatedVolumes = associatedVolumes;
 	}
 
+	@Name("UnManagedVolumes")
 	public StringSet getUnManagedVolumes() {
 		if (unManagedVolumes == null) {
 			setUnManagedVolumes(new StringSet());
@@ -99,6 +100,7 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 		this.unManagedVolumes = unManagedVolumes;
 	}
 
+	@Name("ManagedVolumes")
 	public StringSet getManagedVolumes() {
 		if (managedVolumes == null) {
 			setManagedVolumes(new StringSet());

@@ -122,14 +122,14 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             List<URI> mirrorURIs, String opType, String opId)
             throws ControllerException {
         // TODO Auto-generated method stub
-
+        //call local mirror operations
     }
 
     @Override
     public void performRemoteContinuousCopies(URI storage, URI copyId,
             String opType, String opId) throws ControllerException {
         // TODO Auto-generated method stub
-
+        //TBD remote mirror operations
     }
 
 }

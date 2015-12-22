@@ -1599,8 +1599,9 @@ public class FileService extends TaskResourceService {
         if (param.getSize() != null) {
             Long quotaSize = SizeUtil.translateSize(param.getSize()); // converts the input string in format "<value>GB"
                                                                       // to bytes
-            ArgValidator.checkFieldMaximum(SizeUtil.translateSize(quotaSize, SizeUtil.SIZE_GB),
-                    SizeUtil.translateSize(fs.getCapacity(), SizeUtil.SIZE_GB), " GB", "size");
+            // ArgValidator.checkFieldMaximum(SizeUtil.translateSize(quotaSize, SizeUtil.SIZE_GB),
+            // SizeUtil.translateSize(fs.getCapacity(), SizeUtil.SIZE_GB), " GB", "size");
+            ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), SizeUtil.SIZE_B, SizeUtil.SIZE_GB, "size");
             quotaDirectory.setSize(quotaSize);
         } else {
             quotaDirectory.setSize((long) 0);

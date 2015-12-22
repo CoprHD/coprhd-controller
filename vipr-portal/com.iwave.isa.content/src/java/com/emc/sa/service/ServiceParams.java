@@ -57,6 +57,7 @@ public interface ServiceParams {
     public String COUNT = "count";
     public String VOLUME = "volume";
     public String SNAPSHOT = "snapshot";
+    public String SNAPSHOT_SESSION = "snapshotSession";
     public String EXPORT = "export";
     public String CONSISTENCY_GROUP = "consistencyGroup";
     public String HLU = "hlu";

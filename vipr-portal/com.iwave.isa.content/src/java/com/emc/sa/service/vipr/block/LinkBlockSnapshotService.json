@@ -14,28 +14,11 @@
     },
     
     volumes:{
-      type:"assetType.vipr.snapshotBlockVolume"
+      type:"assetType.vipr.snapshotSessionBlockVolume"
     },
     
-    type: {
-      type: "assetType.vipr.blockSnapshotType",
-      required: "false",
-      lockable: true
-    },
-        
-    readOnly: {
-      type: "boolean",
-      initialValue: "false",
-      required: "false",
-      lockable: true
-    },
-    
-    name:{
-      type:"text",
-      validation:{
-        min:2,
-        max:128
-      }
+    snapshotSession:{
+      type:"assetType.vipr.snapshotSessionsByVolume"
     },
     
     advanced:{

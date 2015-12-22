@@ -969,7 +969,7 @@ public class FileStorageScheduler implements Scheduler{
             	
             } else if (recommendation.getFileType().toString().equals(
             		FileRecommendation.FileType.FILE_SYSTEM_LOCAL_MIRROR.toString())) {
-            	//prepare the mirror file share
+            	//prepare the local mirror file share
             	//TBD
             }
             

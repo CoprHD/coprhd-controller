@@ -39,10 +39,7 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
 		
 		List<FileShare> fileList = null;
 		List<FileShare> fileShares = new ArrayList<FileShare>();
-		
-		
-		FileRecommendation placement = (FileRecommendation)recommendations.get(0);
-		
+
 		// Prepare the FileShares
 		fileList = _scheduler.prepareFileSystems(param, task, taskList, project, 
 										varray, vpool, recommendations, vpoolCapabilities, false);

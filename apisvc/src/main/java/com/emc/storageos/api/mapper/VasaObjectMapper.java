@@ -6,7 +6,6 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 import java.net.URI;
 
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
-import com.emc.storageos.db.client.model.CapabilityProfile;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ProtocolEndpoint;
 import com.emc.storageos.db.client.model.StorageContainer;
@@ -132,7 +131,7 @@ public class VasaObjectMapper {
     private static ResourceTypeEnum getResource(DataObject obj){
         if(obj instanceof StorageContainer){
             return ResourceTypeEnum.STORAGE_CONTAINER;
-        }else if(obj instanceof CapabilityProfile){
+        }else if(obj instanceof VirtualPool){
             return ResourceTypeEnum.CAPABILITY_PROFILE;
         }else if(obj instanceof ProtocolEndpoint){
             return ResourceTypeEnum.PROTOCOL_ENDPOINT;

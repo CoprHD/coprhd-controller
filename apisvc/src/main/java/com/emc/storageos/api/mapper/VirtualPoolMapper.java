@@ -232,6 +232,46 @@ public class VirtualPoolMapper {
 
         return mapVirtualPoolFields(from, to, protectionSettings);
     }
+    
+    public static BlockVirtualPoolRestRep toCapabilityProfile(VirtualPool from){
+        if (from == null) {
+            return null;
+        }
+        BlockVirtualPoolRestRep to = new BlockVirtualPoolRestRep();
+        to.setDriveType(from.getDriveType());
+        to.setAutoTieringPolicyName(from.getAutoTierPolicyName());
+        to.setThinVolumePreAllocationPercentage(from.getThinVolumePreAllocationPercentage());
+        to.setExpandable(from.getExpandable());
+        to.setFastExpansion(from.getFastExpansion());
+        to.setMultiVolumeConsistent(from.getMultivolumeConsistency());
+        to.setUniquePolicyNames(from.getUniquePolicyNames());
+        to.setMaxPaths(from.getNumPaths());
+        to.setMinPaths(from.getMinPaths());
+        to.setPathsPerInitiator(from.getPathsPerInitiator());
+        to.setHostIOLimitBandwidth(from.getHostIOLimitBandwidth());
+        to.setHostIOLimitIOPs(from.getHostIOLimitIOPs());
+        
+        if (from.getArrayInfo() != null) {
+            StringSetMap arrayInfo = from.getArrayInfo();
+
+            // Raid Levels
+            StringSet raidLevels = arrayInfo.get(VirtualPoolCapabilityValuesWrapper.RAID_LEVEL);
+            if (raidLevels != null) {
+                to.setRaidLevels(raidLevels);
+            }
+        }
+        
+        mapDataObjectFieldsNoLink(from, to);
+        to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(ResourceTypeEnum.BLOCK_VPOOL, from.getId())));
+        to.setType(from.getType());
+        to.setDescription(from.getDescription());
+        to.setProtocols(from.getProtocols());
+        to.setProvisioningType(from.getSupportedProvisioningType());
+        to.setNumPaths(from.getNumPaths());
+        
+        return null;
+        
+    }
 
     public static FileVirtualPoolRestRep toFileVirtualPool(VirtualPool from) {
         if (from == null) {

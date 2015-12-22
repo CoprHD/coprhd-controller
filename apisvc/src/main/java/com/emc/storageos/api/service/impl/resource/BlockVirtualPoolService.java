@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.VirtualPoolMapper.toBlockVirtualPool;
+import static com.emc.storageos.api.mapper.VirtualPoolMapper.toCapabilityProfile;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -61,6 +62,7 @@ import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
+import com.emc.storageos.model.vasa.CapabilityProfileBulkResponse;
 import com.emc.storageos.model.vpool.BlockVirtualPoolBulkRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionUpdateParam;
@@ -199,6 +201,38 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         recordOperation(OperationTypeEnum.CREATE_VPOOL, VPOOL_CREATED_DESCRIPTION, vpool);
         return toBlockVirtualPool(_dbClient, vpool, VirtualPool.getProtectionSettings(vpool, _dbClient),
                 VirtualPool.getRemoteProtectionSettings(vpool, _dbClient));
+    }
+    
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/capabilityProfiles")
+    public CapabilityProfileBulkResponse getCapabilityProfilesForAllVPools(){
+        List<URI> capabilityProfileUris = _dbClient.queryByType(VirtualPool.class, true);
+        List<VirtualPool> capabilityProfiles = _dbClient.queryObject(VirtualPool.class, capabilityProfileUris);
+        CapabilityProfileBulkResponse capabilityProfileBulkResponse = new CapabilityProfileBulkResponse();
+        if(null != capabilityProfiles){
+            for(VirtualPool capabilityProfile : capabilityProfiles){
+                if(capabilityProfile != null){
+                    capabilityProfileBulkResponse.getCapabilityProfiles().add(toCapabilityProfile(capabilityProfile));
+                }
+            }
+        }
+        return capabilityProfileBulkResponse;
+        
+    }
+    
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/capabilityProfiles/{vPoolId}")
+    public BlockVirtualPoolRestRep getCapabilityProfilesForVPool(@PathParam("vPoolId") URI vPoolId){
+        if(null != vPoolId){
+                VirtualPool capabilityProfile = _dbClient.queryObject(VirtualPool.class, vPoolId);
+                if(capabilityProfile != null){
+                    return toCapabilityProfile(capabilityProfile);
+                }
+        }
+        return null;
+        
     }
 
     /**

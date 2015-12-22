@@ -15,8 +15,6 @@ public class CapabilityProfileCreateRequestParam extends VasaCommonRestRequest{
     
     private String storageContainer;
     
-    private String autoTierPolicyName;
-    
     private String highAvailability;
     
     private String provisioningType;
@@ -26,8 +24,6 @@ public class CapabilityProfileCreateRequestParam extends VasaCommonRestRequest{
     private Long quotaGB;
     
     private Integer maxNativeSnapshots;
-    
-    private Integer maxNativeContinuousCopies;
     
     private String protocolEndPointType;
     
@@ -59,14 +55,6 @@ public class CapabilityProfileCreateRequestParam extends VasaCommonRestRequest{
 
     public void setStorageContainer(String storageContainer) {
         this.storageContainer = storageContainer;
-    }
-
-    public String getAutoTierPolicyName() {
-        return autoTierPolicyName;
-    }
-
-    public void setAutoTierPolicyName(String autoTierPolicyName) {
-        this.autoTierPolicyName = autoTierPolicyName;
     }
 
     public String getHighAvailability() {
@@ -107,14 +95,6 @@ public class CapabilityProfileCreateRequestParam extends VasaCommonRestRequest{
 
     public void setMaxNativeSnapshots(Integer maxNativeSnapshots) {
         this.maxNativeSnapshots = maxNativeSnapshots;
-    }
-
-    public Integer getMaxNativeContinuousCopies() {
-        return maxNativeContinuousCopies;
-    }
-
-    public void setMaxNativeContinuousCopies(Integer maxNativeContinuousCopies) {
-        this.maxNativeContinuousCopies = maxNativeContinuousCopies;
     }
 
     public String getProtocolEndPointType() {

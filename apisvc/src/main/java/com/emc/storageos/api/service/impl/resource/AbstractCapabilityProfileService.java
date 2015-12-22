@@ -56,6 +56,10 @@ public abstract class AbstractCapabilityProfileService extends AbstractVasaServi
             capabilityProfile.setHighAvailability(param.getHighAvailability());
         }
         
+        if(null != param.getMaxNativeSnapshots()){
+            capabilityProfile.setMaxNativeSnapshots(param.getMaxNativeSnapshots());
+        }
+        
           
     }
 }

@@ -6,20 +6,24 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
+
 @XmlRootElement(name="bulk_Capability_Profile")
 public class CapabilityProfileBulkResponse {
 
-    List<CapabilityProfileCreateResponse> capabilityProfiles;
+    List<BlockVirtualPoolRestRep> capabilityProfiles;
 
-    @XmlElement(name="capability_profile")
-    public List<CapabilityProfileCreateResponse> getCapabilityProfiles() {
-        if(capabilityProfiles == null){
-            capabilityProfiles = new ArrayList<CapabilityProfileCreateResponse>();
+    @XmlElement(name="block_vpool")
+    public List<BlockVirtualPoolRestRep> getCapabilityProfiles() {
+        if(null == capabilityProfiles){
+            capabilityProfiles = new ArrayList<BlockVirtualPoolRestRep>();
         }
         return capabilityProfiles;
     }
 
-    public void setCapabilityProfiles(List<CapabilityProfileCreateResponse> capabilityProfiles) {
+    public void setCapabilityProfiles(List<BlockVirtualPoolRestRep> capabilityProfiles) {
         this.capabilityProfiles = capabilityProfiles;
     }
+
+    
 }

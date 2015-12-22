@@ -40,7 +40,7 @@ public class CapabilityProfileService extends AbstractCapabilityProfileService{
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public CapabilityProfileCreateResponse createCapabilityProfile(CapabilityProfileCreateRequestParam param) throws DatabaseException{
         ArgValidator.checkFieldNotEmpty(param.getName(), NAME);
-        checkForDuplicateName(param.getName(), CapabilityProfile.class);
+        checkForDuplicateName(param.getName(), VirtualPool.class);
         ArgValidator.checkFieldNotEmpty(param.getDescription(), DESCRIPTION);
 //        CapabilityProfile capabilityProfile = prepareCapabilityProfile(param);
         VirtualPool capabilityProfile = prepareCapabilityProfile(param);
@@ -56,20 +56,20 @@ public class CapabilityProfileService extends AbstractCapabilityProfileService{
         return capabilityProfile;
     }
     
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public CapabilityProfileBulkResponse getCapabilityProfiles(){
-        _log.info("@@@@@@@@ Getting Capability Profiles @@@@@@@@@@@");
-        List<URI> capabilityProfileUris = _dbClient.queryByType(VirtualPool.class, true);
-        List<VirtualPool> capabilityProfiles = _dbClient.queryObject(VirtualPool.class, capabilityProfileUris);
-        CapabilityProfileBulkResponse capabilityProfileBulkResponse = new CapabilityProfileBulkResponse();
-        if(null != capabilityProfiles){
-            for(VirtualPool capabilityProfile : capabilityProfiles){
-                if(capabilityProfile != null && capabilityProfile.getType().equals("storagecontainer")){
-                    capabilityProfileBulkResponse.getCapabilityProfiles().add(toCapabilityProfile(capabilityProfile));
-                }
-            }
-        }
-        return capabilityProfileBulkResponse;
-    }
+//    @GET
+//    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+//    public CapabilityProfileBulkResponse getCapabilityProfiles(){
+//        _log.info("@@@@@@@@ Getting Capability Profiles @@@@@@@@@@@");
+//        List<URI> capabilityProfileUris = _dbClient.queryByType(VirtualPool.class, true);
+//        List<VirtualPool> capabilityProfiles = _dbClient.queryObject(VirtualPool.class, capabilityProfileUris);
+//        CapabilityProfileBulkResponse capabilityProfileBulkResponse = new CapabilityProfileBulkResponse();
+//        if(null != capabilityProfiles){
+//            for(VirtualPool capabilityProfile : capabilityProfiles){
+//                if(capabilityProfile != null && capabilityProfile.getType().equals("storagecontainer")){
+//                    capabilityProfileBulkResponse.getCapabilityProfiles().add(toCapabilityProfile(capabilityProfile));
+//                }
+//            }
+//        }
+//        return capabilityProfileBulkResponse;
+//    }
 }

@@ -4179,7 +4179,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Gets the source consistency group name.
      * If the given block object is Volume, get the group name from Volume object.
-     * If snapshot or mirror, get the group name from its parent which is Volume.
+     * If snapshot, mirror or clone, get the group name from its parent which is Volume.
      *
      * @param bo the block object
      * @return the consistency group name
@@ -4187,11 +4187,14 @@ public class SmisCommandHelper implements SmisConstants {
     public String getSourceConsistencyGroupName(BlockObject bo) {
         Volume volume = null;
         if (bo instanceof BlockSnapshot) {
-            volume = _dbClient.queryObject(Volume.class, bo.getParent().getURI());
+            volume = _dbClient.queryObject(Volume.class, ((BlockSnapshot) bo).getParent().getURI());
         } else if (bo instanceof BlockMirror) {
-            volume = _dbClient.queryObject(Volume.class, bo.getSource().getURI());
+            volume = _dbClient.queryObject(Volume.class, ((BlockMirror) bo).getSource().getURI());
         } else if (bo instanceof Volume) {
             volume = (Volume) bo;
+            if (ControllerUtils.isVolumeFullCopy(volume, _dbClient)) {
+                volume = _dbClient.queryObject(Volume.class, volume.getAssociatedSourceVolume());
+            }
         }
         return (volume == null ? null : volume.getReplicationGroupInstance());
     }

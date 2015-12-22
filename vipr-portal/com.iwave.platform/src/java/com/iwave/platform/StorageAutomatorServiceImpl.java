@@ -26,7 +26,7 @@ public class StorageAutomatorServiceImpl extends AbstractSecuredWebServer implem
 
     @Autowired
     private ServiceBeacon serviceBeacon;
-
+    
     @Override
     public void start() throws Exception {
         log.info("Starting sasvc service");
@@ -48,7 +48,6 @@ public class StorageAutomatorServiceImpl extends AbstractSecuredWebServer implem
     private void initValidator() {
         Validator.setCoordinator(coordinatorClient);
         Validator.setAuthSvcEndPointLocator(authSvcEndPointLocator);
-
     }
 
 }

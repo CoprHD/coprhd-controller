@@ -524,6 +524,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="service" ref="serviceinfo" />
         <property name="drUtil" ref="drUtil" />
+        <property name="postHandlerFactory" ref="drPostFailoverHandlerFactory" />
     </bean>
 
     <bean id="ipsecRotateHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPSecRotateOpHandler">
@@ -550,6 +551,17 @@
         <property name="bypassMigrationLock" ref="serviceRunsDuringMigration"/>
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
+    </bean>
+    
+    <bean id="drPostFailoverHandlerFactory" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory">
+    	<property name="handlers">
+            <list>
+                <value>ControllersvcQueueCleanupHandler</value>
+                <value>ControllersvcWorkflowCleanupHandler</value>
+                <value>SasvcQueueCleanupHandler</value>
+                <value>SasvcOrderCleanupHandler</value>
+            </list>
+        </property>
     </bean>
 </beans>
     

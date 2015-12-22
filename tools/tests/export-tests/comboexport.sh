@@ -57,7 +57,7 @@ fi
 seed=`date "+%H%M%S%N"`
 ipaddr=`/sbin/ifconfig eth0 | /usr/bin/perl -nle 'print $1 if(m#inet addr:(.*?)\s+#);' | tr '.' '-'`
 export BOURNE_API_SYNC_TIMEOUT=700
-BOURNE_IP=10.247.101.39
+BOURNE_IP=localhost
 
 #
 # Zone configuration
@@ -74,10 +74,6 @@ if [ "$BOURNE_IP" = "localhost" ]; then
     SHORTENED_HOST="ip-$ipaddr"
 fi
 SHORTENED_HOST=${SHORTENED_HOST:=`echo $BOURNE_IP | awk -F. '{ print $1 }'`}
-: ${TENANT=tenant}
-: ${PROJECT=project}
-SYSADMIN=root
-SYSADMIN_PASSWORD=${SYSADMIN_PASSWORD:-ChangeMe}
 
 #
 # cos configuration
@@ -85,18 +81,7 @@ SYSADMIN_PASSWORD=${SYSADMIN_PASSWORD:-ChangeMe}
 VMAXPOOL=vmax_pool
 VNXPOOL=vnx_pool
 
-VNX_SMIS_IP=10.247.99.25
-VNX_SP_IP=10.247.66.250
-VNX_NATIVEGUID=CLARIION+APM00120400480
-VNXB_INITIATOR='50:06:01:64:46:EF:3A:38'
-
-VMAX_SMIS_IP=10.247.99.74
-VMAX_ID=000198700406
-VMAX_NATIVEGUID=SYMMETRIX+${VMAX_ID}
-VMAX_SMIS_DEV=smis-provider-vmax
-
-SMIS_USER=admin
-SMIS_PASSWD='#1Password'
+USE_CLUSTERED_HOSTS=1
 
 BASENUM=${RANDOM}
 VMAX_VOLNAME=vmaxexp${BASENUM}
@@ -125,8 +110,8 @@ login() {
    echo "Tenant is ${TENANT}";
     security login $SYSADMIN $SYSADMIN_PASSWORD
     syssvc $SANITY_CONFIG_FILE localhost setup
-    security add_authn_provider ldap ldap://10.247.100.65 test_cert CN=Manager,DC=root,DC=com secret ou=People,DC=root,DC=com uid=%U uid CN ldap-configuration tenant.domain *Admins*,*Test*
-    tenant create $TENANT tenant.domain OU tenant.com
+    security add_authn_provider ldap ldap://10.247.101.43 cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
+    tenant create $TENANT VIPRSANITY.COM OU VIPRSANITY.COM
     echo "Tenant $TENANT created."
 }
 
@@ -147,20 +132,62 @@ nwwn()
     echo 20:${macaddr}:${idx}
 }
 
+VERIFY_EXPORT_COUNT=0
+VERIFY_EXPORT_FAIL_COUNT=0
+
 verify_vmax_export() {
-    runcmd symhelper.sh $*
+    no_host_name=0
+    export_name=$1
+    host_name=$2
+    shift 2
+
+    if [ "$host_name" = "-x-" ]; then
+        # The host_name parameter is special, indicating no hostname, so
+        # set it as an empty string
+        host_name=""
+        no_host_name=1
+    fi
+
+    cluster_name_if_any="_"
+    if [ "$USE_CLUSTERED_HOSTS" -eq "1" ]; then
+        cluster_name_if_any=""
+        if [ "$no_host_name" -eq 1 ]; then
+            # No hostname is applicable, so this means that the cluster name is the
+            # last part of the MaskingView name. So, it doesn't need to end with '_'
+            cluster_name_if_any="${CLUSTER}"
+        fi
+    fi
+    masking_view_name="${cluster_name_if_any}${host_name}${VMAX_ID_3DIGITS}"
+    if [ "$host_name" = "-exact-" ]; then
+         masking_view_name=$export_name
+    fi
+
+    runcmd symhelper.sh $VMAX_SN $masking_view_name $*
     if [ $? -ne "0" ]; then
        echo Exiting due to failure ...
+       VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
        cleanup
+       finish
     fi
+    VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
 }
 
 verify_vnx_export() {
     runcmd navihelper.sh $VNX_SP_IP $macaddr $*
     if [ $? -ne "0" ]; then
        echo Exiting due to failure ...
+       VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
        cleanup
+       finish
     fi
+    VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+}
+
+finish() {
+    if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
+       exit $VERIFY_EXPORT_FAIL_COUNT
+    fi
+    exit 0
 }
 
 setup_common() {
@@ -218,25 +245,25 @@ setup_vmax() {
 	--max_snapshots 10                     \
 	--neighborhoods $NH
 
-   cos update block $VMAXPOOL --storage ${VMAX_NATIVEGUID}
-   cos allow $VMAXPOOL block $TENANT
+   runcmd cos update block $VMAXPOOL --storage ${VMAX_NATIVEGUID}
+   runcmd cos allow $VMAXPOOL block $TENANT
    runcmd volume create ${VMAX_VOLNAME} ${PROJECT} ${NH} ${VMAXPOOL} 1GB --count 3
 }
 
 setup_vnx() {
     # do this only once
-    echo "Setting up $VNX_NATIVEGUID"
+    echo "Setting up $VNXB_NATIVEGUID"
     smisprovider create VNX-PROVIDER $VNX_SMIS_IP 5988 admin '#1Password' false
     storagedevice discover_all --ignore_error
 
-    storagepool update $VNX_NATIVEGUID --type block --volume_type THIN_ONLY
-    storagepool update $VNX_NATIVEGUID --type block --volume_type THICK_ONLY
-    storagepool update $VNX_NATIVEGUID --nhadd $NH --type block
-    storageport update $VNX_NATIVEGUID FC --tzone $FCTZ_A
-    storageport update $VNX_NATIVEGUID IP --tzone nh/iptz
+    storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
+    storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
+    storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
+    storageport update $VNXB_NATIVEGUID FC --tzone $FCTZ_A
+    storageport update $VNXB_NATIVEGUID IP --tzone nh/iptz
 
-    storagepool update ${VNX_NATIVEGUID} --nhadd $NH --pool "$RP_VNXB_POOL" --type block --volume_type THIN_ONLY
-    storageport update ${VNX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+    storagepool update ${VNXB_NATIVEGUID} --nhadd $NH --pool "$RP_VNXB_POOL" --type block --volume_type THIN_ONLY
+    storageport update ${VNXB_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
 
     # make a base cos for protected volumes
     cos create block ${VNXPOOL}					\
@@ -247,8 +274,8 @@ setup_vnx() {
 	--max_snapshots 10                     \
 	--neighborhoods $NH
 
-   cos update block $VNXPOOL --storage ${VNX_NATIVEGUID}
-   cos allow $VNXPOOL block $TENANT
+   runcmd cos update block $VNXPOOL --storage ${VNXB_NATIVEGUID}
+   runcmd cos allow $VNXPOOL block $TENANT
    runcmd volume create ${VNX_VOLNAME} ${PROJECT} ${NH} ${VNXPOOL} 1GB --count 3
 }
 
@@ -270,52 +297,52 @@ test_0() {
     echo "Test 0 Begins"
     expname=${EXPORT_GROUP_NAME}t0
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VMAX_VOLNAME}-1 --hosts "${HOST1},${HOST2}"
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} gone
+    verify_vmax_export ${expname}1 ${HOST1} 2 1
+    verify_vmax_export ${expname}1 ${HOST2} 2 1
+    verify_vmax_export ${expname}1 ${HOST3} gone
+    verify_vnx_export ${HOST1} gone
+    verify_vnx_export ${HOST2} gone
+    verify_vnx_export ${HOST3} gone
 
     runcmd export_group update $PROJECT/${expname}1 --addHosts "${HOST3}"
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} gone
+    verify_vmax_export ${expname}1 ${HOST1} 2 1
+    verify_vmax_export ${expname}1 ${HOST2} 2 1
+    verify_vmax_export ${expname}1 ${HOST3} 2 1
+    verify_vnx_export ${HOST1} gone
+    verify_vnx_export ${HOST2} gone
+    verify_vnx_export ${HOST3} gone
 
     runcmd export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VNX_VOLNAME}-1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} 2 1
+    verify_vmax_export ${expname}1 ${HOST1} 2 1
+    verify_vmax_export ${expname}1 ${HOST2} 2 1
+    verify_vmax_export ${expname}1 ${HOST3} 2 1
+    verify_vnx_export ${HOST1} 2 1
+    verify_vnx_export ${HOST2} 2 1
+    verify_vnx_export ${HOST3} 2 1
 
     runcmd export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VNX_VOLNAME}-1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} gone
+    verify_vmax_export ${expname}1 ${HOST1} 2 1
+    verify_vmax_export ${expname}1 ${HOST2} 2 1
+    verify_vmax_export ${expname}1 ${HOST3} 2 1
+    verify_vnx_export ${HOST1} gone
+    verify_vnx_export ${HOST2} gone
+    verify_vnx_export ${HOST3} gone
 
     runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST3}
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} gone
+    verify_vmax_export ${expname}1 ${HOST1} 2 1
+    verify_vmax_export ${expname}1 ${HOST2} 2 1
+    verify_vmax_export ${expname}1 ${HOST3} gone
+    verify_vnx_export ${HOST1} gone
+    verify_vnx_export ${HOST2} gone
+    verify_vnx_export ${HOST3} gone
 
     runcmd export_group delete $PROJECT/${expname}1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} gone
+    verify_vmax_export ${expname}1 ${HOST1} gone
+    verify_vmax_export ${expname}1 ${HOST2} gone
+    verify_vmax_export ${expname}1 ${HOST3} gone
+    verify_vnx_export ${HOST1} gone
+    verify_vnx_export ${HOST2} gone
+    verify_vnx_export ${HOST3} gone
 }
 
 # Export Test 1
@@ -330,52 +357,52 @@ test_1() {
     echo "Test 1 Begins"
     expname=${EXPORT_GROUP_NAME}t1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VNX_VOLNAME}-1 --hosts "${HOST1},${HOST2}"
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} gone
+    verify_vmax_export ${expname}1 ${HOST1} gone
+    verify_vmax_export ${expname}1 ${HOST2} gone
+    verify_vmax_export ${expname}1 ${HOST3} gone
+    verify_vnx_export ${HOST1} 2 1
+    verify_vnx_export ${HOST2} 2 1
+    verify_vnx_export ${HOST3} gone
 
     runcmd export_group update $PROJECT/${expname}1 --addHosts "${HOST3}"
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} 2 1
+    verify_vmax_export ${expname}1 ${HOST1} gone
+    verify_vmax_export ${expname}1 ${HOST2} gone
+    verify_vmax_export ${expname}1 ${HOST3} gone
+    verify_vnx_export ${HOST1} 2 1
+    verify_vnx_export ${HOST2} 2 1
+    verify_vnx_export ${HOST3} 2 1
 
     runcmd export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VMAX_VOLNAME}-1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} 2 1
+    verify_vmax_export ${expname}1 ${HOST1} 2 1
+    verify_vmax_export ${expname}1 ${HOST2} 2 1
+    verify_vmax_export ${expname}1 ${HOST3} 2 1
+    verify_vnx_export ${HOST1} 2 1
+    verify_vnx_export ${HOST2} 2 1
+    verify_vnx_export ${HOST3} 2 1
 
     runcmd export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VMAX_VOLNAME}-1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} 2 1
+    verify_vmax_export ${expname}1 ${HOST1} gone
+    verify_vmax_export ${expname}1 ${HOST2} gone
+    verify_vmax_export ${expname}1 ${HOST3} gone
+    verify_vnx_export ${HOST1} 2 1
+    verify_vnx_export ${HOST2} 2 1
+    verify_vnx_export ${HOST3} 2 1
 
     runcmd export_group update $PROJECT/${expname}1 --remHosts ${HOST3}
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} 2 1
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} gone
+    verify_vmax_export ${expname}1 ${HOST1} gone
+    verify_vmax_export ${expname}1 ${HOST2} gone
+    verify_vmax_export ${expname}1 ${HOST3} gone
+    verify_vnx_export ${HOST1} 2 1
+    verify_vnx_export ${HOST2} 2 1
+    verify_vnx_export ${HOST3} gone
 
     runcmd export_group delete $PROJECT/${expname}1
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vmax_export ${expname}1_${CLUSTER}_${HOST3} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST1} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST2} gone
-    verify_vnx_export ${expname}1_${CLUSTER}_${HOST3} gone
+    verify_vmax_export ${expname}1 ${HOST1} gone
+    verify_vmax_export ${expname}1 ${HOST2} gone
+    verify_vmax_export ${expname}1 ${HOST3} gone
+    verify_vnx_export ${HOST1} gone
+    verify_vnx_export ${HOST2} gone
+    verify_vnx_export ${HOST3} gone
 }
 
 cleanup() {
@@ -385,7 +412,6 @@ cleanup() {
       echo "Deleted export group: ${id}"
    done
    runcmd volume delete $PROJECT --project --wait
-   exit;
 }
 
 # call this to generate a random WWN for exports.
@@ -431,6 +457,7 @@ if [ "$1"x != "x" ]; then
       SANITY_CONFIG_FILE=$1
       echo Using sanity configuration file $SANITY_CONFIG_FILE
       shift
+      source $SANITY_CONFIG_FILE
    fi
 fi
 
@@ -459,7 +486,7 @@ fi
 if [ "$1" = "delete" ]
 then
   cleanup;
-  exit;
+  finish
 fi
 
 if [ "$1" = "setup" ]
@@ -474,7 +501,7 @@ then
    echo Request to run $2
    $2
    cleanup
-   exit
+   finish
 fi
 
 # Passing tests:
@@ -482,3 +509,4 @@ test_0;
 test_1;
 
 cleanup;
+finish

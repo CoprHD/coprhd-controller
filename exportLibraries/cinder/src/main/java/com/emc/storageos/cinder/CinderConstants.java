@@ -103,5 +103,37 @@ public interface CinderConstants {
         volume,
         snapshot;
     }
+    
+    
+    /*
+     * Enum types for different kinds actions possible during volume attach 
+     * with enterprize cinder.  
+     */
+    public static enum ExportOperations
+    {
+        OS_RESERVE("os-reserve"),
+        OS_UNRESERVE("os-unreserve"),
+        OS_TERMINATE_CONNECTION("os-terminate_connection"),
+        OS_BEGIN_DETACHING("os-begin_detaching"),
+        OS_DETACH("os-detach"),
+        OS_INITIALIZE_CONNECTION("os-initialize_connection"),
+        OS_ATTACH("os-attach"),
+        OS_EXTEND("os-extend"),
+        OS_RESET_STATUS("os-reset_status"),        
+        OS_SET_BOOTABLE("os-set_bootable"),
+        OS_UPDATE_READONLY("os-update_readonly_flag");
+
+        public String operation = "";
+
+        ExportOperations(String operation)
+        {
+            this.operation = operation;
+        }
+
+        public String getOperation()
+        {
+            return this.operation;
+        }
+    }
 
 }

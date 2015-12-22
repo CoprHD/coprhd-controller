@@ -849,6 +849,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         	_log.info("Setting discovery status of vnas {} as NOTVISIBLE", nasServer.getNasName());
         	nasServer.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
         	nasServer.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
+        	StringSet assignedVarrays = nasServer.getAssignedVArrays();
+        	if (assignedVarrays != null) {
+        		nasServer.removeAssignedVirtualArrays(assignedVarrays);
+        	}
         }
         nasServer.setStoragePorts(storagePorts);
     }

@@ -530,7 +530,7 @@ public class SystemHealth extends Controller {
         renderSupportPackage(creator);
     }
 
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void getRecoveryStatus() {
         ViPRSystemClient client = BourneUtil.getSysClient();
         RecoveryStatus recoveryStatus = client.control().getRecoveryStatus();
@@ -547,7 +547,7 @@ public class SystemHealth extends Controller {
         renderJSON(jsonObj.toString());
     }
 
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void nodeReboot(@Required String nodeId) {
         NodeHealth nodeHealth = MonitorUtils.getNodeHealth(nodeId);
         String node= nodeId;
@@ -566,7 +566,7 @@ public class SystemHealth extends Controller {
         }
     }
 
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void minorityNodeRecovery() {
         new MinorityNodeRecoveryJob(getSysClient()).in(3);
         ViPRSystemClient client = BourneUtil.getSysClient();
@@ -580,7 +580,7 @@ public class SystemHealth extends Controller {
         render("@nodeRecovery");
     }
 
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void serviceRestart(@Required String nodeId, @Required String serviceName) {
         new RestartServiceJob(getSysClient(), serviceName, nodeId).in(3);
         String node= nodeId;

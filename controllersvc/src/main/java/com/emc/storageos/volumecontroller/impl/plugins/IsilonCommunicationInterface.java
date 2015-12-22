@@ -125,6 +125,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String ONEFS_V8 = "8.0.0.0";
     private static final String ONEFS_V7_2 = "7.2.0.0";
     private IsilonApiFactory _factory;
+    private static final String SYNC_LICENCE_ACTIVATED = "Activated";
+    private static final String SYNC_LICENCE_EVALUTION = "Evaluation";
 
     private List<String> _discPathsForUnManaged;
 
@@ -919,16 +921,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         List<StoragePool> existingPools = new ArrayList<StoragePool>();
 
         URI storageSystemId = storageSystem.getId();
-
+        Set<String> validSyncLicenceStatus = new HashSet<String>();
+    	validSyncLicenceStatus.add(SYNC_LICENCE_ACTIVATED);
+    	validSyncLicenceStatus.add(SYNC_LICENCE_EVALUTION);
+    	
         try {
             _log.info("discoverPools for storage system {} - start", storageSystemId);
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
             boolean syncServiceEnabled = isilonApi.isSyncIQEnabled(storageSystem.getFirmwareVersion());
+            boolean syncLicenceValid = validSyncLicenceStatus.contains(isilonApi.getReplicationLicenseInfo());
             //Set file replication type for Isilon storage system!!!
-            if (syncServiceEnabled) {
+            if (syncLicenceValid && syncServiceEnabled) {
             	StringSet supportReplicationTypes = new StringSet();
             	supportReplicationTypes.add(SupportedFileReplicationTypes.REMOTE.name());
             	supportReplicationTypes.add(SupportedFileReplicationTypes.LOCAL.name());
@@ -999,7 +1004,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 // Add the Copy type ASYNC, if the Isilon is enabled with SyncIQ service!!
                 StringSet copyTypesSupported = new StringSet();
                 copyTypesSupported.add(CopyTypes.ASYNC.name());
-                if (syncServiceEnabled) {
+                if (syncLicenceValid && syncServiceEnabled) {
                     storagePool.setSupportedCopyTypes(copyTypesSupported);
                 } else {
                 	if (storagePool.getSupportedCopyTypes() != null && 
@@ -2857,5 +2862,4 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return storagePort;
     }
-
 }

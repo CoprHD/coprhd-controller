@@ -548,6 +548,11 @@ public class CoordinatorClientExt {
         return _coordinator.getAllNodeInfos(clazz, nodeIdFilter);
     }
 
+    public <T extends CoordinatorSerializable> Map<Service,
+            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter, String siteId) throws Exception {
+        return _coordinator.getAllNodeInfos(clazz, nodeIdFilter, siteId);
+    }
+
     public <T extends CoordinatorSerializable> T getNodeInfo(String node, Class<T> clazz) throws CoordinatorClientException {
         try {
             T state = _coordinator.getNodeInfo(_svc,node,clazz);
@@ -689,9 +694,9 @@ public class CoordinatorClientExt {
      * @param svcId
      * @return
      */
-    public URI getNodeEndpointForSvcId(String svcId) {
+    public URI getNodeEndpointForSvcId(String siteId, String svcId) {
         try {
-            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),(String)null,null);
+            List<Service> svcs = _coordinator.locateAllServices(siteId,_svc.getName(),_svc.getVersion(),null,null);
             for (Service svc : svcs) {
                 if (svc.getId().equals(svcId)) {
                     return svc.getEndpoint();
@@ -701,6 +706,10 @@ public class CoordinatorClientExt {
             _log.info("Fail to get the cluster information "+e.getMessage());
         }
         return null;
+    }
+
+    public URI getNodeEndpointForSvcId(String svcId) {
+        return getNodeEndpointForSvcId(_coordinator.getSiteId(), svcId);
     }
 
     /**

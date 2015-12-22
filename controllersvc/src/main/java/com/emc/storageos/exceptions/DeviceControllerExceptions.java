@@ -386,9 +386,6 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException srdfAsyncStepCreationfailed(String groupName);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
-    public DeviceControllerException createNonCGSRDFActiveModeVolumesStepFailed(String groupName);
-
-    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException rdfGroupInViprDBNotInSyncWithArray(String groupName);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)

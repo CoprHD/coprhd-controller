@@ -922,7 +922,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             StoragePool storagePool;
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
 
-            boolean snapScheduleServiceEnabled = isilonApi.isSnapScheduleServiceEnabled(storageSystem.getFirmwareVersion());
+            boolean snapScheduleServiceEnabled = isilonApi.isSnapScheduleServiceEnabled();
 
             List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
             for (IsilonStoragePool isilonPool : isilonStoragePools) {

@@ -1546,7 +1546,7 @@ public class IsilonApi {
      * 
      * @return boolean true if exists, false otherwise
      */
-    public boolean isSnapScheduleServiceEnabled(String firmwareVersion) throws IsilonException {
+    public boolean isSnapScheduleServiceEnabled() throws IsilonException {
         ClientResponse resp = null;
         boolean isSnapshotIQEnabled = false;
 

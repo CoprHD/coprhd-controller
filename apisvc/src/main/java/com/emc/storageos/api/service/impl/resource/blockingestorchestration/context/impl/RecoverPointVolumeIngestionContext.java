@@ -538,6 +538,20 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * (non-Javadoc)
      * 
      * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getErrorMessagesForVolume(java
+     * .lang.String)
+     */
+    @Override
+    public List<String> getErrorMessagesForVolume(String nativeGuid) {
+        // for RP, we want to return the error messages List for the 
+        // main UnManagedVolume, whose status would be returned to the user
+        return getErrorMessages();
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#getProcessedVolumeContext(java
      * .lang.String)
      */

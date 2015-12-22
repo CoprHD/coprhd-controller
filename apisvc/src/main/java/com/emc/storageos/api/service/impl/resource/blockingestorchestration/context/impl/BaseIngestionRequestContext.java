@@ -437,6 +437,26 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     /*
      * (non-Javadoc)
      * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getErrorMessagesForVolume(java
+     * .lang.String)
+     */
+    @Override
+    public List<String> getErrorMessagesForVolume(String nativeGuid) {
+        if (getVolumeContext(nativeGuid) != null) {
+            return getVolumeContext(nativeGuid).getErrorMessages();
+        }
+
+        // log a warning, but still return an empty List to avoid potential null pointers.
+        // the list will not be attached to the given native GUID in any way and will probably
+        // be dereferenced without ever being used to generate an error message.
+        _logger.warn("no unmanaged volume context was found for native GUID {}. returning an empty list.", nativeGuid);
+        return new ArrayList<String>();
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsIngestedByExportProcessing()
      */
     @Override

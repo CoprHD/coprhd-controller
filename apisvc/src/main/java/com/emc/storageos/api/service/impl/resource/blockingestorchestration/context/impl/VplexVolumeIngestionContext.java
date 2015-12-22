@@ -542,6 +542,20 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     /*
      * (non-Javadoc)
      * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getErrorMessagesForVolume(java
+     * .lang.String)
+     */
+    @Override
+    public List<String> getErrorMessagesForVolume(String nativeGuid) {
+        // for VPLEX, we want to return the error messages List for the 
+        // main UnManagedVolume, whose status would be returned to the user
+        return getErrorMessages();
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IIngestionRequestContext#
      * getObjectsIngestedByExportProcessing()
      */

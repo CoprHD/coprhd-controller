@@ -218,6 +218,15 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public VolumeIngestionContext getProcessedVolumeContext(String nativeGuid);
 
     /**
+     * Returns the error messages collection for the given nativeGuid,
+     * or an empty List of Strings if none was found.
+     * 
+     * @param nativeGuid the UnManagedVolume to check
+     * @return a List of error messages for the given UnManagedVolume native GUID
+     */
+    public List<String> getErrorMessagesForVolume(String nativeGuid);
+
+    /**
      * Returns a List of BlockObjects that were completely ingested at
      * the end of Export Mask ingestion.
      * 

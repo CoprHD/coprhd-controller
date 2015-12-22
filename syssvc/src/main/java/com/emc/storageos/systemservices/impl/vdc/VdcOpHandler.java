@@ -539,7 +539,12 @@ public abstract class VdcOpHandler {
                 // Update site state
                 if (site.getState().equals(SiteState.ACTIVE_SWITCHING_OVER)) {
                     log.info("This is switchover acitve site (old acitve)");
+                    
+                    //stop related service to avoid accepting any provisioning operation
+                    localRepository.stop("vasa");
+                    localRepository.stop("sa");
                     localRepository.stop("controller");
+                    
                     updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
                 } else if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
                     log.info("This is switchover standby site (new active)");
@@ -663,7 +668,7 @@ public abstract class VdcOpHandler {
         }
         
         private void waitForAllNodesAndReboot(Site site) throws Exception {
-            coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
+            coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
             
             log.info("Wait for barrier to reboot cluster");
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, FAILOVER_BARRIER_TIMEOUT, site.getNodeCount(), true);

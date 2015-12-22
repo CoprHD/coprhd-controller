@@ -284,7 +284,7 @@ public class SRDFUtils implements SmisConstants {
     }
     
     /**
-     * Gets associated ViPR volumes based in the SRDF group
+     * Gets associated ViPR volumes based on the SRDF group
      * 
      * @param system The provider system to collect synchronization instances from.
      * @param target The subject of the association query.

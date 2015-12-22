@@ -340,6 +340,15 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
     }
 
+    /**
+     * This method creates steps to add non CG SRDF Active mode volumes in the RDF group.
+     * 
+     * @param workflow Reference to Workflow
+     * @param waitFor String waitFor of previous step, we wait on this to complete
+     * @param sourceDescriptors list of source volume descriptors
+     * @param targetDescriptors list of target volume descriptors
+     * @param uriVolumeMap map of volume URI to volume object
+     */
     protected void createNonCGSRDFActiveModeVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> sourceDescriptors,
             List<VolumeDescriptor> targetDescriptors, Map<URI, Volume> uriVolumeMap) {
         RemoteDirectorGroup group = getRAGroup(targetDescriptors, uriVolumeMap);
@@ -387,6 +396,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         refreshVolumeProperties(targetDescriptors, targetSystem, waitFor, workflow);
     }
 
+    /**
+     * This method is used to clean resources in case of failures.
+     * 
+     * @param sourceDescriptors list of source volume descriptors
+     * @param targetDescriptors list of target volume descriptors
+     */
     private void clearSourceAndTargetVolumes(List<VolumeDescriptor> sourceDescriptors,
             List<VolumeDescriptor> targetDescriptors) {
         List<URI> sourceURIs = VolumeDescriptor.getVolumeURIs(sourceDescriptors);
@@ -888,7 +903,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             system.getSystemType(), getClass(), detachMethod, null, null);
                     waitFor = detachStep;
                     if(activeMode){
-                        // We need fill up necessary data to be able to call Resume once on the SRDF
+                        // We need to fill up necessary maps to be able to call Resume once on the SRDF
                         // group when all the requested volumes are removed from the SRDF group.
                         URI groupId = group.getId();
                         srdfGroupMap.put(groupId, group);
@@ -1070,11 +1085,30 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
+    /**
+     * Returns a Workflow.Method for resuming SRDF group
+     * 
+     * @param systemURI Reference to storage system URI
+     * @param group Reference to RemoteDirectorGroup which represents SRDF group.
+     * @param sourceVolumes List of source volumes URI
+     * @param targetVolumes List of target volumes URI
+     * @return workflow Method
+     */
     public Method resumeSRDFGroupMethod(final URI systemURI, final RemoteDirectorGroup group, final List<URI> sourceVolumes,
             final List<URI> targetVolumes) {
         return new Workflow.Method(RESUME_SRDF_GROUP_METHOD, systemURI, group, sourceVolumes, targetVolumes);
     }
 
+    /**
+     * Method to resume SRDF group called a workflow step.
+     * 
+     * @param systemURI Reference to storage system URI
+     * @param group Reference to RemoteDirectorGroup which represents SRDF group.
+     * @param sourceVolumes List of source volumes URI
+     * @param targetVolumes List of target volumes URI
+     * @param opId The stepId used for completion
+     * @return true if resume is successful else false
+     */
     public boolean resumeSrdfGroupStep(final URI systemURI, final RemoteDirectorGroup group, final List<URI> sourceVolumes,
             final List<URI> targetVolumes, String opId) {
         log.info("START Resume SRDF group {} for {}", group.getLabel(), systemURI);
@@ -1107,11 +1141,30 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
+    /**
+     * Returns a Workflow.Method for suspending SRDF group
+     * 
+     * @param systemURI Reference to storage system URI
+     * @param group Reference to RemoteDirectorGroup which represents SRDF group.
+     * @param sourceVolumes List of source volumes URI
+     * @param targetVolumes List of target volumes URI
+     * @return workflow Method
+     */
     public Method suspendSRDFGroupMethod(final URI systemURI, final RemoteDirectorGroup group, final List<URI> sourceVolumes,
             final List<URI> targetVolumes) {
         return new Workflow.Method(SUSPEND_SRDF_GROUP_METHOD, systemURI, group, sourceVolumes, targetVolumes);
     }
 
+    /**
+     * Method to suspend SRDF group called a workflow step.
+     * 
+     * @param systemURI Reference to storage system URI
+     * @param group Reference to RemoteDirectorGroup which represents SRDF group.
+     * @param sourceVolumes List of source volumes URI
+     * @param targetVolumes List of target volumes URI
+     * @param opId The stepId used for completion.
+     * @return true if suspend is successful else false
+     */
     public boolean suspendSrdfGroupStep(final URI systemURI, final RemoteDirectorGroup group, final List<URI> sourceVolumes,
             final List<URI> targetVolumes, String opId) {
         log.info("START Suspend SRDF group {} for {}", group.getLabel(), systemURI);
@@ -1258,10 +1311,25 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
+    /**
+     * Returns a Workflow.Method for updating volume properties.
+     * 
+     * @param volumeURIs List of volume URIs
+     * @param systemURI Reference to storage system URI
+     * @return Workflow.Method
+     */
     private Workflow.Method updateVolumePropertiesMethod(List<URI> volumeURIs, URI systemURI) {
         return new Workflow.Method(UPDATE_VOLUME_PROEPERTIES_METHOD, volumeURIs, systemURI);
     }
 
+    /**
+     * Method to suspend update volume properties called a workflow step.
+     * 
+     * @param volumeURIs List of volume URIs
+     * @param systemURI Reference to storage system URI
+     * @param opId The stepId used for completion.
+     * @return true if update is successful else false
+     */
     public boolean updateVolumeProperties(List<URI> volumeURIs, URI systemURI, String opId) {
         log.info("Update volume properties...");
         try {
@@ -1308,6 +1376,18 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
+    /**
+     * This method creates steps to create SRDF pairs in an empty SRDF group.
+     * 
+     * @param sourceDescriptors list of source volume descriptors
+     * @param targetDescriptors list of target volume descriptors
+     * @param group reference to RemoteDirectorGroup
+     * @param uriVolumeMap map of volume URI to volume object
+     * @param waitFor String waitFor of previous step, we wait on this to complete
+     * @param workflow Reference to Workflow
+     * @return stepId
+     **/
+
     private String createNonCGSrdfPairStepsOnEmptyGroup(List<VolumeDescriptor> sourceDescriptors,
             List<VolumeDescriptor> targetDescriptors, RemoteDirectorGroup group, Map<URI, Volume> uriVolumeMap,
             String waitFor, Workflow workflow) {
@@ -1342,6 +1422,17 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
     }
     
+    /**
+     * This method creates steps to create SRDF pairs in a populated SRDF group.
+     * 
+     * @param sourceDescriptors list of source volume descriptors
+     * @param targetDescriptors list of target volume descriptors
+     * @param group reference to RemoteDirectorGroup
+     * @param uriVolumeMap map of volume URI to volume object
+     * @param waitFor String waitFor of previous step, we wait on this to complete
+     * @param workflow Reference to Workflow
+     * @return stepId
+     **/
     private String createNonCGSrdfPairStepsOnPopulatedGroup(List<VolumeDescriptor> sourceDescriptors,
             List<VolumeDescriptor> targetDescriptors, RemoteDirectorGroup group, Map<URI, Volume> uriVolumeMap,
             String waitFor, Workflow workflow) {
@@ -1394,6 +1485,15 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return waitFor;
     }
 
+    /**
+     * This method creates step to refresh volume properties.
+     * 
+     * @param volumeDescriptors List of volume descriptors
+     * @param system reference to storage system
+     * @param waitFor String waitFor of previous step, we wait on this to complete
+     * @param workflow Reference to Workflow
+     * @return stepId
+     */
     private String refreshVolumeProperties(List<VolumeDescriptor> volumeDescriptors, StorageSystem system,
             String waitFor, Workflow workflow) {
 

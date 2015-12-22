@@ -266,7 +266,6 @@ public class ImplicitPoolMatcher {
      */
     private static void updateInvalidAndMatchedPoolsForVpool(VirtualPool vpool, List<StoragePool> matchedPools,
             List<StoragePool> storagePools, DbClient dbClient) {
-        boolean isScheduleSnapCapable = false;
         URI currentVpoolId = vpool.getId();
         StringSet newMatchedPools = new StringSet();
         StringSet newInvalidPools = new StringSet();
@@ -314,17 +313,12 @@ public class ImplicitPoolMatcher {
                     newInvalidPools.add(poolIdStr);
                 }
             }
-
-            if (pool.getSupportedCopyTypes().contains("CHECKPOINT_SCHEDULE_CAPABLE")) {
-                isScheduleSnapCapable = true;
-            }
         }
         _logger.info(MessageFormatter.arrayFormat(
                 "Updating VPool {} with Matched Pools:{}, Invalid pools:{}", new Object[] { vpool.getId(),
                         newMatchedPools.size(), newInvalidPools.size() }).getMessage());
         vpool.addMatchedStoragePools(newMatchedPools);
         vpool.addInvalidMatchedPools(newInvalidPools);
-        vpool.setSupportSnapshotSchedule(isScheduleSnapCapable);
     }
 
     /**

@@ -12,44 +12,62 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import com.emc.storageos.model.BulkIdParam;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
-import com.emc.storageos.api.mapper.functions.MapFileVirtualPool;
 import com.emc.storageos.api.mapper.VirtualPoolMapper;
+import com.emc.storageos.api.mapper.functions.MapFileVirtualPool;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
-import com.emc.storageos.model.vpool.*;
+import com.emc.storageos.model.vpool.CapacityResponse;
+import com.emc.storageos.model.vpool.FileVirtualPoolBulkRep;
+import com.emc.storageos.model.vpool.FileVirtualPoolParam;
+import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
+import com.emc.storageos.model.vpool.FileVirtualPoolUpdateParam;
+import com.emc.storageos.model.vpool.VirtualPoolList;
+import com.emc.storageos.model.vpool.VirtualPoolPoolUpdateParam;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.base.Function;
 
 @Path("/file/vpools")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
@@ -87,6 +105,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
         if (null != cos.getMatchedStoragePools() || null != cos.getInvalidMatchedPools()) {
             ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedFileSystems(cos,
                     _dbClient);
+            setVpoolSnapshotScheduleCapability(cos, false);
         }
         _dbClient.createObject(cos);
 
@@ -316,6 +335,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
         if (null != cos.getMatchedStoragePools() || null != cos.getInvalidMatchedPools()) {
             ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedFileSystems(cos,
                     _dbClient);
+            setVpoolSnapshotScheduleCapability(cos, false);
         }
 
         _dbClient.updateAndReindexObject(cos);
@@ -339,7 +359,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public FileVirtualPoolRestRep updateFileVirtualPoolWithAssignedPools(@PathParam("id") URI id,
             VirtualPoolPoolUpdateParam param) {
-        return toFileVirtualPool(updateVirtualPoolWithAssignedStoragePools(id, param));
+        VirtualPool virtualPool = updateVirtualPoolWithAssignedStoragePools(id, param);
+        setVpoolSnapshotScheduleCapability(virtualPool, true);
+        return toFileVirtualPool(virtualPool);
     }
 
     /**
@@ -562,6 +584,32 @@ public class FileVirtualPoolService extends VirtualPoolService {
         }
         return isModified;
 
+    }
+
+    /**
+     * Convenience method to set snapshot schedule capability if the Virtual Pool supports schedule snapshots
+     * 
+     * @param virtualPool
+     *            Virtual Pool
+     * @param userAssigned
+     *            User Assigned storage pools to virtual pool
+     */
+    public void setVpoolSnapshotScheduleCapability(VirtualPool virtualPool, boolean userAssigned) {
+        boolean supportSnapshotSchedule = false;
+        StringSet matchedPools = new StringSet();
+        if (userAssigned) {
+            matchedPools = virtualPool.getAssignedStoragePools();
+        } else {
+            matchedPools = virtualPool.getMatchedStoragePools();
+        }
+        for (String matchedPool : matchedPools) {
+            StoragePool storagePool = _permissionsHelper.getObjectById(URI.create(matchedPool), StoragePool.class);
+            if (null != storagePool && storagePool.getSupportedCopyTypes().contains("checkpoint_schedule")) {
+                supportSnapshotSchedule = true;
+                break;
+            }
+        }
+        virtualPool.setSupportSnapshotSchedule(supportSnapshotSchedule);
     }
 
 }

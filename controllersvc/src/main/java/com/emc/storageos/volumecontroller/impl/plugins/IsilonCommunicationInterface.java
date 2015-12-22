@@ -121,6 +121,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final Long KB_IN_BYTES = 1024L;
     private static final String ONEFS_V8 = "8.0.0.0";
     private static final String ONEFS_V7_2 = "7.2.0.0";
+    private static final String CHECKPOINT_SCHEDULE = "checkpoint_schedule";
 
     private IsilonApiFactory _factory;
 
@@ -979,12 +980,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 // Add the Copy type ScheduleSnapshot, if the Isilon is enabled with SnapshotIQ
                 StringSet copyTypesSupported = new StringSet();
                 if (snapScheduleServiceEnabled) {
-                    copyTypesSupported.add("CHECKPOINT_SCHEDULE_CAPABLE");
+                    copyTypesSupported.add(CHECKPOINT_SCHEDULE);
                     storagePool.setSupportedCopyTypes(copyTypesSupported);
                 } else {
                     if (storagePool.getSupportedCopyTypes() != null &&
-                            !storagePool.getSupportedCopyTypes().contains("CHECKPOINT_SCHEDULE_CAPABLE")) {
-                        storagePool.getSupportedCopyTypes().remove("CHECKPOINT_SCHEDULE_CAPABLE");
+                            !storagePool.getSupportedCopyTypes().contains(CHECKPOINT_SCHEDULE)) {
+                        storagePool.getSupportedCopyTypes().remove(CHECKPOINT_SCHEDULE);
                     }
                 }
 

@@ -1335,20 +1335,6 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         setChanged("maxRetention");
     }
 
-    /**
-     * Convenience method to determine if the Virtual Pool supports schedule snapshots
-     * 
-     * @param virtualPool
-     *            Virtual Pool
-     * @return true if supports schedule snapshots
-     */
-    public static boolean vPoolSupportScheduleSnapshots(final VirtualPool virtualPool) {
-        if (virtualPool.getMaxNativeSnapshots() == null) {
-            return false;
-        }
-        return virtualPool.getMaxNativeSnapshots() != MAX_DISABLED;
-    }
-
     @Name("supportSnapshotSchedule")
     public Boolean getSupportSnapshotSchedule() {
         return supportSnapshotSchedule;

@@ -331,7 +331,7 @@ public class QosService extends TaskResourceService {
         _log.debug("Fetching data from Qos Specification, id: {}" + qosSpecs.getId());
         CinderQosAssociation cinderQosAssociation = new CinderQosAssociation();
         cinderQosAssociation.name = qosSpecs.getLabel();
-        cinderQosAssociation.id = getCinderHelper().trimId(qosSpecs.getVirtualPoolId().toString());
+        cinderQosAssociation.id = qosSpecs.getVirtualPoolId().toString();
         cinderQosAssociation.association_type = "volume_type";
         return cinderQosAssociation;
     }

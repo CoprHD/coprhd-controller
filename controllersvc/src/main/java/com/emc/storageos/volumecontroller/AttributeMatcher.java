@@ -42,6 +42,8 @@ public abstract class AttributeMatcher {
 
     public static final String BASIC_PLACEMENT_MATCHERS = "basicPlacementMatchers";
 
+    public static final String CONNECTIVITY_PLACEMENT_MATCHERS = "connectivityMatchers";
+
     public static enum Attributes {
         vpool_type,
         varrays,

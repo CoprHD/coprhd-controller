@@ -50,7 +50,13 @@
         <ref bean="neighborhoodsMatcher" />
         <ref bean="storageSystemMatcher" />
     </util:list>
-    
+
+
+	<util:list id="connectivityMatchers">
+		<ref bean="numPathsMatcher" />
+	</util:list>
+
+
     <bean id="portMetricsProcessor" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>

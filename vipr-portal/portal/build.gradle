@@ -141,11 +141,62 @@ playPrepare.dependsOn(unpackWebjars)
 
 clean.dependsOn('cleanUnpackWebjars')
 
-task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare]) {
-    compress = true
-    sourceFile file("public/stylesheets/main.less")
-    destinationFile file("${play.compileDir}/public/stylesheets/main.css")
+/**
+ * Before the compileCss step takes place, we want OSS builds to replace 
+ * the import of the emc theme with the coprhd theme in the less file
+ */
+task transformMainDotLess(type: Copy) {
+    outputs.upToDateWhen { false }
+    from file('public/stylesheets/')
+    into file('public/stylesheets/')
+    include ('main.less')
+    rename ('main.less', 'transformed-main.less')
+
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+        println("Using CoprHD CSS theme")
+        // replace the import of the emc them with the import of the coprhd theme
+        filter { String line ->
+            line.contains('bootstrap-emc-theme.less') ? '@import "bootstrap-coprhd-theme.less";' : line
+        }
+    } else {
+        println("Using ViPR CSS theme")
+    }
 }
+
+task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare, transformMainDotLess]) {
+    // use the transient less file created by the transformMainDotLess task as input to the CSS compiler
+    def input = "public/stylesheets/transformed-main.less"
+    String output = "${play.compileDir}/public/stylesheets/main.css"
+    inputs.files input
+    outputs.files output
+    compress = true
+    sourceFile file(input)
+    destinationFile file(output)
+}
+
+/**
+ * As part of the portal compile phase, in OSS builds we want to append some "override" messages
+ * onto the end of the default Play messages file so ViPR can be replaced with CoprHD. This is a 
+ * bit ugly because the resulting file ends up with some duplicate keys, but the CoprHD ones
+ * at the end override the ViPR ones at the beginning.
+ */
+task transformMessagesContent(dependsOn: 'playCompile') << {
+    def messagesBuildPath = "${play.compileDir}/conf/messages"
+    def defaultMessages = 'conf/messages'
+    def coprhdMessages = 'conf/messages.coprhd'
+
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+        println("Using " + coprhdMessages + " content in " + messagesBuildPath)
+        // use the default ViPR messages content but append CoprHD-specific overrides
+        (file(messagesBuildPath)).text = file(defaultMessages).getText() + file(coprhdMessages).getText()
+    } else {
+        println("Using only " + defaultMessages + " content in " + messagesBuildPath)
+        // use the default ViPR messages content only
+        (file(messagesBuildPath)).text = file(defaultMessages).getText() 
+    }
+}
+
+compile.dependsOn(transformMessagesContent)
 playCompile.dependsOn(compileCss)
 
 task copyTools(type: Copy) {
@@ -154,6 +205,7 @@ task copyTools(type: Copy) {
 }
 tasks['eclipse'].dependsOn(copyTools, unpackWebjars)
 tasks['idea'].dependsOn(copyTools, unpackWebjars)
+
 
 void rebase(String[] base, FileCopyDetails details) {
     def oldPath = details.relativePath.toString()

@@ -39,9 +39,9 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
     @Override
     public <T extends BlockObject> void ingestExportMasks(UnManagedVolume unManagedVolume,
             List<UnManagedExportMask> unManagedMasks, VolumeExportIngestParam param, ExportGroup exportGroup, T volume,
-            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount, 
-            List<Initiator> deviceInitiators, List<String> errorMessages ) throws IngestionException {
-        super.ingestExportMasks(unManagedVolume, unManagedMasks, param, exportGroup, 
+            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount,
+            List<Initiator> deviceInitiators, List<String> errorMessages) throws IngestionException {
+        super.ingestExportMasks(unManagedVolume, unManagedMasks, param, exportGroup,
                 volume, system, exportGroupCreated, masksIngestedCount, deviceInitiators, errorMessages);
     }
 
@@ -54,7 +54,9 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
         if (null != maskUris && !maskUris.isEmpty()) {
             for (URI maskUri : maskUris) {
                 exportMask = dbClient.queryObject(ExportMask.class, maskUri);
-                if (null != exportMask) {
+                // COP-18184 : Check if the initiators are also matching
+                if (null != exportMask && exportMask.getInitiators() != null
+                        && exportMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
                     return exportMask;
                 }
             }

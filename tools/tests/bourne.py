@@ -3757,7 +3757,7 @@ class Bourne:
            m = sync['message']
         return (o, s, m)
 
-    def volume_multi_delete(self, uris, wait, vipronly):
+    def volume_multi_delete(self, uris, wait, vipronly, force):
         params = {}
         ids = []
         if (type(uris) is list):
@@ -3771,6 +3771,10 @@ class Bourne:
         posturi = URI_VOLUMES_DEACTIVATE
         if (vipronly):
             posturi = posturi + '?type=VIPR_ONLY'
+            if (force):
+               posturi = posturi + '&force=TRUE'
+        elif (force):
+            posturi = posturi + '?force=TRUE'
         o = self.api('POST', posturi, params)
         if (wait):
             self.assert_is_dict(o)

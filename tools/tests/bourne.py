@@ -3738,12 +3738,17 @@ class Bourne:
         print 'ERROR: Volume field FAILED Verfication: ' + field + ' IS: ' + foundValue + ', SHOULD BE: ' + value;
         return -1;
 
-    def volume_delete(self, uri, wait, vipronly):
+    def volume_delete(self, uri, wait, vipronly, force):
         s = ""
         m = ""
         posturi = URI_RESOURCE_DEACTIVATE.format(URI_VOLUME.format(uri))
         if (vipronly):
             posturi = posturi + '?type=VIPR_ONLY'
+            if (force):
+               posturi = posturi + '&force=TRUE'
+        elif (force):
+            posturi = posturi + '?force=TRUE'
+
         o = self.api('POST', posturi)
         if (wait):
            self.assert_is_dict(o)

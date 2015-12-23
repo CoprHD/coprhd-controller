@@ -76,7 +76,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     public RecoverPointVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient,
             IngestionRequestContext parentRequestContext) {
         super(unManagedVolume, dbClient);
-        this._parentRequestContext = parentRequestContext;
+        _parentRequestContext = parentRequestContext;
     }
 
     /**

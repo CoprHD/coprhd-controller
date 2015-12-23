@@ -82,7 +82,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     public VplexVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient, IngestionRequestContext parentRequestContext) {
         super(unManagedVolume, dbClient);
-        this._parentRequestContext = parentRequestContext;
+        _parentRequestContext = parentRequestContext;
     }
 
     /*

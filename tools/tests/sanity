@@ -2473,6 +2473,39 @@ recoverpoint_auto_snapshot_cleanup_test()
     fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${src_varray}
 }
 
+recoverpoint_ingest_host_setup()
+{
+    vpool=${1}
+
+    if [ "${vpool}" = "rp_cdp" ]; then
+	PWWN1=10:00:00:E0:E0:E0:E0:E0
+	WWNN1=20:00:00:E0:E0:E0:E0:E0
+	PWWN2=10:00:00:E0:E0:E0:E0:E1
+	WWNN2=20:00:00:E0:E0:E0:E0:E1
+	RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}cdp
+    elif [ "${vpool}" = "rp_crr" ]; then
+	PWWN1=10:00:00:E0:E0:E0:E0:F0
+	WWNN1=20:00:00:E0:E0:E0:E0:F0
+	PWWN2=10:00:00:E0:E0:E0:E0:F1
+	WWNN2=20:00:00:E0:E0:E0:E0:F1
+	RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}crr
+    elif [ "${vpool}" = "rp_clr" ]; then
+	PWWN1=10:00:00:E0:E0:E0:E0:D0
+	WWNN1=20:00:00:E0:E0:E0:E0:D0
+	PWWN2=10:00:00:E0:E0:E0:E0:D1
+	WWNN2=20:00:00:E0:E0:E0:E0:D1
+	RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}clr
+    fi
+
+    run hosts create ${RP_HOSTNAME} $TENANT Windows ${RP_HOSTNAME} --port 8111 --username user --password 'password' --osversion 1.0 
+
+    run initiator create ${RP_HOSTNAME} FC ${PWWN1} --node ${WWNN1}
+    run initiator create ${RP_HOSTNAME} FC ${PWWN2} --node ${WWNN2}
+
+    run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN1}
+    run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN2}
+}
+
 recoverpoint_ingest_setup()
 {
     echo '*** RP ingest setup ***'
@@ -2553,11 +2586,18 @@ recoverpoint_ingest_test()
 	RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_V1TGT}
 	RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY3}
     fi
-
+    
     rpsnap=rpsnap_for_validation-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     if [ "${vpool}" = "rp${vplextag}_cdp" ]; then
 	# Make sure it fails against a different sync policy than what's on the RPA
 	fail unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp-sync $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+
+        # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
+        # Recreate unmanaged volumes/protection sets
+	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
@@ -2603,10 +2643,20 @@ recoverpoint_ingest_test()
 
     # Re-ingest
     if [ "${vpool}" = "rp${vplextag}_cdp" ]; then
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+        # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
+	#run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
+	#/opt/storageos/bin/dbutils list Volume > /tmp/vol1.txt
+	#volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_TGT}" --vipronly --force
+	#/opt/storageos/bin/dbutils list Volume > /tmp/vol2.txt
+        # Recreate unmanaged volumes/protection sets
+	#run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	#run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+	#/opt/storageos/bin/dbutils list Volume > /tmp/vol3.txt
+
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 	recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY}
     elif [ "${vpool}" = "rp${vplextag}_crr" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
@@ -2633,14 +2683,23 @@ recoverpoint_ingest_primer()
     vpool=${1}
 
     # In order to be able to ingest RP CGs, you need RP CGs to exist out there already.
-    # This method will create those CGs.  For now, it's likely you'll run this, then
-    # kill off your DB and run the ingest test
+    # This method will create those CGs.
     RECOVERPOINT_INGEST_VOL1_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}${RP_SANITY_RANDOM}_${vpool}
     RECOVERPOINT_INGEST_VOLBASE=${RECOVERPOINT_INGEST_VOL1BASE}${RP_SANITY_RANDOM}
     RECOVERPOINT_INGEST_VOL1_SRC=${RECOVERPOINT_INGEST_VOLBASE}_${vpool}
     run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_CG}
     run volume create ${RECOVERPOINT_INGEST_VOL1_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_CG}
     volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} --vipronly
+
+    # Create a volume and mount it to the host
+    #recoverpoint_ingest_host_setup ${vpool}
+    #RECOVERPOINT_INGEST_VOL1_HOST_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}_${vpool}
+    #RECOVERPOINT_INGEST_VOL1_HOST_SRC=${RECOVERPOINT_INGEST_VOL1BASE}_${vpool}
+    #run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_HOST_CG}
+    #run volume create ${RECOVERPOINT_INGEST_VOL1_HOST_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_HOST_CG}
+    #run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC} --hosts ${RP_HOSTNAME}
+    #volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC} --vipronly
+    #exit;
 }
 
 recoverpoint_failover_test()

@@ -1934,7 +1934,7 @@ public class VolumeIngestionUtil {
      * be what the caller wants.
      * 
      * @param project project
-     * @param knownInitiatorUris initiator list
+     * @param knownInitiatorUris initiators list
      * @param vArray virtual array
      * @param dbClient dbclient
      * @return export group

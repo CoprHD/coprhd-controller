@@ -475,7 +475,7 @@ class VirtualPool(object):
                      multivolconsistency, autotierpolicynames,
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
-                     thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport):
+                     thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport, mindatacenters):
         '''
         This is the function will create the VPOOL with given name and type.
         It will send REST API request to ViPR instance.
@@ -537,6 +537,8 @@ class VirtualPool(object):
         
             if(maxretention is not None):
                 parms['max_retention'] = maxretention
+            if(mindatacenters is not None):
+                parms['min_datacenters'] = mindatacenters
 
         if(vpooltype == 'file'):
             # max snapshot for file protection
@@ -705,7 +707,7 @@ class VirtualPool(object):
             expandable, autotierpolicynames, ha, fastpolicy, minpaths,
             maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
-            thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport):
+            thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport, mindatacenters):
         '''
         This is the function will update the VPOOL.
         It will send REST API request to ViPR instance.
@@ -859,6 +861,10 @@ class VirtualPool(object):
         
         if(longtermretention == "true" and vpooltype == "file"):
             parms["long_term_retention"] = longtermretention
+        
+        if(mindatacenters is not None and vpooltype == "object"):
+            parms["min_datacenters"] = mindatacenters
+            
 
         if(expandable):
             vpool = self.vpool_show_uri(vpooltype, vpooluri)
@@ -1009,6 +1015,11 @@ def create_parser(subcommand_parsers, common_parser):
                                help='Maximum retention period',
                                metavar='<max_retention>',
                                dest='maxretention')
+    create_parser.add_argument('-mindatacenters', '-mndcs',
+                               help='Minimum Number of DataCenters',
+                               metavar='<min_datacemters>',
+                               type=int,
+                               dest='mindatacenters')
     create_parser.add_argument('-longtermretention', '-ltrtn',
                                help='Lomg term retention',
                                metavar='<long_term_retention>',
@@ -1193,7 +1204,8 @@ def vpool_create(args):
                                args.thinpreallocper,
                                args.frontendbandwidth,
                                args.iopersec,
-                               args.autoCrossConnectExport)
+                               args.autoCrossConnectExport,
+                               args.mindatacenters)
     except SOSError as e:
         if (e.err_code == SOSError.VALUE_ERR):
             raise SOSError(SOSError.VALUE_ERR, "VPool " + args.name +
@@ -1299,6 +1311,11 @@ def update_parser(subcommand_parsers, common_parser):
                                metavar='<multivolconsistency>',
                                dest='multivolconsistency',
                                choices=VirtualPool.BOOL_TYPE_LIST)
+    update_parser.add_argument('-mindatacenters', '-mndcs',
+                               help='Minimum Number of DataCenters',
+                               metavar='<min_datacemters>',
+                               type=int,
+                               dest='mindatacenters')
     update_parser.add_argument('-expandable', '-ex',
                                help='True/False Indicates if non disruptive ' +
                                'volume expansion should be supported',
@@ -1452,7 +1469,8 @@ def vpool_update(args):
                              args.thinpreallocper,
                              args.frontendbandwidth,
                              args.iopersec,
-                             args.autoCrossConnectExport)
+                             args.autoCrossConnectExport,
+                             args.mindatacenters)
         else:
             raise SOSError(SOSError.CMD_LINE_ERR,
                            "Please provide atleast one of parameters")

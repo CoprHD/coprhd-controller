@@ -81,13 +81,13 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      */
     public BaseIngestionRequestContext(DbClient dbClient, List<URI> unManagedVolumeUrisToProcess, VirtualPool vpool,
             VirtualArray virtualArray, Project project, TenantOrg tenant, String vplexIngestionMethod) {
-        this._dbClient = dbClient;
-        this._unManagedVolumeUrisToProcessIterator = unManagedVolumeUrisToProcess.iterator();
-        this._vpool = vpool;
-        this._virtualArray = virtualArray;
-        this._project = project;
-        this._tenant = tenant;
-        this._vplexIngestionMethod = vplexIngestionMethod;
+        _dbClient = dbClient;
+        _unManagedVolumeUrisToProcessIterator = unManagedVolumeUrisToProcess.iterator();
+        _vpool = vpool;
+        _virtualArray = virtualArray;
+        _project = project;
+        _tenant = tenant;
+        _vplexIngestionMethod = vplexIngestionMethod;
     }
 
     /*

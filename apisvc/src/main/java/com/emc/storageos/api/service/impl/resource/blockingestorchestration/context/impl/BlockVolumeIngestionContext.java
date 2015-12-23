@@ -29,8 +29,8 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
      * @param dbClient a reference to the database client
      */
     public BlockVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient) {
-        this._unManagedVolume = unManagedVolume;
-        this._dbClient = dbClient;
+        _unManagedVolume = unManagedVolume;
+        _dbClient = dbClient;
     }
 
     /*

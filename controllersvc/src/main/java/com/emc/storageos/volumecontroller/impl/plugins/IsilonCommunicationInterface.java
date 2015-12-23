@@ -821,11 +821,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private void setStoragePortsForNASServer(List<IsilonNetworkPool> isilonNetworkPools,
     		StorageSystem storageSystem, NASServer nasServer) {
     	
-    	StringSet storagePorts = null;
+    	StringSet storagePorts = new StringSet();
     	
         if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
             
-            storagePorts = new StringSet();
             for (IsilonNetworkPool isiNetworkPool : isilonNetworkPools) {
                 StoragePort storagePort = findStoragePortByNativeId(storageSystem,
                         isiNetworkPool.getSc_dns_zone());
@@ -847,7 +846,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         	}
         }
         
-        _log.info("Storage ports for vNAS {} : {}", nasServer.getNasName(), storagePorts);
+        _log.info("Setting storage ports for vNAS [{}] : {}", nasServer.getNasName(), storagePorts);
         nasServer.setStoragePorts(storagePorts);
     }
 

@@ -101,6 +101,8 @@ public class DbServiceStatusChecker {
             throw new IllegalStateException("node count not set");
         }
 
+        log.info("Check if all nodes are in state {}", state);
+
         List<Configuration> configs = coordinator.queryAllConfiguration(coordinator.getSiteId(), 
                 coordinator.getVersionedDbConfigPath(svcName, getDbsvcVersion(isVersioned)));
         
@@ -115,6 +117,11 @@ public class DbServiceStatusChecker {
                 qualifiedConfigs.add(config.getId());
             }
         }
+
+        if (qualifiedConfigs.size() != clusterNodeCount) {
+            log.info("nodes in state are {}", state, qualifiedConfigs);
+        }
+
         return (qualifiedConfigs.size() == clusterNodeCount);
     }
 

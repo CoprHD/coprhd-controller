@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.NoInactiveIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -840,20 +842,24 @@ public class ColumnField {
     void check() {
         Method method = _property.getReadMethod();
         Annotation[] annotations = method.getAnnotations();
+        String errMsgHeaderFmt = "The method %s.%s() has @%s but:";
+        String errMsgHeader;
+        String errMsg = null;
+        Annotation inValidAnnotation = null;
         for (Annotation a : annotations) {
-            boolean foundError = false;
+            errMsgHeader = String.format(errMsgHeaderFmt,
+                    _parentType.getDataObjectClass().getName(), method.getName(), a.annotationType().getName());
+
             if (a instanceof IndexByKey) {
-                String errMsgHeader = String.format("The method %s.%s() has @IndexByKey but:",
-                        _parentType.getDataObjectClass().getName(), method.getName());
-
-                String errMsg = errMsgHeader;
-
                 if (_index == null) {
-                    errMsg += "\nwithout an index annotation";
+                    inValidAnnotation = a;
+
+                    StringBuilder builder = new StringBuilder(errMsgHeader);
+                    builder.append("\nwithout an index annotation");
+
+                    errMsg = builder.toString();
 
                     _log.error(errMsg);
-
-                    foundError = true;
                 }
 
                 if (!AbstractChangeTrackingMap.class.isAssignableFrom(_valueType) &&
@@ -862,10 +868,36 @@ public class ColumnField {
                     String warnMsg = errMsgHeader + "\nThe return type should be subclass of AbstractChangeTrackingMap/Set";
                     _log.warn(warnMsg);
                 }
+            }else if (a instanceof NamedRelationIndex) {
+                NamedRelationIndex index = (NamedRelationIndex)a;
+                Class<? extends DataObject> clazz = index.type();
+                Class<? extends DataObject> parentClass = _parentType.getDataObjectClass();
 
-                if (foundError) {
-                    throw DatabaseException.fatals.invalidAnnotation("@IndexByKey", errMsg);
+                _log.info("lbyt parentClass={}", parentClass.getName());
+                if (clazz == DataObject.class) {
+                    _log.info("lbytt0");
+                    continue; //default value
                 }
+
+                if (parentClass == BlockSnapshotSession.class) {
+                    _log.info("lbytt");
+                    continue; //ignore for debug
+                }
+
+                Annotation ann = clazz.getAnnotation(Cf.class);
+                if (ann == null) {
+                    inValidAnnotation = index;
+
+                    StringBuilder builder = new StringBuilder(errMsgHeader);
+                    builder.append("\nThe 'type' attribute of the NamedRelationIndex references to a class ");
+                    builder.append(clazz.getName());
+                    builder.append(" without @Cf annotation");
+                    errMsg = builder.toString();
+                }
+            }
+
+            if (inValidAnnotation != null) {
+                throw DatabaseException.fatals.invalidAnnotation(inValidAnnotation.annotationType().getName(), errMsg);
             }
         }
     }

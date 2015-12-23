@@ -17,11 +17,15 @@ import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Global type map for all data object types
  */
 public class TypeMap {
+    private final static Logger log = LoggerFactory.getLogger(TypeMap.class);
+
     private static ConcurrentMap<Class<? extends DataObject>, DataObjectType> _typeMap =
             new ConcurrentHashMap<Class<? extends DataObject>, DataObjectType>();
     private static ConcurrentHashMap<Class<? extends TimeSeries>, TimeSeriesType> _timeSeriesMap =
@@ -244,9 +248,11 @@ public class TypeMap {
      * throws RuntimeException if error occurs.
      */
     public static void check() {
+        log.info("lby0");
         Iterator<DataObjectType> doIterator = _typeMap.values().iterator();
         while (doIterator.hasNext()) {
             DataObjectType doType = doIterator.next();
+            log.info("lby check {}", doType.getCF().getName());
             Iterator<ColumnField> columnIterator = doType.getColumnFields().iterator();
 
             while (columnIterator.hasNext()) {

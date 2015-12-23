@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -249,6 +251,23 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 if (null != volume && !volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)
                         && !volume.checkInternalFlags(Flag.INTERNAL_OBJECT) && !volume.checkInternalFlags(Flag.NO_METERING)) {
                     _logger.debug("Skipping discovery, as this Volume {} is already being managed by ViPR.",
+                            volumeNativeGuid);
+                    continue;
+                }
+
+                // The discovered volume could also be a BlockSnapshot or a BlockMirror so
+                // check for these as well.
+                BlockSnapshot snap = DiscoveryUtils.checkBlockSnapshotExistsInDB(_dbClient, volumeNativeGuid);
+                if (null != snap && !snap.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)
+                        && !snap.checkInternalFlags(Flag.INTERNAL_OBJECT) && !snap.checkInternalFlags(Flag.NO_METERING)) {
+                    _logger.debug("Skipping discovery, as this discovered volume {} is already a managed BlockSnapshot in ViPR.",
+                            volumeNativeGuid);
+                    continue;
+                }
+                BlockMirror mirror = checkBlockMirrorExistsInDB(volumeNativeGuid, _dbClient);
+                if (null != mirror && !mirror.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)
+                        && !mirror.checkInternalFlags(Flag.INTERNAL_OBJECT) && !mirror.checkInternalFlags(Flag.NO_METERING)) {
+                    _logger.debug("Skipping discovery, as this discovered volume {} is already a managed BlockMirror in ViPR.",
                             volumeNativeGuid);
                     continue;
                 }

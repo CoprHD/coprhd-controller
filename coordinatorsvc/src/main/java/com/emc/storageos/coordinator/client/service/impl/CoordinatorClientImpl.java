@@ -1464,7 +1464,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return getAllNodeInfos(clazz, nodeIdFilter, this.siteId);
     }
     
-    public <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
+    private <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
             Pattern nodeIdFilter, String siteId) throws Exception {
         final Map<Service, T> infos = new HashMap<Service, T>();
         List<Service> allSysSvcs = locateAllServices(siteId, sysSvcName, sysSvcVersion, (String) null, null);

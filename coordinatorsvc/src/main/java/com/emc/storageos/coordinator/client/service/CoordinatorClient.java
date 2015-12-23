@@ -489,7 +489,7 @@ public interface CoordinatorClient {
     public <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz) throws CoordinatorException;
 
     /**
-     * Get all Node Infos from local site.
+     * Get all Node Infos.
      * 
      * @param clazz
      * @param nodeIdFilter
@@ -498,18 +498,6 @@ public interface CoordinatorClient {
      */
     public <T extends CoordinatorSerializable> Map<Service,
             T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception;
-
-    /**
-     * Get all Node Infos from a specific site.
-     *
-     * @param clazz
-     * @param nodeIdFilter
-     * @param siteId
-     * @return
-     * @throws Exception
-     */
-    <T extends CoordinatorSerializable> Map<Service,
-            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter, String siteId) throws Exception;
 
     public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception;

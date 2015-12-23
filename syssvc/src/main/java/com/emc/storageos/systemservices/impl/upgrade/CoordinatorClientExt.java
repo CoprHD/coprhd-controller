@@ -548,11 +548,6 @@ public class CoordinatorClientExt {
         return _coordinator.getAllNodeInfos(clazz, nodeIdFilter);
     }
 
-    public <T extends CoordinatorSerializable> Map<Service,
-            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter, String siteId) throws Exception {
-        return _coordinator.getAllNodeInfos(clazz, nodeIdFilter, siteId);
-    }
-
     public <T extends CoordinatorSerializable> T getNodeInfo(String node, Class<T> clazz) throws CoordinatorClientException {
         try {
             T state = _coordinator.getNodeInfo(_svc,node,clazz);

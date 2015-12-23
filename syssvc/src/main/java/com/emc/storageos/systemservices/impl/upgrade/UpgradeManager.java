@@ -555,12 +555,8 @@ public class UpgradeManager extends AbstractManager {
      * @throws Exception
      */
     private String getAControlNodeInSync(RepositoryInfo targetRepository) throws Exception {
-        return getAControlNodeInSync(coordinator.getCoordinatorClient().getSiteId(), targetRepository);
-    }
-
-    private String getAControlNodeInSync(String siteId, RepositoryInfo targetRepository) throws Exception {
         final Map<Service, RepositoryInfo> localRepo = coordinator.getAllNodeInfos(RepositoryInfo.class,
-                CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
+                CONTROL_NODE_SYSSVC_ID_PATTERN);
         final List<SoftwareVersion> targetVersions = targetRepository.getVersions();
 
         List<String> candidates = new ArrayList<>();

@@ -20,7 +20,7 @@
     <keytable>us.map.gz</keytable>
     <timezone>US + Canada/Eastern Time</timezone>
     <hwclock>utc</hwclock>
-    <type image="vmx" filesystem="ext3" boot="vmxboot/suse-SLES12" primary="true" format="vmdk" bootloader="grub2" kernelcmdline="splash fips=1 boot=/dev/sda1">
+    <type image="vmx" filesystem="ext3" boot="vmxboot/suse-SLES12" primary="true" format="vmdk" bootloader="grub2" kernelcmdline="splash fips=0 boot=/dev/sda1">
       <systemdisk name="systemVG">
         <volume name="swap" size="6144"/>
       </systemdisk>
@@ -117,6 +117,7 @@
     <package name="perl-IO-Socket-INET6"/>
     <package name="perl-XML-Writer"/>
     <package name="perl-XML-XPath"/>
+    <package name="perl-JSON-XS"/>
     <package name="perl-doc"/>
     <package name="perl-gettext"/>
     <package name="python-argparse"/>

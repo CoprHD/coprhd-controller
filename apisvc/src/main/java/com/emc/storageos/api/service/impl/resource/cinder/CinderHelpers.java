@@ -149,11 +149,11 @@ public class CinderHelpers {
      */
     public VirtualArray getVarray(String varray_name, StorageOSUser user) {
         if ((varray_name == null) || (varray_name.equals(""))) {
-            ArrayList az_list = new ArrayList<CinderAvailabiltyZone>();
-            getAvailabilityZones(az_list, user);
+            ArrayList<CinderAvailabiltyZone> azList = new ArrayList<CinderAvailabiltyZone>();
+            getAvailabilityZones(azList, user);
 
-            if (az_list.size() > 0) {
-                varray_name = ((CinderAvailabiltyZone) az_list.get(0)).zoneName;
+            if (!azList.isEmpty()) {
+                varray_name = ((CinderAvailabiltyZone) azList.get(0)).zoneName;
             }
             else {
                 throw APIException.internalServerErrors.genericApisvcError("Get Varray failed", new Throwable("VArray not configured."));

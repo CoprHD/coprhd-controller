@@ -141,14 +141,14 @@ public class ExportService extends VolumeService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{volume_id}/action")
-    public Object actionOnVolume(@PathParam("tenant_id") String openstack_tenant_id,
-            @PathParam("volume_id") String volume_id,
+    public Object actionOnVolume(@PathParam("tenant_id") String openstackTenantId,
+            @PathParam("volume_id") String volumeId,
             String input
             ) throws InternalException, InterruptedException {
         // Step 1: Parameter validation
         // Eventually we should use the project id that comes from the API
         _log.info("String format input is  = {}", input);
-        _log.info("Action on volume: id = {}", volume_id);
+        _log.info("Action on volume: id = {}", volumeId);
         boolean bReserve = false;
         boolean bUnReserve = false;
         boolean bTerminate = false;
@@ -182,7 +182,7 @@ public class ExportService extends VolumeService {
             bReadonly = true;
 
         if (input.contains(OS_RESET_STATUS)) {
-            Volume vol = findVolume(volume_id, openstack_tenant_id);
+            Volume vol = findVolume(volumeId, openstackTenantId);
             if (vol != null) {
                 return changeVolumeStatus(vol, input);
             } else {
@@ -197,9 +197,9 @@ public class ExportService extends VolumeService {
         // TODO : handle xml format requests also and cater to the operations
         Gson gson = new Gson();
         VolumeActionRequest action = gson.fromJson(input, VolumeActionRequest.class);
-        Volume vol = findVolume(volume_id, openstack_tenant_id);
+        Volume vol = findVolume(volumeId, openstackTenantId);
         if (vol == null)
-            throw APIException.badRequests.parameterIsNotValid(volume_id);
+            throw APIException.badRequests.parameterIsNotValid(volumeId);
 
         // Step 2: Check if the user has rights for volume modification
         verifyUserCanModifyVolume(vol);
@@ -210,7 +210,7 @@ public class ExportService extends VolumeService {
         if ((bInitCon) && (action.attach.connector != null) && (action.attach.connector.ip != null)
                 && (action.attach.connector.ip.length() > 0)) {
             String chosenProtocol = getProtocol(vol, action.attach.connector);
-            boolean bIsSuccess = processAttachRequest(vol, action.attach, openstack_tenant_id, chosenProtocol);
+            boolean bIsSuccess = processAttachRequest(vol, action.attach, openstackTenantId, chosenProtocol);
 
             if (bIsSuccess) {
                 // After the exportt ask is complete, sometimes there is a delay in the info being reflected in ITL's. So, we are adding a
@@ -273,7 +273,7 @@ public class ExportService extends VolumeService {
                                         objCinderInit.connection_info.data.toString()));
                     }
 
-                    List<Initiator> lstInitiators = getListOfInitiators(action.attach.connector, openstack_tenant_id, chosenProtocol, vol);
+                    List<Initiator> lstInitiators = getListOfInitiators(action.attach.connector, openstackTenantId, chosenProtocol, vol);
                     for (Initiator iter : lstInitiators) {
                         _log.info("iter.getInitiatorPort() {}", iter.getInitiatorPort());
                         _log.info("objCinderInit.connection_info.data.target_wwn {}", objCinderInit.connection_info.data.target_wwn);
@@ -315,7 +315,7 @@ public class ExportService extends VolumeService {
             if (getVolExtensions(vol).containsKey("status") &&
                     getVolExtensions(vol).get("status").equals(ComponentStatus.DETACHING.getStatus().toLowerCase())) {
                 String chosenProtocol = getProtocol(vol, action.detach.connector);
-                processDetachRequest(vol, action.detach, openstack_tenant_id, chosenProtocol);
+                processDetachRequest(vol, action.detach, openstackTenantId, chosenProtocol);
                 getVolExtensions(vol).put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
                 getVolExtensions(vol).remove("OPENSTACK_NOVA_INSTANCE_ID");
                 getVolExtensions(vol).remove("OPENSTACK_NOVA_INSTANCE_MOUNTPOINT");
@@ -335,7 +335,7 @@ public class ExportService extends VolumeService {
             _log.info("IN THE IF CONDITION OF THE ATTACH VOLUME TO INSTANCE");
             if ((action.attachToInstance != null) && (action.attachToInstance.instance_uuid != null) &&
                     (action.attachToInstance.instance_uuid.length() > 0)) {
-                processAttachToInstance(vol, action.attachToInstance, openstack_tenant_id);
+                processAttachToInstance(vol, action.attachToInstance, openstackTenantId);
                 return Response.status(202).build();
             }
             else {
@@ -344,17 +344,17 @@ public class ExportService extends VolumeService {
         }
         else if (bReserve) {
             _log.info("IN THE IF CONDITION OF RESERVE");
-            processReserveRequest(vol, openstack_tenant_id);
+            processReserveRequest(vol, openstackTenantId);
             return Response.status(202).build();
         }
         else if (bUnReserve) {
-            processUnReserveRequest(vol, openstack_tenant_id);
+            processUnReserveRequest(vol, openstackTenantId);
             return Response.status(202).build();
         }
         else if (bBootable) {
             _log.debug("set Volume bootable Flag");
             if (action.bootVol != null) {
-                setBootable(vol, action.bootVol, openstack_tenant_id);
+                setBootable(vol, action.bootVol, openstackTenantId);
                 return Response.status(200).build();
             }
             else {
@@ -365,7 +365,7 @@ public class ExportService extends VolumeService {
             _log.debug("Set Readonly Flag for Volume");
 
             if (action.readonlyVol != null) {
-                setReadOnlyFlag(vol, action.readonlyVol, openstack_tenant_id);
+                setReadOnlyFlag(vol, action.readonlyVol, openstackTenantId);
                 return Response.status(200).build();
             }
             else {
@@ -376,7 +376,7 @@ public class ExportService extends VolumeService {
             _log.info("Extend existing volume size");
 
             if (action.extendVol != null) {
-                extendExistingVolume(vol, action.extendVol, openstack_tenant_id, volume_id);
+                extendExistingVolume(vol, action.extendVol, openstackTenantId, volumeId);
                 return Response.status(202).build();
             }
             else {
@@ -443,7 +443,7 @@ public class ExportService extends VolumeService {
         return vol.getExtensions();
     }
 
-    private void processReserveRequest(Volume vol, String openstack_tenant_id) {
+    private void processReserveRequest(Volume vol, String openstackTenantId) {
         StringMap extensions = vol.getExtensions();
         if (extensions == null) {
             extensions = new StringMap();
@@ -453,7 +453,7 @@ public class ExportService extends VolumeService {
         _dbClient.updateObject(vol);
     }
 
-    private void processUnReserveRequest(Volume vol, String openstack_tenant_id) {
+    private void processUnReserveRequest(Volume vol, String openstackTenantId) {
         StringMap extensions = vol.getExtensions();
         if (extensions == null) {
             extensions = new StringMap();
@@ -463,7 +463,7 @@ public class ExportService extends VolumeService {
         _dbClient.updateObject(vol);
     }
 
-    private void setBootable(Volume vol, VolumeActionRequest.BootableVolume bootableVol, String openstack_tenant_id) {
+    private void setBootable(Volume vol, VolumeActionRequest.BootableVolume bootableVol, String openstackTenantId) {
         _log.info("Set bootable flag");
         StringMap extensions = vol.getExtensions();
         if (extensions == null) {
@@ -479,7 +479,7 @@ public class ExportService extends VolumeService {
         _dbClient.updateObject(vol);
     }
 
-    private void setReadOnlyFlag(Volume vol, VolumeActionRequest.ReadOnlyVolume readonlyVolume, String openstack_tenant_id) {
+    private void setReadOnlyFlag(Volume vol, VolumeActionRequest.ReadOnlyVolume readonlyVolume, String openstackTenantId) {
         StringMap extensions = vol.getExtensions();
         if (extensions == null) {
             extensions = new StringMap();
@@ -495,7 +495,7 @@ public class ExportService extends VolumeService {
     }
 
     private void processAttachToInstance(Volume vol, VolumeActionRequest.AttachToInstance attachToInst,
-            String openstack_tenant_id) {
+            String openstackTenantId) {
         _log.info("Attach to the nova instance request");
         // Step 1: get list of host initiators to be added
         _log.info("THE ATTACH.INSTANCE IS {}", attachToInst.instance_uuid.toString());
@@ -515,7 +515,7 @@ public class ExportService extends VolumeService {
     // INTERNAL FUNCTIONS
     private boolean processDetachRequest(Volume vol,
             VolumeActionRequest.DetachVolume detach,
-            String openstack_tenant_id, String protocol) throws InterruptedException {
+            String openstackTenantId, String protocol) throws InterruptedException {
         _log.info("Detach request");
         // Step 1: Find export group of volume
         ExportGroup exportGroup = findExportGroup(vol);
@@ -526,7 +526,7 @@ public class ExportService extends VolumeService {
         // Step 2: Validate initiators are part of export group
         List<URI> currentURIs = new ArrayList<URI>();
         List<URI> detachURIs = new ArrayList<URI>();
-        List<Initiator> detachInitiators = getListOfInitiators(detach.connector, openstack_tenant_id, protocol, vol);
+        List<Initiator> detachInitiators = getListOfInitiators(detach.connector, openstackTenantId, protocol, vol);
         currentURIs = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
         for (Initiator initiator : detachInitiators) {
             URI uri = initiator.getId();
@@ -567,7 +567,7 @@ public class ExportService extends VolumeService {
     }
 
     private TaskResourceRep extendExistingVolume(Volume vol, VolumeActionRequest.ExtendVolume extendExistVol,
-            String openstack_tenant_id, String volume_id) {
+            String openstackTenantId, String volumeId) {
 
         // Check if the volume is on VMAX V3 which doesn't support expansion yet
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
@@ -593,11 +593,11 @@ public class ExportService extends VolumeService {
         Long newSize = extendExistVol.new_size * GB;
 
         // verify quota in cinder side
-        Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
-        if (!validateVolumeExpand(openstack_tenant_id, null, vol, newSize, project)) {
+        Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
+        if (!validateVolumeExpand(openstackTenantId, null, vol, newSize, project)) {
             _log.info("The volume can not be expanded because of insufficient project quota.");
             throw APIException.badRequests.insufficientQuotaForProject(project.getLabel(), "volume");
-        } else if (!validateVolumeExpand(openstack_tenant_id, virtualPool, vol, newSize, project)) {
+        } else if (!validateVolumeExpand(openstackTenantId, virtualPool, vol, newSize, project)) {
             _log.info("The volume can not be expanded because of insufficient quota for virtual pool.");
             throw APIException.badRequests.insufficientQuotaForVirtualPool(virtualPool.getLabel(), "virtual pool");
         }
@@ -609,16 +609,16 @@ public class ExportService extends VolumeService {
                     .format(
                             "expandVolume --- Zero capacity expansion: allowed as a recovery to cleanup dangling members from previous expand failure.\n"
                                     +
-                                    "VolumeId id: %s, Current size: %d, New size: %d, Dangling volumes: %s ", volume_id,
+                                    "VolumeId id: %s, Current size: %d, New size: %d, Dangling volumes: %s ", volumeId,
                             vol.getCapacity(), newSize, vol.getMetaVolumeMembers()));
         } else if (newSize <= vol.getCapacity()) {
             _log.info(String.format(
-                    "expandVolume: VolumeId id: %s, Current size: %d, New size: %d ", volume_id, vol.getCapacity(), newSize));
+                    "expandVolume: VolumeId id: %s, Current size: %d, New size: %d ", volumeId, vol.getCapacity(), newSize));
             throw APIException.badRequests.newSizeShouldBeLargerThanOldSize("volume");
         }
 
         _log.info(String.format(
-                "expandVolume --- VolumeId id: %s, Current size: %d, New size: %d", volume_id,
+                "expandVolume --- VolumeId id: %s, Current size: %d, New size: %d", volumeId,
                 vol.getCapacity(), newSize));
 
         // Get the Block service implementation for this volume.
@@ -650,7 +650,7 @@ public class ExportService extends VolumeService {
             _log.error("Controller Error", e);
             String errMsg = String.format("Controller Error: %s", e.getMessage());
             op = new Operation(Operation.Status.error.name(), errMsg);
-            _dbClient.updateTaskOpStatus(Volume.class, URI.create(volume_id), taskId, op);
+            _dbClient.updateTaskOpStatus(Volume.class, URI.create(volumeId), taskId, op);
             throw e;
         }
 
@@ -891,11 +891,11 @@ public class ExportService extends VolumeService {
         List<String> initiatorPorts = new ArrayList<String>();
         initiatorPorts.add(initiatorPort);
         List<URI> networkIds = _dbClient.queryByType(Network.class, true);
-        if (null != networkIds && networkIds.size() > 0) {
+        if (null != networkIds && !networkIds.isEmpty()) {
             int validNetworkCount = 0;
             for (URI ntid : networkIds) {
-                if (NetworkAssociationHelper.getNetworkConnectedStoragePorts(
-                        ntid.toString(), _dbClient).size() > 0) {
+                if (!NetworkAssociationHelper.getNetworkConnectedStoragePorts(
+                        ntid.toString(), _dbClient).isEmpty()) {
                     validNetworkCount++;
                     StringSet varrSet = NetworkAssociationHelper
                             .getNetworkConnectedVirtualArrays(ntid, null, null,

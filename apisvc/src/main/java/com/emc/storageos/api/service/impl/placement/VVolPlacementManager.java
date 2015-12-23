@@ -4,11 +4,15 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StorageContainer;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.vasa.CreateVirtualVolume;
 
 public class VVolPlacementManager {
@@ -28,14 +32,36 @@ public class VVolPlacementManager {
     public void placementLogicForVVol(InputStream is){
         CreateVirtualVolume createVirtualVol = VVolPlacementManagerUtil.unmarshall(is);
         
-        createVirtualVol.setContainerId("05786556e3-ebf0-4480-b94c-457080dc9fg6");
-        
+        String nativeContainerId = getNativeContainerId(createVirtualVol.getContainerId(), createVirtualVol.getSizeInMB());
+        if(nativeContainerId != null){
+            createVirtualVol.setContainerId(nativeContainerId);
+        }else{
+            // throw APIBadrequest exception
+        }
         InputStream iss = VVolPlacementManagerUtil.marshall(createVirtualVol);
         
         _log.info(getStringFromInputStream(iss));
         
     }
     
+    private String getNativeContainerId(String containerId, long size) {
+        String nativeContainerId = null;
+        URI containerIdUri = URI.create(containerId);
+        StorageContainer storageContainer = dbClient.queryObject(StorageContainer.class, containerIdUri);
+        Set<String> physicalStorageContainers = storageContainer.getPhysicalStorageContainers();
+        if(physicalStorageContainers != null){
+            for(String physicalStorageContainer : physicalStorageContainers){
+                URI physicalStorageContainerURI = URI.create(physicalStorageContainer);
+                StorageContainer physicalStorageContainerObj = dbClient.queryObject(StorageContainer.class, physicalStorageContainerURI);
+                if(physicalStorageContainerObj != null && physicalStorageContainerObj.getMaxVvolSizeMB() > size){
+                    nativeContainerId = physicalStorageContainerObj.getId().toString();
+                    break;
+                }
+            }
+        }
+        return nativeContainerId;
+    }
+
     private static String getStringFromInputStream(InputStream is) {
 
         BufferedReader br = null;

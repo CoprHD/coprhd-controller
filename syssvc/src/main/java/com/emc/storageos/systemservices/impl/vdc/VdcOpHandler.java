@@ -821,11 +821,10 @@ public abstract class VdcOpHandler {
 
     /**
      * Flush vdc config to local disk /.volumes/boot/etc/vdcconfig.properties
+     * Note: this flush will not write VDC_CONFIG_VERSION to disk to make sure if there are some errors, VdcManager can enter retry loop
      */
     protected void flushVdcConfigToLocal() {
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
-                String.valueOf(targetSiteInfo.getVdcConfigVersion()));
         localRepository.setVdcPropertyInfo(vdcProperty);
     }
 

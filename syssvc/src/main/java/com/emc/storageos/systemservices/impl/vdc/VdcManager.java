@@ -10,6 +10,7 @@ import java.util.Map;
 
 import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,7 @@ import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.UpgradeManager;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 
@@ -355,6 +357,11 @@ public class VdcManager extends AbstractManager {
         opHandler.setTargetSiteInfo(targetSiteInfo);
         opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
         opHandler.execute();
+        
+        //Flush vdc properties includes VDC_CONFIG_VERSION to disk
+        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+        localRepository.setVdcPropertyInfo(vdcProperty);
     }
     
     /**

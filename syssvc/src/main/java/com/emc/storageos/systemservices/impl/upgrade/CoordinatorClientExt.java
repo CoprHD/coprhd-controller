@@ -862,7 +862,7 @@ public class CoordinatorClientExt {
                 }
             }
             if (_remoteDownloadLock == null) {
-                _remoteDownloadLock = _coordinator.getLock(REMOTE_DOWNLOAD_LOCK);
+                _remoteDownloadLock = _coordinator.getSiteLocalLock(REMOTE_DOWNLOAD_LOCK);
             }
             if (_remoteDownloadLock.acquire(2, TimeUnit.SECONDS)) {
                 publishRemoteDownloadLeader(svcId);
@@ -1209,7 +1209,7 @@ public class CoordinatorClientExt {
     public boolean getNewVersionLock() {
         try {
             if (_newVersionLock == null) {
-                _newVersionLock = _coordinator.getLock(NEW_VERSIONS_LOCK);
+                _newVersionLock = _coordinator.getSiteLocalLock(NEW_VERSIONS_LOCK);
             }
             _newVersionLock.acquire();
         } catch (Exception e) {

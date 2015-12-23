@@ -138,19 +138,19 @@ public class RPUnManagedObjectDiscoverer {
 
             // Indicate whether the CG is in a healthy state or not to ingest.
             unManagedProtectionSet.getCGCharacteristics().put(UnManagedProtectionSet.SupportedCGCharacteristics.IS_HEALTHY.name(),
-                    cg.cgState.equals(GetCGStateResponse.HEALTHY) ? Boolean.TRUE.toString() : Boolean.FALSE.toString());
+                    cg.getCgState().equals(GetCGStateResponse.HEALTHY) ? Boolean.TRUE.toString() : Boolean.FALSE.toString());
 
             // Indicate whether the CG is sync or async
             unManagedProtectionSet.getCGCharacteristics().put(UnManagedProtectionSet.SupportedCGCharacteristics.IS_SYNC.name(),
-                    cg.cgPolicy.synchronous ? Boolean.TRUE.toString() : Boolean.FALSE.toString());
+                    cg.getCgPolicy().synchronous ? Boolean.TRUE.toString() : Boolean.FALSE.toString());
 
             // Fill in RPO type and value information
             StringSet rpoType = new StringSet();
-            rpoType.add(cg.cgPolicy.rpoType);
+            rpoType.add(cg.getCgPolicy().rpoType);
             unManagedProtectionSet.putCGInfo(SupportedCGInformation.RPO_TYPE.toString(), rpoType);
 
             StringSet rpoValue = new StringSet();
-            rpoValue.add(cg.cgPolicy.rpoValue.toString());
+            rpoValue.add(cg.getCgPolicy().rpoValue.toString());
             unManagedProtectionSet.putCGInfo(SupportedCGInformation.RPO_VALUE.toString(), rpoValue);
 
             // Now map UnManagedVolume objects to the journal and rset (sources/targets) and put RP fields in them

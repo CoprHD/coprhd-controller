@@ -458,7 +458,7 @@ public class RecoverPointClient {
                 GetCGsResponse cgResp = new GetCGsResponse();
                 cgResp.setCgName(settings.getName());
                 cgResp.setCgId(cg.getId());
-                cgResp.cgPolicy = new GetCGsResponse.GetPolicyResponse();
+                cgResp.setCgPolicy(new GetCGsResponse.GetPolicyResponse());
                 
                 // Find and store the policy information
                 if (settings.getActiveLinksSettings() != null) {
@@ -466,32 +466,32 @@ public class RecoverPointClient {
                         if (cgls.getLinkPolicy() != null && cgls.getLinkPolicy().getProtectionPolicy() != null) {
                             if (cgls.getLinkPolicy().getProtectionPolicy().getProtectionType() != null) {
                                 if (cgls.getLinkPolicy().getProtectionPolicy().getProtectionType().toString().equalsIgnoreCase(ProtectionMode.SYNCHRONOUS.toString())) {
-                                    cgResp.cgPolicy.synchronous = true;
+                                    cgResp.getCgPolicy().synchronous = true;
                                 } else {
-                                    cgResp.cgPolicy.synchronous = false;
+                                    cgResp.getCgPolicy().synchronous = false;
                                 }
                             }
                             
                             if (cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy() != null &&
                                 cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag() != null) {
-                                cgResp.cgPolicy.rpoType = cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag().getType().name();
-                                cgResp.cgPolicy.rpoValue = cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag().getValue(); 
+                                cgResp.getCgPolicy().rpoType = cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag().getType().name();
+                                cgResp.getCgPolicy().rpoValue = cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag().getValue(); 
                             }
                         }
                     }
                 }
                 
                 // We assume CG health until we see something that indicates otherwise.
-                cgResp.cgState = GetCGsResponse.GetCGStateResponse.HEALTHY;
+                cgResp.setCgState(GetCGsResponse.GetCGStateResponse.HEALTHY);
                 RecoverPointCGState cgState = this.getCGState(cg);
                 if (cgState.equals(RecoverPointCGState.DELETED)) {
-                    cgResp.cgState = GetCGStateResponse.UNHEALTHY_ERROR;
+                    cgResp.setCgState(GetCGStateResponse.UNHEALTHY_ERROR);
                 } else if (cgState.equals(RecoverPointCGState.MIXED)) {
-                    cgResp.cgState = GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED;
+                    cgResp.setCgState(GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED);
                 } else if (cgState.equals(RecoverPointCGState.PAUSED)) {
-                    cgResp.cgState = GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED;
+                    cgResp.setCgState(GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED);
                 } else if (cgState.equals(RecoverPointCGState.STOPPED)) {
-                    cgResp.cgState = GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED;
+                    cgResp.setCgState(GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED);
                 }
                 
                 // Fill in the Copy information

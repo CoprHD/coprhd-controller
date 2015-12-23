@@ -1930,8 +1930,11 @@ public class VolumeIngestionUtil {
     /**
      * Get the export group associated with initiator URIs
      * 
+     * Note: Once it finds an export group associated with any initiator, it returns that export group.  This may not
+     * be what the caller wants.
+     * 
      * @param project project
-     * @param knownInitiatorUris initiator list (currently only the first is used)
+     * @param knownInitiatorUris initiator list
      * @param vArray virtual array
      * @param dbClient dbclient
      * @return export group

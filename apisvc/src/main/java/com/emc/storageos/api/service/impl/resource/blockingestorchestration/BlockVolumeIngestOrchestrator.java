@@ -158,6 +158,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             	if (unManagedCG != null) {
             		if (VolumeIngestionUtil.updateVolumeInUnManagedConsistencyGroup(unManagedCG, unManagedVolume, volume) == 0) {
             			// all unmanaged volumes have been ingested
+            			_logger.info("All unmanaged volumes of unmanaged consistency group {} have been ingested", unManagedVolume.getLabel(), unManagedCG.getLabel());
             			// create block consistency group and remove UnManagedBlockConsistency Group
             		}
             	}

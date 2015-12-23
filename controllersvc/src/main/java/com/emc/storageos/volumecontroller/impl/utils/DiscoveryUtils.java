@@ -514,17 +514,15 @@ public class DiscoveryUtils {
      * @throws IOException
      */
     public static UnManagedConsistencyGroup checkUnManagedCGExistsInDB(DbClient dbClient, String nativeGuid) {
-        URIQueryResultList unManagedCGList = new URIQueryResultList();
+    	UnManagedConsistencyGroup unmanagedCG = null;
+    	URIQueryResultList unManagedCGList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getCGInfoNativeIdConstraint(nativeGuid), unManagedCGList);
         if (unManagedCGList.iterator().hasNext()) {
             URI unManagedCGURI = unManagedCGList.iterator().next();
-            UnManagedConsistencyGroup cgInfo = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedCGURI);
-            if (!cgInfo.getInactive()) {
-                return cgInfo;
-            }
+            unmanagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedCGURI);            
         }
-        return null;
+        return unmanagedCG;
     }
     
     

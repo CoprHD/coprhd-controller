@@ -239,6 +239,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 if (hasCGs) {                	              	
                 	for (List<Object> cg : volume.getConsistencyGroups()) {                		
                 		Object cgNameToProcess = cg.get(1);
+                		log.info("Unmanaged volume {} belongs to consistency group {} on the array", unManagedVolume.getLabel(), cgNameToProcess);
                 		// Update the unManagedVolume object with CG information
                 		unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.TRUE.toString());
                 		// determine the native guid for the unmanaged CG
@@ -247,10 +248,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 		XtremIOConsistencyGroup xioCG = xtremIOClient.getConsistencyGroupDetails(cgNameToProcess.toString(), xioClusterName);
                 		// determine if the unmanaged CG already exists in the database
                 		UnManagedConsistencyGroup unManagedCG = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient, unManagedCGNativeGuid);
-                		if (null == unManagedCG) {
+                		if (null == unManagedCG) {                			
                 			// unmanaged CG does not exist in the database, create it
                 			unManagedCG = createUnManagedCG(unManagedCGNativeGuid, xioCG, storageSystem.getId(), dbClient);
+                			log.info("Created unmanaged consistency group: {}", unManagedCG.toString());
                 		}
+                		log.info("Adding unmanaged volume {} to unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
                 		// set the uri of the unmanaged CG in the unmanaged volume object
                 		unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(), unManagedCG.getId().toString()); 
                 		// add the unmanaged volume object to the unmanaged CG
@@ -623,7 +626,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
     	unManagedCG.setNativeGuid(unManagedCGNativeGuid);
     	unManagedCG.set_storageSystemUri(storageSystemURI);
     	unManagedCG.set_numberOfVols(new Integer(0));
-    	unManagedCG.set_name(consistencyGroup.getName());
+    	unManagedCG.setLabel(consistencyGroup.getName());
     	
     	StringSet associatedVolumes = new StringSet(); 
 

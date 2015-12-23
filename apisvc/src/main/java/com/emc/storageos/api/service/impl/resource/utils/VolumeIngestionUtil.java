@@ -436,28 +436,35 @@ public class VolumeIngestionUtil {
     }
 
     public static boolean checkUnManagedResourceAddedToConsistencyGroup(UnManagedVolume unManagedVolume) {
-        StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
+    	_logger.info("Determining if the unmanaged volume {} is belongs to an unmanaged consistency group", unManagedVolume.getLabel());
+    	StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         String isVolumeAddedToConsistencyGroup = unManagedVolumeCharacteristics
                 .get(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString());
         if (null != isVolumeAddedToConsistencyGroup && Boolean.parseBoolean(isVolumeAddedToConsistencyGroup)) {
-            return true;
+        	_logger.info("The unmanaged volume {} belongs to an unmanaged consistency group", unManagedVolume.getLabel());
+        	return true;
         }
+        _logger.info("The unmanaged volume {} does not belong to an unmanaged consistency group", unManagedVolume.getLabel());
         return false;
     }
     
     public static int updateVolumeInUnManagedConsistencyGroup(UnManagedConsistencyGroup unManagedCG, UnManagedVolume unManagedVolume, Volume volume) {
     	// ensure that unmanaged cg contains the unmanaged volume
-    	if (unManagedCG.getUnManagedVolumes().contains(unManagedVolume.getId().toString())) {
+    	if (unManagedCG.getUnManagedVolumes().contains(unManagedVolume.getId().toString())) {    		
     		for (String uriStr : unManagedCG.getUnManagedVolumes()) {
     			String uriHolder = uriStr;    			
     			if (unManagedVolume.getId().toASCIIString().equalsIgnoreCase(uriHolder)) {
     				// add the unmanaged volume to the list of managed volumes
     				unManagedCG.getManagedVolumes().add(volume.getId().toString());
+    				_logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", volume.getLabel(), unManagedCG.getLabel());
     				// remove the unmanaged volume from the list of unmanaged volumes
     				unManagedCG.getUnManagedVolumes().remove(uriHolder);
+    				_logger.info("Removed volume {} from the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
     			}
     		}
     		    		
+    	} else {
+    		_logger.info("Volume {} was not in the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
     	}
     	// return the number of unmanaged volumes remaining in the unmanaged cg
     	return unManagedCG.getUnManagedVolumes().size();
@@ -467,15 +474,19 @@ public class VolumeIngestionUtil {
      * get unmanaged CG , applicable only for xtremio.
      * 
      * @param unManagedVolume     
-     * @return the URI of the UnManagedConsistencyGroup if it exists, otherwise null
+     * @return the URI of the UnManagedConsistencyGroup
      */
-    public static UnManagedConsistencyGroup getUnManagedConsistencyGroup(UnManagedVolume unManagedVolume, DbClient dbClient) {    	    	
+    public static UnManagedConsistencyGroup getUnManagedConsistencyGroup(UnManagedVolume unManagedVolume, DbClient dbClient) {    	    	    	
+    	UnManagedConsistencyGroup unmanagedCG = null;
     	String unmanagedCGURI = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
                 unManagedVolume.getVolumeInformation());
         if (null != unmanagedCGURI && !unmanagedCGURI.trim().isEmpty()) {
-        	dbClient.queryObject(UnManagedConsistencyGroup.class, URI.create(unmanagedCGURI));
-        }    	    	
-        return null;
+        	unmanagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, URI.create(unmanagedCGURI));
+        	_logger.info("The unmanaged volume {} belongs to unmanaged consistency group {}", unManagedVolume.getLabel(), unmanagedCG.getLabel());
+        } else {
+        	_logger.info("Unable to determine the unmanaged consistency group the unmanaged volume {} belongs to", unManagedVolume.getLabel());
+        }
+        return unmanagedCG;
     }
 
     public static boolean checkUnManagedVolumeHasReplicas(UnManagedVolume unManagedVolume) {

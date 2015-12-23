@@ -24,6 +24,7 @@ import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
+import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
@@ -40,6 +41,7 @@ import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+
 
 /**
  * Operation handler for vdc config change. A vdc config change may represent 
@@ -178,7 +180,7 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             if (drUtil.isActiveSite()) {
                 log.info("Acquiring lock {} to update default properties of standby", LOCK_ADD_STANDBY);
-                InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_ADD_STANDBY);
+                InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_ADD_STANDBY);
                 lock.acquire();
                 log.info("Acquired lock successfully");
                 try {
@@ -217,8 +219,15 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             flushVdcConfigToLocal();
-            flushNtpConfigToLocal();
-            checkDataRevision();
+            
+            try {
+                flushNtpConfigToLocal();
+                checkDataRevision();
+            } catch (Exception e) {
+                //reset local vdc properties to entery retry loop again. No logs here since VdcManager will print out logs
+                resetLocalVdcConfigVersion();
+                throw e;
+            }
         }
         
         private void checkDataRevision() {
@@ -329,7 +338,7 @@ public abstract class VdcOpHandler {
         }
         
         private void removeDbNodes() throws Exception {
-            InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_REMOVE_STANDBY);
+            InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_REMOVE_STANDBY);
             while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING)) {
                 log.info("Acquiring lock {}", LOCK_REMOVE_STANDBY); 
                 lock.acquire();
@@ -397,7 +406,7 @@ public abstract class VdcOpHandler {
                 return;
             }
 
-            InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_PAUSE_STANDBY);
+            InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_PAUSE_STANDBY);
             while (drUtil.hasSiteInState(SiteState.STANDBY_PAUSING)) {
                 try {
                     log.info("Acquiring lock {}", LOCK_PAUSE_STANDBY);
@@ -438,6 +447,7 @@ public abstract class VdcOpHandler {
                     try {
                         log.info("Releasing lock {}", LOCK_PAUSE_STANDBY);
                         lock.release();
+                        log.info("Released lock {}", LOCK_PAUSE_STANDBY);
                     } catch (Exception e) {
                         log.error("Failed to release lock {}", LOCK_PAUSE_STANDBY);
                     }
@@ -451,7 +461,7 @@ public abstract class VdcOpHandler {
         private void checkAndPauseOnStandby() {
             // wait for the coordinator to be blocked on the active site
             int retryCnt = 0;
-            while (coordinator.isActiveSiteStable()) {
+            while (coordinator.isActiveSiteHeathy()) {
                 if (++retryCnt > MAX_PAUSE_RETRY) {
                     throw new IllegalStateException("timeout waiting for coordinatorsvc to be blocked on active site.");
                 }
@@ -599,6 +609,8 @@ public abstract class VdcOpHandler {
      *  - other standby   - exclude old active from vdc config and reconfig
      */
     public static class DrFailoverHandler extends VdcOpHandler {
+        private Factory postHandlerFactory;
+        
         public DrFailoverHandler() {
         }
         
@@ -606,14 +618,25 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             if (isNewActiveSiteForFailover(site)) {
-                coordinator.stopCoordinatorSvcMonitor();
-                reconfigVdc();
-                coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
-                removeDbNodesOfOldActiveSite();
-                waitForAllNodesAndReboot(site);
+                try {
+                    coordinator.stopCoordinatorSvcMonitor();
+                    reconfigVdc();
+                    coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
+                    removeDbNodesOfOldActiveSite();
+                    postHandlerFactory.initializeAllHandlers();
+                    waitForAllNodesAndReboot(site);
+                } catch (Exception e) {
+                    log.error("Error occurs during failover: {}", e);
+                    resetLocalVdcConfigVersion();
+                    throw e;
+                }
             } else {
                 reconfigVdc();
             }
+        }
+        
+        public void setPostHandlerFactory(Factory postHandlerFactory) {
+            this.postHandlerFactory = postHandlerFactory;
         }
         
         private boolean isNewActiveSiteForFailover(Site site) {
@@ -630,7 +653,7 @@ public abstract class VdcOpHandler {
             
             InterProcessLock lock = null;
             try {
-                lock = coordinator.getCoordinatorClient().getLock(LOCK_FAILOVER_REMOVE_OLD_ACTIVE);
+                lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_FAILOVER_REMOVE_OLD_ACTIVE);
                 log.info("Acquiring lock {}", LOCK_FAILOVER_REMOVE_OLD_ACTIVE);
                 
                 lock.acquire();
@@ -644,11 +667,10 @@ public abstract class VdcOpHandler {
                 }
 
                 poweroffRemoteSite(oldActiveSite);    
-                removeDbNodesFromGossip(oldActiveSite);
+                removeDbNodesFromGossip(oldActiveSite, true);
                 removeDbNodesFromStrategyOptions(oldActiveSite);
                 drUtil.removeSiteConfiguration(oldActiveSite);
             } catch (Exception e) {
-                populateStandbySiteErrorIfNecessary(drUtil.getLocalSite(), APIException.internalServerErrors.failoverReconfigFailed(e.getMessage()));
                 log.error("Failed to remove old acitve site in failover, {}", e);
                 throw e;
             } finally {
@@ -808,16 +830,23 @@ public abstract class VdcOpHandler {
     }
     
     /**
-     * remove a site from cassandra gossip ring of dbsvc and geodbsvc
+     * remove a site from cassandra gossip ring of dbsvc and geodbsvc without force
      */
     protected void removeDbNodesFromGossip(Site site) {
+        removeDbNodesFromGossip(site, false);
+    }
+    
+    /**
+     * remove a site from cassandra gossip ring of dbsvc and geodbsvc with force
+     */
+    protected void removeDbNodesFromGossip(Site site, boolean force) {
         String dcName = drUtil.getCassandraDcId(site);
         try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
                 DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
-            if (!dbOps.isDataCenterUnreachable(dcName)) {
+            if (!force && !dbOps.isDataCenterUnreachable(dcName)) {
                 throw new IllegalStateException(String.format("dbsvc of site %s is still reachable", dcName));
             }
-            if (!geodbOps.isDataCenterUnreachable(dcName)) {
+            if (!force && !geodbOps.isDataCenterUnreachable(dcName)) {
                 throw new IllegalStateException(String.format("geodbsvc of site %s is still reachable", dcName));
             }
             dbOps.removeDataCenter(dcName);

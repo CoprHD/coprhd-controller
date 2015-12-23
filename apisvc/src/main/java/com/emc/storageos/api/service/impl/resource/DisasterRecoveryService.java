@@ -44,6 +44,7 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -58,15 +59,16 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
-import com.emc.storageos.model.dr.SiteDetailRestRep;
+import com.emc.storageos.model.dr.FailoverPrecheckResponse;
+import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
-import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -868,23 +870,31 @@ public class DisasterRecoveryService {
     public Response doFailover(@PathParam("uuid") String uuid) {
         log.info("Begin to failover for standby UUID {}", uuid);
 
+        Site currentSite = drUtil.getSiteFromLocalVdc(uuid);
         precheckForFailoverLocally(uuid);
 
         Map<String, InternalSiteServiceClient> clientCacheMap = new HashMap<String, InternalSiteServiceClient>();
-        Site currentSite = drUtil.getSiteFromLocalVdc(uuid);
-
         List<Site> allStandbySites = drUtil.listStandbySites();
+        List<SiteRestRep> responseSiteFromRemote = new ArrayList<SiteRestRep>(allStandbySites.size());
 
         for (Site site : allStandbySites) {
             if (!site.getUuid().equals(uuid)) {
                 InternalSiteServiceClient client = new InternalSiteServiceClient(site);
                 client.setCoordinatorClient(coordinator);
                 client.setKeyGenerator(apiSignatureGenerator);
-                client.failoverPrecheck();
+                FailoverPrecheckResponse precheckResponse = client.failoverPrecheck();
+                responseSiteFromRemote.add(precheckResponse.getSite());
                 clientCacheMap.put(site.getUuid(), client);
             }
         }
-
+        
+        SiteRestRep recommendSite = findRecommendFailoverSite(responseSiteFromRemote, currentSite);
+        if (!recommendSite.getUuid().equals(currentSite.getUuid())) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(currentSite.getName(),
+                    String.format("Another site %s state is %s with latest data. Please failover to site %s",
+                            recommendSite.getName(), recommendSite.getState(), recommendSite.getName()));
+        }
+           
         try {
             // set state
             Site oldActiveSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
@@ -903,13 +913,13 @@ public class DisasterRecoveryService {
             }
 
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_FAILOVER);
-
+            
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_SUCCESS, null,
                     currentSite.getName(), currentSite.getVip());
-
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Error happened when failover at site %s", uuid, e);
+
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null,
                     currentSite.getName(), currentSite.getVip());
             throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
@@ -924,10 +934,11 @@ public class DisasterRecoveryService {
     @POST
     @Path("/internal/failoverprecheck")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public SiteErrorResponse failoverPrecheck() {
+    public FailoverPrecheckResponse failoverPrecheck() {
         log.info("Precheck for failover internally");
 
-        SiteErrorResponse response = new SiteErrorResponse();
+        FailoverPrecheckResponse response = new FailoverPrecheckResponse();
+        response.setSite(this.siteMapper.map(drUtil.getLocalSite()));
         try {
             precheckForFailover();
         } catch (InternalServerErrorException e) {
@@ -941,7 +952,7 @@ public class DisasterRecoveryService {
             return response;
         }
 
-        return SiteErrorResponse.noError();
+        return response;
     }
 
     /**
@@ -966,7 +977,7 @@ public class DisasterRecoveryService {
 
             Site newActiveSite = drUtil.getSiteFromLocalVdc(newActiveSiteUUID);
             newActiveSite.setState(SiteState.STANDBY_FAILING_OVER);
-            coordinator.persistServiceConfiguration(newActiveSite.toString());
+            coordinator.persistServiceConfiguration(newActiveSite.toConfiguration());
 
             drUtil.updateVdcTargetVersion(currentSite.getUuid(), SiteInfo.DR_OP_FAILOVER);
 
@@ -1293,6 +1304,11 @@ public class DisasterRecoveryService {
      */
     protected void precheckForFailoverLocally(String standbyUuid) {
         Site standby = drUtil.getLocalSite();
+        
+        SiteMonitorResult siteMonitorResult = coordinator.getTargetInfo(standby.getUuid(), SiteMonitorResult.class);
+        if (siteMonitorResult == null || siteMonitorResult.isActiveSiteLeaderAlive() || siteMonitorResult.isActiveSiteStable()) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(), "Acitve site is available now, can't do failover");
+        }
 
         // API should be only send to local site
         if (!standby.getUuid().equals(standbyUuid)) {
@@ -1315,8 +1331,8 @@ public class DisasterRecoveryService {
         }
 
         // should be SYNCED
-        if (standby.getState() != SiteState.STANDBY_SYNCED) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(), "Standby site is not fully synced");
+        if (standby.getState() != SiteState.STANDBY_SYNCED && standby.getState() != SiteState.STANDBY_PAUSED) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(), "Only paused or synced standby site can do failover");
         }
 
         // Current site is stable
@@ -1337,6 +1353,21 @@ public class DisasterRecoveryService {
             log.info("Acitve site is available now, can't do failover");
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Acitve site is available now, can't do failover");
         }
+    }
+    
+    protected SiteRestRep findRecommendFailoverSite(List<SiteRestRep> responseSiteFromRemote, Site currentSite) {
+        
+        if (currentSite.getState().equals(SiteState.STANDBY_SYNCED)) {
+            return this.siteMapper.map(currentSite);
+        }
+        
+        for (SiteRestRep site : responseSiteFromRemote) {
+            if (SiteState.STANDBY_SYNCED.toString().equalsIgnoreCase(site.getState())) {
+                return site;
+            }
+        }
+        
+        return this.siteMapper.map(currentSite);
     }
 
     protected void validateAddParam(SiteAddParam param, List<Site> existingSites) {

@@ -35,6 +35,8 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  * Common utility functions for Disaster Recovery
  */
 public class DrUtil {
+    private static final List<SiteState> ACTIVE_SITE_STATES = Arrays.asList(SiteState.ACTIVE, SiteState.STANDBY_FAILING_OVER, SiteState.STANDBY_SWITCHING_OVER);
+
     private static final Logger log = LoggerFactory.getLogger(DrUtil.class);
     
     private static final int COORDINATOR_PORT = 2181;
@@ -95,7 +97,7 @@ public class DrUtil {
     public boolean isActiveSite() {
         try {
             SiteState state = getSiteFromLocalVdc(coordinator.getSiteId()).getState();
-            return Arrays.asList(SiteState.ACTIVE, SiteState.STANDBY_FAILING_OVER, SiteState.STANDBY_SWITCHING_OVER).contains(state);
+            return ACTIVE_SITE_STATES.contains(state);
         } catch (RetryableCoordinatorException ex) {
             // Site no initialized yet 
             if  (ServiceCode.COORDINATOR_SITE_NOT_FOUND == ex.getServiceCode()) {
@@ -123,7 +125,7 @@ public class DrUtil {
     public String getActiveSiteId() {
         return getActiveSiteId(getLocalVdcShortId());
     }
-
+    
     /**
      * Get active site in a specific vdc
      *
@@ -134,7 +136,7 @@ public class DrUtil {
         String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
         for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
             Site site = new Site(siteConfig);
-            if (site.getState().equals(SiteState.ACTIVE)) {
+            if (ACTIVE_SITE_STATES.contains(site.getState())) {
                 return site.getUuid();
             }
         }

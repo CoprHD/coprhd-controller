@@ -6732,8 +6732,8 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr poweroffcluster $DR_SITE_A_IP
 
-    echo "Sleep 300 seconds to wait standby ZK switch to participant"
-    sleep 300
+    echo "Sleep 400 seconds to wait standby ZK switch to participant"
+    sleep 400
 
     echo "Wait for stable"
     BOURNE_IPADDR=$DR_SITE_C_IP
@@ -6742,7 +6742,9 @@ dr_multisite_tests()
 
     echo "Failover to promote site $DR_SITE_C_NAME as active"
     dr failover --ip $DR_SITE_C_IP $standby_site_c
-    sleep 300
+
+    echo "Sleep 800 seconds to wait failover"
+    sleep 800
 
     echo "Wait for stable"
     BOURNE_IPADDR=$DR_SITE_C_IP

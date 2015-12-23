@@ -39,19 +39,23 @@ public class ExecutionEngineMonitor extends SingletonService {
     private static final long HEART_BEAT = 60000;
     private static final long MAX_AGE = 5 * HEART_BEAT;
 
-    private static final String BASE_PATH = "/config/sa/engine";
+    public static final String BASE_PATH = "/config/sa/engine";
 
     @Autowired
     private ModelClient modelClient;
     private String uniqueId = UUID.randomUUID().toString();
     private DistributedDataManager dataManager;
-
+    @Autowired
+    private OrderCleanupHandler drOrderCleanupHandler;
+    
     private volatile Thread keepAliveThread;
 
     @PostConstruct
     public void init() {
         dataManager = getCoordinatorClient().getWorkflowDataManager();
 
+        drOrderCleanupHandler.run();
+        
         // Start a keep-alive thread
         keepAliveThread = new Thread(new Runnable() {
             public void run() {
@@ -60,7 +64,7 @@ public class ExecutionEngineMonitor extends SingletonService {
         }, "engine-monitor");
         keepAliveThread.setDaemon(true);
         keepAliveThread.start();
-
+        
         log.info("Created SA Engine Monitor with ID " + uniqueId);
     }
 
@@ -155,7 +159,9 @@ public class ExecutionEngineMonitor extends SingletonService {
         try {
             if (dataManager.checkExists(getOrdersPath(engineId)) != null) {
                 for (String orderId : dataManager.getChildren(getOrdersPath(engineId))) {
-                    killOrder(URI.create(orderId));
+                    String message = "Order processing terminated during execution, order was not completed. " +
+                            "Check with your administrator. Reboot may have occurred.";
+                    killOrder(URI.create(orderId), message);
                     dataManager.removeNode(getOrderPath(engineId, orderId));
                 }
 
@@ -171,8 +177,10 @@ public class ExecutionEngineMonitor extends SingletonService {
      * 
      * @param orderId
      *            the order ID.
+     * @param detailedMessage
+     *            message to be added to order log
      */
-    private void killOrder(URI orderId) {
+    public void killOrder(URI orderId, String detailedMessage) {
         try {
             Order order = modelClient.orders().findById(orderId);
             if (order != null) {
@@ -200,7 +208,7 @@ public class ExecutionEngineMonitor extends SingletonService {
                     }
 
                     // Add a new log message indicating it failed due to engine termination
-                    addTerminationTaskLog(execState);
+                    addTerminationTaskLog(execState, detailedMessage);
                 }
             }
         } catch (RuntimeException e) {
@@ -213,13 +221,12 @@ public class ExecutionEngineMonitor extends SingletonService {
      * 
      * @param state the execution state.
      */
-    private void addTerminationTaskLog(ExecutionState state) {
+    private void addTerminationTaskLog(ExecutionState state, String detailedMessage) {
         ExecutionTaskLog log = new ExecutionTaskLog();
         log.setDate(new Date());
         log.setLevel(LogLevel.ERROR.toString());
         log.setMessage("Order Terminated");
-        log.setDetail("Order processing terminated during execution, order was not completed. " +
-                "Check with your administrator. Reboot may have occurred.");
+        log.setDetail(detailedMessage);
         log.setPhase(ExecutionPhase.EXECUTE.name());
         modelClient.save(log);
 

@@ -160,8 +160,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         _logger.info(getRPIngestionStatus(volumeContext));
 
         Volume volume = (Volume) blockObject;
-        // Perform RP-specific volume ingestion
 
+        // Perform RP-specific volume ingestion
         volume = performRPVolumeIngestion(parentRequestContext, volumeContext, unManagedVolume, volume);
 
         // Decorate volume with RP Properties.
@@ -791,7 +791,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      */
     private void validateUnManagedVolumeProperties(UnManagedVolume unManagedVolume, VirtualArray virtualArray,
             VirtualPool virtualPool, Project project) {
-        // TODO: Fill this in
         // For example, you could put a check in here that ensures that the TARGET/METADATA are associated
         // with some RP vpool. It would be good to fail the ingestion early with an error that says "You're
         // trying to ingest this target/journal volume in a vpool that is not associated with a RP vpool."

@@ -117,7 +117,6 @@
     <package name="perl-IO-Socket-INET6"/>
     <package name="perl-XML-Writer"/>
     <package name="perl-XML-XPath"/>
-    <package name="perl-JSON-XS"/>
     <package name="perl-doc"/>
     <package name="perl-gettext"/>
     <package name="python-argparse"/>

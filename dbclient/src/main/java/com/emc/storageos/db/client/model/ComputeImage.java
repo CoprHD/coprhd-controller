@@ -193,6 +193,13 @@ public class ComputeImage extends DataObject {
     /**********************************
      * Utility methods
      **********************************/
+    public boolean _isEsxi6x() {
+        if (osName.equals(ESXI) && osVersion.startsWith("6.")) {
+            return true;
+        }
+        return false;
+    }
+
     public boolean _isEsxi5x() {
         if (osName.equals(ESXI) && osVersion.startsWith("5.")) {
             return true;

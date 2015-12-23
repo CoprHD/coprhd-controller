@@ -28,8 +28,9 @@ dependencies {
             library(commons_codec),
 
             project(":dbsvc"),
-            project(":security")
-            project(":serviceutils")
+            project(":security"),
+            project(":serviceutils"),
+            project(":keystone")
 
     testCompile library(enunciate)
     testCompile rootProject.toolsJar

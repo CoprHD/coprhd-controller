@@ -308,6 +308,7 @@ AutoManualType.manual=Manual
 
 AuthSourceType.ad=Active Directory
 AuthSourceType.ldap=LDAP
+AuthSourceType.keystone=Keystone
 
 SearchScope.ONELEVEL=One Level
 SearchScope.SUBTREE=Subtree

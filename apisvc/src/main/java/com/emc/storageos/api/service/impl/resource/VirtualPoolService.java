@@ -39,7 +39,6 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;

@@ -693,7 +693,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
             // Find the smart connect zones
-            IsilonNetworkPool isilonNetworkPoolSystem = null;
             List<IsilonNetworkPool> isilonNetworkPoolsSysAZ = new ArrayList<>();
 
             // get the system access zone and use it later
@@ -733,13 +732,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         }
                     }
                     
-                    // if the smart connect is null then ignore the access zone
-                    if (isilonNetworkPools != null && isilonNetworkPools.isEmpty()) {
-                    	_log.info("No network pools assigned to this access zone: {}. So ignore it.",
-                    			isilonAccessZone.getName());
-                    	continue;
-                    }
-
                     // find virtualNAS in db
                     virtualNAS = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                     if (virtualNAS == null) {
@@ -854,6 +846,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         		nasServer.removeAssignedVirtualArrays(assignedVarrays);
         	}
         }
+        
+        _log.info("Storage ports for vNAS {} : {}", nasServer.getNasName(), storagePorts);
         nasServer.setStoragePorts(storagePorts);
     }
 

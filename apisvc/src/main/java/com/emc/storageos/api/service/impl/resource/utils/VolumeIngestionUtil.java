@@ -1931,7 +1931,7 @@ public class VolumeIngestionUtil {
      * Get the export group associated with initiator URIs
      * 
      * @param project project
-     * @param knownInitiatorUris initiator list (currently only the first is used)
+     * @param knownInitiatorUris initiators list
      * @param vArray virtual array
      * @param dbClient dbclient
      * @return export group

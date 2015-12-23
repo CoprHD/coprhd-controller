@@ -13,9 +13,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import jobs.vipr.ConnectedFileVirtualPoolsCall;
 import jobs.vipr.TenantsCall;
 import jobs.vipr.VirtualArraysCall;
+import models.FileProtectionSystemTypes;
 import models.FileProtocols;
+import models.FileRpoType;
 import models.PoolAssignmentTypes;
 import models.ProvisioningTypes;
 import models.RemoteCopyMode;
@@ -25,6 +28,7 @@ import models.datatable.StoragePoolDataTable.StoragePoolInfo;
 import models.datatable.VirtualPoolDataTable;
 import models.datatable.VirtualPoolDataTable.VirtualPoolInfo;
 import models.virtualpool.FileVirtualPoolForm;
+import models.virtualpool.ReplicationCopyForm;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -39,7 +43,9 @@ import play.mvc.Http;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.StorageSystemUtils;
+import util.StringOption;
 import util.TenantUtils;
+import util.ValidationResponse;
 import util.VirtualArrayUtils;
 import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
@@ -55,8 +61,8 @@ import com.google.common.collect.Sets;
 import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
-import controllers.util.ViprResourceController;
 import controllers.util.FlashException;
+import controllers.util.ViprResourceController;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -171,6 +177,7 @@ public class FileVirtualPools extends ViprResourceController {
             list();
         }
 
+        vpool.deserialize();
         vpool.validate("vpool");
         if (Validation.hasErrors()) {
             Common.handleError();
@@ -262,7 +269,9 @@ public class FileVirtualPools extends ViprResourceController {
         renderArgs.put("poolAssignmentOptions",
                 PoolAssignmentTypes.options(PoolAssignmentTypes.AUTOMATIC, PoolAssignmentTypes.MANUAL));
         renderArgs.put("varrayAttributeNames", VirtualArrayUtils.ATTRIBUTES);
+        renderArgs.put("replicationTypeOptions", FileProtectionSystemTypes.PROTECTION_SYSTEM_OPTIONS);
         renderArgs.put("replicationModeOptions", RemoteCopyMode.OPTIONS);
+        renderArgs.put("replicationRpoTypeOptions", FileRpoType.RPO_OPTIONS);
     }
 
     private static void addDynamicOptions(FileVirtualPoolForm vpool) {
@@ -282,4 +291,41 @@ public class FileVirtualPools extends ViprResourceController {
             return null;
         }
     }
+    
+    public static void listReplicationVirtualArraysJson(FileVirtualPoolForm vpool) {
+        if (vpool == null) {
+            renderJSON(Collections.emptyList());
+        }
+        vpool.deserialize();
+        List<StringOption> actualOptions = Lists.newArrayList();
+        List<VirtualArrayRestRep> virtualArrays = VirtualArrayUtils.getVirtualArrays();
+        for (StringOption option : dataObjectOptions(virtualArrays)) {
+           actualOptions.add(option);
+        }
+        renderJSON(actualOptions);
+    }
+
+    public static void listReplicationVirtualPoolsJson(String virtualArray) {
+        if (virtualArray == null) {
+            renderJSON(Collections.emptyList());
+        }
+        List<FileVirtualPoolRestRep> pools = await(new ConnectedFileVirtualPoolsCall(uris(virtualArray)).asPromise());
+        renderJSON(dataObjectOptions(pools));
+    }
+    
+    public static void validateReplicationCopy(ReplicationCopyForm replicationCopy) {
+        if (replicationCopy == null) {
+            renderJSON(ValidationResponse.invalid());
+        }
+        replicationCopy.validate("replicationCopy");
+        if (Validation.hasErrors()) {
+            renderJSON(ValidationResponse.collectErrors());
+        }
+        else {
+            renderJSON(ValidationResponse.valid());
+        }
+    }
+    
+    
+
 }

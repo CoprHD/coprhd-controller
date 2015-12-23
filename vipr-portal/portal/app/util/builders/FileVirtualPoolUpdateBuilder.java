@@ -8,6 +8,8 @@ import org.apache.commons.lang.ObjectUtils;
 
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionUpdateParam;
+import com.emc.storageos.model.vpool.FileVirtualPoolReplicationParam;
+import com.emc.storageos.model.vpool.FileVirtualPoolReplicationUpdateParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionSnapshotsParam;
@@ -73,6 +75,23 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         if (!ObjectUtils.equals(longTermRetention, oldVirtualPool.getLongTermRetention())) {
             getVirtualPoolUpdate().setLongTermRetention(longTermRetention);
         }
+        return this;
+    }
+    
+    protected FileVirtualPoolReplicationUpdateParam getReplicationParam() {
+        if (getProtection().getReplicationParam() == null) {
+            getProtection().setReplicationParam(new FileVirtualPoolReplicationUpdateParam());
+            
+        }
+        return virtualPool.getProtection().getReplicationParam();
+    }
+    
+    public static FileVirtualPoolReplicationParam getReplicationParam(FileVirtualPoolRestRep virtualPool) {
+        return virtualPool != null ? virtualPool.getProtection().getReplicationParam() : null;
+    }
+    
+    public FileVirtualPoolUpdateBuilder setReplicationParam(FileVirtualPoolReplicationUpdateParam replicationParam) {
+        getProtection().setReplicationParam(replicationParam);
         return this;
     }
 

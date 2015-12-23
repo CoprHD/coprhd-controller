@@ -110,7 +110,7 @@ public class ComputeMapper {
         ComputeImageRestRep to = new ComputeImageRestRep();
         mapDataObjectFields(from, to);
         to.setImageName(from.getImageName());
-        to.setImageUrl(from.getImageUrl());
+        to.setImageUrl(ImageServerControllerImpl.maskImageURLPassword(from.getImageUrl()));
         to.setImageType(from.getImageType());
         to.setComputeImageStatus(from.getComputeImageStatus());
         to.setLastImportStatusMessage(from.getLastImportStatusMessage());
@@ -159,7 +159,7 @@ public class ComputeMapper {
     /**
      * Utility mapper method to map fields of {@link ComputeImageServer} columnFamily to {@link ComputeImageServerRestRep} rest
      * representation.
-     * 
+     *
      * @param dbclient
      *            {@link DbClient} instance
      * @param from

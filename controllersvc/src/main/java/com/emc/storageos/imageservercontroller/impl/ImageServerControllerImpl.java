@@ -1284,7 +1284,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         String password = extractPasswordFromImageUrl(imageUrl);
         String maskedPasswordURL = imageUrl;
         if (StringUtils.isNotBlank(password)) {
-            imageUrl = StringUtils.replace(imageUrl, ":" + password + "@", ":"
+            maskedPasswordURL = StringUtils.replace(imageUrl, ":" + password + "@", ":"
                     + MASKED_PASSWORD + "@");
         }
         return maskedPasswordURL;

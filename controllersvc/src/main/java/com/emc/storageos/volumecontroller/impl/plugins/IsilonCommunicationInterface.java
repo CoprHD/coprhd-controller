@@ -794,7 +794,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
             if (existingvNASList != null && !existingvNASList.isEmpty()) {
-                _log.info("Modified Virtaul NAS servers size {}", existingvNASList.size());
+                _log.info("Modified Virtual NAS servers size {}", existingvNASList.size());
                 _dbClient.updateObject(existingvNASList);
                 discoveredVNASList.addAll(existingvNASList);
             }

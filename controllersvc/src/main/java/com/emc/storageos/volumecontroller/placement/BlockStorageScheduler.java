@@ -598,7 +598,7 @@ public class BlockStorageScheduler {
                     hostMap = new HashMap<URI, List<Initiator>>();
                     hostInitiatorsMap.put(host, hostMap);
                 }
-                if (hostMap.get(entry.getKey()) == null) {
+                if (hostMap.get(entry.getKey().getId()) == null) {
                     hostMap.put(entry.getKey().getId(), new ArrayList<Initiator>());
                 }
                 hostMap.get(entry.getKey().getId()).add(initiator);

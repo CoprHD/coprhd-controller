@@ -9,6 +9,9 @@
 # it is provided by or on behalf of EMC.
 #
 
+DIR="$(dirname $0)"
+
+. ${DIR}/libs.sh
 
 #This script is used to help user to restore a backupset simply
 usage() {
@@ -56,7 +59,7 @@ input_password() {
 
 create_restore_folder() {
     local command="mkdir -p $RESTORE_DIR"
-    loop_execute "${command}" "false"
+    loop_execute "${command}" "false" # ${NODE_COUNT} "${LOCAL_NODE}" "${ROOT_PASSWORD}"
 }
 
 extract_backup_files() {
@@ -113,13 +116,12 @@ validate_backup_files() {
             fi
         fi
     fi
-
 }
 
 copy_to_other_nodes() {
     chmod -R 777 "$RESTORE_DIR"
     local command="scp svcuser@$LOCAL_NODE:$RESTORE_DIR/* $RESTORE_DIR"
-    loop_execute "${command}" "false"
+    loop_execute "${command}" "false" # "${NODE_COUNT}" "${LOCAL_NODE}" "${ROOT_PASSWORD}"
 }
 
 confirm_vdc_status() {
@@ -128,8 +130,8 @@ confirm_vdc_status() {
         while true; do
             read -p "$message(yes/no)" yn
             case $yn in
-                [Yy]es ) GEO_RESTORE_FROM_SCRATCH="false"; disconnect_vdc; break;;
-                [Nn]o )  GEO_RESTORE_FROM_SCRATCH="true"; break;;
+                [Yy]es ) RESTORE_GEO_FROM_SCRATCH="false"; disconnect_vdc; break;;
+                [Nn]o )  RESTORE_GEO_FROM_SCRATCH="true"; break;;
                 * ) echo "Invalid input.";;
             esac
         done
@@ -141,84 +143,18 @@ disconnect_vdc() {
     user_confirm "Are you sure it has been disconnected from others?"
 }
 
-stop_service() {
-    echo -n "Stopping storageos services on all nodes.."
-    local command="/etc/storageos/storageos stop"
-    loop_execute "${command}" "true"
-    echo "done"
-}
-
-restore_data() {
-    echo -n "Restoring data on all nodes.."
-    set +e
-    RESTORE_RESULT="successful"
-    for i in $(seq 1 $NODE_COUNT)
-    do
-        local viprNode=$(get_nodeid)
-        ls $RESTORE_DIR/*_${viprNode}_* &>/dev/null
-        if [ $? == 0 ]; then
-            restore_node "${viprNode}"
-        else
-            purge_node "${viprNode}"
-        fi
-        if [ $? != 0 ]; then
-            echo -n "failed on ${viprNode}.."
-            RESTORE_RESULT="failed"
-        fi
-    done
-    set -e
-    echo "done"
-}
-
-purge_node() {
-    local viprNode=${1}
-    if [ "$IS_CONNECTED_VDC" == "true" ]; then
-        initdb="yes"
-    else
-        initdb="no"
-    fi
-    local command="/opt/storageos/bin/bkutils -p $initdb"
-    ssh_execute "$viprNode" "$command"
-}
-
-restore_node() {
-    local viprNode=${1}
-    cd $RESTORE_DIR
-    local backupTag=`ls *_info.properties | awk '{split($0,a,"_"); print a[1]}'`
-    local command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag"
-    if [ "$GEO_RESTORE_FROM_SCRATCH" == "true" ]; then
-        command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag -f"
-    fi
-    ssh_execute "$viprNode" "$command"
-}
-
-clean_up() {
-    local command="rm -rf $RESTORE_DIR"
-    loop_execute "${command}" "true"
-}
+#clean_up() {
+#    local command="rm -rf $RESTORE_DIR"
+#    loop_execute "${command}" "true" "${NODE_COUNT}" "${LOCAL_NODE}" "${ROOT_PASSWORD}"
+#}
 
 start_service() {
     echo -n "Starting storageos services on all nodes.."
     local command="/etc/storageos/storageos start"
-    loop_execute "${command}" "true"
+    loop_execute "${command}" "true" # "${NODE_COUNT}" "${LOCAL_NODE}" "${ROOT_PASSWORD}"
     echo "done"
     finish_message
-}
-
-finish_message() {
-    echo "Restore $RESTORE_RESULT!"
-    if [ "$RESTORE_RESULT" == "failed" ]; then
-        echo "Please check bkutils.log for the details."
-        exit 1
-    fi
-    echo "Note: nodes will reboot if there is any change of property in this cluster."
-    if [ "$IS_CONNECTED_VDC" == "true" ]; then
-        if [ "$GEO_RESTORE_FROM_SCRATCH" == "false" ]; then
-            echo "Please reconnect this vdc after the status of cluster is stable."
-        fi
-        echo "(If there is any vdc with version 2.1 in this geo federation, then you need to remove blacklist manually from other vdcs,"
-        echo "by using this command: \"/opt/storageos/bin/dbutils geoblacklist reset <vdc short id>\")"
-    fi    
+    #finish_message "${RESOTRE_RESULT}" "${IS_CONNECTED_VDC}" "${RESTORE_GEO_FROM_SCRATCH}"
 }
 
 user_confirm() {
@@ -231,38 +167,6 @@ user_confirm() {
             * ) echo "Invalid input.";;
         esac
     done
-}
-
-loop_execute() {
-    set +e
-    local command=${1}
-    local includeLocal=${2}
-
-    for i in $(seq 1 $NODE_COUNT)
-    do
-        local viprNode=$(get_nodeid)
-        if [ "$viprNode" != "$LOCAL_NODE" -o "$includeLocal" == "true" ]; then
-            ssh_execute "$viprNode" "$command" &
-        fi
-    done
-    wait
-    set -e
-}
-
-ssh_execute() {
-    local viprNode=${1}
-    local command=${2}
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '$ROOT_PASSWORD' | sudo -S $command" &>/dev/null
-}
-
-get_nodeid() {
-    local nodeId
-    if [ $NODE_COUNT -eq 1 ]; then
-        nodeId="$LOCAL_NODE"
-    else
-        nodeId="vipr$i"
-    fi
-    echo "$nodeId"
 }
 
 if [ $# -eq 1 ]; then
@@ -280,8 +184,10 @@ fi
 
 trap clean_up EXIT
 
-comands=(upload_backup confirm_vdc_status stop_service restore_data start_service)
+comands=(upload_backup confirm_vdc_status)
 for cmd in ${comands[@]}
 do
     $cmd
 done
+
+${DIR}/restore-internal.sh "${ROOT_PASSWORD}" "${RESTORE_GEO_FROM_SCRATCH}" "${IS_CONNECTED_VDC}"

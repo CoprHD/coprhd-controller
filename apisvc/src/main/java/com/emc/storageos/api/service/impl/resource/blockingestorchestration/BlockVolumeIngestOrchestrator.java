@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 
@@ -150,6 +151,17 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                 if (!snapSessions.isEmpty()) {
                     _dbClient.createObject(snapSessions);
                 }
+            }
+                        
+            if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
+            	UnManagedConsistencyGroup unManagedCG = VolumeIngestionUtil.getUnManagedConsistencyGroup(unManagedVolume, _dbClient);
+            	if (unManagedCG != null) {
+            		if (VolumeIngestionUtil.updateVolumeInUnManagedConsistencyGroup(unManagedCG, unManagedVolume, volume) == 0) {
+            			// all unmanaged volumes have been ingested
+            			// create block consistency group and remove UnManagedBlockConsistency Group
+            		}
+            	}
+            	
             }
         }
 

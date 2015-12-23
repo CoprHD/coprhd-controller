@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
@@ -442,6 +443,39 @@ public class VolumeIngestionUtil {
             return true;
         }
         return false;
+    }
+    
+    public static int updateVolumeInUnManagedConsistencyGroup(UnManagedConsistencyGroup unManagedCG, UnManagedVolume unManagedVolume, Volume volume) {
+    	// ensure that unmanaged cg contains the unmanaged volume
+    	if (unManagedCG.getUnManagedVolumes().contains(unManagedVolume.getId().toString())) {
+    		for (String uriStr : unManagedCG.getUnManagedVolumes()) {
+    			String uriHolder = uriStr;    			
+    			if (unManagedVolume.getId().toASCIIString().equalsIgnoreCase(uriHolder)) {
+    				// add the unmanaged volume to the list of managed volumes
+    				unManagedCG.getManagedVolumes().add(volume.getId().toString());
+    				// remove the unmanaged volume from the list of unmanaged volumes
+    				unManagedCG.getUnManagedVolumes().remove(uriHolder);
+    			}
+    		}
+    		    		
+    	}
+    	// return the number of unmanaged volumes remaining in the unmanaged cg
+    	return unManagedCG.getUnManagedVolumes().size();
+    }
+    
+    /**
+     * get unmanaged CG , applicable only for xtremio.
+     * 
+     * @param unManagedVolume     
+     * @return the URI of the UnManagedConsistencyGroup if it exists, otherwise null
+     */
+    public static UnManagedConsistencyGroup getUnManagedConsistencyGroup(UnManagedVolume unManagedVolume, DbClient dbClient) {    	    	
+    	String unmanagedCGURI = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
+                unManagedVolume.getVolumeInformation());
+        if (null != unmanagedCGURI && !unmanagedCGURI.trim().isEmpty()) {
+        	dbClient.queryObject(UnManagedConsistencyGroup.class, URI.create(unmanagedCGURI));
+        }    	    	
+        return null;
     }
 
     public static boolean checkUnManagedVolumeHasReplicas(UnManagedVolume unManagedVolume) {

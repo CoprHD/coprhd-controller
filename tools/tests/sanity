@@ -2539,6 +2539,11 @@ recoverpoint_ingest_setup()
 	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
     fi	
 
+    if [ ${RPVPLEX_TESTS} = "1" ]; then
+	run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+    fi
+
     # Especially with the simulator, the previous RP discovery may still be running
     state=`protectionsystem list | grep ${RP_SIMULATOR} | awk '{print $(NF-1)}'`
     while [ "$state" = "IN_PROGRESS" ]; do
@@ -2605,6 +2610,10 @@ recoverpoint_ingest_test()
 	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
         # Recreate unmanaged volumes/protection sets
 	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	if [ ${RPVPLEX_TESTS} = "1" ]; then
+	    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	fi
 	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
@@ -2647,6 +2656,11 @@ recoverpoint_ingest_test()
 	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
     fi	
 
+    if [ ${RPVPLEX_TESTS} = "1" ]; then
+	run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+    fi
+
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
     # Re-ingest
@@ -2658,6 +2672,10 @@ recoverpoint_ingest_test()
 	#/opt/storageos/bin/dbutils list Volume > /tmp/vol2.txt
         # Recreate unmanaged volumes/protection sets
 	#run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	#if [ ${RPVPLEX_TESTS} = "1" ]; then
+	#    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	#    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	#fi
 	#run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 	#/opt/storageos/bin/dbutils list Volume > /tmp/vol3.txt
 

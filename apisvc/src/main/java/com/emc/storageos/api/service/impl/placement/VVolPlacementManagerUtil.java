@@ -63,13 +63,17 @@ public class VVolPlacementManagerUtil {
             
             SOAPMessage message = MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL).createMessage(null,is);
             SOAPBody sb = message.getSOAPBody();
-            DOMSource source;
+            DOMSource source = null;
             Node node;
             node = sb.getFirstChild();
-            if(node != null){
-                source = new DOMSource(sb.getFirstChild());
-            } else {
-                source = new DOMSource(sb.getFirstChild().getNextSibling());
+            if (node != null) {
+                if (!(node.getNodeName().equals("#text"))) {
+
+                    source = new DOMSource(sb.getFirstChild());
+
+                } else {
+                    source = new DOMSource(sb.getFirstChild().getNextSibling());
+                }
             }
             createVirtualVol = (CreateVirtualVolume)JAXB.unmarshal(source, CreateVirtualVolume.class);
             _log.info("####### Virtual Volume Create Request Information ###########");

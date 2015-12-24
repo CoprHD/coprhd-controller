@@ -6,9 +6,6 @@ loop_execute() {
     set +e
     local command=${1}
     local includeLocal=${2}
-    local node_count=${3}
-    local local_node=${4}
-    local password=${5}
 
     for i in $(seq 1 ${NODE_COUNT})
     do
@@ -53,8 +50,28 @@ finish_message() {
     fi    
 }
 
+is_local_backup() {
+    if [[ "${RESTORE_DIR}" =~ ^\/data\/backup ]]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
 clean_up() {
-    local command="rm -rf $RESTORE_DIR"
-    loop_execute "${command}" "true" "${NODE_COUNT}" "${LOCAL_NODE}" "${ROOT_PASSWORD}"
+    local is_local_backup=$(is_local_backup)
+    local command
+
+    if [[ "${is_local_backup}" == "false" ]]; then
+        command="rm -rf $RESTORE_DIR"
+        echo "remove restore dir on all nodes ${RESTORE_DIR}"
+        loop_execute "${command}" "true" "${NODE_COUNT}" "${LOCAL_NODE}" "${ROOT_PASSWORD}"
+    else
+       command="rm -f ${RESTORE_DIR}/*_zk.*" 
+       for node in ${nodes_without_zk_data[@]}
+       do
+            ssh_execute "${node}" "${command}" "${ROOT_PASSWORD}"
+       done
+    fi
 }
 

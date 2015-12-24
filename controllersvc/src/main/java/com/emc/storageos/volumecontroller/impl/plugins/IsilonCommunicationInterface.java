@@ -747,8 +747,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     
                     // set protocol support
                     virtualNAS.setProtocols(protocols);
-                    // set the smart connect
                     
+                    // set the smart connect
                     setStoragePortsForNASServer(isilonNetworkPools, storageSystem, virtualNAS);
 
                 } else {
@@ -821,7 +821,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private void setStoragePortsForNASServer(List<IsilonNetworkPool> isilonNetworkPools,
     		StorageSystem storageSystem, NASServer nasServer) {
     	
-    	StringSet storagePorts = new StringSet();
+    	StringSet storagePorts = nasServer.getStoragePorts();
+    	
+    	if (storagePorts == null) {
+    		storagePorts = new StringSet(); 
+    	} else {
+    		storagePorts.clear();
+    	}
     	
         if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
             

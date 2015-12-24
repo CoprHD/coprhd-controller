@@ -2740,6 +2740,14 @@ public class VolumeIngestionUtil {
         return hlu;
     }
 
+    /**
+     * Utility method to check if all the volumes in an unmanaged protection set have been ingested
+     * 
+     * @param ingestedUnManagedVolumes List of unmanaged volumes which have been ingested
+     * @param umpset
+     * @param dbClient
+     * @return boolean if the all the volumes in the unmanaged protection set have been ingested
+     */
     public static boolean validateAllVolumesInCGIngested(List<UnManagedVolume> ingestedUnManagedVolumes,
             UnManagedProtectionSet umpset, DbClient dbClient) {
         if (umpset == null) {
@@ -2838,6 +2846,13 @@ public class VolumeIngestionUtil {
 
     }
 
+    /**
+     * Get the unmanaged protection set corresponding to the unmanaged volume
+     * 
+     * @param unManagedVolume
+     * @param dbClient
+     * @return unmanaged protection set
+     */
     public static UnManagedProtectionSet getUnManagedProtectionSetForUnManagedVolume(UnManagedVolume unManagedVolume, DbClient dbClient) {
         UnManagedProtectionSet umpset = null;
         // Find the UnManagedProtectionSet associated with this unmanaged volume
@@ -2851,6 +2866,13 @@ public class VolumeIngestionUtil {
         return umpset;
     }
 
+    /**
+     * Get the unmanaged protection set corresponding to the managed volume
+     * 
+     * @param managedVolume
+     * @param dbClient
+     * @return unmanaged protection set
+     */
     public static UnManagedProtectionSet getUnManagedProtectionSetForManagedVolume(BlockObject managedVolume, DbClient dbClient) {
         UnManagedProtectionSet umpset = null;
         // Find the UnManagedProtectionSet associated with this managed volume
@@ -2864,6 +2886,13 @@ public class VolumeIngestionUtil {
         return umpset;
     }
 
+    /**
+     * Creates a protection set for the given unmanaged protection set
+     * 
+     * @param umpset Unmanaged protection set for which a protection set has to be created
+     * @param dbClient
+     * @return newly created protection set
+     */
     public static ProtectionSet createProtectionSet(UnManagedProtectionSet umpset, DbClient dbClient) {
         StringSetMap unManagedCGInformation = umpset.getCGInformation();
         String rpProtectionId = PropertySetterUtil.extractValueFromStringSet(
@@ -2905,6 +2934,13 @@ public class VolumeIngestionUtil {
         return pset;
     }
 
+    /**
+     * Create a block consistency group for the given protection set
+     * 
+     * @param pset protection set
+     * @param dbClient
+     * @return BlockConsistencyGroup
+     */
     public static BlockConsistencyGroup createRPBlockConsistencyGroup(ProtectionSet pset, DbClient dbClient) {
         BlockConsistencyGroup cg = new BlockConsistencyGroup();
         cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
@@ -2922,6 +2958,15 @@ public class VolumeIngestionUtil {
         return cg;
     }
 
+    /**
+     * Decorate the RP volumes with the protection set and consistency group info after the RP CG has been fully ingested
+     * 
+     * @param rpVolumes
+     * @param pset
+     * @param rpCG
+     * @param updatedObjects
+     * @param dbClient
+     */
     public static void decorateRPVolumesCGInfo(List<Volume> rpVolumes, ProtectionSet pset, BlockConsistencyGroup rpCG,
             List<DataObject> updatedObjects, DbClient dbClient) {
         for (Volume volume : rpVolumes) {

@@ -623,6 +623,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     /**
      * Check to see if all of the volumes associated with the RP CG are now ingested.
      * 
+     * @param parentRequestContext parent request context object
      * @param volumeContext ingestion context object
      * @param unManagedVolume unmanaged volume object
      * 
@@ -979,6 +980,12 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
     }
 
+    /**
+     * Make the snaps/mirrors/clones of the RP volume to be visible after the RP CG is fully ingested
+     * 
+     * @param volumes
+     * @param updatedObjects
+     */
     private void updateVolumeReplicas(List<Volume> volumes, List<DataObject> updatedObjects) {
         for (Volume volume : volumes) {
             clearAssociatedVolumesFlags(volume, updatedObjects);
@@ -989,6 +996,12 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
     }
 
+    /**
+     * Clear the flags of the snapshots of the RP volume
+     * 
+     * @param volume
+     * @param updatedObjects
+     */
     private void clearSnapshotsFlags(Volume volume, List<DataObject> updatedObjects) {
         URIQueryResultList snapshotURIs = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
@@ -1002,6 +1015,12 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
     }
 
+    /**
+     * Clear the flags of the mirrors of the RP volume
+     * 
+     * @param volume
+     * @param updatedObjects
+     */
     private void clearMirrorsFlags(Volume volume, List<DataObject> updatedObjects) {
         if (volume.getMirrors() != null) {
             List<URI> mirrorUris = new ArrayList<URI>(Collections2.transform(volume.getMirrors(),
@@ -1016,6 +1035,12 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
     }
 
+    /**
+     * Clear the flags of the full copies of the RP volume
+     * 
+     * @param volume
+     * @param updatedObjects
+     */
     private void clearFullCopiesFlags(Volume volume, List<DataObject> updatedObjects) {
         if (volume.getFullCopies() != null) {
             List<URI> fullCopiesUris = new ArrayList<URI>(Collections2.transform(volume.getFullCopies(),
@@ -1030,6 +1055,12 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
     }
 
+    /**
+     * Clear the flags of the associated volumes of the RP volume
+     * 
+     * @param volume
+     * @param updatedObjects
+     */
     private void clearAssociatedVolumesFlags(Volume volume, List<DataObject> updatedObjects) {
         if (volume.getAssociatedVolumes() != null) {
             List<URI> associatedVolumesUris = new ArrayList<URI>(Collections2.transform(volume.getAssociatedVolumes(),

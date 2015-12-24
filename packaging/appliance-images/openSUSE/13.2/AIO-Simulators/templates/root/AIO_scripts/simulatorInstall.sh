@@ -157,8 +157,7 @@ chmod 777 /data/simulators/ldap-sim/bin/run.sh
 					#############################
 echo "Installing RP"
 
-LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?rp | grep -oP '"queryResult":"\K.*?jar'`
-LATEST_URL=${LATEST_URL%.*}-bin.zip
+LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?rp | grep -oP '"queryResultZip":"\K.*?zip'`
 echo "Downloading $LATEST_URL"
 wget $LATEST_URL || exit 1
 
@@ -175,10 +174,10 @@ rm -f rp-simulators-*.zip
 					#############################
 echo "Installing VPLEX"
 
-LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?vplex | grep -oP '"queryResult":"\K.*?jar'`
-VERSION=${LATEST_URL##*-}
-LATEST_URL=${LATEST_URL%.*}-bin.zip
-echo "Downloading ${LATEST_URL??.jar}.zip"
+LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?vplex | grep -oP '"queryResultZip":"\K.*?zip'`
+JAR_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?vplex | grep -oP '"queryResult":"\K.*?jar'`
+VERSION=${JAR_URL##*-}
+echo "Downloading $LATEST_URL"
 wget $LATEST_URL || exit 1
 
 unzip -j vplex-simulators-*.zip -d vplex-sim
@@ -209,9 +208,9 @@ rm  win-sim.zip
 					#############################
 echo "Installing XIO"
 
-LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?xio | grep -oP '"queryResult":"\K.*?jar'`
-VERSION=${LATEST_URL##*-}
-LATEST_URL=${LATEST_URL%.*}-bin.zip
+LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?xio | grep -oP '"queryResultZip":"\K.*?zip'`
+JAR_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?xio | grep -oP '"queryResult":"\K.*?jar'`
+VERSION=${JAR_URL##*-}
 echo "Downloading $LATEST_URL"
 wget $LATEST_URL || exit 1
 

@@ -17,6 +17,7 @@ import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
+import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -204,7 +205,7 @@ public class LunMaskingProcessor extends StorageProcessor {
                 obj.setHostIops(hostIoPs);
                 _logger.debug("Volume key: {}..obj : {}", volumeNativeGuid, obj.toString());
                 volToIolimits.put(volumeNativeGuid, obj);
-                if (null != fastSetting && !fastSetting.isEmpty()) {
+                if (!Strings.isNullOrEmpty(fastSetting)) {
                     volToFastPolicy.put(volumeNativeGuid, fastSetting);
                 }
 

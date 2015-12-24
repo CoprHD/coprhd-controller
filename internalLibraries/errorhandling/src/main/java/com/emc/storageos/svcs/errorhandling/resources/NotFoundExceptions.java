@@ -36,4 +36,6 @@ public interface NotFoundExceptions {
     public NotFoundException invalidParameterObjectHasNoSuchShare(URI id,
             String shareName);
 
+    @DeclareServiceCode(ServiceCode.API_URL_ENTITY_NOT_FOUND)
+    public NotFoundException openstackTenantNotFound(String openstackTenantId);
 }

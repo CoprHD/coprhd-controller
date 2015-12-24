@@ -1,0 +1,90 @@
+
+# Just the lines with CoprHD
+
+application.name=CoprHD
+
+CustomConfigs.host_assigned_name.description=The host assigned name in CoprHD
+
+vdcs.apiEndpoint=CoprHD Virtual IP
+vdc.apiEndpoint=CoprHD Virtual IP
+vdc.secretKey.help=Log into the remote CoprHD instance, and copy the Secret Key from the Virtual Data Center > Get Secret Key page.
+
+vdc.certChain.help=Log into the remote CoprHD instance, and download the Certificate Chain from the Virtual Data Center > Download Certificate Chain page.
+
+vdc.certKey.help=The Private Key will need to be acquired for this CoprHD instance in order to update the Certificate Chain.
+
+keystore.saved.reboot=Keystore updated successfully.  CoprHD will reboot for the change to take effect.
+keystore.rebootRequiredMessage=CoprHD will be rebooted automatically after save and will not be operational for few minutes.
+
+certificateSettings.acceptAllCertificates.help=If set to 'Yes', no certificate verification will be performed within the CoprHD environment.
+
+certificates.info=Certificates will be used to communicate with authentication providers, and within the CoprHD environment.
+
+certificateChanges.rebootRequiredMessage=CoprHD Nodes will be rebooted automatically after delete.
+
+
+SMISProviders.deleteConfirm=WARNING: Deletion of storage provider from CoprHD is not a fully reversible operation. Are you sure you want to delete the selected storage provider?
+
+StorageSystems.deleteConfirm=WARNING: Deletion of storage systems from CoprHD is not a fully reversible operation. Are you sure you want to delete the selected storage systems?
+
+StorageSystems.onboardSmisProvider.description=CoprHD requires access to the VNX File system's Onboard Storage Provider to receive events
+
+storageArray.resourceLimit.help=Specify the maximum number of resources CoprHD should provision on this storage system (0 or greater)
+
+storageArray.fileResourceLimit.help=Specify the maximum number of file systems CoprHD should provision on this storage system (0 or greater)
+storageArray.block_fileResourceLimit.help=Specify the maximum number of volumes / file systems CoprHD should provision on this storage system (0 or greater)
+storageArray.blockResourceLimit.help=Specify the maximum number of volumes CoprHD should provision on this storage system (0 or greater)
+
+storageArrayPool.resourceLimit.block.help=Maximum number of volumes CoprHD should provision on this storage pool (blank for no limit)
+storageArrayPool.resourceLimit.file.help=Maximum number of file systems CoprHD should provision on this storage pool (blank for no limit)
+storageArrayPool.resourceLimit.object.help=Maximum number of resources CoprHD should provision on this storage pool (blank for no limit)
+storageArrayPool.resourceLimit.block_file.help=Maximum number of volumes / file systems CoprHD should provision on this storage pool (blank for no limit)
+
+
+virtualArray.autoSanZoning.help=Automatic: to allow CoprHD to automatically create the required zones in the SAN fabric when a provisioning request is made in this virtual array. Manual: to configure the zones outside of CoprHD.
+
+configProperties.rebootRequiredMessage=CoprHD Nodes will be rebooted automatically after save.
+configProperties.rebootRequiredConfirmation=CoprHD Nodes will be rebooted automatically after save.  Are you sure you want to continue?
+
+adminDashboard.clusterPoweroff.title=CoprHD Virtual Application Shutdown
+adminDashboard.clusterPoweroff.description=The power off signal has been sent to the CoprHD Virtual Application.
+adminDashboard.confirm.poweroff=Are you sure you want to shutdown the CoprHD Virtual Appliance?
+
+license.model.ViPR_Controller=CoprHD Controller
+license.model.ViPR_Object=CoprHD Object
+license.model.ViPR_HDFS=CoprHD HDFS
+license.model.ViPR_ObjectHDFS=CoprHD Object + HDFS
+license.model.ViPR_Unstructured=CoprHD Unstructured
+license.model.ViPR_CAS=CoprHD CAS
+license.model.ViPR_File=CoprHD File
+license.model.ViPR_Block=CoprHD Block
+license.model.ViPR_Commodity=CoprHD Commodity
+
+computeSystems.osInstallNetwork.help=VLAN identifier of a private network used by CoprHD for OS installation.
+
+
+dashboard.welcome=Welcome to CoprHD
+
+resources.volumes.deleteConfirm.FULL=Are you sure you want to proceed? The volumes will be removed from CoprHD inventory and the storage system.
+resources.volumes.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed?  The volumes will be removed from CoprHD inventory, but will remain on the storage system.
+
+resources.volume.deleteConfirm.FULL=Are you sure you want to proceed? The volume will be removed from CoprHD inventory and the storage system.
+resources.volume.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed?  The volume will be removed from CoprHD inventory, but will remain on the storage system.
+
+resources.filesystem.deleteConfirm.FULL=Are you sure you want to proceed? The file system will be removed from CoprHD inventory and the storage system.
+resources.filesystem.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed?  The file system will be removed from CoprHD inventory, but will remain on the storage system.
+resources.filesystems.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed?  The file systems will be removed from CoprHD inventory, but will remain on the storage system.
+
+service.missingAssets=This service is missing required data.  This could be caused by:<br/><br/> <ul><li>No Options available for field: %s</li><li>Required assets (Host, Switches, Storage Arrays) are not defined or you do not have permission.</li><li>The system is busy discoverying assets (Host, Switches, Storage Arrays).</li><li>Unable to connect to a CoprHD backend server.</ul>
+
+notification.approvalRequired.title=[CoprHD] Approval Request
+
+notification.orderUpdated.title=[CoprHD] Order %s
+notification.approvalUpdated.title=[CoprHD] Order %s
+
+maintenance.manualStart=You will be redirected automatically once the CoprHD Virtual Application has been manually started.
+
+license.noControllerLicense=CoprHD Controller License not found.  Please contact your administrator.
+ipReconfigForm.reboot.warning=Reconfigure will reboot all CoprHD nodes automatically.
+ipReconfigForm.powerOff.warning=Reconfigure will power off all CoprHD nodes, and nodes need to be rebooted manually within one day otherwise procedure will expire and fail.
+

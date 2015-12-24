@@ -5,8 +5,9 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,16 +15,19 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.IngestStrategyEnum;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.ReplicationStrategy;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.VolumeType;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -49,15 +53,13 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
     }
 
     @Override
-    protected <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
-            UnManagedVolume unManagedVolume,
-            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
-            List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed,
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
-            Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
+    protected <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
+            throws IngestionException {
 
+        UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();
+        boolean unManagedVolumeExported = requestContext.getVolumeContext().isVolumeExported();
         Volume volume = null;
+        List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
 
         URI unManagedVolumeUri = unManagedVolume.getId();
         String volumeNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
@@ -70,23 +72,25 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         }
 
         if (null == volume) {
-            validateUnManagedVolume(unManagedVolume, vPool);
+            validateUnManagedVolume(unManagedVolume, requestContext.getVpool());
             // @TODO Need to revisit this. In 8.x Provider, ReplicationGroup is automatically created when a volume is associated to a
             // StorageGroup.
             // checkUnManagedVolumeAddedToCG(unManagedVolume, virtualArray, tenant, project, vPool);
             checkVolumeExportState(unManagedVolume, unManagedVolumeExported);
-            checkVPoolValidForExportInitiatorProtocols(vPool, unManagedVolume);
-            checkHostIOLimits(vPool, unManagedVolume, unManagedVolumeExported);
+            checkVPoolValidForExportInitiatorProtocols(requestContext.getVpool(), unManagedVolume);
+            checkHostIOLimits(requestContext.getVpool(), unManagedVolume, unManagedVolumeExported);
 
-            StoragePool pool = validateAndReturnStoragePoolInVAarray(unManagedVolume, virtualArray);
+            StoragePool pool = validateAndReturnStoragePoolInVAarray(unManagedVolume, requestContext.getVarray());
 
             // validate quota is exceeded for storage systems and pools
-            checkSystemResourceLimitsExceeded(system, unManagedVolume, systemCache);
-            checkPoolResourceLimitsExceeded(system, pool, unManagedVolume, poolCache);
-            String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, system, vPool);
-            validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
+            checkSystemResourceLimitsExceeded(requestContext.getStorageSystem(), unManagedVolume, requestContext.getExhaustedStorageSystems());
+            checkPoolResourceLimitsExceeded(requestContext.getStorageSystem(), pool, unManagedVolume, requestContext.getExhaustedPools());
+            String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, requestContext.getStorageSystem(), requestContext.getVpool());
+            validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, requestContext.getVpool());
 
-            volume = createVolume(system, volumeNativeGuid, pool, virtualArray, vPool, unManagedVolume, project, tenant, autoTierPolicyId);
+            volume = createVolume(requestContext.getStorageSystem(), volumeNativeGuid, pool, 
+                    requestContext.getVarray(), requestContext.getVpool(), unManagedVolume, 
+                    requestContext.getProject(), requestContext.getTenant(), autoTierPolicyId);
         }
 
         if (volume != null) {
@@ -100,6 +104,46 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                 String replicaState = PropertySetterUtil.extractValueFromStringSet(
                         SupportedVolumeInformation.REPLICA_STATE.toString(), unManagedVolume.getVolumeInformation());
                 volume.setReplicaState(replicaState);
+            }
+
+            // Create snapshot sessions for each synchronization aspect for the volume.
+            StringSet syncAspectInfoForVolume = PropertySetterUtil.extractValuesFromStringSet(
+                    SupportedVolumeInformation.SNAPSHOT_SESSIONS.toString(), unManagedVolume.getVolumeInformation());
+            if ((syncAspectInfoForVolume != null) && (!syncAspectInfoForVolume.isEmpty())) {
+                for (String syncAspectInfo : syncAspectInfoForVolume) {
+                    String[] syncAspectInfoComponents = syncAspectInfo.split(":");
+                    String syncAspectName = syncAspectInfoComponents[0];
+                    String syncAspectObjPath = syncAspectInfoComponents[1];
+
+                    // Make sure it is not already created.
+                    URIQueryResultList queryResults = new URIQueryResultList();
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance(syncAspectObjPath),
+                            queryResults);
+                    Iterator<URI> queryResultsIter = queryResults.iterator();
+                    if (!queryResultsIter.hasNext()) {
+                        BlockSnapshotSession session = new BlockSnapshotSession();
+                        session.setId(URIUtil.createId(BlockSnapshotSession.class));
+                        session.setLabel(syncAspectName);
+                        session.setSessionLabel(syncAspectName);
+                        session.setParent(new NamedURI(volume.getId(), volume.getLabel()));
+                        session.setProject(new NamedURI(requestContext.getProject().getId(), volume.getLabel()));
+                        session.setSessionInstance(syncAspectObjPath);
+                        StringSet linkedTargetURIs = new StringSet();
+                        URIQueryResultList snapshotQueryResults = new URIQueryResultList();
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotBySettingsInstance(syncAspectObjPath),
+                                snapshotQueryResults);
+                        Iterator<URI> snapshotQueryResultsIter = snapshotQueryResults.iterator();
+                        while (snapshotQueryResultsIter.hasNext()) {
+                            linkedTargetURIs.add(snapshotQueryResultsIter.next().toString());
+                        }
+                        session.setLinkedTargets(linkedTargetURIs);
+                        session.setOpStatus(new OpStatusMap());
+                        snapSessions.add(session);
+                    }
+                }
+                if (!snapSessions.isEmpty()) {
+                    _dbClient.createObject(snapSessions);
+                }
             }
         }
 
@@ -121,30 +165,29 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         if (VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
             String strategyKey = ReplicationStrategy.LOCAL.name() + "_" + VolumeType.SNAPSHOT.name();
             IngestStrategy ingestStrategy = ingestStrategyFactory.getIngestStrategy(IngestStrategyEnum.getIngestStrategy(strategyKey));
-            snapshot = ingestStrategy.ingestBlockObjects(systemCache, poolCache,
-                    system, unManagedVolume, vPool, virtualArray,
-                    project, tenant, unManagedVolumesSuccessfullyProcessed, createdObjectMap,
-                    updatedObjectMap, true, BlockSnapshot.class, taskStatusMap, vplexIngestionMethod);
-            createdObjectMap.put(snapshot.getNativeGuid(), snapshot);
+            snapshot = ingestStrategy.ingestBlockObjects(requestContext, BlockSnapshot.class);
+            requestContext.getObjectsToBeCreatedMap().put(snapshot.getNativeGuid(), snapshot);
         }
 
         // Run this always when volume NO_PUBLIC_ACCESS
-        if (markUnManagedVolumeInactive(unManagedVolume, volume,
-                unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap,
-                taskStatusMap, vplexIngestionMethod)) {
+        if (markUnManagedVolumeInactive(requestContext, volume)) {
             _logger.info("All the related replicas and parent has been ingested ",
                     unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as
             // inactive after successful export
             if (!unManagedVolumeExported) {
                 unManagedVolume.setInactive(true);
-                unManagedVolumesSuccessfullyProcessed.add(unManagedVolume);
+                requestContext.getUnManagedVolumesToBeDeleted().add(unManagedVolume);
             }
         } else if (volume != null) {
             _logger.info(
                     "Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
                     unManagedVolume.getNativeGuid());
             volume.addInternalFlags(INTERNAL_VOLUME_FLAGS);
+            for (BlockSnapshotSession snapSession : snapSessions) {
+                snapSession.addInternalFlags(INTERNAL_VOLUME_FLAGS);
+        }
+            _dbClient.updateObject(snapSessions);
         }
 
         return clazz.cast(volume);

@@ -51,6 +51,7 @@ import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
@@ -77,6 +78,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -115,6 +117,7 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BulkDeleteParam;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
@@ -123,6 +126,7 @@ import com.emc.storageos.model.block.MirrorList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.RelatedStoragePool;
+import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.VirtualArrayChangeParam;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeBulkRep;
@@ -309,7 +313,7 @@ public class BlockService extends TaskResourceService {
     public VolumeBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<Volume> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        return new VolumeBulkRep(BulkList.wrapping(_dbIterator, MapVolume.getInstance()));
+        return new VolumeBulkRep(BulkList.wrapping(_dbIterator, MapVolume.getInstance(_dbClient)));
     }
 
     @Override
@@ -319,7 +323,7 @@ public class BlockService extends TaskResourceService {
         Iterator<Volume> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter<Volume> filter = new BulkList.ProjectResourceFilter<Volume>(
                 getUserFromContext(), _permissionsHelper);
-        return new VolumeBulkRep(BulkList.wrapping(_dbIterator, MapVolume.getInstance(), filter));
+        return new VolumeBulkRep(BulkList.wrapping(_dbIterator, MapVolume.getInstance(_dbClient), filter));
     }
 
     /**
@@ -529,6 +533,14 @@ public class BlockService extends TaskResourceService {
                     }
                 }
 
+                // Also check for snapshot sessions.
+                List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                        BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(srdfVolURI));
+                if (!snapSessions.isEmpty()) {
+                    throw APIException.badRequests.cannotStopSRDFBlockSnapShotExists(volume
+                            .getLabel());
+                }
+
                 // For a volume that is a full copy or is the source volume for
                 // full copies deleting the volume may not be allowed.
                 if (!getFullCopyManager().volumeCanBeDeleted(volume)) {
@@ -648,6 +660,18 @@ public class BlockService extends TaskResourceService {
                 _permissionsHelper, _auditMgr, _coordinator, _placementManager, sc, uriInfo,
                 _request, _tenantsService);
         return fcManager;
+    }
+
+    /**
+     * Creates and returns an instance of the block snapshot session manager to handle
+     * a snapshot session creation request.
+     * 
+     * @return BlockSnapshotSessionManager
+     */
+    private BlockSnapshotSessionManager getSnapshotSessionManager() {
+        BlockSnapshotSessionManager snapshotSessionManager = new BlockSnapshotSessionManager(_dbClient,
+                _permissionsHelper, _auditMgr, _coordinator, sc, uriInfo, _request);
+        return snapshotSessionManager;
     }
 
     /**
@@ -913,7 +937,8 @@ public class BlockService extends TaskResourceService {
             // attached or has volumes that are full copies that
             // are still attached to their source volumes.
             if (!activeCGVolumes.isEmpty()) {
-                if (!BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(activeCGVolumes.get(0), _dbClient)) {
+                if (!BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(activeCGVolumes.get(0), _dbClient)) {
+                    checkCGForMirrors(consistencyGroup, activeCGVolumes);
                     checkCGForSnapshots(consistencyGroup);
                     getFullCopyManager().verifyNewVolumesCanBeCreatedInConsistencyGroup(consistencyGroup,
                             activeCGVolumes);
@@ -1020,6 +1045,23 @@ public class BlockService extends TaskResourceService {
             }
         }
 
+    }
+
+    /**
+     * Verify that new volumes can be created in the passed consistency group.
+     *
+     * @param consistencyGroup A reference to the consistency group.
+     * @param cgVolumes The volumes in the consistency group.
+     */
+    private void checkCGForMirrors(BlockConsistencyGroup consistencyGroup, List<Volume> cgVolumes) {
+        // If volumes in CG have mirrors, then new volume cannot be created.
+        for (Volume volume : cgVolumes) {
+            StringSet mirrors = volume.getMirrors();
+            if (mirrors != null && !mirrors.isEmpty()) {
+                throw APIException.badRequests.cannotCreateVolumeAsConsistencyGroupHasMirrors(consistencyGroup.getLabel(),
+                        consistencyGroup.getId());
+            }
+        }
     }
 
     private void checkProjectsMatch(final URI expectedId, final URI actualId) {
@@ -1811,7 +1853,7 @@ public class BlockService extends TaskResourceService {
          * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
          * Hence we don't require reference check for vmax.
          */
-        if (!BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+        if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
             ArgValidator.checkReference(Volume.class, id, blockServiceApi.checkForDelete(volume));
         }
 
@@ -1977,7 +2019,7 @@ public class BlockService extends TaskResourceService {
              * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
              * Hence we don't require reference check for vmax.
              */
-            if (!BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+            if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
                 ArgValidator.checkReference(Volume.class, volumeURI, blockServiceApi.checkForDelete(volume));
             }
 
@@ -2222,6 +2264,34 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
+     * Create an array snapshot of the volume with the passed Id. Creating a
+     * snapshot session simply creates and array snapshot point-in-time copy
+     * of the volume. It does not automatically create a single target volume
+     * and link it to the array snapshot as is done with the existing create
+     * snapshot API. It allows array snapshots to be created with out any linked
+     * target volumes, or multiple linked target volumes depending on the
+     * data passed in the request. This API is only supported on a limited
+     * number of platforms that support this capability.
+     * 
+     * @brief Create volume snapshot session
+     * 
+     * @prereq Virtual pool for the volume must specify non-zero value for max_snapshots
+     * 
+     * @param id The URI of a ViPR Volume.
+     * @param param Volume snapshot parameters
+     * 
+     * @return TaskList
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList createSnapshotSession(@PathParam("id") URI id, SnapshotSessionCreateParam param) {
+        return getSnapshotSessionManager().createSnapshotSession(id, param, getFullCopyManager());
+    }
+
+    /**
      * List volume snapshots
      * 
      * 
@@ -2259,6 +2329,25 @@ public class BlockService extends TaskResourceService {
         list.getSnapList().addAll(activeSnaps);
         list.getSnapList().addAll(inactiveSnaps);
         return list;
+    }
+
+    /**
+     * List volume snapshot sessions.
+     * 
+     * @brief List volume snapshot sessions.
+     * 
+     * @prereq none
+     * 
+     * @param id The URI of a ViPR Volume.
+     * 
+     * @return Volume snapshot response containing list of snapshot sessions
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public BlockSnapshotSessionList getSnapshotSessions(@PathParam("id") URI id) {
+        return getSnapshotSessionManager().getSnapshotSessionsForSource(id);
     }
 
     /**
@@ -3921,6 +4010,16 @@ public class BlockService extends TaskResourceService {
                                     throw APIException.badRequests
                                             .volumeForVpoolChangeHasSnaps(volume.getId().toString());
                                 }
+
+                                // Also check for snapshot sessions.
+                                List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                                        BlockSnapshotSession.class,
+                                        ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+                                if (!snapSessions.isEmpty()) {
+                                    throw APIException.badRequests
+                                            .volumeForVpoolChangeHasSnaps(volume.getId().toString());
+                                }
+
                                 // Can't migrate the source side backend volume if it is
                                 // has full copy sessions.
                                 if (BlockFullCopyUtils.volumeHasFullCopySession(srcVolume, _dbClient)) {
@@ -3967,6 +4066,14 @@ public class BlockService extends TaskResourceService {
                 } else if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
                     // The backend would have a full copy, but the VPLEX volume would not.
                     throw APIException.badRequests.volumeForVpoolChangeHasFullCopies(volume.getLabel());
+                } else {
+                    // Can't be imported if it has snapshot sessions, because we
+                    // don't currently support these behind VPLEX.
+                    List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                            BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+                    if (!snapSessions.isEmpty()) {
+                        throw APIException.badRequests.cannotImportVolumeWithSnapshotSessions(volume.getLabel());
+                    }
                 }
             } else if (VirtualPool.vPoolSpecifiesProtection(newVpool)) {
                 // VNX/VMAX import to RP cases (currently one)
@@ -3980,6 +4087,14 @@ public class BlockService extends TaskResourceService {
                 } else if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
                     // Full copies not supported for RP protected volumes.
                     throw APIException.badRequests.volumeForRPVpoolChangeHasFullCopies(volume.getLabel());
+                } else {
+                    // Can't add RP if it has snapshot sessions, because we
+                    // don't currently support these for RP protected volumes.
+                    List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                            BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+                    if (!snapSessions.isEmpty()) {
+                        throw APIException.badRequests.volumeForRPVpoolChangeHasSnapshotSessions(volume.getLabel());
+                    }
                 }
             } else if (VirtualPool.vPoolSpecifiesProtection(currentVpool)
                     && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
@@ -4773,7 +4888,7 @@ public class BlockService extends TaskResourceService {
         validateMirrorCount(sourceVolume, sourceVPool, count);
 
         // validate VMAX3 source volume for active snap sessions.
-        if (storageSystem.checkIfVmax3()) {
+        if (storageSystem != null && storageSystem.checkIfVmax3()) {
             BlockServiceUtils.validateVMAX3ActiveSnapSessionsExists(sourceVolume.getId(), _dbClient, MIRRORS);
         }
 

@@ -67,7 +67,7 @@ import controllers.security.Security;
 import controllers.util.Models;
 
 @With(Common.class)
-@Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
+@Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN") })
 public class SystemHealth extends Controller {
 
     public static final String PARAM_NODE_ID = "nodeId";

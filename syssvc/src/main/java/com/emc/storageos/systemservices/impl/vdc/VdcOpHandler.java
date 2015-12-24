@@ -545,90 +545,38 @@ public abstract class VdcOpHandler {
                 refreshFirewall();
             }
             
-            refreshCoordinatorForSwitchover(site);
+            refreshCoordinator();
+            
             // Update site state
-            if (isOldActiveSiteForSwitchover(site)) {
-                // old active site
-                updateSwitchoverSiteStateOnOldActive(site);
-            } else if (isNewActiveSiteForSwitchover(site)) {
-                // new active site
-                updateSwitchoverSiteStateOnNewActive(site);
+            if (site.getState().equals(SiteState.ACTIVE_SWITCHING_OVER)) {
+                log.info("This is switchover acitve site (old acitve)");
+                
+                //stop related service to avoid accepting any provisioning operation
+                localRepository.stop("vasa");
+                localRepository.stop("sa");
+                localRepository.stop("controller");
+                
+                updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
+            } else if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+                log.info("This is switchover standby site (new active)");
+                updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_STANDBY_SITE);
             }
         }
         
-        /**
-         * Synchronously reconfig coordinator in old/new active so that we could minimize unavailable window of coordinatorsvc
-         * 
-         * @throws Exception
-         */
-        private void refreshCoordinatorForSwitchover(Site site) throws Exception {
-            if (isOldActiveSiteForSwitchover(site) || isNewActiveSiteForSwitchover(site)) {
-                int switchingNodeCount = getSwitchoverNodeCount();
-                log.info("Wait for barrier to reconfig/restart coordinator when switchover");
-                VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, switchingNodeCount, true);
-                barrier.enter();
-                try {
-                    localRepository.reconfigProperties("coordinator");
-                } finally {
-                    barrier.leave();
-                }
-                localRepository.restart("coordinatorsvc");
-            } else {
-                refreshCoordinator();
-            }
-        }
-        
-        private void updateSwitchoverSiteStateOnNewActive(Site site) throws Exception {
-            log.info("This is switchover standby site (new active)");
-
+        private void updateSwitchoverSiteState(Site site, SiteState siteState, String barrierName) throws Exception {
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
             
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(barrierName, SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
             barrier.enter();
             try {
-                log.info("Set state to ACTIVE");
-                site.setState(SiteState.ACTIVE);
+                log.info("Set state from {} to {}", site.getState(), siteState);
+                site.setState(siteState);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
             } finally {
                 barrier.leave();
             }
-        }
 
-        private void updateSwitchoverSiteStateOnOldActive(Site site) throws Exception {
-            log.info("This is switchover acitve site (old acitve)");
-            
-            coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
-
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, getSwitchoverNodeCount(), true);
-            barrier.enter();
-            try {
-                log.info("Set state to SYNCED");
-                site.setState(SiteState.STANDBY_SYNCED);
-                coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-            } finally {
-                barrier.leave();
-            }
-        }
-        
-        private int getSwitchoverNodeCount() {
-            int count = 0;
-            
-            for (Site site : drUtil.listSites()) {
-                if (site.getState().equals(SiteState.ACTIVE_SWITCHING_OVER) || site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-                    count += site.getNodeCount();
-                }
-            }
-            
-            log.info("Node count is switchover is {}", count);
-            return count;
-        }
-        
-        private boolean isOldActiveSiteForSwitchover(Site site) {
-            return site.getState().equals(SiteState.ACTIVE_SWITCHING_OVER);
-        }
-        
-        private boolean isNewActiveSiteForSwitchover(Site site) {
-            return site.getState().equals(SiteState.STANDBY_SWITCHING_OVER);
+            log.info("Reboot this node after switchover");
         }
         
         // See coordinator hack for DR in CoordinatorImpl.java. If single node
@@ -735,10 +683,10 @@ public abstract class VdcOpHandler {
         }
         
         private void waitForAllNodesAndReboot(Site site) throws Exception {
-            coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
+            coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
             
             log.info("Wait for barrier to reboot cluster");
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER, SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), true);
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, FAILOVER_BARRIER_TIMEOUT, site.getNodeCount(), true);
             barrier.enter();
             try {
                 log.info("Reboot this node after failover");

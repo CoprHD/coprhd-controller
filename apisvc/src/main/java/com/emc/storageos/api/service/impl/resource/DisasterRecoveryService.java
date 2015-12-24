@@ -1264,11 +1264,16 @@ public class DisasterRecoveryService {
      */
     protected void precheckForSwitchover(String standbyUuid) {
         Site standby = null;
+        
+        if (drUtil.isStandby()) {
+            throw new IllegalStateException("Operation is allowed on acitve site only");
+        }
+        
         try {
             standby = drUtil.getSiteFromLocalVdc(standbyUuid);
         } catch (CoordinatorException e) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getUuid(),
-                    "Standby uuid is not valid, can't find in ZK");
+                    "Standby uuid is not valid, can't find it");
         }
 
         if (standbyUuid.equals(drUtil.getActiveSiteId())) {

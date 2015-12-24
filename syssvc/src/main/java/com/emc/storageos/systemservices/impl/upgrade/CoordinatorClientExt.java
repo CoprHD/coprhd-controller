@@ -1417,6 +1417,10 @@ public class CoordinatorClientExt {
     public void stopCoordinatorSvcMonitor() {
         stopCoordinatorSvcMonitor = true;
     }
+
+    public void startCoordinatorSvcMonitor() {
+        stopCoordinatorSvcMonitor = false;
+    }
     
     /**
      * Monitor local coordinatorsvc on standby site

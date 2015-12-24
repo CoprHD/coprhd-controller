@@ -59,7 +59,7 @@ public class UserInfo {
 
     @XmlElementWrapper(name = "vdc_roles")
     /**
-     * Virtual data center roles that the user has.
+     * Virtual data center roles that the user has. Any among SYSTEM_ADMIN, SECURITY_ADMIN, SYSTEM_MONITOR, SYSTEM_AUDITOR
      */
     @XmlElement(name = "vdc_role")
     public List<String> getVdcRoles() {
@@ -75,7 +75,7 @@ public class UserInfo {
 
     @XmlElementWrapper(name = "home_tenant_roles")
     /**
-     * Provider tenant roles that the user has.
+     * Provider tenant roles that the user has. TENANT_ADMIN, PROJECT_ADMIN, TENANT_APPROVER
      */
     @XmlElement(name = "home_tenant_role")
     public List<String> getHomeTenantRoles() {

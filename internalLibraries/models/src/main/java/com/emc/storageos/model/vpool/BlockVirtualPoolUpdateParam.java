@@ -136,7 +136,7 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     }
 
     /**
-     * The new drive type supported by the virtual pool.
+     * The new drive type supported by the virtual pool. NONCE, SSD, FC, SAS, SATA
      * 
      */
     @XmlElement(name = "drive_type")

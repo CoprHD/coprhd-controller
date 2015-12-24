@@ -35,7 +35,8 @@ public class VirtualPoolAttributesParam {
 
     @XmlElementWrapper(name = "protocols")
     /**
-     * The protocols for a virtual pool.
+     * The protocols for a virtual pool. Valid values are
+     * FC, ISCSI, FCoE, NFS, NFSV4, CIFS
      * 
      */
     @XmlElement(name = "protocol")
@@ -137,7 +138,8 @@ public class VirtualPoolAttributesParam {
     }
 
     /**
-     * The provisioning type for the virtual pool.
+     * The provisioning type for the virtual pool. Valid values are
+     * NONE, Thin, Thick
      * 
      */
     @XmlElement(name = "provisioning_type", required = false)
@@ -164,7 +166,8 @@ public class VirtualPoolAttributesParam {
     }
 
     /**
-     * The system type for the virtual pool.
+     * The system type for the virtual pool. Valid values are
+     * vnxblock, vmax, vnxfile, isilon, netapp
      * 
      */
     @XmlElement(name = "system_type")
@@ -227,7 +230,8 @@ public class VirtualPoolAttributesParam {
 
     /**
      * The supported drive type. When specified, only storage pools that are
-     * comprised of the specified drive type are matched.
+     * comprised of the specified drive type are matched. Valid values are
+     * FC, ISCSI, FCoE, NFS, NFSV4, CIFS
      * 
      */
     @XmlElement(name = "drive_type")

@@ -32,7 +32,7 @@ public class BlockMirrorRestRep extends VolumeRestRep {
     }
 
     /**
-     * Synchronization state.
+     * Synchronization state. UNKNOWN / RESYNCHRONIZING/ SYNCHRONIZED, FRACTURED
      * 
      */
     @XmlElement

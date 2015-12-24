@@ -108,8 +108,8 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
      * <p>
      * This field is maintained for backward compatibility. It was replaced by link getVirtualArrays(). This field returns the network
      * varray when the network is associated with a single varray. It returns null otherwise.
-     * 
-     * Please refer NetworkRestRep#getVirtualArrays()
+     * @see #getVirtualArray()
+     * Please refer NetworkRestRep#getVirtualArray()
      */
     @XmlElement(name = "varray")
     @JsonProperty("varray")
@@ -169,7 +169,7 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * Indicates whether the network and its endpoints can be used for provisioning
-     * operation. Only registered networks can be used for provisioning operations.
+     * operation. Only registered networks can be used for provisioning operations. Valid: UNREGISTERED, REGISTERED, UNKNOWN
      * 
      */
     @XmlElement(name = "registration_status")

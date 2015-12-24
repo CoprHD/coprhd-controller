@@ -66,7 +66,8 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
     }
 
     /**
-     * A short mnemonic that indicates what kind of system is being represented
+     * A short mnemonic that indicates what kind of system is being represented. Valid ones
+     * are brocade,isilon, netapp, mds, rp, vmax, vnxblock, vnxfile, vplex
      * 
      * 
      */
@@ -120,6 +121,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
 
     /**
      * The status of the last metric collection job for this system
+     * Valid values CREATED, IN_PROGRESS, COMPLETE, ERROR
      * 
      */
     @XmlElement(name = "job_metering_status")
@@ -186,7 +188,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
     /**
      * Whether or not the system is registered with ViPR. A system must be
      * registered before it can be managed by ViPR.
-     * 
+     *  Either REGISTERED, UNREGISTERED
      */
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {
@@ -198,7 +200,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
     }
 
     /**
-     * Whether or not this system is compatible with ViPR
+     * Whether or not this system is compatible with ViPR. Valid values: COMPATIBLE, INCOMPATIBLE, UNKNOWN
      * 
      */
     @XmlElement(name = "compatibility_status")

@@ -190,7 +190,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
     }
 
     /**
-     * Status of the provider scan job.
+     * Status of the provider scan job. Values can be: CREATED, IN_PROGRESS, COMPLETE, ERROR
      * 
      */
     @XmlElement(name = "job_scan_status")

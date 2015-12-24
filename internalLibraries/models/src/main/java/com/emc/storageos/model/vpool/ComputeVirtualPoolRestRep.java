@@ -66,7 +66,7 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     }
 
     /**
-     * The supported system type for the virtual pool.
+     * The supported system type for the virtual pool. Cisco_UCSM, Cisco_CSeries, Generic
      * 
      * 
      * @return The system type.

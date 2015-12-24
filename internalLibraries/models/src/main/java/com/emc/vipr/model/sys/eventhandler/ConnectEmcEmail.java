@@ -87,7 +87,8 @@ public class ConnectEmcEmail extends ConnectEmcEmailFtpsBase {
     }
 
     /**
-     * Optional, Authentication type for connecting to the SMTP server
+     * Optional, Authentication type for connecting to the SMTP server. Valid values are:
+     * LOGIN, CRAM_MDS,PLAIN
      * 
      */
     @XmlElement(name = "smtp_auth_type")
@@ -131,7 +132,7 @@ public class ConnectEmcEmail extends ConnectEmcEmailFtpsBase {
     }
 
     /**
-     * Optional, Use TLS/SSL for the SMTP server connections
+     * Optional, Use TLS/SSL for the SMTP server connections Valid YES, NO(DEFAULT)
      */
     @XmlElement(name = "start_tls_ind")
     public String getStartTls() {

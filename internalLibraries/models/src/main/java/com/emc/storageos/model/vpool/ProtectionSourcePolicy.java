@@ -122,7 +122,7 @@ public class ProtectionSourcePolicy {
     }
 
     /**
-     * Type of RPO unit
+     * Type of RPO unit Can be any of SECONDS, MINUTES, HOURS, WRITES, BYTES, KB, 
      * 
      */
     @XmlElement(name = "rpo_type", required = false)

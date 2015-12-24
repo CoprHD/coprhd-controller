@@ -82,7 +82,7 @@ public class SetLogLevelParam {
 
     /**
      * Required, An int indicating the new log level.
-     * Following values are valid:
+     * Following values are valid: FATAL (0), EMERG(1), ALERT(2), CRIT(3), ERROR(4), WARN(5), NOTICE(6), INFO(7), DEBUG(8), TRACE(9)
      *
      */
     @XmlElement(required = true)

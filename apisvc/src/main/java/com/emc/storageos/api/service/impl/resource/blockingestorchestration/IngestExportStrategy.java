@@ -51,17 +51,13 @@ public class IngestExportStrategy {
                 List<UnManagedExportMask> unManagedMasks = _dbClient.queryObject(UnManagedExportMask.class, unManagedMaskUris);
                 int originalSize = unManagedMasks.size();
                 MutableInt masksIngestedCount = new MutableInt(0);
-                List<String> errorMessages = new ArrayList<String>();
 
-                // TODO: Nathan, please take a look at the intent of this block wrt context object.
-                if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) != null) {
-                    errorMessages = requestContext.getVolumeContext(
-                        unManagedVolume.getNativeGuid()).getErrorMessages();
-                }
-                
                 // Ingest Associated Masks
                 ingestExportOrchestrator.ingestExportMasks(
                         requestContext, unManagedVolume, blockObject, unManagedMasks, masksIngestedCount);
+
+                List<String> errorMessages = requestContext.getErrorMessagesForVolume(unManagedVolume.getNativeGuid());
+
                 // If the internal flags are set, return the block object
                 if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
                     // check if none of the export masks are ingested

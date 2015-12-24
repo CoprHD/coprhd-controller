@@ -312,15 +312,7 @@ public class RecoverPointImageManagementUtils {
         if (firstCopy != null && secondCopy != null) {
             GlobalCopyUID firstCopyGlobalCopyUID = firstCopy.getGlobalCopyUID();
             GlobalCopyUID secondCopyGlobalCopyUID = secondCopy.getGlobalCopyUID();
-
-            ClusterUID firstCopyClusterUID = firstCopyGlobalCopyUID.getClusterUID();
-            ClusterUID secondCopyClusterUID = secondCopyGlobalCopyUID.getClusterUID();
-
-            if (firstCopyClusterUID != null && secondCopyClusterUID != null
-                    && firstCopyClusterUID.getId() == secondCopyClusterUID.getId()
-                    && firstCopyGlobalCopyUID.getCopyUID() == secondCopyGlobalCopyUID.getCopyUID()) {
-                return true;
-            }
+            return copiesEqual(firstCopyGlobalCopyUID, secondCopyGlobalCopyUID);
         }
 
         return false;
@@ -1030,9 +1022,9 @@ public class RecoverPointImageManagementUtils {
     /**
      * Wait for CG copy links to become ACTIVE
      *
-     * @param cgUID - Consistency group we are looking at
+     * @param impl access to RP
+     * @param copyUID copy ID
      * @param desiredPipeState - Desired state of the pipe
-     * @param port - RP handle to use for RP operations
      * 
      * @return void
      * 
@@ -1235,6 +1227,7 @@ public class RecoverPointImageManagementUtils {
      * @param impl - RP handle
      * @param copyId - CG Copy, contains CG
      * @throws RecoverPointException
+     * @return state of the CG copy
      */
     public ConsistencyGroupCopyState getCopyState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyId) throws RecoverPointException {
         String cgCopyName = NAME_UNKNOWN;

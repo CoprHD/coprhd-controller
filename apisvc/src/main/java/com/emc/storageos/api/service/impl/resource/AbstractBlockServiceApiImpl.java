@@ -362,7 +362,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     if (!volume.checkForRp() && volume.isVolumeExported(_dbClient)) {
                         // Check to see if the volume is exported to a host in the non-RP case.
                         throw APIException.badRequests.inventoryDeleteNotSupportedonExportedVolumes(volume.getNativeGuid());
-                    } else if (volume.checkForRp() && volume.isVolumeExportedNonRP(_dbClient)) {
+                    } else if (volume.checkForRp() && volume.isExportedNonRP(_dbClient)) {
                         // Check to see if the volume is exported to anything other than RP.
                         throw APIException.badRequests.inventoryDeleteNotSupportedonExportedVolumes(volume.getNativeGuid());
                     }

@@ -76,6 +76,11 @@ public class RPUnManagedObjectDiscoverer {
 
         log.info("Started discovery of UnManagedVolumes for system {}", accessProfile.getSystemId());
         ProtectionSystem protectionSystem = dbClient.queryObject(ProtectionSystem.class, accessProfile.getSystemId());
+        if (protectionSystem == null) {
+            log.error("Discovery is not run!  Protection System not found: " + accessProfile.getSystemId());
+            return;
+        }
+        
         RecoverPointClient rp = RPHelper.getRecoverPointClient(protectionSystem);
 
         unManagedCGsInsert = new ArrayList<UnManagedProtectionSet>();
@@ -92,6 +97,7 @@ public class RPUnManagedObjectDiscoverer {
             return;
         }
 
+        // TODO: Break this up into smaller chunks
         for (GetCGsResponse cg : cgs) {
             log.info("Processing returned CG: " + cg.getCgName());
             boolean newCG = false;
@@ -133,19 +139,19 @@ public class RPUnManagedObjectDiscoverer {
 
             // Indicate whether the CG is in a healthy state or not to ingest.
             unManagedProtectionSet.getCGCharacteristics().put(UnManagedProtectionSet.SupportedCGCharacteristics.IS_HEALTHY.name(),
-                    cg.cgState.equals(GetCGStateResponse.HEALTHY) ? Boolean.TRUE.toString() : Boolean.FALSE.toString());
+                    cg.getCgState().equals(GetCGStateResponse.HEALTHY) ? Boolean.TRUE.toString() : Boolean.FALSE.toString());
 
             // Indicate whether the CG is sync or async
             unManagedProtectionSet.getCGCharacteristics().put(UnManagedProtectionSet.SupportedCGCharacteristics.IS_SYNC.name(),
-                    cg.cgPolicy.synchronous ? Boolean.TRUE.toString() : Boolean.FALSE.toString());
+                    cg.getCgPolicy().synchronous ? Boolean.TRUE.toString() : Boolean.FALSE.toString());
 
             // Fill in RPO type and value information
             StringSet rpoType = new StringSet();
-            rpoType.add(cg.cgPolicy.rpoType);
+            rpoType.add(cg.getCgPolicy().rpoType);
             unManagedProtectionSet.putCGInfo(SupportedCGInformation.RPO_TYPE.toString(), rpoType);
 
             StringSet rpoValue = new StringSet();
-            rpoValue.add(cg.cgPolicy.rpoValue.toString());
+            rpoValue.add(cg.getCgPolicy().rpoValue.toString());
             unManagedProtectionSet.putCGInfo(SupportedCGInformation.RPO_VALUE.toString(), rpoValue);
 
             // Now map UnManagedVolume objects to the journal and rset (sources/targets) and put RP fields in them
@@ -231,7 +237,7 @@ public class RPUnManagedObjectDiscoverer {
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PROTECTIONSYSTEM.toString(),
                             rpProtectionSystemId);
 
-                    // Filter out RP and SRDF source vpools since this is a journal volume
+                    // Filter out inappropriate vpools since this is a journal volume
                     filterProtectedVpools(dbClient, unManagedVolume, personality.iterator().next());
 
                     unManagedVolumesToUpdateByWwn.put(unManagedVolume.getWwn(), unManagedVolume);
@@ -362,8 +368,7 @@ public class RPUnManagedObjectDiscoverer {
                             continue;
                         }
 
-                        // Don't bother if we just re-found the source device (TODO: Is this an issue for RP MP where there are two
-                        // sources?)
+                        // Don't bother if we just re-found the source device
                         if (targetUnManagedVolume.getId().equals(unManagedVolume.getId())) {
                             continue;
                         }
@@ -414,9 +419,9 @@ public class RPUnManagedObjectDiscoverer {
      * Clean up the existing unmanaged protection set and its associated unmanaged volumes
      * so that it gets updated with latest info during rediscovery
      * 
-     * @param unManagedProtectionSet
-     * @param unManagedVolumesToUpdateByWwn
-     * @param dbClient
+     * @param unManagedProtectionSet unmanaged protection set
+     * @param unManagedVolumesToUpdateByWwn unmanaged volumes to update
+     * @param dbClient db client
      */
     private void cleanUpUnManagedResources(UnManagedProtectionSet unManagedProtectionSet,
             Map<String, UnManagedVolume> unManagedVolumesToUpdateByWwn, DbClient dbClient) {
@@ -477,7 +482,7 @@ public class RPUnManagedObjectDiscoverer {
      * 
      * @param dbClient dbclient
      * @param unManagedVolume unmanaged volume
-     * @param rpSource is this volume an RP source?
+     * @param personality SOURCE, TARGET, or METADATA
      */
     private void filterProtectedVpools(DbClient dbClient, UnManagedVolume unManagedVolume, String personality) {
 
@@ -495,8 +500,8 @@ public class RPUnManagedObjectDiscoverer {
 
                 // If this is not an RP source, the vpool should be filtered out if:
                 // The vpool is an RP vpool (has settings) and target vpools are non-null
-                if (vpool.getProtectionVarraySettings() != null && (personality.equalsIgnoreCase(Volume.PersonalityTypes.TARGET.name()) ||
-                        personality.equalsIgnoreCase(Volume.PersonalityTypes.METADATA.name()))) {
+                if (vpool.getProtectionVarraySettings() != null && ((Volume.PersonalityTypes.TARGET.name().equalsIgnoreCase(personality)) ||
+                        Volume.PersonalityTypes.METADATA.name().equalsIgnoreCase(personality))) {
                     boolean foundEmptyTargetVpool = false;
                     Map<URI, VpoolProtectionVarraySettings> settings = VirtualPool.getProtectionSettings(vpool, dbClient);
                     for (Map.Entry<URI, VpoolProtectionVarraySettings> setting : settings.entrySet()) {
@@ -507,7 +512,7 @@ public class RPUnManagedObjectDiscoverer {
                     }
 
                     // If this is a journal volume, also check the journal vpools. If they're not set, we cannot filter out this vpool.
-                    if (personality.equalsIgnoreCase(Volume.PersonalityTypes.METADATA.name()) &&
+                    if (Volume.PersonalityTypes.METADATA.name().equalsIgnoreCase(personality) &&
                             (vpool.getJournalVpool() == null || vpool.getStandbyJournalVpool() == null)) {
                         foundEmptyTargetVpool = true;
                     }
@@ -520,7 +525,7 @@ public class RPUnManagedObjectDiscoverer {
                 }
 
                 // If this an RP source, the vpool must be an RP vpool
-                if (vpool.getProtectionVarraySettings() == null && personality.equalsIgnoreCase((Volume.PersonalityTypes.SOURCE.name()))) {
+                if (vpool.getProtectionVarraySettings() == null && Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality)) {
                     remove = true;
                 }
 
@@ -609,12 +614,12 @@ public class RPUnManagedObjectDiscoverer {
 
         // remove any UnManagedProtectionSets found in the database
         // but no longer found on the RecoverPoint device
-        Set<URI> umpsesFoundInDbForProtectionSystem =
+        Set<URI> umpsetsFoundInDbForProtectionSystem =
                 DiscoveryUtils.getAllUnManagedProtectionSetsForSystem(
                         dbClient, protectionSystem.getId().toString());
 
         SetView<URI> onlyFoundInDb =
-                Sets.difference(umpsesFoundInDbForProtectionSystem, unManagedCGsReturnedFromProvider);
+                Sets.difference(umpsetsFoundInDbForProtectionSystem, unManagedCGsReturnedFromProvider);
 
         if (onlyFoundInDb != null && !onlyFoundInDb.isEmpty()) {
             Iterator<UnManagedProtectionSet> umpsesToDelete =

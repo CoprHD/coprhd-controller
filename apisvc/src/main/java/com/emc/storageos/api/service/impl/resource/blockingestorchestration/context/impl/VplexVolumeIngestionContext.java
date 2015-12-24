@@ -82,7 +82,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     public VplexVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient, IngestionRequestContext parentRequestContext) {
         super(unManagedVolume, dbClient);
-        this._parentRequestContext = parentRequestContext;
+        _parentRequestContext = parentRequestContext;
     }
 
     /*
@@ -537,6 +537,20 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public VolumeIngestionContext getProcessedVolumeContext(String nativeGuid) {
         return getProcessedUnManagedVolumeMap().get(nativeGuid);
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getErrorMessagesForVolume(java
+     * .lang.String)
+     */
+    @Override
+    public List<String> getErrorMessagesForVolume(String nativeGuid) {
+        // for VPLEX, we want to return the error messages List for the 
+        // main UnManagedVolume, whose status would be returned to the user
+        return getErrorMessages();
     }
 
     /*

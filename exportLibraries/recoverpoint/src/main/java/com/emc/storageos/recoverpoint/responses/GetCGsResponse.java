@@ -14,30 +14,20 @@ import java.util.List;
 public class GetCGsResponse implements Serializable {
     private static final long serialVersionUID = 6619541304723730047L;
 
-    private boolean isJunitTest;
     // Name of the CG Group
     private String cgName;
     // CG ID
     private long cgId;
     // Top-level policy for the CG
-    public GetPolicyResponse cgPolicy;
+    private GetPolicyResponse cgPolicy;
     // Overall health/state information
-    public GetCGStateResponse cgState;
+    private GetCGStateResponse cgState;
     // List of copies
     private List<GetCopyResponse> copies;
     // List of replication sets that make up this consistency group.
     private List<GetRSetResponse> rsets;
 
     public GetCGsResponse() {
-        isJunitTest = false;
-    }
-
-    public boolean isJunitTest() {
-        return isJunitTest;
-    }
-
-    public void setJunitTest(boolean isJunitTest) {
-        this.isJunitTest = isJunitTest;
     }
 
     public String getCgName() {
@@ -70,6 +60,22 @@ public class GetCGsResponse implements Serializable {
 
     public void setRsets(List<GetRSetResponse> rsets) {
         this.rsets = rsets;
+    }
+
+    public GetPolicyResponse getCgPolicy() {
+        return cgPolicy;
+    }
+
+    public void setCgPolicy(GetPolicyResponse cgPolicy) {
+        this.cgPolicy = cgPolicy;
+    }
+
+    public GetCGStateResponse getCgState() {
+        return cgState;
+    }
+
+    public void setCgState(GetCGStateResponse cgState) {
+        this.cgState = cgState;
     }
 
     // Various top-level state information of an RP CG

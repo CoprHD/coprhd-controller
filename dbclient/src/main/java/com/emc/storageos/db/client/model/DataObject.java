@@ -135,7 +135,9 @@ public abstract class DataObject implements Serializable {
      * @param label
      */
     public void setLabel(String label) {
-        validateLabel(label);
+        // COP-18886 revert this fix for Darth SP1 to unblock unmanaged volume ingestion
+        // it didn't really help us much if we don't fix existing records anyways.
+        // validateLabel(label);
         _label = label;
         setChanged("label");
     }

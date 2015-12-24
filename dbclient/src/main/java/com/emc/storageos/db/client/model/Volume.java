@@ -799,7 +799,7 @@ public class Volume extends BlockObject implements ProjectResource {
      * 
      * @return true if the passed volume is in an export group that isn't associated with RP, false otherwise
      */
-    public boolean isVolumeExportedNonRP(DbClient dbClient) {
+    public boolean isExportedNonRP(DbClient dbClient) {
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
         Iterator<URI> exportGroupURIIter = exportGroupURIs.iterator();

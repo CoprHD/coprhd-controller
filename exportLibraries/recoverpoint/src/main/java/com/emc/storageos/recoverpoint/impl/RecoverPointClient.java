@@ -150,7 +150,7 @@ public class RecoverPointClient {
         PAUSED,	// All CG copies paused
         STOPPED,        // All CG copies stopped
         MIXED,	// CG copies are in different states
-        GONE	// CG no longer exists
+        DELETED	// CG no longer exists
     }
 
     public enum RecoverPointCGCopyState {
@@ -435,6 +435,7 @@ public class RecoverPointClient {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
         
+        // TODO: Refactor to break down into smaller pieces
         Set<GetCGsResponse> cgs = new HashSet<GetCGsResponse>();
         try {
             // Quickly get a map of cluster/sitenames
@@ -445,7 +446,7 @@ public class RecoverPointClient {
                 clusterIdToInternalSiteNameMap.put(siteSettings.getCluster().getId(), siteSettings.getInternalClusterName());
             }
             
-            // Make sure the CG name is unique.
+            // Go through all of the CGs and retrieve important pieces of information
             List<ConsistencyGroupUID> allCgs = functionalAPI.getAllConsistencyGroups();
             for (ConsistencyGroupUID cg : allCgs) {
                 ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
@@ -454,10 +455,10 @@ public class RecoverPointClient {
                 logger.info("Processing CG found on RecoverPoint system: " + settings.getName());
 
                 // First storage attributes about the top-level CG
-                GetCGsResponse ncg = new GetCGsResponse();
-                ncg.setCgName(settings.getName());
-                ncg.setCgId(cg.getId());
-                ncg.cgPolicy = new GetCGsResponse.GetPolicyResponse();
+                GetCGsResponse cgResp = new GetCGsResponse();
+                cgResp.setCgName(settings.getName());
+                cgResp.setCgId(cg.getId());
+                cgResp.setCgPolicy(new GetCGsResponse.GetPolicyResponse());
                 
                 // Find and store the policy information
                 if (settings.getActiveLinksSettings() != null) {
@@ -465,32 +466,32 @@ public class RecoverPointClient {
                         if (cgls.getLinkPolicy() != null && cgls.getLinkPolicy().getProtectionPolicy() != null) {
                             if (cgls.getLinkPolicy().getProtectionPolicy().getProtectionType() != null) {
                                 if (cgls.getLinkPolicy().getProtectionPolicy().getProtectionType().toString().equalsIgnoreCase(ProtectionMode.SYNCHRONOUS.toString())) {
-                                    ncg.cgPolicy.synchronous = true;
+                                    cgResp.getCgPolicy().synchronous = true;
                                 } else {
-                                    ncg.cgPolicy.synchronous = false;
+                                    cgResp.getCgPolicy().synchronous = false;
                                 }
                             }
                             
                             if (cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy() != null &&
                                 cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag() != null) {
-                                ncg.cgPolicy.rpoType = cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag().getType().name();
-                                ncg.cgPolicy.rpoValue = cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag().getValue(); 
+                                cgResp.getCgPolicy().rpoType = cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag().getType().name();
+                                cgResp.getCgPolicy().rpoValue = cgls.getLinkPolicy().getProtectionPolicy().getRpoPolicy().getMaximumAllowedLag().getValue(); 
                             }
                         }
                     }
                 }
                 
                 // We assume CG health until we see something that indicates otherwise.
-                ncg.cgState = GetCGsResponse.GetCGStateResponse.HEALTHY;
+                cgResp.setCgState(GetCGsResponse.GetCGStateResponse.HEALTHY);
                 RecoverPointCGState cgState = this.getCGState(cg);
-                if (cgState.equals(RecoverPointCGState.GONE)) {
-                    ncg.cgState = GetCGStateResponse.UNHEALTHY_ERROR;
+                if (cgState.equals(RecoverPointCGState.DELETED)) {
+                    cgResp.setCgState(GetCGStateResponse.UNHEALTHY_ERROR);
                 } else if (cgState.equals(RecoverPointCGState.MIXED)) {
-                    ncg.cgState = GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED;
+                    cgResp.setCgState(GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED);
                 } else if (cgState.equals(RecoverPointCGState.PAUSED)) {
-                    ncg.cgState = GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED;
+                    cgResp.setCgState(GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED);
                 } else if (cgState.equals(RecoverPointCGState.STOPPED)) {
-                    ncg.cgState = GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED;
+                    cgResp.setCgState(GetCGStateResponse.UNHEALTHY_PAUSED_OR_DISABLED);
                 }
                 
                 // Fill in the Copy information
@@ -554,11 +555,11 @@ public class RecoverPointClient {
                         copy.getJournals().add(volume);
                     }
                     
-                    if (ncg.getCopies() == null) {
-                        ncg.setCopies(new ArrayList<GetCopyResponse>());
+                    if (cgResp.getCopies() == null) {
+                        cgResp.setCopies(new ArrayList<GetCopyResponse>());
                     }
                     
-                    ncg.getCopies().add(copy);
+                    cgResp.getCopies().add(copy);
                 }
 
                 // Retrieve all replication sets for this CG
@@ -571,22 +572,22 @@ public class RecoverPointClient {
                     }
                     
                     for (UserVolumeSettings volume : rsetSettings.getVolumes()) {
-                        GetVolumeResponse nvolume = new GetVolumeResponse();
+                        GetVolumeResponse volResp = new GetVolumeResponse();
                         
                         // Get the RP copy name, needed to match up sources to targets
                         String copyID = volume.getGroupCopyUID().getGlobalCopyUID().getClusterUID().getId() + "-" + 
                                 volume.getGroupCopyUID().getGlobalCopyUID().getCopyUID();
-                        nvolume.setRpCopyName(copyUIDToNameMap.get(copyID));
-                        nvolume.setInternalSiteName(clusterIdToInternalSiteNameMap.get(volume.getClusterUID().getId()));
+                        volResp.setRpCopyName(copyUIDToNameMap.get(copyID));
+                        volResp.setInternalSiteName(clusterIdToInternalSiteNameMap.get(volume.getClusterUID().getId()));
                         
                         if (productionCopiesUID.contains(copyID)) {
-                            nvolume.setProduction(true);
+                            volResp.setProduction(true);
                         } else {
-                            nvolume.setProduction(false);
+                            volResp.setProduction(false);
                         }                        
                         
                         // Need to extract the rawUids to format: 600601608D20370089260942815CE511
-                        nvolume.setWwn(RecoverPointUtils.getGuidBufferAsString(volume.getVolumeInfo().getRawUids(), false).toUpperCase(Locale.ENGLISH));
+                        volResp.setWwn(RecoverPointUtils.getGuidBufferAsString(volume.getVolumeInfo().getRawUids(), false).toUpperCase(Locale.ENGLISH));
                         
                         if (rset.getVolumes() == null) {
                             rset.setVolumes(new ArrayList<GetVolumeResponse>());
@@ -595,25 +596,24 @@ public class RecoverPointClient {
                         // added this check because the simulator was returning the same volume over and over.
                         boolean found = false;
                         for (GetVolumeResponse vol : rset.getVolumes()) {
-                            if (vol.getWwn().equalsIgnoreCase(nvolume.getWwn())) {
+                            if (vol.getWwn().equalsIgnoreCase(volResp.getWwn())) {
                                 found = true;
                             }
                         }
                         
                         if (!found) {
-                            rset.getVolumes().add(nvolume);
+                            rset.getVolumes().add(volResp);
                         }
                     }
                     
-                    if (ncg.getRsets() == null) {
-                        ncg.setRsets(new ArrayList<GetRSetResponse>());
+                    if (cgResp.getRsets() == null) {
+                        cgResp.setRsets(new ArrayList<GetRSetResponse>());
                     }
                     
-                    ncg.getRsets().add(rset);
-                   
+                    cgResp.getRsets().add(rset);
                 }
                 
-                cgs.add(ncg);
+                cgs.add(cgResp);
                 
             }
         } catch (Exception e) {
@@ -2085,10 +2085,10 @@ public class RecoverPointClient {
             cgState = functionalAPI.getGroupState(cgUID);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             // No longer exists
-            return RecoverPointCGState.GONE;
+            return RecoverPointCGState.DELETED;
         } catch (FunctionalAPIInternalError_Exception e) {
             // No longer exists
-            return RecoverPointCGState.GONE;
+            return RecoverPointCGState.DELETED;
         }
         if (!cgSettings.isEnabled()) {
             return RecoverPointCGState.STOPPED;
@@ -2116,10 +2116,10 @@ public class RecoverPointClient {
             cgLinkStateList = functionalAPI.getGroupState(cgUID).getLinksStates();
         } catch (FunctionalAPIActionFailedException_Exception e) {
             // No longer exists
-            return RecoverPointCGState.GONE;
+            return RecoverPointCGState.DELETED;
         } catch (FunctionalAPIInternalError_Exception e) {
             // No longer exists
-            return RecoverPointCGState.GONE;
+            return RecoverPointCGState.DELETED;
         }
 
         for (ConsistencyGroupLinkState cgLinkState : cgLinkStateList) {

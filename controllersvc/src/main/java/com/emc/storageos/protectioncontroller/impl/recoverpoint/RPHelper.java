@@ -31,14 +31,20 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -171,28 +177,29 @@ public class RPHelper {
         List<Volume> allVolumesInRSet = new ArrayList<Volume>();
 
         Volume sourceVol = null;
-        if (volume.getRpTargets() != null && !volume.getRpTargets().isEmpty()) {
+        if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
             sourceVol = volume;
         } else {
             sourceVol = getRPSourceVolumeFromTarget(_dbClient, volume);
         }
+
         if (sourceVol != null) {
             allVolumesInRSet.add(sourceVol);
-        }
 
-        if (sourceVol.getRpTargets() != null) {
-            for (String tgtVolId : sourceVol.getRpTargets()) {
-                if (tgtVolId.equals(volume.getId().toString())) {
-                    allVolumesInRSet.add(volume);
-                } else {
-                    Volume tgt = _dbClient.queryObject(Volume.class, URI.create(tgtVolId));
-                    if (tgt != null && !tgt.getInactive()) {
-                        allVolumesInRSet.add(tgt);
-                    }
+            if (sourceVol.getRpTargets() != null) {
+                for (String tgtVolId : sourceVol.getRpTargets()) {
+                    if (tgtVolId.equals(volume.getId().toString())) {
+                        allVolumesInRSet.add(volume);
+                    } else {
+                        Volume tgt = _dbClient.queryObject(Volume.class, URI.create(tgtVolId));
+                        if (tgt != null && !tgt.getInactive()) {
+                            allVolumesInRSet.add(tgt);
+                        }
 
-                    // if this target was previously the Metropoint active source, go out and get the standby copy
-                    if (tgt != null && isMetroPointVolume(tgt)) {
-                        allVolumesInRSet.addAll(getMetropointStandbyCopies(tgt));
+                        // if this target was previously the Metropoint active source, go out and get the standby copy
+                        if (tgt != null && isMetroPointVolume(tgt)) {
+                            allVolumesInRSet.addAll(getMetropointStandbyCopies(tgt));
+                        }
                     }
                 }
             }
@@ -1973,6 +1980,7 @@ public class RPHelper {
     /**
      * Fetch the RP Protected target virtual pool uris.
      * 
+     * @param dbClient db client
      * @return set of vpools that are RP target virtual pools
      */
     public static Set<URI> fetchRPTargetVirtualPools(DbClient dbClient) {
@@ -1995,4 +2003,44 @@ public class RPHelper {
         }
         return rpProtectedTargetVPools;
     }
+
+    /**
+     * Creates an export group with the proper settings for RP usage
+     * 
+     * @param internalSiteName internal site name of export
+     * @param virtualArray virtual array 
+     * @param project project
+     * @param protectionSystem protection system
+     * @param storageSystem storage system
+     * @param numPaths number of paths
+     * @return an export group
+     */
+    public static ExportGroup createRPExportGroup(String internalSiteName, VirtualArray virtualArray, Project project, ProtectionSystem protectionSystem,
+            StorageSystem storageSystem, Integer numPaths) {
+        ExportGroup exportGroup;
+        exportGroup = new ExportGroup();
+        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+        exportGroup.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE, Flag.RECOVERPOINT);
+        exportGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
+        exportGroup.setVirtualArray(virtualArray.getId());
+        exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
+        // This name generation needs to match ingestion code found in RPDeviceController until
+        // we come up with better export group matching criteria.
+        String protectionSiteName = protectionSystem.getRpSiteNames().get(internalSiteName);
+        String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + protectionSiteName
+                + "_"
+                + virtualArray.getLabel();
+        // Remove all non alpha-numeric characters, excluding "_".
+        exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
+        exportGroup.setGeneratedName(exportGroupGeneratedName);
+        // When created by CoprHD natively, it's usually the CG name.
+        exportGroup.setLabel(exportGroupGeneratedName);
+        exportGroup.setVolumes(new StringMap());
+        exportGroup.setOpStatus(new OpStatusMap());
+        // TODO: May need to use a default size or compute based on the contents of the export mask.
+        exportGroup.setNumPaths(numPaths);
+        exportGroup.setZoneAllInitiators(true);
+        return exportGroup;
+    }
+
 }

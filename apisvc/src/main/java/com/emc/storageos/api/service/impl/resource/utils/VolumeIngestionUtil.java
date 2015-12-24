@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestOrchestrator;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRecoverPointIngestOrchestrator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -1938,8 +1939,11 @@ public class VolumeIngestionUtil {
     /**
      * Get the export group associated with initiator URIs
      * 
+     * Note: Once it finds an export group associated with any initiator, it returns that export group. This may not
+     * be what the caller wants.
+     * 
      * @param project project
-     * @param knownInitiatorUris initiator list (currently only the first is used)
+     * @param knownInitiatorUris initiators list
      * @param vArray virtual array
      * @param dbClient dbclient
      * @return export group
@@ -2924,7 +2928,7 @@ public class VolumeIngestionUtil {
             // Set references to protection set/CGs properly in each volume
             volume.setConsistencyGroup(rpCG.getId());
             volume.setProtectionSet(new NamedURI(pset.getId(), pset.getLabel()));
-            volume.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+            volume.clearInternalFlags(BlockRecoverPointIngestOrchestrator.RP_INTERNAL_VOLUME_FLAGS);
             _logger.info("Updating volume " + volume.getLabel() + " flags/settings");
 
             // For sources and targets, peg an RP journal volume to be associated with each.

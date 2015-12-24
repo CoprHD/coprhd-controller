@@ -2741,12 +2741,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         Set<URI> psetsDeleted = new HashSet<URI>();
         for (URI sourceVolumeURI : sourceVolumeURIs) {
             Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
-            ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet().getURI());
-            if (!psetsDeleted.contains(sourceVolume.getProtectionSet().getURI()) &&
-                 _rpHelper.getVolumesToDelete(sourceVolumeURIs).size() == pset.getVolumes().size()) {
-                pset.setInactive(true);
-                _dbClient.persistObject(pset);
-                psetsDeleted.add(sourceVolume.getProtectionSet().getURI());
+            if (sourceVolume.getProtectionSet() != null) {
+                ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet().getURI());
+                if (!psetsDeleted.contains(sourceVolume.getProtectionSet().getURI()) &&
+                        _rpHelper.getVolumesToDelete(sourceVolumeURIs).size() == pset.getVolumes().size()) {
+                    _dbClient.markForDeletion(pset);
+                    psetsDeleted.add(sourceVolume.getProtectionSet().getURI());
+                }
             }
         }        
     }

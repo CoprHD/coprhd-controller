@@ -227,29 +227,23 @@ public class ImplicitUnManagedObjectsMatcher {
             }
 
             // Verify whether unmanaged volume RP properties with the Vpool
-            boolean rpSourceVpool = (null != virtualPool.getProtectionRemoteCopySettings() && !virtualPool
+            boolean isRPSourceVpool = (null != virtualPool.getProtectionRemoteCopySettings() && !virtualPool
                     .getProtectionRemoteCopySettings().isEmpty());
-            boolean rpTargetVpool = (rpEnabledTargetVPools.contains(virtualPool.getId()));
+            boolean isRPTargetVpool = (rpEnabledTargetVPools.contains(virtualPool.getId()));
             remoteVolType = unManagedObjectInfo.get(SupportedVolumeInformation.RP_PERSONALITY.toString());
             isRegularVolume = (null == remoteVolType);
             boolean isRPSourceVolume = (null != remoteVolType && remoteVolType.contains(Volume.PersonalityTypes.SOURCE.toString()));
-            boolean isRPTargetVolume = (null != remoteVolType && (remoteVolType.contains(Volume.PersonalityTypes.TARGET.toString()) 
-                                                                  || remoteVolType.contains(Volume.PersonalityTypes.METADATA.toString())));
 
-            if (isRegularVolume && (rpSourceVpool || rpTargetVpool)) {
+            if (isRegularVolume && (isRPSourceVpool || isRPTargetVpool)) {
                 _log.debug("Found a regular volume with RP Protection Virtual Pool. No need to update.");
                 return false;
-            } else if (isRPSourceVolume && !(rpSourceVpool || rpTargetVpool)) {
+            } else if (isRPSourceVolume && !isRPSourceVpool) {
                 _log.debug("Found a RP unmanaged volume with non-rp virtualpool. No need to update.");
                 return false;
-            } else if (isRPSourceVolume && rpTargetVpool) {
+            } else if (isRPSourceVolume && isRPTargetVpool) {
                 _log.debug("Found a RP source volume & target rp vpool. No need to update.");
                 return false;
-            } else if (isRPTargetVolume && rpSourceVpool) {
-                _log.debug("Found a RP target volume & source rp source vpool. No need to update.");
-                return false;
-            }
-        
+            }        
         }
 
         // Adding a fresh new VPool, if supportedVPoolList is

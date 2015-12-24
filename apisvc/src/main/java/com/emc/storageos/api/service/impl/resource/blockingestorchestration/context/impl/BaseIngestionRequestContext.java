@@ -81,13 +81,13 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      */
     public BaseIngestionRequestContext(DbClient dbClient, List<URI> unManagedVolumeUrisToProcess, VirtualPool vpool,
             VirtualArray virtualArray, Project project, TenantOrg tenant, String vplexIngestionMethod) {
-        this._dbClient = dbClient;
-        this._unManagedVolumeUrisToProcessIterator = unManagedVolumeUrisToProcess.iterator();
-        this._vpool = vpool;
-        this._virtualArray = virtualArray;
-        this._project = project;
-        this._tenant = tenant;
-        this._vplexIngestionMethod = vplexIngestionMethod;
+        _dbClient = dbClient;
+        _unManagedVolumeUrisToProcessIterator = unManagedVolumeUrisToProcess.iterator();
+        _vpool = vpool;
+        _virtualArray = virtualArray;
+        _project = project;
+        _tenant = tenant;
+        _vplexIngestionMethod = vplexIngestionMethod;
     }
 
     /*
@@ -432,6 +432,26 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     @Override
     public VolumeIngestionContext getProcessedVolumeContext(String nativeGuid) {
         return getProcessedUnManagedVolumeMap().get(nativeGuid);
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getErrorMessagesForVolume(java
+     * .lang.String)
+     */
+    @Override
+    public List<String> getErrorMessagesForVolume(String nativeGuid) {
+        if (getVolumeContext(nativeGuid) != null) {
+            return getVolumeContext(nativeGuid).getErrorMessages();
+        }
+
+        // log a warning, but still return an empty List to avoid potential null pointers.
+        // the list will not be attached to the given native GUID in any way and will probably
+        // be dereferenced without ever being used to generate an error message.
+        _logger.warn("no unmanaged volume context was found for native GUID {}. returning an empty list.", nativeGuid);
+        return new ArrayList<String>();
     }
 
     /*

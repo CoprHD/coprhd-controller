@@ -267,7 +267,7 @@ public class ExportProcessor extends Processor {
     }
 
     /**
-     * Marks any RecoverPoint volumes as such by look at the initiators
+     * Marks any RecoverPoint volumes as such by looking at the initiators
      * and determining if any of them represent RPA front-end ports
      *  
      * @param mask - the UnManagedExportMask

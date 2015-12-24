@@ -74,7 +74,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     public RecoverPointVolumeIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient,
             IngestionRequestContext parentRequestContext) {
         super(unManagedVolume, dbClient);
-        this._parentRequestContext = parentRequestContext;
+        _parentRequestContext = parentRequestContext;
     }
 
     /**
@@ -529,6 +529,20 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
 
         return null;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getErrorMessagesForVolume(java
+     * .lang.String)
+     */
+    @Override
+    public List<String> getErrorMessagesForVolume(String nativeGuid) {
+        // for RP, we want to return the error messages List for the 
+        // main UnManagedVolume, whose status would be returned to the user
+        return getErrorMessages();
     }
 
     /*

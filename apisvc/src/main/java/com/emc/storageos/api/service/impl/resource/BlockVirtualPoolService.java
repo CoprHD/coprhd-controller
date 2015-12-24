@@ -29,6 +29,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -230,7 +231,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool, allPools,
                 protectionSettingsMap,
                 remoteSettingsMap,
-                _dbClient, _coordinator);
+                _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
         }

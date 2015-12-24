@@ -354,6 +354,10 @@
             "blockSize": "DEFAULT",
             "hlu": "-1"
           }
+        },
+        {
+          "image": "icon_storage_hpux_remove.png",
+          "baseService": "Hpux-UnmountBlockVolume"
         }
         /*
         ,{
@@ -363,10 +367,6 @@
             "blockSize": "DEFAULT",
             "hlu": "-1"
           }
-        },
-        {
-          "image": "icon_storage_hpux_remove.png",
-          "baseService": "Hpux-UnmountBlockVolume"
         },
         {
           "image": "icon_provision_hpux_remove.png",

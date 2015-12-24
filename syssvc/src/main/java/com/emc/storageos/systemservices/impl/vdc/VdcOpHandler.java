@@ -559,8 +559,12 @@ public abstract class VdcOpHandler {
                 } else if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
                     log.info("This is switchover standby site (new active)");
                     updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_STANDBY_SITE);
-                } 
-                
+                }
+
+                // for those not directly participating in the switchover, restart syssvc to enable the coordinatorsvc
+                // monitor thread that we've stopped earlier.
+                // Enabling the thread too soon might switch the current site to participant mode
+                localRepository.restart("syssvc");
             } catch (Exception ex) {
                 log.warn("Unexpected error happens during refreshing coordinatorsvc for switchover", ex);
                 resetLocalVdcConfigVersion();

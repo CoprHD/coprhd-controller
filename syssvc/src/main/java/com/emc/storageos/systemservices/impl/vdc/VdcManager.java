@@ -362,6 +362,11 @@ public class VdcManager extends AbstractManager {
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
         vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
         localRepository.setVdcPropertyInfo(vdcProperty);
+        
+        if (opHandler.isRebootNeeded()) {
+            log.info("Reboot machine for operation handler {}", opHandler.getClass().getName());
+            localRepository.reboot();
+        }
     }
     
     /**

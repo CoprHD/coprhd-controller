@@ -5,20 +5,17 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
-import java.net.InetAddress;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.security.ipsec.IPsecConfig;
-import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
@@ -33,17 +30,16 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
+import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
-
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Operation handler for vdc config change. A vdc config change may represent 
@@ -84,6 +80,10 @@ public abstract class VdcOpHandler {
     
     public abstract void execute() throws Exception;
     
+    public boolean isRebootNeeded() {
+        return false;
+    }
+    
     /**
      * No-op - flush vdc config to local only
      */
@@ -112,12 +112,7 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             syncFlushVdcConfigToLocal();
-            try {
-                refreshIPsec();
-            } catch (Exception ex) {
-                log.warn("Unexpected error happens during applying vdc config to local", ex);
-                resetLocalVdcConfigVersion();
-            }
+            refreshIPsec();
         }
     }
 
@@ -219,20 +214,18 @@ public abstract class VdcOpHandler {
         }
         
         @Override
+        public boolean isRebootNeeded() {
+            return true;
+        }
+
+        @Override
         public void execute() throws Exception {
             flushVdcConfigToLocal();
-            
-            try {
-                flushNtpConfigToLocal();
-                checkDataRevision();
-            } catch (Exception e) {
-                //reset local vdc properties to entery retry loop again. No logs here since VdcManager will print out logs
-                resetLocalVdcConfigVersion();
-                throw e;
-            }
+            flushNtpConfigToLocal();
+            checkDataRevision();
         }
         
-        private void checkDataRevision() {
+        private void checkDataRevision() throws Exception {
             // Step4: change data revision
             String targetDataRevision = targetSiteInfo.getTargetDataRevision();
             log.info("Step4: check if target data revision is changed - {}", targetDataRevision);
@@ -244,6 +237,7 @@ public abstract class VdcOpHandler {
                 }
             } catch (Exception e) {
                 log.error("Step4: Failed to update data revision. {}", e);
+                throw e;
             }
         }
         
@@ -272,7 +266,6 @@ public abstract class VdcOpHandler {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
                         log.info("Step3: Reach phase 2 agreement for data revision change");
                         localRepository.setDataRevision(targetDataRevision, true);
-                        localRepository.reboot();
                     } else {
                         log.info("Step3: Failed to reach phase 2 agreement. Rollback revision change");
                         localRepository.setDataRevision(localRevision, true);
@@ -281,6 +274,7 @@ public abstract class VdcOpHandler {
                 log.warn("Step3: Failed to reach agreement among all the nodes. Delay data revision change until next run");
             } catch (Exception ex) {
                 log.warn("Step3. Internal error happens when negotiating data revision change", ex);
+                throw ex;
             }
         }
 
@@ -533,34 +527,33 @@ public abstract class VdcOpHandler {
         }
         
         @Override
+        public boolean isRebootNeeded() {
+            return true;
+        }
+        
+        @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             
             // Reload coordinator configuration on all sites
             flushVdcConfigToLocal();
-            try {
-                coordinator.stopCoordinatorSvcMonitor();
-                if (hasSingleNodeSite()) {
-                    log.info("Single node deployment detected. Need refresh firewall/ipsec");
-                    refreshIPsec();
-                    refreshFirewall();
-                }
-                
-                refreshCoordinatorForSwitchover(site);
-                // Update site state
-                if (isOldActiveSiteForSwitchover(site)) {
-                    // old active site
-                    updateSwitchoverSiteStateOnOldActive(site);
-                } else if (isNewActiveSiteForSwitchover(site)) {
-                    // new active site
-                    updateSwitchoverSiteStateOnNewActive(site);
-                } 
-                
-            } catch (Exception ex) {
-                log.warn("Unexpected error happens during refreshing coordinatorsvc for switchover", ex);
-                resetLocalVdcConfigVersion();
+            
+            coordinator.stopCoordinatorSvcMonitor();
+            if (hasSingleNodeSite()) {
+                log.info("Single node deployment detected. Need refresh firewall/ipsec");
+                refreshIPsec();
+                refreshFirewall();
             }
             
+            refreshCoordinatorForSwitchover(site);
+            // Update site state
+            if (isOldActiveSiteForSwitchover(site)) {
+                // old active site
+                updateSwitchoverSiteStateOnOldActive(site);
+            } else if (isNewActiveSiteForSwitchover(site)) {
+                // new active site
+                updateSwitchoverSiteStateOnNewActive(site);
+            }
         }
         
         /**
@@ -599,9 +592,6 @@ public abstract class VdcOpHandler {
             } finally {
                 barrier.leave();
             }
-
-            log.info("Reboot this node after switchover");
-            localRepository.reboot();
         }
 
         private void updateSwitchoverSiteStateOnOldActive(Site site) throws Exception {
@@ -618,9 +608,6 @@ public abstract class VdcOpHandler {
             } finally {
                 barrier.leave();
             }
-
-            log.info("Reboot this node after switchover");
-            localRepository.reboot();
         }
         
         private int getSwitchoverNodeCount() {
@@ -674,21 +661,20 @@ public abstract class VdcOpHandler {
         }
         
         @Override
+        public boolean isRebootNeeded() {
+            return true;
+        }
+        
+        @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             if (isNewActiveSiteForFailover(site)) {
-                try {
-                    coordinator.stopCoordinatorSvcMonitor();
-                    reconfigVdc();
-                    coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
-                    removeDbNodesOfOldActiveSite();
-                    postHandlerFactory.initializeAllHandlers();
-                    waitForAllNodesAndReboot(site);
-                } catch (Exception e) {
-                    log.error("Error occurs during failover: {}", e);
-                    resetLocalVdcConfigVersion();
-                    throw e;
-                }
+                coordinator.stopCoordinatorSvcMonitor();
+                reconfigVdc();
+                coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
+                removeDbNodesOfOldActiveSite();
+                postHandlerFactory.initializeAllHandlers();
+                waitForAllNodesAndReboot(site);
             } else {
                 reconfigVdc();
             }
@@ -756,7 +742,6 @@ public abstract class VdcOpHandler {
             barrier.enter();
             try {
                 log.info("Reboot this node after failover");
-                localRepository.reboot();
             } finally {
                 barrier.leave();
             }
@@ -841,29 +826,12 @@ public abstract class VdcOpHandler {
         }
     }
     
-    /**
-     * Reset vdc config version if some error happens during processing. So that the processing can enter again 
-     * in next loop
-     */
-    protected void resetLocalVdcConfigVersion() {
-        log.info("Reset config version for local vdc properties");
-        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-        // set the vdc_config_version to an invalid value so that it always gets retried on failure.
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
-        localRepository.setVdcPropertyInfo(vdcProperty);
-    }
-    
     protected void reconfigVdc() throws Exception {
         syncFlushVdcConfigToLocal();
-        try {
-            refreshIPsec();
-            refreshFirewall();
-            refreshSsh();
-            refreshCoordinator();
-        } catch (Exception ex) {
-            log.warn("Unexpected error happens during applying vdc config to local", ex);
-            resetLocalVdcConfigVersion();    
-        }
+        refreshIPsec();
+        refreshFirewall();
+        refreshSsh();
+        refreshCoordinator();
     }
 
     protected void refreshFirewall() {

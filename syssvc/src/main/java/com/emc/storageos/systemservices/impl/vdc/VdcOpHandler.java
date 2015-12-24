@@ -620,8 +620,7 @@ public abstract class VdcOpHandler {
                 coordinator.stopCoordinatorSvcMonitor();
                 reconfigVdc();
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
-                removeDbNodesOfOldActiveSite();
-                postHandlerFactory.initializeAllHandlers();
+                processFailover();
                 waitForAllNodesAndReboot(site);
             } else {
                 reconfigVdc();
@@ -636,7 +635,7 @@ public abstract class VdcOpHandler {
             return site.getState().equals(SiteState.STANDBY_FAILING_OVER);
         }
         
-        private void removeDbNodesOfOldActiveSite() throws Exception {
+        private void processFailover() throws Exception {
             Site oldActiveSite = getOldActiveSiteForFailover();
             
             if (oldActiveSite == null) {
@@ -662,6 +661,7 @@ public abstract class VdcOpHandler {
                 poweroffRemoteSite(oldActiveSite);    
                 removeDbNodesFromGossip(oldActiveSite, true);
                 removeDbNodesFromStrategyOptions(oldActiveSite);
+                postHandlerFactory.initializeAllHandlers();
                 drUtil.removeSiteConfiguration(oldActiveSite);
             } catch (Exception e) {
                 log.error("Failed to remove old acitve site in failover, {}", e);

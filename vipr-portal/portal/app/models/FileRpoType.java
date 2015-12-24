@@ -1,9 +1,13 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package models;
 
 import util.StringOption;
 
 public class FileRpoType {
-    
+
     public static final String MINUTES = "MINUTES";
     public static final String HOURS = "HOURS";
 

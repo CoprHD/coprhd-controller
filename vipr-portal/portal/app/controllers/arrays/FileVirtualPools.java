@@ -300,7 +300,7 @@ public class FileVirtualPools extends ViprResourceController {
         List<StringOption> actualOptions = Lists.newArrayList();
         List<VirtualArrayRestRep> virtualArrays = VirtualArrayUtils.getVirtualArrays();
         for (StringOption option : dataObjectOptions(virtualArrays)) {
-           actualOptions.add(option);
+            actualOptions.add(option);
         }
         renderJSON(actualOptions);
     }
@@ -312,7 +312,7 @@ public class FileVirtualPools extends ViprResourceController {
         List<FileVirtualPoolRestRep> pools = await(new ConnectedFileVirtualPoolsCall(uris(virtualArray)).asPromise());
         renderJSON(dataObjectOptions(pools));
     }
-    
+
     public static void validateReplicationCopy(ReplicationCopyForm replicationCopy) {
         if (replicationCopy == null) {
             renderJSON(ValidationResponse.invalid());
@@ -325,7 +325,5 @@ public class FileVirtualPools extends ViprResourceController {
             renderJSON(ValidationResponse.valid());
         }
     }
-    
-    
 
 }

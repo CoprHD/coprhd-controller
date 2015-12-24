@@ -30,9 +30,14 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Initiator;
@@ -40,7 +45,6 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
-import com.emc.storageos.db.client.model.ProtectionSet.ProtectionStatus;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -53,18 +57,19 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGCharacteristics;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.google.common.collect.Collections2;
 
 /**
  * RecoverPoint Ingestion
  * 
  * Ingestion of RecoverPoint is done one volume at a time, like any other ingestion.
- * The goal is to allow ingestion to occur in any order:  journals, targets, and sources.
+ * The goal is to allow ingestion to occur in any order: journals, targets, and sources.
  * BlockConsistencyGroup and ProtectionSet objects are not created until all volumes associated
- * with the RP CG are ingested.  All Volume objects should be flagged to not appear in the UI
- * during this intermediate phase.  (NO_PUBLIC_ACCESS or similar)
+ * with the RP CG are ingested. All Volume objects should be flagged to not appear in the UI
+ * during this intermediate phase. (NO_PUBLIC_ACCESS or similar)
  * 
  * Commmon RP Volume Ingestion Steps:
  * - A Volume object is created with respective personality field (SOURCE/JOURNAL/METADATA) filled-in
@@ -83,7 +88,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
  * 
  * Target Ingestion:
  * - RP attributes are added to Volume: RP copy name, Replication Set name, protection system, etc.
- * - If source volume is already ingested, add volume to source volume's RP Target list 
+ * - If source volume is already ingested, add volume to source volume's RP Target list
  * - If source volume is not yet ingested, remove unmanaged target volume from unmanaged source volume's unmanaged target list
  * - If source volume is not yet ingested, add managed target volume to managed source volume's managed target list
  * 
@@ -118,6 +123,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext) parentRequestContext.getVolumeContext();
 
         UnManagedVolume unManagedVolume = volumeContext.getUnmanagedVolume();
+        boolean unManagedVolumeExported = volumeContext.isVolumeExported();
 
         // Validation checks on the unmanaged volume we're trying to ingest
         validateUnManagedVolumeProperties(unManagedVolume, volumeContext.getVarray(),
@@ -149,8 +155,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         _logger.info(getRPIngestionStatus(volumeContext));
 
         Volume volume = (Volume) blockObject;
-        // Perform RP-specific volume ingestion
 
+        // Perform RP-specific volume ingestion
         volume = performRPVolumeIngestion(parentRequestContext, volumeContext, unManagedVolume, volume);
 
         // Decorate volume with RP Properties.
@@ -162,12 +168,17 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // Perform RP-specific export ingestion
         performRPExportIngestion(volumeContext, unManagedVolume, volume);
 
+        if (!volume.checkInternalFlags(Flag.INTERNAL_OBJECT) && !unManagedVolumeExported) {
+            unManagedVolume.setInactive(true);
+            volumeContext.getUnManagedVolumesToBeDeleted().add(unManagedVolume);
+        }
+
         // Print post-ingestion report
         _logger.info("Printing Ingestion Report After Ingestion");
         _logger.info(getRPIngestionStatus(volumeContext));
 
         // Create the managed protection set/CG objects when we have all of the volumes ingested
-        if (validateAllVolumesInCGIngested(volumeContext, unManagedVolume)) {
+        if (validateAllVolumesInCGIngested(parentRequestContext, volumeContext, unManagedVolume)) {
             _logger.info("Successfully ingested all volumes associated with RP consistency group");
 
             createProtectionSet(volumeContext);
@@ -176,6 +187,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // Once we have a proper managed consistency group and protection set, we need to
             // sprinkle those references over the managed volumes.
             decorateVolumeInformationFinalIngest(volumeContext);
+        } else {
+            volume.addInternalFlags(INTERNAL_VOLUME_FLAGS);
         }
 
         return clazz.cast(volume);
@@ -205,6 +218,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 throw IngestionException.exceptions.generalVolumeException(
                         unManagedVolume.getLabel(), "check the logs for more details");
             }
+
         } else {
             // blockObject already ingested, now just update internalflags &
             // RP relationships. Run this logic always when volume NO_PUBLIC_ACCESS
@@ -263,7 +277,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         String rpInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);
 
-        volume.addInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS); // Add internal flags
         volume.setRpCopyName(rpCopyName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setRSetName(rpRSetName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setInternalSiteName(rpInternalSiteName); // This comes from UNMANAGED_CG discovery of Protection System
@@ -290,7 +303,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // we need to do as much as we can:
         //
         // 1. Process each managed target volume ID in the unmanaged source volume, add to the managed source volume's RP target list.
-        // 2. Go through each unmanaged RP target volume in the unmanaged source volume (before it goes away), add the managed source volume ID.
+        // 2. Go through each unmanaged RP target volume in the unmanaged source volume (before it goes away), add the managed source volume
+        // ID.
         // 3. Go through each unmanaged RP target volume in the unmanaged source volume, remove the unmanaged source volume ID.
 
         // 1. Process each managed target volume ID in the unmanaged source volume, add to the managed source volume's RP target list.
@@ -311,7 +325,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             volume.getRpTargets().add(managedTargetVolume.getId().toString());
         }
 
-        // 2. Go through each unmanaged RP target volume in the unmanaged source volume (before it goes away), add the managed source volume ID.
+        // 2. Go through each unmanaged RP target volume in the unmanaged source volume (before it goes away), add the managed source volume
+        // ID.
         // 3. Go through each unmanaged RP target volume in the unmanaged source volume, remove the unmanaged source volume ID.
         StringSet rpUnManagedTargetVolumeIdStrs = PropertySetterUtil.extractValuesFromStringSet(
                 SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString(),
@@ -439,7 +454,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     private void decorateUnManagedProtectionSet(RecoverPointVolumeIngestionContext volumeContext,
             Volume volume, UnManagedVolume unManagedVolume) {
         UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
-        
+
         // Add the volume to the list of managed volumes we have so far.
         if (!umpset.getManagedVolumeIds().contains(volume.getId().toString())) {
             umpset.getManagedVolumeIds().add(volume.getId().toString());
@@ -481,36 +496,12 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
 
         volumes.add((Volume) volumeContext.getManagedBlockObject());
+        List<DataObject> updatedObjects = new ArrayList<DataObject>();
 
-        for (Volume volume : volumes) {
-            // Set references to protection set/CGs properly in each volume
-            volume.setConsistencyGroup(cg.getId());
-            volume.setProtectionSet(new NamedURI(pset.getId(), pset.getLabel()));
-            volume.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
-            _logger.info("Updating volume " + volume.getLabel() + " flags/settings");
+        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient);
+        updateVolumeReplicas(volumes, updatedObjects);
 
-            // For sources and targets, peg an RP journal volume to be associated with each.
-            // This is a bit arbitrary for ingested RP volues as they may have 5 journal volumes for one source volume.
-            // We just pick one since we only store one journal volume ID in a Volume object.
-            if (volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString()) ||
-                    volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.TARGET.toString())) {
-
-                // Find a journal for that rp copy
-                for (Volume journalVolume : volumes) {
-                    if (journalVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString()) &&
-                            journalVolume.getRpCopyName() != null &&
-                            volume.getRpCopyName() != null &&
-                            journalVolume.getRpCopyName().equals(volume.getRpCopyName())) {
-                        volume.setRpJournalVolume(journalVolume.getId());
-                    }
-                }
-            }
-
-            // Set the proper flags on the journal volumes.
-            if (volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString())) {
-                volume.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE);
-            }
-
+        for (DataObject volume : updatedObjects) {
             if (!volumeContext.getManagedBlockObject().getId().equals(volume.getId())) {
                 // add all volumes except the newly ingested one to the update list
                 volumeContext.addObjectToUpdate(volume);
@@ -575,8 +566,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // TODO: May need to use a default size or compute based on the contents of the export mask.
             exportGroup.setNumPaths(em.getZoningMap().size());
             exportGroup.setZoneAllInitiators(true);
-            volumeContext.setExportGroup(exportGroup);
         }
+
+        volumeContext.setExportGroup(exportGroup);
 
         // set RP device initiators to be used as the "host" for export mask ingestion
         List<Initiator> initiators = new ArrayList<Initiator>();
@@ -649,7 +641,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * 
      * @return true if all volumes in CG are ingested
      */
-    private boolean validateAllVolumesInCGIngested(RecoverPointVolumeIngestionContext volumeContext, UnManagedVolume unManagedVolume) {
+    private boolean validateAllVolumesInCGIngested(IngestionRequestContext parentRequestContext,
+            RecoverPointVolumeIngestionContext volumeContext, UnManagedVolume unManagedVolume) {
         UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
         if (umpset == null) {
             _logger.error("Unable to find unmanaged protection set associated with volume: " + unManagedVolume.getId()
@@ -657,59 +650,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.unManagedProtectionSetNotFound(unManagedVolume.getNativeGuid());
         }
 
-        // Make sure the managed volumes match the unmanaged volumes and WWN list
-        if (umpset.getUnManagedVolumeIds() != null && umpset.getManagedVolumeIds() != null && umpset.getVolumeWwns() != null &&
-                umpset.getUnManagedVolumeIds().size() == umpset.getManagedVolumeIds().size() &&
-                umpset.getManagedVolumeIds().size() == umpset.getVolumeWwns().size()) {
-            _logger.info("Found that all volumes associated with the RP CG have been ingested: " + umpset.getCgName());
-            return true;
-        }
-
-        // Extremely unlikely #1: No unmanaged volume IDs in the protection set. We wouldn't have stored the unmanaged protection set in
-        // this case.
-        if (umpset.getUnManagedVolumeIds() == null) {
-            String msg = String.format("INGEST VALIDATION: No unmanaged volumes found in unmanaged protection set: " + umpset.getCgName());
-            _logger.error(msg);
-            return false;
-        }
-
-        // Extremely unlikely #2: Every ingest operation puts a volume in this list.
-        if (umpset.getManagedVolumeIds() == null) {
-            String msg = String.format("INGEST VALIDATION: No managed volumes found in unmanaged protection set: " + umpset.getCgName());
-            _logger.error(msg);
-            return false;
-        }
-
-        // Extremely unlikely #3: See #1. We would not have created the protection set if there weren't volumes.
-        if (umpset.getVolumeWwns() == null) {
-            String msg = String.format("INGEST VALIDATION: No volume WWNs found in unmanaged protection set: " + umpset.getCgName());
-            _logger.error(msg);
-            return false;
-        }
-
-        // Very likely: We haven't quite ingested everything yet.
-        if (!umpset.getUnManagedVolumeIds().isEmpty()) {
-            String msg = String.format(
-                    "INGEST VALIDATION: Found that the unmanaged protection set: %s is not yet ingestable because there " +
-                            "are %d volumes to be ingested, however only %d volume have been ingested.", umpset.getCgName(), umpset
-                            .getVolumeWwns().size(), umpset.getManagedVolumeIds().size());
-            _logger.info(msg);
-            // TODO: Iterate over the unmanaged volumes that we haven't ingested yet and print them up.
-            return false;
-        }
-
-        if (umpset.getManagedVolumeIds().size() != umpset.getVolumeWwns().size()) {
-            String msg = String.format(
-                    "INGEST VALIDATION: Found that the unmanaged protection set: %s is not yet ingestable because there " +
-                            " are %d volumes in the RP CG that are on arrays that are not under management.", umpset.getCgName(), umpset
-                            .getVolumeWwns().size() - umpset.getManagedVolumeIds().size());
-            _logger.info(msg);
-            // TODO: Iterate over the volume WWNs (maybe the array serial number?) that aren't in our management.
-            return false;
-        }
-
-        _logger.info("INGEST VALIDATION: All of the volumes associated with RP CG " + umpset.getCgName() + " have been ingested.");
-        return true;
+        return VolumeIngestionUtil.validateAllVolumesInCGIngested(parentRequestContext.getUnManagedVolumesToBeDeleted(), umpset, _dbClient);
     }
 
     /**
@@ -721,44 +662,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      */
     private ProtectionSet createProtectionSet(RecoverPointVolumeIngestionContext volumeContext) {
         UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
-
-        StringSetMap unManagedCGInformation = umpset.getCGInformation();
-        String rpProtectionId = PropertySetterUtil.extractValueFromStringSet(
-                SupportedCGInformation.PROTECTION_ID.toString(), unManagedCGInformation);
-
-        ProtectionSet pset = new ProtectionSet();
-        pset.setId(URIUtil.createId(ProtectionSet.class));
-        pset.setLabel(umpset.getCgName());
-        pset.setProtectionId(rpProtectionId);
-        pset.setProtectionStatus(ProtectionStatus.ENABLED.toString());
-        pset.setProtectionSystem(umpset.getProtectionSystemUri());
-        pset.setNativeGuid(umpset.getNativeGuid());
-
-        if (umpset.getManagedVolumeIds() != null) {
-            for (String volumeID : umpset.getManagedVolumeIds()) {
-                Volume volume = _dbClient.queryObject(Volume.class, URI.create(volumeID));
-                if (volume == null) {
-                    _logger.error("Unable to retrieve volume : " + volume + " from database.  Ignoring in protection set ingestion.");
-                    // this will be the expected case for a newly-ingested Volume (because it hasn't been saved yet,
-                    // so we make sure to add the volume in RecoverPointVolumeIngestionContext.commitBackend
-                    continue;
-                }
-
-                // Set the project value
-                if (pset.getProject() == null) {
-                    pset.setProject(volume.getProject().getURI());
-                }
-
-                // Add all volumes (managed only) to the new protection set
-                if (pset.getVolumes() == null) {
-                    pset.setVolumes(new StringSet());
-                }
-
-                pset.getVolumes().add(volumeID);
-            }
-        }
-
-        _logger.info("Created new protection set: " + pset.getId().toString());
+        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(umpset, _dbClient);
         volumeContext.setManagedProtectionSet(pset);
         return pset;
     }
@@ -771,18 +675,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      */
     private BlockConsistencyGroup createBlockConsistencyGroup(RecoverPointVolumeIngestionContext volumeContext) {
         ProtectionSet pset = volumeContext.getManagedProtectionSet();
-        BlockConsistencyGroup cg = new BlockConsistencyGroup();
-        cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
-        cg.setLabel(pset.getLabel());
-        Project project = _dbClient.queryObject(Project.class, pset.getProject());
-        cg.setProject(new NamedURI(pset.getProject(), project.getLabel()));
-        StringSet types = new StringSet();
-        types.add(BlockConsistencyGroup.Types.RP.toString());
-        cg.setRequestedTypes(types);
-        cg.setTypes(types);
-        cg.setTenant(project.getTenantOrg());
-        cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
-        _logger.info("Created new block consistency group: " + cg.getId().toString());
+        BlockConsistencyGroup cg = VolumeIngestionUtil.createRPBlockConsistencyGroup(pset, _dbClient);
         volumeContext.setManagedBlockConsistencyGroup(cg);
         return cg;
     }
@@ -907,6 +800,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
     /**
      * This method will assemble a status printout of the ingestion progress for this protection set.
+     * 
      * @param volumeContext context information
      * 
      * @return String status (multi-line, formatted)
@@ -915,7 +809,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         StringBuffer sb = new StringBuffer();
 
         UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
-        
+
         sb.append("\nRecoverPoint Ingestion Progress Report\n");
         sb.append("--------------------------------------\n");
 
@@ -930,7 +824,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         for (int column = 0; column < ColumnEnum.map.keySet().size(); column++) {
             columnWidthMap.put(column, ColumnEnum.valueOf(column).toString().length());
         }
-        
+
         if (!umpset.getManagedVolumeIds().isEmpty()) {
             List<Volume> volumes = new ArrayList<Volume>();
             sb.append("\n\nIngested Volumes:\n");
@@ -939,7 +833,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 if (volume == null) {
                     // Check the "just created" list in the volume context
                     if (volumeContext.getObjectsToBeCreatedMap().get(volumeId.toString()) != null) {
-                        volume = (Volume)volumeContext.getObjectsToBeCreatedMap().get(volumeId.toString());
+                        volume = (Volume) volumeContext.getObjectsToBeCreatedMap().get(volumeId.toString());
                         volumes.add(volume);
                     } else {
                         continue;
@@ -947,7 +841,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 } else {
                     volumes.add(volume);
                 }
-                
+
                 // Get the width of the columns so we can have a compact, formatted printout.
                 // Name, ID, Personality, copy name, rset name, varray name, vpool name
                 if (volume.getLabel() != null && columnWidthMap.get(ColumnEnum.NAME.getColumnNum()) < volume.getLabel().length()) {
@@ -1100,6 +994,72 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     @Override
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
         super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
+    }
+
+    private void updateVolumeReplicas(List<Volume> volumes, List<DataObject> updatedObjects) {
+        for (Volume volume : volumes) {
+            clearAssociatedVolumesFlags(volume, updatedObjects);
+            clearFullCopiesFlags(volume, updatedObjects);
+            clearMirrorsFlags(volume, updatedObjects);
+            clearSnapshotsFlags(volume, updatedObjects);
+            volume.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
+        }
+    }
+
+    private void clearSnapshotsFlags(Volume volume, List<DataObject> updatedObjects) {
+        URIQueryResultList snapshotURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                volume.getId()), snapshotURIs);
+        Iterator<BlockSnapshot> snapshotsIterator = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
+        while (snapshotsIterator.hasNext()) {
+            BlockSnapshot snap = snapshotsIterator.next();
+            _logger.info("Clearing internal volume flag of snapshot {} of RP volume {}", snap.getLabel(), volume.getLabel());
+            snap.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
+            updatedObjects.add(snap);
+        }
+    }
+
+    private void clearMirrorsFlags(Volume volume, List<DataObject> updatedObjects) {
+        if (volume.getMirrors() != null) {
+            List<URI> mirrorUris = new ArrayList<URI>(Collections2.transform(volume.getMirrors(),
+                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            Iterator<BlockMirror> mirrorIterator = _dbClient.queryIterativeObjects(BlockMirror.class, mirrorUris);
+            while (mirrorIterator.hasNext()) {
+                BlockMirror mirror = mirrorIterator.next();
+                _logger.info("Clearing internal volume flag of mirror {} of RP volume {}", mirror.getLabel(), volume.getLabel());
+                mirror.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
+                updatedObjects.add(mirror);
+            }
+        }
+    }
+
+    private void clearFullCopiesFlags(Volume volume, List<DataObject> updatedObjects) {
+        if (volume.getFullCopies() != null) {
+            List<URI> fullCopiesUris = new ArrayList<URI>(Collections2.transform(volume.getFullCopies(),
+                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            Iterator<Volume> fullCopiesIterator = _dbClient.queryIterativeObjects(Volume.class, fullCopiesUris);
+            while (fullCopiesIterator.hasNext()) {
+                Volume fullCopy = fullCopiesIterator.next();
+                _logger.info("Clearing internal volume flag of full copy {} of RP volume {}", fullCopy.getLabel(), volume.getLabel());
+                fullCopy.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
+                updatedObjects.add(fullCopy);
+            }
+        }
+    }
+
+    private void clearAssociatedVolumesFlags(Volume volume, List<DataObject> updatedObjects) {
+        if (volume.getAssociatedVolumes() != null) {
+            List<URI> associatedVolumesUris = new ArrayList<URI>(Collections2.transform(volume.getAssociatedVolumes(),
+                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            Iterator<Volume> associatedVolumesIterator = _dbClient.queryIterativeObjects(Volume.class, associatedVolumesUris);
+            while (associatedVolumesIterator.hasNext()) {
+                Volume associatedVolume = associatedVolumesIterator.next();
+                _logger.info("Clearing internal volume flag of associated volume {} of RP volume {}", associatedVolume.getLabel(),
+                        volume.getLabel());
+                associatedVolume.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
+                updatedObjects.add(associatedVolume);
+            }
+        }
     }
 
 }

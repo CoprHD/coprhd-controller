@@ -71,6 +71,12 @@ clean_up() {
        do
             ssh_execute "${node}" "${command}" "${ROOT_PASSWORD}"
        done
+
+       command="rm -f ${RESTORE_DIR}/*_info.properties" 
+       for node in ${nodes_without_properties_file[@]}
+       do
+            ssh_execute "${node}" "${command}" "${ROOT_PASSWORD}"
+       done
     fi
 }
 

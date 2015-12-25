@@ -6,7 +6,7 @@ DIR=$(dirname $0)
 . ${DIR}/restore-libs.sh
 
 start_service() {
-    echo -n "Starting storageos services on all nodes.."
+    echo -n "Starting storageos services on all nodes ... "
     local command="/etc/storageos/storageos start"
     loop_execute "${command}" "true"
     echo "done"
@@ -28,48 +28,72 @@ copy_zk_data() {
        return
     fi
 
-    local node_with_zk_data=""
-    local cmd="ls ${RESTORE_DIR}/*_zk.zip"
+    copy_missing_files '*_zk.zip'
 
+    nodes_without_zk_data=${nodes_without_files[@]}
+}
+
+copy_properties_file() {
+    local is_local_backup=$(is_local_backup)
+
+    if [[ "${is_local_backup}" == "false" ]]; then
+       # remote backup has already copied zk data to all nodes
+       return
+    fi
+
+    copy_missing_files '*_info.properties'
+    nodes_without_properties_file=${nodes_without_files[@]}
+}
+
+#$1=mising files
+copy_missing_files() {
+    nodes_without_files=()
+
+    local node_with_file
+    local missing_files="$1"
+    local cmd="bash -c 'ls ${RESTORE_DIR}/${missing_files}'"
     set +e  # allow command to be executed failed
     for i in $(seq 1 ${NODE_COUNT})
     do                                                                                        
         local viprNode=$(get_nodeid)
         ssh_execute "$viprNode" "$cmd" "${ROOT_PASSWORD}"
         if [[ $? -eq 0 ]]; then
-            node_with_zk_data="$viprNode"
+            node_with_file="$viprNode"
         else
-            nodes_without_zk_data+=(${viprNode})
+            nodes_without_files+=(${viprNode})
         fi
     done
     set -e
 
-    echo "nodes wihtout zk data: ${nodes_without_zk_data[@]}"
-    echo "node with zk data: ${node_with_zk_data}"
-    if [ "${#nodes_without_zk_data[@]}" == 0 ] ; then
+    echo "Nodes without ${missing_files}: ${nodes_without_files[@]}"
+    echo "Node with file ${missing_files}: ${node_with_file}"
+    if [ "${#nodes_without_files[@]}" == 0 ] ; then
        #all nodes have zk data
        return
     fi
 
-    #copy zk data from node_with_zk_data to nodes_without_zk_data
-    cmd="scp svcuser@${node_with_zk_data}:${RESTORE_DIR}/*_zk.* ${RESTORE_DIR}"
-    for node in ${nodes_without_zk_data[@]}
+    #copy the missing files from node_with_that file to nodes_without them
+    cmd="scp svcuser@${node_with_file}:${RESTORE_DIR}/${missing_files} ${RESTORE_DIR}"
+    for node in ${nodes_without_files[@]}
     do
         ssh_execute "${node}" "${cmd}"
     done
 }
 
 restore_data() {
-    echo -n "Restoring data on all nodes ... "
+    echo "Restoring data on all nodes ... "
     set +e
     RESTORE_RESULT="successful"
     for i in $(seq 1 $NODE_COUNT)
     do
         local viprNode=$(get_nodeid)
-        ls $RESTORE_DIR/*_${viprNode}_* &>/dev/null
+        local command="bash -c 'ls $RESTORE_DIR/*_${viprNode}* &>/dev/null'"
+        ssh_execute "$viprNode" "${command}"
         if [ $? == 0 ]; then
+            echo "To restore node ${viprNode}"
             restore_node "${viprNode}"
         else
+            echo "To purge node ${viprNode}"
             purge_node "${viprNode}"
         fi
         if [ $? != 0 ]; then
@@ -109,6 +133,7 @@ RESTORE_RESULT=""
 NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
 LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 nodes_without_zk_data=()
+nodes_without_properties_file=()
 
 RESTORE_DIR="$1"
 ROOT_PASSWORD="$2"
@@ -124,5 +149,6 @@ fi
 
 stop_service
 copy_zk_data
+copy_properties_file
 restore_data
 start_service

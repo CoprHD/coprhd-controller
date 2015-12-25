@@ -3,7 +3,7 @@
 # syssvc
 
 DIR=$(dirname $0)
-. ${DIR}/libs.sh
+. ${DIR}/restore-libs.sh
 
 start_service() {
     echo -n "Starting storageos services on all nodes.."
@@ -60,7 +60,7 @@ copy_zk_data() {
 }
 
 restore_data() {
-    echo -n "Restoring data on all nodes.."
+    echo -n "Restoring data on all nodes ... "
     set +e
     RESTORE_RESULT="successful"
     for i in $(seq 1 $NODE_COUNT)
@@ -116,7 +116,6 @@ RESTORE_GEO_FROM_SCRATCH="$3"
 IS_CONNECTED_VDC="$4"
 LOG_FILE="$5"
 
-echo "Restore_dir=${RESTORE_DIR}"
 # if the log file is given, write the stdout/stderr
 # to the log file
 if [ "${LOG_FILE}" != "" ] ; then
@@ -126,3 +125,4 @@ fi
 stop_service
 copy_zk_data
 restore_data
+start_service

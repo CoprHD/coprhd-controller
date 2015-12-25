@@ -11,7 +11,7 @@
 
 DIR="$(dirname $0)"
 
-. ${DIR}/libs.sh
+. ${DIR}/restore-libs.sh
 
 #This script is used to help user to restore a backupset simply
 usage() {
@@ -27,8 +27,8 @@ validate_parameters() {
             echo "The ${RESTORE_DIR} is not a local backup"
             exit 3
         fi
-    elif [ ! -f $BACKUP_ZIP ]; then
-        echo "$BACKUP_ZIP not exist"
+    elif [ ! -f "${BACKUP_ZIP}" ]; then
+        echo "${BACKUP_ZIP} not exist"
         exit 2
     fi
 
@@ -39,7 +39,7 @@ validate_parameters() {
 upload_backup() {
     local is_local_backup=$(is_local_backup)
     if [[ "${is_local_backup}" == "true" ]] ; then
-        echo -n "This is a local backup, no need to upload to other nodes"
+        echo "This is a local backup, no need to upload to other nodes"
         return
     fi
 
@@ -69,7 +69,7 @@ create_restore_folder() {
 
 extract_backup_files() {
     cd $RESTORE_DIR
-    unzip $BACKUP_ZIP >/dev/null
+    unzip "${BACKUP_ZIP}" >/dev/null
 
     local fileArray=($(ls -f *geodb*.zip))
 
@@ -165,7 +165,7 @@ if [ $# -ne 1 ]; then
     exit 2
 fi
 
-if [ $1 == "--help" -o $1 == "-h" -o $1 == "-help" ]; then
+if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
     usage
     exit 0
 fi
@@ -174,10 +174,10 @@ RESTORE_DIR="/data/restore-`date +%s`"
 NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
 LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 
-if [ -d $1 ] ; then
+if [ -d "$1" ] ; then
     RESTORE_DIR="$1" 
 else
-    BACKUP_ZIP=$(readlink -f $1)
+    BACKUP_ZIP=$(readlink -f "$1")
 fi
 
 validate_parameters

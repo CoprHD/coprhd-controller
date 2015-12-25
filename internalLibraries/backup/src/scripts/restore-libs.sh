@@ -64,7 +64,6 @@ clean_up() {
 
     if [[ "${is_local_backup}" == "false" ]]; then
         command="rm -rf $RESTORE_DIR"
-        echo "Remove restore dir on all nodes ${RESTORE_DIR}"
         loop_execute "${command}" "true" "${NODE_COUNT}" "${LOCAL_NODE}" "${ROOT_PASSWORD}"
     else
        command="rm -f ${RESTORE_DIR}/*_zk.*" 

@@ -16,7 +16,7 @@ DIR="$(dirname $0)"
 #This script is used to help user to restore a backupset simply
 usage() {
     echo "Usage:"
-    echo "       $0 <Backup Zip File> | <local backup dir>"
+    echo "       $0 <Backup Zip File> | <Local Backup Dir>"
     echo "For example:"
     echo "       $0 /tmp/test.zip or $0 /data/backup/some-backup-dir"
 }

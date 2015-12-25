@@ -1416,10 +1416,12 @@ public class CoordinatorClientExt {
 
     public void stopCoordinatorSvcMonitor() {
         stopCoordinatorSvcMonitor = true;
+        _log.info("coordinatorsvc monitor thread stopped");
     }
 
     public void startCoordinatorSvcMonitor() {
         stopCoordinatorSvcMonitor = false;
+        _log.info("coordinatorsvc monitor thread started");
     }
     
     /**

@@ -21,6 +21,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -160,6 +161,11 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             			// all unmanaged volumes have been ingested
             			_logger.info("All unmanaged volumes of unmanaged consistency group {} have been ingested", unManagedVolume.getLabel(), unManagedCG.getLabel());
             			// create block consistency group and remove UnManagedBlockConsistency Group
+            			BlockConsistencyGroup consistencyGroup = createCGFromUnManagedCG(unManagedCG, project, tenant);
+            			for (String volumeURI : unManagedCG.getManagedVolumes()) {
+            				Volume managedVolume = _dbClient.queryObject(Volume.class, URI.create(volumeURI));
+            				managedVolume.setConsistencyGroup(consistencyGroup.getId());
+            			}            			
             		}
             	}
             	

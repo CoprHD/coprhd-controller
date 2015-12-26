@@ -25,6 +25,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -41,6 +42,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -1085,6 +1087,19 @@ public abstract class BlockIngestOrchestrator {
                 foundIngestedReplicaNativeGuids.add(blockObj.getNativeGuid());
             }
         }
+    }
+    
+    protected BlockConsistencyGroup createCGFromUnManagedCG(UnManagedConsistencyGroup unManagedCG, Project project, TenantOrg tenant) {
+    	// TODO: verification like we do when creating not via ingestion    
+        // Create Consistency Group in db
+        final BlockConsistencyGroup consistencyGroup = new BlockConsistencyGroup();
+        consistencyGroup.setId(URIUtil.createId(BlockConsistencyGroup.class));
+        consistencyGroup.setLabel(unManagedCG.getLabel());
+        consistencyGroup.setProject(new NamedURI(project.getId(), unManagedCG.getLabel()));
+        consistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), unManagedCG.getLabel()));
+        _dbClient.createObject(consistencyGroup);
+
+        return consistencyGroup;
     }
 
 }

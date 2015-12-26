@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.systemservices.impl.client;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.service.Coordinator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.helpers.BaseServiceClient;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
@@ -58,7 +56,6 @@ public class SysClientFactory {
     /**
      * Coordinator client
      */
-    private static volatile CoordinatorClient _coordinator;
     private static volatile InternalApiSignatureKeyGenerator _keyGenerator;
     private static int _timeout;    // connection timeout
     private static int _readTimeout; // read timeout
@@ -70,10 +67,6 @@ public class SysClientFactory {
 
     public static void setKeyGenerator(InternalApiSignatureKeyGenerator keyGenerator) {
         _keyGenerator = keyGenerator;
-    }
-
-    public static void setCoordinator(CoordinatorClient coordinator) {
-        _coordinator = coordinator;
     }
 
     public static synchronized void setTimeout(int timeout) {
@@ -104,8 +97,7 @@ public class SysClientFactory {
             setServer(endpoint.toString());
             setClientReadTimeout(_readTimeout);
             setClientConnectTimeout(_timeout);
-            this.setKeyGenerator(_keyGenerator); // without "this" it's ambiguous
-            setCoordinatorClient(_coordinator);
+            setKeyGenerator(_keyGenerator);
         }
 
         @Override

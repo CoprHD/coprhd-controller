@@ -136,7 +136,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
 
     private void initSysClientFactory() {
         SysClientFactory.setKeyGenerator(_keyGenerator);
-        SysClientFactory.setCoordinator(_coordinator.getCoordinatorClient());
         SysClientFactory.setTimeout(_timeout);
         SysClientFactory.init();
     }

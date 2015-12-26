@@ -2,17 +2,6 @@
  * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
-/**
- * Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- */
-
 package com.emc.storageos.glance.api;
 
 import java.net.URI;
@@ -28,6 +17,7 @@ import com.emc.storageos.glance.GlanceEndPointInfo;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.emc.storageos.glance.rest.client.GlanceRESTClient;
+import com.emc.storageos.glance.errorhandling.GlanceApiException;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.sun.jersey.api.client.config.ClientConfig;
@@ -59,10 +49,10 @@ public class GlanceApi {
  
 	
 	 /**
-     * Gets token from Keystone. It is a synchronous operation.
+     * Gets Glance image by using passed token. 
      * 
-     * @param uri String
-     * @return token String
+     * @param String Token
+     * @return image ClientResponse
      */
     
    public  ClientResponse getGlanceImage(String uri, String token) {
@@ -75,8 +65,8 @@ public class GlanceApi {
             _log.debug("Inside getGlanceImage Response status {}",  String.valueOf(js_response.getStatus()));            
         }
         catch(Exception e){
-        	_log.error("Exception!! \n Now trying String processing....\n");
-            
+        	_log.debug("Failed to get the glance image response");
+        	throw GlanceApiException.exceptions.clientResponseGetFailure(js_response.toString());
         } /* catch */
              
         return js_response;

@@ -104,8 +104,8 @@ public class SysClientFactory {
             setServer(endpoint.toString());
             setClientReadTimeout(_readTimeout);
             setClientConnectTimeout(_timeout);
-            setKeyGenerator(_keyGenerator);
-            setCoordinator(_coordinator);
+            this.setKeyGenerator(_keyGenerator); // without "this" it's ambiguous
+            setCoordinatorClient(_coordinator);
         }
 
         @Override

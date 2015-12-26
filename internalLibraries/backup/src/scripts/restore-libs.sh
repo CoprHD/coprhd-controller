@@ -58,6 +58,22 @@ is_local_backup() {
     fi
 }
 
+is_vdc_connected() {
+    local geo_files=($(ls -f *geodb*.zip))
+    geodb_type=${geo_files[0]}
+    geodb_type=${geodb_type#*_}
+    geodb_type=${geodb_type%%_*}
+
+    if [ "$geodb_type" == "geodb" ]; then
+        IS_CONNECTED_VDC="false"                                                                                                       
+    elif [ "$geodb_type" == "geodbmultivdc" ]; then
+        IS_CONNECTED_VDC= "true"
+    else
+        echo -e "\nInvalid geodb type: $geodb_type, exiting.."
+        exit 2
+    fi
+}
+
 clean_up() {
     local is_local_backup=$(is_local_backup)
     local command
@@ -79,4 +95,3 @@ clean_up() {
        done
     fi
 }
-

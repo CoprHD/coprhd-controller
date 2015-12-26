@@ -71,26 +71,14 @@ extract_backup_files() {
     cd $RESTORE_DIR
     unzip "${BACKUP_ZIP}" >/dev/null
 
-    local fileArray=($(ls -f *geodb*.zip))
+    is_vdc_connected
 
-    local geodbType=`ls ${fileArray[0]} | awk '{split($0,a,"_"); print a[2]}'`
-    if [ -z "$geodbType" ]; then
-        echo -e "\nCan't identify the type of geodb from backup file name, exiting.."
-        exit 2
-    elif [ "$geodbType" == "geodb" ]; then
-        IS_CONNECTED_VDC="false"
-    elif [ "$geodbType" == "geodbmultivdc" ]; then
-        IS_CONNECTED_VDC="true"
-    else
-        echo -e "\nInvalid geodb type: $geodbType, exiting.."
-        exit 2
-    fi
-
-    validate_backup_files ${#fileArray[@]}
+    validate_backup_files
 }
 
 validate_backup_files() {
-    local fileNodeCount=${1}
+    local geodb_files=($(ls -f *geodb*.zip))
+    local fileNodeCount=${#geodb_files[@]}
 
     BACKUP_NODE_COUNT=$((`grep -o "," ${RESTORE_DIR}/*_info.properties | wc -l` + 1))
     if [ ${fileNodeCount} -eq 0 ]; then
@@ -192,4 +180,4 @@ do
     $cmd
 done
 
-${DIR}/restore-internal.sh "${RESTORE_DIR}" "${ROOT_PASSWORD}" "${RESTORE_GEO_FROM_SCRATCH}" "${IS_CONNECTED_VDC}"
+${DIR}/restore-internal.sh "${RESTORE_DIR}" "${ROOT_PASSWORD}" "${RESTORE_GEO_FROM_SCRATCH}"

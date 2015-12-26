@@ -138,8 +138,7 @@ nodes_without_properties_file=()
 RESTORE_DIR="$1"
 ROOT_PASSWORD="$2"
 RESTORE_GEO_FROM_SCRATCH="$3"
-IS_CONNECTED_VDC="$4"
-LOG_FILE="$5"
+LOG_FILE="$4"
 
 # if the log file is given, write the stdout/stderr
 # to the log file
@@ -150,5 +149,6 @@ fi
 stop_service
 copy_zk_data
 copy_properties_file
+is_vdc_connected
 restore_data
 start_service

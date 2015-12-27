@@ -30,6 +30,7 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.security.ipsec.IPsecConfig;
@@ -523,6 +524,8 @@ public abstract class VdcOpHandler {
      */
     public static class DrSwitchoverHandler extends VdcOpHandler {
         
+        private int retry;
+
         public DrSwitchoverHandler() {
         }
         
@@ -558,6 +561,10 @@ public abstract class VdcOpHandler {
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
             } else if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+                while (retry < 3) {
+                    retry++;
+                    throw new Exception("exception on purpose to test retry");
+                }
                 log.info("This is switchover standby site (new active)");
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_STANDBY_SITE);
             }
@@ -758,6 +765,7 @@ public abstract class VdcOpHandler {
      */
     protected void flushVdcConfigToLocal() {
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
         localRepository.setVdcPropertyInfo(vdcProperty);
     }
 
@@ -906,7 +914,8 @@ public abstract class VdcOpHandler {
                 log.info("All nodes entered VdcPropBarrier");
             } else {
                 log.warn("Only Part of nodes entered within {} seconds", timeout);
-                leave(); // we need clean our double barrier if not all nodes enter it
+                // we need clean our double barrier if not all nodes enter it, but not need to wait for all nodes to leave since error occurs
+                barrier.leave(); 
                 throw new Exception("Only Part of nodes entered within timeout");
             }
         }

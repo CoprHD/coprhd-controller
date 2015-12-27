@@ -155,6 +155,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             }
                         
             if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
+            	boolean removed = false;
             	UnManagedConsistencyGroup unManagedCG = VolumeIngestionUtil.getUnManagedConsistencyGroup(unManagedVolume, _dbClient);
             	if (unManagedCG != null) {
             		if (VolumeIngestionUtil.updateVolumeInUnManagedConsistencyGroup(unManagedCG, unManagedVolume, volume) == 0) {
@@ -163,12 +164,24 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             			// create block consistency group and remove UnManagedBlockConsistency Group
             			BlockConsistencyGroup consistencyGroup = createCGFromUnManagedCG(unManagedCG, project, tenant);
             			for (String volumeURI : unManagedCG.getManagedVolumes()) {
-            				Volume managedVolume = _dbClient.queryObject(Volume.class, URI.create(volumeURI));
-            				managedVolume.setConsistencyGroup(consistencyGroup.getId());
-            			}            			
+            				Volume managedVolume = _dbClient.queryObject(Volume.class, URI.create(volumeURI));            				
+            				if (managedVolume != null) {
+            					managedVolume.setConsistencyGroup(consistencyGroup.getId());            					
+            				} else {
+            					// this is the last volume in the unmanaged cg so it has not been persisted
+            					// in the database yet, add the cg to volume which will be persisted soon            					
+            					volume.setConsistencyGroup(consistencyGroup.getId());
+            				}
+            			}
+            			_logger.info("Removing unmanaged consistency group {}", unManagedCG.getLabel());
+            			_dbClient.removeObject(unManagedCG);
+            			removed = true;
             		}
             	}
-            	_dbClient.updateObject(unManagedCG);            	
+            	if (!removed) {
+            		_logger.info("Updating unmanaged consistency group {}", unManagedCG.getLabel());
+            		_dbClient.updateObject(unManagedCG);
+            	}
             }
         }
 

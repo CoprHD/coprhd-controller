@@ -7,7 +7,7 @@ DIR=$(dirname $0)
 
 start_service() {
     echo -n "Starting storageos services on all nodes ... "
-    local command="/etc/storageos/storageos start"
+    local command="/usr/bin/systemctl start storageos-db.service storageos-geodb.service storageos-coordinator.service"
     loop_execute "${command}" "true"
     echo "done"
     finish_message
@@ -15,7 +15,7 @@ start_service() {
 
 stop_service() {
     echo -n "Stopping storageos services on all nodes ... "
-    local command="/etc/storageos/storageos stop"
+    local command="/usr/bin/systemctl stop storageos-db.service storageos-geodb.service storageos-coordinator.service"
     loop_execute "${command}" "true"
     echo "done"
 }
@@ -130,8 +130,8 @@ purge_node() {
 trap clean_up EXIT
 
 RESTORE_RESULT=""
-NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
-LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
+NODE_COUNT=`sudo /etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
+LOCAL_NODE=`sudo /etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 nodes_without_zk_data=()
 nodes_without_properties_file=()
 
@@ -143,7 +143,7 @@ LOG_FILE="$4"
 # if the log file is given, write the stdout/stderr
 # to the log file
 if [ "${LOG_FILE}" != "" ] ; then
-    exec 1>${LOG_FILE} 2&>1
+    exec 1>${LOG_FILE} 2>&1
 fi
 
 stop_service
@@ -151,4 +151,7 @@ copy_zk_data
 copy_properties_file
 is_vdc_connected
 restore_data
+if [[ "${RESTORE_RESULT}" == "failed" ]]; then
+   finish_message
+fi
 start_service

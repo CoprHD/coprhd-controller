@@ -31,6 +31,7 @@ import com.emc.storageos.management.backup.BackupFile;
 import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
@@ -345,6 +346,74 @@ public class BackupService {
             throw APIException.internalServerErrors.getObjectFromError(
                     "backup file input stream", "local", e);
         }
+    }
+
+    class RestoreRunnable implements Runnable {
+        private String[] cmd;
+
+        RestoreRunnable(String[] cmd) {
+            this.cmd = cmd;
+        }
+
+        @Override
+        public void run() {
+            Exec.exec(120*1000, cmd);
+        }
+    }
+
+    /**
+     * Restore from a given backup
+     *   The backup data has been copied to the nodes
+     *   The restore will stop all storageos services first
+     *   so the UI will be unaccessible for the services restart
+     *
+     * @param backupName the name of the backup to be restored
+     * @param password the root password
+     * @param isGeoFromScratch true if this is the first vdc to be restored in a Geo environment
+     * @return server response indicating if the operation succeeds.
+     */
+    @POST
+    @Path("restore/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public Response restoreBackup(@QueryParam("backupname") String backupName,
+                                  @QueryParam("password") String password,
+                                  @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
+        log.info("lbys Received restore backup request, backup name={} passowrd={} isGeoFromScratch={}",
+                new Object[] {backupName, password, isGeoFromScratch});
+        File backupDir= getBackupDir(backupName);
+        // String restoreCmdTmpl="/usr/bin/nohup /opt/storageos/bin/restore-internal.sh '%s' '%s'&";
+        //String restoreCmd=String.format(restoreCmdTmpl, backupDir.getAbsolutePath(), password);
+        //String[] restoreCmd=new String[]{"/usr/bin/ls", "/tmp"};
+        String[] restoreCmd=new String[]{"/opt/storageos/bin/restore-internal.sh",
+                backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
+                "/var/log/lby.log"};
+        log.info("lby restore command={}", restoreCmd);
+
+        // Exec.exec(120*1000, restoreCmd);
+        RestoreRunnable restoreRunnable = new RestoreRunnable(restoreCmd);
+        Thread restoreThread = new Thread(restoreRunnable);
+        restoreThread.setName("restoreThread");
+        restoreThread.start();
+
+        log.info("lby done");
+        return Response.ok().build();
+    }
+
+
+    private File getBackupDir(String backupName) {
+        File backupDir = new File("/data/backup/"+backupName);
+        log.info("lby backupdir={}", backupDir.getAbsolutePath());
+        if (backupDir.exists()) {
+            return backupDir;
+        }
+
+        log.info("lby2 backupdir={}", backupDir.getAbsolutePath());
+        backupDir = new File("/data/"+ backupName);
+        if (backupDir.exists()) {
+            return backupDir;
+        }
+
+        throw APIException.badRequests.invalidParameter("backupname", backupName);
     }
 
     /**

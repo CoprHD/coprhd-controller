@@ -23,15 +23,15 @@ loop_execute() {
 ssh_execute() {
     local viprNode=${1}
     local command=${2}
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '${ROOT_PASSWORD}' | sudo -S $command" &>/dev/null
+    echo "${ROOT_PASSWORD}" | sudo -S ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '${ROOT_PASSWORD}' | sudo -S $command" &>/dev/null
 }
 
 get_nodeid() {
     if [ ${NODE_COUNT} -eq 1 ]; then
         echo "${LOCAL_NODE}"
+    else
+        echo "vipr$i"
     fi
-
-    echo "vipr$i"
 }
 
 finish_message() {
@@ -59,6 +59,7 @@ is_local_backup() {
 }
 
 is_vdc_connected() {
+    cd ${RESTORE_DIR}
     local geo_files=($(ls -f *geodb*.zip))
     geodb_type=${geo_files[0]}
     geodb_type=${geodb_type#*_}

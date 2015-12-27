@@ -450,19 +450,13 @@ public class VolumeIngestionUtil {
     
     public static int updateVolumeInUnManagedConsistencyGroup(UnManagedConsistencyGroup unManagedCG, UnManagedVolume unManagedVolume, Volume volume) {
     	// ensure that unmanaged cg contains the unmanaged volume
-    	if (unManagedCG.getUnManagedVolumes().contains(unManagedVolume.getId().toString())) {    		
-    		for (String uriStr : unManagedCG.getUnManagedVolumes()) {
-    			String uriHolder = uriStr;    			
-    			if (unManagedVolume.getId().toASCIIString().equalsIgnoreCase(uriHolder)) {
-    				// add the unmanaged volume to the list of managed volumes
-    				unManagedCG.getManagedVolumes().add(volume.getId().toString());
-    				_logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", volume.getLabel(), unManagedCG.getLabel());
-    				// remove the unmanaged volume from the list of unmanaged volumes
-    				unManagedCG.getUnManagedVolumes().remove(uriHolder);
-    				_logger.info("Removed volume {} from the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
-    			}
-    		}
-    		    		
+    	if (unManagedCG.getUnManagedVolumes().contains(unManagedVolume.getId().toString())) {
+    		// add the volume to the list of managed volumes
+			unManagedCG.getManagedVolumes().add(volume.getId().toString());
+			_logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", volume.getLabel(), unManagedCG.getLabel());
+			// remove the unmanaged volume from the list of unmanaged volumes
+			unManagedCG.getUnManagedVolumes().remove(unManagedVolume.getId().toString());
+			_logger.info("Removed volume {} from the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
     	} else {
     		_logger.info("Volume {} was not in the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
     	}

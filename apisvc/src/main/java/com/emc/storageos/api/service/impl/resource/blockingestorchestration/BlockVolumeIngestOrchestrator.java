@@ -168,7 +168,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             			}            			
             		}
             	}
-            	
+            	_dbClient.updateObject(unManagedCG);            	
             }
         }
 

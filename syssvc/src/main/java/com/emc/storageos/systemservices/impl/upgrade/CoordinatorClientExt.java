@@ -433,7 +433,7 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Get all target properties - include global(shared by active/standby), or site specific properties
+     * Get all target properties in zk - include global(shared by active/standby), or site specific properties
      * 
      * @return
      * @throws Exception

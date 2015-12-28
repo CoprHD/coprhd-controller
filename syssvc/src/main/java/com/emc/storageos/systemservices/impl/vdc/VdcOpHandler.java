@@ -559,8 +559,13 @@ public abstract class VdcOpHandler {
                 } else if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
                     log.info("This is switchover standby site (new active)");
                     updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_STANDBY_SITE);
-                } 
-                
+                } else {
+                    // for those not directly participating in the switchover, re-enable the coordinatorsvc
+                    // monitor thread that we've stopped earlier.
+                    // Enabling the thread too soon might switch the current site to participant mode
+                    coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
+                    coordinator.startCoordinatorSvcMonitor();
+                }
             } catch (Exception ex) {
                 log.warn("Unexpected error happens during refreshing coordinatorsvc for switchover", ex);
                 resetLocalVdcConfigVersion();

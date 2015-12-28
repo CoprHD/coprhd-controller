@@ -35,11 +35,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-        StorageVolume volume;
-        ScaleIOVolume result = null;
+        String taskType = "create-volume";
         String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTaskImpl task = new DriverTaskImpl(taskID);
 
+        StorageVolume volume;
         for (int i = 0; i < volumes.size(); i++) {
             volume = volumes.get(i);
 
@@ -47,31 +47,31 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                 String allocatedCapacity = volume.getAllocatedCapacity().toString();
                 String storagePoolId = volume.getStoragePoolId();
 
-                // Connect to the storage system
                 ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(volume.getStorageSystemId(),
                         "10.193.17.82", 443, "root", "testo123$A");
 
-                // Send request
+                ScaleIOVolume result = null;
                 if (scaleIOHandle != null) {
                    result = scaleIOHandle.addVolume(null, storagePoolId, "myVolume", allocatedCapacity, false);
                 }
 
                 if (result != null) {
-                    task = new DriverTaskImpl("1234");
                     task.setStatus(DriverTask.TaskStatus.READY);
                 } else {
                     task.setStatus(DriverTask.TaskStatus.FAILED);
+                    break;
                 }
 
                 return task;
 
             } catch (Exception e) {
+                task.setStatus(DriverTask.TaskStatus.ABORTED);
                 e.printStackTrace();
             }
 
         }
 
-        return null;
+        return task;
     }
 
     /**
@@ -84,7 +84,31 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask expandVolume(StorageVolume volume, long newCapacity) {
-        return null;
+        String taskType = "expand-volume";
+        String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
+        DriverTaskImpl task = new DriverTaskImpl(taskID);
+
+        try {
+            ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(volume.getStorageSystemId(),
+                    "10.193.17.82", 443, "root", "testo123$A");
+
+            ScaleIOVolume result = null;
+            if (scaleIOHandle != null) {
+                result = scaleIOHandle.modifyVolumeCapacity(volume.getNativeId(), newCapacity)
+            }
+
+            if (result != null) {
+                task.setStatus(DriverTask.TaskStatus.READY);
+            } else {
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+            }
+
+        } catch (Exception e) {
+            task.setStatus(DriverTask.TaskStatus.ABORTED);
+            e.printStackTrace();
+        }
+
+        return task;
     }
 
     /**
@@ -95,7 +119,33 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask deleteVolumes(List<StorageVolume> volumes) {
-        return null;
+        String taskType = "delete-volume";
+        String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
+        DriverTaskImpl task = new DriverTaskImpl(taskID);
+
+        StorageVolume volume;
+        for (int i = 0; i < volumes.size(); i++) {
+            volume = volumes.get(i);
+
+            try {
+
+                ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(volume.getStorageSystemId(),
+                        "10.193.17.82", 443, "root", "testo123$A");
+
+                ScaleIOVolume result = null;
+                if (scaleIOHandle != null) {
+                    scaleIOHandle.removeVolume(volume.getNativeId());
+                    task.setStatus(DriverTask.TaskStatus.READY);
+                }
+
+            } catch (Exception e) {
+                task.setStatus(DriverTask.TaskStatus.ABORTED);
+                e.printStackTrace();
+            }
+
+        }
+
+        return task;
     }
 
     /**

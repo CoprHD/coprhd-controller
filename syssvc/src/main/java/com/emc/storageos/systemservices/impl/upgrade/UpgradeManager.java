@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
-import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
@@ -57,7 +56,6 @@ public class UpgradeManager extends AbstractManager {
     private RepositoryInfo targetInfo;
 
     private static boolean isValidRepo;
-    private DrUtil drUtil;
     private Service service;
 
     // current number of tries of connecting remote repository
@@ -139,7 +137,6 @@ public class UpgradeManager extends AbstractManager {
         boolean dbCurrentVersionEncrypted = false;
         boolean isDBMigrationDone = false;
         isValidRepo = localRepository.isValidRepository();
-        drUtil = new DrUtil(coordinator.getCoordinatorClient());
 
         addRepositoryInfoListener();
 
@@ -432,19 +429,19 @@ public class UpgradeManager extends AbstractManager {
             } else if (coordinator.hasRemoteDownloadLock(svcId) || coordinator.getRemoteDownloadLock(svcId)) {
                 try {
                     if (drUtil.isStandby()) {
-                        log.info("Step3a: Leader block from standby site");
+                        log.info("Step3a: sync'ing with active site as leader of standby site");
                         Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
                         URI activeVipEndpoint = URI.create(String.format(SysClientFactory.BASE_URL_FORMAT,
                                 activeSite.getVip(), service.getEndpoint().getPort()));
                         if (!coordinator.isActiveSiteStable(activeSite)) {
-                            log.info("Step3a: active site not sync'ed yet");
+                            log.info("Step3a: software image {} not sync'ed on active site yet. Retry later", syncinfo);
                         } else if (syncToNodeInSync(activeVipEndpoint, syncinfo)) {
                             coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
                             coordinator.releaseRemoteDownloadLock(svcId);
                             wakeupOtherNodes();
                         }
                     } else {
-                        log.info("Step3a: Leader block");
+                        log.info("Step3a: sync'ing with remote repo as leader");
                         if (syncWithRemote(localInfo, targetInfo, syncinfo)) {
                             coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
                             coordinator.releaseRemoteDownloadLock(svcId);
@@ -526,8 +523,11 @@ public class UpgradeManager extends AbstractManager {
         if (syncinfo.getToInstall() != null && !syncinfo.getToInstall().isEmpty()) {
             final SoftwareVersion toInstall = syncinfo.getToInstall().get(0);
             File image = null;
-            if (toInstall != null && (image = getLeaderImage(toInstall, leaderEndpoint)) == null) {
-                return false;
+            if (toInstall != null) {
+                image = getLeaderImage(toInstall, leaderEndpoint);
+                if (image == null) {
+                    return false;
+                }
             }
             if (image != null) {
                 try {

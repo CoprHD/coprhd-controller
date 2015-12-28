@@ -63,6 +63,7 @@
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
         <property name="nodeCount" ref="nodeCount" />   
         <property name="loopInterval"  value="600000" />
         <property name="retryInterval"  value="3000" />

@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -196,10 +197,21 @@ public class HDSVolumeDiscoverer extends AbstractDiscoverer {
      */
     private void updateVolumeMaskInformation(String umvNativeGuid,
             UnManagedVolume unManagedVolume) {
-        Collection<String> masks = volumeMasks.get(umvNativeGuid);
+        Collection<UnManagedExportMask> masks = volumeMasks.get(umvNativeGuid);
         if (null != masks && !masks.isEmpty()) {
-            StringSet maskSet = new StringSet(masks);
+            StringSet maskSet = new StringSet();
+            StringSet knownInitiators = new StringSet();
+            StringSet knownInitiatorUris = new StringSet();
+            for (UnManagedExportMask mask : masks) {
+                maskSet.add(mask.getId().toString());
+                knownInitiators.addAll(mask.getKnownInitiatorNetworkIds());
+                knownInitiatorUris.addAll(mask.getKnownInitiatorUris());
+                mask.getUnmanagedVolumeUris().add(unManagedVolume.getId().toString());
+            }
+            dbClient.updateObject(masks);
             unManagedVolume.getUnmanagedExportMasks().replace(maskSet);
+            unManagedVolume.getInitiatorNetworkIds().replace(knownInitiators);
+            unManagedVolume.getInitiatorUris().replace(knownInitiatorUris);
         }
 
     }

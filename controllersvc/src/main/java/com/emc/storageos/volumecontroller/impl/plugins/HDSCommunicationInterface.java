@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.hds.HDSConstants;
@@ -352,7 +353,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             storageSystem = _dbClient.queryObject(StorageSystem.class,
                     accessProfile.getSystemId());
             _logger.info("Discovering the unmanaged objects for {}", storageSystem.getSerialNumber());
-            Map<String, Set<String>> volumeToUems = new HashMap<String, Set<String>>();
+            Map<String, Set<UnManagedExportMask>> volumeToUems = new HashMap<String, Set<UnManagedExportMask>>();
             storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
             _dbClient.updateObject(storageSystem);
             if (null != this.exportDiscoverer) {

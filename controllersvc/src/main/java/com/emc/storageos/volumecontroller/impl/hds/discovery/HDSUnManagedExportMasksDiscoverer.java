@@ -54,7 +54,14 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
 /**
+ * Following are the steps followed:
  * 
+ * 1. Fetch HostGroups from Hitachi HiCommand DM Server.
+ * 2. Process the initiators of HostGroup and create a UnManagedExportMask.
+ * 3. Process the storageports of HostGroup and populate UnManagedExportMask.
+ * 4. Process the volumes of HostGroup and populate UnManagedExportMask.
+ * 
+ * It also does grouping of HostGroups of a known Host with initiators configured on different HostGroups.
  * 
  * @TODO Mark unmanaged Volumes based on VPLEX initiators.
  *
@@ -83,6 +90,7 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
         List<HostStorageDomain> hostGroupList = null;
         Set<URI> allMasks = new HashSet<URI>();
         hostGroupList = exportManager.getHostGroupInBatch(systemObjectId, null, null);
+        // Process all HostGroups.
         if (null != hostGroupList && !hostGroupList.isEmpty()) {
             processHostGroupsInBatch(hostGroupList, storageSystem, portMap, allMasks);
         } else {
@@ -112,44 +120,47 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
             List<StoragePort> matchedPorts = new ArrayList<StoragePort>();
             List<Initiator> matchedInitiators = new ArrayList<Initiator>();
             try {
-                List<WorldWideName> wwnList = hsd.getWwnList();
-                List<ISCSIName> iscsiList = hsd.getIscsiList();
-                List<Path> pathList = hsd.getPathList();
-                if (null != wwnList && !wwnList.isEmpty() && null != iscsiList && !iscsiList.isEmpty()) {
+                if (null != hsd.getWwnList() && !hsd.getWwnList().isEmpty()
+                        && null != hsd.getIscsiList() && !hsd.getIscsiList().isEmpty()) {
                     log.info("Skipping the HSD {} as it has both FC & ISCSI ports", hsd.getObjectID());
                     continue;
                 }
-                if (wwnList.isEmpty() && iscsiList.isEmpty()) {
+                if (hsd.getWwnList().isEmpty() && hsd.getIscsiList().isEmpty()) {
                     log.info("No initiators found in the Host Group: {}. Hence skipping.", hsd.getObjectID());
                     continue;
                 }
-                if (pathList.isEmpty()) {
+                if (hsd.getPathList().isEmpty()) {
                     log.info("No volumes found in the HostGroup: {}. Hence skipping.", hsd.getObjectID());
                     continue;
                 }
 
                 UnManagedExportMask umExportMask = null;
-                if (null != wwnList && !wwnList.isEmpty()) {
-                    umExportMask = processFCInitiators(storageSystem, hsd, wwnList, matchedInitiators, newMasks,
+                if (null != hsd.getWwnList() && !hsd.getWwnList().isEmpty()) {
+                    // Process FC initiators configured on HostGroup.
+                    umExportMask = processFCInitiators(storageSystem, hsd, matchedInitiators, newMasks,
                             updateMasks, allMasks, initiatorMasks);
-                } else if (null != iscsiList && !iscsiList.isEmpty()) {
-                    umExportMask = processIscsiInitiators(storageSystem, hsd, iscsiList, matchedInitiators, newMasks, updateMasks,
+                } else if (null != hsd.getIscsiList() && !hsd.getIscsiList().isEmpty()) {
+                    // Process SCSI initiators configured on HostGroup.
+                    umExportMask = processIscsiInitiators(storageSystem, hsd, matchedInitiators, newMasks, updateMasks,
                             allMasks, initiatorMasks);
                 }
                 if (null == umExportMask) {
                     log.warn("Not able to create/find unmanaged exportmask for host group {}", hsd.getObjectID());
                     continue;
                 }
+                // Process StoragePorts configured on HostGroup.
                 processStoragePorts(storageSystem, hsd.getPortID(), portMap, umExportMask, matchedPorts);
 
-                if (null != pathList && !pathList.isEmpty()) {
-                    processVolumes(storageSystem, umExportMask, pathList);
+                // Process all volumes configured on HostGroup.
+                if (null != hsd.getPathList() && !hsd.getPathList().isEmpty()) {
+                    processVolumes(storageSystem, umExportMask, hsd.getPathList());
                 }
                 umExportMask.setLabel(hsd.getNickname());
                 umExportMask.setMaskName(hsd.getNickname());
                 umExportMask.setMaskingViewPath(hsd.getNickname());
                 umExportMask.setStorageSystemUri(storageSystem.getId());
-                updateZoningMap(umExportMask, matchedInitiators, matchedPorts, hsd.getObjectID(), pathList);
+                // Updates the zoning Map for the known initiators part of a Network.
+                updateZoningMap(umExportMask, matchedInitiators, matchedPorts, hsd.getObjectID(), hsd.getPathList());
                 if (!newMasks.isEmpty() && newMasks.size() >= BATCH_SIZE) {
                     partitionManager.insertInBatches(newMasks, BATCH_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
                     newMasks.clear();
@@ -209,14 +220,13 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
     }
 
     /**
-     * Process the Host Group port and update the details in UnManagedExportMask.
+     * Process the Host Group storage ports and update the details in UnManagedExportMask.
      * 
-     * @param storageSystem
-     * @param portID
-     * @param storagePortsItr
-     * @param umExportMask
-     * @param matchedPorts
-     * @param knownPortSet
+     * @param storageSystem - storageSystem
+     * @param portID - Port In which HostGroup is configured.
+     * @param storagePortMap - StoragePorts info [port NativeGuid => StoragePort]
+     * @param umExportMask - UnmanagedExportMask to update.
+     * @param matchedPorts - MatchedPorts to fetch zoning information.
      */
     private void processStoragePorts(StorageSystem storageSystem, String portID, Map<String, StoragePort> storagePortMap,
             UnManagedExportMask umExportMask, List<StoragePort> matchedPorts) {
@@ -246,6 +256,13 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
         }
     }
 
+    /**
+     * Process all Volumes configured on HostGroup & populate in UnManagedExportMask.
+     *
+     * @param storageSystem - StorageSystem
+     * @param umExportMask - UnManagedExportMask to update.
+     * @param pathList - Volumes List.
+     */
     private void processVolumes(StorageSystem storageSystem, UnManagedExportMask umExportMask,
             List<Path> pathList) {
         Set<String> knownVolumeSet = new HashSet<String>();
@@ -266,11 +283,11 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
 
             String umvNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingVolume(storageSystem.getNativeGuid(),
                     path.getDevNum());
-            Set<String> umvMasks = volumeMasks.get(umvNativeGuid);
+            Set<UnManagedExportMask> umvMasks = volumeMasks.get(umvNativeGuid);
             if (null == umvMasks) {
-                umvMasks = new HashSet<String>();
+                umvMasks = new HashSet<UnManagedExportMask>();
             }
-            umvMasks.add(umExportMask.getId().toString());
+            umvMasks.add(umExportMask);
             volumeMasks.put(umvNativeGuid, umvMasks);
         }
 
@@ -279,12 +296,25 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
         }
     }
 
+    /**
+     * Process the iSCSI initiators.
+     * 
+     * @param system - storage system
+     * @param hsd - HostGroup details to process
+     * @param matchedInitiators - MatchedInitiators to get zoning information.
+     * @param newMasks - New Masks to create.
+     * @param updateMasks - Masks to update.
+     * @param allMasks - allMasks for bookkeeping.
+     * @param currentProcessinginiMasks - current processing masks.
+     * @return
+     */
     private UnManagedExportMask processIscsiInitiators(StorageSystem system,
-            HostStorageDomain hsd, List<ISCSIName> iscsiList, List<Initiator> matchedInitiators,
+            HostStorageDomain hsd, List<Initiator> matchedInitiators,
             List<UnManagedExportMask> newMasks, List<UnManagedExportMask> updateMasks, Set<URI> allMasks,
             Map<String, UnManagedExportMask> currentProcessinginiMasks) {
         UnManagedExportMask umExportMask = null;
         StringSet unknownIniSet = new StringSet();
+        List<ISCSIName> iscsiList = hsd.getIscsiList();
         Map<URI, Set<String>> hostInitiatorsMap = new HashMap<URI, Set<String>>();
         for (ISCSIName scsiName : iscsiList) {
             String scsiInitiatorName = scsiName.getiSCSIName();
@@ -330,12 +360,25 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
                 updateMasks, allMasks);
     }
 
+    /**
+     * Process FC initiators information.
+     * 
+     * @param system - storagesystem details
+     * @param hsd - HostGroup to process.
+     * @param matchedInitiators - Matched initiators to get zoning information.
+     * @param newMasks - New masks to create.
+     * @param updateMasks - masks to update.
+     * @param allMasks - all masks for bookkeeping purpose.
+     * @param currentProcessinginiMasks - Current Processing masks.
+     * @return
+     */
     private UnManagedExportMask processFCInitiators(StorageSystem system, HostStorageDomain hsd,
-            List<WorldWideName> wwnList, List<Initiator> matchedInitiators, List<UnManagedExportMask> newMasks,
+            List<Initiator> matchedInitiators, List<UnManagedExportMask> newMasks,
             List<UnManagedExportMask> updateMasks, Set<URI> allMasks,
             Map<String, UnManagedExportMask> currentProcessinginiMasks) {
         StringSet unknownIniWwnSet = new StringSet();
         Map<URI, Set<String>> computeElementInisMap = new HashMap<URI, Set<String>>();
+        List<WorldWideName> wwnList = hsd.getWwnList();
         for (WorldWideName wwn : wwnList) {
             String initiatorWwn = wwn.getWwn().replace(HDSConstants.DOT_OPERATOR, HDSConstants.EMPTY_STR);
             if (WWNUtility.isValidNoColonWWN(initiatorWwn)) {
@@ -382,6 +425,19 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
                 updateMasks, allMasks);
     }
 
+    /**
+     * Process the ComputerElement initiators to find a matching UnManagedExportMask.
+     * 
+     * @param system
+     * @param computeElementInitiatorsMap
+     * @param unknownIniSet
+     * @param initiatorMasks
+     * @param matchedInitiators
+     * @param newMasks
+     * @param updateMasks
+     * @param allMasks
+     * @return
+     */
     private UnManagedExportMask processComputeElementInitiators(StorageSystem system, Map<URI, Set<String>> computeElementInitiatorsMap,
             StringSet unknownIniSet, Map<String, UnManagedExportMask> initiatorMasks, List<Initiator> matchedInitiators,
             List<UnManagedExportMask> newMasks, List<UnManagedExportMask> updateMasks, Set<URI> allMasks) {
@@ -434,22 +490,45 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
         return umExportMask;
     }
 
+    /**
+     * Updates the current ProcessMasks for unknown initiators to reuse the masks in the current request.
+     * 
+     * @param umExportMask - UnManagedExportMask.
+     * @param unknownIniWwnSet -
+     * @param currentProcessingMasks
+     */
     private void updateCurrentInitiatorMasksForUnknownInits(UnManagedExportMask umExportMask, StringSet unknownIniWwnSet,
-            Map<String, UnManagedExportMask> initiatorMasks) {
+            Map<String, UnManagedExportMask> currentProcessingMasks) {
         for (String unknownInitiator : unknownIniWwnSet) {
-            initiatorMasks.put(unknownInitiator, umExportMask);
+            currentProcessingMasks.put(unknownInitiator, umExportMask);
         }
     }
 
+    /**
+     * Update the current processMasks
+     * 
+     * @param uem
+     * @param initiators
+     * @param initiatorMasks
+     */
     private void updateCurrentInitiatorMasks(UnManagedExportMask uem, List<Initiator> initiators,
-            Map<String, UnManagedExportMask> initiatorMasks) {
+            Map<String, UnManagedExportMask> currentProcessingMasks) {
         if (null != initiators && !initiators.isEmpty()) {
             for (Initiator initiator : initiators) {
-                initiatorMasks.put(initiator.getInitiatorPort(), uem);
+                currentProcessingMasks.put(initiator.getInitiatorPort(), uem);
             }
         }
     }
 
+    /**
+     * Process the known initiators to find the UnManagedExportMask.
+     * 
+     * @param hostInitiatorsMap - Process for each Host
+     * @param system
+     * @param initiatorMasks
+     * @param exportType
+     * @return
+     */
     private UnManagedExportMask processHostKnownInitiators(Map<URI, Set<String>> hostInitiatorsMap, StorageSystem system,
             Map<String, UnManagedExportMask> initiatorMasks, String exportType) {
         UnManagedExportMask umExportMask = null;
@@ -489,6 +568,15 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
         return hostInitiators;
     }
 
+    /**
+     * Process the unknown initiators to find the UnManagedExportMask details.
+     * 
+     * @param system
+     * @param hostInitiatorWwns
+     * @param initiatorMasks
+     * @param exportType
+     * @return
+     */
     private UnManagedExportMask processUnknownInitiators(StorageSystem system, Set<String> hostInitiatorWwns,
             Map<String, UnManagedExportMask> initiatorMasks, String exportType) {
         // check if the initiators has any exportmask in the current processed list.
@@ -505,6 +593,14 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
 
     }
 
+    /**
+     * Fetch the UnManagedExportMask for the unknown initiators from the Database.
+     * 
+     * @param system
+     * @param hostInitiatorWwns
+     * @param exportType
+     * @return
+     */
     private UnManagedExportMask
             fetchUmexportMaskFromDBForUnknownInis(StorageSystem system, Set<String> hostInitiatorWwns, String exportType) {
         URIQueryResultList unmanagedMasksResult = new URIQueryResultList();
@@ -524,6 +620,15 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
         return null;
     }
 
+    /**
+     * Find the UnManagedExportMask for the given initiators from the current processing masks or from database.
+     * 
+     * @param system
+     * @param hostInitiatorWwns
+     * @param initiatorMasks
+     * @param exportType
+     * @return
+     */
     private UnManagedExportMask findSuitableUemForInitiators(StorageSystem system, Set<String> hostInitiatorWwns,
             Map<String, UnManagedExportMask> initiatorMasks, String exportType) {
         // check if the initiators has any exportmask in the current processed list.
@@ -540,6 +645,13 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
 
     }
 
+    /**
+     * Fetches the UnManagedExportMask for the given initiators from the db.
+     * 
+     * @param hostInitiatorWwns
+     * @param exportType
+     * @return
+     */
     private UnManagedExportMask fetchUmexportMaskFromDB(Set<String> hostInitiatorWwns, String exportType) {
         UnManagedExportMask umExportMask = null;
         for (String initiatorWwn : hostInitiatorWwns) {
@@ -561,6 +673,14 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
         return umExportMask;
     }
 
+    /**
+     * Process the current processing masks to find if there is any UnManagedExportMask to resuse.
+     * 
+     * @param hostInitiatorWwns
+     * @param initiatorMasks
+     * @param exportType
+     * @return
+     */
     private UnManagedExportMask checkCurrentProcessedMasks(Set<String> hostInitiatorWwns, Map<String, UnManagedExportMask> initiatorMasks,
             String exportType) {
         UnManagedExportMask umExportMask = null;

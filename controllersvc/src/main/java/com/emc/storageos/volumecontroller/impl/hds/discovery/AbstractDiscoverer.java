@@ -9,6 +9,7 @@ import java.util.Set;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
@@ -31,7 +32,7 @@ public abstract class AbstractDiscoverer {
 
     protected NetworkDeviceController networkController;
 
-    protected Map<String, Set<String>> volumeMasks;
+    protected Map<String, Set<UnManagedExportMask>> volumeMasks;
 
     protected PartitionManager partitionManager;
 
@@ -87,14 +88,14 @@ public abstract class AbstractDiscoverer {
     /**
      * @return the volumeMasks
      */
-    public Map<String, Set<String>> getVolumeMasks() {
+    public Map<String, Set<UnManagedExportMask>> getVolumeMasks() {
         return volumeMasks;
     }
 
     /**
      * @param volumeMasks the volumeMasks to set
      */
-    public void setVolumeMasks(Map<String, Set<String>> volumeMasks) {
+    public void setVolumeMasks(Map<String, Set<UnManagedExportMask>> volumeMasks) {
         this.volumeMasks = volumeMasks;
     }
 

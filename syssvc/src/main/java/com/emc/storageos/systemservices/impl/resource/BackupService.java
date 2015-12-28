@@ -66,6 +66,8 @@ public class BackupService {
     private BackupScheduler backupScheduler;
     private JobProducer jobProducer;
     private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
+    private String restoreCmd="/opt/storageos/bin/restore-internal.sh";
+    private String restoreLog="/var/log/restore-internal.log";
 
     @Autowired
     private AuditLogManager auditMgr;
@@ -378,36 +380,29 @@ public class BackupService {
     public Response restoreBackup(@QueryParam("backupname") String backupName,
                                   @QueryParam("password") String password,
                                   @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
-        log.info("lbys Received restore backup request, backup name={} passowrd={} isGeoFromScratch={}",
+        log.info("Received restore backup request, backup name={} passowrd={} isGeoFromScratch={}",
                 new Object[] {backupName, password, isGeoFromScratch});
         File backupDir= getBackupDir(backupName);
-        // String restoreCmdTmpl="/usr/bin/nohup /opt/storageos/bin/restore-internal.sh '%s' '%s'&";
-        //String restoreCmd=String.format(restoreCmdTmpl, backupDir.getAbsolutePath(), password);
-        //String[] restoreCmd=new String[]{"/usr/bin/ls", "/tmp"};
-        String[] restoreCmd=new String[]{"/opt/storageos/bin/restore-internal.sh",
+        String[] restoreCommand=new String[]{restoreCmd,
                 backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
-                "/var/log/lby.log"};
-        log.info("lby restore command={}", restoreCmd);
+                restoreLog};
+        log.info("The restore command={}", restoreCommand);
 
-        // Exec.exec(120*1000, restoreCmd);
-        RestoreRunnable restoreRunnable = new RestoreRunnable(restoreCmd);
+        RestoreRunnable restoreRunnable = new RestoreRunnable(restoreCommand);
         Thread restoreThread = new Thread(restoreRunnable);
         restoreThread.setName("restoreThread");
         restoreThread.start();
 
-        log.info("lby done");
+        log.info("done");
         return Response.ok().build();
     }
 
-
     private File getBackupDir(String backupName) {
         File backupDir = new File("/data/backup/"+backupName);
-        log.info("lby backupdir={}", backupDir.getAbsolutePath());
         if (backupDir.exists()) {
             return backupDir;
         }
 
-        log.info("lby2 backupdir={}", backupDir.getAbsolutePath());
         backupDir = new File("/data/"+ backupName);
         if (backupDir.exists()) {
             return backupDir;

@@ -297,7 +297,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                     				BlockObject volume  = createdObjectMap.get(volumeNativeGuid);
                     				_logger.info("Adding previously ingested volume {} to consistency group {}", volume.getLabel(), consistencyGroup.getLabel());
                 					volume.setConsistencyGroup(consistencyGroup.getId());
-                					createdObjectMap.put(blockObject.getNativeGuid(), volume);
+                					createdObjectMap.put(volumeNativeGuid, volume);
                     			}
                     			_logger.info("Removing unmanaged consistency group {}", unManagedCG.getLabel());
                     			// TODO: for testing for now _dbClient.removeObject(unManagedCG);

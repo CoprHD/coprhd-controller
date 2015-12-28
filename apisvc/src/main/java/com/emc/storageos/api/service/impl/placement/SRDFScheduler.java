@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -30,7 +31,6 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -45,7 +45,9 @@ import com.emc.storageos.volumecontroller.SRDFRecommendation.Target;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SRDFMetroMatcher;
 
 /**
  * Advanced SRDF based scheduling function for block storage. StorageScheduler is done based on
@@ -106,6 +108,7 @@ public class SRDFScheduler implements Scheduler {
 
     private DbClient _dbClient;
     private StorageScheduler _blockScheduler;
+    private CoordinatorClient _coordinator;
 
     public void setBlockScheduler(final StorageScheduler blockScheduler) {
         _blockScheduler = blockScheduler;
@@ -113,6 +116,14 @@ public class SRDFScheduler implements Scheduler {
 
     public void setDbClient(final DbClient dbClient) {
         _dbClient = dbClient;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        _coordinator = coordinator;
+    }
+
+    public CoordinatorClient getCoordinator() {
+        return _coordinator;
     }
 
     /**
@@ -212,77 +223,26 @@ public class SRDFScheduler implements Scheduler {
         } else {
             candidatePools.addAll(pools);
         }
-        candidatePools = validatePoolsForSupportedActiveModeProvider(candidatePools, vpool);
         // Schedule storage based on the source pool constraint.
         return scheduleStorageSourcePoolConstraint(varray, project, vpool, capabilities,
                 candidatePools, null, capabilities.getBlockConsistencyGroup());
     }
 
-    /**
-     * This method validate pools for the ACTIVE SRDF mode, by making sure that storageSysten
-     * for the storage pool has minimum provider version of 8.1.X.
-     * 
-     * @param candidatePools List of storage pools
-     * 
-     * @return A list of filtered storage pools if active mode else returns the same candidatePools list
-     */
-    private List<StoragePool> validatePoolsForSupportedActiveModeProvider(List<StoragePool> candidatePools, VirtualPool vpool) {
-        List<StoragePool> filteredCandidatePools = new ArrayList<StoragePool>();
-
+    private List<StoragePool> filterPoolsForSupportedActiveModeProvider(List<StoragePool> candidatePools, VirtualPool vpool) {
         Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings = vpool.getRemoteProtectionSettings(vpool, _dbClient);
         if (remoteProtectionSettings != null) {
             for (URI vararyURI : remoteProtectionSettings.keySet()) {
                 VpoolRemoteCopyProtectionSettings remoteCopyProtectionSettings = remoteProtectionSettings.get(vararyURI);
                 String copyMode = remoteCopyProtectionSettings.getCopyMode();
                 if (copyMode.equals(SupportedCopyModes.ACTIVE.toString())) {
-
-                    Map<URI, StorageSystem> mapOfStorageSystem = new HashMap<URI, StorageSystem>();
-                    Map<URI, StorageProvider> mapOfStorageSystemToProvider = new HashMap<URI, StorageProvider>();
-
-                    for (StoragePool candidatePool : candidatePools) {
-                        URI storageSystemURI = candidatePool.getStorageDevice();
-                        if (mapOfStorageSystemToProvider.get(storageSystemURI) == null) {
-                            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
-                            if (storageSystem != null) {
-                                mapOfStorageSystem.put(storageSystemURI, storageSystem);
-                                StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class,
-                                        storageSystem.getActiveProviderURI());
-                                if (storageProvider != null) {
-                                    mapOfStorageSystemToProvider.put(storageSystemURI, storageProvider);
-                                }
-                            }
-                        }
-
-                        StorageSystem storageSystem = mapOfStorageSystem.get(storageSystemURI);
-                        if (null != storageSystem && storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
-                            StorageProvider provider = mapOfStorageSystemToProvider.get(storageSystemURI);
-                            if (provider != null) {
-                                // example valid provider version : V8.1.0.4
-                                String providerVersion = provider.getVersionString();
-                                if (null != providerVersion) {
-                                    String versionSubstring = providerVersion.split("\\.")[1];
-                                    if (Integer.parseInt(versionSubstring) >= 1) {
-                                        filteredCandidatePools.add(candidatePool);
-                                    } else {
-                                        _log.info(String.format("Skipping Pool %s %s, as associated Storage System "
-                                                + "provider is not using 8.1.X version required for SRDF ACTIVE Mode.",
-                                                candidatePool.getLabel(), candidatePool.getId()));
-                                    }
-                                }
-                            }
-                        } else {
-                            _log.info(String.format("Skipping Pool %s %s, as associated Storage System is either not VMAX3 or "
-                                    + "provider is not using 8.1.X version required for SRDF ACTIVE Mode.", candidatePool.getLabel(),
-                                    candidatePool.getId()));
-                        }
-                    }
-                } else {
-                    // If not SRDF Active mode return all candidatePools.
-                    return candidatePools;
+                    SRDFMetroMatcher srdfMetroMatcher = new SRDFMetroMatcher();
+                    srdfMetroMatcher.setCoordinatorClient(_coordinator);
+                    srdfMetroMatcher.setObjectCache(new ObjectLocalCache(_dbClient, false));
+                    return srdfMetroMatcher.filterPoolsForSRDFActiveMode(candidatePools);
                 }
             }
         }
-        return filteredCandidatePools;
+        return candidatePools;
     }
 
     /**
@@ -892,7 +852,7 @@ public class SRDFScheduler implements Scheduler {
             }
             List<StoragePool> uniquePoolList = new ArrayList<StoragePool>();
             uniquePoolList.addAll(uniquePools);
-            uniquePoolList = validatePoolsForSupportedActiveModeProvider(uniquePoolList, vpool);
+            uniquePoolList = filterPoolsForSupportedActiveModeProvider(uniquePoolList, vpool);
             targetVarrayPoolMap.put(targetVarray, uniquePoolList);
         }
         return targetVarrayPoolMap;

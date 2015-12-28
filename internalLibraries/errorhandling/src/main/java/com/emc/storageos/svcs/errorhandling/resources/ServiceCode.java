@@ -580,6 +580,7 @@ public enum ServiceCode {
     ECS_BUCKET_UPDATE_ERROR(65010),
     ECS_BUCKET_DELETE_ERROR(65011),
     ECS_BUCKET_GET_OWNER_ERROR(65012),
+    ECS_GET_NAMESPACES_ERROR(65013),
 
     // ****************************
     // Old style of Service codes

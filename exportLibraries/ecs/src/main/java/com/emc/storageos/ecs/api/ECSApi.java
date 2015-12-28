@@ -18,6 +18,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.ECSNamespace;
 import com.sun.jersey.api.client.ClientResponse;
 
 /**
@@ -41,6 +42,7 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_OWNER = "/object/bucket/{0}/owner.json";
     private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json?namespace={1}";
     private static final String URI_BUCKET_INFO = "/object/bucket/{0}/info.json?namespace={1}";
+    private static final String URI_GET_NAMESPACES = "/object/namespaces.json";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -241,7 +243,35 @@ public class ECSApi {
 
         return ecsPort;
     }
-
+    
+    public List<ECSNamespace> getNamespaces() throws ECSException {
+        _log.info("ECSApi:getNamespace enter");
+        ClientResponse clientResp = null;
+        try {
+            clientResp = get(URI_GET_NAMESPACES);
+            
+            //Get details of each namespaces and persist in DB
+            //clientResp.
+            
+            
+        } catch (Exception e) {
+            _log.error("Error occured while getting namespaces ", e);
+        } finally {
+            if (null == clientResp) {
+                throw ECSException.exceptions.getNamespacesFailed("no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getNamespacesFailed(getResponseDetails(clientResp));
+            }
+            
+            if (clientResp != null) {
+                clientResp.close();
+            }
+        }
+        
+        _log.info("ECSApi:getNamespace exit");
+        return null;
+    }
+    
     /**
      * Create a Base Bucket instance
      * 

@@ -2,16 +2,13 @@ package com.emc.storageos.driver.scaleio;
 
 import java.util.*;
 
+import com.emc.storageos.driver.scaleio.api.restapi.response.*;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOProtectionDomain;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOSDS;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOStoragePool;
-import com.emc.storageos.driver.scaleio.api.restapi.response.ScaleIOSystem;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -38,6 +35,42 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+        StorageVolume volume;
+        ScaleIOVolume result = null;
+        String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
+        DriverTaskImpl task = new DriverTaskImpl(taskID);
+
+        for (int i = 0; i < volumes.size(); i++) {
+            volume = volumes.get(i);
+
+            try {
+                String allocatedCapacity = volume.getAllocatedCapacity().toString();
+                String storagePoolId = volume.getStoragePoolId();
+
+                // Connect to the storage system
+                ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(volume.getStorageSystemId(),
+                        "10.193.17.82", 443, "root", "testo123$A");
+
+                // Send request
+                if (scaleIOHandle != null) {
+                   result = scaleIOHandle.addVolume(null, storagePoolId, "myVolume", allocatedCapacity, false);
+                }
+
+                if (result != null) {
+                    task = new DriverTaskImpl("1234");
+                    task.setStatus(DriverTask.TaskStatus.READY);
+                } else {
+                    task.setStatus(DriverTask.TaskStatus.FAILED);
+                }
+
+                return task;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
         return null;
     }
 

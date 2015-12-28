@@ -455,7 +455,8 @@ public class DbClientContext {
         
         log.info("Db consistency level for {} is downgraded as LOCAL_QUORUM. Check if we need reset it back", svcName);
         for(Site site : drUtil.listStandbySites()) {
-            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+            if (site.getState().equals(SiteState.STANDBY_PAUSED) ||
+                    site.getState().equals(SiteState.STANDBY_DEGRADED)) {
                 continue; // ignore a standby site which is paused by customer explicitly
             }
             String siteUuid = site.getUuid();

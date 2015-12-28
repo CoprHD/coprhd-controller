@@ -247,6 +247,7 @@
         		<entry key="dr_remove_standby" value-ref="vdcDrRemoveStandbyHandler"/>
         		<entry key="dr_pause_standby" value-ref="vdcDrPauseStandbyHandler"/>
         		<entry key="dr_resume_standby" value-ref="vdcDrResumeStandbyHandler"/>
+                <entry key="dr_degrade_standby" value-ref="vdcDrDegradeStandbyHandler"/>
         		<entry key="dr_switchover" value-ref="vdcDrSwitchoverHandler"/>
         		<entry key="dr_failover" value-ref="vdcDrFailoverHandler"/>
                 <entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
@@ -503,6 +504,14 @@
     </bean>
     
    <bean id="vdcDrResumeStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrResumeStandbyHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+
+    <bean id="vdcDrDegradeStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrDegradeStandbyHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>

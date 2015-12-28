@@ -40,6 +40,7 @@ public class DrUtil {
     private static final Logger log = LoggerFactory.getLogger(DrUtil.class);
     
     private static final int COORDINATOR_PORT = 2181;
+    public static final String ZOOKEEPER_MODE_LEADER = "leader";
     public static final String ZOOKEEPER_MODE_OBSERVER = "observer";
     public static final String ZOOKEEPER_MODE_READONLY = "read-only";
 
@@ -324,7 +325,7 @@ public class DrUtil {
      * @param siteId site UUID
      * @param action action to take
      */
-    public void updateVdcTargetVersion(String siteId, String action) throws Exception {
+    public void updateVdcTargetVersion(String siteId, String action) {
         SiteInfo siteInfo;
         SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
         if (currentSiteInfo != null) {
@@ -336,7 +337,7 @@ public class DrUtil {
         log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
 
-    public void updateVdcTargetVersion(String siteId, String action, long dataRevision) throws Exception {
+    public void updateVdcTargetVersion(String siteId, String action, long dataRevision) {
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action, String.valueOf(dataRevision));
         coordinator.setTargetInfo(siteId, siteInfo);
         log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);

@@ -64,6 +64,7 @@ public abstract class VdcOpHandler {
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
     private static final String LOCK_FAILOVER_REMOVE_OLD_ACTIVE="drFailoverRemoveOldActiveLock";
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
+    private static final String LOCK_DEGRADE_STANDBY="drDegradeStandbyLock";
     private static final String LOCK_ADD_STANDBY="drAddStandbyLock";
 
     public static final String NTPSERVERS = "network_ntpservers";
@@ -375,7 +376,7 @@ public abstract class VdcOpHandler {
 
 
     /**
-     * Process DR config change for add-standby op
+     * Process DR config change for pause-standby op
      *  - All existing sites - exclude paused site from vdc config and reconfig, remove db nodes of paused site 
      *  - To-be-paused site - nothing
      */
@@ -502,7 +503,7 @@ public abstract class VdcOpHandler {
     }
 
     /**
-     * Process DR config change for add-standby op
+     * Process DR config change for resume-standby op
      *  - All existing sites - include resumed site to vdc config and apply the config
      *  - To-be-resumed site - rebuild db/zk data from active site and apply the config 
      */
@@ -514,6 +515,56 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
+        }
+    }
+
+    /**
+     * Process DR config change for degrade-standby op
+     *  - Active site - remove to-be-degraded sites from strategy options
+     *  - To-be-degraded sites - restart dbsvc/geodbsvc
+     *  - Other sites - will not be notified
+     */
+    public static class DrDegradeStandbyHandler extends VdcOpHandler {
+        public DrDegradeStandbyHandler() {
+        }
+
+        @Override
+        public void execute() throws Exception {
+            if(drUtil.isActiveSite()) {
+                InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_DEGRADE_STANDBY);
+                while (drUtil.hasSiteInState(SiteState.STANDBY_DEGRADING)) {
+                    try {
+                        log.info("Acquiring lock {}", LOCK_DEGRADE_STANDBY);
+                        lock.acquire();
+                        log.info("Acquired lock {}", LOCK_DEGRADE_STANDBY);
+
+                        if (!drUtil.hasSiteInState(SiteState.STANDBY_DEGRADING)) {
+                            // someone else updated the status already
+                            break;
+                        }
+
+                        for (Site site : drUtil.listSitesInState(SiteState.STANDBY_DEGRADING)) {
+                            removeDbNodesFromGossip(site, true);
+                        }
+
+                        for (Site site : drUtil.listSitesInState(SiteState.STANDBY_DEGRADING)) {
+                            removeDbNodesFromStrategyOptions(site);
+
+                            log.info("Setting site {} to STANDBY_DEGRADED", site.getUuid());
+                            site.setState(SiteState.STANDBY_DEGRADED);
+                            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+                        }
+                    } finally {
+                        log.info("Releasing lock {}", LOCK_DEGRADE_STANDBY);
+                        lock.release();
+                        log.info("Released lock {}", LOCK_DEGRADE_STANDBY);
+                    }
+                }
+                flushVdcConfigToLocal();
+            } else {
+                // TODO: restart db and geodb for blacklist to take effect (COP-19395)
+                flushVdcConfigToLocal();
+            }
         }
     }
 

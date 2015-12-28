@@ -37,15 +37,15 @@ private static final Logger _logger = LoggerFactory.getLogger(QuotaMatcher.class
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap) {
         String quota = attributeMap.get(Attributes.quota.toString()).toString();
         Long hardQuota = Long.parseLong(quota);
-        //convert to GB
-        hardQuota = hardQuota/(1024 * 1024 * 1024);
+        //convert to KB
+        hardQuota = hardQuota/1024;
         _logger.info("Pools Matching hard quota Started {}, {} :", hardQuota,
                 Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
         Iterator<StoragePool> poolIterator = allPools.iterator();
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>(allPools);
         while (poolIterator.hasNext()) {
             StoragePool pool = poolIterator.next();
-            if (!(pool.getFreeCapacity() >= hardQuota)) {
+            if (pool.getFreeCapacity() < hardQuota) {
                 _logger.info("Ignoring pool {} as Free capacity is less :", pool.getNativeGuid());
                 allPools.remove(pool);
             }

@@ -313,21 +313,6 @@ public class DbManager implements DbManagerMBean {
     }
 
     @Override
-    public boolean isDataCenterUnreachable(String dcName) {
-        log.info("Check availability of data center {}", dcName);
-        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
-        for (InetAddress nodeIp : liveNodes) {
-            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
-            String dc = snitch.getDatacenter(nodeIp);
-            log.info("node {} belongs to data center {} ", nodeIp, dc);
-            if (dc.equals(dcName)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
     public void removeDataCenter(String dcName) {
         schemaUtil.removeDataCenter(dcName, false);
     }

@@ -47,10 +47,7 @@ public class DbManager implements DbManagerMBean {
     private static final int DEFAULT_DB_REPAIR_FREQ_MIN = 60 * 24 * 5;
     private int repairFreqMin = DEFAULT_DB_REPAIR_FREQ_MIN;
 
-    @Autowired
     private CoordinatorClient coordinator;
-
-    @Autowired
     private DbClientContext clientContext;
 
     ScheduledFuture<?> scheduledRepairTrigger;
@@ -58,6 +55,14 @@ public class DbManager implements DbManagerMBean {
     // Max retry times after a db repair failure
     private int repairRetryTimes = 5;
     private ScheduledExecutorService executor = new NamedScheduledThreadPoolExecutor("DbRepairPool", 2);
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
+    }
+
+    public void setClientContext(DbClientContext clientContext) {
+        this.clientContext = clientContext;
+    }
 
     /**
      * Regular repair frequency in minutes

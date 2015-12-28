@@ -43,8 +43,10 @@ public class SizeUtil {
     /**
      * Given size in bytes, return converted value as TB, GB, MB as specified in "to"
      * 
-     * @param size size in byes
-     * @param to convert to
+     * @param size
+     *            size in bytes
+     * @param to
+     *            convert to
      * @return converted size
      */
     public static Long translateSize(Long size, String to) {
@@ -56,10 +58,28 @@ public class SizeUtil {
         } else if (to.endsWith(SIZE_MB)) {
             multiplier = 1024 * 1024L;
         } else if (to.endsWith(SIZE_KB)) {
-        	multiplier = 1024L;
+            multiplier = 1024L;
         }
         Double d = Double.valueOf(size / (double) multiplier);
         long sizeVal = d.longValue();
         return Long.valueOf(sizeVal);
+    }
+
+    /**
+     * Finds the maximum unit that can represent the given value without decimal notation
+     * 
+     * @param size
+     *            size in bytes
+     * @return suitable unit of storage size
+     */
+    public static String findUnit(long size) {
+        if (size >= 1073741824 && size % 1073741824 == 0)
+            return SIZE_GB;
+        else if (size >= 1048576 && size % 1048576 == 0)
+            return SIZE_MB;
+        else if (size >= 1024 && size % 1024 == 0)
+            return SIZE_KB;
+        else
+            return SIZE_B;
     }
 }

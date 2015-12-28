@@ -530,9 +530,10 @@ public class ArgValidator {
      * @param fieldName
      *            the name of the field where the value originated
      */
-    public static void checkFieldMaximum(final long value, final long maximum, final String units, final String displayUnits,
+    public static void checkFieldMaximum(final long value, final long maximum, final String units, String displayUnits,
             final String fieldName) {
         if (value > maximum) {
+            displayUnits = SizeUtil.findUnit(value - maximum);
             throw APIException.badRequests.invalidParameterAboveMaximum(fieldName, SizeUtil.translateSize(value, displayUnits),
                     SizeUtil.translateSize(maximum, displayUnits), " " + displayUnits);
         }

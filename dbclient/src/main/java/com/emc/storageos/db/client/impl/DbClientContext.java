@@ -5,11 +5,14 @@
 
 package com.emc.storageos.db.client.impl;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -29,9 +32,16 @@ import com.netflix.astyanax.partitioner.Murmur3Partitioner;
 import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.retry.RetryPolicy;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
+import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.locator.IEndpointSnitch;
+import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.service.StorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.fapiclient.ws.ImageAccessTargetVirtualNetworkAutomaticCreationParam;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -55,6 +65,8 @@ public class DbClientContext {
     private static final int GEODB_THRIFT_PORT = 9260;
     private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
     private static final int DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC = 30;
+    // a normal node removal should succeed in 30s.
+    private static final int REMOVE_NODE_TIMEOUT_MILLIS = 1 * 60 * 1000; // 1 min
 
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
@@ -294,8 +306,17 @@ public class DbClientContext {
         cluster = clusterContext.getClient();
     }
 
+    /**
+     * Check if it is geodbsvc
+     *
+     * @return
+     */
+    public boolean isGeoDbsvc() {
+        return getKeyspaceName().equals(GEO_KEYSPACE_NAME);
+    }
+
     protected int getThriftPort() {
-        int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
+        int port = isGeoDbsvc() ? GEODB_THRIFT_PORT : DB_THRIFT_PORT;
         return port;
     }
 
@@ -337,7 +358,9 @@ public class DbClientContext {
             update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
             update.setStrategyOptions(strategyOptions);
 
-            waitForSchemaAgreement(null);
+            // ensure a schema agreement before updating the strategy options
+            // or else it's destined to fail due to SchemaDisagreementException
+            ensureSchemaAgreement();
 
             String schemaVersion;
             if (kd != null) {
@@ -379,45 +402,120 @@ public class DbClientContext {
     }
 
     /**
-     * Add a specific dc to strategy options, and wait till the new schema reaches all sites.
-     * If the dc already exists in the current strategy options, nothing changes.
+     * Forcibly reach a schema agreement
+     * If a schema agreement cannot be reached ONLY because there are unreachable nodes,
+     * remove these unreachable nodes and try again.
      *
-     * @param dcId the dc to be removed
-     * @param repFactor replication factor for the dc
-     * @throws Exception
+     * This should be fine since all the removed nodes will add themselves back to gossip
+     * should they ever come back again.
      */
-    public void addDcToStrategyOptions(String dcId, int repFactor) throws Exception {
-        Map<String, String> strategyOptions = getKeyspace().describeKeyspace().getStrategyOptions();
-        if (!strategyOptions.containsKey(dcId)) {
-            log.info("Add dc {} to strategy options", dcId);
-            strategyOptions.put(dcId, String.valueOf(repFactor));
+    public void ensureSchemaAgreement() {
+        long start = System.currentTimeMillis();
+        Map<String, List<String>> schemas = null;
+        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
+            try {
+                log.info("sleep for {} seconds before checking schema versions.",
+                        DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS / 1000);
+                Thread.sleep(DbClientContext.SCHEMA_RETRY_SLEEP_MILLIS);
+            } catch (InterruptedException ex) {
+                log.warn("Interrupted during sleep");
+            }
 
-            setCassandraStrategyOptions(strategyOptions, true);
+            schemas = getSchemaVersions();
+            if (schemas.size() > 2) {
+                // there are more than two schema versions besides UNREACHABLE, keep waiting.
+                continue;
+            }
+            if (schemas.size() == 1 && !schemas.containsKey(StorageProxy.UNREACHABLE)) {
+                // schema agreement reached and we are all set
+                return;
+            }
+            // schemas.size() == 2, try removing the unreachable nodes from all sites and check again.
+            if (schemas.containsKey(StorageProxy.UNREACHABLE)) {
+                for (String nodeIp : schemas.get(StorageProxy.UNREACHABLE)) {
+                    try {
+                        removeCassandraNode(InetAddress.getByName(nodeIp));
+                    } catch (UnknownHostException e) {
+                        log.error("Invalid node IP: {}", nodeIp);
+                        throw new IllegalStateException(e);
+                    }
+                }
+            }
+        }
+        log.error("Unable to converge schema versions {}", schemas);
+        throw new IllegalStateException("Unable to converge schema versions");
+    }
+
+    private void removeCassandraNode(InetAddress nodeIp) {
+        Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
+        String guid = hostIdMap.get(nodeIp.getHostAddress());
+        log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
+        Gossiper.instance.convict(nodeIp, 0);
+        ensureRemoveNode(guid);
+    }
+
+    public void removeDataCenter(String dcName) {
+        log.info("Remove Cassandra data center {}", dcName);
+        List<InetAddress> allNodes = new ArrayList<>();
+        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+        allNodes.addAll(liveNodes);
+        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
+        allNodes.addAll(unreachableNodes);
+        for (InetAddress nodeIp : allNodes) {
+            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+            String dc = snitch.getDatacenter(nodeIp);
+            log.info("node {} belongs to data center {} ", nodeIp, dc);
+            if (dc.equals(dcName)) {
+                removeCassandraNode(nodeIp);
+            }
+        }
+    }
+
+    /**
+     * A safer method to remove Cassandra node. Calls forceRemoveCompletion after REMOVE_NODE_TIMEOUT_MILLIS
+     * This will help to prevent node removal from hanging due to CASSANDRA-6542.
+     *
+     * @param guid
+     */
+    public void ensureRemoveNode(final String guid) {
+        Thread thread = new Thread() {
+            public void run() {
+                StorageService.instance.removeNode(guid);
+            }
+        };
+        thread.start();
+        try {
+            thread.join(REMOVE_NODE_TIMEOUT_MILLIS);
+            if (thread.isAlive()) {
+                log.warn("removenode timeout, calling forceRemoveCompletion()");
+                StorageService.instance.forceRemoveCompletion();
+                thread.join();
+            }
+        } catch (InterruptedException e) {
+            log.warn("Interrupted during node removal");
         }
     }
 
     /**
      * Waits for schema change to propagate through cluster
      *
-     * @param targetSchemaVersion version we are waiting for, if null returns as soon as schema versions converge.
+     * @param targetSchemaVersion version we are waiting for
      * @throws InterruptedException
      */
     public void waitForSchemaAgreement(String targetSchemaVersion) {
         long start = System.currentTimeMillis();
         Map<String, List<String>> versions = null;
         while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
-            if (targetSchemaVersion != null) {
-                log.info("schema version to sync to: {}", targetSchemaVersion);
-            }
+            log.info("schema version to sync to: {}", targetSchemaVersion);
             versions = getSchemaVersions();
 
             if (versions.size() == 1) {
-                if (targetSchemaVersion != null && !versions.containsKey(targetSchemaVersion)) {
+                if (!versions.containsKey(targetSchemaVersion)) {
                     log.warn("Unable to converge to target version. Schema versions:{}, target version:{}",
                             versions, targetSchemaVersion);
                     return;
                 }
-                log.info("schema versions converged");
+                log.info("schema versions converged to target version {}", targetSchemaVersion);
                 return;
             }
 

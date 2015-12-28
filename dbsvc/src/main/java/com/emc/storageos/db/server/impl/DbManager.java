@@ -7,6 +7,7 @@ package com.emc.storageos.db.server.impl;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
+import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerMBean;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
@@ -14,11 +15,8 @@ import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 
 import org.apache.cassandra.config.Config;
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.YamlConfigurationLoader;
 import org.apache.cassandra.exceptions.ConfigurationException;
-import org.apache.cassandra.gms.Gossiper;
-import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.service.StorageService;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -26,13 +24,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jmx.export.annotation.ManagedResource;
 
-import java.net.InetAddress;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -55,7 +51,7 @@ public class DbManager implements DbManagerMBean {
     private CoordinatorClient coordinator;
 
     @Autowired
-    private SchemaUtil schemaUtil;
+    private DbClientContext clientContext;
 
     ScheduledFuture<?> scheduledRepairTrigger;
 
@@ -84,7 +80,7 @@ public class DbManager implements DbManagerMBean {
      */
     private boolean startNodeRepair(String keySpaceName, int maxRetryTimes, boolean crossVdc, boolean noNewReapir) throws Exception {
         DbRepairRunnable runnable = new DbRepairRunnable(this.executor, this.coordinator, keySpaceName,
-                this.schemaUtil.isGeoDbsvc(), maxRetryTimes, noNewReapir);
+                this.clientContext.isGeoDbsvc(), maxRetryTimes, noNewReapir);
         // call preConfig() here to set IN_PROGRESS for db repair triggered by schedule since we use it in getDbRepairStatus.
         runnable.preConfig();
         synchronized (runnable) {
@@ -176,7 +172,7 @@ public class DbManager implements DbManagerMBean {
         }
 
         log.info("Removing Cassandra node {} on vipr node {}", nodeGuid, nodeId);
-        schemaUtil.ensureRemoveNode(nodeGuid);
+        clientContext.ensureRemoveNode(nodeGuid);
     }
 
     @Override
@@ -184,7 +180,7 @@ public class DbManager implements DbManagerMBean {
         // The return value is ignored as we are setting interval time to 0, it cannot be NotTheTime. And both AlreadyRunning and Started
         // are considered success. Though the already running repair may not for current cluster state, but that's same if it is and the
         // cluster state changed immediately after that.
-        startNodeRepair(this.schemaUtil.getKeyspaceName(), canResume ? this.repairRetryTimes : 0, crossVdc, false);
+        startNodeRepair(this.clientContext.getKeyspaceName(), canResume ? this.repairRetryTimes : 0, crossVdc, false);
     }
 
     private static DbRepairStatus getLastRepairStatus(DbRepairJobState state, String clusterDigest, int maxRetryTime) {
@@ -214,8 +210,8 @@ public class DbManager implements DbManagerMBean {
     @Override
     public DbRepairStatus getLastRepairStatus(boolean forCurrentNodesOnly) {
         try {
-            DbRepairJobState state = DbRepairRunnable.queryRepairState(this.coordinator, this.schemaUtil.getKeyspaceName(),
-                    this.schemaUtil.isGeoDbsvc());
+            DbRepairJobState state = DbRepairRunnable.queryRepairState(this.coordinator, this.clientContext.getKeyspaceName(),
+                    this.clientContext.isGeoDbsvc());
             log.info("cluster state digest stored in ZK: {}", state.getCurrentDigest());
 
             DbRepairStatus retState = getLastRepairStatus(state, forCurrentNodesOnly ? DbRepairRunnable.getClusterStateDigest() : null,
@@ -228,7 +224,7 @@ public class DbManager implements DbManagerMBean {
 
                 String currentHolder = DbRepairRunnable.getSelfLockNodeId(lock);
                 if (currentHolder == null) { // No thread is actually driving the repair, we need to resume it
-                    if (startNodeRepair(this.schemaUtil.getKeyspaceName(), this.repairRetryTimes, false, true)) {
+                    if (startNodeRepair(this.clientContext.getKeyspaceName(), this.repairRetryTimes, false, true)) {
                         log.info("Successfully resumed a previously paused repair");
                     } else {
                         log.warn("Cannot resume a previously paused repair, it could be another thread resumed and finished it");
@@ -246,8 +242,8 @@ public class DbManager implements DbManagerMBean {
     @Override
     public DbRepairStatus getLastSucceededRepairStatus(boolean forCurrentNodesOnly) {
         try {
-            DbRepairJobState state = DbRepairRunnable.queryRepairState(this.coordinator, this.schemaUtil.getKeyspaceName(),
-                    this.schemaUtil.isGeoDbsvc());
+            DbRepairJobState state = DbRepairRunnable.queryRepairState(this.coordinator, this.clientContext.getKeyspaceName(),
+                    this.clientContext.isGeoDbsvc());
 
             return getLastSucceededRepairStatus(state, forCurrentNodesOnly ? DbRepairRunnable.getClusterStateDigest() : null);
         } catch (Exception e) {
@@ -304,7 +300,7 @@ public class DbManager implements DbManagerMBean {
             @Override
             public void run() {
                 try {
-                    startNodeRepair(schemaUtil.getKeyspaceName(), repairRetryTimes, true, false);
+                    startNodeRepair(clientContext.getKeyspaceName(), repairRetryTimes, true, false);
                 } catch (Exception e) {
                     log.error("Failed to trigger node repair", e);
                 }
@@ -314,6 +310,6 @@ public class DbManager implements DbManagerMBean {
 
     @Override
     public void removeDataCenter(String dcName) {
-        schemaUtil.removeDataCenter(dcName, false);
+        clientContext.removeDataCenter(dcName);
     }
 }

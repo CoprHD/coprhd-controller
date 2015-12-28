@@ -2375,6 +2375,20 @@
 		<property name="controlNodeOnly" value="true" />
 		<property name="siteSpecific" value="true" />
 	</bean>
+        <bean id="backup_max_manual_copies" class="com.emc.storageos.model.property.PropertyMetadata">
+                <property name="label" value="Backup Max Manual Copies" />
+                <property name="description" value="Max number of manually created backup copies" />
+                <property name="type" value="uint32" />
+                <property name="tag" value="Backup" />
+                <property name="advanced" value="true" />
+                <property name="userMutable" value="true" />
+                <property name="userConfigurable" value="true" />
+                <property name="reconfigRequired" value="false" />
+                <property name="rebootRequired" value="false" />
+                <property name="value" value="5" />
+                <property name="controlNodeOnly" value="true" />
+                <property name="siteSpecific" value="true" />
+        </bean>
 	<bean id="ldap_connection_timeout" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Ldap Connection Timeout" />
 		<property name="description" value="Amount of time (in seconds) that vipr reports timeout when connecting ldap/AD server (0 means vipr will wait forever)" />
@@ -2798,6 +2812,7 @@
 				<entry key="backup_scheduler_copies_to_keep" value-ref="backup_scheduler_copies_to_keep" />
 				<entry key="backup_max_used_disk_percentage" value-ref="backup_max_used_disk_percentage" />
 				<entry key="backup_threshold_disk_percentage" value-ref="backup_threshold_disk_percentage" />
+                                <entry key="backup_max_manual_copies" value-ref="backup_max_manual_copies" />
 				<entry key="ldap_connection_timeout" value-ref="ldap_connection_timeout" />
 				<entry key="password_change_interval" value-ref="password_change_interval" />
 				<entry key="password_min_length" value-ref="password_min_length" />

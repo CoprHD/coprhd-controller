@@ -77,7 +77,7 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         }
         if(replication != null){
             FileReplicationPolicy replicationPolicy = replication.getSourcePolicy();
-            replicationMode = replicationPolicy.getRemoteCopyMode();
+            replicationMode = replicationPolicy.getCopyMode();
             rpRpoType = replicationPolicy.getRpoType();
             replicationRpo = replicationPolicy.getRpoValue();
             Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> rpCopies = replication.getCopies();
@@ -134,13 +134,13 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         
         
         if(FileProtectionSystemTypes.isTypeLocal(replicationType)){
-            fileReplicationPolicy.setRemoteCopyMode(replicationMode);
+            fileReplicationPolicy.setCopyMode(replicationMode);
             fileReplicationPolicy.setRpoType(rpRpoType);
             fileReplicationPolicy.setRpoValue(replicationRpo);
         }
         
        if (FileProtectionSystemTypes.isTypeRemote(replicationType)){
-           fileReplicationPolicy.setRemoteCopyMode(replicationMode);
+           fileReplicationPolicy.setCopyMode(replicationMode);
            fileReplicationPolicy.setRpoType(rpRpoType);
            fileReplicationPolicy.setRpoValue(replicationRpo);
            
@@ -170,13 +170,13 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         
         
         if(FileProtectionSystemTypes.isTypeLocal(replicationType)){
-            fileReplicationPolicy.setRemoteCopyMode(replicationMode);
+            fileReplicationPolicy.setCopyMode(replicationMode);
             fileReplicationPolicy.setRpoType(rpRpoType);
             fileReplicationPolicy.setRpoValue(replicationRpo);
         }
         
        if (FileProtectionSystemTypes.isTypeRemote(replicationType)){
-           fileReplicationPolicy.setRemoteCopyMode(replicationMode);
+           fileReplicationPolicy.setCopyMode(replicationMode);
            fileReplicationPolicy.setRpoType(rpRpoType);
            fileReplicationPolicy.setRpoValue(replicationRpo);
            

@@ -157,7 +157,7 @@ public class ComputeImageService extends TaskResourceService {
         log.info("createComputeImage");
         // unique name required
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
-        checkDuplicateLabel(ComputeImage.class, param.getName(), param.getName());
+        checkDuplicateLabel(ComputeImage.class, param.getName());
 
         ArgValidator.checkFieldNotEmpty(param.getImageUrl(), "image_url");
         ArgValidator.checkUrl(param.getImageUrl(), "image_url");
@@ -241,7 +241,7 @@ public class ComputeImageService extends TaskResourceService {
         ArgValidator.checkEntity(ci, id, isIdEmbeddedInURL(id));
 
         if (!ci.getLabel().equals(param.getName())) {
-            checkDuplicateLabel(ComputeImage.class, param.getName(), param.getName());
+            checkDuplicateLabel(ComputeImage.class, param.getName());
             ci.setLabel(param.getName());
         }
 

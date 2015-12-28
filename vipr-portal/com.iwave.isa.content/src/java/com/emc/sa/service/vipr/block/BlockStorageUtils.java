@@ -273,7 +273,6 @@ public class BlockStorageUtils {
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();
-            addRollback(new DeactivateVolume(volumeId, VolumeDeleteTypeEnum.FULL));
             addAffectedResource(volumeId);
             volumeIds.add(volumeId);
         }
@@ -543,7 +542,10 @@ public class BlockStorageUtils {
         List<ITLRestRep> bulkResponse = execute(new FindBlockVolumeHlus(volumeIds));
         Map<URI, Integer> volumeHLUs = Maps.newHashMap();
         for (ITLRestRep export : bulkResponse) {
-            volumeHLUs.put(export.getBlockObject().getId(), export.getHlu());
+            ExportGroupRestRep exportGroup = getExport(export.getExport().getId());
+            if (!exportGroup.getInternal()) {
+                volumeHLUs.put(export.getBlockObject().getId(), export.getHlu());
+            }
         }
         return volumeHLUs;
     }

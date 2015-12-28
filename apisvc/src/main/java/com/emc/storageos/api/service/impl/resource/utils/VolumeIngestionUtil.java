@@ -448,12 +448,12 @@ public class VolumeIngestionUtil {
         return false;
     }
     
-    public static int updateVolumeInUnManagedConsistencyGroup(UnManagedConsistencyGroup unManagedCG, UnManagedVolume unManagedVolume, Volume volume) {
+    public static int updateVolumeInUnManagedConsistencyGroup(UnManagedConsistencyGroup unManagedCG, UnManagedVolume unManagedVolume, BlockObject blockObject) {
     	// ensure that unmanaged cg contains the unmanaged volume
     	if (unManagedCG.getUnManagedVolumes().contains(unManagedVolume.getId().toString())) {
     		// add the volume to the list of managed volumes
-			unManagedCG.getManagedVolumes().add(volume.getId().toString());
-			_logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", volume.getLabel(), unManagedCG.getLabel());
+			unManagedCG.getManagedVolumes().add(blockObject.getNativeGuid());
+			_logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", blockObject.getNativeGuid(), unManagedCG.getLabel());
 			// remove the unmanaged volume from the list of unmanaged volumes
 			unManagedCG.getUnManagedVolumes().remove(unManagedVolume.getId().toString());
 			_logger.info("Removed volume {} from the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
@@ -2659,5 +2659,18 @@ public class VolumeIngestionUtil {
         }
 
         return hlu;
+    }
+    
+    public static BlockConsistencyGroup createCGFromUnManagedCG(UnManagedConsistencyGroup unManagedCG, Project project, TenantOrg tenant, DbClient dbClient) {
+    	// TODO: verification like we do when creating not via ingestion    
+        // Create Consistency Group in db
+        final BlockConsistencyGroup consistencyGroup = new BlockConsistencyGroup();
+        consistencyGroup.setId(URIUtil.createId(BlockConsistencyGroup.class));
+        consistencyGroup.setLabel(unManagedCG.getLabel());
+        consistencyGroup.setProject(new NamedURI(project.getId(), unManagedCG.getLabel()));
+        consistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), unManagedCG.getLabel()));
+        dbClient.createObject(consistencyGroup);
+
+        return consistencyGroup;
     }
 }

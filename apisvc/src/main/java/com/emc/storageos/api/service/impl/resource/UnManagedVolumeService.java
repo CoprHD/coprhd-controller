@@ -50,12 +50,14 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.ExceptionUtils;
@@ -236,7 +238,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             _logger.info("UnManagedVolume provisioning quota validation successful for {}", unManagedVolumesCapacity);
             Map<String, BlockObject> createdObjectMap = new HashMap<String, BlockObject>();
             Map<String, List<DataObject>> updatedObjectMap = new HashMap<String, List<DataObject>>();
-            Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
+            Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();            
             List<URI> full_pools = new ArrayList<URI>();
             List<URI> full_systems = new ArrayList<URI>();
 
@@ -280,7 +282,31 @@ public class UnManagedVolumeService extends TaskResourceService {
 
                     createdObjectMap.put(blockObject.getNativeGuid(), blockObject);
                     processedUnManagedVolumeMap.put(unManagedVolume.getNativeGuid(), unManagedVolume);
-
+                    
+                    // check if the unmanaged volume belongs to a cg
+                    if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
+                    	UnManagedConsistencyGroup unManagedCG = VolumeIngestionUtil.getUnManagedConsistencyGroup(unManagedVolume, _dbClient);
+                    	if (unManagedCG != null) {
+                    		if (VolumeIngestionUtil.updateVolumeInUnManagedConsistencyGroup(unManagedCG, unManagedVolume, blockObject) == 0) {
+                    			// all unmanaged volumes have been ingested            			
+                    			// create block consistency group and remove UnManagedBlockConsistency Group
+                    			BlockConsistencyGroup consistencyGroup = VolumeIngestionUtil.createCGFromUnManagedCG(unManagedCG, project, tenant, _dbClient);
+                    			_logger.info("Ingesting the final volume of unmanaged consistency group {}.  Block consistency group {} has been created.", 
+                    					unManagedCG.getLabel(), consistencyGroup.getLabel());                    			
+                    			for (String volumeNativeGuid : unManagedCG.getManagedVolumes()) {                    				
+                    				BlockObject volume  = createdObjectMap.get(volumeNativeGuid);
+                    				_logger.info("Adding previously ingested volume {} to consistency group {}", volume.getLabel(), consistencyGroup.getLabel());
+                					volume.setConsistencyGroup(consistencyGroup.getId());
+                					createdObjectMap.put(blockObject.getNativeGuid(), volume);
+                    			}
+                    			_logger.info("Removing unmanaged consistency group {}", unManagedCG.getLabel());
+                    			// TODO: for testing for now _dbClient.removeObject(unManagedCG);
+                    			
+                    		}                    		                    			
+                    	}
+                    	_dbClient.updateObject(unManagedCG);
+                    }
+                    
                 } catch (APIException ex) {
                     _logger.error("APIException occurred", ex);
                     _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
@@ -324,7 +350,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                         }
                     }
 
-                }
+                }                
                 if (ingestedSuccessfully) {
                     _dbClient.ready(UnManagedVolume.class,
                             unManagedVolume.getId(), taskId, taskMessage);
@@ -341,11 +367,11 @@ public class UnManagedVolumeService extends TaskResourceService {
 
             _dbClient.createObject(createdObjectMap.values());
             _dbClient.persistObject(unManagedVolumes);
-
+            
             // record the events after they have been persisted
-            for (BlockObject volume : createdObjectMap.values()) {
+            for (BlockObject volume : createdObjectMap.values()) {            	
                 recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
-                        Status.ready, volume.getId());
+                        Status.ready, volume.getId());                
             }
         } catch (InternalException e) {
             throw e;

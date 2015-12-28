@@ -1089,17 +1089,4 @@ public abstract class BlockIngestOrchestrator {
         }
     }
     
-    protected BlockConsistencyGroup createCGFromUnManagedCG(UnManagedConsistencyGroup unManagedCG, Project project, TenantOrg tenant) {
-    	// TODO: verification like we do when creating not via ingestion    
-        // Create Consistency Group in db
-        final BlockConsistencyGroup consistencyGroup = new BlockConsistencyGroup();
-        consistencyGroup.setId(URIUtil.createId(BlockConsistencyGroup.class));
-        consistencyGroup.setLabel(unManagedCG.getLabel());
-        consistencyGroup.setProject(new NamedURI(project.getId(), unManagedCG.getLabel()));
-        consistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), unManagedCG.getLabel()));
-        _dbClient.createObject(consistencyGroup);
-
-        return consistencyGroup;
-    }
-
 }

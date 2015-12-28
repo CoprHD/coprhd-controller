@@ -152,40 +152,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                 if (!snapSessions.isEmpty()) {
                     _dbClient.createObject(snapSessions);
                 }
-            }
-                        
-            if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
-            	boolean removed = false;
-            	UnManagedConsistencyGroup unManagedCG = VolumeIngestionUtil.getUnManagedConsistencyGroup(unManagedVolume, _dbClient);
-            	if (unManagedCG != null) {
-            		if (VolumeIngestionUtil.updateVolumeInUnManagedConsistencyGroup(unManagedCG, unManagedVolume, volume) == 0) {
-            			// all unmanaged volumes have been ingested            			
-            			// create block consistency group and remove UnManagedBlockConsistency Group
-            			BlockConsistencyGroup consistencyGroup = createCGFromUnManagedCG(unManagedCG, project, tenant);
-            			_logger.info("Ingesting the final volume of unmanaged consistency group {}.  Block consistency group {} has been created.", unManagedCG.getLabel(), consistencyGroup.getLabel());
-            			for (String volumeURI : unManagedCG.getManagedVolumes()) {
-            				Volume managedVolume = _dbClient.queryObject(Volume.class, URI.create(volumeURI));            				
-            				if (managedVolume != null) {
-            					_logger.info("Adding previously ingested volume {} to consistency group {}", managedVolume.getLabel(), consistencyGroup.getLabel());
-            					managedVolume.setConsistencyGroup(consistencyGroup.getId()); 
-            					_dbClient.updateObject(managedVolume);
-            				} else {
-            					// this is the last volume in the unmanaged cg so it has not been persisted
-            					// in the database yet, add the cg to volume which will be persisted soon
-            					_logger.info("Volume {} in process of being ingested setting consistency group {}", volume.getLabel(), consistencyGroup.getLabel());
-            					volume.setConsistencyGroup(consistencyGroup.getId());
-            				}
-            			}
-            			_logger.info("Removing unmanaged consistency group {}", unManagedCG.getLabel());
-            			_dbClient.removeObject(unManagedCG);
-            			removed = true;
-            		}
-            	}
-            	if (!removed) {
-            		_logger.info("Updating unmanaged consistency group {}", unManagedCG.getLabel());
-            		_dbClient.updateObject(unManagedCG);
-            	}
-            }
+            }                                   
         }
 
         // Note that a VPLEX backend volume can also be a snapshot target volume.

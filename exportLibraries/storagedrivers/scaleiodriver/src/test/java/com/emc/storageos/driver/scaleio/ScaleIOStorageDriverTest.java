@@ -26,8 +26,10 @@ public class ScaleIOStorageDriverTest {
 
     String SYS_NATIVE_ID_A = "6ee6d94e5a3517b8";
     String SYS_NATIVE_ID_B = "3eb4708d2b3ea454";
+    String SYS_NATIVE_ID_C = "a817f58300000000";
     String IP_ADDRESS_A = "10.193.17.97";
     String IP_ADDRESS_B = "10.193.17.35";
+    String IP_ADDRESS_C = "84c44afd00000000";
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";
@@ -54,71 +56,70 @@ public class ScaleIOStorageDriverTest {
         int numVolumes = random.nextInt(10) + 1;
 
         for (int i = 0; i < numVolumes; i++) {
-            Long requestedCapacity = Long.valueOf(random.nextInt(100) + 1);
-
-            StorageVolume volume = new StorageVolume();
-            volume.setStorageSystemId("a817f58300000000");
-            volume.setStoragePoolId("84c44afd00000000");
-            volume.setRequestedCapacity(requestedCapacity);
-
-            storageVolumes.add(volume);
+            int requestedCapacity = random.nextInt(100) + 1;
+            storageVolumes.add(initializeVolume(requestedCapacity));
         }
 
         task = driver.createVolumes(storageVolumes, capabilities);
         Assert.assertNotNull(task);
-        Assert.assertEquals(task.getStatus().toString(), "READY");
-
+        Assert.assertEquals(DriverTask.TaskStatus.READY, task.getStatus());
         storageVolumes.clear();
 
-        //Create volume with invalid size
-        StorageVolume volume = new StorageVolume();
-
-        volume.setStorageSystemId("a817f58300000000");
-        volume.setStoragePoolId("84c44afd00000000");
-        volume.setRequestedCapacity(Long.valueOf(-2));
-
-        storageVolumes.add(volume);
+        // Create volume with invalid (negative) size
+        storageVolumes.add(initializeVolume(-200));
 
         task = driver.createVolumes(storageVolumes, capabilities);
         Assert.assertNotNull(task);
-        Assert.assertEquals(task.getStatus().toString(), "FAILED");
+        Assert.assertEquals(DriverTask.TaskStatus.FAILED, task.getStatus());
+        storageVolumes.clear();
+
+        // Create very large volume
+        storageVolumes.add(initializeVolume((int) java.lang.Math.pow(10,10)));
+
+        task = driver.createVolumes(storageVolumes, capabilities);
+        Assert.assertNotNull(task);
+        Assert.assertEquals(DriverTask.TaskStatus.FAILED, task.getStatus());
+
+
+        // Create volume size 0
+        storageVolumes.add(initializeVolume(0));
+
+        task = driver.createVolumes(storageVolumes, capabilities);
+        Assert.assertNotNull(task);
+        Assert.assertEquals(DriverTask.TaskStatus.FAILED, task.getStatus());
 
         /* Create volume without connectivity? */
     }
 
     @Test
     public void testExpandVolume() throws Exception {
-        StorageVolume volume = new StorageVolume();
         List<StorageVolume> storageVolumes = new ArrayList<>();
         StorageCapabilities capabilities = null;
 
-        volume.setStorageSystemId("a817f58300000000");
-        volume.setStoragePoolId("84c44afd00000000");
-        volume.setRequestedCapacity(Long.valueOf(10));
-        volume.setThinVolumePreAllocationSize(Long.valueOf(10));
+        StorageVolume volume = initializeVolume(10);
+        volume.setThinVolumePreAllocationSize(10L);
 
         driver.createVolumes(storageVolumes, capabilities);
 
         Long capacity = volume.getProvisionedCapacity();
-        System.out.println(capacity);
         capacity += 100;
 
-        //Expand storage volume
+        // Expand storage volume
         task = driver.expandVolume(volume, capacity);
         Assert.assertNotNull(task);
-        Assert.assertEquals(task.getStatus().toString(), "READY");
+        Assert.assertEquals(DriverTask.TaskStatus.READY, task.getStatus());
 
-        //Expand storage volume to invalid size
+        // Expand storage volume to invalid size
         task = driver.expandVolume(volume, -100);
         Assert.assertNotNull(task);
-        Assert.assertEquals(task.getStatus().toString(), "FAILED");
+        Assert.assertEquals(DriverTask.TaskStatus.FAILED, task.getStatus());
 
-        //Expand storage volume that does not already exist in the storage system
+        // Expand storage volume that does not already exist in the storage system
         StorageVolume newVolume = new StorageVolume();
 
         task = driver.expandVolume(newVolume, capacity);
         Assert.assertNotNull(task);
-        Assert.assertEquals(task.getStatus().toString(), "FAILED");
+        Assert.assertEquals(DriverTask.TaskStatus.FAILED, task.getStatus());
 
         /* Expand storage volume w/o connectivity? */
     }
@@ -128,19 +129,12 @@ public class ScaleIOStorageDriverTest {
         List<StorageVolume> storageVolumes = new ArrayList<>();
         StorageCapabilities capabilities = null;
 
-        StorageVolume volume1 = new StorageVolume();
-        StorageVolume volume2 = new StorageVolume();
-
-        volume1.setStorageSystemId("a817f58300000000");
-        volume1.setStoragePoolId("84c44afd00000000");
-        volume1.setRequestedCapacity(Long.valueOf(20));
-        volume1.setThinVolumePreAllocationSize(Long.valueOf(20));
+        StorageVolume volume1 = initializeVolume(20);
+        //volume1.setThinVolumePreAllocationSize(Long.valueOf(20));
         storageVolumes.add(volume1);
 
-        volume2.setStorageSystemId("a817f58300000000");
-        volume2.setStoragePoolId("84c44afd00000000");
-        volume2.setRequestedCapacity(Long.valueOf(10));
-        volume2.setThinVolumePreAllocationSize(Long.valueOf(10));
+        StorageVolume volume2 = initializeVolume(10);
+        //volume2.setThinVolumePreAllocationSize(Long.valueOf(10));
         storageVolumes.add(volume2);
 
         driver.createVolumes(storageVolumes, capabilities);
@@ -148,16 +142,15 @@ public class ScaleIOStorageDriverTest {
         //Delete storage volumes
         task = driver.deleteVolumes(storageVolumes);
         Assert.assertNotNull(task);
-        Assert.assertEquals(task.getStatus().toString(), "READY");
+        Assert.assertEquals(task.getStatus(), DriverTask.TaskStatus.READY);
+        storageVolumes.clear();
 
         //Delete storage volume that does not already exist in the storage system
-        StorageVolume newVolume = new StorageVolume();
-        storageVolumes.clear();
-        storageVolumes.add(newVolume);
+        storageVolumes.add(initializeVolume(15));
 
         task = driver.deleteVolumes(storageVolumes);
         Assert.assertNotNull(task);
-        Assert.assertEquals(task.getStatus().toString(), "FAILED");
+        Assert.assertEquals(task.getStatus(), DriverTask.TaskStatus.FAILED);
 
         /* Delete a storage volume w/o connectivity? */
     }
@@ -481,5 +474,14 @@ public class ScaleIOStorageDriverTest {
         snapshot.setNativeId(nativeId);
         return snapshot;
 
+    }
+
+    public StorageVolume initializeVolume(int requestedCapacity) {
+        StorageVolume volume = new StorageVolume();
+        volume.setStorageSystemId(SYS_NATIVE_ID_C);
+        volume.setStoragePoolId(IP_ADDRESS_C);
+        volume.setRequestedCapacity((long) requestedCapacity);
+
+        return volume;
     }
 }

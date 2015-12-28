@@ -8,7 +8,7 @@ import javax.xml.bind.annotation.XmlElement;
 
 public class FileReplicationPolicy {
 
-    private String remoteCopyMode;
+    private String copyMode;
     private Long rpoValue;
     private String rpoType;
     private String replicationType;
@@ -16,9 +16,9 @@ public class FileReplicationPolicy {
     public FileReplicationPolicy() {
     }
 
-    public FileReplicationPolicy(String remoteCopyMode, Long rpoValue,
+    public FileReplicationPolicy(String copyMode, Long rpoValue,
     		String rpoType, String replicationType) {
-        this.remoteCopyMode = remoteCopyMode;
+        this.copyMode = copyMode;
         this.rpoValue = rpoValue;
         this.rpoType = rpoType;
         this.replicationType = replicationType;
@@ -30,13 +30,13 @@ public class FileReplicationPolicy {
      * @valid ASYNCHRONOUS = Replication  will be in Asynchronous mode (default)
      * @valid SYNCHRONOUS = Replication will be in Synchronous mode
      */
-    @XmlElement(name = "remote_copy_mode", required = false)
-    public String getRemoteCopyMode() {
-        return remoteCopyMode;
+    @XmlElement(name = "copy_mode", required = false)
+    public String getCopyMode() {
+        return copyMode;
     }
 
-    public void setRemoteCopyMode(String remoteCopyMode) {
-        this.remoteCopyMode = remoteCopyMode;
+    public void setCopyMode(String copyMode) {
+        this.copyMode = copyMode;
     }
 
     /**

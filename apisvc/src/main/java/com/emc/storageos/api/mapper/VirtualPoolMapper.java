@@ -253,7 +253,7 @@ public class VirtualPoolMapper {
         to.getProtection().setReplicationParam(new FileVirtualPoolReplicationParam());
         FileVirtualPoolReplicationParam fileReplicationParams = to.getProtection().getReplicationParam();
         fileReplicationParams.setSourcePolicy(new FileReplicationPolicy());
-        //fileReplicationParams.getSourcePolicy().setRemoteCopyMode(from.get)
+        fileReplicationParams.getSourcePolicy().setCopyMode(from.getFileReplicationCopyMode());
         fileReplicationParams.getSourcePolicy().setRpoValue(from.getFrRpoValue());
         fileReplicationParams.getSourcePolicy().setRpoType(from.getFrRpoType());
         

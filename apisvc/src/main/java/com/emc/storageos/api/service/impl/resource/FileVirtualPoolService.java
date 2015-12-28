@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.StorageSystem.SupportedFileReplicationTypes;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationRPOType;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyModes;
@@ -571,18 +572,22 @@ public class FileVirtualPoolService extends VirtualPoolService {
                     } else {
                     	throw APIException.badRequests.noReplicationTypesSpecified();
                     }
-            		if (null != replPolicy.getRemoteCopyMode()) {
-                        if (!CopyModes.lookup(replPolicy.getRemoteCopyMode())) {
-                            throw APIException.badRequests.invalidCopyMode(replPolicy.getRemoteCopyMode());
+            		if (null != replPolicy.getCopyMode()) {
+                        if (!CopyModes.lookup(replPolicy.getCopyMode())) {
+                            throw APIException.badRequests.invalidCopyMode(replPolicy.getCopyMode());
                         }
-                        copyMode = replPolicy.getRemoteCopyMode();
+                        copyMode = replPolicy.getCopyMode();
                         vPool.setFileReplicationCopyMode(copyMode);
                     }
             		if (null != replPolicy.getRpoValue()) {
             			vPool.setFrRpoValue(replPolicy.getRpoValue());
                     }
             		if (null != replPolicy.getRpoType()) {
-                        vPool.setFrRpoType(replPolicy.getRpoType());
+            			if (FileReplicationRPOType.lookup(replPolicy.getRpoType()) != null) {
+            				vPool.setFrRpoType(replPolicy.getRpoType());
+            			} else {
+            				throw APIException.badRequests.invalidReplicationRPOType(replPolicy.getRpoType());
+            			}
                     }           		
             	}
             	
@@ -607,6 +612,10 @@ public class FileVirtualPoolService extends VirtualPoolService {
                         VirtualPool remoteVPool = _dbClient.queryObject(VirtualPool.class, remoteCopy.getVpool());
                         if (null == remoteVPool || remoteVPool.getInactive()) {
                             throw APIException.badRequests.inactiveRemoteVPoolDetected(remoteCopy.getVpool());
+                        }
+                        if (remoteVPool.getVirtualArrays() != null && !remoteVPool.getVirtualArrays().contains(remoteVArray.getId().toString())) {
+                        	throw APIException.badRequests.invalidVirtualPoolFromVirtualArray(
+                        			remoteVPool.getId(), remoteVArray.getId() );
                         }
                         remoteCopySettings.setVirtualPool(remoteCopy.getVpool());
                         
@@ -785,15 +794,15 @@ public class FileVirtualPoolService extends VirtualPoolService {
         			
         		} else {
         			// Update the policy settings from param!!!
-        			if (sourcePolicy.getRemoteCopyMode() != null) {
-        				if (!CopyModes.lookup(sourcePolicy.getRemoteCopyMode())) {
-    						throw APIException.badRequests.invalidCopyMode(sourcePolicy.getRemoteCopyMode());
+        			if (sourcePolicy.getCopyMode() != null) {
+        				if (!CopyModes.lookup(sourcePolicy.getCopyMode())) {
+    						throw APIException.badRequests.invalidCopyMode(sourcePolicy.getCopyMode());
     					}
-        				virtualPool.setFileReplicationCopyMode(sourcePolicy.getRemoteCopyMode());
+        				virtualPool.setFileReplicationCopyMode(sourcePolicy.getCopyMode());
         			}
         			if (sourcePolicy.getReplicationType() != null) {
         				if (!FileReplicationType.lookup(sourcePolicy.getReplicationType())) {
-    						throw APIException.badRequests.invalidReplicationType(sourcePolicy.getRemoteCopyMode());
+    						throw APIException.badRequests.invalidReplicationType(sourcePolicy.getCopyMode());
     					}
         				virtualPool.setFileReplicationType(sourcePolicy.getReplicationType());
         				if (FileReplicationType.LOCAL.name().equalsIgnoreCase(virtualPool.getFileReplicationType())) {
@@ -802,7 +811,11 @@ public class FileVirtualPoolService extends VirtualPoolService {
         				}
         			}
         			if (sourcePolicy.getRpoType() != null) {
-        				virtualPool.setFrRpoType(sourcePolicy.getRpoType());
+        				if (FileReplicationRPOType.lookup(sourcePolicy.getRpoType()) != null) {
+        					virtualPool.setFrRpoType(sourcePolicy.getRpoType());
+            			} else {
+            				throw APIException.badRequests.invalidReplicationRPOType(sourcePolicy.getRpoType());
+            			}
         			}
         			if (sourcePolicy.getRpoValue() != null) {
         				virtualPool.setFrRpoValue(sourcePolicy.getRpoValue());
@@ -845,6 +858,14 @@ public class FileVirtualPoolService extends VirtualPoolService {
         				if (null == remoteVArray || remoteVArray.getInactive()) {
         					throw APIException.badRequests.inactiveRemoteVArrayDetected(remoteSettings.getVarray());
         				}
+        				VirtualPool remoteVPool = _dbClient.queryObject(VirtualPool.class, remoteSettings.getVpool());
+                        if (null == remoteVPool || remoteVPool.getInactive()) {
+                            throw APIException.badRequests.inactiveRemoteVPoolDetected(remoteSettings.getVpool());
+                        }
+                        if (remoteVPool.getVirtualArrays() != null && !remoteVPool.getVirtualArrays().contains(remoteVArray.getId().toString())) {
+                        	throw APIException.badRequests.invalidVirtualPoolFromVirtualArray(
+                        			remoteVPool.getId(), remoteVArray.getId() );
+                        }
         				VpoolRemoteCopyProtectionSettings remoteCopySettingsParam = new VpoolRemoteCopyProtectionSettings();
         				remoteSettingsList.add(remoteCopySettingsParam);
         				remoteCopySettingsParam.setId(URIUtil.createId(VpoolRemoteCopyProtectionSettings.class));

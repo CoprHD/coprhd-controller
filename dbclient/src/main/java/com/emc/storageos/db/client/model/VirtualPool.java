@@ -137,6 +137,42 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             return false;
         }
     }
+    
+    public static enum FileReplicationRPOType {
+        SECONDS("seconds"), MINUTES("minutes"), 
+        HOURS("hours"), DAYS("days");
+        private final String _value;
+
+        FileReplicationRPOType(String v) {
+            _value = v;
+        }
+
+        public String value() {
+            return _value;
+        }
+
+        public static FileReplicationRPOType fromValue(final String v) {
+        	FileReplicationRPOType returnVal = lookup(v);
+            if (returnVal == null) {
+                throw new IllegalArgumentException(v);
+            }
+            return returnVal;
+        }
+
+        public static final FileReplicationRPOType[] copyOfValues = values();
+
+        public static FileReplicationRPOType lookup(final String name) {
+            for (FileReplicationRPOType value : copyOfValues) {
+                if (value.name().equals(name)) {
+                    return value;
+                }
+                if (value.value().equals(name)) {
+                    return value;
+                }
+            }
+            return null;
+        }
+    };
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")

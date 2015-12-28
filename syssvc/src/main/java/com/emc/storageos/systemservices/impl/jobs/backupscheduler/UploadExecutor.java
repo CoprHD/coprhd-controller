@@ -44,11 +44,11 @@ public class UploadExecutor {
         this.uploader = uploader;
     }
 
-    public void runOnce() throws Exception {
-        runOnce(null);
+    public void upload() throws Exception {
+        upload(null);
     }
 
-    public void runOnce(String backupTag) throws Exception {
+    public void upload(String backupTag) throws Exception {
         if (this.uploader == null) {
             setUploader(Uploader.create(cfg, cli));
             if (this.uploader == null) {
@@ -60,7 +60,7 @@ public class UploadExecutor {
         try (AutoCloseable lock = this.cfg.lock()) {
             this.cfg.reload();
             cleanupCompletedTags();
-            upload(backupTag);
+            doUpload(backupTag);
         } catch (Exception e) {
             log.error("Fail to run upload backup", e);
         }
@@ -119,7 +119,7 @@ public class UploadExecutor {
         return lastErrorMessage;
     }
 
-    private void upload(String backupTag) throws Exception {
+    private void doUpload(String backupTag) throws Exception {
         log.info("Begin upload");
 
         List<String> toUpload = getWaitingUploads(backupTag);

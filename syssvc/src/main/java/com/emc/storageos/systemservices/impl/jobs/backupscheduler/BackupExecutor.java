@@ -36,7 +36,7 @@ public class BackupExecutor {
         this.cli = cli;
     }
 
-    public void runOnce() throws Exception {
+    public void create() throws Exception {
         if (this.cfg.schedulerEnabled) {
             try (AutoCloseable lock = this.cfg.lock()) {
                 this.cfg.reload();
@@ -48,9 +48,6 @@ public class BackupExecutor {
                 if (shouldDoBackup()) {
                     doBackup();
                 }
-
-                log.info("Start to delete expired backups");
-                deleteExpiredBackups();
             } catch (Exception e) {
                 log.error("Fail to run schedule backup", e);
             }
@@ -147,6 +144,18 @@ public class BackupExecutor {
 
         if (lastException != null) {
             this.cfg.sendBackupFailureToRoot(tag, lastException.getMessage());
+        }
+    }
+
+    public void reclaim() throws Exception {
+        if (this.cfg.schedulerEnabled) {
+            try (AutoCloseable lock = this.cfg.lock()) {
+                this.cfg.reload();
+                log.info("Start to delete expired backups");
+                deleteExpiredBackups();
+            } catch (Exception e) {
+                log.error("Fail to run schedule backup", e);
+            }
         }
     }
 

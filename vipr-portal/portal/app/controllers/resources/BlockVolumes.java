@@ -74,9 +74,7 @@ public class BlockVolumes extends ResourceController {
     public static void volumesJson(String projectId, String applicationId) {
         if (StringUtils.isNotBlank(applicationId)) {
             setActiveApplicationId(applicationId);
-        } else if (applicationId == null) {
-            applicationId = getActiveApplicationId();
-        }
+        } 
         if (StringUtils.isNotBlank(projectId)) {
             setActiveProjectId(projectId);
         } else {

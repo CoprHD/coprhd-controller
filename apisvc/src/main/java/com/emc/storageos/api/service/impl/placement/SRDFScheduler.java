@@ -231,8 +231,8 @@ public class SRDFScheduler implements Scheduler {
     private List<StoragePool> filterPoolsForSupportedActiveModeProvider(List<StoragePool> candidatePools, VirtualPool vpool) {
         Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings = vpool.getRemoteProtectionSettings(vpool, _dbClient);
         if (remoteProtectionSettings != null) {
-            for (URI vararyURI : remoteProtectionSettings.keySet()) {
-                VpoolRemoteCopyProtectionSettings remoteCopyProtectionSettings = remoteProtectionSettings.get(vararyURI);
+            for (URI varrayURI : remoteProtectionSettings.keySet()) {
+                VpoolRemoteCopyProtectionSettings remoteCopyProtectionSettings = remoteProtectionSettings.get(varrayURI);
                 String copyMode = remoteCopyProtectionSettings.getCopyMode();
                 if (copyMode.equals(SupportedCopyModes.ACTIVE.toString())) {
                     SRDFMetroMatcher srdfMetroMatcher = new SRDFMetroMatcher();

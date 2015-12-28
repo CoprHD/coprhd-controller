@@ -300,11 +300,13 @@ public class UnManagedVolumeService extends TaskResourceService {
                 					createdObjectMap.put(volumeNativeGuid, volume);
                     			}
                     			_logger.info("Removing unmanaged consistency group {}", unManagedCG.getLabel());
-                    			// TODO: for testing for now _dbClient.removeObject(unManagedCG);
+                    			_dbClient.removeObject(unManagedCG);
                     			
-                    		}                    		                    			
-                    	}
-                    	_dbClient.updateObject(unManagedCG);
+                    		} else {
+                    			_logger.info("Updating unmanaged consistency group {}", unManagedCG.getLabel());
+                    			_dbClient.updateObject(unManagedCG);
+                    		}
+                    	}                    	
                     }
                     
                 } catch (APIException ex) {

@@ -5,6 +5,7 @@
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
 import java.net.URI;
+import java.util.Set;
 
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
@@ -38,6 +39,8 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     private ZoneInfoMap _zoningMap;
 
     private StringSetMap deviceDataMap;
+
+    private String exportType;
 
     @RelationIndex(cf = "UnManagedExportMaskRelationIndex", type = StorageSystem.class)
     @Name("storageSystem")
@@ -93,6 +96,15 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         this._knownInitiatorUris = knownInitiatorUris;
     }
 
+    public void addKnownInitiatorUris(final Set<String> knownInitiators) {
+        if (null == _knownInitiatorUris) {
+            setKnownInitiatorUris(new StringSet());
+        }
+        if (!knownInitiators.isEmpty()) {
+            _knownInitiatorUris.addAll(knownInitiators);
+        }
+    }
+
     @IndexByKey
     @AlternateId("KnownInitiatorNetwordIdIndex")
     @Name("knownInitiatorNetworkIds")
@@ -105,6 +117,15 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
 
     public void setKnownInitiatorNetworkIds(StringSet knownInitiatorNetworkIds) {
         this._knownInitiatorNetworkIds = knownInitiatorNetworkIds;
+    }
+
+    public void addKnownInitiatorNetworkIds(final Set<String> knownInitiatorNetworkIds) {
+        if (null == _knownInitiatorNetworkIds) {
+            setKnownInitiatorNetworkIds(new StringSet());
+        }
+        if (!knownInitiatorNetworkIds.isEmpty()) {
+            _knownInitiatorNetworkIds.addAll(knownInitiatorNetworkIds);
+        }
     }
 
     @Name("unmanagedInitiatorNetworkIds")
@@ -262,6 +283,22 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     }
 
     /**
+     * @return the exportType
+     */
+    @Name("exportType")
+    public String getExportType() {
+        return exportType;
+    }
+
+    /**
+     * @param exportType the exportType to set
+     */
+    public void setExportType(String exportType) {
+        this.exportType = exportType;
+        setChanged("exportType");
+    }
+
+    /**
      * Update initiator/volumes/ports
      * 
      * @param knownIniSet
@@ -303,6 +340,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         str.append(_maskingViewPath);
         str.append("; maskName: ").append(_maskName);
         str.append("; nativeId: ").append(_nativeId);
+        str.append("; exportType: ").append(exportType);
         str.append("; known initiators: ").append(this.getKnownInitiatorUris());
         str.append("; known initiator network ids: ").append(this.getKnownInitiatorNetworkIds());
         str.append("; unmanaged initiators network ids: ").append(this.getUnmanagedInitiatorNetworkIds());

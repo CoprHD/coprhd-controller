@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
@@ -31,6 +33,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -47,6 +50,8 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Sets;
 
 /**
  * 
@@ -101,14 +106,10 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
     private void processHostGroupsInBatch(List<HostStorageDomain> hostGroupList, StorageSystem storageSystem,
             Map<String, StoragePort> portMap, Set<URI> allMasks) {
         List<UnManagedExportMask> newMasks = new ArrayList<UnManagedExportMask>();
-        Map<String, URI> initiatorMasks = new HashMap<String, URI>();
+        Map<String, UnManagedExportMask> initiatorMasks = new HashMap<String, UnManagedExportMask>();
         List<UnManagedExportMask> updateMasks = new ArrayList<UnManagedExportMask>();
         for (HostStorageDomain hsd : hostGroupList) {
-            Set<String> knownPortSet = new HashSet<String>();
-            Set<String> knownVolumeSet = new HashSet<String>();
             List<StoragePort> matchedPorts = new ArrayList<StoragePort>();
-            Set<String> knownIniSet = new HashSet<String>();
-            Set<String> knownIniWwnSet = new HashSet<String>();
             List<Initiator> matchedInitiators = new ArrayList<Initiator>();
             try {
                 List<WorldWideName> wwnList = hsd.getWwnList();
@@ -129,29 +130,31 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
 
                 UnManagedExportMask umExportMask = null;
                 if (null != wwnList && !wwnList.isEmpty()) {
-                    umExportMask = processFCInitiators(storageSystem, hsd, wwnList, matchedInitiators, knownIniSet, knownIniWwnSet,
-                            newMasks,
+                    umExportMask = processFCInitiators(storageSystem, hsd, wwnList, matchedInitiators, newMasks,
                             updateMasks, allMasks, initiatorMasks);
                 } else if (null != iscsiList && !iscsiList.isEmpty()) {
-                    umExportMask = processIscsiInitiators(storageSystem, hsd, iscsiList, matchedInitiators, knownIniSet, knownIniWwnSet,
-                            newMasks, updateMasks, allMasks, initiatorMasks);
+                    umExportMask = processIscsiInitiators(storageSystem, hsd, iscsiList, matchedInitiators, newMasks, updateMasks,
+                            allMasks, initiatorMasks);
                 }
-                processStoragePorts(storageSystem, hsd.getPortID(), portMap, umExportMask, matchedPorts, knownPortSet);
+                if (null == umExportMask) {
+                    log.warn("Not able to create/find unmanaged exportmask for host group {}", hsd.getObjectID());
+                    continue;
+                }
+                processStoragePorts(storageSystem, hsd.getPortID(), portMap, umExportMask, matchedPorts);
 
                 if (null != pathList && !pathList.isEmpty()) {
-                    processVolumes(storageSystem, umExportMask, knownVolumeSet, pathList);
+                    processVolumes(storageSystem, umExportMask, pathList);
                 }
                 umExportMask.setLabel(hsd.getNickname());
                 umExportMask.setMaskName(hsd.getNickname());
                 umExportMask.setMaskingViewPath(hsd.getNickname());
                 umExportMask.setStorageSystemUri(storageSystem.getId());
                 updateZoningMap(umExportMask, matchedInitiators, matchedPorts, hsd.getObjectID(), pathList);
-                updateMaskInfo(umExportMask, knownIniSet, knownIniWwnSet, knownVolumeSet, knownPortSet);
-                if (!newMasks.isEmpty() && newMasks.size() > BATCH_SIZE) {
+                if (!newMasks.isEmpty() && newMasks.size() >= BATCH_SIZE) {
                     partitionManager.insertInBatches(newMasks, BATCH_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
                     newMasks.clear();
                 }
-                if (!updateMasks.isEmpty() && updateMasks.size() > BATCH_SIZE) {
+                if (!updateMasks.isEmpty() && updateMasks.size() >= BATCH_SIZE) {
                     partitionManager.updateInBatches(updateMasks, BATCH_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
                     updateMasks.clear();
                 }
@@ -168,42 +171,6 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
         if (!updateMasks.isEmpty() && updateMasks.size() > 0) {
             partitionManager.updateInBatches(updateMasks, BATCH_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
             updateMasks.clear();
-        }
-    }
-
-    /**
-     * 
-     * @param umExportMask
-     * @param knownIniSet
-     * @param knownIniWwnSet
-     * @param knownVolumeSet
-     * @param knownPortSet
-     */
-    private void updateMaskInfo(UnManagedExportMask umExportMask, Set<String> knownIniSet, Set<String> knownIniWwnSet,
-            Set<String> knownVolumeSet, Set<String> knownPortSet) {
-        if (null != knownIniSet && !knownIniSet.isEmpty()) {
-            log.debug("Known Initiator uris to add: {}", knownIniSet);
-            umExportMask.getKnownInitiatorUris().replace(knownIniSet);
-        } else {
-            umExportMask.getKnownInitiatorUris().clear();
-        }
-        if (null != knownIniWwnSet && !knownIniWwnSet.isEmpty()) {
-            log.debug("Known Initiator wwn to add: {}", knownIniWwnSet);
-            umExportMask.getKnownInitiatorNetworkIds().replace(knownIniWwnSet);
-        } else {
-            umExportMask.getKnownInitiatorNetworkIds().clear();
-        }
-        if (null != knownVolumeSet && !knownVolumeSet.isEmpty()) {
-            log.debug("Known volumes to add: {}", knownVolumeSet);
-            umExportMask.getKnownVolumeUris().replace(knownVolumeSet);
-        } else {
-            umExportMask.getKnownVolumeUris().clear();
-        }
-        if (null != knownPortSet && !knownPortSet.isEmpty()) {
-            log.debug("Known ports to add: {}", knownPortSet);
-            umExportMask.getKnownStoragePortUris().replace(knownPortSet);
-        } else {
-            umExportMask.getKnownStoragePortUris().clear();
         }
     }
 
@@ -230,7 +197,7 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
                     itlSet.add(itl.toString());
                 }
             }
-            if (null != zoningMap || !zoningMap.isEmpty()) {
+            if (null != zoningMap && !zoningMap.isEmpty()) {
                 mask.addZoningMap(zoningMap);
                 itlMap.put(hsdId, itlSet);
                 mask.addDeviceDataMap(itlMap);
@@ -252,7 +219,7 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
      * @param knownPortSet
      */
     private void processStoragePorts(StorageSystem storageSystem, String portID, Map<String, StoragePort> storagePortMap,
-            UnManagedExportMask umExportMask, List<StoragePort> matchedPorts, Set<String> knownPortSet) {
+            UnManagedExportMask umExportMask, List<StoragePort> matchedPorts) {
         String portNativeGuid = HDSUtils.getPortNativeGuid(storageSystem, portID);
         StoragePort sport = null;
         if (storagePortMap.containsKey(portNativeGuid)) {
@@ -271,7 +238,7 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
 
         if (null != knownStoragePort) {
             log.info("Found a matching storage port {} in ViPR ", knownStoragePort.getLabel());
-            knownPortSet.add(knownStoragePort.getId().toString());
+            umExportMask.getKnownStoragePortUris().add(knownStoragePort.getId().toString());
             matchedPorts.add(knownStoragePort);
         } else {
             log.info("No storage port in ViPR found matching portNetworkId {}", sport.getPortNetworkId());
@@ -279,8 +246,9 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
         }
     }
 
-    private void processVolumes(StorageSystem storageSystem, UnManagedExportMask umExportMask, Set<String> knownVolumeSet,
+    private void processVolumes(StorageSystem storageSystem, UnManagedExportMask umExportMask,
             List<Path> pathList) {
+        Set<String> knownVolumeSet = new HashSet<String>();
         for (Path path : pathList) {
             String volumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                     storageSystem.getNativeGuid(), String.valueOf(path.getDevNum()));
@@ -306,13 +274,18 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
             volumeMasks.put(umvNativeGuid, umvMasks);
         }
 
+        if (!knownVolumeSet.isEmpty()) {
+            umExportMask.getKnownVolumeUris().addAll(knownVolumeSet);
+        }
     }
 
-    private UnManagedExportMask processIscsiInitiators(StorageSystem storageSystem,
-            HostStorageDomain hsd, List<ISCSIName> iscsiList, List<Initiator> matchedInitiators, Set<String> knownIniSet,
-            Set<String> knownIniWwnSet, List<UnManagedExportMask> newMasks, List<UnManagedExportMask> updateMasks, Set<URI> allMasks,
-            Map<String, URI> initiatorMasks) {
+    private UnManagedExportMask processIscsiInitiators(StorageSystem system,
+            HostStorageDomain hsd, List<ISCSIName> iscsiList, List<Initiator> matchedInitiators,
+            List<UnManagedExportMask> newMasks, List<UnManagedExportMask> updateMasks, Set<URI> allMasks,
+            Map<String, UnManagedExportMask> currentProcessinginiMasks) {
         UnManagedExportMask umExportMask = null;
+        StringSet unknownIniSet = new StringSet();
+        Map<URI, Set<String>> hostInitiatorsMap = new HashMap<URI, Set<String>>();
         for (ISCSIName scsiName : iscsiList) {
             String scsiInitiatorName = scsiName.getiSCSIName();
             if (iSCSIUtility.isValidIQNPortName(scsiInitiatorName) || iSCSIUtility
@@ -323,33 +296,46 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
                 continue;
             }
             Initiator knownInitiator = NetworkUtil.getInitiator(scsiInitiatorName, dbClient);
-            // Initialize for the first initiator and use the same for rest of the initiators in HSD.
-            if (null == umExportMask) {
-                umExportMask = findAnyExistingUnManagedExportMask(storageSystem, scsiInitiatorName, knownInitiator, newMasks, updateMasks,
-                        initiatorMasks);
-            }
             if (null != knownInitiator) {
-                log.info("   found an initiator in ViPR on host " + knownInitiator.getHostName());
-                knownIniSet.add(knownInitiator.getId().toString());
 
-                knownIniWwnSet.add(knownInitiator.getInitiatorPort());
-                if (HostInterface.Protocol.iSCSI.toString().equals(knownInitiator.getProtocol())) {
-                    matchedInitiators.add(knownInitiator);
+                URI hostURI = knownInitiator.getHost();
+                if (!NullColumnValueGetter.isNullURI(hostURI)) {
+                    Set<String> hostInitiators = hostInitiatorsMap.get(hostURI);
+                    if (null == hostInitiators) {
+                        hostInitiators = new HashSet<String>();
+                    }
+                    if (HostInterface.Protocol.iSCSI.toString().equals(knownInitiator.getProtocol())) {
+                        hostInitiators.add(knownInitiator.getInitiatorPort());
+                        hostInitiatorsMap.put(hostURI, hostInitiators);
+                        matchedInitiators.add(knownInitiator);
+                    }
+                } else {
+                    log.info("Unknown Host found for initiator {} ", scsiInitiatorName);
+                    unknownIniSet.add(scsiInitiatorName);
                 }
+
             } else {
                 log.info("no hosts in ViPR found configured for initiator {} ", scsiInitiatorName);
-                umExportMask.getUnmanagedInitiatorNetworkIds().add(scsiInitiatorName);
+                unknownIniSet.add(scsiInitiatorName);
             }
+            currentProcessinginiMasks.put(scsiInitiatorName, umExportMask);
         }
-        allMasks.add(umExportMask.getId());
-        return umExportMask;
+        if (!hostInitiatorsMap.isEmpty() && !unknownIniSet.isEmpty()) {
+            log.warn("Skipping the HostGroup {} as it has both known & unknown initiators.", hsd.getObjectID());
+            return null;
+        }
+
+        return processComputeElementInitiators(system, hostInitiatorsMap, unknownIniSet, currentProcessinginiMasks, matchedInitiators,
+                newMasks,
+                updateMasks, allMasks);
     }
 
-    private UnManagedExportMask processFCInitiators(StorageSystem storageSystem, HostStorageDomain hsd,
-            List<WorldWideName> wwnList, List<Initiator> matchedInitiators, Set<String> knownIniSet, Set<String> knownIniWwnSet,
-            List<UnManagedExportMask> newMasks, List<UnManagedExportMask> updateMasks, Set<URI> allMasks, Map<String, URI> initiatorMasks) {
+    private UnManagedExportMask processFCInitiators(StorageSystem system, HostStorageDomain hsd,
+            List<WorldWideName> wwnList, List<Initiator> matchedInitiators, List<UnManagedExportMask> newMasks,
+            List<UnManagedExportMask> updateMasks, Set<URI> allMasks,
+            Map<String, UnManagedExportMask> currentProcessinginiMasks) {
         StringSet unknownIniWwnSet = new StringSet();
-        UnManagedExportMask umExportMask = null;
+        Map<URI, Set<String>> computeElementInisMap = new HashMap<URI, Set<String>>();
         for (WorldWideName wwn : wwnList) {
             String initiatorWwn = wwn.getWwn().replace(HDSConstants.DOT_OPERATOR, HDSConstants.EMPTY_STR);
             if (WWNUtility.isValidNoColonWWN(initiatorWwn)) {
@@ -359,31 +345,238 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
                 continue;
             }
             Initiator knownInitiator = NetworkUtil.getInitiator(initiatorWwn, dbClient);
-            // Initialize for the first initiator and use the same for rest of the initiators in HSD.
-            if (null == umExportMask) {
-                umExportMask = findAnyExistingUnManagedExportMask(storageSystem, initiatorWwn, knownInitiator, newMasks, updateMasks,
-                        initiatorMasks);
-            }
             if (null != knownInitiator) {
                 log.info("Found an initiator in ViPR on host {}", knownInitiator.getHostName());
-                knownIniSet.add(knownInitiator.getId().toString());
 
-                knownIniWwnSet.add(knownInitiator.getInitiatorPort());
-                if (HostInterface.Protocol.FC.toString().equals(knownInitiator.getProtocol())) {
-                    matchedInitiators.add(knownInitiator);
+                URI hostURI = knownInitiator.getHost();
+                if (!NullColumnValueGetter.isNullURI(hostURI)) {
+                    Set<String> hostInitiators = computeElementInisMap.get(hostURI);
+                    if (null == hostInitiators) {
+                        hostInitiators = new HashSet<String>();
+                    }
+                    if (HostInterface.Protocol.FC.toString().equals(knownInitiator.getProtocol())) {
+                        hostInitiators.add(knownInitiator.getInitiatorPort());
+                        computeElementInisMap.put(hostURI, hostInitiators);
+                        matchedInitiators.add(knownInitiator);
+                    }
+
+                } else {
+                    log.info("Unknown Host found for initiator {} ", initiatorWwn);
+                    unknownIniWwnSet.add(initiatorWwn);
                 }
+
             } else {
                 log.info("No host in ViPR found configured for initiator {} ", initiatorWwn);
                 unknownIniWwnSet.add(initiatorWwn);
             }
         }
-        // If the mask is processing first time then cleanup the mask.
-        // This is required during multiple rediscoveries to update the latest information.
-        if (!allMasks.contains(umExportMask.getId())) {
-            cleanupUnManagedExportMaskInfo(umExportMask);
+
+        if (!computeElementInisMap.isEmpty() && !unknownIniWwnSet.isEmpty()) {
+            log.warn("Skipping the HostGroup {} as it has both known & unknown initiators.", hsd.getObjectID());
+            return null;
         }
-        umExportMask.getUnmanagedInitiatorNetworkIds().addAll(unknownIniWwnSet);
+
+        return processComputeElementInitiators(system, computeElementInisMap, unknownIniWwnSet, currentProcessinginiMasks,
+                matchedInitiators,
+                newMasks,
+                updateMasks, allMasks);
+    }
+
+    private UnManagedExportMask processComputeElementInitiators(StorageSystem system, Map<URI, Set<String>> computeElementInitiatorsMap,
+            StringSet unknownIniSet, Map<String, UnManagedExportMask> initiatorMasks, List<Initiator> matchedInitiators,
+            List<UnManagedExportMask> newMasks, List<UnManagedExportMask> updateMasks, Set<URI> allMasks) {
+        UnManagedExportMask umExportMask = null;
+        String exportType = ExportGroup.ExportGroupType.Host.toString();
+        if (computeElementInitiatorsMap.keySet().size() > 1) {
+            // process Cluster initiators
+            exportType = ExportGroup.ExportGroupType.Cluster.toString();
+        }
+
+        umExportMask = processHostKnownInitiators(computeElementInitiatorsMap, system, initiatorMasks, exportType);
+        if (null != umExportMask) {
+            // If the mask is processing for first time then cleanup the mask.
+            // This is required during multiple rediscoveries to update the latest information.
+            if (!allMasks.contains(umExportMask.getId())) {
+                cleanupUnManagedExportMaskInfo(umExportMask);
+            }
+            updateCurrentInitiatorMasks(umExportMask, matchedInitiators, initiatorMasks);
+            umExportMask.setExportType(exportType);
+            Set<String> initiatorWwns = new HashSet<String>(Collections2.transform(matchedInitiators,
+                    CommonTransformerFunctions.fctnInitiatorToPortNameWONormalize()));
+            log.debug("initiator names to add: {}", initiatorWwns);
+            umExportMask.addKnownInitiatorNetworkIds(initiatorWwns);
+
+            Set<String> initiatorIds = new HashSet<String>(Collections2.transform(matchedInitiators,
+                    CommonTransformerFunctions.fctnDataObjectToURIString()));
+            log.debug("initiators to add: {}", initiatorIds);
+            umExportMask.addKnownInitiatorUris(initiatorIds);
+        }
+        if (!unknownIniSet.isEmpty()) {
+            // process the unknown initiators. We cann't determine the exportType as there could be initiators from different hosts.
+            // So treat them as one Host & group into one UEM. When the hosts are discovered set the right exportType.
+            umExportMask = processUnknownInitiators(system, unknownIniSet, initiatorMasks, exportType);
+            // If the mask is processing for first time then cleanup the mask.
+            // This is required during multiple rediscoveries to update the latest information.
+            if (!allMasks.contains(umExportMask.getId())) {
+                cleanupUnManagedExportMaskInfo(umExportMask);
+            }
+            updateCurrentInitiatorMasksForUnknownInits(umExportMask, unknownIniSet, initiatorMasks);
+            umExportMask.setUnmanagedInitiatorNetworkIds(unknownIniSet);
+        }
+
+        if (null == umExportMask.getCreationTime()) {
+            newMasks.add(umExportMask);
+        } else {
+            updateMasks.add(umExportMask);
+        }
+
         allMasks.add(umExportMask.getId());
+        return umExportMask;
+    }
+
+    private void updateCurrentInitiatorMasksForUnknownInits(UnManagedExportMask umExportMask, StringSet unknownIniWwnSet,
+            Map<String, UnManagedExportMask> initiatorMasks) {
+        for (String unknownInitiator : unknownIniWwnSet) {
+            initiatorMasks.put(unknownInitiator, umExportMask);
+        }
+    }
+
+    private void updateCurrentInitiatorMasks(UnManagedExportMask uem, List<Initiator> initiators,
+            Map<String, UnManagedExportMask> initiatorMasks) {
+        if (null != initiators && !initiators.isEmpty()) {
+            for (Initiator initiator : initiators) {
+                initiatorMasks.put(initiator.getInitiatorPort(), uem);
+            }
+        }
+    }
+
+    private UnManagedExportMask processHostKnownInitiators(Map<URI, Set<String>> hostInitiatorsMap, StorageSystem system,
+            Map<String, UnManagedExportMask> initiatorMasks, String exportType) {
+        UnManagedExportMask umExportMask = null;
+        for (Entry<URI, Set<String>> hostEntrySet : hostInitiatorsMap.entrySet()) {
+            Set<String> hostInitiatorWwns = getHostInitiators(hostEntrySet.getKey());
+            if (null != hostInitiatorWwns && !hostInitiatorWwns.isEmpty()) {
+                umExportMask = findSuitableUemForInitiators(system, hostInitiatorWwns, initiatorMasks, exportType);
+                if (null != umExportMask) {
+                    log.info("Found a mask for the host: {}", hostEntrySet.getKey());
+                    break;
+                }
+            }
+        }
+        return umExportMask;
+    }
+
+    /**
+     * Get all initiators of the given Host.
+     * 
+     * @param hostURI
+     * @return
+     */
+    private Set<String> getHostInitiators(URI hostURI) {
+        Set<String> hostInitiators = new HashSet<String>();
+        if (!NullColumnValueGetter.isNullURI(hostURI)) {
+            Host host = dbClient.queryObject(Host.class, hostURI);
+            List<Initiator> allHostInitiators =
+                    CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Initiator.class,
+                            ContainmentConstraint.Factory.getContainedObjectsConstraint(host.getId(), Initiator.class, "host"));
+            if (null != allHostInitiators && !allHostInitiators.isEmpty()) {
+                for (Initiator initiator : allHostInitiators) {
+                    hostInitiators.add(initiator.getInitiatorPort());
+                }
+            }
+
+        }
+        return hostInitiators;
+    }
+
+    private UnManagedExportMask processUnknownInitiators(StorageSystem system, Set<String> hostInitiatorWwns,
+            Map<String, UnManagedExportMask> initiatorMasks, String exportType) {
+        // check if the initiators has any exportmask in the current processed list.
+        UnManagedExportMask umExportMask = checkCurrentProcessedMasks(hostInitiatorWwns, initiatorMasks, exportType);
+        // Now check from database.
+        if (null == umExportMask) {
+            umExportMask = fetchUmexportMaskFromDBForUnknownInis(system, hostInitiatorWwns, exportType);
+        }
+        if (null == umExportMask) {
+            // If we still didn't find unmanagedExportMask from DB, create a new mask.
+            umExportMask = getNewUnManagedExportMask(system);
+        }
+        return umExportMask;
+
+    }
+
+    private UnManagedExportMask
+            fetchUmexportMaskFromDBForUnknownInis(StorageSystem system, Set<String> hostInitiatorWwns, String exportType) {
+        URIQueryResultList unmanagedMasksResult = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageSystemUnManagedExportMaskConstraint(system.getId()),
+                unmanagedMasksResult);
+        UnManagedExportMask unManagedExportMask = null;
+        while (unmanagedMasksResult.iterator().hasNext()) {
+            unManagedExportMask = dbClient.queryObject(UnManagedExportMask.class, unmanagedMasksResult.iterator().next());
+            if (null != unManagedExportMask && !unManagedExportMask.getInactive()) {
+                StringSet uemInitiators = unManagedExportMask.getUnmanagedInitiatorNetworkIds();
+                Set<String> commonSet = Sets.intersection(uemInitiators, hostInitiatorWwns);
+                if (!commonSet.isEmpty()) {
+                    return unManagedExportMask;
+                }
+            }
+        }
+        return null;
+    }
+
+    private UnManagedExportMask findSuitableUemForInitiators(StorageSystem system, Set<String> hostInitiatorWwns,
+            Map<String, UnManagedExportMask> initiatorMasks, String exportType) {
+        // check if the initiators has any exportmask in the current processed list.
+        UnManagedExportMask umExportMask = checkCurrentProcessedMasks(hostInitiatorWwns, initiatorMasks, exportType);
+        // Now check from database.
+        if (null == umExportMask) {
+            umExportMask = fetchUmexportMaskFromDB(hostInitiatorWwns, exportType);
+        }
+        if (null == umExportMask) {
+            // If we still didn't find unmanagedExportMask from DB, create a new mask.
+            umExportMask = getNewUnManagedExportMask(system);
+        }
+        return umExportMask;
+
+    }
+
+    private UnManagedExportMask fetchUmexportMaskFromDB(Set<String> hostInitiatorWwns, String exportType) {
+        UnManagedExportMask umExportMask = null;
+        for (String initiatorWwn : hostInitiatorWwns) {
+            URIQueryResultList uemInitiatorMaskList = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getUnManagedExportMaskKnownInitiatorConstraint(initiatorWwn),
+                    uemInitiatorMaskList);
+            while (uemInitiatorMaskList.iterator().hasNext()) {
+                UnManagedExportMask tmpUmExportMask = dbClient.queryObject(UnManagedExportMask.class, uemInitiatorMaskList.iterator()
+                        .next());
+                if (null != tmpUmExportMask && !tmpUmExportMask.getInactive()) {
+                    // For unknown hosts, we don't set the exportType. Hence only matching initiators match.
+                    if (null == tmpUmExportMask.getExportType() || exportType.equalsIgnoreCase(tmpUmExportMask.getExportType())) {
+                        umExportMask = tmpUmExportMask;
+                        break;
+                    }
+                }
+            }
+        }
+        return umExportMask;
+    }
+
+    private UnManagedExportMask checkCurrentProcessedMasks(Set<String> hostInitiatorWwns, Map<String, UnManagedExportMask> initiatorMasks,
+            String exportType) {
+        UnManagedExportMask umExportMask = null;
+        if (null == initiatorMasks || initiatorMasks.isEmpty()) {
+            return umExportMask;
+        }
+        for (String initiatorWwn : hostInitiatorWwns) {
+            if (initiatorMasks.containsKey(initiatorWwn)) {
+                UnManagedExportMask tmpUmExportMask = initiatorMasks.get(initiatorWwn);
+                // For unknown hosts, we don't set the exportType. Hence only matching initiators match.
+                if (null == tmpUmExportMask.getExportType() || exportType.equalsIgnoreCase(tmpUmExportMask.getExportType())) {
+                    umExportMask = tmpUmExportMask;
+                    break;
+                }
+            }
+        }
         return umExportMask;
     }
 
@@ -423,82 +616,6 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
             }
         }
 
-    }
-
-    private UnManagedExportMask findAnyExistingUnManagedExportMask(StorageSystem storageSystem, String initiatorWwn,
-            Initiator knownInitiator, List<UnManagedExportMask> newMasks, List<UnManagedExportMask> updateMasks,
-            Map<String, URI> initiatorMasks) {
-
-        // Verify whether there is any UnManagedExportMask for the given InitiatorWWN.
-        // If not exists check by its other Host initiators.
-        UnManagedExportMask initiatorMask = checkExistingMaskByInitiator(initiatorWwn, initiatorMasks);
-        // Return the ExportMaks if there is exists.
-        if (null != initiatorMask) {
-            updateMasks.add(initiatorMask);
-            return initiatorMask;
-        }
-        // If there is no mask by initiatorWwn but Host is registered with ViPR, then check by its other initiators.
-        if (null != knownInitiator) {
-            URI hostURI = knownInitiator.getHost();
-            if (!NullColumnValueGetter.isNullURI(knownInitiator.getHost())) {
-                Host host = dbClient.queryObject(Host.class, hostURI);
-                List<Initiator> allHostInitiators =
-                        CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Initiator.class,
-                                ContainmentConstraint.Factory.getContainedObjectsConstraint(host.getId(), Initiator.class, "host"));
-                if (null != allHostInitiators && !allHostInitiators.isEmpty()) {
-                    for (Initiator initiator : allHostInitiators) {
-                        // Execute only for other Initiators.
-                        if (!initiatorWwn.equalsIgnoreCase(initiator.getInitiatorPort())) {
-                            UnManagedExportMask otherInitiatorMask = checkExistingMaskByInitiator(initiator.getInitiatorPort(),
-                                    initiatorMasks);
-                            if (null != otherInitiatorMask) {
-                                updateMasks.add(otherInitiatorMask);
-                                return otherInitiatorMask;
-                            }
-                        }
-                    }
-                }
-
-            }
-        }
-
-        // There is no unmanaged exportmask for the entire Host for the given known initiator. Now check in the unmanaged initiators.
-        // Verify in all masks created on system.
-        URIQueryResultList unmanagedMasksResult = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageSystemUnManagedExportMaskConstraint(storageSystem.getId()),
-                unmanagedMasksResult);
-        UnManagedExportMask unManagedExportMask = null;
-        while (unmanagedMasksResult.iterator().hasNext()) {
-            unManagedExportMask = dbClient.queryObject(UnManagedExportMask.class, unmanagedMasksResult.iterator().next());
-            if (unManagedExportMask.getUnmanagedInitiatorNetworkIds().contains(initiatorWwn)) {
-                updateMasks.add(unManagedExportMask);
-                return unManagedExportMask;
-            }
-        }
-        UnManagedExportMask newMask = getNewUnManagedExportMask(storageSystem);
-        newMasks.add(newMask);
-        // Still we don't find any unmanaged exportmask, create a new one.
-        return newMask;
-
-    }
-
-    /**
-     * Verifies whether there is any existing UnManagedExportMask for the given known initiatorWWN.
-     * 
-     * @param initiatorWwn
-     * @return
-     */
-    private UnManagedExportMask checkExistingMaskByInitiator(String initiatorWwn, Map<String, URI> initiatorMasks) {
-        if (!initiatorMasks.isEmpty() && initiatorMasks.containsKey(initiatorWwn)) {
-            return dbClient.queryObject(UnManagedExportMask.class, initiatorMasks.get(initiatorWwn));
-        }
-        URIQueryResultList uemInitiatorMaskList = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getUnManagedExportMaskKnownInitiatorConstraint(initiatorWwn),
-                uemInitiatorMaskList);
-        if (uemInitiatorMaskList.iterator().hasNext()) {
-            return dbClient.queryObject(UnManagedExportMask.class, uemInitiatorMaskList.iterator().next());
-        }
-        return null;
     }
 
     /**

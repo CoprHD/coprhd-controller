@@ -497,7 +497,7 @@ public class DiscoveryUtils {
         if (unManagedVolumeList.iterator().hasNext()) {
             URI unManagedVolumeURI = unManagedVolumeList.iterator().next();
             UnManagedVolume volumeInfo = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeURI);
-            if (!volumeInfo.getInactive()) {
+            if (null != volumeInfo && !volumeInfo.getInactive()) {
                 return volumeInfo;
             }
         }

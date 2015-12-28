@@ -92,6 +92,19 @@ public class CommonTransformerFunctions {
         };
     }
 
+    public static Function<Initiator, String>
+            fctnInitiatorToPortNameWONormalize() {
+        return new Function<Initiator, String>() {
+            @Override
+            public String apply(Initiator initiator) {
+                if (initiator != null) {
+                    return initiator.getInitiatorPort();
+                }
+                return NullColumnValueGetter.getNullStr();
+            }
+        };
+    }
+
     public static Function<DataObject, URI>
             fctnDataObjectToID() {
         return new Function<DataObject, URI>() {
@@ -99,6 +112,17 @@ public class CommonTransformerFunctions {
             @Override
             public URI apply(DataObject dataObject) {
                 return dataObject.getId();
+            }
+        };
+    }
+
+    public static Function<DataObject, String>
+            fctnDataObjectToURIString() {
+        return new Function<DataObject, String>() {
+
+            @Override
+            public String apply(DataObject dataObject) {
+                return dataObject.getId().toString();
             }
         };
     }

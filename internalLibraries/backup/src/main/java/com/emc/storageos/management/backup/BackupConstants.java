@@ -6,8 +6,6 @@
 package com.emc.storageos.management.backup;
 
 import java.io.File;
-import java.util.regex.Pattern;
-import com.emc.storageos.coordinator.client.model.ProductName;
 
 /**
  * Constants for backup project

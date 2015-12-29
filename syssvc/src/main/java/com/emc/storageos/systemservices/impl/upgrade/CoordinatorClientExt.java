@@ -1544,7 +1544,7 @@ public class CoordinatorClientExt {
                     _log.warn("Db quorum lost for site {}", siteId);
                     monitorResult.setDbQuorumLostSince(System.currentTimeMillis());
                     _coordinator.setTargetInfo(siteId, monitorResult);
-                } else if (quorumLost && monitorResult.getDbQuorumLostSince() != 0) {
+                } else if (!quorumLost && monitorResult.getDbQuorumLostSince() != 0) {
                     // reset the timer
                     _log.info("Db quorum restored for site {}", siteId);
                     monitorResult.setDbQuorumLostSince(0);

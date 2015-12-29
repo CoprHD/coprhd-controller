@@ -1,44 +1,52 @@
 #{set 'moreScripts'}
 #{get 'moreScripts'/}
 <script type="text/javascript">
-  $(document).ready(function() {
-     $selector = $("#backup_scheduler_time");
-     for (var i = 0; i <24; i++) {
-         var hour = moment({hour:i});
-         var utcTime = parseInt(moment.utc(hour.toDate()).format("HH"));
-         var localTime = hour.format("HH");
-         var $option = $("<option value="+utcTime+">"+localTime+"</option>");
-         var time = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
-         if (time === utcTime) {
-             $option.prop("selected", "selected");
-         }
-         $option.appendTo($selector);
-     }
-      $selector2 = $("#backup_scheduler_time2");
-      for (var i = 0; i <60; i++) {
-          var hour = moment({minute:i});
-          var utcTime = parseInt(moment.utc(hour.toDate()).format("mm"));
-          var localTime = hour.format("mm");
-          var $option = $("<option value="+utcTime+">"+localTime+"</option>");
-          var time = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
-          if (time === utcTime) {
-              $option.prop("selected", "selected");
-          }
-          $option.appendTo($selector2);
-      }
-      $selector = $("#backup_scheduler_interval");
-      var units = ["Day","Week","Month"];
-      for (var i in  units) {
-          var $option = $("<option value="+units[i]+">"+units[i]+"</option>");
-          $option.appendTo($selector);
-      }
-  });
+    $(document).ready(function () {
+        $selector_hour = $("#backup_scheduler_time_hour");
+        for (var i = 0; i < 24; i++) {
+            var hour = moment({hour: i});
+            var utcTime = parseInt(moment.utc(hour.toDate()).format("HH"));
+            var localTime = hour.format("HH");
+            var $option = $("<option value=" + utcTime + ">" + localTime + "</option>");
+            var time = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
+            if (time === utcTime) {
+                $option.prop("selected", "selected");
+            }
+            $option.appendTo($selector_hour);
+        }
+
+        $selector_min = $("#backup_scheduler_time_min");
+        for (var i = 0; i < 60; i++) {
+            var hour = moment({minute: i});
+            var utcTime = parseInt(moment.utc(hour.toDate()).format("mm"));
+            var localTime = hour.format("mm");
+            var $option = $("<option value=" + utcTime + ">" + localTime + "</option>");
+            var time = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
+            if (time === utcTime) {
+                $option.prop("selected", "selected");
+            }
+            $option.appendTo($selector_min);
+        }
+
+        $selector_interval = $("#backup_scheduler_interval");
+        var units = ["Day", "Week", "Month"];
+        for (var i in  units) {
+            var $option = $("<option value=" + units[i] + ">" + units[i] + "</option>");
+            $option.appendTo($selector_interval);
+        }
+    });
+
+    function setTime() {
+        var $backup_time = $("#backup_scheduler_time");
+        var $offset = parseInt($selector_hour.val()) * 100 + parseInt($selector_min.val());
+        $backup_time.val($offset);
+    }
 </script>
 #{/set}
 #{ConfigProperties.property property:page.schedulerEnabled, disabled:unstable/}
 %{
   property = page.schedulerTime
-  id = property.name 
+  id = property.name
   name = property.name
   label = property.label
   originalValue = property.value
@@ -54,8 +62,9 @@
 
     <div class="col-sm-6 controls">
         <div class="row col-gap-sm">
+            <input id="${id}" type="hidden" name="${name}" value="${originalValue}">
             <div class="col-md-6">
-                <select id="${id}" name="${name}" class="form-control"
+                <select id="${id}_hour" class="form-control" onchange="setTime()"
                         #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}"
                         data-reboot="${rebootRequired ? 'true' : 'false'}">
                 </select>
@@ -63,7 +72,7 @@
                     class="text-danger">&{'configProperties.rebootRequired'}</span>#{/if}</p>#{/if}
             </div>
             <div class="col-md-6">
-                <select id="${id}2" name="${name}" class="form-control"
+                <select id="${id}_min" class="form-control" onchange="setTime()"
                         #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}"
                         data-reboot="${rebootRequired ? 'true' : 'false'}">
                 </select>

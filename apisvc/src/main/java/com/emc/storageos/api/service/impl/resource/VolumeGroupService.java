@@ -37,6 +37,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -59,6 +60,7 @@ import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
+import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -219,6 +221,20 @@ public class VolumeGroupService extends TaskResourceService {
         List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
         for (Volume volume: volumes) {
             result.getVolumes().add(toNamedRelatedResource(volume));
+        }
+        return result;
+    }
+
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/volume-groups")
+    public NamedVolumeGroupsList getChildrenVolumeGroups(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, id);
+        NamedVolumeGroupsList result = new NamedVolumeGroupsList();
+        List<VolumeGroup> volumeGroups = getVolumeGroupChildren(_dbClient, volumeGroup);
+        for (VolumeGroup group : volumeGroups) {
+            result.getVolumeGroups().add(toNamedRelatedResource(group));
         }
         return result;
     }
@@ -852,6 +868,24 @@ public class VolumeGroupService extends TaskResourceService {
         return result;
     }
 
+    /**
+     * get the children for this volume group
+     *
+     * @param dbClient
+     *            db client for db queries
+     * @param volumeGroup
+     *            volume group to get children for
+     * @return a list of volume groups
+     */
+    private static List<VolumeGroup> getVolumeGroupChildren(DbClient dbClient, VolumeGroup volumeGroup) {
+        List<VolumeGroup> result = new ArrayList<VolumeGroup>();
+        final List<VolumeGroup> volumeGroups = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, VolumeGroup.class,
+                ContainmentConstraint.Factory.getVolumesGroupsByVolumeGroupId(volumeGroup.getId()));
+        for (VolumeGroup volGroup : volumeGroups) {
+            result.add(volGroup);
+        }
+        return result;
+    }
 
     /**
      * Check if the application has any pending task

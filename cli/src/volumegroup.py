@@ -26,6 +26,7 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_LIST = '/volume-groups/block'
     URI_VOLUME_GROUP = '/volume-groups/block/{0}'
     URI_VOLUME_GROUP_VOLUMES = '/volume-groups/block/{0}/volumes'
+    URI_VOLUME_GROUP_CHILDREN = '/volume-groups/block/{0}/volume-groups'
     URI_DEACTIVATE = URI_VOLUME_GROUP + '/deactivate'
     URI_TAG_VOLUME_GROUP = URI_VOLUME_GROUP + "/tags"
 
@@ -222,6 +223,18 @@ class VolumeGroup(object):
      
         
         return o
+    
+    #Routine for children volume groups for a volume group 
+    def volume_group_children_show(self, name ,xml=False):
+        
+        volume_group_uri = self.query_by_name(name)
+        
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
+                        VolumeGroup.URI_VOLUME_GROUP_CHILDREN.format(volume_group_uri), None)
+        o = common.json_decode(s)
+     
+        
+        return o
 
 
 #SHOW resource parser
@@ -248,6 +261,35 @@ def volume_group_volume_show(args):
     obj = VolumeGroup(args.ip, args.port)
     try:
         res = obj.volume_show(args.name, args.xml)
+        if(res):
+            if (args.xml == True):
+                return common.format_xml(res)
+            return common.format_json_object(res)
+    except SOSError as e:
+        raise e
+
+def show_volume_group_children_parser(subcommand_parsers, common_parser):
+    volume_group_volume_parser = subcommand_parsers.add_parser('show-children',
+                        description='ViPR Project Show CLI usage.',
+                                                parents=[common_parser],
+                                                conflict_handler='resolve',
+                                                help='Show volume group details')
+    volume_group_volume_parser.add_argument('-xml',
+                             dest='xml',
+                             action='store_true',
+                             help='XML response')
+    mandatory_args = volume_group_volume_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    volume_group_volume_parser.set_defaults(func=volume_group_children_show)
+
+def volume_group_children_show(args):
+    obj = VolumeGroup(args.ip, args.port)
+    try:
+        res = obj.volume_group_children_show(args.name, args.xml)
         if(res):
             if (args.xml == True):
                 return common.format_xml(res)
@@ -551,4 +593,8 @@ def volume_group_parser(parent_subparser, common_parser):
     # volume group tag parser
     tag_parser(subcommand_parsers, common_parser)
     
+    # list volumes parser
     show_volume_group_volume_parser(subcommand_parsers, common_parser)
+    
+    # list child volume groups parser
+    show_volume_group_children_parser(subcommand_parsers, common_parser)

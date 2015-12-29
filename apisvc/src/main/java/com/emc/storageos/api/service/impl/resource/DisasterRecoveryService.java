@@ -1285,7 +1285,7 @@ public class DisasterRecoveryService {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
             
             if (site.getState() != SiteState.STANDBY_SYNCED) {
-                throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(),
+                throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(),
                         String.format("Standby site %s is not fully synced", site.getName()));
             }
             

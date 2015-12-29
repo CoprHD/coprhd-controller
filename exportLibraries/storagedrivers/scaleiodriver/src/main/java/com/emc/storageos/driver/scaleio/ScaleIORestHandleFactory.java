@@ -1,14 +1,15 @@
 package com.emc.storageos.driver.scaleio;
 
-import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
-import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
-import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClientFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
+import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
+import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClientFactory;
 
 public class ScaleIORestHandleFactory {
     private static final Logger log = LoggerFactory.getLogger(ScaleIORestHandleFactory.class);
@@ -39,7 +40,7 @@ public class ScaleIORestHandleFactory {
     public ScaleIORestClient getClientHandle(String systemNativeId, String ipAddr, int port, String username, String password)
             throws Exception {
         ScaleIORestClient handle;
-        String systemId="";
+        String systemId = "";
         if (systemNativeId != null) {
             systemId = systemNativeId.trim();
         }
@@ -50,7 +51,7 @@ public class ScaleIORestHandleFactory {
                     handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, username,
                             password, true);
                     try {
-                        systemId = handle.getSystemId(); //Get the exact systemId and check the availability of handle
+                        systemId = handle.getSystemId(); // Get the exact systemId and check the availability of handle
                         if (systemId != null) {
                             ScaleIORestClientMap.put(systemId, handle);
                         }

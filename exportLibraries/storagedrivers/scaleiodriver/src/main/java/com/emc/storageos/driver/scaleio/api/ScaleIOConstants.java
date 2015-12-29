@@ -40,8 +40,13 @@ public class ScaleIOConstants {
     public static final String PASSWORD="Password";
     public static final String DRIVER_NAME="ScaleIO";
     public static final Double MINIMUM_SUPPORTED_VERSION=1.32;
+    public static final int START_POS=0;
+    public static final int END_POS=4;
     public static final Boolean INCOMPATIBLE=false;
     public static final Boolean COMPATIBLE=true;
+    public static final String TASK_TYPE_DISCOVER_STORAGE_SYSTEM="discover-storage-system";
+    public static final String TASK_TYPE_DISCOVER_STORAGE_POOLS="discover-storage-pools";
+    public static final String TASK_TYPE_DISCOVER_STORAGE_PORTS="discover-storage-ports";
     enum PoolCapacityMultiplier {
 
         BYTES("Bytes", 1),

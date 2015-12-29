@@ -13,6 +13,7 @@ import common
 from common import SOSError
 import json
 import tag
+from volume import Volume
 
 
 class VolumeGroup(object):
@@ -456,10 +457,34 @@ def update(args):
             "viprcli volume group update: error: at least one of " +
             "the arguments -np/-newname -d/-description -a/-add_volumes " +
             " -r/-remove_volumes is required")
+     
+    add_vols = []
+    if(args.add_volumes and len(args.add_volumes) > 0):
+        for item in args.add_volumes.split(','):
+            if (common.is_uri(item)):
+                add_vols.append(item)
+            else:
+                vol = Volume(args.ip, args.port)
+                volid = vol.show(item,  False, False)['id']
+                add_vols.append(volid)
+                    
+    rem_vols = []
+    if(args.remove_volumes and len(args.remove_volumes) > 0):
+        for item in args.remove_volumes.split(','):
+            if (common.is_uri(item)):
+                rem_vols.append(item)
+            else:
+                vol = Volume(args.ip, args.port)
+                try:
+                    volid = vol.show(item,  False, False)['id']
+                    rem_vols.append(volid)
+                except:
+                    continue
+                    
     obj = VolumeGroup(args.ip, args.port)
     try:
         obj.update(args.name, args.newname,
-                    args.description, args.add_volumes, args.consistency_group, args.remove_volumes, args.parent)
+                    args.description, ",".join(add_vols), args.consistency_group, ",".join(rem_vols), args.parent)
     except SOSError as e:
         raise e
 

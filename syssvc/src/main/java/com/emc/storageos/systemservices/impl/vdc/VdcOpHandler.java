@@ -561,12 +561,14 @@ public abstract class VdcOpHandler {
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
             } else if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-                while (retry < 3) {
-                    retry++;
-                    throw new Exception("exception on purpose to test retry");
-                }
                 log.info("This is switchover standby site (new active)");
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_STANDBY_SITE);
+            } else {
+                // for those not directly participating in the switchover, re-enable the coordinatorsvc
+                // monitor thread that we've stopped earlier.
+                // Enabling the thread too soon might switch the current site to participant mode
+                coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
+                coordinator.startCoordinatorSvcMonitor();
             }
         }
         
@@ -623,14 +625,14 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
+
             if (isNewActiveSiteForFailover(site)) {
                 coordinator.stopCoordinatorSvcMonitor();
                 reconfigVdc();
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
                 processFailover();
                 waitForAllNodesAndReboot(site);
-            } else {
-                reconfigVdc();
+
             }
         }
         
@@ -765,7 +767,7 @@ public abstract class VdcOpHandler {
      */
     protected void flushVdcConfigToLocal() {
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
+        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
         localRepository.setVdcPropertyInfo(vdcProperty);
     }
 

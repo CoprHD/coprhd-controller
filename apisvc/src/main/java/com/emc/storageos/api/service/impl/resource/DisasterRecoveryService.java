@@ -1279,18 +1279,16 @@ public class DisasterRecoveryService {
         if (standbyUuid.equals(drUtil.getActiveSiteId())) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Can't switchover to an active site");
         }
-        
-        if (standby.getState() != SiteState.STANDBY_SYNCED) {
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not fully synced");
-        }
-        
-        if (!drUtil.isSiteUp(standbyUuid)) {
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not up");
-        }
 
         List<Site> existingSites = drUtil.listSites();
         for (Site site : existingSites) {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
+            
+            if (site.getState() != SiteState.STANDBY_SYNCED) {
+                throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(),
+                        String.format("Standby site %s is not fully synced", site.getName()));
+            }
+            
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(),

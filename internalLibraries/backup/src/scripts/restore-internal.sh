@@ -7,7 +7,7 @@ DIR=$(dirname $0)
 
 start_service() {
     echo -n "Starting storageos services on all nodes ... "
-    local command="/usr/bin/systemctl start storageos-db.service storageos-geodb.service storageos-coordinator.service"
+    local command="/etc/storageos/storageos start"
     loop_execute "${command}" "true"
     echo "done"
     finish_message
@@ -15,7 +15,7 @@ start_service() {
 
 stop_service() {
     echo -n "Stopping storageos services on all nodes ... "
-    local command="/usr/bin/systemctl stop storageos-db.service storageos-geodb.service storageos-coordinator.service"
+    local command="/etc/storageos/storageos stop"
     loop_execute "${command}" "true"
     echo "done"
 }
@@ -127,6 +127,11 @@ purge_node() {
     ssh_execute "$viprNode" "$command"
 }
 
+sigterm_handler() {
+   echo "SIGTERM is recieved"
+}
+
+trap sigterm_handler SIGTERM
 trap clean_up EXIT
 
 RESTORE_RESULT=""
@@ -146,10 +151,10 @@ if [ "${LOG_FILE}" != "" ] ; then
     exec 1>${LOG_FILE} 2>&1
 fi
 
-stop_service
 copy_zk_data
 copy_properties_file
 is_vdc_connected
+stop_service
 restore_data
 if [[ "${RESTORE_RESULT}" == "failed" ]]; then
    finish_message

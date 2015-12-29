@@ -66,7 +66,7 @@ public class BackupService {
     private BackupScheduler backupScheduler;
     private JobProducer jobProducer;
     private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
-    private String restoreCmd="/opt/storageos/bin/restore-internal.sh";
+    private String restoreCmd="/opt/storageos/bin/restore-from-ui.sh";
     private String restoreLog="/var/log/restore-internal.log";
 
     @Autowired
@@ -398,7 +398,7 @@ public class BackupService {
     }
 
     private File getBackupDir(String backupName) {
-        File backupDir = new File("/data/backup/"+backupName);
+        File backupDir = new File(backupOps.getBackupDir()+"/"+backupName);
         if (backupDir.exists()) {
             return backupDir;
         }

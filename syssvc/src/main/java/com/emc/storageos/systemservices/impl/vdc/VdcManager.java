@@ -418,6 +418,9 @@ public class VdcManager extends AbstractManager {
      * Check if ongoing DR operation succeeded or failed, then record audit log accordingly and remove this operation record from ZK.
      */
     private void auditCompletedDrOperation() {
+        if (!drUtil.isActiveSite()) {
+            return;
+        }
         List<Configuration> configs = coordinator.getCoordinatorClient().queryAllConfiguration(DrOperationStatus.CONFIG_KIND);
         if (configs == null || configs.isEmpty()) {
             return;

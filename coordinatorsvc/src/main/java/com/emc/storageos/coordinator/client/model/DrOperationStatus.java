@@ -58,7 +58,7 @@ public class DrOperationStatus {
 //            config.setConfig(KEY_SOURCE_STATE, targetSiteState.toString());
 //        }
         config.setConfig(KEY_SITE_UUID, siteUuid);
-        config.setConfig(KEY_SITE_STATE, siteUuid);
+        config.setConfig(KEY_SITE_STATE, siteState.toString());
         return config;
     }
 

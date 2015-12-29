@@ -1528,7 +1528,7 @@ public class CoordinatorClientExt {
 
                     //node is in participant mode, check if active site is back
 
-                    if (isActiveSiteStable()) {
+                    if (isActiveSiteHeathy()) {
                         _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
                         reconnectZKToActiveSite();
                     } else {

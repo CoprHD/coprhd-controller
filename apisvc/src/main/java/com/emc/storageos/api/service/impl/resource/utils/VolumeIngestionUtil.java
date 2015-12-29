@@ -452,11 +452,13 @@ public class VolumeIngestionUtil {
     	// ensure that unmanaged cg contains the unmanaged volume
     	if (unManagedCG.getUnManagedVolumesMap().containsKey(unManagedVolume.getNativeGuid())) {
     		// add the volume to the list of managed volumes
-    		unManagedCG.getManagedVolumesMap().put(blockObject.getNativeGuid(), blockObject.getId().toString());
+    		unManagedCG.getManagedVolumesMap().put(blockObject.getNativeGuid(), blockObject.getId().toString());    		    		    		
 			_logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", blockObject.getLabel(), unManagedCG.getLabel());
 			// remove the unmanaged volume from the list of unmanaged volumes
 			unManagedCG.getUnManagedVolumesMap().remove(unManagedVolume.getNativeGuid());
-			_logger.info("Removed volume {} from the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());			
+			_logger.info("Removed volume {} from the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
+			// decrement the number of volumes to be ingested
+			unManagedCG.setNumberOfVolumesNotIngested(unManagedCG.getNumberOfVolumesNotIngested() - 1);
     	} else {
     		_logger.info("Volume {} was not in the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
     	}
@@ -2665,16 +2667,25 @@ public class VolumeIngestionUtil {
         return hlu;
     }
     
+    /**
+     * Create a BlockConsistencyGroup Object based on the passed in UnManagedConsistencyGroup object
+     * @param unManagedCG - the UnManagedConsistencyGroup object
+     * @param project - the project which the consistency group will belong to
+     * @param tenant - the tenant which the consistency group will belong to
+     * @param dbClient
+     * @return - the newly created BlockConsistencyGroup
+     */
     public static BlockConsistencyGroup createCGFromUnManagedCG(UnManagedConsistencyGroup unManagedCG, Project project, TenantOrg tenant, DbClient dbClient) {
-    	// TODO: verification like we do when creating not via ingestion    
         // Create Consistency Group in db
-        final BlockConsistencyGroup consistencyGroup = new BlockConsistencyGroup();
+        BlockConsistencyGroup consistencyGroup = new BlockConsistencyGroup();
         consistencyGroup.setId(URIUtil.createId(BlockConsistencyGroup.class));
         consistencyGroup.setLabel(unManagedCG.getLabel());
         consistencyGroup.setProject(new NamedURI(project.getId(), unManagedCG.getLabel()));
         consistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), unManagedCG.getLabel()));
+        consistencyGroup.setStorageController(unManagedCG.get_storageSystemUri());
+        consistencyGroup.addSystemConsistencyGroup(unManagedCG.get_storageSystemUri().toString(), consistencyGroup.getLabel());
+        consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
         dbClient.createObject(consistencyGroup);
-
         return consistencyGroup;
     }
 }

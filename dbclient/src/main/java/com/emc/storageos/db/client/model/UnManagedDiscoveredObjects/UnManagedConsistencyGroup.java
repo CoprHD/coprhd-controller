@@ -25,7 +25,10 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 @Cf("UnManagedConsistencyGroup")
 public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 	//The number of volumes associated with this Consistency Group
-	private Integer _numberOfVols;  
+	private String _numberOfVols;
+		
+	private Integer _numberOfVolumesNotIngested;
+	
 	//The name of this Consistency Group
 	private String _name;
 	
@@ -51,11 +54,11 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 	}
 
 	@Name("NumberOfVols")
-	public Integer get_numberOfVols() {
+	public String get_numberOfVols() {
 		return _numberOfVols;
 	}
 
-	public void set_numberOfVols(Integer _numberOfVols) {
+	public void set_numberOfVols(String _numberOfVols) {
 		this._numberOfVols = _numberOfVols;
 	}
 
@@ -108,6 +111,16 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 
 	public void setManagedVolumesMap(StringMap _managedVolumesMap) {
 		this._managedVolumesMap = _managedVolumesMap;
+	}
+
+	@Name("NumberOfVolumesNotIngested")
+	public Integer getNumberOfVolumesNotIngested() {
+		return _numberOfVolumesNotIngested;
+	}
+
+	public void setNumberOfVolumesNotIngested(
+			Integer _numberOfVolumesNotIngested) {
+		this._numberOfVolumesNotIngested = _numberOfVolumesNotIngested;
 	}	 
     
 }

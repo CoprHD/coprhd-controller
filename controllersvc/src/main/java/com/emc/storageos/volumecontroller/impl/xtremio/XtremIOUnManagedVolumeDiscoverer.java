@@ -164,8 +164,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
         
         unManagedCGToUpdate = new ArrayList<UnManagedConsistencyGroup>();
         
-        Map<String, String> volumesToCgs = null;
-
         // get the storage pool associated with the xtremio system
         StoragePool storagePool = getXtremIOStoragePool(storageSystem.getId(), dbClient);
         if (storagePool == null) {
@@ -623,20 +621,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
     		XtremIOConsistencyGroup consistencyGroup, URI storageSystemURI, DbClient dbClient){    	            	   	    	    	        	
     	UnManagedConsistencyGroup unManagedCG = new UnManagedConsistencyGroup();
     	unManagedCG.setId(URIUtil.createId(UnManagedConsistencyGroup.class));
+    	unManagedCG.setLabel(consistencyGroup.getName());
     	unManagedCG.setNativeGuid(unManagedCGNativeGuid);
     	unManagedCG.set_storageSystemUri(storageSystemURI);
-    	unManagedCG.set_numberOfVols(new Integer(0));
-    	unManagedCG.setLabel(consistencyGroup.getName());
-    	
-    	StringSet associatedVolumes = new StringSet(); 
-
-    	List<List<Object>> volDetails = consistencyGroup.getVolList();
-    	for (List<Object> volDetail: volDetails ) {
-    		associatedVolumes.add(volDetail.get(1).toString());
-    	}
-
-    	unManagedCG.setAssociatedVolumes(associatedVolumes);  
-    	
+    	unManagedCG.set_numberOfVols(consistencyGroup.getNumOfVols());
+    	unManagedCG.setNumberOfVolumesNotIngested(new Integer(consistencyGroup.getNumOfVols()));
+    	    	    	    	
     	dbClient.createObject(unManagedCG);
         
     	return unManagedCG; 

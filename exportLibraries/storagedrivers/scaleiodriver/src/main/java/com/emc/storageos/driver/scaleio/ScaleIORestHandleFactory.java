@@ -39,20 +39,29 @@ public class ScaleIORestHandleFactory {
     public ScaleIORestClient getClientHandle(String systemNativeId, String ipAddr, int port, String username, String password)
             throws Exception {
         ScaleIORestClient handle = null;
-        synchronized (syncObject) {
-            if (systemNativeId != null && systemNativeId.trim().length() > 0) {
-                handle = ScaleIORestClientMap.get(systemNativeId);
-            }
-            if (handle == null) {
-                URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(ipAddr, port));
-                handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, username,
-                        password, true);
-                if (handle == null) {
-                    log.error("Failed to get Rest Handle");
-                } else if (systemNativeId == null || systemNativeId.trim().length() == 0) {
-                    systemNativeId = handle.getSystemId();
+        if(ipAddr!=null && username!=null && password!=null) {
+            synchronized (syncObject) {
+                if (systemNativeId != null && systemNativeId.trim().length() > 0) {
+                    handle = ScaleIORestClientMap.get(systemNativeId);
                 }
-                ScaleIORestClientMap.put(systemNativeId, handle);
+                if (handle == null) {
+                    URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(ipAddr, port));
+                    handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, username,
+                            password, true);
+                    if (handle == null) {
+                        log.error("Failed to get Rest Handle");
+                    } else if (systemNativeId == null || systemNativeId.trim().length() == 0) {
+                        try{
+                            systemNativeId = handle.getSystemId();
+                            if(systemNativeId!=null) {
+                                ScaleIORestClientMap.put(systemNativeId, handle);
+                            }
+                        }catch (Exception e){
+                            log.error("Failed to get Rest Handle");
+                            handle=null;
+                        }
+                    }
+                }
             }
         }
         return handle;

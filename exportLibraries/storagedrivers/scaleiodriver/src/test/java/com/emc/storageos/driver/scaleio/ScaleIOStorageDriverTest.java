@@ -28,6 +28,13 @@ public class ScaleIOStorageDriverTest {
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";
+    String VOLUME_ID_1A = "d584cac100000000";
+    String VOLUME_ID_2A = "d584cac300000002";
+    String SNAPSHOT_OF_1A = "d584cac200000001";
+    String VOLUME_ID_1B = "83f1771b00000000";
+    String VOLUME_ID_2B = "83f1771000000001";
+    String INVALID_VOLUME_ID_1 = "83f177070000000";
+
     private ScaleIOStorageDriver driver;
     @Autowired
     private ScaleIORestHandleFactory handleFactory;
@@ -183,66 +190,59 @@ public class ScaleIOStorageDriverTest {
     public void testCreateVolumeSnapshot() throws Exception {
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
-        // null
+        // test with null input parameters
         List<VolumeSnapshot> snapshots = null;
         DriverTask task = driver.createVolumeSnapshot(snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
         // create snapshots for volumes from same storage system
-        snapshots = new LinkedList<>();
-        snapshots.add(initializeSnapshot(null, "d584ca9c00000000", SYS_NATIVE_ID_A));
-        // create snapshot from volume which already has a snapshot
-        snapshots.add(initializeSnapshot(null, "d584ca9c00000000", SYS_NATIVE_ID_A));
+        snapshots = this.createSnapListSameSys(false);
         task = driver.createVolumeSnapshot(snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
-        for (VolumeSnapshot snapshot : snapshots) {
-            Assert.assertNotNull(snapshot.getNativeId());
-        }
+        this.checkResultSnapList(snapshots);
 
-        // create snapshots for volumes from different storage systems
-        snapshots.removeAll(snapshots);
-        snapshots.add(initializeSnapshot(null, "d584ca9d00000001", SYS_NATIVE_ID_A)); // snapshot of a volume
-        snapshots.add(initializeSnapshot(null, "d584ca9e00000002", SYS_NATIVE_ID_A)); // snapshot of a snapshot
-        snapshots.add(initializeSnapshot(null, "83f1770f00000000", SYS_NATIVE_ID_B));
-        snapshots.add(initializeSnapshot(null, "83f177070000000", SYS_NATIVE_ID_B));  // volume doesn't exist
+        snapshots = this.createSnapListSameSys(true);
         task = driver.createVolumeSnapshot(snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
-        for (VolumeSnapshot snapshot : snapshots) {
-            if (!snapshot.getParentId().equalsIgnoreCase("83f177070000000")) {
-                Assert.assertNotNull(snapshot.getNativeId());
-            } else {
-                Assert.assertNull(snapshot.getNativeId());
-            }
-        }
+        this.checkResultSnapList(snapshots);
+
+        // create snapshots for volumes from different storage systems
+        snapshots = this.createSnapListDiffSys(false);
+        task = driver.createVolumeSnapshot(snapshots, null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("READY", task.getStatus().toString());
+        this.checkResultSnapList(snapshots);
+
+        snapshots = this.createSnapListDiffSys(true);
+        task = driver.createVolumeSnapshot(snapshots, null);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
+        this.checkResultSnapList(snapshots);
     }
 
     @Test
     public void testDeleteVolumeSnapshot() throws Exception {
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
-        // null
+        // test with null input parameters
         List<VolumeSnapshot> snapshots = null;
         DriverTask task = driver.deleteVolumeSnapshot(snapshots);
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
         // list of valid snapshot
-        snapshots = new LinkedList<>();
-        snapshots.add(initializeSnapshot(null, "d584ca9d00000001", SYS_NATIVE_ID_A)); // volume
-        snapshots.add(initializeSnapshot(null, "d584ca9e00000002", SYS_NATIVE_ID_A)); // snapshot
-        snapshots.add(initializeSnapshot(null, "83f1770f00000000", SYS_NATIVE_ID_B));
-        snapshots.add(initializeSnapshot(null, "83f1771000000001", SYS_NATIVE_ID_B));
+        snapshots = this.createSnapListDiffSys(false);
         driver.createVolumeSnapshot(snapshots, null);
         task = driver.deleteVolumeSnapshot(snapshots);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
 
         // some of the snapshot are not existed
-        // existed snapshot,other snapshot that are deleted earlier not longer exist
-        snapshots.add(initializeSnapshot("d584ca9e00000002", "d584ca9c00000000", SYS_NATIVE_ID_A));
+        snapshots = this.createSnapListDiffSys(true);
+        driver.createVolumeSnapshot(snapshots, null);
         task = driver.deleteVolumeSnapshot(snapshots);
         Assert.assertNotNull(task);
         Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
@@ -252,7 +252,7 @@ public class ScaleIOStorageDriverTest {
     public void testCreateConsistencyGroupSnapshot() throws Exception {
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
-        // null
+        // test with null input parameters
         List<VolumeSnapshot> snapshots = null;
         VolumeConsistencyGroup cg = null;
         DriverTask task = driver.createConsistencyGroupSnapshot(cg, snapshots, null);
@@ -260,10 +260,7 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
         // volumes from same storage system
-        snapshots = new LinkedList<>();
-        snapshots.add(initializeSnapshot(null, "d584ca9d00000001", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584ca9c00000000", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584ca9f00000003", SYS_NATIVE_ID_A)); // snapshot
+        snapshots = this.createSnapListSameSys(false);
         cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupSnapshot(cg, snapshots, null);
         Assert.assertNotNull(task);
@@ -275,27 +272,15 @@ public class ScaleIOStorageDriverTest {
         }
 
         // same storage system, some volumes are not existed
-        snapshots = new LinkedList<>();
-        snapshots.add(initializeSnapshot(null, "d584a34000000000", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584a3430000", SYS_NATIVE_ID_A));      // volume that is not existed
-        snapshots.add(initializeSnapshot(null, "d584a34400000003", SYS_NATIVE_ID_A));  // snapshot of a volume
-        snapshots.add(initializeSnapshot(null, "d584a34600000005", SYS_NATIVE_ID_A));  // snapshot of a snapshot
+        snapshots = this.createSnapListSameSys(true);
         cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupSnapshot(cg, snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
         Assert.assertNull(cg.getNativeId());
-        for (VolumeSnapshot snapshot : snapshots) {
-            Assert.assertNull(snapshot.getNativeId());
-            Assert.assertNull(snapshot.getConsistencyGroup());
-        }
 
         // volumes from different storage system
-        snapshots = new LinkedList<>();
-        snapshots.add(initializeSnapshot(null, "83f1770700000000", SYS_NATIVE_ID_B));
-        snapshots.add(initializeSnapshot(null, "83f1770800000001", SYS_NATIVE_ID_B));
-        snapshots.add(initializeSnapshot(null, "d584a34000000000", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584a34300000002", SYS_NATIVE_ID_A));
+        snapshots = this.createSnapListDiffSys(false);
         cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupSnapshot(cg, snapshots, null);
         Assert.assertNotNull(task);
@@ -316,41 +301,122 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
         // snapshots are in same consistency group (w/o un-existed snapshot)
-        snapshots = new LinkedList<>();
-        snapshots.add(initializeSnapshot(null, "d584ca9c00000000", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584ca9d00000001", SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, "d584caa100000005", SYS_NATIVE_ID_A)); // snapshot of a volume
-        VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
-        driver.createConsistencyGroupSnapshot(cg, snapshots, null);
+        snapshots = this.createSnapListSameCG(false);
         task = driver.deleteConsistencyGroupSnapshot(snapshots);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
 
+        snapshots = this.createSnapListSameCG(true);
         task = driver.deleteConsistencyGroupSnapshot(snapshots); // snapshots not existed
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
         // snapshots in different consistency group
-        List<VolumeSnapshot> snapshotsB = new LinkedList<>();
-        snapshotsB.add(initializeSnapshot(null, "83f1770700000000", SYS_NATIVE_ID_B));
-        snapshotsB.add(initializeSnapshot(null, "83f1770800000001", SYS_NATIVE_ID_B));
-        VolumeConsistencyGroup cgB = new VolumeConsistencyGroup();
-        driver.createConsistencyGroupSnapshot(cgB, snapshotsB, null);
-        driver.createConsistencyGroupSnapshot(cg, snapshots, null);
-        snapshots.addAll(snapshotsB);
+        snapshots = this.createSnapListDiffCG(false);
         task = driver.deleteConsistencyGroupSnapshot(snapshots);
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
     }
 
-    public VolumeSnapshot initializeSnapshot(String nativeId, String parentId, String storageSystemId) {
+    /**
+     * Initialize one snapshot
+     * 
+     * @param nativeId
+     * @param parentId
+     * @param storageSystemId
+     * @return
+     */
+    private VolumeSnapshot initializeSnapshot(String nativeId, String parentId, String storageSystemId) {
         VolumeSnapshot snapshot = new VolumeSnapshot();
         snapshot.setStorageSystemId(storageSystemId);
         snapshot.setParentId(parentId);
         snapshot.setNativeId(nativeId);
         return snapshot;
 
+    }
+
+    /**
+     * Initialized a list of snapshots whose parent volumes are from same storage system
+     * 
+     * @param withInvalid
+     * @return
+     */
+    private List<VolumeSnapshot> createSnapListSameSys(boolean withInvalid) {
+        List<VolumeSnapshot> snapshots = new LinkedList<>();
+        snapshots.add(initializeSnapshot(null, VOLUME_ID_1A, SYS_NATIVE_ID_A));
+        snapshots.add(initializeSnapshot(null, SNAPSHOT_OF_1A, SYS_NATIVE_ID_A));
+        snapshots.add(initializeSnapshot(null, VOLUME_ID_2A, SYS_NATIVE_ID_A));
+        if (withInvalid) {
+            snapshots.add(initializeSnapshot(null, INVALID_VOLUME_ID_1, SYS_NATIVE_ID_A));
+        }
+        return snapshots;
+    }
+
+    /**
+     * Initialized a list of snapshots whose parent volumes are from different storage systems
+     * 
+     * @param withInvalid
+     * @return
+     */
+    private List<VolumeSnapshot> createSnapListDiffSys(boolean withInvalid) {
+        List<VolumeSnapshot> snapshots = new LinkedList<>();
+        snapshots.add(initializeSnapshot(null, VOLUME_ID_1A, SYS_NATIVE_ID_A));
+        snapshots.add(initializeSnapshot(null, VOLUME_ID_2A, SYS_NATIVE_ID_A));
+        snapshots.add(initializeSnapshot(null, VOLUME_ID_1B, SYS_NATIVE_ID_B));
+        snapshots.add(initializeSnapshot(null, VOLUME_ID_2B, SYS_NATIVE_ID_B));
+        if (withInvalid) {
+            snapshots.add(initializeSnapshot(null, INVALID_VOLUME_ID_1, SYS_NATIVE_ID_B));
+        }
+        return snapshots;
+    }
+
+    /**
+     * Validate if each snapshot is assigned with a nativeId in the resulting snapshot list
+     * 
+     * @param snapshots
+     */
+    private void checkResultSnapList(List<VolumeSnapshot> snapshots) {
+        for (VolumeSnapshot snapshot : snapshots) {
+            if (!snapshot.getParentId().equalsIgnoreCase(INVALID_VOLUME_ID_1)) {
+                Assert.assertNotNull(snapshot.getNativeId());
+            } else {
+                Assert.assertNull(snapshot.getNativeId());
+            }
+        }
+    }
+
+    /**
+     * initialize a list of snapshots that in the same consistency group
+     * 
+     * @param withInvalid
+     * @return
+     */
+    private List<VolumeSnapshot> createSnapListSameCG(boolean withInvalid) {
+        List<VolumeSnapshot> snapshots = this.createSnapListSameSys(withInvalid);
+        VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
+        driver.createConsistencyGroupSnapshot(cg, snapshots, null);
+        return snapshots;
+    }
+
+    /**
+     * initialize a list of snapshots that in the different consistency group
+     * 
+     * @param withInvalid
+     * @return
+     */
+    private List<VolumeSnapshot> createSnapListDiffCG(boolean withInvalid) {
+        List<VolumeSnapshot> snapshots = this.createSnapListSameCG(false);
+
+        // create another group of snapshots
+        List<VolumeSnapshot> snapshotsB = new LinkedList<>();
+        snapshotsB.add(initializeSnapshot(null, VOLUME_ID_1B, SYS_NATIVE_ID_B));
+        snapshotsB.add(initializeSnapshot(null, VOLUME_ID_2B, SYS_NATIVE_ID_B));
+        VolumeConsistencyGroup cgB = new VolumeConsistencyGroup();
+        driver.createConsistencyGroupSnapshot(cgB, snapshotsB, null);
+
+        snapshots.addAll(snapshotsB);
+        return snapshots;
     }
 
 }

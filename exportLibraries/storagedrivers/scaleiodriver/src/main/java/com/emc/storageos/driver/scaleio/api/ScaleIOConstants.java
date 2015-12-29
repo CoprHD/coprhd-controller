@@ -52,11 +52,11 @@ public class ScaleIOConstants {
         VOLUME_DELETE,
 
         SNAPSHOT_CREATE,
-        SNAPSHOT_RESTORE,
         SNAPSHOT_DELETE,
 
         CLONE_CREATE,
         CLONE_DETACH,
+        CLONE_DELETE,
 
         GET_ITL,
         EXPORT,
@@ -65,7 +65,16 @@ public class ScaleIOConstants {
         CG_SNAP_CREATE,
         CG_SNAP_DELETE,
         CG_CLONE_CREATE,
-        CG_CLONE_DELETE
+        CG_CLONE_DELETE,
+
+        /*Not Supported Operations in ScaleIO*/
+        SNAPSHOT_RESTORE,
+        MIRROR_OPERATIONS,
+        CLONE_RESTORE,
+        CG_CREATE,
+        CG_DELETE
+
+
     }
     enum PoolCapacityMultiplier {
 

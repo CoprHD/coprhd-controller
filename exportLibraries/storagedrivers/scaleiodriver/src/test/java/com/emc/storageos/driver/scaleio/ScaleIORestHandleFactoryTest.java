@@ -33,6 +33,16 @@ public class ScaleIORestHandleFactoryTest {
         // Test fetching client in the cache
         ScaleIORestClient client1 = handleFactory.getClientHandle(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
         Assert.assertNotNull(client1);
+        // Test edge/invalid cases
+        ScaleIORestClient client2 = handleFactory.getClientHandle(null, null, 0, null, null);
+        Assert.assertNull(client2);
+        String INVALID_IP_ADDRESS = "10.193.17.188";
+        ScaleIORestClient client3 = handleFactory.getClientHandle(null, INVALID_IP_ADDRESS, PORT_NUMBER, USER_NAME, PASSWORD);
+        Assert.assertNull(client3);
+        String INVALID_USERNAME = "something";
+        ScaleIORestClient client4 = handleFactory.getClientHandle(null, IP_ADDRESS_B, PORT_NUMBER, INVALID_USERNAME, PASSWORD);
+        Assert.assertNull(client4);
+
     }
 
 }

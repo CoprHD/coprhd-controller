@@ -398,7 +398,7 @@ public class BackupService {
     }
 
     private File getBackupDir(String backupName) {
-        File backupDir = new File(backupOps.getBackupDir()+"/"+backupName);
+        File backupDir = new File(backupOps.getBackupDir(), backupName);
         if (backupDir.exists()) {
             return backupDir;
         }

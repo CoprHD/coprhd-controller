@@ -128,7 +128,7 @@ purge_node() {
 }
 
 sigterm_handler() {
-   echo "SIGTERM is recieved"
+   echo "SIGTERM is received"
 }
 
 trap sigterm_handler SIGTERM

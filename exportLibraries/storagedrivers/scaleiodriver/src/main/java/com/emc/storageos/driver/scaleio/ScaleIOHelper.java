@@ -21,8 +21,7 @@ public class ScaleIOHelper {
      * @return
      */
     public static String getTaskId(ScaleIOConstants.TaskType taskType) {
-        String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType.name(), UUID.randomUUID());
-        return taskID;
+        return String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType.name(), UUID.randomUUID());
     }
 
     /**
@@ -31,7 +30,7 @@ public class ScaleIOHelper {
      * @return
      */
     public static String getCurrentTime() {
-        DateFormat datafomate = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        DateFormat datafomate = new SimpleDateFormat("yyyy.MM.dd G 'at' HH:mm:ss z");
         Date date = new Date();
         return datafomate.format(date);
     }

@@ -38,24 +38,29 @@ public class ScaleIORestHandleFactory {
      */
     public ScaleIORestClient getClientHandle(String systemNativeId, String ipAddr, int port, String username, String password)
             throws Exception {
-        ScaleIORestClient handle = null;
+        ScaleIORestClient handle;
+        String systemId="";
+        if (systemNativeId != null) {
+            systemId = systemNativeId.trim();
+        }
         synchronized (syncObject) {
-            if (systemNativeId != null && systemNativeId.trim().length() > 0) {
-                handle = ScaleIORestClientMap.get(systemNativeId);
-            }
-            if (handle == null) {
-                URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(ipAddr, port));
-                handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, username,
-                        password, true);
-                if (handle == null) {
-                    log.error("Failed to get Rest Handle");
-                } else if (systemNativeId == null || systemNativeId.trim().length() == 0) {
-                    systemNativeId = handle.getSystemId();
+            if (systemNativeId == null || !ScaleIORestClientMap.containsKey(systemId)) {
+                if (ipAddr != null && username != null && password != null) {
+                    URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(ipAddr, port));
+                    handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, username,
+                            password, true);
+                    try {
+                        systemId = handle.getSystemId(); //Get the exact systemId and check the availability of handle
+                        if (systemId != null) {
+                            ScaleIORestClientMap.put(systemId, handle);
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to get Rest Handle", e);
+                    }
                 }
-                ScaleIORestClientMap.put(systemNativeId, handle);
             }
         }
-        return handle;
+        return ScaleIORestClientMap.get(systemId);
     }
 
 }

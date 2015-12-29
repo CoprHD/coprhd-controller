@@ -19,7 +19,9 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
     private ScaleIORestHandleFactory handleFactory;
-
+    private String errMsg = "";
+    private ScaleIORestClient client;
+    private  int countSucc;
     public void setHandleFactory(ScaleIORestHandleFactory handleFactory) {
         this.handleFactory = handleFactory;
     }
@@ -71,11 +73,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
     @Override
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_CREATE));
-        task.setStartTime(Calendar.getInstance());
-        String errMsg = "";
-        ScaleIORestClient client;
-
-        int count_succ = 0;
+        countSucc = 0;
         // Assume snapshots could be from different storage system
         if (snapshots != null && snapshots.size() > 0) {
             for (VolumeSnapshot snapshot : snapshots) {
@@ -94,20 +92,20 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
                             Map<String, String> snapNameIdMap = client.getVolumes(result.getVolumeIdList());
                             snapshot.setDeviceLabel(snapNameIdMap.get(snapshot.getNativeId()));
-                            count_succ++;
+                            countSucc++;
                         } else {
                             errMsg = "Exception while creating snapshot";
                             log.error(errMsg);
                         }
                     } catch (Exception e) {
                         errMsg = "Exception while creating snapshot";
-                        log.error(errMsg);
+                        log.error(errMsg, e);
                     }
                 } else {
                     errMsg = "Exception while getting client instance";
                 }
             }
-            this.setTaskStatus(snapshots.size(), count_succ, task);
+            this.setTaskStatus(snapshots.size(), countSucc, task);
         } else {
             errMsg = "Empty snapshot input List";
             log.error(errMsg);
@@ -127,10 +125,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot) {
-        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_RESTORE));
-        task.setStatus(DriverTask.TaskStatus.ABORTED);
-        task.setMessage("Operation not supported");
-        return task;
+        return setUpNonSupportedTask(ScaleIOConstants.TaskType.SNAPSHOT_RESTORE);
     }
 
     /**
@@ -142,10 +137,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
     @Override
     public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_DELETE));
-        task.setStartTime(Calendar.getInstance());
-        String errMsg = "";
-        ScaleIORestClient client;
-        int count_succ = 0;
+        countSucc = 0;
         // Assume snapshots could be from different storage system
         if (snapshots != null && snapshots.size() > 0) {
             for (VolumeSnapshot snapshot : snapshots) {
@@ -154,7 +146,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                 if (client != null) {
                     try {
                         client.removeVolume(snapshot.getNativeId());
-                        count_succ++;
+                        countSucc++;
                     } catch (Exception e) {
                         errMsg = "Exception while deleting snapshot";
                         log.error(errMsg, e);
@@ -163,7 +155,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                     errMsg = "Exception while getting client instance";
                 }
             }
-            this.setTaskStatus(snapshots.size(), count_succ, task);
+            this.setTaskStatus(snapshots.size(), countSucc, task);
         } else {
             errMsg = "Can't delete empty snapshot list";
             log.error(errMsg);
@@ -206,7 +198,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask restoreFromClone(StorageVolume volume, VolumeClone clone) {
-        return null;
+        return setUpNonSupportedTask(ScaleIOConstants.TaskType.CLONE_RESTORE);
     }
 
     /**
@@ -229,7 +221,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask createVolumeMirror(List<VolumeMirror> mirrors, StorageCapabilities capabilities) {
-        return null;
+        return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
 
     /**
@@ -240,7 +232,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors) {
-        return null;
+        return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
 
     /**
@@ -251,7 +243,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors) {
-        return null;
+        return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
 
     /**
@@ -262,7 +254,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors) {
-        return null;
+        return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
 
     /**
@@ -274,7 +266,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror) {
-        return null;
+        return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
 
     /**
@@ -325,7 +317,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-        return null;
+        return setUpNonSupportedTask(ScaleIOConstants.TaskType.CG_CREATE);
     }
 
     /**
@@ -336,7 +328,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
      */
     @Override
     public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-        return null;
+        return setUpNonSupportedTask(ScaleIOConstants.TaskType.CG_DELETE);
     }
 
     /**
@@ -351,9 +343,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
     public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots,
             List<CapabilityInstance> capabilities) {
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_SNAP_CREATE));
-        task.setStartTime(Calendar.getInstance());
-        String errMsg = "";
-        int countSucc=0;
+        countSucc = 0;
         if (ScaleIOHelper.isFromSameStorageSystem(snapshots)) {
             String systemId = snapshots.get(0).getStorageSystemId();
             ScaleIORestClient client = this.getClientBySystemId(systemId);
@@ -366,16 +356,19 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                     ScaleIOSnapshotVolumeResponse result = client.snapshotMultiVolume(parent2snap, systemId);
 
                     // set value to the output
+                    if (consistencyGroup == null) {
+                        consistencyGroup = new VolumeConsistencyGroup();
+                    }
                     consistencyGroup.setNativeId(result.getSnapshotGroupId());
                     consistencyGroup.setStorageSystemId(systemId);
 
                     // get parentID
                     List<String> nativeIds = result.getVolumeIdList();
                     Map<String, ScaleIOVolume> snapIdInfoMap = client.getVolumeNameMap(nativeIds);
-                    String currentTime=ScaleIOHelper.getCurrentTime();
-                    for(VolumeSnapshot snapshot:snapshots){
-                        for(ScaleIOVolume snapInfo: snapIdInfoMap.values()){
-                            if( snapshot.getParentId().equalsIgnoreCase(snapInfo.getAncestorVolumeId())){
+                    String currentTime = ScaleIOHelper.getCurrentTime();
+                    for (VolumeSnapshot snapshot : snapshots) {
+                        for (ScaleIOVolume snapInfo : snapIdInfoMap.values()) {
+                            if (snapshot.getParentId().equalsIgnoreCase(snapInfo.getAncestorVolumeId())) {
                                 snapshot.setNativeId(snapInfo.getId());
                                 snapshot.setTimestamp(currentTime);
                                 snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
@@ -385,7 +378,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                             }
                         }
                     }
-                    this.setTaskStatus(snapshots.size(),countSucc,task);
+                    this.setTaskStatus(snapshots.size(), countSucc, task);
                 } catch (Exception e) {
                     errMsg = "Exception while performing Rest requests";
                     log.error(errMsg, e);
@@ -415,8 +408,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
     @Override
     public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_SNAP_DELETE));
-        task.setStartTime(Calendar.getInstance());
-        String errMsg = "";
         if (ScaleIOHelper.isFromSameCGgroup(snapshots)) {
             String systemId = snapshots.get(0).getStorageSystemId();
             ScaleIORestClient client = this.getClientBySystemId(systemId);
@@ -741,15 +732,16 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
     public void setConnInfoToRegistry(String systemNativeId, String ipAddress, int port, String username, String password) {
         Map<String, List<String>> attributes = new HashMap<>();
         List<String> listIP = new ArrayList<>();
+        List<String> listPort = new ArrayList<>();
+        List<String> listUserName = new ArrayList<>();
+        List<String> listPwd = new ArrayList<>();
+
         listIP.add(ipAddress);
         attributes.put(ScaleIOConstants.IP_ADDRESS, listIP);
-        List<String> listPort = new ArrayList<>();
         listPort.add(Integer.toString(port));
         attributes.put(ScaleIOConstants.PORT_NUMBER, listPort);
-        List<String> listUserName = new ArrayList<>();
         listUserName.add(username);
         attributes.put(ScaleIOConstants.USER_NAME, listUserName);
-        List<String> listPwd = new ArrayList<>();
         listPwd.add(password);
         attributes.put(ScaleIOConstants.PASSWORD, listPwd);
 
@@ -774,7 +766,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                 client = handleFactory.getClientHandle(systemId, ip_address, Integer.parseInt(port), username, password);
                 return client;
             } catch (Exception e) {
-                log.error("Exception when creating rest client instance.");
+                log.error("Exception when creating rest client instance.", e);
                 return null;
             }
         } else {
@@ -798,6 +790,13 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
         } else {
             task.setStatus(DriverTask.TaskStatus.READY);
         }
+    }
+
+    private DriverTask setUpNonSupportedTask(ScaleIOConstants.TaskType taskType) {
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(taskType));
+        task.setStatus(DriverTask.TaskStatus.ABORTED);
+        task.setMessage("Operation not supported");
+        return task;
     }
 
 }

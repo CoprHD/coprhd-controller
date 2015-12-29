@@ -8,9 +8,8 @@ import static org.easymock.EasyMock.createMockBuilder;
 
 import java.util.List;
 
-import junit.framework.Assert;
-
 import org.easymock.EasyMock;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

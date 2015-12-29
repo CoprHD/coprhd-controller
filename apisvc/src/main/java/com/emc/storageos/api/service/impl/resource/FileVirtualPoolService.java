@@ -834,6 +834,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
         			}
         		}
         	}
+        	List<VpoolRemoteCopyProtectionSettings> addRemoteSettingsList = new ArrayList<VpoolRemoteCopyProtectionSettings>();
+        	List<VpoolRemoteCopyProtectionSettings> removeRemoteSettingsList = new ArrayList<VpoolRemoteCopyProtectionSettings>();
+        	
         	// Update the remote copies!!!
         	if (FileReplicationType.REMOTE.name().equalsIgnoreCase(virtualPool.getFileReplicationType()) &&
         			(param.getReplicationParam().getRemoveRemoteCopies() != null ||
@@ -857,7 +860,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
             					VpoolRemoteCopyProtectionSettings remoteSettingsObj = _dbClient.queryObject(
             							VpoolRemoteCopyProtectionSettings.class, URI.create(remoteCopySettingsUri));
             					remoteSettingsObj.setInactive(true);
-            					_dbClient.updateObject(remoteSettingsObj);
+            					removeRemoteSettingsList.add(remoteSettingsObj);
             				} else {
             					_log.error("Remote copy {} trying to remove does not exists in vpool {} ", remoteVarray,
                     					virtualPool.getId());
@@ -868,7 +871,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
         		}
                 // Add remote copy settings!!!
         		if (param.getReplicationParam().getAddRemoteCopies() != null && !param.getReplicationParam().getAddRemoteCopies().isEmpty()) {
-        			List<VpoolRemoteCopyProtectionSettings> remoteSettingsList = new ArrayList<VpoolRemoteCopyProtectionSettings>();
         			// already existing remote VArrays
         			List<String> existingRemoteUris = new ArrayList<String>(remoteCopySettingsMap.keySet());
         			for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteSettings : param.getReplicationParam().getAddRemoteCopies()) {
@@ -885,7 +887,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                         			remoteVPool.getId(), remoteVArray.getId() );
                         }
         				VpoolRemoteCopyProtectionSettings remoteCopySettingsParam = new VpoolRemoteCopyProtectionSettings();
-        				remoteSettingsList.add(remoteCopySettingsParam);
+        				addRemoteSettingsList.add(remoteCopySettingsParam);
         				remoteCopySettingsParam.setId(URIUtil.createId(VpoolRemoteCopyProtectionSettings.class));
         				remoteCopySettingsParam.setVirtualArray(remoteSettings.getVarray());
         				remoteCopySettingsParam.setVirtualPool(remoteSettings.getVpool());
@@ -901,7 +903,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
         				}
         				remoteCopySettingsMap.put(remoteSettings.getVarray().toString(), remoteCopySettingsParam.getId().toString());
         			}
-        			_dbClient.createObject(remoteSettingsList);
         		}
         	} 
         	// Verify remote copies are there for REMOTE replication!!!
@@ -915,6 +916,14 @@ public class FileVirtualPoolService extends VirtualPoolService {
         					virtualPool.getFileRemoteCopySettings().size());
         			throw APIException.badRequests.moreThanOneRemoteCopiesSpecified();
         		}
+        	}
+        	
+        	// Update the Remote setting objects to DB!!!
+        	if (addRemoteSettingsList != null && !addRemoteSettingsList.isEmpty()) {
+        		_dbClient.createObject(addRemoteSettingsList);
+        	}
+        	if (removeRemoteSettingsList != null && !removeRemoteSettingsList.isEmpty()) {
+        		_dbClient.updateObject(removeRemoteSettingsList);
         	}
         }
         _log.info("File Replication setting are update to virtual pool {} ", virtualPool.getLabel());

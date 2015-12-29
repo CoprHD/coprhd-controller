@@ -456,12 +456,16 @@ public class VolumeIngestionUtil {
 			_logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", blockObject.getLabel(), unManagedCG.getLabel());
 			// remove the unmanaged volume from the list of unmanaged volumes
 			unManagedCG.getUnManagedVolumesMap().remove(unManagedVolume.getNativeGuid());
-			_logger.info("Removed volume {} from the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
+			_logger.info("Removed volume {} from the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());			
     	} else {
     		_logger.info("Volume {} was not in the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
     	}
     	// return the number of unmanaged volumes remaining in the unmanaged cg
     	return unManagedCG.getUnManagedVolumesMap().size();
+    }
+    
+    public static boolean allVolumesInUnamangedCGIngested(UnManagedConsistencyGroup unManagedCG) {
+    	return unManagedCG.getUnManagedVolumesMap().isEmpty();
     }
     
     /**

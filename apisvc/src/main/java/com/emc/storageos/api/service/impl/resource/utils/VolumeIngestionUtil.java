@@ -452,7 +452,7 @@ public class VolumeIngestionUtil {
     	// ensure that unmanaged cg contains the unmanaged volume
     	if (unManagedCG.getUnManagedVolumesMap().containsKey(unManagedVolume.getNativeGuid())) {
     		// add the volume to the list of managed volumes
-    		unManagedCG.getManagedVolumesMap().put(unManagedVolume.getNativeGuid(), blockObject.getId().toString());
+    		unManagedCG.getManagedVolumesMap().put(blockObject.getNativeGuid(), blockObject.getId().toString());
 			_logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", blockObject.getLabel(), unManagedCG.getLabel());
 			// remove the unmanaged volume from the list of unmanaged volumes
 			unManagedCG.getUnManagedVolumesMap().remove(unManagedVolume.getNativeGuid());

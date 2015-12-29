@@ -13,9 +13,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
@@ -37,6 +41,7 @@ import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.service.StorageService;
+import org.jboss.netty.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,6 +100,7 @@ public class DbClientContext {
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+    private ExecutorService removeNodeExecutor = Executors.newCachedThreadPool();
 
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
@@ -339,6 +345,9 @@ public class DbClientContext {
             clusterContext.shutdown();
             clusterContext = null;
         }
+
+        exe.shutdownNow();
+        removeNodeExecutor.shutdownNow();
     }
 
     /**
@@ -478,21 +487,18 @@ public class DbClientContext {
      * @param guid
      */
     public void ensureRemoveNode(final String guid) {
-        Thread thread = new Thread() {
+        Future<?> future = removeNodeExecutor.submit(new Runnable() {
             public void run() {
                 StorageService.instance.removeNode(guid);
             }
-        };
-        thread.start();
+        });
         try {
-            thread.join(REMOVE_NODE_TIMEOUT_MILLIS);
-            if (thread.isAlive()) {
-                log.warn("removenode timeout, calling forceRemoveCompletion()");
-                StorageService.instance.forceRemoveCompletion();
-                thread.join();
-            }
-        } catch (InterruptedException e) {
-            log.warn("Interrupted during node removal");
+            future.get(REMOVE_NODE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            log.warn("removenode timeout, calling forceRemoveCompletion()");
+            StorageService.instance.forceRemoveCompletion();
+        } catch (InterruptedException | ExecutionException e) {
+            log.warn("Exception calling removenode", e);
         }
     }
 

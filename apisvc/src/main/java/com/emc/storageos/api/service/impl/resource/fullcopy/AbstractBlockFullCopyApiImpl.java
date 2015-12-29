@@ -108,8 +108,15 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             Volume fcSourceVolume = (Volume) fcSourceObj;
             URI cgURI = fcSourceVolume.getConsistencyGroup();
             if (!isNullURI(cgURI)) {
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-                fcSourceObjList.addAll(getActiveCGVolumes(cg));
+                // if volume is part of Volume Group, get only the Array Group volumes
+                // TODO check other Implementations
+                // TODO block CG operations for volumes in VolumeGroup
+                if (fcSourceVolume.getVolumeGroupIds() != null && !fcSourceVolume.getVolumeGroupIds().isEmpty()) {
+                    fcSourceObjList.addAll(getArrayGroupVolumes(fcSourceVolume.getReplicationGroupInstance()));
+                } else {
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                    fcSourceObjList.addAll(getActiveCGVolumes(cg));
+                }
             } else {
                 fcSourceObjList.add(fcSourceObj);
             }
@@ -161,6 +168,26 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         _dbClient.queryByConstraint(getVolumesByConsistencyGroup(cg.getId()),
                 uriQueryResultList);
+        Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class,
+                uriQueryResultList, true);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            volumeList.add(volume);
+        }
+        return volumeList;
+    }
+
+    /**
+     * Gets the volumes in the passed array replication group.
+     *
+     * @param replicationGroupInstance
+     * @return The active volumes in the passed replication group.
+     */
+    protected List<Volume> getArrayGroupVolumes(String replicationGroupInstance) {
+        List<Volume> volumeList = new ArrayList<Volume>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getVolumeReplicationGroupInstanceConstraint(replicationGroupInstance), uriQueryResultList);
         Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class,
                 uriQueryResultList, true);
         while (volumeIterator.hasNext()) {

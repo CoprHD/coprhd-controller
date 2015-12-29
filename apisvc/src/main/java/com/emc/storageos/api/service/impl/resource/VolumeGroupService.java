@@ -12,6 +12,7 @@ import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Facto
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -34,12 +35,15 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.TaskMapper;
+import com.emc.storageos.api.service.impl.placement.PlacementManager;
+import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
@@ -48,6 +52,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -55,11 +60,16 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.VolumeGroupArrayGroupsList;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.application.VolumeGroupSnapshotCreate;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
+import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -100,8 +110,20 @@ public class VolumeGroupService extends TaskResourceService {
 
     static final Logger log = LoggerFactory.getLogger(VolumeGroupService.class);
 
+    // A reference to the placement manager.
+    private PlacementManager _placementManager;
+
     // Block service implementations
     private static Map<String, BlockServiceApi> _blockServiceApis;
+
+    /**
+     * Setter for the placement manager.
+     *
+     * @param placementManager A reference to the placement manager.
+     */
+    public void setPlacementManager(PlacementManager placementManager) {
+        _placementManager = placementManager;
+    }
 
     public void setBlockServiceApis(final Map<String, BlockServiceApi> serviceInterfaces) {
         _blockServiceApis = serviceInterfaces;
@@ -198,7 +220,7 @@ public class VolumeGroupService extends TaskResourceService {
         List<URI> ids = _dbClient.queryByType(VolumeGroup.class, true);
         Iterator<VolumeGroup> iter = _dbClient.queryIterativeObjects(VolumeGroup.class, ids);
         while (iter.hasNext()) {
-            volumeGroupList.getVolumeGroupss().add(toNamedRelatedResource(iter.next()));
+            volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(iter.next()));
         }
         return volumeGroupList;
     }
@@ -219,6 +241,26 @@ public class VolumeGroupService extends TaskResourceService {
         List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
         for (Volume volume: volumes) {
             result.getVolumes().add(toNamedRelatedResource(volume));
+        }
+        return result;
+    }
+
+    /**
+     * Get array group names for the application
+     *
+     * @param id Application Id
+     * @return NamedVolumesList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/array-groups")
+    public VolumeGroupArrayGroupsList getVolumeGroupArrayGroups(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, id);
+        VolumeGroupArrayGroupsList result = new VolumeGroupArrayGroupsList();
+        List<String> arrayGroups = getVolumeGroupArrayGroups(_dbClient, volumeGroup);
+        for (String arrayGroup : arrayGroups) {
+            result.getArrayGroups().add(arrayGroup);
         }
         return result;
     }
@@ -323,6 +365,149 @@ public class VolumeGroupService extends TaskResourceService {
         return taskList;
     }
 
+    /**
+     * Creates a volume group snapshot
+     *
+     *
+     * @prereq none
+     *
+     * @param volumeGroupId
+     *            - Volume group URI
+     * @param param
+     *
+     * @brief Create volume group snapshot
+     * @return TaskList
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshots")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
+    public TaskList createVolumeGroupSnapshot(@PathParam("id") final URI volumeGroupId,
+            final VolumeGroupSnapshotCreate param) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
+
+        TaskList response = new TaskList();
+        BlockFullCopyManager fcManager = getFullCopyManager();
+
+        // get all volumes
+        // TODO only backend volumes?
+        List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
+        // group volumes by Array Group
+        Map<String, List<Volume>> arrayGroupToVolumesMap = groupVolumesByArrayGroup(volumes);
+        for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
+            List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
+            // BlockServiceApi serviceAPI = getBlockServiceImpl(_dbClient, volumeList.iterator().next());
+
+            // Generate task id
+            String taskId = UUID.randomUUID().toString();
+
+            for (VolumeGroupUtils util : utils) {
+                util.createVolumeGroupSnapshot(_dbClient, volumeList, param, volumeGroup, fcManager, taskId, response);
+            }
+        }
+
+        /*
+         * addConsistencyGroupTask(consistencyGroup, response, taskId,
+         * ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT);
+         */
+        
+        // TODO Task for VolumeGroup?
+
+        /*
+         * auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
+         * AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.getName(),
+         * consistencyGroup.getId().toString());
+         */
+
+        return response;
+    }
+
+    /**
+     * Creates a volume group fullcopy
+     *
+     *
+     * @prereq none
+     *
+     * @param volumeGroupId
+     *            - Volume group URI
+     * @param param
+     *
+     * @brief Create volume group fullcopy
+     * @return TaskList
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/full-copies")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
+    public TaskList createVolumeGroupFullCopy(@PathParam("id") final URI volumeGroupId,
+            final VolumeFullCopyCreateParam param) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
+
+        TaskList response = new TaskList();
+        BlockFullCopyManager fcManager = getFullCopyManager();
+
+        // get all volumes
+        // TODO only backend volumes?
+        List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
+        // group volumes by Array Group
+        Map<String, List<Volume>> arrayGroupToVolumesMap = groupVolumesByArrayGroup(volumes);
+        for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
+            List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
+
+            // TODO name for clone across array groups?
+
+            for (VolumeGroupUtils util : utils) {
+                // Grab the first volume and call the block full copy
+                // manager to create the full copies for the volumes
+                // in the CG. Note that it will take into account the
+                // fact that the volume is in a CG.
+                TaskList taskList = getFullCopyManager().createFullCopy(volumeList.get(0).getId(), param);
+                response.getTaskList().addAll(taskList.getTaskList());
+            }
+        }
+
+        /*
+         * addConsistencyGroupTask(consistencyGroup, response, taskId,
+         * ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT);
+         */
+
+        // TODO Task for VolumeGroup
+
+        /*
+         * auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
+         * AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.getName(),
+         * consistencyGroup.getId().toString());
+         */
+
+        return response;
+    }
+
+    /**
+     * Group volumes by array group.
+     *
+     * @param volumes the volumes
+     * @return the map of array group to volumes
+     */
+    private Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes) {
+        Map<String, List<Volume>> arrayGroupToVolumes = new HashMap<String, List<Volume>>();
+        for (Volume volume : volumes) {
+            String repGroupName = volume.getReplicationGroupInstance();
+            if (arrayGroupToVolumes.get(repGroupName) == null) {
+                arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());
+            }
+            arrayGroupToVolumes.get(repGroupName).add(volume);
+        }
+        return arrayGroupToVolumes;
+    }
+
     private List<VolumeGroupUtils> getVolumeGroupUtils(VolumeGroup volumeGroup) {
         List<VolumeGroupUtils> utilsList = new ArrayList<VolumeGroupUtils>();
 
@@ -357,6 +542,19 @@ public class VolumeGroupService extends TaskResourceService {
          * @param taskList
          */
         public abstract void validateUpdateVolumesInVolumeGroup(DbClient dbClient, final VolumeGroupUpdateParam param, VolumeGroup volumeGroup);
+
+        /**
+         * @param volumeList
+         * @param param
+         * @param volumeGroup
+         * @param fcManager
+         * @param taskId
+         * @param taskList
+         * @return
+         */
+        public abstract void createVolumeGroupSnapshot(DbClient dbClient, List<Volume> volumeList, final VolumeGroupSnapshotCreate param,
+                VolumeGroup volumeGroup,
+                BlockFullCopyManager fcManager, String taskId, TaskList taskList);
 
         protected void updateVolumeObjects(DbClient dbClient, List<Volume> addVols, List<Volume> removeVols, VolumeGroup volumeGroup) {
             for (Volume addVol : addVols) {
@@ -536,6 +734,14 @@ public class VolumeGroupService extends TaskResourceService {
             }
         }
 
+        @Override
+        public void createVolumeGroupSnapshot(DbClient dbClient, List<Volume> volumeList, VolumeGroupSnapshotCreate param,
+                VolumeGroup volumeGroup, BlockFullCopyManager fcManager, String taskId,
+                TaskList taskList) {
+            // TODO Auto-generated method stub
+
+        }
+
     }
 
     private static class DRVolumeGroupUtils extends VolumeGroupUtils {
@@ -555,6 +761,14 @@ public class VolumeGroupService extends TaskResourceService {
          */
         @Override
         public void validateUpdateVolumesInVolumeGroup(DbClient dbClient, VolumeGroupUpdateParam param, VolumeGroup volumeGroup) {
+            // TODO Auto-generated method stub
+
+        }
+
+        @Override
+        public void createVolumeGroupSnapshot(DbClient dbClient, List<Volume> volumeList, VolumeGroupSnapshotCreate param,
+                VolumeGroup volumeGroup, BlockFullCopyManager fcManager, String taskId,
+                TaskList taskList) {
             // TODO Auto-generated method stub
 
         }
@@ -831,6 +1045,61 @@ public class VolumeGroupService extends TaskResourceService {
             return getBlockServiceImpl(volType);
         }
 
+        @Override
+        public void createVolumeGroupSnapshot(DbClient dbClient, List<Volume> volumeList, VolumeGroupSnapshotCreate param,
+                VolumeGroup volumeGroup, BlockFullCopyManager fcManager, String taskId,
+                TaskList taskList) {
+
+            // Set snapshot type.
+            String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
+            /*
+             * if (volumeGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
+             * snapshotType = BlockSnapshot.TechnologyType.RP.toString();
+             * }
+             * 
+             * // Determine the snapshot volume for RP.
+             * Volume snapVolume = null;
+             * if (volumeGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
+             * for (Volume volumeToSnap : volumeList) {
+             * // Get the RP source volume.
+             * if (volumeToSnap.getPersonality() != null
+             * && volumeToSnap.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+             * snapVolume = volumeToSnap;
+             * break;
+             * }
+             * }
+             * } else if (!volumeList.isEmpty()) {
+             * // Any volume.
+             * snapVolume = volumeList.get(0);
+             * }
+             */
+
+            Volume snapVolume = volumeList.get(0);
+            BlockServiceApi blockServiceApiImpl = getBlockService(dbClient, snapVolume);
+
+            // Validate the snapshot request.
+            // TODO snapshot duplicate name - name for other array group snaps?
+            String snapshotName = param.getName();
+            blockServiceApiImpl.validateCreateSnapshot(snapVolume, volumeList, snapshotType, snapshotName, fcManager);
+
+            // Set the create inactive flag.
+            final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
+                    : param.getCreateInactive();
+
+            final Boolean readOnly = param.getReadOnly() == null ? Boolean.FALSE : param.getReadOnly();
+
+            // Prepare and create the snapshots for the group.
+            List<URI> snapIdList = new ArrayList<URI>();
+            List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
+            snapshotList.addAll(blockServiceApiImpl.prepareSnapshots(
+                    volumeList, snapshotType, snapshotName, snapIdList, taskId));
+            for (BlockSnapshot snapshot : snapshotList) {
+                taskList.getTaskList().add(toTask(snapshot, taskId));
+            }
+
+            blockServiceApiImpl.createSnapshot(snapVolume, snapIdList, snapshotType, createInactive, readOnly, taskId);
+        }
+
     }
 
     /**
@@ -852,9 +1121,47 @@ public class VolumeGroupService extends TaskResourceService {
         return result;
     }
 
+    /**
+     * Get all the array group names for the volumes in the Volume group
+     *
+     * @param volumeGroup
+     * @return The list of array groups in volume group
+     */
+    private static List<String> getVolumeGroupArrayGroups(DbClient dbClient, VolumeGroup volumeGroup) {
+        /**
+         * Get all volumes belonging to Volume Group
+         * get Array group names from all volume.ReplicationGroupInstance
+         * 
+         * TODO Or Get all CGs for these volumes; For each CG, collect the Array Group names ?
+         */
+        List<String> result = new ArrayList<String>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+        for (Volume vol : volumes) {
+            if (vol.getReplicationGroupInstance() != null && !result.contains(vol.getReplicationGroupInstance())) {
+                result.add(vol.getReplicationGroupInstance());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Creates and returns an instance of the block full copy manager to handle
+     * a full copy request.
+     *
+     * @return BlockFullCopyManager
+     */
+    private BlockFullCopyManager getFullCopyManager() {
+        BlockFullCopyManager fcManager = new BlockFullCopyManager(_dbClient,
+                _permissionsHelper, _auditMgr, _coordinator, _placementManager, sc, uriInfo,
+                _request, null);
+        return fcManager;
+    }
 
     /**
      * Check if the application has any pending task
+     * 
      * @param application
      */
     private void checkForApplicationPendingTasks(VolumeGroup volumeGroup) {

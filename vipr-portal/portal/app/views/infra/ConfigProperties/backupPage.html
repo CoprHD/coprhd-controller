@@ -9,7 +9,8 @@
             var localTime = hour.format("HH");
             var $option = $("<option value=" + utcTime + ">" + localTime + "</option>");
             var time = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
-            if (time === utcTime) {
+            var chosenHour = parseInt(time/100);
+            if (chosenHour === utcTime) {
                 $option.prop("selected", "selected");
             }
             $option.appendTo($selector_hour);
@@ -17,29 +18,42 @@
 
         $selector_min = $("#backup_scheduler_time_min");
         for (var i = 0; i < 60; i++) {
-            var hour = moment({minute: i});
-            var utcTime = parseInt(moment.utc(hour.toDate()).format("mm"));
-            var localTime = hour.format("mm");
+            var minute = moment({minute: i});
+            var utcTime = parseInt(moment.utc(minute.toDate()).format("mm"));
+            var localTime = minute.format("mm");
             var $option = $("<option value=" + utcTime + ">" + localTime + "</option>");
             var time = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
-            if (time === utcTime) {
+            var chosenMin = time%100;
+            if (chosenMin === utcTime) {
                 $option.prop("selected", "selected");
             }
             $option.appendTo($selector_min);
         }
 
-        $selector_interval = $("#backup_scheduler_interval");
+        $backup_interval = $("#backup_scheduler_interval");
+        $backup_interval_num = $("#backup_scheduler_interval_num");
+        $backup_interval_num.val(parseInt($backup_interval.val()));
+        $selector_interval = $("#backup_scheduler_interval_unit");
         var units = ["Day", "Week", "Month"];
         for (var i in  units) {
-            var $option = $("<option value=" + units[i] + ">" + units[i] + "</option>");
+            var value = units[i].toLowerCase();
+            var $option = $("<option value=" + value + ">" + units[i] + "</option>");
+            if ($backup_interval.val().indexOf(value) > -1) {
+                $option.prop("selected", "selected");
+            }
             $option.appendTo($selector_interval);
         }
     });
 
-    function setTime() {
+    function setBackupSchedulerTime() {
         var $backup_time = $("#backup_scheduler_time");
-        var $offset = parseInt($selector_hour.val()) * 100 + parseInt($selector_min.val());
-        $backup_time.val($offset);
+        var offset = parseInt($selector_hour.val()) * 100 + parseInt($selector_min.val());
+        $backup_time.val(offset);
+    }
+
+    function setBackupSchedulerInterval() {
+        var value = $backup_interval_num.val() + $selector_interval.val();
+        $backup_interval.val(value);
     }
 </script>
 #{/set}
@@ -64,7 +78,7 @@
         <div class="row col-gap-sm">
             <input id="${id}" type="hidden" name="${name}" value="${originalValue}">
             <div class="col-md-6">
-                <select id="${id}_hour" class="form-control" onchange="setTime()"
+                <select id="${id}_hour" class="form-control" onchange="setBackupSchedulerTime()"
                         #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}"
                         data-reboot="${rebootRequired ? 'true' : 'false'}">
                 </select>
@@ -72,7 +86,7 @@
                     class="text-danger">&{'configProperties.rebootRequired'}</span>#{/if}</p>#{/if}
             </div>
             <div class="col-md-6">
-                <select id="${id}_min" class="form-control" onchange="setTime()"
+                <select id="${id}_min" class="form-control" onchange="setBackupSchedulerTime()"
                         #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}"
                         data-reboot="${rebootRequired ? 'true' : 'false'}">
                 </select>
@@ -103,15 +117,15 @@ disabled:unstable;
 
     <div class="col-sm-6 controls">
         <div class="row col-gap-sm">
+            <input id="${id}" type="hidden" name="${name}" value="${originalValue}">
             <div class="col-md-6">
-                <input-text style="vertical-align: top"></input-text>
+                <input-text v-field="${id}_num" style="vertical-align: top"
+                            onkeyup="setBackupSchedulerInterval()"></input-text>
             #{if description}<p class="help-block clear">${description}#{if rebootRequired} <span
                     class="text-danger">&{'configProperties.rebootRequired'}</span>#{/if}</p>#{/if}
             </div>
             <div class="col-md-6">
-                <select id="${id}" name="${name}" class="form-control"
-                        #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}"
-                        data-reboot="${rebootRequired ? 'true' : 'false'}">
+                <select id="${id}_unit" class="form-control" onchange="setBackupSchedulerInterval()">
                 </select>
             </div>
         </div>

@@ -39,18 +39,18 @@ public class ScaleIORestHandleFactory {
     public ScaleIORestClient getClientHandle(String systemNativeId, String ipAddr, int port, String username, String password)
             throws Exception {
         ScaleIORestClient handle;
-        String systemId="";
+        String systemId = "";
         if (systemNativeId != null) {
             systemId = systemNativeId.trim();
         }
         synchronized (syncObject) {
-            if (systemNativeId == null || !ScaleIORestClientMap.containsKey(systemId)) {
+            if (!ScaleIORestClientMap.containsKey(systemId)) {
                 if (ipAddr != null && username != null && password != null) {
                     URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(ipAddr, port));
                     handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, username,
                             password, true);
                     try {
-                        systemId = handle.getSystemId(); //Get the exact systemId and check the availability of handle
+                        systemId = handle.getSystemId(); // Get the exact systemId and check the availability of handle
                         if (systemId != null) {
                             ScaleIORestClientMap.put(systemId, handle);
                         }

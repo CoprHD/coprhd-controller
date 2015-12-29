@@ -21,7 +21,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
     private ScaleIORestHandleFactory handleFactory;
     private String errMsg = "";
     private ScaleIORestClient client;
-    private  int countSucc;
+    private int countSucc;
+
     public void setHandleFactory(ScaleIORestHandleFactory handleFactory) {
         this.handleFactory = handleFactory;
     }

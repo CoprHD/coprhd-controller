@@ -257,7 +257,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 		// set the uri of the unmanaged CG in the unmanaged volume object
                 		unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(), unManagedCG.getId().toString()); 
                 		// add the unmanaged volume object to the unmanaged CG
-                		unManagedCG.getUnManagedVolumes().add(unManagedVolume.getId().toString());                		
+                		unManagedCG.getUnManagedVolumesMap().put(unManagedVolume.getNativeGuid(), unManagedVolume.getId().toString());                		
                 		// add the unmanaged CG to the list of unmanaged CGs to be updated in the database once all volumes have been processed
                 		unManagedCGToUpdate.add(unManagedCG);
                 	}                	

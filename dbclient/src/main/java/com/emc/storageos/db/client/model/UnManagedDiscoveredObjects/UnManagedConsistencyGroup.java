@@ -20,22 +20,20 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 
 @Cf("UnManagedConsistencyGroup")
 public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 	//The number of volumes associated with this Consistency Group
 	private Integer _numberOfVols;  
 	//The name of this Consistency Group
-	private String _name; 
-
-	//Number of Volumes ingested
-	private static int _ingestedVolumes; 
+	private String _name;
 	
 	private StringSet associatedVolumes;
-	
-	private StringSet unManagedVolumes;
-	
-	private StringSet managedVolumes;
+		
+	private StringMap _unManagedVolumesMap;
+		
+	private StringMap _managedVolumesMap;
 	
 	private URI _storageSystemUri;
 	
@@ -86,29 +84,30 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 
 	public void setAssociatedVolumes(StringSet associatedVolumes) {
 		this.associatedVolumes = associatedVolumes;
-	}
+	}	
 
 	@Name("UnManagedVolumes")
-	public StringSet getUnManagedVolumes() {
-		if (unManagedVolumes == null) {
-			setUnManagedVolumes(new StringSet());
+	public StringMap getUnManagedVolumesMap() {
+		if (_unManagedVolumesMap == null) {
+			setUnManagedVolumesMap(new StringMap());
         }
-		return unManagedVolumes;
+		return _unManagedVolumesMap;
 	}
 
-	public void setUnManagedVolumes(StringSet unManagedVolumes) {
-		this.unManagedVolumes = unManagedVolumes;
+	public void setUnManagedVolumesMap(StringMap unManagedVolumesMap) {
+		this._unManagedVolumesMap = unManagedVolumesMap;
 	}
 
 	@Name("ManagedVolumes")
-	public StringSet getManagedVolumes() {
-		if (managedVolumes == null) {
-			setManagedVolumes(new StringSet());
+	public StringMap getManagedVolumesMap() {
+		if (_managedVolumesMap == null) {
+			setManagedVolumesMap(new StringMap());
         }
-		return managedVolumes;
+		return _managedVolumesMap;
 	}
 
-	public void setManagedVolumes(StringSet managedVolumes) {
-		this.managedVolumes = managedVolumes;
-	}
+	public void setManagedVolumesMap(StringMap _managedVolumesMap) {
+		this._managedVolumesMap = _managedVolumesMap;
+	}	 
+    
 }

@@ -38,6 +38,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -50,7 +51,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -293,9 +293,15 @@ public class UnManagedVolumeService extends TaskResourceService {
                     			BlockConsistencyGroup consistencyGroup = VolumeIngestionUtil.createCGFromUnManagedCG(unManagedCG, project, tenant, _dbClient);
                     			_logger.info("Ingesting the final volume of unmanaged consistency group {}.  Block consistency group {} has been created.", 
                     					unManagedCG.getLabel(), consistencyGroup.getLabel());                    			
-                    			for (String volumeNativeGuid : unManagedCG.getManagedVolumes()) {                    				
-                    				BlockObject volume  = createdObjectMap.get(volumeNativeGuid);
-                    				_logger.info("Adding previously ingested volume {} to consistency group {}", volume.getLabel(), consistencyGroup.getLabel());
+                    			for (String volumeNativeGuid : unManagedCG.getManagedVolumesMap().keySet()) {                    				
+                    				BlockObject volume  = createdObjectMap.get(volumeNativeGuid);                    				
+                    				if (volume == null) {                    					
+                    					// check if the volume has already been ingested
+                    					String ingestedVolumeURI = unManagedCG.getManagedVolumesMap().get(volumeNativeGuid);
+                    					volume = _dbClient.queryObject(Volume.class, URI.create(ingestedVolumeURI));
+                    					_logger.info("Volume {} was ingested as part of previous ingestion operation.", volume.getLabel());
+                    				}
+                    				_logger.info("Adding ingested volume {} to consistency group {}", volume.getLabel(), consistencyGroup.getLabel());
                 					volume.setConsistencyGroup(consistencyGroup.getId());
                 					createdObjectMap.put(volumeNativeGuid, volume);
                     			}

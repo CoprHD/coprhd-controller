@@ -450,18 +450,18 @@ public class VolumeIngestionUtil {
     
     public static int updateVolumeInUnManagedConsistencyGroup(UnManagedConsistencyGroup unManagedCG, UnManagedVolume unManagedVolume, BlockObject blockObject) {
     	// ensure that unmanaged cg contains the unmanaged volume
-    	if (unManagedCG.getUnManagedVolumes().contains(unManagedVolume.getId().toString())) {
+    	if (unManagedCG.getUnManagedVolumesMap().containsKey(unManagedVolume.getNativeGuid())) {
     		// add the volume to the list of managed volumes
-			unManagedCG.getManagedVolumes().add(blockObject.getNativeGuid());
-			_logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", blockObject.getNativeGuid(), unManagedCG.getLabel());
+    		unManagedCG.getManagedVolumesMap().put(unManagedVolume.getNativeGuid(), blockObject.getId().toString());
+			_logger.info("Added volume {} to the managed volume list of unmanaged consistency group {}", blockObject.getLabel(), unManagedCG.getLabel());
 			// remove the unmanaged volume from the list of unmanaged volumes
-			unManagedCG.getUnManagedVolumes().remove(unManagedVolume.getId().toString());
+			unManagedCG.getUnManagedVolumesMap().remove(unManagedVolume.getNativeGuid());
 			_logger.info("Removed volume {} from the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
     	} else {
     		_logger.info("Volume {} was not in the unmanaged volume list of unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
     	}
     	// return the number of unmanaged volumes remaining in the unmanaged cg
-    	return unManagedCG.getUnManagedVolumes().size();
+    	return unManagedCG.getUnManagedVolumesMap().size();
     }
     
     /**

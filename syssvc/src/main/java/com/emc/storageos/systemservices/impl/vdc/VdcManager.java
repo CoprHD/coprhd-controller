@@ -356,6 +356,7 @@ public class VdcManager extends AbstractManager {
         VdcOpHandler opHandler = getOpHandler(action);
         opHandler.setTargetSiteInfo(targetSiteInfo);
         opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
+        opHandler.setLocalVdcPropInfo(localVdcPropInfo);
         opHandler.execute();
         
         //Flush vdc properties includes VDC_CONFIG_VERSION to disk

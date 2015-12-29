@@ -74,6 +74,7 @@ public abstract class VdcOpHandler {
     protected Service service;
     protected final Waiter waiter = new Waiter();
     protected PropertyInfoExt targetVdcPropInfo;
+    protected PropertyInfoExt localVdcPropInfo;
     protected SiteInfo targetSiteInfo;
     
     public VdcOpHandler() {
@@ -727,6 +728,14 @@ public abstract class VdcOpHandler {
 
     public void setTargetVdcPropInfo(PropertyInfoExt targetVdcPropInfo) {
         this.targetVdcPropInfo = targetVdcPropInfo;
+    }
+
+    public PropertyInfoExt getLocalVdcPropInfo() {
+        return localVdcPropInfo;
+    }
+
+    public void setLocalVdcPropInfo(PropertyInfoExt localVdcPropInfo) {
+        this.localVdcPropInfo = localVdcPropInfo;
     }
 
     public SiteInfo getTargetSiteInfo() {

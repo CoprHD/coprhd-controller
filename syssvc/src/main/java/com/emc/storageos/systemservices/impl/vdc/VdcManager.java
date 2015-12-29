@@ -219,16 +219,22 @@ public class VdcManager extends AbstractManager {
                 continue;
             }
             
-            // Step4: set site error state if on acitve
+            // Step4: set site error state if on active
             try {
                 updateSiteErrors();
-                auditCompletedDrOperation();
             } catch (RuntimeException e) {
                 log.error("Step4: Failed to set site errors. {}", e);
                 continue;
             }
+            // Step5: record DR operation audit log if on active
+            try {
+                auditCompletedDrOperation();
+            } catch (RuntimeException e) {
+                log.error("Step5: Failed to record DR operation audit log. {}", e);
+                continue;
+            }
             
-            // Step 5 : check backward compatibile upgrade flag
+            // Step 6 : check backward compatibile upgrade flag
             try {
                 if (backCompatPreYoda) {
                     log.info("Check if pre-yoda upgrade is done");
@@ -240,8 +246,8 @@ public class VdcManager extends AbstractManager {
                 continue;
             }
             
-            // Step6: sleep
-            log.info("Step6: sleep");
+            // Step7: sleep
+            log.info("Step7: sleep");
             longSleep();
         }
     }

@@ -66,14 +66,9 @@ public class VdcManager extends AbstractManager {
     
     private SiteInfo targetSiteInfo;
     private String currentSiteId;
-    private DrUtil drUtil;
     private VdcConfigUtil vdcConfigUtil;
     private Map<String, VdcOpHandler> vdcOpHandlerMap;
     private Boolean backCompatPreYoda = false;
-    
-    public void setDrUtil(DrUtil drUtil) {
-        this.drUtil = drUtil;
-    }
 
     public void setIpsecConfig(IPsecConfig ipsecConfig) {
         this.ipsecConfig = ipsecConfig;

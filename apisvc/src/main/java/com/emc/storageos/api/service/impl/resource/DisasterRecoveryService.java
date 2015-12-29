@@ -39,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.api.service.impl.resource.utils.InternalSiteServiceClient;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
@@ -201,6 +202,7 @@ public class DisasterRecoveryService {
             log.info("Persist standby site to ZK {}", shortId);
             // coordinator.setTargetInfo(standbySite);
             coordinator.persistServiceConfiguration(standbySite.toConfiguration());
+            recordDrOperationStatus(standbySite);
 
             // wake up syssvc to regenerate configurations
             drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_ADD_STANDBY);
@@ -496,6 +498,7 @@ public class DisasterRecoveryService {
             for (Site site : toBeRemovedSites) {
                 site.setState(SiteState.STANDBY_REMOVING);
                 coordinator.persistServiceConfiguration(site.toConfiguration());
+                recordDrOperationStatus(site);
             }
             log.info("Notify all sites for reconfig");
             for (Site standbySite : drUtil.listSites()) {
@@ -659,6 +662,7 @@ public class DisasterRecoveryService {
                 site.setState(SiteState.STANDBY_PAUSING);
                 site.setLastStateUpdateTime(System.currentTimeMillis());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
+                recordDrOperationStatus(site);
                 // notify the to-be-paused sites before others.
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY);
             }
@@ -736,6 +740,7 @@ public class DisasterRecoveryService {
                     // update the site state AFTER checking the last state update time
                     site.setState(SiteState.STANDBY_RESUMING);
                     coordinator.persistServiceConfiguration(site.toConfiguration());
+                    recordDrOperationStatus(site);
                 }
 
                 if (dataRevision != 0) {
@@ -829,10 +834,12 @@ public class DisasterRecoveryService {
             }
             oldActiveSite.setState(SiteState.ACTIVE_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
+            recordDrOperationStatus(oldActiveSite);
 
             // set new acitve site to ZK
             newActiveSite.setState(SiteState.STANDBY_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(newActiveSite.toConfiguration());
+            recordDrOperationStatus(newActiveSite);
 
             // trigger reconfig
             for (Site eachSite : drUtil.listSites()) {
@@ -900,9 +907,11 @@ public class DisasterRecoveryService {
             Site oldActiveSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
             oldActiveSite.setState(SiteState.ACTIVE_FAILING_OVER);
             coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
+            recordDrOperationStatus(oldActiveSite);
 
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
+            recordDrOperationStatus(currentSite);
 
             //reconfig other standby sites
             for (Site site : allStandbySites) {
@@ -1076,6 +1085,20 @@ public class DisasterRecoveryService {
         }
 
         return standbyTimes;
+    }
+
+    /**
+     * Record new DR operation from sourceSite (optional) to targetSite
+     * Data is stored under ZK Path: /config/disasterRecoveryOperationStatus/global
+     * @param sourceSite
+     * @param targetSite
+     */
+    private void recordDrOperationStatus(Site site) {
+        DrOperationStatus operation = new DrOperationStatus();
+        operation.setSiteUuid(site.getUuid());
+        operation.setSiteState(site.getState());
+        coordinator.persistServiceConfiguration(operation.toConfiguration());
+        log.info("DR operation status has been recored: {}", operation.toString());
     }
 
     /**

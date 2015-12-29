@@ -6,18 +6,23 @@
 package com.emc.storageos.systemservices.impl.vdc;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.ipsec.IPsecConfig;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
@@ -25,6 +30,7 @@ import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.UpgradeManager;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 
@@ -44,6 +50,8 @@ public class VdcManager extends AbstractManager {
     private IPsecManager ipsecMgr;
     @Autowired
     private UpgradeManager upgradeManager;
+    @Autowired
+    private AuditLogManager auditMgr;
 
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
@@ -51,6 +59,7 @@ public class VdcManager extends AbstractManager {
     private PowerOffState targetPowerOffState;
     
     private static final String POWEROFFTOOL_COMMAND = "/etc/powerofftool";
+    private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
     
     // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
     private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
@@ -213,6 +222,7 @@ public class VdcManager extends AbstractManager {
             // Step4: set site error state if on acitve
             try {
                 updateSiteErrors();
+                auditCompletedDrOperation();
             } catch (RuntimeException e) {
                 log.error("Step4: Failed to set site errors. {}", e);
                 continue;
@@ -402,6 +412,37 @@ public class VdcManager extends AbstractManager {
         log.info("powering off the cluster!");
         final String[] cmd = { POWEROFFTOOL_COMMAND };
         Exec.sudo(SHUTDOWN_TIMEOUT_MILLIS, cmd);
+    }
+
+    /**
+     * Check if ongoing DR operation succeeded or failed, then record audit log accordingly and remove this operation record from ZK.
+     */
+    private void auditCompletedDrOperation() {
+        List<Configuration> configs = coordinator.getCoordinatorClient().queryAllConfiguration(DrOperationStatus.CONFIG_KIND);
+        if (configs == null || configs.isEmpty()) {
+            return;
+        }
+        for (Configuration config : configs) {
+            DrOperationStatus operation = new DrOperationStatus(config);
+            String siteId = operation.getSiteUuid();
+            SiteState interState = operation.getSiteState();
+            SiteState currentState = drUtil.getSiteFromLocalVdc(operation.getSiteUuid()).getState();
+            if (currentState.equals(SiteState.STANDBY_ERROR)) {
+                // Failed
+                this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, OperationTypeEnum.MARK_OPERATION_FAILED, System.currentTimeMillis(),
+                        AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END, siteId, interState, currentState);
+            } else if (!currentState.isDROperationOngoing()) {
+                // Succeeded
+                this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, OperationTypeEnum.MARK_OPERATION_SUCCESS, System.currentTimeMillis(),
+                        AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, siteId, interState, currentState);
+            } else {
+                // Still ongoing, do nothing
+                continue;
+            }
+            // clear this operation status
+            coordinator.getCoordinatorClient().removeServiceConfiguration(config);
+            log.info("DR operation status has been cleared: {}", operation);
+        }
     }
     
     // TODO - let's see if we can move it to VdcOpHandler later

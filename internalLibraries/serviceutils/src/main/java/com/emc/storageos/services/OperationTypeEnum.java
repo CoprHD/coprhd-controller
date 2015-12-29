@@ -400,14 +400,16 @@ public enum OperationTypeEnum {
     DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
 
     /* Disaster Recovery Operations */
-    ADD_STANDBY("ADD STANDBY", "", "operation to add a new standby to ensemble"),
-    REMOVE_STANDBY("REMOVE STANDBY", "", "operation to remove an existing standby from ensemble"),
-    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to pause replication between acitve site and standby site"),
-    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to resume replication between acitve site and standby site"),
+    ADD_STANDBY("ADD STANDBY", "", "operation to initiate adding a new standby to ensemble"),
+    REMOVE_STANDBY("REMOVE STANDBY", "", "operation to initiate removing an existing standby from ensemble"),
+    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to initiate pausing replication between acitve site and standby site"),
+    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between acitve site and standby site"),
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
-    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to switchover from acitve site to a standby site"),
-    FAILOVER("FAILOVER TO A STANDBY", "", "operation to failover to a standby site"),
-    UPDATE_SITE("UPDATE SITE", "", "operation to update site information");
+    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from acitve site to a standby site"),
+    FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failling over to a standby site"),
+    UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
+    MARK_OPERATION_SUCCESS("MARK AN DR OPERATION SUCCESS", "", "operation to mark a dr operation as successful"),
+    MARK_OPERATION_FAILED("MARK AN DR OPERATION FAILED", "", "operation to mark a dr operation failed");
 
     private final String _evType;
     private final String _fail_evType;

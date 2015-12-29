@@ -525,7 +525,7 @@ public abstract class VdcOpHandler {
                         }
 
                         for (Site site : drUtil.listSitesInState(SiteState.STANDBY_DEGRADING)) {
-                            removeDbNodesFromGossip(site, true);
+                            removeDbNodesFromGossip(site);
                         }
 
                         for (Site site : drUtil.listSitesInState(SiteState.STANDBY_DEGRADING)) {

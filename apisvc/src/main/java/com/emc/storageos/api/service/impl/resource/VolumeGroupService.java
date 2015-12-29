@@ -779,12 +779,12 @@ public class VolumeGroupService extends TaskResourceService {
                 ArgValidator.checkFieldUriType(voluri, Volume.class, "id");
                 Volume vol = dbClient.queryObject(Volume.class, voluri);
                 if (vol == null || vol.getInactive()) {
-                    log.info(String.format("The volume does not exist or has been deleted", voluri.toString()));
+                    log.warn(String.format("The volume [%s] will not be removed from application %s because it does not exist or has been deleted", voluri.toString(), volumeGroup.getLabel()));
                     continue;
                 }
                 StringSet volumeGroups = vol.getVolumeGroupIds();
                 if (volumeGroups == null || !volumeGroups.contains(volumeGroup.getId().toString())) {
-                    log.info(String.format("The volume %s is not assigned to the application", vol.getLabel()));
+                    log.warn(String.format("The volume %s will not be removed from application %s because it is not assigned to the application", vol.getLabel(), volumeGroup.getLabel()));
                     continue;
                 }
 

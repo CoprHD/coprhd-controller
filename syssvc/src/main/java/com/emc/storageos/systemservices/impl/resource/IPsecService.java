@@ -40,6 +40,7 @@ public class IPsecService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public String rotateIPsecKey() {
+        ipsecMgr.verifyClusterIsStable();
         String version = ipsecMgr.rotateKey();
         auditMgr.recordAuditLog(null, null,
                 IPSEC_SERVICE_TYPE,
@@ -77,6 +78,7 @@ public class IPsecService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public String changeIpsecState(@QueryParam("status") String status) {
+        ipsecMgr.verifyClusterIsStable();
         String result = ipsecMgr.changeIpsecStatus(status);
         auditMgr.recordAuditLog(null, null,
                 IPSEC_SERVICE_TYPE,

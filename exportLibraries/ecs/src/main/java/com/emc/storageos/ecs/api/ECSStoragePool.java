@@ -19,7 +19,7 @@ public class ECSStoragePool {
 	private String id;
 	private Long TotalCapacity;
 	private Long FreeCapacity;
-	private List storagePoolVDC = new ArrayList();
+	private List<String> storagePoolVDC = new ArrayList<String>();
 	private int totalDataCenters;
 
 	public String getName() {

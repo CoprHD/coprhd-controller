@@ -543,7 +543,7 @@
         <property name="drUtil" ref="drUtil" />
 	</bean>
 
-    <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl" init-method="start">
+    <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl">
         <property name="coordinatorClient" ref="coordinator"/>
         <property name="dbVersionInfo" ref="dbVersionInfo"/>
         <property name="encryptionProvider" ref="encryptionProvider"/>

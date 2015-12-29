@@ -63,6 +63,7 @@ public class AuditLogManager {
      */
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
+        dbClient.start();
     }
 
     /**

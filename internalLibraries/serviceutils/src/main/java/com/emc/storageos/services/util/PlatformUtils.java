@@ -53,7 +53,7 @@ public class PlatformUtils {
                     propMap.put(s.split(PropertyConstants.DELIMITER)[0], s.split(PropertyConstants.DELIMITER)[1]);
                 }else if(s.split(PropertyConstants.DELIMITER).length == 1) {
                     propMap.put(s.split(PropertyConstants.DELIMITER)[0],"");
-                }else{
+                }else {
                     log.error("ovf properties file contain line in unexpected format : {}", s);
                 }
             }

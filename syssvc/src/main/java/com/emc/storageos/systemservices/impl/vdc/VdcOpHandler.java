@@ -421,7 +421,6 @@ public abstract class VdcOpHandler {
 
                     for (Site site : drUtil.listSitesInState(SiteState.STANDBY_PAUSING)) {
                         try {
-                            waitForSiteUnreachable(site);
                             removeDbNodesFromGossip(site);
                         }  catch (Exception e) {
                             populateStandbySiteErrorIfNecessary(site,
@@ -480,24 +479,6 @@ public abstract class VdcOpHandler {
                 localSite.setState(SiteState.STANDBY_PAUSED);
                 log.info("Updating local site state to STANDBY_PAUSED");
                 coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
-            }
-        }
-
-        private void waitForSiteUnreachable(Site site) {
-            int retryCnt = 0;
-            while (!isSiteDbUnreachable(site)) {
-                if (++retryCnt > MAX_PAUSE_RETRY) {
-                    throw new IllegalStateException("timeout waiting for db nodes to go down on paused site.");
-                }
-                retrySleep();
-            }
-        }
-
-        private boolean isSiteDbUnreachable(Site site) {
-            String dcName = drUtil.getCassandraDcId(site);
-            try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
-                 DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
-                return dbOps.isDataCenterUnreachable(dcName) && geodbOps.isDataCenterUnreachable(dcName);
             }
         }
     }
@@ -723,7 +704,7 @@ public abstract class VdcOpHandler {
                 }
 
                 poweroffRemoteSite(oldActiveSite);    
-                removeDbNodesFromGossip(oldActiveSite, true);
+                removeDbNodesFromGossip(oldActiveSite);
                 removeDbNodesFromStrategyOptions(oldActiveSite);
                 drUtil.removeSiteConfiguration(oldActiveSite);
             } catch (Exception e) {
@@ -886,25 +867,12 @@ public abstract class VdcOpHandler {
     }
     
     /**
-     * remove a site from cassandra gossip ring of dbsvc and geodbsvc without force
-     */
-    protected void removeDbNodesFromGossip(Site site) {
-        removeDbNodesFromGossip(site, false);
-    }
-    
-    /**
      * remove a site from cassandra gossip ring of dbsvc and geodbsvc with force
      */
-    protected void removeDbNodesFromGossip(Site site, boolean force) {
+    protected void removeDbNodesFromGossip(Site site) {
         String dcName = drUtil.getCassandraDcId(site);
         try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
                 DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
-            if (!force && !dbOps.isDataCenterUnreachable(dcName)) {
-                throw new IllegalStateException(String.format("dbsvc of site %s is still reachable", dcName));
-            }
-            if (!force && !geodbOps.isDataCenterUnreachable(dcName)) {
-                throw new IllegalStateException(String.format("geodbsvc of site %s is still reachable", dcName));
-            }
             dbOps.removeDataCenter(dcName);
             geodbOps.removeDataCenter(dcName);
         }

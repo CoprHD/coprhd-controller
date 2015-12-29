@@ -406,10 +406,12 @@ public enum OperationTypeEnum {
     RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between acitve site and standby site"),
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
     SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from acitve site to a standby site"),
+    ACTIVE_SWITCHOVER("", "", ""),
+    STANDBY_SWITCHOVER("", "", ""),
     FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failling over to a standby site"),
-    UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
-    MARK_OPERATION_SUCCESS("MARK AN DR OPERATION SUCCESS", "", "operation to mark a dr operation as successful"),
-    MARK_OPERATION_FAILED("MARK AN DR OPERATION FAILED", "", "operation to mark a dr operation failed");
+    ACTIVE_FAILOVER("", "", ""),
+    STANDBY_FAILOVER("", "", ""),
+    UPDATE_SITE("UPDATE SITE", "", "operation to update site information");
 
     private final String _evType;
     private final String _fail_evType;

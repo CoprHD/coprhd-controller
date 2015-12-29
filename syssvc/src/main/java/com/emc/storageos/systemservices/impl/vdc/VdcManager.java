@@ -424,26 +424,31 @@ public class VdcManager extends AbstractManager {
      * Check if ongoing DR operation succeeded or failed, then record audit log accordingly and remove this operation record from ZK.
      */
     private void auditCompletedDrOperation() {
+        log.info("start to audit");
         if (!drUtil.isActiveSite()) {
             return;
         }
+        log.info("On active site, go on");
         List<Configuration> configs = coordinator.getCoordinatorClient().queryAllConfiguration(DrOperationStatus.CONFIG_KIND);
         if (configs == null || configs.isEmpty()) {
             return;
         }
+        log.info("find ongoing configs, go on");
         for (Configuration config : configs) {
             DrOperationStatus operation = new DrOperationStatus(config);
             String siteId = operation.getSiteUuid();
             SiteState interState = operation.getSiteState();
-            SiteState currentState = drUtil.getSiteFromLocalVdc(operation.getSiteUuid()).getState();
+            Site site = drUtil.getSiteFromLocalVdc(operation.getSiteUuid());
+            SiteState currentState = site.getState();
             if (currentState.equals(SiteState.STANDBY_ERROR)) {
                 // Failed
-                this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, OperationTypeEnum.MARK_OPERATION_FAILED, System.currentTimeMillis(),
-                        AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END, siteId, interState, currentState);
+                log.info(siteId + "|" + interState + "|" + currentState);
+                this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, getOperationType(interState), System.currentTimeMillis(),
+                        AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END, site.toBriefString());
             } else if (!currentState.isDROperationOngoing()) {
                 // Succeeded
-                this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, OperationTypeEnum.MARK_OPERATION_SUCCESS, System.currentTimeMillis(),
-                        AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, siteId, interState, currentState);
+                this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, getOperationType(interState), System.currentTimeMillis(),
+                        AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, site.toBriefString());
             } else {
                 // Still ongoing, do nothing
                 continue;
@@ -452,6 +457,37 @@ public class VdcManager extends AbstractManager {
             coordinator.getCoordinatorClient().removeServiceConfiguration(config);
             log.info("DR operation status has been cleared: {}", operation);
         }
+    }
+
+    private OperationTypeEnum getOperationType(SiteState state) {
+        OperationTypeEnum operationType = null;
+        switch(state) {
+            case STANDBY_ADDING:
+                operationType = OperationTypeEnum.ADD_STANDBY;
+                break;
+            case STANDBY_REMOVING:
+                operationType = OperationTypeEnum.REMOVE_STANDBY;
+                break;
+            case STANDBY_PAUSING:
+                operationType = OperationTypeEnum.PAUSE_STANDBY;
+                break;
+            case STANDBY_RESUMING:
+                operationType = OperationTypeEnum.RESUME_STANDBY;
+                break;
+            case ACTIVE_SWITCHING_OVER:
+                operationType = OperationTypeEnum.ACTIVE_SWITCHOVER;
+                break;
+            case STANDBY_SWITCHING_OVER:
+                operationType = OperationTypeEnum.STANDBY_SWITCHOVER;
+                break;
+            case ACTIVE_FAILING_OVER:
+                operationType = OperationTypeEnum.ACTIVE_FAILOVER;
+                break;
+            case STANDBY_FAILING_OVER:
+                operationType = OperationTypeEnum.STANDBY_FAILOVER;
+                break;
+        }
+        return operationType;
     }
     
     // TODO - let's see if we can move it to VdcOpHandler later

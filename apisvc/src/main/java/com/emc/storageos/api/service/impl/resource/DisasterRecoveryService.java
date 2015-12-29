@@ -1099,10 +1099,8 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Record new DR operation from sourceSite (optional) to targetSite
-     * Data is stored under ZK Path: /config/disasterRecoveryOperationStatus/global
-     * @param sourceSite
-     * @param targetSite
+     * Record new DR operation
+     * @param site
      */
     private void recordDrOperationStatus(Site site) {
         DrOperationStatus operation = new DrOperationStatus();

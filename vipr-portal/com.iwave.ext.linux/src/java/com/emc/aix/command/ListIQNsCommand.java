@@ -22,6 +22,7 @@ public class ListIQNsCommand extends AixResultsCommand<Set<String>> {
         sb.append("  lsdevinfo | grep -p $host | grep -E -i -w 'initiator_name'; ");
         sb.append("done; ");
         setCommand(sb.toString());
+        setRunAsRoot(true);
     }
 
     @Override

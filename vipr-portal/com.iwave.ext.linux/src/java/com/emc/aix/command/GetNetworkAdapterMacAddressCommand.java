@@ -14,6 +14,7 @@ public class GetNetworkAdapterMacAddressCommand extends AixResultsCommand<String
 
     public GetNetworkAdapterMacAddressCommand(String adapter) {
         setCommand("lscfg -vl " + adapter + " | grep \"Network Address\"");
+        setRunAsRoot(true);
     }
 
     @Override

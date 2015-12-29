@@ -1,9 +1,16 @@
 #!/bin/bash
 
-DIR=/opt/storageos/bin
-#. ${DIR}/restore-libs.sh 
+# This is a wrapper script, it uses nohup 
+# to void to terminate the restore process
+# when syssvc is stopped
+#
+# This accepts following arguments:
+# $1=backup directory
+# $2=root password
+# $3=is geo from scratch (a flag)
+# $4=log file name
 
-echo "lby" > /tmp/lby
-#trap clean_up EXIT
+DIR=/opt/storageos/bin
+
 nohup ${DIR}/restore-internal.sh "$1" "$2" "$3" "$4"& 
 exit 0

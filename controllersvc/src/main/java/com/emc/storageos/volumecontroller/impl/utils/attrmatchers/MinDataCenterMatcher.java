@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2008-2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
 
 import java.net.URI;

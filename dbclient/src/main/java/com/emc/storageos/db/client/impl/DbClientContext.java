@@ -255,7 +255,7 @@ public class DbClientContext {
                 @Override
                 public void run() {
                     try {
-                        checkAndResetConsistencyLevel(drUtil, hostSupplier.getDbSvcName(), hostSupplier.getDbClientVersion());
+                        checkAndResetConsistencyLevel(drUtil, hostSupplier.getDbSvcName());
                     } catch (Exception ex) {
                         log.warn("Encounter Unexpected exception during check consistency level. Retry in next run", ex);
                     }
@@ -446,7 +446,7 @@ public class DbClientContext {
         return versions;
     }
 
-    private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName, String dbVersion) {
+    private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName) {
         ConsistencyLevel currentConsistencyLevel = getKeyspace().getConfig().getDefaultWriteConsistencyLevel();
         if (currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
             log.debug("Write consistency level is EACH_QUORUM. No need adjust");
@@ -459,10 +459,8 @@ public class DbClientContext {
                     site.getState().equals(SiteState.STANDBY_DEGRADED)) {
                 continue; // ignore a standby site which is paused by customer explicitly
             }
-            String siteUuid = site.getUuid();
-            int count = drUtil.getNumberOfLiveServices(siteUuid, svcName, dbVersion);
-            if (count <= site.getNodeCount() / 2) {
-                log.info("Service {} of quorum nodes on site {} is down. Still keep write consistency level to LOCAL_QUORUM", svcName, siteUuid);
+            if (drUtil.isQuorumLost(site, svcName)) {
+                log.info("Still keep write consistency level to LOCAL_QUORUM");
                 return;
             }      
         }

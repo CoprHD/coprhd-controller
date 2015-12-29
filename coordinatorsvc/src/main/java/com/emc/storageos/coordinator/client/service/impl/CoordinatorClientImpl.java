@@ -796,9 +796,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             String endpointKey) throws CoordinatorException {
         return locateAllServices(siteId, name, version, tag, endpointKey);
     }
-    
+
     @Override
     public List<Service> locateAllSvcsAllVers(String name) throws CoordinatorException {
+        return locateAllSvcsAllVers(siteId, name);
+    }
+    
+    @Override
+    public List<Service> locateAllSvcsAllVers(String siteId, String name) throws CoordinatorException {
         List<String> svcVerPaths = lookupServicePath(name);
         List<Service> allActiveSvcs = new ArrayList<>();
         for (String version : svcVerPaths) {
@@ -807,7 +812,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             List<String> servicePaths = lookupServicePath(serviceRoot);
 
             for (String spath : servicePaths) {
-                byte[] data = getServiceData(this.siteId, serviceRoot, spath);
+                byte[] data = getServiceData(siteId, serviceRoot, spath);
                 if (data == null) {
                     continue;
                 }

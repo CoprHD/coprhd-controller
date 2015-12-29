@@ -1538,7 +1538,8 @@ public class CoordinatorClientExt {
                     monitorResult = new SiteMonitorResult();
                 }
 
-                boolean quorumLost = isDbQuorumLost(standbySite);
+                boolean quorumLost = drUtil.isQuorumLost(standbySite, Constants.DBSVC_NAME) ||
+                        drUtil.isQuorumLost(standbySite, Constants.GEODBSVC_NAME);
                 if (quorumLost && monitorResult.getDbQuorumLostSince() == 0) {
                     _log.warn("Db quorum lost for site {}", siteId);
                     monitorResult.setDbQuorumLostSince(System.currentTimeMillis());
@@ -1570,13 +1571,6 @@ public class CoordinatorClientExt {
                 }
                 drUtil.updateVdcTargetVersion(_coordinator.getSiteId(), SiteInfo.DR_OP_DEGRADE_STANDBY);
             }
-        }
-
-        private boolean isDbQuorumLost(Site site) {
-            String dcId = drUtil.getCassandraDcId(site);
-            int quorum = site.getNodeCount() / 2 + 1;
-            // FIXME: reimplement this by counting service beacons from ZK.
-            return false;
         }
     };
 

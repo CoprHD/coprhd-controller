@@ -1279,13 +1279,13 @@ public class DisasterRecoveryService {
         if (standbyUuid.equals(drUtil.getActiveSiteId())) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Can't switchover to an active site");
         }
-
-        if (!drUtil.isSiteUp(standbyUuid)) {
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not up");
-        }
-
+        
         if (standby.getState() != SiteState.STANDBY_SYNCED) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not fully synced");
+        }
+        
+        if (!drUtil.isSiteUp(standbyUuid)) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not up");
         }
 
         List<Site> existingSites = drUtil.listSites();

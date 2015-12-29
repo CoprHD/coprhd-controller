@@ -1485,7 +1485,7 @@ public class CoordinatorClientExt {
                 //standby node with vip will monitor all node states
                 InetAddress vip=InetAddress.getByName(getVip());
                 if(NetworkInterface.getByInetAddress(vip)!=null){
-                    _log.info("Local Node is leader");
+                    _log.info("Local node has vip, monitor other node zk states");
 
                     List<String> readOnlyNodes = new ArrayList<>();
                     List<String> observerNodes = new ArrayList<>();
@@ -1495,7 +1495,7 @@ public class CoordinatorClientExt {
 
                         String nodeState=drUtil.getLocalCoordinatorMode(node);
                         if (nodeState==null){
-                            _log.info("State for "+node+": null");
+                            _log.debug("State for {}: null",node);
                             continue;
                         }
                         
@@ -1507,24 +1507,23 @@ public class CoordinatorClientExt {
                             // Found another node in read only
                             observerNodes.add(node);
                         }
-                        _log.info("State for "+node+": "+nodeState);
+                        _log.debug("State for {}: {}",node,nodeState);
                         numOnline++;
                     }
 
-                    int numObserver = observerNodes.size();
-                    int numReadOnly = readOnlyNodes.size();
-                    int numParticipants = numOnline - numReadOnly + numObserver;
+                    int numParticipants = numOnline - readOnlyNodes.size() - observerNodes.size();
+                    int quorum = getNodeCount() / 2 + 1;
 
-                    _log.info("Observer nodes: "+numObserver);
-                    _log.info("Read Only nodes: "+numReadOnly);
-                    _log.info("Participant nodes: "+numParticipants);
-                    _log.info("nodes Online: "+numOnline);
+                    _log.debug("Observer nodes: "+observerNodes.size());
+                    _log.debug("Read Only nodes: "+readOnlyNodes.size());
+                    _log.debug("Participant nodes: "+numParticipants);
+                    _log.debug("nodes Online: "+numOnline);
 
-                    // if there is a participant need to reconfigure or it will be stuck there
+                    // if there is a participant we need to reconfigure or it will be stuck there
                     // if there are only participants no need to reconfigure
-                    // if there are only read only nodes we need to reconfigure
-                    if((0 < numParticipants && numParticipants < numOnline) || (numReadOnly == numOnline)){
-                        _log.info("Reconfigure all nodes to participant");
+                    // if there are only read only nodes and we have quorum we need to reconfigure
+                    if((0 < numParticipants && numParticipants < numOnline) || (readOnlyNodes.size() == numOnline && numOnline >= quorum)){
+                        _log.info("Reconfiguring nodes to participant: ",observerNodes,readOnlyNodes);
                         reconfigZKToWritable(observerNodes,readOnlyNodes);
                     }
 

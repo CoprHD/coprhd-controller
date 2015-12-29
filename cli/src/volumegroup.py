@@ -421,7 +421,7 @@ def update_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of existing volume group',
                                 required=True)
-    update_parser.add_argument('-np', '-newname',
+    update_parser.add_argument('-nn', '-newname',
                                        metavar='<newname>',
                                        dest='newname',
                                        help='New name of volume group')

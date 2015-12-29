@@ -608,7 +608,11 @@ public class BackupOps {
         }
         if (!acquired) {
             log.error("Unable to acquire lock: {}", name);
-            throw BackupException.fatals.unableToGetLock(name);
+            if (name.equals(RecoveryConstants.RECOVERY_LOCK)) {
+                throw BackupException.fatals.unableToGetRecoveryLock(name);
+            }else {
+                throw BackupException.fatals.unableToGetLock(name);
+            }
         }
         log.info("Got lock: {}", name);
         return lock;

@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,13 +36,25 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  * Common utility functions for Disaster Recovery
  */
 public class DrUtil {
+    private static final List<SiteState> ACTIVE_SITE_STATES = Arrays.asList(SiteState.ACTIVE, SiteState.STANDBY_FAILING_OVER, SiteState.STANDBY_SWITCHING_OVER);
+
     private static final Logger log = LoggerFactory.getLogger(DrUtil.class);
     
     private static final int COORDINATOR_PORT = 2181;
     private static final int CONNECTION_TIMEOUT = 30*1000;
     public static final String ZOOKEEPER_MODE_OBSERVER = "observer";
     public static final String ZOOKEEPER_MODE_READONLY = "read-only";
-    
+
+    private static final String DR_CONFIG_KIND = "disasterRecoveryConfig";
+    private static final String DR_CONFIG_ID = "global";
+
+    public static final String KEY_ADD_STANDBY_TIMEOUT = "add_standby_timeout_millis";
+    public static final String KEY_REMOVE_STANDBY_TIMEOUT = "remove_standby_timeout_millis";
+    public static final String KEY_PAUSE_STANDBY_TIMEOUT = "pause_standby_timout_millis";
+    public static final String KEY_RESUME_STANDBY_TIMEOUT = "resume_standby_timeout_millis";
+    public static final String KEY_DATA_SYNC_TIMEOUT = "data_sync_timeout_millis";
+    public static final String KEY_SWITCHOVER_TIMEOUT = "switchover_timeout_millis";
+
     private CoordinatorClient coordinator;
 
     public DrUtil() {
@@ -58,14 +71,43 @@ public class DrUtil {
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
-    
+
     /**
-     * Check if current site is acitve
+     * The original purpose of this method is to allow QE engineers to tune DR operation timeout value by inserting timeout settings
+     * into ZK via zkCli.sh so they could easily manipulate negative test cases (e.g. generate a add-standby failure in 1 minute)
+     * @param key
+     * @param defaultValue
+     * @return ZK stored configuration item value, or defaultValue if ZNode or configuration item key not found
+     */
+    public int getDrIntConfig(String key, int defaultValue) {
+        try {
+            Configuration config = coordinator.queryConfiguration(DR_CONFIG_KIND, DR_CONFIG_ID);
+            if (config != null && config.getConfig(key) != null) {
+                return Integer.valueOf(config.getConfig(key));
+            }
+        } catch (Exception e) {
+            log.warn("Exception happened when fetching DR config from ZK", e);
+        }
+        return defaultValue;
+    }
+
+    /**
+     * Check if current site is active
      * 
-     * @return true for acitve. otherwise false
+     * @return true for active. otherwise false
      */
     public boolean isActiveSite() {
-        return getActiveSiteId().equals(coordinator.getSiteId());
+        try {
+            SiteState state = getSiteFromLocalVdc(coordinator.getSiteId()).getState();
+            return ACTIVE_SITE_STATES.contains(state);
+        } catch (RetryableCoordinatorException ex) {
+            // Site no initialized yet 
+            if  (ServiceCode.COORDINATOR_SITE_NOT_FOUND == ex.getServiceCode()) {
+                return true;
+            }
+            log.error("Unexpected error to check active site", ex);
+        }
+        return false;
     }
     
     /**
@@ -78,28 +120,29 @@ public class DrUtil {
     }
     
     /**
-     * Get acitve site in current vdc
+     * Get active site in current vdc
      * 
      * @return
      */
     public String getActiveSiteId() {
         return getActiveSiteId(getLocalVdcShortId());
     }
-
+    
     /**
-     * Get acitve site in a specific vdc
+     * Get active site in a specific vdc
      *
      * @param vdcShortId short id of the vdc
-     * @return uuid of the acitve site
+     * @return uuid of the active site
      */
     public String getActiveSiteId(String vdcShortId) {
-        Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_ACTIVE_KIND, vdcShortId);
-        if (config == null && vdcShortId.equals(getLocalVdcShortId())) {
-            // active site config may not be initialized yet. Assume it is active site now
-            log.info("Cannot load active site config for vdc {}. Use current site as the active one", vdcShortId);
-            return coordinator.getSiteId();
+        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
+        for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
+            Site site = new Site(siteConfig);
+            if (ACTIVE_SITE_STATES.contains(site.getState())) {
+                return site.getUuid();
+            }
         }
-        return config.getConfig(Constants.CONFIG_DR_ACTIVE_SITEID);
+        return null;
     }
 
     /**
@@ -133,7 +176,7 @@ public class DrUtil {
      * @return list of standby sites
      */
     public List<Site> listStandbySites() {
-        String activeSiteId = this.getActiveSiteId();
+        String activeSiteId = getActiveSiteId();
         List<Site> result = new ArrayList<>();
         for(Site site : listSites()) {
             if (!site.getUuid().equals(activeSiteId)) {
@@ -168,8 +211,17 @@ public class DrUtil {
      * @return list of all sites
      */
     public List<Site> listSites() {
+        return listSites(getLocalVdcShortId());
+    }
+    
+    /**
+     * List all sites in given vdc
+     * 
+     * @return list of all sites
+     */
+    public List<Site> listSites(String vdcShortId) {
         List<Site> result = new ArrayList<>();
-        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, getLocalVdcShortId());
+        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
         for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
             result.add(new Site(siteConfig));
         }
@@ -183,8 +235,18 @@ public class DrUtil {
      * @return
      */
     public List<Site> listSitesInState(SiteState state) {
+        return listSitesInState(getLocalVdcShortId(), state);
+    }
+    
+    /**
+     * List sites in given vdc with given state
+     * 
+     * @param state
+     * @return
+     */
+    public List<Site> listSitesInState(String vdcShortId, SiteState state) {
         List<Site> result = new ArrayList<Site>();
-        for(Site site : listSites()) {
+        for(Site site : listSites(vdcShortId)) {
             if (site.getState().equals(state)) {
                 result.add(site);
             }

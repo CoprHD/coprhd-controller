@@ -43,6 +43,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.management.backup.BackupOps;
 
@@ -321,7 +322,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         singletonInstance = this;
         this.cfg = new SchedulerConfig(coordinator, this.encryptionProvider, this.dbClient);
 
-        LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(BackupConstants.BACKUP_LEADER_PATH,
+        LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(coordinator.getCoordinatorClient().getSiteId(), BackupConstants.BACKUP_LEADER_PATH,
                 new BackupLeaderSelectorListener());
         leaderSelector.autoRequeue();
         leaderSelector.start();

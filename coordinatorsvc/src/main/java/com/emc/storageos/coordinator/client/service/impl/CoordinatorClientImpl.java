@@ -8,7 +8,6 @@ package com.emc.storageos.coordinator.client.service.impl;
 import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
 import static com.emc.storageos.coordinator.client.model.Constants.DB_CONFIG;
 import static com.emc.storageos.coordinator.client.model.Constants.GLOBAL_ID;
-import static com.emc.storageos.coordinator.client.model.Constants.KEY_CERTIFICATE_PAIR_CONFIG_KIND;
 import static com.emc.storageos.coordinator.client.model.Constants.MIGRATION_STATUS;
 import static com.emc.storageos.coordinator.client.model.Constants.NODE_DUALINETADDR_CONFIG;
 import static com.emc.storageos.coordinator.client.model.Constants.SCHEMA_VERSION;
@@ -68,12 +67,13 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
@@ -96,7 +96,6 @@ import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.sys.ClusterInfo;
-import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 
 /**
  * Default coordinator client implementation
@@ -208,7 +207,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private void createSiteSpecificSection() throws Exception {
         addSite(siteId);
-        setActiveSite(siteId);
     }
 
     @Override
@@ -230,27 +228,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             log.error("Failed to set site info of {}. Error {}", sitePath, e);
             throw e;
         }
-    }
-
-    @Override
-    public void setActiveSite(String siteId) throws Exception {
-        Configuration localVdcConfig = queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
-                Constants.CONFIG_GEO_LOCAL_VDC_ID);
-        if (localVdcConfig == null) {
-            log.info("initializing local VDC pointer to vdc1");
-            ConfigurationImpl localVdcConfigImpl = new ConfigurationImpl();
-            localVdcConfigImpl.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
-            localVdcConfigImpl.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
-            localVdcConfigImpl.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID);
-            persistServiceConfiguration(localVdcConfigImpl);
-            localVdcConfig = localVdcConfigImpl;
-        }
-        String localVdcShortId = localVdcConfig.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
-        ConfigurationImpl config = new ConfigurationImpl();
-        config.setKind(Constants.CONFIG_DR_ACTIVE_KIND);
-        config.setId(localVdcShortId);
-        config.setConfig(Constants.CONFIG_DR_ACTIVE_SITEID, siteId);
-        persistServiceConfiguration(config);
     }
 
     /**
@@ -625,7 +602,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private boolean isSiteSpecific(String kind) {
         if (kind.equals(SiteInfo.CONFIG_KIND)
             || kind.equals(SiteError.CONFIG_KIND)
-            || kind.equals(PowerOffState.CONFIG_KIND)) {
+            || kind.equals(PowerOffState.CONFIG_KIND)
+            || kind.equals(SiteMonitorResult.CONFIG_KIND)) {
             return true;
         }
         return false;
@@ -943,6 +921,18 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public DistributedPersistentLock getSiteLocalPersistentLock(String lockName) throws CoordinatorException {
+        DistributedPersistentLock lock = new DistributedPersistentLockImpl(_zkConnection,
+                String.format("%s/%s%s", ZkPath.SITES, getSiteId(), ZkPath.PERSISTENTLOCK.toString()), lockName);
+        try {
+            lock.start();
+        } catch (Exception e) {
+            throw CoordinatorException.fatals.unableToGetPersistentLock(lockName, e);
+        }
+        return lock;
+    }
+
+    @Override
     public DistributedPersistentLock getPersistentLock(String lockName) throws CoordinatorException {
         DistributedPersistentLock lock = new DistributedPersistentLockImpl(_zkConnection,
                 ZkPath.PERSISTENTLOCK.toString(), lockName);
@@ -1075,7 +1065,20 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public LeaderSelector getLeaderSelector(String leaderPath, LeaderSelectorListener listener)
             throws CoordinatorException {
-        StringBuilder leaderFullPath = new StringBuilder(ZkPath.LEADER.toString());
+        return getLeaderSelector(null, leaderPath, listener);
+    }
+
+    @Override
+    public LeaderSelector getLeaderSelector(String siteId, String leaderPath, LeaderSelectorListener listener)
+            throws CoordinatorException {
+        
+        StringBuilder leaderFullPath = new StringBuilder();
+        if (siteId != null) {
+            leaderFullPath.append(ZkPath.SITES);
+            leaderFullPath.append("/");
+            leaderFullPath.append(siteId);
+        }
+        leaderFullPath.append(ZkPath.LEADER);
         leaderFullPath.append("/");
         leaderFullPath.append(leaderPath);
 
@@ -1565,7 +1568,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public String getUpgradeLockOwner(String lockId) {
         try {
-            DistributedPersistentLock lock = getPersistentLock(lockId);
+            DistributedPersistentLock lock = getSiteLocalPersistentLock(lockId);
             if (lock != null) {
                 String lockOwner = lock.getLockOwner();
                 if (lockOwner != null) {
@@ -1785,6 +1788,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public void deletePath(String path) {
         try {
+            List<String> subPaths = _zkConnection.curator().getChildren().forPath(path);
+            for (String subPath : subPaths) {
+                log.info("Subpath {} is going to be deleted", subPath);
+            }
+            
             DeleteBuilder deleteOp = _zkConnection.curator().delete();
             deleteOp.deletingChildrenIfNeeded();
             deleteOp.forPath(path);

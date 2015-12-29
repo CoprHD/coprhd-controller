@@ -13,6 +13,7 @@ import models.datatable.DisasterRecoveryDataTable;
 import models.datatable.DisasterRecoveryDataTable.StandByInfo;
 
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
 
 import play.data.binding.As;
 import play.data.validation.MaxSize;
@@ -24,6 +25,7 @@ import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
@@ -109,6 +111,7 @@ public class DisasterRecovery extends ViprResourceController {
         String standby_name = null;
         String standby_vip = null;
         String active_name = null;
+        String targetURL = null;
         Boolean iamPrimary = false;
 
         // Get active site details
@@ -139,7 +142,8 @@ public class DisasterRecovery extends ViprResourceController {
         String site_uuid = id;
         result = DisasterRecoveryUtils.getSite(id);
         String site_state = result.getState();
-        render(active_name, standby_name, standby_vip, site_uuid, site_state, iamPrimary);
+        targetURL = "https://" + standby_vip;
+        render(active_name, standby_name, standby_vip, site_uuid, site_state, iamPrimary, targetURL);
     }
 
     private static DisasterRecoveryDataTable createDisasterRecoveryDataTable() {
@@ -244,9 +248,34 @@ public class DisasterRecovery extends ViprResourceController {
 
     public static void errorDetails(String id) {
         SiteRestRep siteRest = DisasterRecoveryUtils.getSite(id);
+        Boolean isError = false;
+        String uuid = id;
         if (siteRest.getState().equals(String.valueOf(SiteState.STANDBY_ERROR))) {
             SiteErrorResponse disasterSiteError = DisasterRecoveryUtils.getSiteError(id);
-            render(disasterSiteError);
+            isError = true;
+            if(disasterSiteError.getCreationTime() != null) {
+                DateTime creationTime = new DateTime (disasterSiteError.getCreationTime().getTime());
+                renderArgs.put("creationTime", creationTime);
+            }
+            render(isError, uuid, disasterSiteError);
+        }
+        else {
+            SiteDetailRestRep disasterSiteTime = DisasterRecoveryUtils.getSiteTime(id);
+            isError = false;
+            if(disasterSiteTime.getCreationTime() != null) {
+                DateTime creationTime = new DateTime(disasterSiteTime.getCreationTime().getTime());
+                renderArgs.put("creationTime", creationTime);
+            }
+            if(disasterSiteTime.getPausedTime() != null) {
+                DateTime pausedTime = new DateTime (disasterSiteTime.getPausedTime().getTime());
+                renderArgs.put("pausedTime", pausedTime);
+            }
+            if(disasterSiteTime.getlastUpdateTime() != null) {
+                DateTime lastUpdateTime = new DateTime (disasterSiteTime.getlastUpdateTime().getTime());
+                renderArgs.put("lastUpdateTime", lastUpdateTime);
+            }
+
+            render(isError, uuid, disasterSiteTime);
         }
     }
 

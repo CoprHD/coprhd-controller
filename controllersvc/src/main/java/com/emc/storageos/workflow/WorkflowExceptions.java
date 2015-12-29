@@ -22,4 +22,8 @@ public interface WorkflowExceptions {
 
     @DeclareServiceCode(ServiceCode.WORKFLOW_CANNOT_BE_ROLLED_BACK)
     public WorkflowException innerWorkflowRollbackError(String uri, String messages);
+    
+    @DeclareServiceCode(ServiceCode.WORKFLOW_TERMINATED_DR_FAILOVER)
+    public WorkflowException workflowTerminatedForFailover(String uri);
+    
 }

@@ -1,13 +1,53 @@
+#{if isError }
 <dl class="dl-horizontal">
+  <dt>&{'disasterRecovery.id'}</dt>
+  <dd>${uuid}</dd>
+  
   <dt>&{'disasterRecovery.error.code'}</dt>
   <dd>${disasterSiteError.serviceCode}</dd>
   
   <dt>&{'disasterRecovery.error.code.name'}</dt>
   <dd>${disasterSiteError.serviceCodeName}</dd>
-  
   <dt>&{'disasterRecovery.error.creation.time'}</dt>
-  <dd>${disasterSiteError.creationTime ?: '-'}</dd>
-  
+  <dd id="creationTime-${uuid}">--</dd>
+  #{if creationTime }
+  	<script>
+  		var epocCreateVal = '${creationTime}';
+   		$('#creationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateVal)));
+  	</script>
+  #{/if}
   <dt>&{'disasterRecovery.error.message'}</dt>
   <dd>${disasterSiteError.errorMessage}</dd>
 </dl>
+#{/if}
+#{else}
+<dl class="dl-horizontal">
+  <dt>&{'disasterRecovery.id'}</dt>
+  <dd>${uuid}</dd>
+  <dt>&{'disasterRecovery.error.creation.time'}</dt>
+  <dd id="creationTime-${uuid}">--</dd>
+  #{if creationTime }
+  	<script>
+  		var epocCreateTime = '${creationTime}';
+   		$('#creationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateTime)));
+  	</script>
+  #{/if}
+  <dt>&{'disasterRecovery.paused.time'}</dt>
+  <dd id="pausedTime-${uuid}">--</dd>
+  #{if pausedTime }
+  	<script>
+  		var epocPauseTime = '${pausedTime}';
+   		$('#pausedTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocPauseTime)));
+  	</script>
+  #{/if}
+  <dt>&{'disasterRecovery.lastOperation.time'}</dt>
+  <dd id="lastUpdateTime">--</dd>
+  #{if lastUpdateTime }
+  	<script>
+  		var epocLastTime = '${lastUpdateTime}';
+   		$('#lastUpdateTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocLastTime)));
+  	</script>
+  #{/if}  
+</dl>
+#{/else}
+

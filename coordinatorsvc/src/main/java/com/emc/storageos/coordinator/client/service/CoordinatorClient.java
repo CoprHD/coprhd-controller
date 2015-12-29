@@ -227,13 +227,26 @@ public interface CoordinatorClient {
     public InterProcessSemaphoreMutex getSemaphoreLock(String name) throws CoordinatorException;
 
     /**
-     * Retrieves/creates a distributed persistent lock
+     * Retrieves/creates a distributed persistent lock from site-specific area.
+     * This should be the default choice of persistent lock.
+     *
+     * @param name lock name
+     * @return DistributedPersistentLock
+     */
+
+    DistributedPersistentLock getSiteLocalPersistentLock(String name) throws CoordinatorException;
+
+    /**
+     * Retrieves/creates a distributed persistent lock from the global area.
+     * This is primarily used by controllersvc and UpgradeManager to provide backward compatibility.
+     * Use with extreme caution since all the DR sites are sharing this lock and there will be race conditions.
+     * Right now it's probably fine to controllersvc since we don't have controllersvc running on standby sites.
      * 
      * @param name lock name
      * @return DistributedPersistentLock
      */
 
-    public DistributedPersistentLock getPersistentLock(String name) throws CoordinatorException;
+    DistributedPersistentLock getPersistentLock(String name) throws CoordinatorException;
 
     /**
      * Starts coordinator client service. Default implementation attempts to connect
@@ -407,6 +420,17 @@ public interface CoordinatorClient {
      * @throws CoordinatorException
      */
     public LeaderSelector getLeaderSelector(String leaderPath, LeaderSelectorListener listener) throws CoordinatorException;
+
+    /**
+     * Create a leader selector. For specific site only. See comment for {@link #getLeaderSelector(String, LeaderSelectorListener)}
+     * 
+     * @param siteId - null for global area. Non null site id for some specific site.
+     * @param leaderPath leader path
+     * @param listener leader assignment listener
+     * @return LeaderSelector
+     * @throws CoordinatorException
+     */
+    public LeaderSelector getLeaderSelector(String siteId, String leaderPath, LeaderSelectorListener listener) throws CoordinatorException;
 
     /**
      * Get target info
@@ -603,12 +627,6 @@ public interface CoordinatorClient {
      * This should only be used by the add standby site API
      */
     public void addSite(String siteId) throws Exception;
-
-    /**
-     * Update the active site pointer in ZK
-     * This should only be used by the sync site API
-     */
-    public void setActiveSite(String siteId) throws Exception;
     
     /**
      * Create a Curator recipe - double barrier 

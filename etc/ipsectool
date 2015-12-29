@@ -12,12 +12,15 @@ nl="
 # commands
 SIPCALC="/usr/local/bin/sipcalc"
 SSH="/usr/bin/ssh"
+GREP="/usr/bin/grep"
+SED="/usr/bin/sed"
 
 _usage() {
     set +Ex
-    echo "Usage: $0 check-connection       return IPs with ipsec connections"          >&2
-    echo "   or: $0 get-props <ip>         get version and ipsec_key from given node"  >&2
-    echo "   or: $0 sync-key  <ipsec-key>  write given key to vdc property file"       >&2
+    echo "Usage: $0 check-connection           return IPs with NO ipsec connections"       >&2
+    echo "   or: $0 get-props  <ip>            get version and ipsec_key from given node"  >&2
+    echo "   or: $0 sync-key   <ipsec-key>     write given key to vdc property file"       >&2
+    echo "   or: $0 sync-status <ipsec-status> write given status to vdc property file"    >&2
     exit 0
 }
 
@@ -172,8 +175,40 @@ _get_props() {
     local remote=${1}
     local version=$(_get_remote_prop ${remote} "vdc_config_version")
     local ipsec_key=$(_get_remote_prop ${remote} "ipsec_key")
+    local ipsec_status=$(_get_remote_prop ${remote} "ipsec_status")
     echo "vdc_config_version=${version}"
     echo "ipsec_key=${ipsec_key}"
+    echo "ipsec_status=${ipsec_status}"
+}
+
+#
+# write/update property to vdcconfig.properties
+# input:
+#     1. property name
+#     2. property value
+#
+_sync_ipsec_property() {
+    local name=${1}
+    local value=${2}
+    local vdcconfig_file="/.volumes/bootfs/etc/vdcconfig.properties"
+
+    /etc/systool --remount-rw
+    ${GREP} "${name}" ${vdcconfig_file} 2>/dev/null
+    if [ $? -eq 0 ] ; then
+        ${SED} -i -- "s/${name}=.*/${name}=${value}/" ${vdcconfig_file}
+    else
+        echo "${name}=${value}" >> ${vdcconfig_file}
+    fi
+    /etc/systool --remount-ro
+}
+
+#
+# write given ipsec_status to local's vdcconfig.properties
+# input: new ipsec_status
+#
+_sync_status() {
+    local ipsec_status=${1}
+    _sync_ipsec_property "ipsec_status" "${ipsec_status}"
 }
 
 #
@@ -181,15 +216,13 @@ _get_props() {
 # input: new ipsec_key
 #
 _sync_key() {
-   local ipsec_key=${1}
-   /etc/systool --remount-rw
-   sed -i -- "s/ipsec_key=.*/ipsec_key=${ipsec_key}/" "/.volumes/bootfs/etc/vdcconfig.properties"
-   /etc/systool --remount-ro
+    local ipsec_key=${1}
+    _sync_ipsec_property "ipsec_key" "${ipsec_key}"
 }
 
 
 case ${#} in
-    0) ;;
+    0) _usage ;;
     1) case ${1} in
         check-connection)  _check_connection ;;
         *)                 _usage
@@ -197,6 +230,7 @@ case ${#} in
     2) case ${1} in
         get-props)         _get_props   "${2}" ;;
         sync-key)          _sync_key    "${2}" ;;
+        sync-status)       _sync_status "${2}" ;;
         *)                 _usage
        esac ;;
     *) _usage

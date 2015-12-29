@@ -79,6 +79,7 @@ public class LocalRepository {
     private static final String _SYSTOOL_RECONFIG = "--reconfig";
     private static final String _SYSTOOL_RECONFIG_PROPS = "--reconfig-props";
     private static final String _SYSTOOL_RESTART = "--restart";
+    private static final String _SYSTOOL_STOP = "--stop";
     private static final String _SYSTOOL_RELOAD = "--reload";
     private static final String _SYSTOOL_IS_APPLIANCE = "--is-appliance";
     private static final String _SYSTOOL_RECONFIG_COORDINATOR = "--reconfig-coordinator";
@@ -454,6 +455,21 @@ public class LocalRepository {
         final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
         checkFailure(result, prefix);
     }
+    
+    /**
+     * Stop a service
+     * 
+     * @param serviceName service name
+     * @throws LocalRepositoryException
+     */
+    public void stop(final String serviceName) throws LocalRepositoryException {
+        final String prefix = "stop(): serviceName=" + serviceName + " ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_STOP, serviceName };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
 
     /**
      * Notify a service to reload configs after /etc/genconfig regenerates them.
@@ -593,6 +609,21 @@ public class LocalRepository {
         _log.info(prefix + "Success!");
     }
 
+    /**
+     * write given ipsec state to local file system.
+     *
+     * @param ipsecStatus
+     * @throws LocalRepositoryException
+     */
+    public void syncIpsecStatusToLocal(String ipsecStatus) throws LocalRepositoryException {
+        final String prefix = "syncIpsecStateToLocal(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_SYNC_STATUS, ipsecStatus };
+        exec(prefix, cmd);
+        _log.info(prefix + "Success!");
+    }
+
 
     /**
      * Common method checking exec execution failure
@@ -663,7 +694,7 @@ public class LocalRepository {
         try {
             Files.delete(filePath);
         } catch (Exception e) {
-            _log.warn("Failed to delete tmp file");
+            _log.warn("Failed to delete tmp file {}", filePath);
         }
     }
 }

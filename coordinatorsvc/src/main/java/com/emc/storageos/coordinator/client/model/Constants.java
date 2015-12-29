@@ -25,8 +25,7 @@ public interface Constants {
     public static final String REMOTE_DOWNLOAD_LOCK = "remoteDownloadLock";
     public static final String NEW_VERSIONS_LOCK = "newVersionsLock";
     public static final String DISTRIBUTED_UPGRADE_LOCK = "controlNodeUpgradeLock";
-    public static final String DISTRIBUTED_PROPERTY_LOCK = "controlNodePropertyLock";
-    public static final String DISTRIBUTED_VDC_LOCK = "controlNodeVdcLock";
+    public static final String DISTRIBUTED_REBOOT_LOCK = "controlNodeRebootLock";
 
     // service config constants
     // category name under which upgrade target configurations are stored
@@ -41,9 +40,11 @@ public interface Constants {
     //ipsec command constants
     public static final String VDC_CONFIG_VERSION = "vdc_config_version";
     public static final String IPSEC_KEY = "ipsec_key";
+    public static final String IPSEC_STATUS = "ipsec_status";
     public static final String IPSEC_CHECK_CONNECTION = "check-connection";
     public static final String IPSEC_GET_PROPS = "get-props";
     public static final String IPSEC_SYNC_KEY = "sync-key";
+    public static final String IPSEC_SYNC_STATUS = "sync-status";
 
             
     // upload image
@@ -146,7 +147,8 @@ public interface Constants {
     public static final String ZK_SERVER_CONFIG_PREFIX= "server.";
     public static final String STANDBY_PROPERTY_REGEX=".*standby\\d_network_\\d_ipaddr6?";
     
-    public static final String SWITCHOVER_BARRIER = "switchoverBarrier";
+    public static final String SWITCHOVER_BARRIER_ACTIVE_SITE = "switchoverBarrierActiveSite";
+    public static final String SWITCHOVER_BARRIER_STANDBY_SITE = "switchoverBarrierStandbySite";
     public static final String FAILOVER_BARRIER = "failoverBarrier";
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
     public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";

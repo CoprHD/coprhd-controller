@@ -676,7 +676,7 @@ public class VolumeIngestionUtil {
                 vpoolsString = Joiner.on(", ").join(supportedVPoolUris);
             }
             throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePoolNicer(
-                    vpoolName, spoolName, "Volume", unManagedVolume.getLabel(), vpoolsString);
+                    vpoolName, "Volume", unManagedVolume.getLabel(), vpoolsString);
         }
     }
 

@@ -593,6 +593,10 @@ public class FileVirtualPoolService extends VirtualPoolService {
             	
             	if( FileReplicationType.REMOTE.name().equals(vPool.getFileReplicationType()) && 
             			copies != null && !copies.isEmpty()) {
+            		if (copies.size() > 1) {
+            			_log.error("Single remote copy supported, you have given {} copies ", copies.size());
+            			throw APIException.badRequests.moreThanOneRemoteCopiesSpecified();
+            		}
             		// Create a Map with remote copies 
             		StringMap remoteCopiesMap = new StringMap();
             		for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteCopy : copies) {
@@ -629,6 +633,14 @@ public class FileVirtualPoolService extends VirtualPoolService {
             		vPool.setFileReplicationType(FileReplicationType.REMOTE.name());
             		_log.info("File Replication type {} and number of remote copies {}",
             				vPool.getFileReplicationType(), remoteCopiesMap.size());
+            	}
+            	
+            	// Verify remote copies are there for REMOTE replication!!!
+            	if (FileReplicationType.REMOTE.name().equalsIgnoreCase(vPool.getFileReplicationType()) &&
+            			(vPool.getFileRemoteCopySettings() == null ||
+            					vPool.getFileRemoteCopySettings().isEmpty())) {
+            		_log.info("No remote copies in virtual pool for REMOTE replication ");
+            		throw APIException.badRequests.noReplicationRemoteCopies(vPool.getFileReplicationType());
             	}
             }
         }
@@ -837,15 +849,21 @@ public class FileVirtualPoolService extends VirtualPoolService {
         		if (param.getReplicationParam().getRemoveRemoteCopies() != null 
         				&& !param.getReplicationParam().getRemoveRemoteCopies().isEmpty()) {
         			for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteSettings : param.getReplicationParam().getRemoveRemoteCopies()) {
-
-        				if (remoteSettings.getVarray() != null && remoteCopySettingsMap.containsKey(remoteSettings.getVarray().toString())) {
-        					String remoteCopySettingsUri = remoteCopySettingsMap.get(remoteSettings.getVarray().toString());
-        					remoteCopySettingsMap.remove(remoteSettings.getVarray().toString());
-        					VpoolRemoteCopyProtectionSettings remoteSettingsObj = _dbClient.queryObject(
-        							VpoolRemoteCopyProtectionSettings.class, URI.create(remoteCopySettingsUri));
-        					remoteSettingsObj.setInactive(true);
-        					_dbClient.updateObject(remoteSettingsObj);
-        				}
+                        URI remoteVarray = remoteSettings.getVarray();
+                        if (URIUtil.isValid(remoteVarray)) {
+                        	if (remoteCopySettingsMap.containsKey(remoteVarray.toString())) {
+            					String remoteCopySettingsUri = remoteCopySettingsMap.get(remoteSettings.getVarray().toString());
+            					remoteCopySettingsMap.remove(remoteSettings.getVarray().toString());
+            					VpoolRemoteCopyProtectionSettings remoteSettingsObj = _dbClient.queryObject(
+            							VpoolRemoteCopyProtectionSettings.class, URI.create(remoteCopySettingsUri));
+            					remoteSettingsObj.setInactive(true);
+            					_dbClient.updateObject(remoteSettingsObj);
+            				} else {
+            					_log.error("Remote copy {} trying to remove does not exists in vpool {} ", remoteVarray,
+                    					virtualPool.getId());
+            					throw APIException.badRequests.remoteCopyDoesNotExists(remoteVarray);
+            				}
+                        }
         			}
         		}
                 // Add remote copy settings!!!
@@ -884,6 +902,18 @@ public class FileVirtualPoolService extends VirtualPoolService {
         				remoteCopySettingsMap.put(remoteSettings.getVarray().toString(), remoteCopySettingsParam.getId().toString());
         			}
         			_dbClient.createObject(remoteSettingsList);
+        		}
+        	} 
+        	// Verify remote copies are there for REMOTE replication!!!
+        	if (FileReplicationType.REMOTE.name().equalsIgnoreCase(virtualPool.getFileReplicationType())) {
+        		if (virtualPool.getFileRemoteCopySettings() == null || 
+        				virtualPool.getFileRemoteCopySettings().isEmpty()) {
+        			_log.info("No remote copies in virtual pool for REMOTE replication ");
+            		throw APIException.badRequests.noReplicationRemoteCopies(virtualPool.getFileReplicationType());	
+        		} else if(virtualPool.getFileRemoteCopySettings().size() > 1) {
+        			_log.error("Single remote copy supported, you have given {} copies ",
+        					virtualPool.getFileRemoteCopySettings().size());
+        			throw APIException.badRequests.moreThanOneRemoteCopiesSpecified();
         		}
         	}
         }

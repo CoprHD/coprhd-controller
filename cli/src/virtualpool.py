@@ -486,8 +486,8 @@ class VirtualPool(object):
                 copyEntry['varray'] = varray
                 if(len(copyParam) > 1):
                     copyEntry['vpool'] = self.vpool_query(copyParam[1], "file")
-                remoteCopy['protection_varray_vpool'] = copyEntry
-                remoteCopies.append(remoteCopy)
+                #remoteCopy['protection_varray_vpool'] = copyEntry
+                remoteCopies.append(copyEntry)
         return remoteCopies         
     
     def get_file_replication_params(self, policy, copies=None, addCopies=None,
@@ -919,7 +919,7 @@ class VirtualPool(object):
                     self.get_file_replication_params(
                             fr_policy, None, fr_addcopies, fr_removecopies)
             parms['protection'] = vpool_protection_param
-
+            
         if (use_matched_pools is not None):
             if(use_matched_pools.upper() == "TRUE"):
                 parms['use_matched_pools'] = "true"
@@ -981,6 +981,7 @@ class VirtualPool(object):
                 parms['drive_type'] = drivetype
 
         body = json.dumps(parms)
+        print body
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "PUT",
                                              self.URI_VPOOL_SHOW.format(

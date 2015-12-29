@@ -1,14 +1,15 @@
 package com.emc.storageos.driver.scaleio;
 
-import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
-import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
-import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClientFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
+import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
+import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClientFactory;
 
 public class ScaleIORestHandleFactory {
     private static final Logger log = LoggerFactory.getLogger(ScaleIORestHandleFactory.class);

@@ -1,5 +1,11 @@
 package com.emc.storageos.driver.scaleio;
 
+import java.util.*;
+
+import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.driver.scaleio.api.restapi.response.*;
@@ -9,11 +15,6 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-import org.apache.commons.lang.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver {
 

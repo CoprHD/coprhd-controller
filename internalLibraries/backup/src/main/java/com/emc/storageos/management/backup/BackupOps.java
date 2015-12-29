@@ -610,9 +610,9 @@ public class BackupOps {
             log.error("Unable to acquire lock: {}", name);
             if (name.equals(RecoveryConstants.RECOVERY_LOCK)) {
                 throw BackupException.fatals.unableToGetRecoveryLock(name);
-            }else {
-                throw BackupException.fatals.unableToGetLock(name);
             }
+            throw BackupException.fatals.unableToGetLock(name);
+
         }
         log.info("Got lock: {}", name);
         return lock;

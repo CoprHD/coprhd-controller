@@ -244,7 +244,7 @@ def show_volume_group_volume_parser(subcommand_parsers, common_parser):
                         description='ViPR Project Show CLI usage.',
                                                 parents=[common_parser],
                                                 conflict_handler='resolve',
-                                                help='Show volume group details')
+                                                help='Show volume group volumes')
     volume_group_volume_parser.add_argument('-xml',
                              dest='xml',
                              action='store_true',
@@ -273,7 +273,7 @@ def show_volume_group_children_parser(subcommand_parsers, common_parser):
                         description='ViPR Project Show CLI usage.',
                                                 parents=[common_parser],
                                                 conflict_handler='resolve',
-                                                help='Show volume group details')
+                                                help='Show volume group child volume groups')
     volume_group_volume_parser.add_argument('-xml',
                              dest='xml',
                              action='store_true',
@@ -304,7 +304,7 @@ def create_parser(subcommand_parsers, common_parser):
                     description='ViPR VolumeGroup Create CLI usage.',
                     parents=[common_parser],
                     conflict_handler='resolve',
-                    help='Create an volume group')
+                    help='Create a volume group')
     mandatory_args = create_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-n', '-name',
                                 metavar='<name>',
@@ -346,7 +346,7 @@ def delete_parser(subcommand_parsers, common_parser):
                 description='ViPR VolumeGroup Delete CLI usage.',
                                                   parents=[common_parser],
                                                   conflict_handler='resolve',
-                                                  help='Delete an volume group')
+                                                  help='Delete a volume group')
     mandatory_args = delete_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-n', '-name',
                                 metavar='<name>',
@@ -456,7 +456,7 @@ def update_parser(subcommand_parsers, common_parser):
                         description='ViPR update volume group CLI usage',
                         parents=[common_parser],
                         conflict_handler='resolve',
-                        help='Show volume group details')
+                        help='Update volume group properties')
     mandatory_args = update_parser.add_argument_group(
                                             'mandatory arguments')
     mandatory_args.add_argument('-n', '-name',
@@ -473,11 +473,11 @@ def update_parser(subcommand_parsers, common_parser):
                                        dest='description',
                                        help='New description of volume group')
     update_parser.add_argument('-r', '-remove_volumes',
-                                       metavar='<remove_volumes>',
+                                       metavar='<tenant/project/volume_label | volume_uid,...>',
                                        dest='remove_volumes',
                                        help='A list of volumes to remove from the volume group')
     update_parser.add_argument('-a', '-add_volumes',
-                                       metavar='<add_volumes>',
+                                       metavar='<tenant/project/volume_label | volume_uid,...>',
                                        dest='add_volumes',
                                        help='A list of volumes to add to the volume group')
     update_parser.add_argument('-cg', '-consistency_group',

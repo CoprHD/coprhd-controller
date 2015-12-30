@@ -2319,8 +2319,8 @@
 	</bean>
 	<bean id="backup_scheduler_interval" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Scheduling Frequency" />
-		<property name="description" value="The time interval days between 2 backups." />
-		<property name="type" value="uint16" />
+		<property name="description" value="The time interval between 2 backups." />
+		<property name="type" value="string" />
 		<property name="maxLen" value="15" />
 		<property name="tag" value="Backup" />
 		<property name="advanced" value="true" />
@@ -2328,7 +2328,7 @@
 		<property name="userConfigurable" value="false" />
 		<property name="reconfigRequired" value="false" />
 		<property name="rebootRequired" value="false" />
-		<property name="value" value="1" />
+		<property name="value" value="1day" />
 		<property name="controlNodeOnly" value="true" />
 		<property name="notifiers" value="backupscheduler" />
 		<property name="siteSpecific" value="true" />

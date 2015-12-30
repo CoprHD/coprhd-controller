@@ -12,8 +12,9 @@ public class BackupPropertyPage extends CustomPropertyPage {
     private Property externalLocationPassword;
     private Property schedulerEnabled;
     private Property schedulerTime;
-    private Property copiesToKeep;
     private Property schedulerInterval;
+    private Property copiesToKeep;
+    private Property maxManualCopies;
 
     public BackupPropertyPage(Map<String, Property> properties) {
         super("Backup");
@@ -23,8 +24,9 @@ public class BackupPropertyPage extends CustomPropertyPage {
         externalLocationPassword = addCustomPasswordProperty(properties, "backup_external_location_password");
         schedulerEnabled = addCustomBooleanProperty(properties, "backup_scheduler_enable");
         schedulerTime = addCustomProperty(properties, "backup_scheduler_time");
-        copiesToKeep = addCustomProperty(properties, "backup_scheduler_copies_to_keep");
         schedulerInterval = addCustomProperty(properties, "backup_scheduler_interval");
+        copiesToKeep = addCustomProperty(properties, "backup_scheduler_copies_to_keep");
+        maxManualCopies = addCustomProperty(properties, "backup_max_manual_copies");
     }
 
     public Property getExternalLocationUrl() {
@@ -46,12 +48,16 @@ public class BackupPropertyPage extends CustomPropertyPage {
     public Property getSchedulerTime() {
         return schedulerTime;
     }
-    
+
+    public Property getSchedulerInterval() {
+        return schedulerInterval;
+    }
+
     public Property getCopiesToKeep() {
         return copiesToKeep;
     }
-    
-    public Property getSchedulerInterval() {
-        return schedulerInterval;
+
+    public Property getMaxManualCopies() {
+        return maxManualCopies;
     }
 }

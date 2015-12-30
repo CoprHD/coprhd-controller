@@ -6452,7 +6452,7 @@ public class SmisCommandHelper implements SmisConstants {
     public List<CIMObjectPath> getSettingsDefineStatePaths(
             StorageSystem storage, BlockObject blockObject,
             BlockSnapshot snapshot) throws WBEMException {
-        if (!blockObject.hasConsistencyGroup()) {
+        if (snapshot == null || !blockObject.hasConsistencyGroup()) {
             return getSettingsDefineStateFromSource(storage, blockObject);
         } else {
             return getSettingsDefineStateFromSourceGroup(storage, snapshot);

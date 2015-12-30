@@ -2330,8 +2330,8 @@
     },
     {
         key : "backup_scheduler_interval",
-        label : "Scheduling Frequency",
-        description : "The time interval between 2 backups.",
+        label : "Schedule Backup Interval",
+        description : "The time interval between 2 backups",
         type : "string",
         maxLen : 15,
         tag : "Backup",
@@ -2347,7 +2347,7 @@
     },
     {
         key : "backup_scheduler_time",
-        label : "Backup Time",
+        label : "Schedule Backup Time",
         description : "The time backup starts, based on local time zone",
         type : "uint32",
         tag : "Backup",
@@ -2363,8 +2363,8 @@
     },
     {
         key : "backup_scheduler_copies_to_keep",
-        label : "Copies to Keep",
-        description : "Number of schedule backup copies to keep",
+        label : "Schedule Backup Retention Number",
+        description : "Retain maximum number of backups",
         type : "uint32",
         allowedValues : ( "0", "1", "2", "3", "4", "5" ),
         tag : "Backup",
@@ -2409,7 +2409,7 @@
     },
     {
         key : "backup_max_manual_copies",
-        label : "Backup Max Manual Copies",
+        label : "Manual Backup Max Copies",
         description : "Max number of manually created backup copies",
         type : "uint32",
         allowedValues : ( "0", "1", "2", "3", "4", "5" ),

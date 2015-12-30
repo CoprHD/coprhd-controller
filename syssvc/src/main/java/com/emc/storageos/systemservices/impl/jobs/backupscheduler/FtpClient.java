@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import com.emc.storageos.systemservices.impl.util.ProcessOutputStream;
 import com.emc.storageos.systemservices.impl.util.ProcessRunner;
@@ -18,15 +17,15 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements upload protocol using FTPS
  */
-public class FtpsUploader extends Uploader {
-    private static final Logger log = LoggerFactory.getLogger(FtpsUploader.class);
+public class FtpClient extends Uploader {
+    private static final Logger log = LoggerFactory.getLogger(FtpClient.class);
 
     private final static String CONTENT_LENGTH_HEADER = "Content-Length:";
     private final static String FTPS_URL_PREFIX = "ftps://";
     private final static String FTP_URL_PREFIX = "ftp://";
     private final static int FILE_DOES_NOT_EXIST = 19;
 
-    public FtpsUploader(SchedulerConfig cfg, BackupScheduler cli) {
+    public FtpClient(SchedulerConfig cfg, BackupScheduler cli) {
         super(cfg, cli);
     }
 
@@ -58,6 +57,8 @@ public class FtpsUploader extends Uploader {
         builder.command().add(this.cfg.uploadUrl + fileName);
 
         Long length = null;
+
+        log.info("lby ftp command={}", builder.command());
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
             StringBuilder errText = new StringBuilder();
@@ -99,6 +100,7 @@ public class FtpsUploader extends Uploader {
         builder.command().add("-");
         builder.command().add(this.cfg.uploadUrl + fileName);
 
+        log.info("lby2 ftp command={}", builder.command());
         return new ProcessOutputStream(builder.start());
     }
 
@@ -111,6 +113,7 @@ public class FtpsUploader extends Uploader {
         builder.command().add("-l");
         builder.command().add(this.cfg.uploadUrl);
 
+        log.info("lby3 ftp command={}", builder.command());
         List<String> fileList = new ArrayList<String>();
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
             StringBuilder errText = new StringBuilder();
@@ -150,5 +153,9 @@ public class FtpsUploader extends Uploader {
                 throw new IOException(errText.length() > 0 ? errText.toString() : Integer.toString(exitCode));
             }
         }
+    }
+
+    public void download(String sourceFileName) throws Exception {
+
     }
 }

@@ -21,8 +21,8 @@ public abstract class Uploader {
             return null;
         }
 
-        if (FtpsUploader.isSupported(cfg.uploadUrl)) {
-            return new FtpsUploader(cfg, cli);
+        if (FtpClient.isSupported(cfg.uploadUrl)) {
+            return new FtpClient(cfg, cli);
         }
 
         throw new UnsupportedAddressTypeException();

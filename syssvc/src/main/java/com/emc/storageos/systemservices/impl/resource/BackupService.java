@@ -476,7 +476,7 @@ public class BackupService {
         for (final NodeInfo node : nodes) {
             String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
                     node.getIpAddress(), node.getPort());
-            log.debug("processing node: {}", baseNodeURL);
+            log.info("lby processing node: {}", baseNodeURL);
             SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
                     URI.create(baseNodeURL));
             for (String fileName : getFileNameList(files.subsetOf(null, null, node.getId()))) {

@@ -93,10 +93,6 @@ public class SeedProviderImpl implements SeedProvider {
         connection.setServer(uri);
         connection.build();
 
-        String siteId= args.get(Constants.SITE_ID);
-        connection.setSiteId(siteId);
-        _logger.info("siteId={}", siteId);
-
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
 

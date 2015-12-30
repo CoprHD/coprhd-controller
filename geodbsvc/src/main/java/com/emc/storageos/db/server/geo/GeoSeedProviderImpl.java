@@ -97,9 +97,6 @@ public class GeoSeedProviderImpl implements SeedProvider {
         ZkConnection connection = new ZkConnection();
         connection.setServer(uri);
         connection.build();
-        String siteId= args.get(Constants.SITE_ID);
-        connection.setSiteId(siteId);
-        log.info("siteId={}", siteId);
 
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);

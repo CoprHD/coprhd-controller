@@ -8,6 +8,7 @@ package com.emc.storageos.coordinator.client.service.impl;
 import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
 import static com.emc.storageos.coordinator.client.model.Constants.DB_CONFIG;
 import static com.emc.storageos.coordinator.client.model.Constants.GLOBAL_ID;
+import static com.emc.storageos.coordinator.client.model.Constants.LINE_DELIMITER;
 import static com.emc.storageos.coordinator.client.model.Constants.MIGRATION_STATUS;
 import static com.emc.storageos.coordinator.client.model.Constants.NODE_DUALINETADDR_CONFIG;
 import static com.emc.storageos.coordinator.client.model.Constants.SCHEMA_VERSION;
@@ -16,7 +17,13 @@ import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_
 import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY_ID;
 import static com.emc.storageos.coordinator.mapper.PropertyInfoMapper.decodeFromString;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -29,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -38,6 +46,7 @@ import java.util.regex.Pattern;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.DeleteBuilder;
+import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
@@ -91,6 +100,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
@@ -108,6 +118,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private static final int ATOMIC_INTEGER_RETRY_INTERVAL_MS = 1000;
     private static final int ATOMIC_INTEGER_RETRY_TIME = 5;
     private static final String ATOMIC_INTEGER_ZK_PATH_FORMAT = "%s/%s/%s";
+    private static final String SITE_MY_UUID="site_my_uuid";
 
     private final ConcurrentMap<String, Object> _proxyCache = new ConcurrentHashMap<String, Object>();
 
@@ -134,6 +145,70 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private String siteId;
     private DistributedAroundHook ownerLockAroundHook;
+    
+    /**
+     * This method is used to init local site uuid, generate it only on first time bootstrap
+     */
+    public void initSiteId() {
+        String siteId;
+        try {
+        siteId = getSiteIdFromLocalFile();
+
+        if (siteId != null && !siteId.isEmpty()) {
+            this.siteId = siteId;
+            return;
+        }
+
+        siteId = generateSiteId();
+
+        setSiteIdToLocalFile(siteId);
+        } catch (Exception e) {
+            log.error("Failed to generate local site UUID.", e);
+            throw CoordinatorException.fatals.unableToInitSiteUuid(e);
+        }
+        this.siteId = siteId;
+    }
+
+    private String getSiteIdFromLocalFile() throws Exception {
+        File f = new File("/data/zk/siteid");
+        if (f.exists()) {
+            InputStream in = new FileInputStream(f);
+            byte[] content = new byte[(int) f.length()];
+            in.read(content);
+            in.close();
+            return new String(content);
+        }
+        return null;
+    }
+
+    private void setSiteIdToLocalFile (String uuid) throws Exception {
+        File f = new File("/data/zk/siteid");
+        OutputStream out = new FileOutputStream(f);
+        out.write(uuid.getBytes());
+        out.close();
+    }
+
+    private String generateSiteId() throws Exception {
+        InterProcessLock lock = new InterProcessMutex(_zkConnection.curator(), "/");
+        CuratorFramework curator = _zkConnection.curator();
+        String uuidPath = "/siteUuid";
+        String uuid = null;
+        try {
+            lock.acquire();
+            Stat exists = curator.checkExists().forPath(uuidPath);
+            if (exists == null) {
+                uuid = UUID.randomUUID().toString();
+                curator.create().forPath(uuidPath, uuid.getBytes());
+            } else {
+                uuid = new String(curator.getData().forPath(uuidPath));
+            }
+            return uuid;
+        } finally {
+            lock.release();
+            curator.delete().guaranteed().forPath(uuidPath);
+        }
+    }
+
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
      * called
@@ -266,8 +341,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             return;
         }
 
-        siteId = _zkConnection.getSiteId();
-
         _zkConnection.curator().getConnectionStateListenable()
                 .addListener(new org.apache.curator.framework.state.ConnectionStateListener() {
                     @Override
@@ -304,6 +377,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         _zkConnection.connect();
 
         try {
+            initSiteId();
+
             checkAndCreateSiteSpecificSection();
 
             String servicePath = getServicePath();
@@ -1756,6 +1831,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
 	public String getSiteId() {
+        if (siteId == null || siteId.isEmpty()) {
+            initSiteId();
+        }
 		return siteId;
 	}
 	

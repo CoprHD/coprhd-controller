@@ -44,16 +44,6 @@ public class ZkConnection {
     // zk timeout ms
     private int _timeoutMs = DEFAULT_TIMEOUT_MS;
 
-    private String siteId;
-
-    public String getSiteId() {
-        return siteId;
-    }
-
-    public void setSiteId(String siteId) {
-        this.siteId = siteId;
-    }
-
     /**
      * Set coordinator cluster node URI's and build a connector.
      * <p/>

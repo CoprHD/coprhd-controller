@@ -185,6 +185,9 @@ public class SRDFTaskCompleter extends TaskCompleter {
                 case STOP_SRDF_LINK:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
                     break;
+                case SYNC_SRDF_LINK:
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
+                    break;
                 default:
                     _logger.error("unrecognized SRDF operation type");
             }

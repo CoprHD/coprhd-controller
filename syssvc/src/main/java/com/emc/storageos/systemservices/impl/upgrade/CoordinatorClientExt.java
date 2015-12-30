@@ -46,7 +46,7 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
-import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
@@ -1155,8 +1155,12 @@ public class CoordinatorClientExt {
     public ArrayList<String> getAllNodeIds() {
         ArrayList<String> fullList = new ArrayList<String>();
 
-        for (int i = 1; i <= getNodeCount(); i++) {
-            fullList.add("vipr" + i);
+        if (getMyNodeId().equals("standalone")) {
+            for (int i = 1; i <= getNodeCount(); i++) {
+                fullList.add(ProductName.getName() + i);
+            }
+        } else {
+            fullList.add("standalone");
         }
 
         _log.info("getAllNodeIds(): Node Ids: {}", Strings.repr(fullList));
@@ -1180,7 +1184,7 @@ public class CoordinatorClientExt {
         if (getNodeCount() > 1) {
             for (int i = 1; i <= getNodeCount(); i++) {
                 if (!availableNodes.contains("syssvc-" + i)) {
-                    fullList.add("vipr" + i);
+                    fullList.add(ProductName.getName() + i);
                 }
             }
         }
@@ -1476,51 +1480,9 @@ public class CoordinatorClientExt {
 
                 _log.info("Local zookeeper mode: {} ",state);
 
-                //standby node with vip will monitor all node states
-                InetAddress vip=InetAddress.getByName(getVip());
-                if(NetworkInterface.getByInetAddress(vip)!=null){
+                if(isLeadingMonitor()){
                     _log.info("Local node has vip, monitor other node zk states");
-
-                    List<String> readOnlyNodes = new ArrayList<>();
-                    List<String> observerNodes = new ArrayList<>();
-                    int numOnline = 0;
-
-                    for(String node : getAllNodeIds()){
-
-                        String nodeState=drUtil.getLocalCoordinatorMode(node);
-                        if (nodeState==null){
-                            _log.debug("State for {}: null",node);
-                            continue;
-                        }
-                        
-                        else if(DrUtil.ZOOKEEPER_MODE_READONLY.equals(nodeState)){
-                            // Found another node in read only
-                            readOnlyNodes.add(node);
-                        }
-                        else if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(nodeState)) {
-                            // Found another node in read only
-                            observerNodes.add(node);
-                        }
-                        _log.debug("State for {}: {}",node,nodeState);
-                        numOnline++;
-                    }
-
-                    int numParticipants = numOnline - readOnlyNodes.size() - observerNodes.size();
-                    int quorum = getNodeCount() / 2 + 1;
-
-                    _log.debug("Observer nodes: "+observerNodes.size());
-                    _log.debug("Read Only nodes: "+readOnlyNodes.size());
-                    _log.debug("Participant nodes: "+numParticipants);
-                    _log.debug("nodes Online: "+numOnline);
-
-                    // if there is a participant we need to reconfigure or it will be stuck there
-                    // if there are only participants no need to reconfigure
-                    // if there are only read only nodes and we have quorum we need to reconfigure
-                    if((0 < numParticipants && numParticipants < numOnline) || (readOnlyNodes.size() == numOnline && numOnline >= quorum)){
-                        _log.info("Reconfiguring nodes to participant: ",observerNodes,readOnlyNodes);
-                        reconfigZKToWritable(observerNodes,readOnlyNodes);
-                    }
-
+                    checkLocalSiteZKModes();
                 }
 
                 if (!DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state) &&
@@ -1537,6 +1499,65 @@ public class CoordinatorClientExt {
                 }
             }catch(Exception e){
                 _log.error("Exception while monitoring node state: ",e);
+            }
+        }
+
+        /**
+         * check all local nodes are in correct zk mode
+         */
+        private void checkLocalSiteZKModes() {
+            List<String> readOnlyNodes = new ArrayList<>();
+            List<String> observerNodes = new ArrayList<>();
+            int numOnline = 0;
+
+            for(String node : getAllNodeIds()){
+
+                String nodeState=drUtil.getLocalCoordinatorMode(node);
+                if (nodeState==null){
+                    _log.debug("State for {}: null",node);
+                    continue;
+                }
+
+                else if(DrUtil.ZOOKEEPER_MODE_READONLY.equals(nodeState)){
+                    // Found another node in read only
+                    readOnlyNodes.add(node);
+                }
+                else if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(nodeState)) {
+                    // Found another node in read only
+                    observerNodes.add(node);
+                }
+                _log.debug("State for {}: {}",node,nodeState);
+                numOnline++;
+            }
+
+            int numParticipants = numOnline - readOnlyNodes.size() - observerNodes.size();
+            int quorum = getNodeCount() / 2 + 1;
+
+            _log.debug("Observer nodes: "+observerNodes.size());
+            _log.debug("Read Only nodes: "+readOnlyNodes.size());
+            _log.debug("Participant nodes: "+numParticipants);
+            _log.debug("nodes Online: "+numOnline);
+
+            // if there is a participant we need to reconfigure or it will be stuck there
+            // if there are only participants no need to reconfigure
+            // if there are only read only nodes and we have quorum we need to reconfigure
+            if((0 < numParticipants && numParticipants < numOnline) || (readOnlyNodes.size() == numOnline && numOnline >= quorum)){
+                _log.info("Reconfiguring nodes to participant: ",observerNodes,readOnlyNodes);
+                reconfigZKToWritable(observerNodes,readOnlyNodes);
+            }
+        }
+
+        /**
+         * Determine leader with vip when zk is read-only
+         */
+        private boolean isLeadingMonitor() {
+            try {
+                //standby node with vip will monitor all node states
+                InetAddress vip = InetAddress.getByName(getVip());
+                return (NetworkInterface.getByInetAddress(vip) != null);
+            } catch (Exception e) {
+                _log.error("Error occured while determining leading node for monitor",e);
+                return false;
             }
         }
 
@@ -1669,7 +1690,7 @@ public class CoordinatorClientExt {
             String dbVersion = _coordinator.getTargetDbSchemaVersion();
             Set<String> ids = getGoodNodes(serviceName, dbVersion);
             for (String id : ids) {
-                availableNodes.add("vipr" + id);
+                availableNodes.add(ProductName.getName() + id);
             }
         } catch (Exception ex) {
             _log.info("Check service({}) beacon error", serviceName, ex);

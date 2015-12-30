@@ -767,7 +767,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidPermission(String permission);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidNFSPermission(String permission);
 
@@ -1971,7 +1971,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException updatingCompletedApproval();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException updateApprovalBySameUser(final String name);
 
@@ -2422,7 +2422,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException migrationCantBeCancelled(String migrationName, String status);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cancelMigrationFailed(String migrationName, String reason);
 
@@ -2635,25 +2635,28 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpBlockApiImplRemoveProtectionException(final String message);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException dbConsistencyCheckAlreadyProgress();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException canNotCanceldbConsistencyCheck();
-    
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeGroupWithChildrenCantBeDeleted(final String volumeGroupName);
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeGroupWithVolumesCantBeDeleted(final String volumeGroupName);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeGroupCantBeUpdated(final String volumeGroupName, final String reason);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeGroupCantBeCreated(final String volumeGroupName, final String reason);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeCantBeAddedToVolumeGroup(final String volumeName, final String reason);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException removeVolumeFromCGNotAllowed(final String volumeName, final String applicationName);
 

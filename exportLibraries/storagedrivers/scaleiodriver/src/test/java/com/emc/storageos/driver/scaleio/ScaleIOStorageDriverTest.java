@@ -11,8 +11,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -23,7 +21,7 @@ import java.util.List;
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "/scaleio-driver-prov.xml" })
 public class ScaleIOStorageDriverTest {
-    private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriverTest.class);
+    //private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriverTest.class);
     String SYS_NATIVE_ID = "6ee6d94e5a3517b8";
     String IP_ADDRESS = "10.193.17.97";
     int PORT_NUMBER = 443;
@@ -48,9 +46,10 @@ public class ScaleIOStorageDriverTest {
         StorageSystem validStorageSystem = new StorageSystem();
         StorageSystem invalidStorageSystem = new StorageSystem();
 
-        validStorageSystem.setSystemName("TestValidSystem");
+        validStorageSystem.setSystemName("pdomain");
+        validStorageSystem.setNativeId("");
         validStorageSystem.setSystemType("scaleio");
-        // validStorageSystem.setPortNumber();
+        validStorageSystem.setPortNumber(443);
         validStorageSystem.setUsername("admin");
         validStorageSystem.setPassword("Scaleio123");
         validStorageSystem.setIpAddress("10.193.17.97");
@@ -95,16 +94,16 @@ public class ScaleIOStorageDriverTest {
         StorageSystem validStorageSystem = new StorageSystem();
         StorageSystem invalidStorageSystem = new StorageSystem();
 
-        validStorageSystem.setSystemName("TestValidSystem");
+        validStorageSystem.setSystemName("pdomain");
         validStorageSystem.setSystemType("scaleio");
-        // validStorageSystem.setPortNumber();
+        validStorageSystem.setPortNumber(443);
         validStorageSystem.setUsername("admin");
         validStorageSystem.setPassword("Scaleio123");
         validStorageSystem.setIpAddress("10.193.17.97");
 
         invalidStorageSystem.setSystemName("TestInvalidSystem");
         invalidStorageSystem.setSystemType("scaleio");
-        // invalidStorageSystem.setPortNumber();
+        invalidStorageSystem.setPortNumber(443);
         invalidStorageSystem.setUsername("username");
         invalidStorageSystem.setPassword("password");
         invalidStorageSystem.setIpAddress("10.193.17.99");
@@ -131,12 +130,12 @@ public class ScaleIOStorageDriverTest {
         StorageSystem invalidStorageSystem = new StorageSystem();
         List<StoragePort> storagePorts = new ArrayList<>();
 
-        validStorageSystem.setSystemName("TestValidSystem");
+        validStorageSystem.setSystemName("pdomain");
         validStorageSystem.setSystemType("scaleio");
-        // validStorageSystem.setPortNumber();
+        validStorageSystem.setPortNumber(443);
         validStorageSystem.setUsername("admin");
         validStorageSystem.setPassword("Scaleio123");
-        validStorageSystem.setIpAddress("10.193.17.97");
+        validStorageSystem.setIpAddress("10.193.17.88");
 
         invalidStorageSystem.setSystemName("TestInvalidSystem");
         invalidStorageSystem.setSystemType("scaleio");

@@ -1365,6 +1365,8 @@ public class SRDFOperations implements SmisConstants {
             SRDFOperation op = consExempt ? SRDFOperation.SUSPEND_CONS_EXEMPT : SRDFOperation.SUSPEND;
             SRDFOperationContext suspendCtx = getContextFactory(system).build(op, target);
             suspendCtx.perform();
+
+            refreshTargetVolumeProperties(system, target);
         } catch (RemoteGroupAssociationNotFoundException e) {
             log.warn("No remote group association found for {}.  It may have already been removed.", target.getId());
         } catch (Exception e) {
@@ -1393,6 +1395,8 @@ public class SRDFOperations implements SmisConstants {
             SRDFOperationContext establishCtx = getContextFactory(system).build(SRDFOperation.ESTABLISH, target);
             establishCtx.appendFilters(new BrokenSynchronizationsOnlyFilter(utils));
             establishCtx.perform();
+
+            refreshTargetVolumeProperties(system, target);
         } catch (Exception e) {
             log.error("Failed to establish srdf link {}", target.getSrdfParent().getURI(), e);
             error = SmisException.errors.jobFailed(e.getMessage());
@@ -1414,6 +1418,8 @@ public class SRDFOperations implements SmisConstants {
             SRDFOperationContext restoreCtx = getContextFactory(system).build(SRDFOperation.RESTORE, target);
             restoreCtx.appendFilters(new BrokenSynchronizationsOnlyFilter(utils));
             restoreCtx.perform();
+
+            refreshTargetVolumeProperties(system, target);
         } catch (Exception e) {
             log.error("Failed to restore srdf link {}", target.getSrdfParent().getURI(), e);
             error = SmisException.errors.jobFailed(e.getMessage());
@@ -2209,6 +2215,18 @@ public class SRDFOperations implements SmisConstants {
             targetObj.setConsistencyGroup(newConsistencyGroup.getId());
         }
         dbClient.persistObject(targetVolumes);
+    }
+
+    private void refreshTargetVolumeProperties(StorageSystem targetSystem, Volume target) throws Exception {
+        String mode = target.getSrdfCopyMode();
+        if (null != mode && Mode.ACTIVE.equals(Mode.valueOf(mode))) {
+            // For Active mode SUSPEND, RESUME, RESTORE is done on all volumes in the RDF group
+            // so we need to refresh all target volumes as there access state changes.
+            callEMCRefresh(helper, targetSystem);
+            RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
+            List<URI> targetVolumeURIs = utils.getTargetVolumesForRAGroup(group);
+            refreshVolumeProperties(targetSystem.getId(), targetVolumeURIs);
+        }
     }
 
     /**

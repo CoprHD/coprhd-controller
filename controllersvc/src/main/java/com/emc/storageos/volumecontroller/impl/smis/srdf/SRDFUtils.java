@@ -815,4 +815,38 @@ public class SRDFUtils implements SmisConstants {
         return false;
     }
 
+    /**
+     * Utility method that returns target volumes fro the RDF group
+     * 
+     * @param group Reference to RemoteDirectorGroup
+     * @return list of volumes
+     */
+    public List<URI> getTargetVolumesForRAGroup(RemoteDirectorGroup group) {
+        List<URI> volumeList = new ArrayList<URI>();
+        log.info("Find Target Volumes from RA group {} {}", group.getLabel(), group.getId());
+        StringSet volumeNativeGUIdList = group.getVolumes();
+        log.info("volumeNativeGUIdList : {}", volumeNativeGUIdList);
+        if (volumeNativeGUIdList != null) {
+            for (String volumeNativeGUId : volumeNativeGUIdList) {
+                log.debug("volume nativeGUId:{}", volumeNativeGUId);
+                URIQueryResultList result = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeNativeGuidConstraint(volumeNativeGUId), result);
+                Iterator<URI> volumeIterator = result.iterator();
+                if (volumeIterator.hasNext()) {
+                    Volume volume = dbClient.queryObject(Volume.class, volumeIterator.next());
+                    if (volume != null && PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality())) {
+                        log.info("Found volume {} in vipr db", volume.getNativeGuid());
+                        StringSet srdfTargets = volume.getSrdfTargets();
+                        if (null != srdfTargets && !srdfTargets.isEmpty()) {
+                            volumeList.addAll(URIUtil.toURIList(volume.getSrdfTargets()));
+                        }
+                    }
+                }
+            }
+        }
+        log.info("volume list size {}", volumeList.size());
+        return volumeList;
+    }
+
 }

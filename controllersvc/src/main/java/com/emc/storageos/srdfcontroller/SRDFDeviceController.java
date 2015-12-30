@@ -1323,7 +1323,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     /**
-     * Method to suspend update volume properties called a workflow step.
+     * Method to update volume properties called as a workflow step.
      * 
      * @param volumeURIs List of volume URIs
      * @param systemURI Reference to storage system URI

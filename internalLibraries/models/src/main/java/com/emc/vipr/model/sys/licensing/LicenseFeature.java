@@ -335,9 +335,33 @@ public class LicenseFeature implements Serializable {
     }
 
     public static class ArrayLicense {
-        public String arrayName;
-        public String storageCapacity;
-        public String serialNumber;
+        private String arrayName;
+        private String storageCapacity;
+        private String serialNumber;
+
+        public String getSerialNumber() {
+            return serialNumber;
+        }
+
+        public void setSerialNumber(String serialNumber) {
+            this.serialNumber = serialNumber;
+        }
+
+        public String getStorageCapacity() {
+            return storageCapacity;
+        }
+
+        public void setStorageCapacity(String storageCapacity) {
+            this.storageCapacity = storageCapacity;
+        }
+
+        public String getArrayName() {
+            return arrayName;
+        }
+
+        public void setArrayName(String arrayName) {
+            this.arrayName = arrayName;
+        }
 
         public ArrayLicense(String arrayName, String storageCapacity, String serialNumber) {
             this.arrayName = arrayName;

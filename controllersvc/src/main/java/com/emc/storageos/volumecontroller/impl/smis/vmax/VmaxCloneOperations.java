@@ -97,7 +97,8 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                     final URI poolId = clone.getPool();
                     Volume source = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
                     // Create target devices
-                    final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(),
+                    final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName,
+                            clone.getLabel(),
                             createInactive,
                             1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), source, taskCompleter, _dbClient, _helper,
                             _cimPath);

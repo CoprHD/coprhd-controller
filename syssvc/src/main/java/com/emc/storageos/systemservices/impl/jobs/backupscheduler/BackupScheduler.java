@@ -166,8 +166,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             this.cfg.reload();
 
             // If we made any new backup, notify uploader thread to perform upload
-            this.backupExec.runOnce();
-            this.uploadExec.runOnce();
+            this.backupExec.create();
+            this.uploadExec.upload();
+            this.backupExec.reclaim();
 
         } catch (Exception e) {
             log.error("Exception occurred in scheduler", e);
@@ -207,11 +208,11 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     }
 
     public void createBackup(String tag) {
-        this.backupOps.createBackup(tag, true);
+        this.backupService.createBackup(tag, true);
     }
 
     public void deleteBackup(String tag) {
-        this.backupOps.deleteBackup(tag);
+        this.backupService.deleteBackup(tag);
     }
 
     /**

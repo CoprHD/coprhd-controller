@@ -39,7 +39,6 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -70,6 +69,7 @@ import com.emc.storageos.model.vpool.VirtualPoolCommonParam;
 import com.emc.storageos.model.vpool.VirtualPoolList;
 import com.emc.storageos.model.vpool.VirtualPoolPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolUpdateParam;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
@@ -452,7 +452,8 @@ public abstract class VirtualPoolService extends TaggedResource {
                         _dbClient);
             } else if (vpool.getType().equals(VirtualPool.Type.block.name())) {
                 Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
-                ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
+                Set<URI> allRpTargetVpools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
+                ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVpools, _dbClient);
             }
 
             _dbClient.updateAndReindexObject(vpool);

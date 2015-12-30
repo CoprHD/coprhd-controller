@@ -112,6 +112,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // Max retention for a Virtual Pool
     private Integer maxRetention;
     //Minimum number of data centers in this virtual pool
+    //This is required only for object virtual pools
     private Integer minDataCenters;
 
     public static enum MetroPointType {

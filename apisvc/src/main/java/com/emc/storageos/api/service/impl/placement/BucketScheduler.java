@@ -139,7 +139,7 @@ public class BucketScheduler {
                 //pool1 DC > pool2 DC -> +ve
                 //pool1 DC == pool2 DC -> 0
                 //pool1 DC < pool2 DC -> -ve
-                return (pool1.getDataCenters() - pool1.getDataCenters());
+                return (pool1.getDataCenters() - pool2.getDataCenters());
             }
         });//end sort method
     }

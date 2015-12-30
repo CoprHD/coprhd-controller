@@ -16,14 +16,13 @@
     volumes:{
       type:"assetType.vipr.snapshotBlockVolume"
     },
-
+    
     type: {
       type: "assetType.vipr.blockSnapshotType",
-      initialValue: "local",
-      required: false,
+      required: "false",
       lockable: true
     },
-    
+        
     readOnly: {
       type: "boolean",
       initialValue: "false",
@@ -37,6 +36,30 @@
         min:2,
         max:128
       }
-    }         
+    },
+    
+    advanced:{
+      type:"group",
+      lockable: true,
+      collapsed:true,
+      items:{
+        linkedSnapshotName:{
+          type:"text",
+          required: "false",
+          validation:{
+            min:2,
+            max:128
+          }
+        },
+        linkedSnapshotCount:{
+          type:"number",
+          required: "false",
+          initialValue: "1",
+          validation:{
+              min:1
+          }
+        }
+      }
+    }
   }
 }

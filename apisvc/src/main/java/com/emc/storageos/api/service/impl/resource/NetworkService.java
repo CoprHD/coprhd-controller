@@ -399,7 +399,7 @@ public class NetworkService extends TaggedResource {
 
         // check for active network with same name
         ArgValidator.checkFieldNotEmpty(param.getLabel(), "label");
-        checkDuplicateLabel(Network.class, param.getLabel(), "network");
+        checkDuplicateLabel(Network.class, param.getLabel());
 
         // check the type is supported
         StorageProtocol.Transport type = StorageProtocol.Transport.valueOf(param.getTransportType());
@@ -462,7 +462,7 @@ public class NetworkService extends TaggedResource {
         if (param.getName() != null && !network.getLabel().equalsIgnoreCase(
                 param.getName())) {
             // check for active network with same name
-            checkDuplicateLabel(Network.class, param.getName(), "network");
+            checkDuplicateLabel(Network.class, param.getName());
             _log.info("updateNetwork: changing network {} to {} ", network.getLabel(),
                     param.getName());
             network.setLabel(param.getName());

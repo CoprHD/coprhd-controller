@@ -313,7 +313,7 @@ public class BlockService extends TaskResourceService {
     public VolumeBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<Volume> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        return new VolumeBulkRep(BulkList.wrapping(_dbIterator, MapVolume.getInstance()));
+        return new VolumeBulkRep(BulkList.wrapping(_dbIterator, MapVolume.getInstance(_dbClient)));
     }
 
     @Override
@@ -323,7 +323,7 @@ public class BlockService extends TaskResourceService {
         Iterator<Volume> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter<Volume> filter = new BulkList.ProjectResourceFilter<Volume>(
                 getUserFromContext(), _permissionsHelper);
-        return new VolumeBulkRep(BulkList.wrapping(_dbIterator, MapVolume.getInstance(), filter));
+        return new VolumeBulkRep(BulkList.wrapping(_dbIterator, MapVolume.getInstance(_dbClient), filter));
     }
 
     /**
@@ -4888,7 +4888,7 @@ public class BlockService extends TaskResourceService {
         validateMirrorCount(sourceVolume, sourceVPool, count);
 
         // validate VMAX3 source volume for active snap sessions.
-        if (storageSystem.checkIfVmax3()) {
+        if (storageSystem != null && storageSystem.checkIfVmax3()) {
             BlockServiceUtils.validateVMAX3ActiveSnapSessionsExists(sourceVolume.getId(), _dbClient, MIRRORS);
         }
 

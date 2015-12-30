@@ -735,18 +735,22 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     // find virtualNAS in db
                     virtualNAS = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                     if (virtualNAS == null) {
-                        virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
-                        newvNASList.add(virtualNAS);
+                    	if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
+                    		virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
+                    		newvNASList.add(virtualNAS);
+                    	}
                     } else {
                     	copyUpdatedPropertiesInVNAS(storageSystem, isilonAccessZone, virtualNAS);
                         existingvNASList.add(virtualNAS);
                     }
 
                     // Set authentication providers
-                    setCifsServerMap(isilonAccessZone, virtualNAS);
+                    setCifsServerMapForNASServer(isilonAccessZone, virtualNAS);
                     
                     // set protocol support
-                    virtualNAS.setProtocols(protocols);
+                    if (virtualNAS != null) {
+                    	virtualNAS.setProtocols(protocols);
+                    }
                     
                     // set the smart connect
                     setStoragePortsForNASServer(isilonNetworkPools, storageSystem, virtualNAS);
@@ -772,7 +776,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         existingPhysicalNASList.add(physicalNAS);
                     }
                     // Set authentication providers
-                    setCifsServerMap(isilonAccessZone, physicalNAS);
+                    setCifsServerMapForNASServer(isilonAccessZone, physicalNAS);
 
                     // set the smart connect zone
                     setStoragePortsForNASServer(isilonNetworkPoolsSysAZ, storageSystem, physicalNAS);
@@ -820,6 +824,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     
     private void setStoragePortsForNASServer(List<IsilonNetworkPool> isilonNetworkPools,
     		StorageSystem storageSystem, NASServer nasServer) {
+    	
+    	if (nasServer == null) {
+    		return;
+    	}
     	
     	StringSet storagePorts = nasServer.getStoragePorts();
     	
@@ -2695,7 +2703,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param isiAccessZone the Isilon access zone object
      * @param nasServer the NAS server in which CIF server map will be set
      */
-    private void setCifsServerMap(final IsilonAccessZone isiAccessZone, NASServer nasServer) {
+    private void setCifsServerMapForNASServer(final IsilonAccessZone isiAccessZone, NASServer nasServer) {
+    	
+    	if(nasServer == null) {
+    		return;
+    	}
         
     	_log.info("Set the authentication providers for NAS: {}", nasServer.getNasName());
     	String providerName = null;

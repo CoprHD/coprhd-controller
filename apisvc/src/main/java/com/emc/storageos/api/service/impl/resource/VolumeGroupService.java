@@ -236,7 +236,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/volumes")
     public NamedVolumesList getVolumes(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
-        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, id);
+        VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
         NamedVolumesList result = new NamedVolumesList();
         List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
         for (Volume volume: volumes) {
@@ -256,7 +256,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/array-groups")
     public VolumeGroupArrayGroupsList getVolumeGroupArrayGroups(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
-        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, id);
+        VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
         VolumeGroupArrayGroupsList result = new VolumeGroupArrayGroupsList();
         List<String> arrayGroups = getVolumeGroupArrayGroups(_dbClient, volumeGroup);
         for (String arrayGroup : arrayGroups) {
@@ -1114,6 +1114,7 @@ public class VolumeGroupService extends TaskResourceService {
                 .queryActiveResourcesByConstraint(dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
         for (Volume vol : volumes) {
+            // TODO return only visible volumes. i.e skip backend or internal volumes?
             if (!vol.getInactive()) {
                 result.add(vol);
             }

@@ -1,10 +1,11 @@
 package com.emc.storageos.driver.scaleio;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-
+import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
+import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.Registry;
+import com.emc.storageos.storagedriver.impl.InMemoryRegistryImpl;
+import com.emc.storageos.storagedriver.model.*;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,27 +14,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
-import com.emc.storageos.storagedriver.DriverTask;
-import com.emc.storageos.storagedriver.Registry;
-import com.emc.storageos.storagedriver.impl.InMemoryRegistryImpl;
-import com.emc.storageos.storagedriver.model.*;
-import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
 
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "/scaleio-driver-prov.xml" })
 public class ScaleIOStorageDriverTest {
-<<<<<<< HEAD
-    //private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriverTest.class);
-    String SYS_NATIVE_ID = "6ee6d94e5a3517b8";
-    String IP_ADDRESS = "10.193.17.97";
-=======
 
     String SYS_NATIVE_ID_A = "6ee6d94e5a3517b8";
     String SYS_NATIVE_ID_B = "3eb4708d2b3ea454";
     String IP_ADDRESS_A = "10.193.17.97";
     String IP_ADDRESS_B = "10.193.17.35";
->>>>>>> 2177d90084061e7804a5c97d8421464bc1b57982
+
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";

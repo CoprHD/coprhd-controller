@@ -5,10 +5,12 @@
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.storageos.systemservices.impl.util.ProcessInputStream;
 import com.emc.storageos.systemservices.impl.util.ProcessOutputStream;
 import com.emc.storageos.systemservices.impl.util.ProcessRunner;
 import org.slf4j.Logger;
@@ -155,7 +157,16 @@ public class FtpClient extends Uploader {
         }
     }
 
-    public void download(String sourceFileName) throws Exception {
+    public InputStream download(String backupFileName) throws IOException {
+        ProcessBuilder builder = getBuilder();
+        String remoteBackupFile=cfg.uploadUrl+backupFileName;
+        String localBackupFile="/data/"+backupFileName;
+        builder.command().add(remoteBackupFile);
+        // builder.command().add("-o");
+        // builder.command().add(localBackupFile);
 
+        log.info("lby cmd={}", builder.command());
+
+        return new ProcessInputStream(builder.start());
     }
 }

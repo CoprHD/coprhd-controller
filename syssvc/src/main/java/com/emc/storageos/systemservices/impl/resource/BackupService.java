@@ -35,6 +35,7 @@ import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
+import com.emc.storageos.systemservices.impl.jobs.backupscheduler.DownloadExecutor;
 import com.emc.storageos.systemservices.impl.jobs.common.JobProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +69,7 @@ public class BackupService {
     private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
     private String restoreCmd="/opt/storageos/bin/restore-from-ui.sh";
     private String restoreLog="/var/log/restore-internal.log";
+    private Thread downloadThread;
 
     @Autowired
     private AuditLogManager auditMgr;
@@ -409,6 +411,29 @@ public class BackupService {
         }
 
         throw APIException.badRequests.invalidParameter("backupname", backupName);
+    }
+
+    /**
+     *  Download backup from the backup FTP server
+     *  each node will only downloads its backup data
+     *
+     * @param backupName the name of the backup on the FTP server
+     * @return server response indicating if the operation succeeds.
+     */
+    @POST
+    @Path("pull/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public Response restoreBackup(@QueryParam("file") String backupName ) {
+        log.info("lby Download backup file {}", backupName);
+
+        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName);
+        downloadThread = new Thread(downloadTask);
+        downloadThread.setDaemon(true);
+        downloadThread.setName("backupDownloadThread");
+        downloadThread.start();
+
+        log.info("done");
+        return Response.ok().build();
     }
 
     /**

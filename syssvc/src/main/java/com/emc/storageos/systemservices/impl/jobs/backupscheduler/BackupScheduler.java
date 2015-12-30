@@ -83,6 +83,10 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     @Autowired
     private DrUtil drUtil;
 
+    public SchedulerConfig getCfg() {
+        return cfg;
+    }
+
     private SchedulerConfig cfg;
     private BackupExecutor backupExec;
     private UploadExecutor uploadExec;

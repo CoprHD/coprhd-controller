@@ -156,7 +156,7 @@ public class XtremIOCommunicationInterface extends
             if (accessProfile.getnamespace().equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())) {
                 unManagedVolumeDiscoverer.discoverUnManagedObjects(accessProfile, _dbClient, _partitionManager);
             }
-            
+
             // discovery succeeds
             detailedStatusMessage = String.format("UnManaged Volumes Discovery completed successfully for XtremIO: %s",
                     storageSystem.getId().toString());

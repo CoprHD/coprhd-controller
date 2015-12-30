@@ -358,8 +358,8 @@
         {
           "image": "icon_storage_hpux_remove.png",
           "baseService": "Hpux-UnmountBlockVolume"
-        }
-        ,{
+        },
+        {
           "image": "icon_storage_hpux_add.png",
           "baseService": "Hpux-MountBlockVolume",
           "lockFields": {
@@ -371,6 +371,7 @@
           "image": "icon_provision_hpux_remove.png",
           "baseService": "Hpux-UnmountAndDeleteBlockVolume"
         }
+        
         /*
         ,
         {

@@ -179,9 +179,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StoragePoolList getMatchingPoolsForVirtualPoolAttributes(FileVirtualPoolParam param) {
         StoragePoolList poolList = new StoragePoolList();
-        Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap = 
+        Map<URI, VpoolRemoteCopyProtectionSettings> fileReplRemoteSettingsMap = 
         		new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
-        VirtualPool vpool = prepareVirtualPool(param, remoteSettingsMap);
+        VirtualPool vpool = prepareVirtualPool(param, fileReplRemoteSettingsMap);
         List<URI> poolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, poolURIs);
 
@@ -189,7 +189,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                 allPools,
                 null,
                 null,
-                VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient),
+                fileReplRemoteSettingsMap,
                 _dbClient,
                 _coordinator, AttributeMatcher.VPOOL_MATCHERS);
         for (StoragePool pool : matchedPools) {

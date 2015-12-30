@@ -1,7 +1,6 @@
 {
   baseKey:"MountBlockVolume.Block.Hpux",
   serviceId:"Hpux-MountBlockVolume",
-  destructive: true,
   fields:{
     host:{
       type:"assetType.vipr.hpuxHost"

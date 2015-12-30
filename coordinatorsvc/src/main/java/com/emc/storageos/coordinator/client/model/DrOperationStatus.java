@@ -7,21 +7,11 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 public class DrOperationStatus {
 
     public static final String CONFIG_KIND = "disasterRecoveryOperationStatus";
-//    public static final String CONFIG_ID = "global";
-//    public static final String KEY_SOURCE_UUID = "sourceSiteUuid";
-//    public static final String KEY_TARGET_UUID = "targetSiteUuid";
-//    public static final String KEY_SOURCE_STATE = "sourceSiteState";
-//    public static final String KEY_TARGET_STATE = "targetSiteState";
     public static final String KEY_SITE_UUID = "siteUuid";
     public static final String KEY_SITE_STATE = "siteState";
 
-//    private String sourceSiteUuid;
-//    private String targetSiteUuid;
     private String siteUuid;
 
-    // This class is used to record ongoing DR These two states can only be ING states.
-//    private SiteState sourceSiteState;
-//    private SiteState targetSiteState;
     private SiteState siteState;
 
     public DrOperationStatus() {
@@ -53,10 +43,6 @@ public class DrOperationStatus {
         ConfigurationImpl config = new ConfigurationImpl();
         config.setKind(CONFIG_KIND);
         config.setId(siteUuid);
-//        if (sourceSiteUuid != null && sourceSiteState != null) {
-//            config.setConfig(KEY_SOURCE_UUID, sourceSiteUuid);
-//            config.setConfig(KEY_SOURCE_STATE, targetSiteState.toString());
-//        }
         config.setConfig(KEY_SITE_UUID, siteUuid);
         config.setConfig(KEY_SITE_STATE, siteState.toString());
         return config;

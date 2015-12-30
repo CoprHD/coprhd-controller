@@ -5,6 +5,9 @@
 
 package com.emc.storageos.coordinator.client.beacon.impl;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
@@ -126,9 +129,23 @@ public class ServiceBeaconImpl implements ServiceBeacon {
         _zkConnection.curator().getConnectionStateListenable().addListener(_connectionListener);
         _zkConnection.connect();
 
+        File siteIdFile = new File("/data/zk/siteid");
+        while(!siteIdFile.exists());
+        String siteId = null;
+        try {
+            InputStream in = new FileInputStream(siteIdFile);
+            byte[] content = new byte[(int) siteIdFile.length()];
+            in.read(content);
+            in.close();
+            siteId = new String(content);
+        } catch (Exception e) {
+            _log.error("Failed to fetch site id from local file", e);
+            throw CoordinatorException.fatals.unableToInitSiteUuid(e);
+        }
+        
         if (siteSpecific) {
             _serviceParentPath = String.format("%1$s/%2$s%3$s/%4$s/%5$s",
-                    ZkPath.SITES, _zkConnection.getSiteId(), ZkPath.SERVICE, _service.getName(), _service.getVersion());
+                    ZkPath.SITES, siteId, ZkPath.SERVICE, _service.getName(), _service.getVersion());
         } else {
             _serviceParentPath = String.format("%1$s/%2$s/%3$s",
                     ZkPath.SERVICE, _service.getName(), _service.getVersion());

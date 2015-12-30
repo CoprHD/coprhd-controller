@@ -95,7 +95,6 @@ public class CoordinatorTestBase {
         ZkConnection conn = new ZkConnection();
         conn.setServer(Arrays.asList(URI.create("coordinator://localhost:2181")));
         conn.setTimeoutMs(timeoutMs);
-        conn.setSiteId("fake-site-id");
         conn.build();
         return conn;
     }

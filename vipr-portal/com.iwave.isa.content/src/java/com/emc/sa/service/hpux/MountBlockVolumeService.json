@@ -14,7 +14,7 @@
     volume: {
       type:"assetType.vipr.unmountedBlockResource",   
       select:"one" 
-    }
+    }, 
     
     doFormat:{
       type: "boolean",

@@ -448,7 +448,7 @@ public class HostService extends TaskResourceService {
         // check the host label is not a duplicate
         if (host == null || (hostParam.getName() != null &&
                 !hostParam.getName().equals(host.getLabel()))) {
-            checkDuplicateLabel(Host.class, hostParam.getName(), "host");
+            checkDuplicateLabel(Host.class, hostParam.getName());
         }
         // If the host project is being changed, check for active exports
         if (host != null && !areEqual(host.getProject(), hostParam.getProject())) {

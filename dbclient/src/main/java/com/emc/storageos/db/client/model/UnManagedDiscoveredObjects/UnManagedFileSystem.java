@@ -29,6 +29,8 @@ public class UnManagedFileSystem extends UnManagedFileObject {
     private Boolean _hasExports = false;
 
     private Boolean _hasShares = false;
+    
+    private Boolean _hasNFSAcl = false;
 
     @Name("hasExports")
     public Boolean getHasExports() {
@@ -48,6 +50,16 @@ public class UnManagedFileSystem extends UnManagedFileObject {
     public void setHasShares(Boolean hasShares) {
         _hasShares = hasShares;
         setChanged("hasShares");
+    }
+    
+    @Name("hasNFSAcl")
+    public Boolean getHasNFSAcl() {
+        return _hasNFSAcl;
+    }
+
+    public void setHasNFSAcl(Boolean hasNFSAcl) {
+        _hasNFSAcl = hasNFSAcl;
+        setChanged("hasNFSAcl");
     }
 
     public enum SupportedFileSystemCharacterstics {

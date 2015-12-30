@@ -11,6 +11,7 @@ import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -37,12 +38,10 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
     private static final Logger _logger = LoggerFactory.getLogger(MultipleMaskPerHostIngestOrchestrator.class);
 
     @Override
-    public <T extends BlockObject> void ingestExportMasks(UnManagedVolume unManagedVolume,
-            List<UnManagedExportMask> unManagedMasks, VolumeExportIngestParam param, ExportGroup exportGroup, T volume,
-            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount,
-            List<Initiator> deviceInitiators, List<String> errorMessages) throws IngestionException {
-        super.ingestExportMasks(unManagedVolume, unManagedMasks, param, exportGroup,
-                volume, system, exportGroupCreated, masksIngestedCount, deviceInitiators, errorMessages);
+    public <T extends BlockObject> void ingestExportMasks(IngestionRequestContext requestContext, 
+            UnManagedVolume unManagedVolume, T blockObject, List<UnManagedExportMask> unManagedMasks, 
+            MutableInt masksIngestedCount) throws IngestionException {
+        super.ingestExportMasks(requestContext, unManagedVolume, blockObject, unManagedMasks, masksIngestedCount);
     }
 
     @Override

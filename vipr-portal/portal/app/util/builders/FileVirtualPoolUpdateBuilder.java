@@ -85,6 +85,14 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         }
         return virtualPool.getProtection().getReplicationParam();
     }
+    
+    public FileVirtualPoolReplicationParam getOldReplicationParam() {
+        if (getProtection().getReplicationParam() == null) {
+            getProtection().setReplicationParam(new FileVirtualPoolReplicationUpdateParam());
+
+        }
+        return oldVirtualPool.getProtection().getReplicationParam();
+    }
 
     public static FileVirtualPoolReplicationParam getReplicationParam(FileVirtualPoolRestRep virtualPool) {
         return virtualPool != null ? virtualPool.getProtection().getReplicationParam() : null;

@@ -11,6 +11,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
+
 import models.FileProtectionSystemTypes;
 import jobs.vipr.ConnectedFileVirtualPoolsCall;
 import jobs.vipr.MatchingFileStoragePoolsCall;
@@ -128,9 +130,9 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         builder.setSnapshots(maxSnapshots);
         builder.setLongTermRetention(longTermRetention);
         
-        Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = Sets.newLinkedHashSet();
         FileReplicationPolicy fileReplicationPolicy = new FileReplicationPolicy();
         fileReplicationPolicy.setReplicationType(replicationType);
+        FileVirtualPoolReplicationParam replicationParam = new FileVirtualPoolReplicationParam();
         
         
         if(FileProtectionSystemTypes.isTypeLocal(replicationType)){
@@ -140,6 +142,7 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         }
         
        if (FileProtectionSystemTypes.isTypeRemote(replicationType)){
+           Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = Sets.newLinkedHashSet();
            fileReplicationPolicy.setCopyMode(replicationMode);
            fileReplicationPolicy.setRpoType(rpRpoType);
            fileReplicationPolicy.setRpoValue(replicationRpo);
@@ -149,10 +152,9 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
                    copies.add(replicationCopyForm.write(replicationMode));
                }
            }
-           
+           replicationParam.setCopies(copies);
        }
-       FileVirtualPoolReplicationParam replicationParam = new FileVirtualPoolReplicationParam();
-       replicationParam.setCopies(copies);
+       
        replicationParam.setSourcePolicy(fileReplicationPolicy);
        builder.setReplicationParam(replicationParam);
         
@@ -164,9 +166,10 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         builder.setSnapshots(maxSnapshots);
         builder.setLongTermRetention(longTermRetention);
         
-        Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = Sets.newLinkedHashSet();
+        
         FileReplicationPolicy fileReplicationPolicy = new FileReplicationPolicy();
         fileReplicationPolicy.setReplicationType(replicationType);
+        FileVirtualPoolReplicationUpdateParam replicationParam = new FileVirtualPoolReplicationUpdateParam();
         
         
         if(FileProtectionSystemTypes.isTypeLocal(replicationType)){
@@ -179,16 +182,20 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
            fileReplicationPolicy.setCopyMode(replicationMode);
            fileReplicationPolicy.setRpoType(rpRpoType);
            fileReplicationPolicy.setRpoValue(replicationRpo);
-           
+           Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = Sets.newLinkedHashSet();
            for (ReplicationCopyForm replicationCopyForm : replicationCopies) {
+               
                if (replicationCopyForm != null ) {
                    copies.add(replicationCopyForm.write(replicationMode));
                }
            }
+           FileVirtualPoolReplicationParam oldPoolReplicationParam = builder.getOldReplicationParam();
+           Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> oldCopies = oldPoolReplicationParam.getCopies();
            
-       }
-       FileVirtualPoolReplicationUpdateParam replicationParam = new FileVirtualPoolReplicationUpdateParam();
-       replicationParam.setAddRemoteCopies(copies);
+           replicationParam.getAddRemoteCopies().addAll(CollectionUtils.subtract(copies, oldCopies));
+           replicationParam.getRemoveRemoteCopies().addAll(CollectionUtils.subtract(oldCopies, copies));
+           
+       }       
        replicationParam.setSourcePolicy(fileReplicationPolicy);
        builder.setReplicationParam(replicationParam);
         

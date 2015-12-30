@@ -210,6 +210,7 @@ public class FileVirtualPools extends ViprResourceController {
     public static void listStoragePoolsJson(FileVirtualPoolForm vpool) {
         List<StoragePoolInfo> items = Lists.newArrayList();
         if (vpool != null && vpool.protocols != null && !vpool.protocols.isEmpty()) {
+            vpool.deserialize();
             Map<URI, String> storageSystemNames = StorageSystemUtils.getStorageSystemNames();
             List<StoragePoolRestRep> pools = getMatchingStoragePools(vpool);
             for (StoragePoolRestRep pool : pools) {

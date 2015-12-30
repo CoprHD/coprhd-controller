@@ -1198,6 +1198,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, true);
     }
 
+    @Asset("mountedBlockResourceNoTargets")
+    @AssetDependencies("hpuxHost")
+    public List<AssetOption> getHpuxMountedBlockResourcesNoTargets(AssetOptionsContext context, URI hpuxHost) {
+        return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, true, new BlockObjectSRDFTargetFilter().not());
+    }
+
     @Asset("mountedBlockResource")
     @AssetDependencies("windowsHost")
     public List<AssetOption> getWindowsMountedBlockResources(AssetOptionsContext context, URI windowsHost) {

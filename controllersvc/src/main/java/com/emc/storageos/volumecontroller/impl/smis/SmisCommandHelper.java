@@ -4199,15 +4199,6 @@ public class SmisCommandHelper implements SmisConstants {
         return (volume == null ? null : volume.getReplicationGroupInstance());
     }
 
-    public String getConsistencyGroupName(BlockObject bo, StorageSystem storageSystem) {
-        if (bo.getConsistencyGroup() == null) {
-            return null;
-        }
-        final BlockConsistencyGroup group =
-                _dbClient.queryObject(BlockConsistencyGroup.class, bo.getConsistencyGroup());
-        return getConsistencyGroupName(group, storageSystem);
-    }
-
     public String getConsistencyGroupName(final BlockConsistencyGroup group,
             final StorageSystem storageSystem) {
         String groupName = null;

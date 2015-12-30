@@ -2232,7 +2232,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 consistencyGroupId);
         try {
             // Check if the consistency group exists
-            // String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
             // get group name from BlockObject
             String groupName = BlockObject.fetch(_dbClient, blockObjects.get(0)).getReplicationGroupInstance();
             storage = findProviderFactory.withGroup(storage, groupName).find();

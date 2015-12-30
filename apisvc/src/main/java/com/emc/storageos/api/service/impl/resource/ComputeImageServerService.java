@@ -319,8 +319,7 @@ public class ComputeImageServerService extends TaskResourceService {
             if (StringUtils.isNotBlank(imageServerName)
                     && !imageServerName
                             .equalsIgnoreCase(imageServer.getLabel())) {
-                checkDuplicateLabel(ComputeImageServer.class, imageServerName,
-                        imageServerName);
+                checkDuplicateLabel(ComputeImageServer.class, imageServerName);
                 imageServer.setLabel(param.getName());
             }
             if (StringUtils.isNotBlank(imageServerAddress)
@@ -500,8 +499,7 @@ public class ComputeImageServerService extends TaskResourceService {
     private void checkDuplicateImageServer(URI id, String imageServerAddress,
             String imageServerName) {
         if (StringUtils.isNotBlank(imageServerName)) {
-            checkDuplicateLabel(ComputeImageServer.class, imageServerName,
-                    imageServerName);
+            checkDuplicateLabel(ComputeImageServer.class, imageServerName);
         }
         List<URI> existingImageServers = _dbClient.queryByType(
                 ComputeImageServer.class, false);

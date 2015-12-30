@@ -18,13 +18,11 @@ import com.emc.fapiclient.ws.ConsistencyGroupCopySettings;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySnapshots;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyState;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyUID;
-import com.emc.fapiclient.ws.ConsistencyGroupLinkSettings;
 import com.emc.fapiclient.ws.ConsistencyGroupLinkState;
 import com.emc.fapiclient.ws.ConsistencyGroupSettings;
 import com.emc.fapiclient.ws.ConsistencyGroupState;
 import com.emc.fapiclient.ws.ConsistencyGroupUID;
 import com.emc.fapiclient.ws.ExecutionState;
-import com.emc.fapiclient.ws.FullConsistencyGroupPolicy;
 import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIImpl;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
@@ -314,20 +312,35 @@ public class RecoverPointImageManagementUtils {
         if (firstCopy != null && secondCopy != null) {
             GlobalCopyUID firstCopyGlobalCopyUID = firstCopy.getGlobalCopyUID();
             GlobalCopyUID secondCopyGlobalCopyUID = secondCopy.getGlobalCopyUID();
+            return copiesEqual(firstCopyGlobalCopyUID, secondCopyGlobalCopyUID);
+        }
 
-            ClusterUID firstCopyClusterUID = firstCopyGlobalCopyUID.getClusterUID();
-            ClusterUID secondCopyClusterUID = secondCopyGlobalCopyUID.getClusterUID();
+        return false;
+    }
+
+    /**
+     * Convenience method that determines if 2 CG copies are equal. The cluster and copy UIDs
+     * for each copy must be equal in order for the copies to be equal.
+     * 
+     * @param firstCopy the first copy in the comparison
+     * @param secondCopy the second copy in the comparison.
+     * @return true if the copy UIDs are the same
+     */
+    private boolean copiesEqual(GlobalCopyUID firstCopy, GlobalCopyUID secondCopy) {
+        if (firstCopy != null && secondCopy != null) {
+            ClusterUID firstCopyClusterUID = firstCopy.getClusterUID();
+            ClusterUID secondCopyClusterUID = secondCopy.getClusterUID();
 
             if (firstCopyClusterUID != null && secondCopyClusterUID != null
                     && firstCopyClusterUID.getId() == secondCopyClusterUID.getId()
-                    && firstCopyGlobalCopyUID.getCopyUID() == secondCopyGlobalCopyUID.getCopyUID()) {
+                    && firstCopy.getCopyUID() == secondCopy.getCopyUID()) {
                 return true;
             }
         }
 
         return false;
     }
-
+    
     /**
      * Perform a restore on a CG copy whose image has been enabled
      * 
@@ -832,7 +845,7 @@ public class RecoverPointImageManagementUtils {
      * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
      *             InterruptedException
      **/
-    private void waitForCGCopyState(FunctionalAPIImpl port, ConsistencyGroupCopyUID groupCopy, ImageAccessMode accessMode,
+    public void waitForCGCopyState(FunctionalAPIImpl port, ConsistencyGroupCopyUID groupCopy, ImageAccessMode accessMode,
             boolean expectRollComplete)
             throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, InterruptedException,
             RecoverPointException {
@@ -909,42 +922,42 @@ public class RecoverPointImageManagementUtils {
         throw RecoverPointException.exceptions.stateChangeNeverCompleted();
 	}
 	
-	/**
-	 * Wait for CG copy links to become ACTIVE
-	 * @param cgUID - Consistency group we are looking at
-	 * @param desiredPipeState - Desired state of the pipe
-	 * @param port - RP handle to use for RP operations
-	 * 
-	 * @return void
-	 * 
-	 * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, InterruptedException
-	 **/
-	public void waitForCGLinkState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID, PipeState desiredPipeState) throws RecoverPointException {
-		
-		int numRetries = 0;		
-		String cgName = null;
-		try {
-			cgName = impl.getGroupName(cgUID);
-		} catch (FunctionalAPIActionFailedException_Exception e) {
+    /**
+     * Wait for CG copy links to become ACTIVE
+     * @param cgUID - Consistency group we are looking at
+     * @param desiredPipeState - Desired state of the pipe
+     * @param port - RP handle to use for RP operations
+     * 
+     * @return void
+     * 
+     * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, InterruptedException
+     **/
+    public void waitForCGLinkState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID, PipeState desiredPipeState) throws RecoverPointException {
+        
+        int numRetries = 0;     
+        String cgName = null;
+        try {
+            cgName = impl.getGroupName(cgUID);
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
-		}
-		
-		boolean isInitializing = false;
-		boolean allLinksInDesiredState = false;
-		while ((!allLinksInDesiredState && numRetries++ < MAX_RETRIES) || isInitializing) {
-			ConsistencyGroupState cgState = null;				
-			isInitializing = false;			
-			try {
-				cgState = impl.getGroupState(cgUID);
-				
-				// Lets assume all links are in desired state and use boolean AND operation to concatenate the results 
-				// to get a cumulative status on all the links. 
-				//allLinksInDesiredState = true;
-				for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {					
-					PipeState pipeState = linkstate.getPipeState();
-					logger.info("CG link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
+        }
+        
+        boolean isInitializing = false;
+        boolean allLinksInDesiredState = false;
+        while ((!allLinksInDesiredState && numRetries++ < MAX_RETRIES) || isInitializing) {
+            ConsistencyGroupState cgState = null;               
+            isInitializing = false;         
+            try {
+                cgState = impl.getGroupState(cgUID);
+                
+                // Lets assume all links are in desired state and use boolean AND operation to concatenate the results 
+                // to get a cumulative status on all the links. 
+                //allLinksInDesiredState = true;
+                for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {                  
+                    PipeState pipeState = linkstate.getPipeState();
+                    logger.info("CG link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
 
                     // Special consideration if we want the link to be in the active state.
                     if (PipeState.ACTIVE.equals(desiredPipeState)) {
@@ -970,13 +983,13 @@ public class RecoverPointImageManagementUtils {
                             break;
                         }
                     } else if (PipeState.SNAP_IDLE.equals(desiredPipeState)) {
-                    	 if (PipeState.SNAP_IDLE.equals(pipeState) || PipeState.SNAP_SHIPPING.equals(pipeState)) {
+                         if (PipeState.SNAP_IDLE.equals(pipeState) || PipeState.SNAP_SHIPPING.equals(pipeState)) {
                              allLinksInDesiredState = true;
                              break;
-                    	 }
+                         }
                     } else {
-                        // Other desired states (like UNKNOWN [inactive])                    	
-                    	if (pipeState.equals(desiredPipeState)) {
+                        // Other desired states (like UNKNOWN [inactive])                       
+                        if (pipeState.equals(desiredPipeState)) {
                             logger.info("CG link state matches the desired state.");
                             allLinksInDesiredState = true;
                         } else {
@@ -1006,6 +1019,68 @@ public class RecoverPointImageManagementUtils {
         throw RecoverPointException.exceptions.cgLinksFailedToBecomeActive(cgName);
     }
 
+    /**
+     * Wait for CG copy links to become ACTIVE
+     *
+     * @param impl access to RP
+     * @param copyUID copy ID
+     * @param desiredPipeState - Desired state of the pipe
+     * 
+     * @return void
+     * 
+     * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, InterruptedException
+     **/
+    public void waitForCGCopyLinkState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyUID, PipeState desiredPipeState) throws RecoverPointException {
+        
+        int numRetries = 0;     
+        String cgName = null;
+        try {
+            cgName = impl.getGroupName(copyUID.getGroupUID());
+        } catch (FunctionalAPIActionFailedException_Exception e) {
+            throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
+        } catch (FunctionalAPIInternalError_Exception e) {
+            throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
+        }
+        
+        while (numRetries++ < MAX_RETRIES) {
+            ConsistencyGroupState cgState = null;               
+            try {
+                cgState = impl.getGroupState(copyUID.getGroupUID());
+                
+                for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {
+                    
+                    if (!copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
+                        continue;
+                    }
+                    
+                    PipeState pipeState = linkstate.getPipeState();
+                    logger.info("Copy link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
+
+                    if (pipeState.equals(desiredPipeState)) {
+                        logger.info("Copy link state matches the desired state.");
+                        return;
+                    } else {
+                        // This makes sure that if you wanted to act on the entire CG, but there's still a copy
+                        // in the undesired state, we still need to wait for it.
+                        logger.info("Copy link state is not in desired state. It is: " + pipeState.toString());
+                        break;
+                    }
+                }
+
+                logger.info("Copy link not in desired state.  Sleep 15 seconds and retry");
+                Thread.sleep(WAIT_FOR_LINKS_SLEEP_INTERVAL);
+            } catch (FunctionalAPIActionFailedException_Exception e) {
+                throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
+            } catch (FunctionalAPIInternalError_Exception e) {
+                throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
+            } catch (InterruptedException e) {
+                throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
+            }
+        }
+        
+        throw RecoverPointException.exceptions.cgLinksFailedToBecomeActive(cgName);
+    }
+    
     /**
      * Perform an enable image on a CG copy
      * 
@@ -1121,29 +1196,47 @@ public class RecoverPointImageManagementUtils {
      * Verify that a copy is capable of being enabled.
      * 
      * @param impl - RP handle
-     * @param cgCopy - CG Copy, contains CG
+     * @param copyId - CG Copy, contains CG
+     * @param cgCopyName - copy name
+     * @param cgName - CG name
      * @throws RecoverPointException
      */
-    public ConsistencyGroupCopyState getCopyState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID cgCopy) throws RecoverPointException {
-        String cgCopyName = NAME_UNKNOWN;
-        String cgName = NAME_UNKNOWN;
-
+    public ConsistencyGroupCopyState getCopyState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyId, String cgCopyName, String cgName) throws RecoverPointException {
         try {
-            cgCopyName = impl.getGroupCopyName(cgCopy);
-            cgName = impl.getGroupName(cgCopy.getGroupUID());
-
-            ConsistencyGroupUID groupUID = cgCopy.getGroupUID();
+            ConsistencyGroupUID groupUID = copyId.getGroupUID();
             ConsistencyGroupState groupState;
             List<ConsistencyGroupCopyState> cgCopyStateList;
             groupState = impl.getGroupState(groupUID);
             cgCopyStateList = groupState.getGroupCopiesStates();
-            cgCopyStateList = impl.getGroupState(groupUID).getGroupCopiesStates();
             for (ConsistencyGroupCopyState cgCopyState : cgCopyStateList) {
-                if (RecoverPointUtils.cgCopyEqual(cgCopyState.getCopyUID(), cgCopy)) {
+                if (RecoverPointUtils.cgCopyEqual(cgCopyState.getCopyUID(), copyId)) {
                     return cgCopyState;
                 }
             }
             return null;
+        } catch (FunctionalAPIActionFailedException_Exception e) {
+            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
+        } catch (FunctionalAPIInternalError_Exception e) {
+            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
+        }
+    }
+    
+    /**
+     * Verify that a copy is capable of being enabled.
+     * 
+     * @param impl - RP handle
+     * @param copyId - CG Copy, contains CG
+     * @throws RecoverPointException
+     * @return state of the CG copy
+     */
+    public ConsistencyGroupCopyState getCopyState(FunctionalAPIImpl impl, ConsistencyGroupCopyUID copyId) throws RecoverPointException {
+        String cgCopyName = NAME_UNKNOWN;
+        String cgName = NAME_UNKNOWN;
+
+        try {
+            cgCopyName = impl.getGroupCopyName(copyId);
+            cgName = impl.getGroupName(copyId.getGroupUID());
+            return getCopyState(impl, copyId, cgCopyName, cgName);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -792,6 +793,27 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     /**
+     * Returns true if the passed volume is in an export group that isn't associated with RP.
+     * 
+     * @param dbClient A reference to a DbClient
+     * 
+     * @return true if the passed volume is in an export group that isn't associated with RP, false otherwise
+     */
+    public boolean isExportedNonRP(DbClient dbClient) {
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
+        Iterator<URI> exportGroupURIIter = exportGroupURIs.iterator();
+        while (exportGroupURIIter.hasNext()) {
+            URI exportGroupURI = exportGroupURIIter.next();
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            if (!exportGroup.checkInternalFlags(Flag.RECOVERPOINT)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Return whether or not a volume in ViPR was created outside
      * of ViPR and ingested.
      *
@@ -920,4 +942,5 @@ public class Volume extends BlockObject implements ProjectResource {
     public boolean isInCG() {
         return !NullColumnValueGetter.isNullURI(getConsistencyGroup());
     }
+
 }

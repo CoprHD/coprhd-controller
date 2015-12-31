@@ -436,9 +436,13 @@ public class SchemaUtil {
      * @return true to indicate keyspace strategy option is changed
      */
     private boolean checkStrategyOptionsForGeo(Map<String, String> strategyOptions) {
-        // no need to add new vdc for local db
-        // TODO: need to consider DR in future
         if (!isGeoDbsvc()) {
+            // for local db, check if current vdc id is in the list
+            if (!strategyOptions.containsKey(_vdcShortId)) {
+                _log.info("Add {} to strategy options", _vdcShortId);
+                strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
+                return true;
+            }
             return false;
         }
 
@@ -742,9 +746,10 @@ public class SchemaUtil {
      * @param vdc
      * @param dbClient
      */
-    private void checkIPChanged(VirtualDataCenter vdc, DbClient dbClient) {
-        StringMap ipv4Addrs = vdc.getHostIPv4AddressesMap();
-        StringMap ipv6Addrs = vdc.getHostIPv6AddressesMap();
+    private void checkIPChanged() {
+        Site site = drUtil.getLocalSite();
+        Map<String, String> ipv4Addrs = site.getHostIPv4AddressMap();
+        Map<String, String> ipv6Addrs = site.getHostIPv6AddressMap();
 
         CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
         Map<String, DualInetAddress> controlNodes = nodeMap.getControllerNodeIPLookupMap();
@@ -789,29 +794,28 @@ public class SchemaUtil {
         }
 
         // check node count
-        if (_vdcHosts != null && _vdcHosts.size() != vdc.getHostCount()) {
-            if (_vdcHosts.size() < vdc.getHostCount()) {
-                for (nodeIndex = _vdcHosts.size() + 1; nodeIndex <= vdc.getHostCount(); nodeIndex++) {
+        if (_vdcHosts != null && _vdcHosts.size() != site.getNodeCount()) {
+            if (_vdcHosts.size() < site.getNodeCount()) {
+                for (nodeIndex = _vdcHosts.size() + 1; nodeIndex <= site.getNodeCount(); nodeIndex++) {
                     nodeId = VDC_NODE_PREFIX + nodeIndex;
                     ipv4Addrs.remove(nodeId);
                     ipv6Addrs.remove(nodeId);
                 }
             }
             changed = true;
-            vdc.setHostCount(_vdcHosts.size());
-            _log.info("Vdc host count changed from {} to {}", vdc.getHostCount(), _vdcHosts.size());
+            site.setNodeCount(_vdcHosts.size());
+            _log.info("Vdc host count changed from {} to {}", site.getNodeCount(), _vdcHosts.size());
         }
 
         // Check VIP
-        if (_vdcEndpoint != null && !_vdcEndpoint.equals(vdc.getApiEndpoint())) {
+        if (_vdcEndpoint != null && !_vdcEndpoint.equals(site.getVip())) {
             changed = true;
-            vdc.setApiEndpoint(_vdcEndpoint);
+            site.setVip(_vdcEndpoint);
             _log.info("Vdc vip changed to {}", _vdcEndpoint);
         }
 
         if (changed) {
-            vdc.setVersion(new Date().getTime()); // timestamp
-            dbClient.updateAndReindexObject(vdc);
+            _coordinator.persistServiceConfiguration(site.toConfiguration());
             _log.info("vdc ip change detected, updated vdc resource ok");
         }
     }
@@ -857,15 +861,9 @@ public class SchemaUtil {
             _log.error("Unable to find VirtualDataCenter CF in current keyspace");
             return;
         }
-
         VirtualDataCenter localVdc = queryLocalVdc(dbClient);
         if (localVdc != null) {
-            if (localVdc.getLocal()) {
-                checkIPChanged(localVdc, dbClient);
-            } else {
-                _log.warn("Vdc record is not local for {}", _vdcShortId);
-            }
-            checkAndInsertVdcConfig(localVdc);
+            checkIPChanged();
             return;
         }
 
@@ -878,69 +876,10 @@ public class SchemaUtil {
         vdc.setConnectionStatus(VirtualDataCenter.ConnectionStatus.ISOLATED);
         vdc.setRepStatus(VirtualDataCenter.GeoReplicationStatus.REP_NONE);
         vdc.setVersion(new Date().getTime()); // timestamp
-        vdc.setHostCount(_vdcHosts.size());
         vdc.setApiEndpoint(_vdcEndpoint);
-
-        CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
-        Map<String, DualInetAddress> controlNodes = nodeMap.getControllerNodeIPLookupMap();
-        StringMap ipv4Addresses = new StringMap();
-        StringMap ipv6Addresses = new StringMap();
-
-        String nodeId;
-        int nodeIndex = 0;
-        for (Map.Entry<String, DualInetAddress> cnode : controlNodes.entrySet()) {
-            nodeIndex++;
-            nodeId = VDC_NODE_PREFIX + nodeIndex;
-            DualInetAddress addr = cnode.getValue();
-            if (addr.hasInet4()) {
-                ipv4Addresses.put(nodeId, addr.getInet4());
-            }
-            if (addr.hasInet6()) {
-                ipv6Addresses.put(nodeId, addr.getInet6());
-            }
-        }
-
-        vdc.setHostIPv4AddressesMap(ipv4Addresses);
-        vdc.setHostIPv6AddressesMap(ipv6Addresses);
 
         vdc.setLocal(true);
         dbClient.createObject(vdc);
-
-        checkAndInsertVdcConfig(vdc);
-    }
-    
-    private void checkAndInsertVdcConfig(VirtualDataCenter vdc) {
-        try {
-            drUtil.getLocalSite();
-            _log.info("Find local site config in ZK");
-            return;
-        } catch (RetryableCoordinatorException ex) {
-            _log.info("Cannot find local vdc config in ZK. Create new config");
-        }
-        // create VDC parent ZNode for site config in ZK
-        ConfigurationImpl vdcConfig = new ConfigurationImpl();
-        vdcConfig.setKind(Site.CONFIG_KIND);
-        vdcConfig.setId(vdc.getShortId());
-        _coordinator.persistServiceConfiguration(vdcConfig);
-
-        // insert DR acitve site info to ZK
-        Site site = new Site();
-        site.setUuid(_coordinator.getSiteId());
-        site.setName("Default Active Site");
-        site.setVdcShortId(vdc.getShortId());
-        site.setStandbyShortId("");
-        site.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
-        site.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
-        site.setState(SiteState.ACTIVE);
-        site.setCreationTime(System.currentTimeMillis());
-        site.setVip(_vdcEndpoint);
-        site.setNodeCount(vdc.getHostCount());
-
-        _coordinator.persistServiceConfiguration(site.toConfiguration());
-
-        // update Site version in ZK
-        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
-        _coordinator.setTargetInfo(siteInfo);
     }
     
     /**

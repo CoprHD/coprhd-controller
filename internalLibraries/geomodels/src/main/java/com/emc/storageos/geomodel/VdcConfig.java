@@ -7,6 +7,7 @@ package com.emc.storageos.geomodel;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -32,6 +33,8 @@ public class VdcConfig {
 
     private String geoCommandEndpoint;
     private String geoDataEndpoint;
+    
+    private String activeSiteId;
 
     public static enum ConfigChangeType {
         CONNECT_VDC,
@@ -87,21 +90,21 @@ public class VdcConfig {
     }
 
     @XmlElement(name = "hostIPv4AddressesMap")
-    public HashMap<String, String> getHostIPv4AddressesMap() {
+    public Map<String, String> getHostIPv4AddressesMap() {
         return hostIPv4AddressesMap;
     }
 
-    public void setHostIPv4AddressesMap(HashMap<String, String> addressesMap) {
-        this.hostIPv4AddressesMap = addressesMap;
+    public void setHostIPv4AddressesMap(Map<String, String> addressesMap) {
+        this.hostIPv4AddressesMap.putAll(addressesMap);
     }
 
     @XmlElement(name = "hostIPv6AddressesMap")
-    public HashMap<String, String> getHostIPv6AddressesMap() {
+    public Map<String, String> getHostIPv6AddressesMap() {
         return hostIPv6AddressesMap;
     }
 
-    public void setHostIPv6AddressesMap(HashMap<String, String> addressesMap) {
-        this.hostIPv6AddressesMap = addressesMap;
+    public void setHostIPv6AddressesMap(Map<String, String> addressesMap) {
+        this.hostIPv6AddressesMap.putAll(addressesMap);
     }
 
     @XmlElement(name = "name")
@@ -174,6 +177,15 @@ public class VdcConfig {
 
     public void setRepStatus(String repStatus) {
         this.repStatus = repStatus;
+    }
+
+    @XmlElement(name = "active_site_id")
+    public String getActiveSiteId() {
+        return activeSiteId;
+    }
+
+    public void setActiveSiteId(String activeSiteId) {
+        this.activeSiteId = activeSiteId;
     }
 
     @Override

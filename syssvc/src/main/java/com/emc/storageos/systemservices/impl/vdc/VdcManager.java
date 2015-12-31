@@ -341,6 +341,7 @@ public class VdcManager extends AbstractManager {
                 retrySleep();
             } else {
                 log.info("Step3: Setting vdc properties and reboot");
+                targetVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
                 reboot();
             }

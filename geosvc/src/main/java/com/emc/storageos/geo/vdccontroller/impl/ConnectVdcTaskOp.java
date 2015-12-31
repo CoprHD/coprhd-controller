@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.net.InetAddresses;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
@@ -128,6 +129,8 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         VirtualDataCenter newVdc = GeoServiceHelper.prepareVirtualDataCenter(newVdcId, VirtualDataCenter.ConnectionStatus.CONNECTING,
                 VirtualDataCenter.GeoReplicationStatus.REP_NONE, vdcInfo);
         dbClient.createObject(newVdc);
+        helper.createVdcConfigInZk(mergeVdcInfo(operatedVdcInfo));
+        
         // we should use uuid as cert name in trust store, but before we persist new vdc info
         // into db, we use vdc name as cert name, after we persist new vdc into db, persist uuid
         // as cert name and remove the one which use vdc name as cert name.
@@ -405,16 +408,19 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
      * @throws Exception
      */
     private VdcNodeCheckResponse sendVdcNodeCheckRequest(Properties vdcProp, Collection<VirtualDataCenter> vdcsToCheck) {
-        VdcNodeCheckParam param = new VdcNodeCheckParam();
         List<VdcConfig> virtualDataCenters = new ArrayList<VdcConfig>();
         for (VirtualDataCenter vdc : vdcsToCheck) {
             VdcConfig vdcConfig = new VdcConfig();
+            Site activeSite = drUtil.getActiveSite(vdc.getShortId());
+            log.info("Active site {}", activeSite.getHostIPv4AddressMap());
+            log.info("Active site for vdc {}", vdc.getShortId());
+            
             vdcConfig.setId(vdc.getId());
             vdcConfig.setShortId(vdc.getShortId());
-            if (vdc.getHostIPv4AddressesMap() != null && !vdc.getHostIPv4AddressesMap().isEmpty()) {
-                vdcConfig.setHostIPv4AddressesMap(vdc.getHostIPv4AddressesMap());
-            } else if (vdc.getHostIPv6AddressesMap() != null && !vdc.getHostIPv6AddressesMap().isEmpty()) {
-                vdcConfig.setHostIPv6AddressesMap(vdc.getHostIPv6AddressesMap());
+            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty()) {
+                vdcConfig.setHostIPv4AddressesMap(activeSite.getHostIPv4AddressMap());
+            } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getHostIPv6AddressMap().isEmpty()) {
+                vdcConfig.setHostIPv6AddressesMap(activeSite.getHostIPv6AddressMap());
             } else {
                 throw GeoException.fatals
                         .cannotPerformOperation(vdc.getId().toString(), " no nodes were found on VirtualDataCenter object");
@@ -508,8 +514,9 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
 
         // reload operated vdc from db
         operatedVdc = dbClient.queryObject(VirtualDataCenter.class, operatedVdc.getId());
+        Site activeSite = drUtil.getActiveSite(operatedVdc.getShortId());
         // check if network strategy updated successfully
-        dbClient.waitDbRingRebuildDone(operatedVdc.getShortId(), operatedVdc.getHostCount());
+        dbClient.waitDbRingRebuildDone(operatedVdc.getShortId(), activeSite.getNodeCount());
     }
 
     private void statusUpdate() {
@@ -555,6 +562,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
 
         Date addDate = new Date();
         vdcConfig.setVersion(addDate.getTime()); // notify the vdc to pick up the latest info
+        vdcConfig.setActiveSiteId(vdcResp.getActiveSiteId());
         return vdcConfig;
     }
 

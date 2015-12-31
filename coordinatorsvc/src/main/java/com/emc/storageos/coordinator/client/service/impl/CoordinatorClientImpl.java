@@ -36,6 +36,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.DeleteBuilder;
 import org.apache.curator.framework.recipes.cache.NodeCache;
@@ -63,11 +64,14 @@ import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
+import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -108,6 +112,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private static final int ATOMIC_INTEGER_RETRY_INTERVAL_MS = 1000;
     private static final int ATOMIC_INTEGER_RETRY_TIME = 5;
     private static final String ATOMIC_INTEGER_ZK_PATH_FORMAT = "%s/%s/%s";
+    private static final String NODE_NAME_PREFIX = "node";
 
     private final ConcurrentMap<String, Object> _proxyCache = new ConcurrentHashMap<String, Object>();
 
@@ -207,8 +212,53 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private void createSiteSpecificSection() throws Exception {
         addSite(siteId);
+        
+        // create VDC parent ZNode for site config in ZK
+        ConfigurationImpl vdcConfig = new ConfigurationImpl();
+        vdcConfig.setKind(Site.CONFIG_KIND);
+        vdcConfig.setId(Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID);
+        persistServiceConfiguration(vdcConfig);
+
+        // insert DR acitve site info to ZK
+        CoordinatorClientInetAddressMap nodeMap = getInetAddessLookupMap();
+        Map<String, DualInetAddress> controlNodes = nodeMap.getControllerNodeIPLookupMap();
+        HashMap<String, String> ipv4Addresses = new HashMap<String, String>();
+        HashMap<String, String> ipv6Addresses = new HashMap<String, String>();
+
+        String nodeId;
+        int nodeIndex = 0;
+        for (Map.Entry<String, DualInetAddress> cnode : controlNodes.entrySet()) {
+            nodeIndex++;
+            nodeId = NODE_NAME_PREFIX + nodeIndex;
+            DualInetAddress addr = cnode.getValue();
+            if (addr.hasInet4()) {
+                ipv4Addresses.put(nodeId, addr.getInet4());
+            }
+            if (addr.hasInet6()) {
+                ipv6Addresses.put(nodeId, addr.getInet6());
+            }
+        }
+        Site site = new Site();
+        site.setUuid(getSiteId());
+        site.setName("Default Active Site");
+        site.setVdcShortId(Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID);
+        site.setStandbyShortId("");
+        
+        site.setHostIPv4AddressMap(ipv4Addresses);
+        site.setHostIPv6AddressMap(ipv6Addresses);
+        site.setState(SiteState.ACTIVE);
+        site.setCreationTime(System.currentTimeMillis());
+        String vip = ovfProperties.getProperty("network_vip");
+        if (StringUtils.isEmpty(vip)) {
+            vip = ovfProperties.getProperty("network_vip6");
+        }
+        site.setVip(vip);
+        site.setNodeCount(Math.max(ipv4Addresses.size(), ipv6Addresses.size()));
+        persistServiceConfiguration(site.toConfiguration());
     }
 
+    
+    
     @Override
     /**
      * Create a znode "/site/<uuid>" for specific site. This znode should have the following sub zones
@@ -229,6 +279,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             throw e;
         }
     }
+    
+    
 
     /**
      * Check and initialize site specific section for current site. If site specific section is empty,
@@ -249,7 +301,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             if (!isSiteSpecificSectionInited())
                 createSiteSpecificSection();
         }catch (Exception e) {
-            log.error("Failed to acquire the lock for {}. Error {}", ZkPath.SITES, e);
+            log.error("Failed to initialize site specific area for {}.", ZkPath.SITES, e);
             throw e;
         } finally {
             try {
@@ -303,6 +355,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 });
         _zkConnection.connect();
 
+        // writing local node to zk
+        initInetAddressEntry();
+        
         try {
             checkAndCreateSiteSpecificSection();
 
@@ -320,9 +375,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             }
             throw CoordinatorException.fatals.errorConnectingCoordinatorService(e);
         }
-
-        // writing local node to zk
-        initInetAddressEntry();
     }
 
     @Override

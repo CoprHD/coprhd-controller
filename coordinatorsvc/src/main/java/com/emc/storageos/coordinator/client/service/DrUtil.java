@@ -27,6 +27,7 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -133,16 +134,25 @@ public class DrUtil {
      * @return uuid of the active site
      */
     public String getActiveSiteId(String vdcShortId) {
+        return getActiveSite(vdcShortId).getUuid();
+    }
+
+    /**
+     * Get active site object for specific VDC. 
+     * 
+     * @param vdcShortId
+     * @return site object.
+     */
+    public Site getActiveSite(String vdcShortId) {
         String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
         for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
             Site site = new Site(siteConfig);
             if (ACTIVE_SITE_STATES.contains(site.getState())) {
-                return site.getUuid();
+                return site;
             }
         }
-        return null;
+        throw CoordinatorException.retryables.cannotFindSite(vdcShortId);
     }
-
     /**
      * Get local site configuration
      *
@@ -379,6 +389,19 @@ public class DrUtil {
             return Constants.CONFIG_GEO_FIRST_VDC_SHORT_ID; // return default vdc1 in case of localVdc is not initialized yet
         }
         return localVdc.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
+    }
+    
+    /**
+     * Update current vdc short id to zk
+     * 
+     * @param vdcShortId
+     */
+    public void setLocalVdcShortId(String vdcShortId) {
+        ConfigurationImpl localVdc = new ConfigurationImpl();
+        localVdc.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
+        localVdc.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        localVdc.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, vdcShortId);
+        coordinator.persistServiceConfiguration(localVdc);
     }
     
     /**

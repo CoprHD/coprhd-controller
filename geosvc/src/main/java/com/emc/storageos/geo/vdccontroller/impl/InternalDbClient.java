@@ -20,6 +20,8 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.netflix.astyanax.Keyspace;
@@ -51,7 +53,14 @@ public class InternalDbClient extends DbClientImpl {
     private static final int WAIT_QUERY_NODE_REPAIR_BEGIN = 5 * 60 * 1000; // query every 5min
     private static final int WAIT_QUERY_NODE_REPAIR_PROGRESS = 5 * 1000; // query every 5S
     private static String LOCALHOST = "127.0.0.1";
-
+    private DrUtil drUtil;
+    
+    @Override
+    public synchronized void start() {
+        super.start();
+        drUtil = new DrUtil(this.getCoordinatorClient());
+    }
+    
     @Deprecated
     public String getMyVdcId() {
         return VdcUtil.getLocalShortVdcId();
@@ -109,7 +118,8 @@ public class InternalDbClient extends DbClientImpl {
                 continue;
             }
             if (vdc.getConnectionStatus() != ConnectionStatus.DISCONNECTED) {
-                waitDbNodesStable(geoInstance, vdc.getShortId(), vdc.getHostCount()); // short Id
+                Site activeSite = drUtil.getActiveSite(vdc.getShortId());
+                waitDbNodesStable(geoInstance, vdc.getShortId(), activeSite.getNodeCount()); // short Id
             }
         }
     }
@@ -122,9 +132,9 @@ public class InternalDbClient extends DbClientImpl {
         if (vdc.getLocal()) {
             return true;
         }
-
+        
         // incomplete vdc record
-        if ((vdc.getShortId() == null) || (vdc.getHostCount() == null)) {
+        if (vdc.getShortId() == null) {
             log.error("invalid record in db status check {}", vdc.getId());
             return false;
         }

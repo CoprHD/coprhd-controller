@@ -1,40 +1,39 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.isilon.restapi;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class IsilonSyncPolicy {
-    // mandatory source_root_path, target_host, name, target_path, action
+
+    /*
+     * If set to copy, source files are copied to the target cluster. If set to sync, files and directories that were deleted
+     * on the source cluster and files that no longer match the selection criteria are deleted from the target directory.
+     */
     public static enum Action {
-        copy,
-        sync
+        copy,           // for archival
+        sync       // for fail over
     }
 
-    public IsilonSyncPolicy(String sourceRootPath, String targetHost,
-            String name, String targetPath, IsilonSyncPolicy.Action action) {
-        this.name = name;
-        this.source_root_path = sourceRootPath;
-        this.action = action;
-        this.target_host = targetHost;
-        this.target_path = targetPath;
-    }
+    private String name;
+    private String source_root_path;
+    private IsilonSyncPolicy.Action action;
+    private String target_path;
+    private String target_host;
+    private String schedule;
+    private String description;
 
-    String name;
-    /* The root directory on the source cluster the files will be synced from */
-    String source_root_path;
-    IsilonSyncPolicy.Action action;
-    String target_path;
-    /* Hostname or IP address of sync target cluster */
-    String target_host;
+    /*
+     * If set to true, replication jobs are automatically run based on the associated replication policy and schedule. If set to false,
+     * replication jobs are only performed when manually triggered.
+     */
+    private Boolean enabled;
 
-    String schedule;
-    /* If true, jobs will be automatically run based on this policy */
-    Boolean enabled = false;
-    String description;
-    Boolean target_compare_initial_sync = false;
-
-    Integer report_max_count;
-    List<String> source_exclude_directories = new ArrayList<String>();
+    /*
+     * If set to true, files on the target cluster are compared against the source cluster during the initial replication
+     * job, and missing files are transferred.
+     */
+    private Boolean target_compare_initial_sync = false;
 
     public String getName() {
         return name;
@@ -80,7 +79,6 @@ public class IsilonSyncPolicy {
         return enabled;
     }
 
-    /* If true, jobs will be automatically run based on this policy */
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
     }
@@ -101,22 +99,6 @@ public class IsilonSyncPolicy {
         this.target_compare_initial_sync = target_compare_initial_sync;
     }
 
-    public List<String> getSource_exclude_directories() {
-        return source_exclude_directories;
-    }
-
-    public void setSource_exclude_directories(List<String> source_exclude_directories) {
-        this.source_exclude_directories = source_exclude_directories;
-    }
-
-    public Integer getReport_max_count() {
-        return report_max_count;
-    }
-
-    public void setReport_max_count(Integer report_max_count) {
-        this.report_max_count = report_max_count;
-    }
-
     public String getSchedule() {
         return schedule;
     }
@@ -130,9 +112,11 @@ public class IsilonSyncPolicy {
         return "IsilonSyncPolicy{" +
                 "name='" + name + '\'' +
                 ", source_root_path='" + source_root_path + '\'' +
-                ", enabled=" + enabled +
-                ", action=" + action +
+                ", target_path='" + target_path + '\'' +
+                ", target_host='" + target_host + '\'' +
+                ", enabled='" + enabled + '\'' +
+                ", action='" + action + '\'' +
+                ", description='" + description + '\'' +
                 '}';
     }
-
 }

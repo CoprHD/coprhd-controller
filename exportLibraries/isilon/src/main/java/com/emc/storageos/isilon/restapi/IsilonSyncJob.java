@@ -7,6 +7,7 @@ public class IsilonSyncJob {
         running,
         paused,
         finished,
+        resumed,
         failed,
         canceled,
         needs_attention,
@@ -16,8 +17,11 @@ public class IsilonSyncJob {
     }
 
     public static enum Action {
-        copy,
-        sync
+        resync_prep,
+        allow_write,                                                  // for fail over to secondary cluster
+        allow_write_revert,
+        test,
+        run
     }
 
     public static enum SyncType {
@@ -30,30 +34,46 @@ public class IsilonSyncJob {
         domainmark,
     }
 
-    /* A unique identifier for this object. */
-    private String id;
-
-    /* The ID of the job */
-    private Integer jobId;
-
     /* The name of the policy */
-    private String policyName;
+    private String policy_name;
 
     /*
-     * The time the job started and ended in unix epoch seconds.
-     * The field is null if the job hasn't started or ended.
+     * The policy associated with this job, or null if there is currently no policy associated with this job,
+     * this can happen if the job is newly created and not yet fully populated in the underlying database.
      */
+    private IsilonSyncPolicy policy;
+
+    /* The time the job started and ended in unix epoch seconds.The field is null if the job hasn't started or ended. */
     private Integer startTime;
+
+    /* This field is true if the node running this job is dead. */
+    private boolean dead_node;
+
+    /* The time the job ended in UNIX epoch seconds. The field is null if the job hasn't ended. */
     private Integer endTime;
 
-    /* The state of the job. */
+    /*
+     * The amount of time in seconds between when the job was started and when it ended. If the job has not yet ended,
+     * this is the amount of time since the job started. This field is null if the job has not yet started.
+     */
+    private Integer duration;
     private IsilonSyncJob.State state;
-
-    /* The action to be taken by this job */
     private IsilonSyncJob.Action action;
-
-    /* The type of sync being performed by this job */
     private IsilonSyncJob.SyncType syncType;
+    private int job_id;
+    private String id;
+
+    public Action getAction() {
+        return action;
+    }
+
+    public void setAction(Action action) {
+        this.action = action;
+    }
+
+    public IsilonSyncPolicy getPolicy() {
+        return policy;
+    }
 
     public String getId() {
         return id;
@@ -64,35 +84,23 @@ public class IsilonSyncJob {
     }
 
     public Integer getJobId() {
-        return jobId;
+        return job_id;
     }
 
-    public void setJobId(Integer jobId) {
-        this.jobId = jobId;
+    public void setJobId(int job_id) {
+        this.job_id = job_id;
     }
 
     public String getPolicyName() {
-        return policyName;
-    }
-
-    public void setPolicyName(String policyName) {
-        this.policyName = policyName;
+        return policy_name;
     }
 
     public Integer getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(Integer startTime) {
-        this.startTime = startTime;
-    }
-
     public Integer getEndTime() {
         return endTime;
-    }
-
-    public void setEndTime(Integer endTime) {
-        this.endTime = endTime;
     }
 
     public State getState() {
@@ -107,24 +115,20 @@ public class IsilonSyncJob {
         return syncType;
     }
 
-    public void setSyncType(SyncType syncType) {
-        this.syncType = syncType;
+    public boolean getIsDeadNode() {
+        return dead_node;
     }
 
-    public Action getAction() {
-        return action;
-    }
-
-    public void setAction(Action action) {
-        this.action = action;
+    public Integer getDuration() {
+        return duration;
     }
 
     @Override
     public String toString() {
         return "IsilonSyncJob{" +
                 "id='" + id + '\'' +
-                ", jobId=" + jobId +
-                ", policyName='" + policyName + '\'' +
+                ", job_id=" + job_id +
+                ", policyName='" + policy_name + '\'' +
                 ", startTime=" + startTime +
                 ", endTime=" + endTime +
                 ", state=" + state +

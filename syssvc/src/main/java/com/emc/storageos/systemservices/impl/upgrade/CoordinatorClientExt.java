@@ -66,8 +66,6 @@ import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
-import com.emc.storageos.db.server.impl.DbManager;
-import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.model.property.PropertyMetadata;
@@ -79,6 +77,7 @@ import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.SysSvcBeaconImpl;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory.SysClient;
+import com.emc.storageos.systemservices.impl.vdc.DbsvcQuorumMonitor;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.google.common.collect.ImmutableSet;
@@ -92,7 +91,6 @@ public class CoordinatorClientExt {
     private static final String URI_INTERNAL_GET_CLUSTER_INFO = "/control/internal/cluster/info";
     private static final int COODINATOR_MONITORING_INTERVAL = 60; // in seconds
     private static final int DB_MONITORING_INTERVAL = 60; // in seconds
-    private static final long STANDBY_DEGRADED_THRESHOLD = 1000 * 60 * 15; // 15 minutes, in milliseconds
     private static final String DR_SWITCH_TO_ZK_OBSERVER_BARRIER = "/config/disasterRecoverySwitchToZkObserver";
     private static final int DR_SWITCH_BARRIER_TIMEOUT = 180; // barrier timeout in seconds
     private static final int ZK_LEADER_ELECTION_PORT = 2888;
@@ -1426,7 +1424,8 @@ public class CoordinatorClientExt {
                     return new Thread(r, "DbsvcQuorumMonitor");
                 }
             });
-            exe.scheduleAtFixedRate(dbSvcMonitor, 0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
+            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(drUtil, getMyNodeId(), _coordinator)
+                    , 0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
     }
 
@@ -1509,68 +1508,6 @@ public class CoordinatorClientExt {
             } catch (Exception ex) {
                 _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);
             } 
-        }
-    };
-
-    /**
-     * Monitor local coordinatorsvc on standby site
-     */
-    private Runnable dbSvcMonitor = new Runnable() {
-        @Override
-        public void run() {
-            String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
-            if (!DrUtil.ZOOKEEPER_MODE_LEADER.equals(state)) {
-                _log.info("Current node is not ZK leader. Do nothing");
-                return;
-            }
-
-            List<Site> standbySites = drUtil.listStandbySites();
-            List<Site> sitesToDegrade = new ArrayList<>();
-            for (Site standbySite : standbySites) {
-                if (!standbySite.getState().equals(SiteState.STANDBY_SYNCED)) {
-                    // skip those standby sites that are not synced yet
-                    continue;
-                }
-
-                String siteId = standbySite.getUuid();
-                SiteMonitorResult monitorResult = _coordinator.getTargetInfo(siteId, SiteMonitorResult.class);
-                if (monitorResult == null) {
-                    monitorResult = new SiteMonitorResult();
-                }
-
-                boolean quorumLost = drUtil.isQuorumLost(standbySite, Constants.DBSVC_NAME) ||
-                        drUtil.isQuorumLost(standbySite, Constants.GEODBSVC_NAME);
-                if (quorumLost && monitorResult.getDbQuorumLostSince() == 0) {
-                    _log.warn("Db quorum lost for site {}", siteId);
-                    monitorResult.setDbQuorumLostSince(System.currentTimeMillis());
-                    _coordinator.setTargetInfo(siteId, monitorResult);
-                } else if (!quorumLost && monitorResult.getDbQuorumLostSince() != 0) {
-                    // reset the timer
-                    _log.info("Db quorum restored for site {}", siteId);
-                    monitorResult.setDbQuorumLostSince(0);
-                    _coordinator.setTargetInfo(siteId, monitorResult);
-                }
-
-                if (monitorResult.getDbQuorumLostSince() == 0) {
-                    // Db quorum is intact
-                    continue;
-                }
-
-                if (System.currentTimeMillis() - monitorResult.getDbQuorumLostSince() >= STANDBY_DEGRADED_THRESHOLD) {
-                    _log.info("Db quorum lost over 15 minutes, degrading site {}");
-                    sitesToDegrade.add(standbySite);
-                }
-            }
-
-            // degrade all standby sites in a single batch
-            if (!sitesToDegrade.isEmpty()) {
-                for (Site standbySite : sitesToDegrade) {
-                    standbySite.setState(SiteState.STANDBY_DEGRADING);
-                    _coordinator.persistServiceConfiguration(standbySite.toConfiguration());
-                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_DEGRADE_STANDBY);
-                }
-                drUtil.updateVdcTargetVersion(_coordinator.getSiteId(), SiteInfo.DR_OP_DEGRADE_STANDBY);
-            }
         }
     };
 

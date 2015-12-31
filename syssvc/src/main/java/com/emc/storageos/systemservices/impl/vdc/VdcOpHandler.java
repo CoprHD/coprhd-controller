@@ -534,9 +534,13 @@ public abstract class VdcOpHandler {
                             coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
                         }
                     } finally {
-                        log.info("Releasing lock {}", LOCK_DEGRADE_STANDBY);
-                        lock.release();
-                        log.info("Released lock {}", LOCK_DEGRADE_STANDBY);
+                        try {
+                            log.info("Releasing lock {}", LOCK_DEGRADE_STANDBY);
+                            lock.release();
+                            log.info("Released lock {}", LOCK_DEGRADE_STANDBY);
+                        } catch (Exception e) {
+                            log.error("Failed to release lock {}", LOCK_DEGRADE_STANDBY);
+                        }
                     }
                 }
                 flushVdcConfigToLocal();

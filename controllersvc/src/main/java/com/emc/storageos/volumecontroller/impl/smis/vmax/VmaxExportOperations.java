@@ -1640,20 +1640,50 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         _dbClient.createObject(exportMask);
                     }
 
-                    if (matchesSearchCriteria(exportMask, Collections.singletonList(initiatorName), mustHaveAllPorts)) {
-                        Set<URI> maskURIs = matchingMasks.get(initiatorName);
-                        if (maskURIs == null) {
-                            maskURIs = new HashSet<URI>();
-                            matchingMasks.put(initiatorName, maskURIs);
+                    Set<URI> maskURIs = matchingMasks.get(initiatorName);
+                    if (maskURIs == null) {
+                        maskURIs = new HashSet<>();
+                        matchingMasks.put(initiatorName, maskURIs);
+                    }
+                    maskURIs.add(exportMask.getId());
+                }
+            }
+
+            // COP-19514 - After we've found all ExportMasks that are related to a given set of initiators, we
+            // need to eliminate any that do not have all the initiators if mustHaveAllPorts=true
+            Set<URI> masksNotContainingAllInitiators = new HashSet<>();
+            if (mustHaveAllPorts) {
+                // Check if each ExportMask has all the ports. If not, add it to masksNotContainingAllInitiators
+                for (URI exportMaskURI : maskMap.keySet()) {
+                    ExportMask mask = maskMap.get(exportMaskURI);
+                    if (!matchesSearchCriteria(mask, initiatorNames, true)) {
+                        masksNotContainingAllInitiators.add(exportMaskURI);
+                    }
+                }
+                // Adjust the matchingMap if there are any masksNotContainingAllInitiators
+                if (!masksNotContainingAllInitiators.isEmpty()) {
+                    _log.info("ExportMasks not containing all initiators requested: {}", masksNotContainingAllInitiators);
+                    // Remove references to the ExportMask URIs from the matchingMasks map entries
+                    Iterator<Entry<String, Set<URI>>> matchingMapEntryIterator = matchingMasks.entrySet().iterator();
+                    while (matchingMapEntryIterator.hasNext()) {
+                        Entry<String, Set<URI>> matchingMapEntry = matchingMapEntryIterator.next();
+                        Set<URI> maskURIs = matchingMapEntry.getValue();
+                        maskURIs.removeAll(masksNotContainingAllInitiators);
+                        // If all the ExportMask keys are cleared out, then we need to remove the whole entry
+                        if (maskURIs.isEmpty()) {
+                           matchingMapEntryIterator.remove();
                         }
-                        maskURIs.add(exportMask.getId());
                     }
                 }
             }
+
             StringBuilder builder = new StringBuilder();
             for (URI exportMaskURI : maskMap.keySet()) {
                 ExportMask exportMask = maskMap.get(exportMaskURI);
-                builder.append(String.format("\nXM:%s is matching: ", exportMask.getMaskName())).append('\n').append(exportMask.toString());
+                String qualifier = (masksNotContainingAllInitiators.contains(exportMaskURI))
+                        ? ", but not containing all initiators we're looking for" : SmisConstants.EMPTY_STRING;
+                builder.append(String.format("\nXM:%s is matching%s: ", exportMask.getMaskName(), qualifier)).append('\n')
+                        .append(exportMask.toString());
             }
             _log.info(builder.toString());
         } catch (Exception e) {

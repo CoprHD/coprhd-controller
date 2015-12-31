@@ -79,7 +79,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private HashMap<String, String> configinfo;
 
     private DbClient _dbClient;
-    
+
     private CustomConfigHandler customConfigHandler;
     
     private FileMirrorOperations mirrorOperations;
@@ -123,14 +123,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
     }
-    
+
     /**
      * Set the controller config info
+     * 
      * @return
      */
-	public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
-		this.customConfigHandler = customConfigHandler;
-	}
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        this.customConfigHandler = customConfigHandler;
+    }
 
     /**
      * Get isilon device represented by the StorageDevice
@@ -179,27 +180,27 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      */
     private void isiDeleteExports(IsilonApi isi, FileDeviceInputOutput args)
             throws IsilonException {
-    	
-    	FSExportMap exportMap = null;
-    	
-    	if (args.getFileOperation()) {
-    		FileShare fileObj = args.getFs();
-    		if (fileObj != null) {
-    			exportMap = fileObj.getFsExports();
-    		}
-    	} else {
-    		Snapshot snap = args.getFileSnapshot();
-    		if (snap != null) {
-    			exportMap = snap.getFsExports();
-    		}
-    	}
-    	
+
+        FSExportMap exportMap = null;
+
+        if (args.getFileOperation()) {
+            FileShare fileObj = args.getFs();
+            if (fileObj != null) {
+                exportMap = fileObj.getFsExports();
+            }
+        } else {
+            Snapshot snap = args.getFileSnapshot();
+            if (snap != null) {
+                exportMap = snap.getFsExports();
+            }
+        }
+
         if (exportMap == null || exportMap.isEmpty()) {
             return;
         }
-        
+
         String zoneName = getZoneName(args.getvNAS());
-        
+
         Set<String> deletedExports = new HashSet<String>();
         Iterator<Map.Entry<String, FileExport>> it = exportMap.entrySet().iterator();
         try {
@@ -208,11 +209,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 String key = entry.getKey();
                 FileExport fsExport = entry.getValue();
                 if (zoneName != null) {
-                	isi.deleteExport(fsExport.getIsilonId(), zoneName);
+                    isi.deleteExport(fsExport.getIsilonId(), zoneName);
                 } else {
-                	isi.deleteExport(fsExport.getIsilonId());
+                    isi.deleteExport(fsExport.getIsilonId());
                 }
-                
+
                 // Safe removal from the backing map. Can not do this through iterator since this does not track changes and is not
                 // reflected in the database.
                 deletedExports.add(key);
@@ -278,7 +279,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @throws IsilonException
      */
     private void isiDeleteSnapshots(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
-    	
+
         List<URI> snapURIList = _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(args.getFsId()));
         for (URI snapURI : snapURIList) {
             Snapshot snap = _dbClient.queryObject(Snapshot.class, snapURI);
@@ -299,7 +300,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      */
     private void isiDeleteSnapshot(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
 
-    	args.setFileOperation(false);
+        args.setFileOperation(false);
         /*
          * Delete the exports first
          */
@@ -365,34 +366,35 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         SMBFileShare existingShare = (smbShareMap == null) ? null : smbShareMap.get(smbFileShare.getName());
 
         String shareId;
-        
-    	String zoneName = getZoneName(args.getvNAS());
-    	
+
+        String zoneName = getZoneName(args.getvNAS());
+
         if (existingShare != null) {
             shareId = existingShare.getNativeId();
             // modify share
             if (zoneName != null) {
-            	isi.modifyShare(shareId, zoneName, isilonSMBShare);
+                isi.modifyShare(shareId, zoneName, isilonSMBShare);
             } else {
-            	isi.modifyShare(shareId, isilonSMBShare);
+                isi.modifyShare(shareId, isilonSMBShare);
             }
-            
+
         } else {
-        	/** inheritablePathAcl - true: Apply Windows Default ACLs
-        	 *     false: Do not change existing permissions. 
-        	 **/
-        	boolean inheritablePathAcl = true;
+            /**
+             * inheritablePathAcl - true: Apply Windows Default ACLs
+             * false: Do not change existing permissions.
+             **/
+            boolean inheritablePathAcl = true;
             if (configinfo != null && configinfo.containsKey("inheritablePathAcl")) {
-            	inheritablePathAcl = Boolean.parseBoolean(configinfo.get("inheritablePathAcl"));
-            	isilonSMBShare.setInheritablePathAcl(inheritablePathAcl);
+                inheritablePathAcl = Boolean.parseBoolean(configinfo.get("inheritablePathAcl"));
+                isilonSMBShare.setInheritablePathAcl(inheritablePathAcl);
             }
             // new share
-        	if(zoneName != null) {
-        		_log.debug("Share will be created in zone: {}", zoneName);
-        		shareId = isi.createShare(isilonSMBShare, zoneName);
-        	} else {
-        		shareId = isi.createShare(isilonSMBShare);
-        	}
+            if (zoneName != null) {
+                _log.debug("Share will be created in zone: {}", zoneName);
+                shareId = isi.createShare(isilonSMBShare, zoneName);
+            } else {
+                shareId = isi.createShare(isilonSMBShare);
+            }
         }
         smbFileShare.setNativeId(shareId);
 
@@ -407,50 +409,50 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private void isiDeleteShare(IsilonApi isi, FileDeviceInputOutput args, SMBFileShare smbFileShare) throws IsilonException {
-    	
-    	SMBShareMap currentShares = args.getFileObjShares();
+
+        SMBShareMap currentShares = args.getFileObjShares();
         // Do nothing if there are no shares
         if (currentShares == null || smbFileShare == null) {
             return;
         }
-        
+
         SMBFileShare fileShare = currentShares.get(smbFileShare.getName());
         if (fileShare != null) {
-        	
-        	String nativeId = fileShare.getNativeId();
-        	String zoneName = getZoneName(args.getvNAS());
-        	
+
+            String nativeId = fileShare.getNativeId();
+            String zoneName = getZoneName(args.getvNAS());
+
             if (zoneName != null) {
-            	isi.deleteShare(nativeId, zoneName);
+                isi.deleteShare(nativeId, zoneName);
             } else {
-            	isi.deleteShare(nativeId);
+                isi.deleteShare(nativeId);
             }
-            
+
             currentShares.remove(smbFileShare.getName());
         }
     }
 
     private void isiDeleteShares(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
-    	
-    	SMBShareMap currentShares = null;
-    	if (args.getFileOperation()) {
-    		FileShare fileObj = args.getFs();
-    		if (fileObj != null) {
-    			currentShares = fileObj.getSMBFileShares();
-    		}
-    	} else {
-    		Snapshot snap = args.getFileSnapshot();
-    		if (snap != null) {
-    			currentShares = snap.getSMBFileShares();
-    		}
-    	}
+
+        SMBShareMap currentShares = null;
+        if (args.getFileOperation()) {
+            FileShare fileObj = args.getFs();
+            if (fileObj != null) {
+                currentShares = fileObj.getSMBFileShares();
+            }
+        } else {
+            Snapshot snap = args.getFileSnapshot();
+            if (snap != null) {
+                currentShares = snap.getSMBFileShares();
+            }
+        }
         if (currentShares == null || currentShares.isEmpty()) {
             return;
         }
 
         Set<String> deletedShares = new HashSet<String>();
         Iterator<Map.Entry<String, SMBFileShare>> it = currentShares.entrySet().iterator();
-        
+
         String zoneName = getZoneName(args.getvNAS());
 
         try {
@@ -459,11 +461,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 String key = entry.getKey();
                 SMBFileShare smbFileShare = entry.getValue();
                 if (zoneName != null) {
-                	isi.deleteShare(smbFileShare.getNativeId(), zoneName);
+                    isi.deleteShare(smbFileShare.getNativeId(), zoneName);
                 } else {
-                	isi.deleteShare(smbFileShare.getNativeId());
+                    isi.deleteShare(smbFileShare.getNativeId());
                 }
-                
+
                 // Safe removal from the backing map. Can not do this through iterator since this does not track changes and is not
                 // reflected in the database.
                 deletedShares.add(key);
@@ -522,7 +524,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getFileObjExports() == null) {
                 args.initFileObjExports();
             }
-            
+
             String accessZoneName = getZoneName(args.getvNAS());
 
             // Create/update export in Isilon.
@@ -536,21 +538,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // check Isilon to verify if export does not exist.
             IsilonExport currentIsilonExport = null;
             if (fExport != null) {
-            	if (accessZoneName != null) {
-            		currentIsilonExport = isi.getExport(fExport.getIsilonId(), accessZoneName);
-            	} else {
-            		currentIsilonExport = isi.getExport(fExport.getIsilonId());
-            	}
-                
+                if (accessZoneName != null) {
+                    currentIsilonExport = isi.getExport(fExport.getIsilonId(), accessZoneName);
+                } else {
+                    currentIsilonExport = isi.getExport(fExport.getIsilonId());
+                }
+
             }
             if (fExport == null || currentIsilonExport == null) {
                 // There is no Isilon export. Create Isilon export and set it the map.
-            	String id = null;
-                if(accessZoneName != null) {
-                	_log.debug("Export will be created in zone: {}", accessZoneName);
-                	id = isi.createExport(newIsilonExport, accessZoneName);
+                String id = null;
+                if (accessZoneName != null) {
+                    _log.debug("Export will be created in zone: {}", accessZoneName);
+                    id = isi.createExport(newIsilonExport, accessZoneName);
                 } else {
-                	id = isi.createExport(newIsilonExport);
+                    id = isi.createExport(newIsilonExport);
                 }
 
                 // set file export data and add it to the export map
@@ -567,9 +569,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                 // modify current export in isilon.
                 if (accessZoneName != null) {
-                	isi.modifyExport(fExport.getIsilonId(), accessZoneName, newIsilonExport);
+                    isi.modifyExport(fExport.getIsilonId(), accessZoneName, newIsilonExport);
                 } else {
-                	isi.modifyExport(fExport.getIsilonId(), newIsilonExport);
+                    isi.modifyExport(fExport.getIsilonId(), newIsilonExport);
                 }
 
                 // update clients
@@ -702,8 +704,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      */
     private void isiUnexport(IsilonApi isi, FileDeviceInputOutput args, List<FileExport> exports)
             throws ControllerException, IsilonException {
-    	
-    	FSExportMap currentExports = args.getFileObjExports();
+
+        FSExportMap currentExports = args.getFileObjExports();
         // Do nothing if there are no exports
         if (currentExports == null || exports == null || exports.isEmpty()) {
             return;
@@ -718,13 +720,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 id = fExport.getIsilonId();
             }
             if (id != null) {
-            	String zoneName = getZoneName(args.getvNAS());
-            	if (zoneName != null) {
-            		isi.deleteExport(id, zoneName);
-            	} else {
-            		isi.deleteExport(id);
-            	}
-                
+                String zoneName = getZoneName(args.getvNAS());
+                if (zoneName != null) {
+                    isi.deleteExport(id, zoneName);
+                } else {
+                    isi.deleteExport(id);
+                }
+
                 currentExports.remove(key);
             }
         }
@@ -759,10 +761,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String tenantOrg = null;
             VirtualNAS vNAS = args.getvNAS();
             String vNASPath = null;
-            
-            if(vNAS != null) {
-            	vNASPath = vNAS.getBaseDirPath();
-            	_log.info("vNAS base directory path: {}", vNASPath);
+
+            if (vNAS != null) {
+                vNASPath = vNAS.getBaseDirPath();
+                _log.info("vNAS base directory path: {}", vNASPath);
             }
 
             if (args.getProject() != null) {
@@ -771,35 +773,35 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getTenantOrg() != null) {
                 tenantOrg = args.getTenantNameWithNoSpecialCharacters();
             }
-            
+
             String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.USE_PHYSICAL_NAS_FOR_PROVISIONING, "isilon", null);
             _log.info("Use System access zone to provision filesystem? {}", usePhysicalNASForProvisioning);
 
             String mountPath = null;
             // Update the mount path as required
-            if(vNASPath != null && !vNASPath.trim().isEmpty()) {
-	        	if (projName != null && tenantOrg != null) {
-		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s", vNASPath,
-		                    args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
-		                    args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
-		        } else {
-		            mountPath = String.format("%1$s/%2$s/%3$s", vNASPath,
-		                    args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
-		        }
-	        } else if(Boolean.valueOf(usePhysicalNASForProvisioning)) {
-		        if (projName != null && tenantOrg != null) {
-		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
-		                    args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
-		                    args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
-		        } else {
-		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s", IFS_ROOT, VIPR_DIR,
-		                    args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
-		        }
-	        } else {
-	        	_log.error("No suitable access zone found for provisioning. Provisioning on System access zone is disabled");
-	        	throw DeviceControllerException.exceptions.createFileSystemOnPhysicalNASDisabled();
-	        }
+            if (vNASPath != null && !vNASPath.trim().isEmpty()) {
+                if (projName != null && tenantOrg != null) {
+                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s", vNASPath,
+                            args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
+                            args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
+                } else {
+                    mountPath = String.format("%1$s/%2$s/%3$s", vNASPath,
+                            args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
+                }
+            } else if (Boolean.valueOf(usePhysicalNASForProvisioning)) {
+                if (projName != null && tenantOrg != null) {
+                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
+                            args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
+                            args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
+                } else {
+                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s", IFS_ROOT, VIPR_DIR,
+                            args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
+                }
+            } else {
+                _log.error("No suitable access zone found for provisioning. Provisioning on System access zone is disabled");
+                throw DeviceControllerException.exceptions.createFileSystemOnPhysicalNASDisabled();
+            }
 
             _log.info("Mount path to mount the Isilon File System {}", mountPath);
             args.setFsMountPath(mountPath);
@@ -1290,9 +1292,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     _log.info("Delete IsilonExport id {} for path {}",
                             rule.getDeviceExportId(), rule.getExportPath());
                     if (zoneName != null) {
-                    	isi.deleteExport(rule.getDeviceExportId(), zoneName);
+                        isi.deleteExport(rule.getDeviceExportId(), zoneName);
                     } else {
-                    	isi.deleteExport(rule.getDeviceExportId());
+                        isi.deleteExport(rule.getDeviceExportId());
                     }
                 }
 
@@ -1308,9 +1310,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         _log.info("Delete IsilonExport id {} for path {}",
                                 rule.getDeviceExportId(), rule.getExportPath());
                         if (zoneName != null) {
-                        	isi.deleteExport(rule.getDeviceExportId(), zoneName);
+                            isi.deleteExport(rule.getDeviceExportId(), zoneName);
                         } else {
-                        	isi.deleteExport(rule.getDeviceExportId());
+                            isi.deleteExport(rule.getDeviceExportId());
                         }
                     }
                 }
@@ -1323,9 +1325,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         _log.info("Delete IsilonExport id {} for path {}",
                                 rule.getDeviceExportId(), rule.getExportPath());
                         if (zoneName != null) {
-                        	isi.deleteExport(rule.getDeviceExportId(), zoneName);
+                            isi.deleteExport(rule.getDeviceExportId(), zoneName);
                         } else {
-                        	isi.deleteExport(rule.getDeviceExportId());
+                            isi.deleteExport(rule.getDeviceExportId());
                         }
                     }
                 }
@@ -1418,20 +1420,23 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         _log.info("Number of existing Rules found {}", exportsToProcess.size());
 
-        // Handle Modified export Rules and Delete Export Rule
+        // Isilon have separate entry for read only and read/write host list
+        // if we want to modify export from host H1 with permission read to H2 with read/write. then need to delete the entry from read
+        // list and add to read/Write list.
         if (existingExportsMapped.get(exportPath) != null && !existingExportsMapped.get(exportPath).isEmpty()) {
-            for (ExportRule existingRule : existingExportsMapped.get(exportPath)) {
-                for (ExportRule modifiedrule : exportModify) {
-                    if (modifiedrule.getSecFlavor().equals(
-                            existingRule.getSecFlavor())) {
-                        modifiedrule.setDeviceExportId(existingRule.getDeviceExportId());
-                        _log.info("Modifying Export Rule from {}, To {}",
-                                existingRule, modifiedrule);
-                        exportsToModify.add(modifiedrule);
+            if (exportModify != null && !exportModify.isEmpty()) {
+                for (ExportRule existingRule : existingExportsMapped.get(exportPath)) {
+                    for (ExportRule newExportRule : exportModify) {
+                        if (newExportRule.getSecFlavor().equals(
+                                existingRule.getSecFlavor())) {
+
+                        	newExportRule.setDeviceExportId(existingRule.getDeviceExportId());
+                        	exportsToModify.add(newExportRule);
+
+                        }
                     }
                 }
             }
-
             // Handle Delete export Rules
             if (exportDelete != null && !exportDelete.isEmpty()) {
                 for (ExportRule existingRule : existingExportsMapped.get(exportPath)) {
@@ -1528,17 +1533,22 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             String isilonExportId = exportRule.getDeviceExportId();
-
+            String zoneName = getZoneName(args.getvNAS());
             if (isilonExportId != null) {
                 // The Export Rule already exists on the array so modify it
-                _log.info("Export {} {} exists on the device so modify it", isilonExportId, exportRule);
+                _log.info("Export rule exists on the device so modify it: {}", exportRule);
                 modifyRules.add(exportRule);
             } else {
                 // Create the Export
                 List<String> allClients = new ArrayList<>();
-                _log.info("Export doesnt {} exists on the device so create it", exportRule);
+                _log.info("Export rule does not exist on the device so create it: {}", exportRule);
                 IsilonExport newIsilonExport = setIsilonExport(exportRule);
-                String expId = isi.createExport(newIsilonExport);
+                String expId = null;
+                if (zoneName != null) {
+                	expId = isi.createExport(newIsilonExport, zoneName);
+                } else {
+                	expId = isi.createExport(newIsilonExport);
+                }
                 exportRule.setDeviceExportId(expId);
             }
 
@@ -1582,14 +1592,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String isilonExportId = exportRule.getDeviceExportId();
 
             if (isilonExportId != null) {
-            	IsilonExport isilonExport = null;
-            	String zoneName = getZoneName(args.getvNAS());
-            	if (zoneName != null) {
-            		isilonExport = isi.getExport(isilonExportId, zoneName);
-            	} else {
-            		isilonExport = isi.getExport(isilonExportId); 
-            	}
-                
+                IsilonExport isilonExport = null;
+                String zoneName = getZoneName(args.getvNAS());
+                if (zoneName != null) {
+                    isilonExport = isi.getExport(isilonExportId, zoneName);
+                } else {
+                    isilonExport = isi.getExport(isilonExportId);
+                }
 
                 // Update the comment
                 if (exportRule.getComments() != null && !exportRule.getComments().isEmpty()) {
@@ -1634,6 +1643,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             existingRootClients.removeAll(commonHosts);
                             isilonExport.setRootClients(new ArrayList<String>(existingRootClients));
                             isilonExport.setReadWriteClients(new ArrayList<String>(existingRWClients));
+                        } else {
+                        	setClientsIntoIsilonExport("root", exportRule.getRootHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("rw", exportRule.getReadWriteHosts(), isilonExport);
                         }
                         isilonExport.setReadOnlyClients(new ArrayList<String>(roClients));
                     }
@@ -1661,6 +1673,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             existingRootClients.removeAll(commonHosts);
                             isilonExport.setRootClients(new ArrayList<String>(existingRootClients));
                             isilonExport.setReadOnlyClients(new ArrayList<String>(existingROClients));
+                        } else {
+                        	setClientsIntoIsilonExport("root", exportRule.getRootHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("ro", exportRule.getReadOnlyHosts(), isilonExport);
                         }
                         isilonExport.setReadWriteClients(new ArrayList<String>(rwClients));
                     }
@@ -1686,6 +1701,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             existingRWClients.removeAll(commonHosts);
                             isilonExport.setReadWriteClients(new ArrayList<String>(existingRWClients));
                             isilonExport.setReadOnlyClients(new ArrayList<String>(existingROClients));
+                        } else {
+                        	setClientsIntoIsilonExport("ro", exportRule.getReadOnlyHosts(), isilonExport);
+                        	setClientsIntoIsilonExport("rw", exportRule.getReadWriteHosts(), isilonExport);
                         }
                         isilonExport.setRootClients(new ArrayList<String>(rootClients));
                     }
@@ -1717,13 +1735,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     IsilonExport clonedExport = cloneExport(isilonExport);
 
                     _log.info("Update Isilon Export with id {} and new info {}", isilonExportId, clonedExport.toString());
-                    
+
                     if (zoneName != null) {
-                    	isi.modifyExport(isilonExportId, zoneName, clonedExport);
+                        isi.modifyExport(isilonExportId, zoneName, clonedExport);
                     } else {
-                    	isi.modifyExport(isilonExportId, clonedExport);
+                        isi.modifyExport(isilonExportId, clonedExport);
                     }
-                    
+
                 }
             }
         }
@@ -1754,14 +1772,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             if (isilonExportId != null) {
                 // The Export Rule already exists on the array so modify it
-                _log.info("Export {} {} exists on the device so remove it", isilonExportId, exportRule);
+                _log.info("Export rule exists on the device so remove it: {}", exportRule);
                 String zoneName = getZoneName(args.getvNAS());
                 if (zoneName != null) {
-                	isi.deleteExport(isilonExportId, zoneName);
+                    isi.deleteExport(isilonExportId, zoneName);
                 } else {
-                	isi.deleteExport(isilonExportId);
+                    isi.deleteExport(isilonExportId);
                 }
-                
+
             }
         }
         _log.info("processRemoveIsiExport  Completed");
@@ -1961,28 +1979,27 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 isilonSMBShare, permissions);
         String zoneName = getZoneName(args.getvNAS());
         if (zoneName != null) {
-        	isi.modifyShare(args.getShareName(), zoneName, isilonSMBShare);
+            isi.modifyShare(args.getShareName(), zoneName, isilonSMBShare);
         } else {
-        	isi.modifyShare(args.getShareName(), isilonSMBShare);
+            isi.modifyShare(args.getShareName(), isilonSMBShare);
         }
-        
 
         _log.info("End processAclsForShare");
     }
 
     /**
-     * getIsilonAclFromNfsACE function will convert the nfsACE object 
+     * getIsilonAclFromNfsACE function will convert the nfsACE object
      * to Isilon ACL object.
-     *  
+     * 
      * @param nfsACE - vipr ACE object.
      * @return
      */
-    private Acl getIsilonAclFromNfsACE(NfsACE nfsACE ) {
-    	
-    	IsilonNFSACL isilonAcl = new IsilonNFSACL();
-    	Acl acl = isilonAcl.new Acl();
-    	
-    	ArrayList<String> inheritFlags = new ArrayList<String>();
+    private Acl getIsilonAclFromNfsACE(NfsACE nfsACE) {
+
+        IsilonNFSACL isilonAcl = new IsilonNFSACL();
+        Acl acl = isilonAcl.new Acl();
+
+        ArrayList<String> inheritFlags = new ArrayList<String>();
 
         inheritFlags.add("object_inherit");
         inheritFlags.add("inherit_only");
@@ -1997,9 +2014,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
         acl.setTrustee(trustee);
-    	
-    	return acl;
+
+        return acl;
     }
+
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
 
@@ -2007,21 +2025,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
         List<NfsACE> aceToAdd = args.getNfsAclsToAdd();
         for (NfsACE nfsACE : aceToAdd) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE );
+            Acl acl = getIsilonAclFromNfsACE(nfsACE);
             acl.setOp("add");
             aclCompleteList.add(acl);
         }
 
         List<NfsACE> aceToModify = args.getNfsAclsToModify();
         for (NfsACE nfsACE : aceToModify) {
-        	Acl acl = getIsilonAclFromNfsACE(nfsACE );
+            Acl acl = getIsilonAclFromNfsACE(nfsACE);
             acl.setOp("replace");
             aclCompleteList.add(acl);
         }
 
         List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
         for (NfsACE nfsACE : aceToDelete) {
-        	Acl acl = getIsilonAclFromNfsACE(nfsACE );
+            Acl acl = getIsilonAclFromNfsACE(nfsACE);
             acl.setOp("delete");
             aclCompleteList.add(acl);
         }
@@ -2043,7 +2061,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
         return result;
     }
-    
+
     private ArrayList<String> getIsilonAccessList(Set<String> permissions) {
 
         ArrayList<String> accessRights = new ArrayList<String>();
@@ -2052,13 +2070,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_READ)) {
                 accessRights.add(IsilonNFSACL.AccessRights.dir_gen_read.toString());
             }
-            
+
             if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_WRITE)) {
-                accessRights.add(IsilonNFSACL.AccessRights.std_write_dac.toString());
+                accessRights.add(IsilonNFSACL.AccessRights.dir_gen_write.toString());
             }
-            
+
             if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE)) {
                 accessRights.add(IsilonNFSACL.AccessRights.dir_gen_execute.toString());
+            }
+
+            if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_FULLCONTROL)) {
+                accessRights.add(IsilonNFSACL.AccessRights.dir_gen_all.toString());
             }
         }
         return accessRights;
@@ -2066,13 +2088,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
-    	
-    	IsilonNFSACL isilonAcl = new IsilonNFSACL();
+
+        IsilonNFSACL isilonAcl = new IsilonNFSACL();
         ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
- 
+
         List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
         for (NfsACE nfsACE : aceToDelete) {
-        	Acl acl = getIsilonAclFromNfsACE(nfsACE );
+            Acl acl = getIsilonAclFromNfsACE(nfsACE);
             acl.setOp("delete");
             aclCompleteList.add(acl);
         }
@@ -2094,13 +2116,39 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
         return result;
     }
-    
+
     private String getZoneName(VirtualNAS vNAS) {
-    	String zoneName = null;
-    	if (vNAS != null) {
-    		zoneName = vNAS.getNasName();
+        String zoneName = null;
+        if (vNAS != null) {
+            zoneName = vNAS.getNasName();
+        }
+        return zoneName;
+    }
+    
+    /**
+     * Set the clients to isilon export based on type
+     * @param type one of "rw", "root" or "ro"
+     * @param hosts the clients to be set
+     * @param isilonExport
+     */
+    private void setClientsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {
+    	
+    	ArrayList<String> clients = new ArrayList<String>();
+    	if(hosts != null && !hosts.isEmpty()) {
+    		clients.addAll(hosts);
     	}
-    	return zoneName;
+    	
+    	switch(type) {
+    	case "root":
+        	isilonExport.setRootClients(clients);
+    		break;
+    	case "rw":
+    		isilonExport.setReadWriteClients(clients);
+    		break;
+    	case "ro":
+    		isilonExport.setReadOnlyClients(clients);
+    		break;
+    	}
     }
     
     

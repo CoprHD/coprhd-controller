@@ -322,8 +322,7 @@ public class StoragePortService extends TaggedResource {
             List<StoragePool> pools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(
                     _dbClient, Arrays.asList(storagePort), null, true);
             if ((modifiedPools == null) || (modifiedPools.isEmpty())) {
-                modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(
-                        _dbClient, Arrays.asList(storagePort), null, true);
+                modifiedPools = pools;
             } else {
                 List<StoragePool> poolsToAdd = new ArrayList<StoragePool>();
                 for (StoragePool pool : pools) {
@@ -344,16 +343,23 @@ public class StoragePortService extends TaggedResource {
             }
         }
 
-        if (virtualArraysUpdated || networkUpdated || portNetworkIdUpdated) {
-            _log.info("Storage port virtual arrays have been modified.");
-            // this method runs poolmatcher, rp connectivity
+        if (networkUpdated || portNetworkIdUpdated) {
+            _log.info("Storage port was moved to other network.");
+            // this method runs standard procedure for poolmatcher, rp connectivity
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(
                     Collections.singleton(storagePort), null, _dbClient,
                     _coordinator, modifiedPools);
+        } else if (virtualArraysUpdated) {
+            _log.info("Storage port virtual arrays have been modified.");
+            // this method runs optimized procedure for poolmatcher, rp connectivity
+            StoragePortAssociationHelper.runUpdatePortAssociationsProcessForVArrayChange(
+                    storagePort, _dbClient,
+                    _coordinator, modifiedPools, storagePortUpdates.getVarrayChanges());
         }
 
         // Update the virtual nas virtual arrays with network virtual arrays!!!
-        if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType())) {
+        if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType())
+        		|| DiscoveredDataObject.Type.isilon.name().equals(system.getSystemType())) {
 
             Network newNetwork = null;
             boolean removePort = false;

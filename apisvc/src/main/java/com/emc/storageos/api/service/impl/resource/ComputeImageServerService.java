@@ -319,8 +319,7 @@ public class ComputeImageServerService extends TaskResourceService {
             if (StringUtils.isNotBlank(imageServerName)
                     && !imageServerName
                             .equalsIgnoreCase(imageServer.getLabel())) {
-                checkDuplicateLabel(ComputeImageServer.class, imageServerName,
-                        imageServerName);
+                checkDuplicateLabel(ComputeImageServer.class, imageServerName);
                 imageServer.setLabel(param.getName());
             }
             if (StringUtils.isNotBlank(imageServerAddress)
@@ -500,8 +499,7 @@ public class ComputeImageServerService extends TaskResourceService {
     private void checkDuplicateImageServer(URI id, String imageServerAddress,
             String imageServerName) {
         if (StringUtils.isNotBlank(imageServerName)) {
-            checkDuplicateLabel(ComputeImageServer.class, imageServerName,
-                    imageServerName);
+            checkDuplicateLabel(ComputeImageServer.class, imageServerName);
         }
         List<URI> existingImageServers = _dbClient.queryByType(
                 ComputeImageServer.class, false);
@@ -531,14 +529,18 @@ public class ComputeImageServerService extends TaskResourceService {
     private void disassociateComputeImages(ComputeImageServer imageServer) {
         StringSet successImages = imageServer.getComputeImages();
         if (!CollectionUtils.isEmpty(successImages)) {
-            for (String image : successImages) {
-                imageServer.getComputeImages().remove(image);
+            Iterator<String> itr = successImages.iterator();
+            while (itr.hasNext()) {
+                itr.next();
+                itr.remove();
             }
         }
         StringSet failedImages = imageServer.getFailedComputeImages();
         if (!CollectionUtils.isEmpty(failedImages)) {
-            for (String image : failedImages) {
-                imageServer.getFailedComputeImages().remove(image);
+            Iterator<String> itr = failedImages.iterator();
+            while (itr.hasNext()) {
+                itr.next();
+                itr.remove();
             }
         }
     }

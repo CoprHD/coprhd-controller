@@ -2,6 +2,15 @@
 #{get 'moreScripts'/}
 <script type="text/javascript">
     $(document).ready(function () {
+        $copiesToKeep = $("#${util.ConfigProperty.BACKUP_SCHEDULER_COPIES}");
+        $copiesToKeep.on('change', function () {
+            checkIsZero(this.value);
+        });
+        $maxManualCopies = $("#${util.ConfigProperty.BACKUP_MAX_MANUAL_COPIES}");
+        $maxManualCopies.on('change', function () {
+            checkIsZero(this.value);
+        });
+
         $selector_hour = $("#backup_scheduler_time_hour");
         for (var i = 0; i < 24; i++) {
             var hour = moment({hour: i});
@@ -49,11 +58,26 @@
         var $backup_time = $("#backup_scheduler_time");
         var offset = parseInt($selector_hour.val()) * 100 + parseInt($selector_min.val());
         $backup_time.val(offset);
+        checkForm();
     }
 
     function setBackupSchedulerInterval() {
-        var value = $backup_interval_num.val() + $selector_interval.val();
+        var num = $backup_interval_num.val();
+        if(num.substring(0, '0'.length) === '0') {
+            var originNum = parseInt($backup_interval.val());
+            $backup_interval_num.val(originNum);
+            return;
+        }
+        var value = num + $selector_interval.val();
         $backup_interval.val(value);
+        checkForm();
+    }
+
+    function checkIsZero(value) {
+        if (value === '0') {
+            alert("&{'configProperties.backup.setToZero'}");
+        }
+
     }
 </script>
 #{/set}
@@ -76,23 +100,14 @@
 
     <div class="col-sm-6 controls">
         <div class="row col-gap-sm">
-            <input id="${id}" type="hidden" name="${name}" value="${originalValue}">
+            <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
             <div class="col-md-6">
-                <select id="${id}_hour" class="form-control" onchange="setBackupSchedulerTime()"
-                        #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}"
-                        data-reboot="${rebootRequired ? 'true' : 'false'}">
-                </select>
-            #{if description}<p class="help-block clear">${description}#{if rebootRequired} <span
-                    class="text-danger">&{'configProperties.rebootRequired'}</span>#{/if}</p>#{/if}
+                <select id="${id}_hour" class="form-control" onchange="setBackupSchedulerTime()"></select>
             </div>
             <div class="col-md-6">
-                <select id="${id}_min" class="form-control" onchange="setBackupSchedulerTime()"
-                        #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}"
-                        data-reboot="${rebootRequired ? 'true' : 'false'}">
-                </select>
-            #{if description}<p class="help-block clear">${description}#{if rebootRequired} <span
-                    class="text-danger">&{'configProperties.rebootRequired'}</span>#{/if}</p>#{/if}
+                <select id="${id}_min" class="form-control" onchange="setBackupSchedulerTime()"></select>
             </div>
+            <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
         </div>
     </div>
 
@@ -117,7 +132,7 @@ disabled:unstable;
 
     <div class="col-sm-6 controls">
         <div class="row col-gap-sm">
-            <input id="${id}" type="hidden" name="${name}" value="${originalValue}">
+            <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
             <div class="col-md-6">
                 <input-text v-field="${id}_num" style="vertical-align: top"
                             onkeyup="setBackupSchedulerInterval()"></input-text>

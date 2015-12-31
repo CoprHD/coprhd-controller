@@ -2406,6 +2406,7 @@ configProperties.changePassword=Local Account Passwords
 configProperties.password.doesNotMatch=Passwords do not match
 configProperties.password.state=state
 
+configProperties.backup.setToZero=WARNING: Setting to zero will not create any backup files, please be cautious.
 
 #Upgrade
 upgrade.title=Software Upgrade

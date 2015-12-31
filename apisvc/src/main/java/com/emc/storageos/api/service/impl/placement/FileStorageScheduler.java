@@ -1008,22 +1008,22 @@ public class FileStorageScheduler implements Scheduler {
         Iterator<Recommendation> recommendationsIter = recommendations.iterator();
         while (recommendationsIter.hasNext()) {
             FileRecommendation recommendation = (FileRecommendation) recommendationsIter.next();
-            // if id is already set in recommendation, do not prepare the fileSystem (fileSystem already exists)
+            // If id is already set in recommendation, do not prepare the fileSystem (fileSystem already exists)
             if (recommendation.getId() != null) {
                 continue;
             }
 
             if (recommendation.getFileType().toString().equals(
                     FileRecommendation.FileType.FILE_SYSTEM_DATA.toString())) {
-                // Grab the existing volume and task object from the incoming task list
-
+                
+            	// Grab the existing fileshare and task object from the incoming task list
                 FileShare fileShare = getPrecreatedFile(taskList, param.getLabel());
 
-                // set the recommendation
+                // Set the recommendation
                 _log.info(String.format("createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
                         fileShare.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
-
                 setFileRecommendation(recommendation, fileShare, vpool, createInactive);
+                
                 preparedFileSystems.add(fileShare);
 
             } else if (recommendation.getFileType().toString().equals(
@@ -1054,7 +1054,7 @@ public class FileStorageScheduler implements Scheduler {
             }
         }
 
-        // set the storage pool
+        // Set the storage pool
         StoragePool pool = null;
         if (null != placement.getSourceStoragePool()) {
             pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());

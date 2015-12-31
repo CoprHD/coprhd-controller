@@ -230,7 +230,7 @@ public class FileService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList createFileSystem(FileSystemParam param, @QueryParam("project") URI id) throws InternalException {
+    public TaskResourceRep createFileSystem(FileSystemParam param, @QueryParam("project") URI id) throws InternalException {
         // check project
         ArgValidator.checkFieldUriType(id, Project.class, "project");
 
@@ -251,7 +251,7 @@ public class FileService extends TaskResourceService {
      * the internal object case
      * NOTE - below method should always work with project being null
      */
-	public TaskList createFSInternal(FileSystemParam param, Project project,
+	public TaskResourceRep createFSInternal(FileSystemParam param, Project project,
             TenantOrg tenant, DataObject.Flag[] flags) throws InternalException {
         ArgValidator.checkFieldUriType(param.getVpool(), VirtualPool.class, "vpool");
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
@@ -302,13 +302,15 @@ public class FileService extends TaskResourceService {
         // call thread that does the work.
     	CreateFileSystemSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, 
     													neighborhood, project, cos, tenant, flags, 
-    													capabilities, taskList, task, requestedTypes, param, fileServiceApi, suggestedNativeFsId);
+    													capabilities, taskList, task, requestedTypes, param,
+    													fileServiceApi, suggestedNativeFsId);
     	
         auditOp(OperationTypeEnum.CREATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getLabel(), param.getSize(), neighborhood.getId().toString(),
                 project == null ? null : project.getId().toString());
-
-        return taskList;
+        // Till we Support multiple file system create
+        // return the file share taskrep
+        return taskList.getTaskList().get(0);
     }
     /**
      * Allocate, initialize and persist state of the fileSystem being created.
@@ -324,7 +326,7 @@ public class FileService extends TaskResourceService {
     private FileShare
     prepareEmptyFileSystem(FileSystemParam param, Project project, TenantOrg tenantOrg,
             VirtualArray varray, VirtualPool vpool, DataObject.Flag[] flags, String task) {
-        _log.info("prepareFile System");
+        _log.debug("prepareEmptyFileSystem start...");
         StoragePool pool = null;
         FileShare fs = new FileShare();
         fs.setId(URIUtil.createId(FileShare.class));
@@ -2329,7 +2331,7 @@ public class FileService extends TaskResourceService {
      */
     private static FileServiceApi getFileServiceImpl(VirtualPool vpool, DbClient dbClient) {
         // Mutually exclusive logic that selects an implementation of the file service
-        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
+        if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
             return getFileServiceApis("mirror");
         } 
 

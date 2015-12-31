@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import com.emc.storageos.api.service.impl.placement.FileRecommendation;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.TaskList;
@@ -68,7 +69,7 @@ public class CreateFileSystemSchedulingThread implements Runnable {
 
     @Override
     public void run() {
-        _log.info("Starting scheduling/placement thread...");
+        _log.info("Starting scheduling placement thread for task {}", task);
         try {
             // Call out placementManager to get the recommendation for placement.
             List recommendations = this.fileService._filePlacementManager.getRecommendationsForFileCreateRequest(
@@ -119,7 +120,8 @@ public class CreateFileSystemSchedulingThread implements Runnable {
      * @param fileServiceImpl file service impl to call
      */
 
-    public static void executeApiTask(FileService fileService, ExecutorService executorService, DbClient dbClient, VirtualArray varray,
+    public static void executeApiTask(FileService fileService, ExecutorService executorService,
+    		DbClient dbClient, VirtualArray varray,
             Project project,
             VirtualPool vpool,
             TenantOrg tenantOrg, DataObject.Flag[] flags,
@@ -137,10 +139,10 @@ public class CreateFileSystemSchedulingThread implements Runnable {
                 String message = "Failed to execute file creation API task for resource " + taskObj.getResource().getId();
                 _log.error(message);
                 taskObj.setMessage(message);
-                // Set the fileshares to inactive
+                // Set the fileshare to inactive
                 FileShare fileShare = dbClient.queryObject(FileShare.class, taskObj.getResource().getId());
                 fileShare.setInactive(true);
-                dbClient.updateAndReindexObject(fileShare);
+                dbClient.updateObject(fileShare);
             }
         }
     }

@@ -61,7 +61,7 @@ public class FileMirrorSchedular implements Scheduler {
      * get list mirror recommendation for mirror file shares
      */
     @Override
-    public List getRecommendationsForResources(VirtualArray varray,
+    public List<FileRecommendation> getRecommendationsForResources(VirtualArray varray,
             Project project, VirtualPool vpool,
             VirtualPoolCapabilityValuesWrapper capabilities) {
         // TBD

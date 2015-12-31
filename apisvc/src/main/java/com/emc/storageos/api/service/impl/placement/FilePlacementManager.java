@@ -35,7 +35,7 @@ public class FilePlacementManager {
         return storageSchedulers.get(type);
     }
 
-    public List getRecommendationsForFileCreateRequest(VirtualArray virtualArray,
+    public List<FileRecommendation> getRecommendationsForFileCreateRequest(VirtualArray virtualArray,
             Project project, VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         // Get the file placement based on passed parameters.
@@ -53,7 +53,7 @@ public class FilePlacementManager {
 
         // Select an implementation of the right scheduler
         Scheduler scheduler;
-        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
+        if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
             scheduler = storageSchedulers.get("mirrorfile");
         } else {
             scheduler = storageSchedulers.get("file");

@@ -1058,6 +1058,18 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return true;
     }
+    
+    /**
+     * Returns whether or not the passed VirtualPool specifies Protection
+     * 
+     * @param virtualPool
+     *            A reference to the VirtualPool.
+     * @return true if the VirtualPool specifies RP protection, false otherwise.
+     */
+    public static boolean vPoolSpecifiesFileReplication(final VirtualPool virtualPool) {
+    	return (virtualPool.getFileReplicationType() != null  &&
+    			!FileReplicationType.NONE.name().equals(virtualPool.getFileReplicationType()));        
+    }
 
     /**
      * Convenience method to determine if the Virtual Pool supports expansion.

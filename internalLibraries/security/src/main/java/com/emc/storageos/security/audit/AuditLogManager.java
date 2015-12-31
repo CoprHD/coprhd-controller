@@ -165,8 +165,7 @@ public class AuditLogManager {
         try {
             recordAuditLogs(auditlog);
         } catch (Exception ex) {
-            _log.error(String.format("Failed to record auditlog. Auditlog description id: %s",
-                    auditType.toString()), ex);
+            _log.error("Failed to record auditlog. Auditlog description id: {}", auditType.toString(), ex);
         }
     }
 

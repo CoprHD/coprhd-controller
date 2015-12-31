@@ -8,10 +8,12 @@ package com.emc.storageos.systemservices.impl.vdc;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +62,8 @@ public class VdcManager extends AbstractManager {
     
     private static final String POWEROFFTOOL_COMMAND = "/etc/powerofftool";
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
+    private static final String AUDIT_DR_OPERATION_LOCK = "auditdroperation";
+    private static final int AUDIT_LOCK_WAIT_TIME_SEC = 5;
     
     // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
     private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
@@ -424,38 +428,54 @@ public class VdcManager extends AbstractManager {
      * Check if ongoing DR operation succeeded or failed, then record audit log accordingly and remove this operation record from ZK.
      */
     private void auditCompletedDrOperation() {
-        log.info("start to audit");
         if (!drUtil.isActiveSite()) {
             return;
         }
-        log.info("On active site, go on");
-        List<Configuration> configs = coordinator.getCoordinatorClient().queryAllConfiguration(DrOperationStatus.CONFIG_KIND);
-        if (configs == null || configs.isEmpty()) {
-            return;
-        }
-        log.info("find ongoing configs, go on");
-        for (Configuration config : configs) {
-            DrOperationStatus operation = new DrOperationStatus(config);
-            String siteId = operation.getSiteUuid();
-            SiteState interState = operation.getSiteState();
-            Site site = drUtil.getSiteFromLocalVdc(operation.getSiteUuid());
-            SiteState currentState = site.getState();
-            if (currentState.equals(SiteState.STANDBY_ERROR)) {
-                // Failed
-                log.info(siteId + "|" + interState + "|" + currentState);
-                this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, getOperationType(interState), System.currentTimeMillis(),
-                        AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END, site.toBriefString());
-            } else if (!currentState.isDROperationOngoing()) {
-                // Succeeded
-                this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, getOperationType(interState), System.currentTimeMillis(),
-                        AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, site.toBriefString());
-            } else {
-                // Still ongoing, do nothing
-                continue;
+        InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(AUDIT_DR_OPERATION_LOCK);
+        boolean hasLock = false;
+        try {
+            hasLock = lock.acquire(AUDIT_LOCK_WAIT_TIME_SEC, TimeUnit.SECONDS);
+            if (!hasLock) {
+                return;
             }
-            // clear this operation status
-            coordinator.getCoordinatorClient().removeServiceConfiguration(config);
-            log.info("DR operation status has been cleared: {}", operation);
+            log.info("Local site is active, local node acquired lock, starting audit complete DR operations ...");
+            List<Configuration> configs = coordinator.getCoordinatorClient().queryAllConfiguration(DrOperationStatus.CONFIG_KIND);
+            if (configs == null || configs.isEmpty()) {
+                return;
+            }
+            for (Configuration config : configs) {
+                DrOperationStatus operation = new DrOperationStatus(config);
+                String siteId = operation.getSiteUuid();
+                SiteState interState = operation.getSiteState();
+                Site site = drUtil.getSiteFromLocalVdc(operation.getSiteUuid());
+                SiteState currentState = site.getState();
+                if (currentState.equals(SiteState.STANDBY_ERROR)) {
+                    // Failed
+                    this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, getOperationType(interState), System.currentTimeMillis(),
+                            AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END, site.toBriefString());
+                } else if (!currentState.isDROperationOngoing()) {
+                    // Succeeded
+                    this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, getOperationType(interState), System.currentTimeMillis(),
+                            AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, site.toBriefString());
+                } else {
+                    // Still ongoing, do nothing
+                    continue;
+                }
+                log.info(String.format("Site %s state has transformed from %s to %s", siteId, interState, currentState));
+                // clear this operation status
+                coordinator.getCoordinatorClient().removeServiceConfiguration(config);
+                log.info("DR operation status has been cleared: {}", operation);
+            }
+        } catch (Exception e) {
+            log.error("Auditing DR operation failed with execption", e);
+        } finally {
+            try {
+                if (hasLock) {
+                    lock.release();
+                }
+            } catch (Exception e) {
+                log.error("Failed to release DR operation audit lock", e);
+            }
         }
     }
 

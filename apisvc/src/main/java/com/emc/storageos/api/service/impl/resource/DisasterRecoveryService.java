@@ -1107,7 +1107,7 @@ public class DisasterRecoveryService {
         operation.setSiteUuid(site.getUuid());
         operation.setSiteState(site.getState());
         coordinator.persistServiceConfiguration(operation.toConfiguration());
-        log.info("DR operation status has been recored: {}", operation.toString());
+        log.info("DR operation status has been recorded: {}", operation.toString());
     }
 
     /**

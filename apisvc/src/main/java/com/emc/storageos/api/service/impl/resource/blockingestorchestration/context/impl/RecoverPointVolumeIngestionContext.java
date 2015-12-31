@@ -48,6 +48,9 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     // for the RecoverPoint volume's backend ingestion processing
     private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
     private final IngestionRequestContext _parentRequestContext;
+    private Map<String, BlockObject> _objectsToBeCreatedMap;
+    private Map<String, List<DataObject>> _objectsToBeUpdatedMap;
+    private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
 
     // members related to Recover finalbackend export mask ingestion
     private boolean _exportGroupCreated = false;
@@ -219,6 +222,15 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         // commit the basic IngestionRequestContext collections
         _dbClient.createObject(getObjectsIngestedByExportProcessing());
         _dbClient.createObject(getObjectsToBeCreatedMap().values());
+        
+        // remove from the parent context creation map because it was just saved here 
+        String volumeNativeGuid =
+                getUnmanagedVolume().getNativeGuid().replace(
+                        VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+        if (_parentRequestContext.getObjectsToBeCreatedMap().containsKey(volumeNativeGuid)) {
+            _parentRequestContext.getObjectsToBeCreatedMap().remove(volumeNativeGuid);
+        }
+        
         for (List<DataObject> dos : getObjectsToBeUpdatedMap().values()) {
             _dbClient.updateObject(dos);
         }
@@ -472,7 +484,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public List<UnManagedVolume> getUnManagedVolumesToBeDeleted() {
-        return _parentRequestContext.getUnManagedVolumesToBeDeleted();
+        if (null == _unManagedVolumesToBeDeleted) {
+            _unManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
+        }
+
+        return _unManagedVolumesToBeDeleted;
     }
 
     /*
@@ -511,7 +527,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid) {
         String objectGUID = unmanagedVolumeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-        return getObjectsToBeCreatedMap().get(objectGUID);
+        return findCreatedBlockObject(objectGUID);
     }
 
     /*
@@ -540,7 +556,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public List<String> getErrorMessagesForVolume(String nativeGuid) {
-        // for RP, we want to return the error messages List for the 
+        // for RP, we want to return the error messages List for the
         // main UnManagedVolume, whose status would be returned to the user
         return getErrorMessages();
     }
@@ -685,7 +701,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public Map<String, BlockObject> getObjectsToBeCreatedMap() {
-        return _parentRequestContext.getObjectsToBeCreatedMap();
+        if (null == _objectsToBeCreatedMap) {
+            _objectsToBeCreatedMap = new HashMap<String, BlockObject>();
+        }
+
+        return _objectsToBeCreatedMap;
     }
 
     /*
@@ -695,7 +715,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public Map<String, List<DataObject>> getObjectsToBeUpdatedMap() {
-        return _parentRequestContext.getObjectsToBeUpdatedMap();
+        if (null == _objectsToBeUpdatedMap) {
+            _objectsToBeUpdatedMap = new HashMap<String, List<DataObject>>();
+        }
+
+        return _objectsToBeUpdatedMap;
     }
 
     /*
@@ -728,4 +752,23 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
         getObjectsToBeUpdatedMap().get(getCurrentUnmanagedVolume().getNativeGuid()).add(dataObject);
     }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.lang.
+     * String)
+     */
+    @Override
+    public BlockObject findCreatedBlockObject(String nativeGuid) {
+
+        BlockObject blockObject = getObjectsToBeCreatedMap().get(nativeGuid);
+        if (blockObject == null) {
+            blockObject = _parentRequestContext.getObjectsToBeCreatedMap().get(nativeGuid);
+        }
+
+        return blockObject;
+    }
+
 }

@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -52,6 +53,7 @@ public abstract class AbstractManager implements Runnable {
     protected volatile boolean doRun = true;
 
     protected int nodeCount;
+    protected DrUtil drUtil;
     
     private final static int TIME_LIMIT_FOR_INITIATING_POWEROFF = 60000;
     private static final int SLEEP_MS = 100;
@@ -92,6 +94,10 @@ public abstract class AbstractManager implements Runnable {
 
     public void setNodeCount(int nodeCount) {
         this.nodeCount = nodeCount;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
     }
 
     abstract protected URI getWakeUpUrl();

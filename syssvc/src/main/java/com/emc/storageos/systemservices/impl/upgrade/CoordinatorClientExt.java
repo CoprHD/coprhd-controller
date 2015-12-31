@@ -691,7 +691,7 @@ public class CoordinatorClientExt {
      */
     public URI getNodeEndpointForSvcId(String svcId) {
         try {
-            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),(String)null,null);
+            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),null,null);
             for (Service svc : svcs) {
                 if (svc.getId().equals(svcId)) {
                     return svc.getEndpoint();
@@ -862,7 +862,7 @@ public class CoordinatorClientExt {
                 }
             }
             if (_remoteDownloadLock == null) {
-                _remoteDownloadLock = _coordinator.getLock(REMOTE_DOWNLOAD_LOCK);
+                _remoteDownloadLock = _coordinator.getSiteLocalLock(REMOTE_DOWNLOAD_LOCK);
             }
             if (_remoteDownloadLock.acquire(2, TimeUnit.SECONDS)) {
                 publishRemoteDownloadLeader(svcId);
@@ -1209,7 +1209,7 @@ public class CoordinatorClientExt {
     public boolean getNewVersionLock() {
         try {
             if (_newVersionLock == null) {
-                _newVersionLock = _coordinator.getLock(NEW_VERSIONS_LOCK);
+                _newVersionLock = _coordinator.getSiteLocalLock(NEW_VERSIONS_LOCK);
             }
             _newVersionLock.acquire();
         } catch (Exception e) {
@@ -1613,7 +1613,7 @@ public class CoordinatorClientExt {
         return true;
     }
 
-    private boolean isActiveSiteStable(Site activeSite) {
+    public boolean isActiveSiteStable(Site activeSite) {
         // check if cluster state is stable
         String vip = activeSite.getVip();
         int port = _svc.getEndpoint().getPort();

@@ -79,14 +79,9 @@ public class VdcManager extends AbstractManager {
     
     private SiteInfo targetSiteInfo;
     private String currentSiteId;
-    private DrUtil drUtil;
     private VdcConfigUtil vdcConfigUtil;
     private Map<String, VdcOpHandler> vdcOpHandlerMap;
     private Boolean backCompatPreYoda = false;
-    
-    public void setDrUtil(DrUtil drUtil) {
-        this.drUtil = drUtil;
-    }
 
     public void setIpsecConfig(IPsecConfig ipsecConfig) {
         this.ipsecConfig = ipsecConfig;
@@ -374,7 +369,18 @@ public class VdcManager extends AbstractManager {
         VdcOpHandler opHandler = getOpHandler(action);
         opHandler.setTargetSiteInfo(targetSiteInfo);
         opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
+        opHandler.setLocalVdcPropInfo(localVdcPropInfo);
         opHandler.execute();
+        
+        //Flush vdc properties includes VDC_CONFIG_VERSION to disk
+        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+        localRepository.setVdcPropertyInfo(vdcProperty);
+        
+        if (opHandler.isRebootNeeded()) {
+            log.info("Reboot machine for operation handler {}", opHandler.getClass().getName());
+            localRepository.reboot();
+        }
     }
     
     /**

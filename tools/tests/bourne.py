@@ -527,7 +527,7 @@ COOKIE_FILE                     = os.getenv('BOURNE_COOKIE_FILE', 'cookiejar')
 # It only effects the connection process itself, not the downloading of the response body
 REQUEST_TIMEOUT_SECONDS = 120
 # Total time for server reconnection
-MAX_WAIT_TIME_IN_SECONDS=240
+MAX_WAIT_TIME_IN_SECONDS=480
 
 CONTENT_TYPE_JSON='application/json'
 CONTENT_TYPE_XML='application/xml'

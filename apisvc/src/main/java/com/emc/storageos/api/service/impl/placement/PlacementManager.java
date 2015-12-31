@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.placement;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -106,20 +107,21 @@ public class PlacementManager {
         return scheduler.getRecommendationsForResources(virtualArray, project, vPool, capabilities);
     }
     
-    public List<Recommendation> getRecommendationsForVirtualPool(VirtualArray virtualArray,
+    public Map<VpoolUse, List<Recommendation>> getRecommendationsForVirtualPool(VirtualArray virtualArray,
             Project project, VirtualPool virtualPool, 
             VirtualPoolCapabilityValuesWrapper capabilities) {
-        List<Recommendation> recommendations = new ArrayList<Recommendation>();
+        Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
+        
         
         // Invoke the top level scheduler
         VpoolUse use = VpoolUse.ROOT;       // the apisvc vpool
         Scheduler scheduler = getNextScheduler(null, virtualPool, use);
         Set<List<Recommendation>> newRecommendationSets = scheduler.getRecommendationsForVpool(
-                virtualArray, project, virtualPool, use, capabilities, recommendations);
+                virtualArray, project, virtualPool, use, capabilities, recommendationMap);
         Iterator<List<Recommendation>> setIterator = newRecommendationSets.iterator();
         if (setIterator.hasNext()) {
             List<Recommendation> newRecommendations = newRecommendationSets.iterator().next();
-            recommendations.addAll(setIterator.next());
+            recommendationMap.put(use, newRecommendations);
         }
         
         // VPLEX will automatically take care of the VPLEX_HA use
@@ -137,22 +139,20 @@ public class PlacementManager {
                 VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vPoolURI);
                 scheduler = getNextScheduler(null, vPool, use);
                 newRecommendationSets = scheduler.getRecommendationsForVpool(
-                        vArray, project, vPool, use, capabilities, recommendations);
+                        vArray, project, vPool, use, capabilities, recommendationMap);
                 setIterator = newRecommendationSets.iterator();
                 if (setIterator.hasNext()) {
                     List<Recommendation> newRecommendations = newRecommendationSets.iterator().next();
-                    logRecommendations("SRDF copy", newRecommendations);
-                    for (Recommendation rec : newRecommendations) {
-                        // Don't add any SRDFRecommendations as we have them already
-                        if (!(rec instanceof SRDFRecommendation)) {
-                            recommendations.add(rec);
-                        }
+                    if (recommendationMap.containsKey(use)) {
+                        recommendationMap.get(use).addAll(newRecommendations);
+                    } else {
+                        recommendationMap.put(use, newRecommendations);
                     }
                 }
             }
         }
-        logRecommendations("All recommendations", recommendations);
-        return recommendations;
+        logRecommendations(recommendationMap);
+        return recommendationMap;
     }
     
 
@@ -163,7 +163,6 @@ public class PlacementManager {
      * @return storage scheduler
      */
     private Scheduler getBlockServiceImpl(VirtualPool vpool) {
-
         // Select an implementation of the right scheduler
         Scheduler scheduler;
         if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
@@ -229,12 +228,18 @@ public class PlacementManager {
         return storagePools;
     }
     
+    public void logRecommendations(Map<VpoolUse, List<Recommendation>> recommendationMap) {
+        for (Map.Entry<VpoolUse, List<Recommendation>> entry : recommendationMap.entrySet()) {
+            logRecommendations(entry.getKey().name(), entry.getValue());
+        }
+    }
     public void logRecommendations(String label, List<Recommendation> recommendations) {
         _log.info("Recommendations for: " + label);
         for (Recommendation recommendation : recommendations) {
             logRecommendation(recommendation, 0);
         }
     }
+    
     public void logRecommendation(Recommendation recommendation, int indent) {
         StringBuilder indentString = new StringBuilder();
         for (int i = 0; i < indent; i++) {

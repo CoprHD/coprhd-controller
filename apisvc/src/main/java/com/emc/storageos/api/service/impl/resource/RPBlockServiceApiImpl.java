@@ -31,6 +31,7 @@ import com.emc.storageos.api.service.impl.placement.RecoverPointScheduler;
 import com.emc.storageos.api.service.impl.placement.RecoverPointScheduler.SwapContainer;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityCalculatorFactory;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
@@ -1625,8 +1626,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray,
-            VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+            VirtualPool vpool, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList, String task,
             VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
+        List<Recommendation> recommendations = recommendationMap.get(VpoolUse.ROOT);
         // List of volumes to be prepared
         List<URI> volumeURIs = new ArrayList<URI>();
 
@@ -1955,7 +1957,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         TaskList taskList = new TaskList();
         createTaskForVolume(volume, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL, taskList, taskId);
-        createVolumes(param, project, varray, newVpool, recommendations, taskList, taskId, capabilities);
+        Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
+        recommendationMap.put(VpoolUse.ROOT, recommendations);
+        createVolumes(param, project, varray, newVpool, recommendationMap, taskList, taskId, capabilities);
     }
 
     /**
@@ -3116,7 +3120,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
         TaskList taskList = new TaskList();
         createTaskForVolume(volume, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL, taskList, taskId);
-        createVolumes(param, project, varray, newVpool, recommendations, taskList, taskId, capabilities);
+        Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
+        recommendationMap.put(VpoolUse.ROOT, recommendations);
+        createVolumes(param, project, varray, newVpool, recommendationMap, taskList, taskId, capabilities);
     }
 
     /**
@@ -3360,7 +3366,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         _log.info("Copy {} is protected by RP Site {}", copyName, internalSiteName);
 
         TaskList taskList = new TaskList();
-        return this.createVolumes(param, project, journalVarray, journalVpool, recommendations, taskList, task, capabilities);
+        Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
+        recommendationMap.put(VpoolUse.ROOT, recommendations);
+        return this.createVolumes(param, project, journalVarray, journalVpool, recommendationMap, taskList, task, capabilities);
     }
 
     /**
@@ -3471,5 +3479,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.deleteVolumes(volumeDescriptors, taskId);
+    }
+
+    @Override
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
+            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

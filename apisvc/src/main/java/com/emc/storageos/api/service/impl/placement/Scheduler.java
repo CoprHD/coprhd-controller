@@ -11,6 +11,7 @@ import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface Scheduler {
@@ -35,5 +36,5 @@ public interface Scheduler {
             VirtualArray vArray, Project project, 
             VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, 
-            List<Recommendation> currentRecommendations);
+            Map<VpoolUse, List<Recommendation>> currentRecommendations);
 }

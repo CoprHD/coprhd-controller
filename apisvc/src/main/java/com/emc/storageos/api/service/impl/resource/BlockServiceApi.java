@@ -6,8 +6,11 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -52,7 +55,7 @@ public interface BlockServiceApi {
      * @param project project requested
      * @param varray source VirtualArray
      * @param vpool VirtualPool requested
-     * @param recommendations Placement recommendation object
+     * @param recommendationMap Placement recommendation object
      * @param taskList list of tasks for source volumes
      * @param task task ID
      * @param vpoolCapabilities wrapper for vpool params
@@ -61,9 +64,29 @@ public interface BlockServiceApi {
      * @throws InternalException
      */
     public TaskList createVolumes(VolumeCreate param, Project project,
-            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
+            VirtualArray varray, VirtualPool vpool, Map<VpoolUse, List<Recommendation>> recommendationMap,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;
+    
+    /**
+     * Creates new volume descriptors (and Volume db instances) from recommendations.
+     * Adds any new descriptors to the descriptors list. 
+     * @param name
+     * @param size
+     * @param param
+     * @param project
+     * @param varray
+     * @param vpool
+     * @param recommendations
+     * @param taskList
+     * @param task
+     * @param vpoolCapabilities
+     * @return
+     */
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors,
+            String name, Long size, Project project,
+            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities);
 
     /**
      * Delete the passed volumes for the passed system.

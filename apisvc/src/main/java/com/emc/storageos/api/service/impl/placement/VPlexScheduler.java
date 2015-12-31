@@ -83,10 +83,10 @@ public class VPlexScheduler implements Scheduler {
     @Override
     public List<Recommendation> getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
             VirtualPoolCapabilityValuesWrapper capabilities) {
-        return getRecommendationsForResources(vArray, project, vPool, capabilities, new ArrayList<Recommendation>());
+        return getRecommendationsForResources(vArray, project, vPool, capabilities, new HashMap<VpoolUse, List <Recommendation>>());
     }
     public List<Recommendation> getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
-            VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> currentRecommendations) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
 
         _log.info("Getting recommendations for VPlex volume placement");
 
@@ -373,7 +373,7 @@ public class VPlexScheduler implements Scheduler {
             URI srcStorageSystem, VirtualPool srcVpool,
             boolean isHARequest, VirtualArray requestedHaVarray, VirtualPool haVpool,
             VirtualPoolCapabilityValuesWrapper capabilities, 
-            Project project, VpoolUse vpoolUse, List<Recommendation> currentRecommendations) {
+            Project project, VpoolUse vpoolUse, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
 
         _log.info("Executing VPlex high availability placement strategy");
 
@@ -405,7 +405,7 @@ public class VPlexScheduler implements Scheduler {
     private List<Recommendation> scheduleStorageForLocalVPLEXVolume(
             VirtualArray varray, Set<URI> requestedVPlexSystems, URI storageSystem,
             VirtualPool vpool, VirtualPoolCapabilityValuesWrapper capabilities, 
-            Project project, VpoolUse vPoolUse, List<Recommendation> currentRecommendations) {
+            Project project, VpoolUse vPoolUse, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
 
         _log.info("Executing VPlex high availability placement strategy for Local VPLEX volumes");
 
@@ -1194,7 +1194,7 @@ public class VPlexScheduler implements Scheduler {
 
     @Override
     public Set<List<Recommendation>> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
-            VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> currentRecommendations) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         _log.info("Getting recommendations for VPlex volume placement");
         
         Set<List<Recommendation>> recommendationSet = new HashSet<List<Recommendation>>();

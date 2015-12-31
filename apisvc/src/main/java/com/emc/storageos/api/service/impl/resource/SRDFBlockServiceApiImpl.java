@@ -28,6 +28,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.SRDFScheduler;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
@@ -169,12 +170,12 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      *            consistency group ID
      * @return list of volume URIs created
      */
-    private List<URI> prepareRecommendedVolumes(final VolumeCreate param, final String task,
+    private List<URI> prepareRecommendedVolumes(final String task,
             final TaskList taskList, final Project project, final VirtualArray varray,
             final VirtualPool vpool, final Integer volumeCount,
             final List<Recommendation> recommendations,
-            final BlockConsistencyGroup consistencyGroup, final int volumeCounter,
-            final String volumeLabel) {
+            final BlockConsistencyGroup consistencyGroup,
+            final String volumeLabel, final String size) {
         List<URI> volumeURIs = new ArrayList<URI>();
         try {
             // Create an entire Protection object for each recommendation result.
@@ -189,7 +190,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 // operation for each volume to be created.
                 for (int i = 0; i < volumeCount; i++) {
                     // get generated volume name
-                    String newVolumeLabel = generateDefaultVolumeLabel(param.getName(), i, volumeCount);
+                    String newVolumeLabel = generateDefaultVolumeLabel(volumeLabel, i, volumeCount);
 
                     // Grab the existing volume and task object from the incoming task list
                     Volume srcVolume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, newVolumeLabel);
@@ -201,8 +202,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     // Assemble a Replication Set; A Collection of volumes. One production, and any
                     // number of targets.
                     if (recommendation.getVpoolChangeVolume() == null) {
-                        srcVolume = prepareVolume(srcVolume, param, project, varray, vpool,
-                                param.getSize(), recommendation, newVolumeLabel, consistencyGroup,
+                        srcVolume = prepareVolume(srcVolume, project, varray, vpool,
+                                size, recommendation, newVolumeLabel, consistencyGroup,
                                 task, false, Volume.PersonalityTypes.SOURCE, null, null, null);
                         volumeURIs.add(srcVolume.getId());
                         if (!volumePrecreated) {
@@ -231,9 +232,9 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         // COP-16363 Create target BCG in controllersvc
 
                         // Prepare and populate CG request for the SRDF targets
-                        volumeURIs.addAll(prepareTargetVolumes(param, project, vpool, recommendation,
+                        volumeURIs.addAll(prepareTargetVolumes(project, vpool, recommendation,
                                 new StringBuilder(newVolumeLabel), protectionVirtualArray,
-                                settings, srcVolume, task, taskList));
+                                settings, srcVolume, task, taskList, size));
                     }
                 }
             }
@@ -349,7 +350,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      * 
      * @return a persisted volume
      */
-    private Volume prepareVolume(Volume volume, final VolumeCreate param,
+    private Volume prepareVolume(Volume volume, 
             final Project project, final VirtualArray varray, final VirtualPool vpool,
             final String size, final Recommendation placement,
             final String label, final BlockConsistencyGroup consistencyGroup, final String token,
@@ -469,11 +470,11 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      *            task id
      * @return list of volume IDs
      */
-    private List<URI> prepareTargetVolumes(final VolumeCreate param, final Project project,
+    private List<URI> prepareTargetVolumes(final Project project,
             final VirtualPool vpool, final SRDFRecommendation recommendation,
             final StringBuilder volumeLabelBuilder, final VirtualArray targetVirtualArray,
             final VpoolRemoteCopyProtectionSettings settings, final Volume srcVolume,
-            final String task, final TaskList taskList) {
+            final String task, final TaskList taskList, final String size) {
         Volume volume;
         List<URI> volumeURIs = new ArrayList<URI>();
 
@@ -487,11 +488,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         // Target volume in a varray
         volume = prepareVolume(
                 null,
-                param,
                 project,
                 targetVirtualArray,
                 targetVpool,
-                param.getSize(),
+                size,
                 recommendation,
                 new StringBuilder(volumeLabelBuilder.toString()).append(
                         "-target-" + targetVirtualArray.getLabel()).toString(),
@@ -533,46 +533,26 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
     @Override
     public TaskList createVolumes(final VolumeCreate param, final Project project,
-            final VirtualArray varray, final VirtualPool cos,
-            final List<Recommendation> volRecommendations, TaskList taskList,
+            final VirtualArray varray, final VirtualPool vpool,
+            final Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             final String task, final VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
+        List<Recommendation> volRecommendations = recommendationMap.get(VpoolUse.ROOT);
+        Long size = SizeUtil.translateSize(param.getSize());
+        List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
+        List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(existingDescriptors,
+                param.getName(), size, project, varray, vpool, volRecommendations, taskList, task, capabilities);
+        
 
-        List<Recommendation> recommendations = volRecommendations;
-        // Prepare the Bourne Volumes to be created and associated
-        // with the actual storage system volumes created. Also create
-        // a BlockTaskList containing the list of task resources to be
-        // returned for the purpose of monitoring the volume creation
-        // operation for each volume to be created.
-        int volumeCounter = 1;
-        String volumeLabel = param.getName();
-        if (taskList == null) {
-            taskList = new TaskList();
-        }
-
-        Iterator<Recommendation> recommendationsIter;
-
-        final BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null
-                : _dbClient.queryObject(BlockConsistencyGroup.class,
-                        capabilities.getBlockConsistencyGroup());
-
-        // prepare the volumes
-        List<URI> volumeURIs = prepareRecommendedVolumes(param, task, taskList, project, varray,
-                cos, capabilities.getResourceCount(), recommendations, consistencyGroup,
-                volumeCounter, volumeLabel);
-
-        // Execute the volume creations requests for each recommendation.
-        recommendationsIter = recommendations.iterator();
-        while (recommendationsIter.hasNext()) {
-            Recommendation recommendation = recommendationsIter.next();
+        // Partition the volumeDescriptors by storage system.
+        BlockOrchestrationController controller = getController(
+                BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        Map<URI, List<VolumeDescriptor>> descriptorMap = VolumeDescriptor.getDeviceMap(volumeDescriptors);
+        // TODO determine if this really works with multiple entries
+        for (Map.Entry<URI, List<VolumeDescriptor>> entry : descriptorMap.entrySet()) {
+            List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(entry.getValue());
             try {
-                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(
-                        (SRDFRecommendation) recommendation, volumeURIs, capabilities);
-                // Log volume descriptor information
-                logVolumeDescriptorPrecreateInfo(volumeDescriptors, task);
-                BlockOrchestrationController controller = getController(
-                        BlockOrchestrationController.class,
-                        BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
-                controller.createVolumes(volumeDescriptors, task);
+                controller.createVolumes(entry.getValue(), task);
             } catch (InternalException e) {
                 if (_log.isErrorEnabled()) {
                     _log.error("Controller error", e);
@@ -605,9 +585,51 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 // the user what succeeded and what failed.
                 throw APIException.badRequests.cannotCreateSRDFVolumes(e);
             }
+            
         }
 
         return taskList;
+    }
+    
+    
+
+    @Override
+    public List<VolumeDescriptor> createVolumesAndDescriptors(
+            List<VolumeDescriptor> descriptors, String volumeLabel, Long size, Project project,
+            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, 
+            TaskList taskList, String task,
+            VirtualPoolCapabilityValuesWrapper capabilities) {
+        List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
+        // Prepare the Bourne Volumes to be created and associated
+        // with the actual storage system volumes created. Also create
+        // a BlockTaskList containing the list of task resources to be
+        // returned for the purpose of monitoring the volume creation
+        // operation for each volume to be created.
+        if (taskList == null) {
+            taskList = new TaskList();
+        }
+
+        Iterator<Recommendation> recommendationsIter;
+
+        final BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null
+                : _dbClient.queryObject(BlockConsistencyGroup.class,
+                        capabilities.getBlockConsistencyGroup());
+
+        // prepare the volumes
+        List<URI> volumeURIs = prepareRecommendedVolumes(task, taskList, project, varray,
+                vpool, capabilities.getResourceCount(), recommendations, consistencyGroup,
+                volumeLabel, size.toString());
+
+        // Execute the volume creations requests for each recommendation.
+        recommendationsIter = recommendations.iterator();
+        while (recommendationsIter.hasNext()) {
+            Recommendation recommendation = recommendationsIter.next();
+            volumeDescriptors.addAll(createVolumeDescriptors(
+                    (SRDFRecommendation) recommendation, volumeURIs, capabilities));
+            // Log volume descriptor information
+            logVolumeDescriptorPrecreateInfo(volumeDescriptors, task);
+        }
+        return volumeDescriptors;
     }
 
     /**
@@ -790,8 +812,9 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     capabilities.getIsMetaVolume(), capabilities.getMetaVolumeType(), capabilities.getMetaVolumeMemberSize(),
                     capabilities.getMetaVolumeMemberCount()));
         }
-
-        createVolumes(param, project, varray, vpool, recommendations, null, taskId, capabilities);
+        Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
+        recommendationMap.put(VpoolUse.ROOT, recommendations);
+        createVolumes(param, project, varray, vpool, recommendationMap, null, taskId, capabilities);
     }
 
     /**

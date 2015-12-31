@@ -178,7 +178,7 @@ public class MigrationService extends TaskResourceService {
         List<Recommendation> recommendations = vplexScheduler.scheduleStorage(
                 migrationTgtNh, requestedVPlexSystems, migrateParam.getTgtStorageSystem(),
                 migrationTgtCos, false, null, null, cosWrapper, migrationTgtProject, 
-                VpoolUse.ROOT, new ArrayList<Recommendation>());
+                VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolumeMigration(migrationTgtCos.getId(), migrationTgtNh.getId(),
                     vplexVolume.getId());

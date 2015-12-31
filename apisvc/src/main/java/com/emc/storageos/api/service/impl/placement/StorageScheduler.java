@@ -860,7 +860,7 @@ public class StorageScheduler implements Scheduler {
      * @param cosCapabilities virtual pool wrapper
      * @param createInactive create the device in an inactive state
      */
-    public void prepareRecommendedVolumes(VolumeCreate param, String task, TaskList taskList,
+    public void prepareRecommendedVolumes(Long size, String task, TaskList taskList,
             Project project, VirtualArray neighborhood, VirtualPool vPool, Integer volumeCount,
             List<Recommendation> recommendations, BlockConsistencyGroup consistencyGroup, int volumeCounter,
             String volumeLabel, List<Volume> preparedVolumes, VirtualPoolCapabilityValuesWrapper cosCapabilities,
@@ -883,7 +883,7 @@ public class StorageScheduler implements Scheduler {
                     volumePrecreated = true;
                 }
 
-                long size = SizeUtil.translateSize(param.getSize());
+                // long size = SizeUtil.translateSize(param.getSize());
                 long thinVolumePreAllocationSize = 0;
                 if (null != vPool.getThinVolumePreAllocationPercentage()) {
                     thinVolumePreAllocationSize = VirtualPoolUtil.getThinVolumePreAllocationSize(
@@ -1323,7 +1323,7 @@ public class StorageScheduler implements Scheduler {
     @Override
     public Set<List<Recommendation>> getRecommendationsForVpool(VirtualArray vArray, Project project, 
             VirtualPool vPool, VpoolUse vPoolUse,
-            VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> currentRecommendations) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // Initially we're only going to return one recommendation set.
         Set<List<Recommendation>>  recommendationSet = new HashSet<List<Recommendation>>();
         List<Recommendation> recommendations = 

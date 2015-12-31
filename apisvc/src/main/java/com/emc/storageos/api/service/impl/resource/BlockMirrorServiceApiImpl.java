@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -85,7 +86,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood, VirtualPool cos,
-            List<Recommendation> volRecommendations, TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper cosCapabilities)
+            Map<VpoolUse, List<Recommendation>> volRecommendations, TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper cosCapabilities)
             throws ControllerException {
 
         return _defaultBlockServiceApi.createVolumes(param, project, neighborhood, cos, volRecommendations, taskList,
@@ -812,6 +813,14 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
     private void addTask(TaskList taskList, DataObject object, String taskId, ResourceOperationTypeEnum opType) {
         Operation op = _dbClient.createTaskOpStatus(object.getClass(), object.getId(), taskId, opType);
         taskList.addTask(toTask(object, taskId, op));
+    }
+
+    @Override
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
+            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 }

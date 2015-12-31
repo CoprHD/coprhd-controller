@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,6 +113,8 @@ import com.emc.storageos.vplexcontroller.VPlexController;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+
+import javassist.bytecode.Descriptor;
 
 /**
  * Implementation of the {@link BlockServiceApi} when the VirtualPool specifies that created
@@ -235,8 +238,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project,
-            VirtualArray vArray, VirtualPool vPool, List<Recommendation> volRecommendations, TaskList taskList,
+            VirtualArray vArray, VirtualPool vPool, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities) throws InternalException {
+        List<Recommendation> volRecommendations = recommendationMap.get(VpoolUse.ROOT);
+        List<Recommendation> srdfCopyRecommendations = recommendationMap.get(VpoolUse.SRDF_COPY);
 
         if (taskList == null) {
             taskList = new TaskList();
@@ -246,6 +251,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         List<VolumeDescriptor> descriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
                 volRecommendations, task, vPoolCapabilities,
                 taskList, allVolumes, true);
+        for (VolumeDescriptor desc: descriptors) {
+            s_logger.info("Vplex Root Descriptors: " + desc.toString());
+        }
+        
+        if (srdfCopyRecommendations != null) {
+            // We may have a Vplex protected SRDF copy- if so add those into the mix
+            List<VolumeDescriptor> srdfCopyDescriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
+                    srdfCopyRecommendations, task, vPoolCapabilities,
+                    taskList, allVolumes, true);
+            for (VolumeDescriptor desc: srdfCopyDescriptors) {
+                s_logger.info("SRDF Copy: " + desc.toString());
+            }
+            descriptors.addAll(srdfCopyDescriptors);
+        }
 
         // Log volume descriptor information
         logVolumeDescriptorPrecreateInfo(descriptors, task);
@@ -273,6 +292,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         return taskList;
     }
 
+    @Override
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
+            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
     public List<VolumeDescriptor> createVPlexVolumeDescriptors(VolumeCreate param, Project project,
             VirtualArray vArray, VirtualPool vPool, List<Recommendation> recommendations,
             String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
@@ -286,23 +313,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // are being created. We also set the VPlex storage system, which
         // should be the same for all recommendations.
         URI vplexStorageSystemURI = null;
+        URI[] vplexSystemURIOut = new URI[1];
         Map<String, List<VPlexRecommendation>> varrayRecommendationsMap =
-                new HashMap<String, List<VPlexRecommendation>>();
-        for (Recommendation recommendation : recommendations) {
-            VPlexRecommendation vplexRecommendation = (VPlexRecommendation) recommendation;
-            String varrayId = vplexRecommendation.getVirtualArray().toString();
-            if (vplexStorageSystemURI == null) {
-                vplexStorageSystemURI = vplexRecommendation.getVPlexStorageSystem();
-            }
-            if (!varrayRecommendationsMap.containsKey(varrayId)) {
-                List<VPlexRecommendation> varrayRecommendations = new ArrayList<VPlexRecommendation>();
-                varrayRecommendations.add(vplexRecommendation);
-                varrayRecommendationsMap.put(varrayId, varrayRecommendations);
-            } else {
-                List<VPlexRecommendation> varrayRecommendations = varrayRecommendationsMap.get(varrayId);
-                varrayRecommendations.add(vplexRecommendation);
-            }
-        }
+                sortRecommendationsByVarray(recommendations, vplexSystemURIOut);
+        vplexStorageSystemURI = vplexSystemURIOut[0];
 
         // check for potential duplicate volume labels before creating them
         validateVolumeLabels(param.getName(), project, vPoolCapabilities, varrayRecommendationsMap);
@@ -343,7 +357,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         int varrayCount = 0;
         String volumeLabel = param.getName();
 
-        Map<URI, List<URI>> poolVolumeMap = new HashMap<URI, List<URI>>();
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
         URI[][] varrayVolumeURIs = new URI[2][vPoolCapabilities.getResourceCount()];
         Iterator<String> varrayIter = varrayRecommendationsMap.keySet().iterator();
@@ -358,54 +371,17 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 URI storageDeviceURI = recommendation.getSourceStorageSystem();
                 URI storagePoolURI = recommendation.getSourceStoragePool();
                 VirtualPool vpool = recommendation.getVirtualPool();
-                s_logger.info("Virtual Pool is {}", vpool.getId().toString());
-                vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME,
-                        vpool.getAutoTierPolicyName());
                 int resourceCount = recommendation.getResourceCount();
-                s_logger.info("Recommendation is for {} resources in pool {}", resourceCount,
-                        storagePoolURI.toString());
-                List<URI> poolVolumeURIs = new ArrayList<URI>();
-                for (int i = 0; i < resourceCount; i++) {
-                    String newVolumeLabel = generateVolumeLabel(volumeLabel, varrayCount, volumeCounter, resourceCount);
-                    validateVolumeLabel(newVolumeLabel, project);
-
-                    s_logger.info("Volume label is {}", newVolumeLabel);
-                    VirtualArray varray = _dbClient.queryObject(VirtualArray.class,
-                            URI.create(varrayId));
-
-                    long thinVolumePreAllocationSize = 0;
-                    if (null != vpool.getThinVolumePreAllocationPercentage()) {
-                        thinVolumePreAllocationSize = VirtualPoolUtil
-                                .getThinVolumePreAllocationSize(
-                                        vpool.getThinVolumePreAllocationPercentage(), size);
-                    }
-
-                    Volume volume = prepareVolume(VolumeType.BLOCK_VOLUME, null,
-                            size, thinVolumePreAllocationSize, vplexProject,
-                            varray, vpool, storageDeviceURI,
-                            storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
-
-                    volume.addInternalFlags(Flag.INTERNAL_OBJECT);
-                    _dbClient.persistObject(volume);
-
-                    if (createTask) {
-                        _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
-                                task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
-                    }
-
-                    URI volumeId = volume.getId();
-                    s_logger.info("Prepared volume {}", volumeId);
-                    allVolumes.add(volumeId);
-                    varrayVolumeURIs[varrayCount][volumeCounter++] = volumeId;
-                    poolVolumeURIs.add(volume.getId());
-                    VolumeDescriptor descriptor = new VolumeDescriptor(
-                            VolumeDescriptor.Type.BLOCK_DATA, storageDeviceURI, volumeId,
-                            storagePoolURI, backendCG == null ? null : backendCG.getId(),
-                            vPoolCapabilities, size);
-                    descriptors.add(descriptor);
-
+                
+                List<VolumeDescriptor> varrayDescriptors = makeBackingVolumeDescriptors(recommendation, 
+                        project, vplexProject, volumeLabel, varrayCount, resourceCount, 
+                        size, backendCG, vPoolCapabilities, createTask, task);
+                descriptors.addAll(varrayDescriptors);
+                List<URI> varrayURIs = VolumeDescriptor.getVolumeURIs(varrayDescriptors);
+                allVolumes.addAll(varrayURIs);
+                for (int i=0; i < varrayURIs.size(); i++) {
+                    varrayVolumeURIs[varrayCount][i] = varrayURIs.get(i);
                 }
-                poolVolumeMap.put(storagePoolURI, poolVolumeURIs);
             }
             varrayCount++;
         }
@@ -416,7 +392,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         s_logger.info("Preparing virtual volumes");
         List<URI> virtualVolumeURIs = new ArrayList<URI>();
         URI nullPoolURI = NullColumnValueGetter.getNullURI();
-        poolVolumeMap.put(nullPoolURI, virtualVolumeURIs);
         vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, null);
         for (int i = 0; i < vPoolCapabilities.getResourceCount(); i++) {
             String volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i,
@@ -1521,7 +1496,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         List<Recommendation> recommendations = getBlockScheduler().scheduleStorage(
                 varray, requestedVPlexSystems, null, vpool, false, null, null, 
-                cosWrapper, targetProject, VpoolUse.ROOT, new ArrayList<Recommendation>());
+                cosWrapper, targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getId(), varray.getId(), sourceVolumeURI);
         }
@@ -1659,7 +1634,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         if (recommendations == null || recommendations.isEmpty()) {
             recommendations = getBlockScheduler().scheduleStorage(
                     varray, requestedVPlexSystems, null, vpool, false, null, null, capabilities, 
-                    targetProject, VpoolUse.ROOT, new ArrayList<Recommendation>());
+                    targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getId(), varray.getId(), sourceVolumeURI);
             }
@@ -3422,5 +3397,89 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
         StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexVolume.getStorageController());
         controller.resyncSnapshot(vplexSystem.getId(), snapshot.getId(), taskId);
+    }
+    
+    private Map<String, List<VPlexRecommendation>> sortRecommendationsByVarray(
+            List<Recommendation> recommendations, URI[] vplexSystemURIOut) {
+        // Sort the recommendations by VirtualArray. There can be up to two
+        // VirtualArrays, the requested VirtualArray and the HA VirtualArray
+        // either passed or determined by the placement when HA virtual volumes
+        // are being created. We also set the VPlex storage system, which
+        // should be the same for all recommendations.
+        URI vplexStorageSystemURI = null;
+        Map<String, List<VPlexRecommendation>> varrayRecommendationsMap =
+                new HashMap<String, List<VPlexRecommendation>>();
+        for (Recommendation recommendation : recommendations) {
+            VPlexRecommendation vplexRecommendation = (VPlexRecommendation) recommendation;
+            String varrayId = vplexRecommendation.getVirtualArray().toString();
+            if (vplexStorageSystemURI == null) {
+                vplexStorageSystemURI = vplexRecommendation.getVPlexStorageSystem();
+                vplexSystemURIOut[0] = vplexStorageSystemURI;
+            }
+            if (!varrayRecommendationsMap.containsKey(varrayId)) {
+                List<VPlexRecommendation> varrayRecommendations = new ArrayList<VPlexRecommendation>();
+                varrayRecommendations.add(vplexRecommendation);
+                varrayRecommendationsMap.put(varrayId, varrayRecommendations);
+            } else {
+                List<VPlexRecommendation> varrayRecommendations = varrayRecommendationsMap.get(varrayId);
+                varrayRecommendations.add(vplexRecommendation);
+            }
+        }
+        return varrayRecommendationsMap;
+    }
+    
+    private List<VolumeDescriptor> makeBackingVolumeDescriptors(VPlexRecommendation recommendation, 
+            Project project, Project vplexProject, 
+            String volumeLabel, int varrayCount, int resourceCount, long size, 
+            BlockConsistencyGroup backendCG, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
+            boolean createTask, String task) {
+        List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+        URI varrayId = recommendation.getVirtualArray();
+        VirtualPool vpool = recommendation.getVirtualPool();
+        URI storageDeviceURI = recommendation.getSourceStorageSystem();
+        int volumeCounter = 0;
+        URI storagePoolURI = recommendation.getSourceStoragePool();
+        s_logger.info("Recommendation is for {} resources in pool {}", resourceCount,
+                storagePoolURI.toString());
+        vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME,
+                vpool.getAutoTierPolicyName());
+        
+        for (int i = 0; i < resourceCount; i++) {
+            String newVolumeLabel = generateVolumeLabel(volumeLabel, varrayCount, volumeCounter, resourceCount);
+            validateVolumeLabel(newVolumeLabel, project);
+
+            s_logger.info("Volume label is {}", newVolumeLabel);
+            VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayId);
+
+            long thinVolumePreAllocationSize = 0;
+            if (null != vpool.getThinVolumePreAllocationPercentage()) {
+                thinVolumePreAllocationSize = VirtualPoolUtil
+                        .getThinVolumePreAllocationSize(
+                                vpool.getThinVolumePreAllocationPercentage(), size);
+            }
+
+            Volume volume = prepareVolume(VolumeType.BLOCK_VOLUME, null,
+                    size, thinVolumePreAllocationSize, vplexProject,
+                    varray, vpool, storageDeviceURI,
+                    storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
+
+            volume.addInternalFlags(Flag.INTERNAL_OBJECT);
+            _dbClient.persistObject(volume);
+
+            if (createTask) {
+                _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
+                        task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+            }
+
+            URI volumeId = volume.getId();
+            s_logger.info("Prepared volume {}", volumeId);
+           
+            VolumeDescriptor descriptor = new VolumeDescriptor(
+                    VolumeDescriptor.Type.BLOCK_DATA, storageDeviceURI, volumeId,
+                    storagePoolURI, backendCG == null ? null : backendCG.getId(),
+                    vPoolCapabilities, size);
+            descriptors.add(descriptor);
+        }
+        return descriptors;
     }
 }

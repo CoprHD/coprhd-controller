@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation.Target;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
@@ -1163,11 +1164,11 @@ public class SRDFScheduler implements Scheduler {
     @Override
     public Set<List<Recommendation>> getRecommendationsForVpool(VirtualArray vArray, Project project, 
             VirtualPool vPool, VpoolUse vPoolUse,
-            VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> currentRecommendations) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
        Set<List<Recommendation>> recommendationSet = new HashSet<List<Recommendation>>();
        List<Recommendation> recommendations;
        if (vPoolUse == VpoolUse.SRDF_COPY) {
-           recommendations = getRecommendationsForCopy(vArray, project, vPool, capabilities, currentRecommendations);
+           recommendations = getRecommendationsForCopy(vArray, project, vPool, capabilities, currentRecommendations.get(VpoolUse.ROOT));
        } else {
            recommendations = getRecommendationsForResources(vArray, project, vPool, capabilities);
        } 
@@ -1179,6 +1180,9 @@ public class SRDFScheduler implements Scheduler {
             VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities, 
             List<Recommendation> currentRecommendations) {
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
+        if (currentRecommendations == null) {
+            currentRecommendations = new ArrayList<Recommendation>();
+        }
         // Look through the existing SRDF Recommendations for a SRDFRecommendation
         // that has has matching varray and vpool.
         for (Recommendation recommendation : currentRecommendations) {
@@ -1190,7 +1194,7 @@ public class SRDFScheduler implements Scheduler {
                         SRDFRecommendation.Target target = srdfrec.getVirtualArrayTargetMap().get(vArray.getId());
                         _log.info(String.format("Found SRDF target recommendation for va %s vpool %s", 
                                 vArray.getLabel(), vPool.getLabel()));
-                        Recommendation targetRecommendation = new Recommendation();
+                        SRDFCopyRecommendation targetRecommendation = new SRDFCopyRecommendation();
                         targetRecommendation.setVirtualArray(vArray.getId());
                         targetRecommendation.setVirtualPool(vPool);
                         targetRecommendation.setSourceStorageSystem(target.getTargetStorageDevice());

@@ -191,7 +191,9 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     continue;
                 }
                 
-                if (volume.getConsistencyGroups().size() > 1) {
+                // check if cgs are null before trying to access, older versions of rest don't
+                // return cgs as part of volume response
+                if (volume.getConsistencyGroups() != null && volume.getConsistencyGroups().size() > 1) {
             		// TODO: remove CGs that contain volumes belonging to multiple CGs
                 	// volumes that belong to multiple CGs are not supported in ViPR
                 	log.debug("Skipping volume {} as it belongs to multiple CGs and this is not supported", volume.getVolInfo().get(0));
@@ -201,7 +203,10 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 UnManagedVolume unManagedVolume = null;
                 boolean isExported = !volume.getLunMaps().isEmpty();
                 boolean hasSnaps = !volume.getSnaps().isEmpty();
-                boolean hasCGs = !volume.getConsistencyGroups().isEmpty();
+                boolean hasCGs = false;
+                if (volume.getConsistencyGroups() != null && !volume.getConsistencyGroups().isEmpty()) {
+                	hasCGs = true;
+                }
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), volume.getVolInfo().get(0));
                 Volume viprVolume = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid);

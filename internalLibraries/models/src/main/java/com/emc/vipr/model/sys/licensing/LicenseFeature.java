@@ -6,6 +6,8 @@
 package com.emc.vipr.model.sys.licensing;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -33,11 +35,23 @@ public class LicenseFeature implements Serializable {
     private String storageCapacity;
     private String storageCapacityUnit;
     private boolean trialLicense = false;
+    private String tier1StorageCapacity;
+    private String tier2StorageCapacity;
+    private String tier3StorageCapacity;
+    private List<ArrayLicense> arrayLicenses;
 
     /**
      * public constructor
      */
     public LicenseFeature() {
+        // mockup data before the backend is ready
+        tier1StorageCapacity = "1125899906842624";
+        tier2StorageCapacity = "2125899906842624";
+        tier3StorageCapacity = "3525899906842624";
+        arrayLicenses = new ArrayList<>();
+        arrayLicenses.add(new ArrayLicense("VNX2", "1525899906842624", "AAAAAAAAAAA"));
+        arrayLicenses.add(new ArrayLicense("VMAX3", "1625899906842624", "BBBBBBBBBBB"));
+        arrayLicenses.add(new ArrayLicense("XtremIO", "3625899906842624", null));
     }
 
     /**
@@ -283,5 +297,76 @@ public class LicenseFeature implements Serializable {
 
     public void setTrialLicense(boolean trialLicense) {
         this.trialLicense = trialLicense;
+    }
+
+    @XmlElement(name = "tier1_capacity")
+    public String getTier1StorageCapacity() {
+        return tier1StorageCapacity;
+    }
+
+    public void setTier1StorageCapacity(String tier1StorageCapacity) {
+        this.tier1StorageCapacity = tier1StorageCapacity;
+    }
+
+    @XmlElement(name = "tier2_capacity")
+    public String getTier2StorageCapacity() {
+        return tier2StorageCapacity;
+    }
+
+    public void setTier2StorageCapacity(String tier2StorageCapacity) {
+        this.tier2StorageCapacity = tier2StorageCapacity;
+    }
+
+    @XmlElement(name = "tier3_capacity")
+    public String getTier3StorageCapacity() {
+        return tier3StorageCapacity;
+    }
+
+    public void setTier3StorageCapacity(String tier3StorageCapacity) {
+        this.tier3StorageCapacity = tier3StorageCapacity;
+    }
+
+    public List<ArrayLicense> getArrayLicenses() {
+        return arrayLicenses;
+    }
+
+    public void setArrayLicenses(List<ArrayLicense> arrayLicenses) {
+        this.arrayLicenses = arrayLicenses;
+    }
+
+    public static class ArrayLicense {
+        private String arrayName;
+        private String storageCapacity;
+        private String serialNumber;
+
+        public String getSerialNumber() {
+            return serialNumber;
+        }
+
+        public void setSerialNumber(String serialNumber) {
+            this.serialNumber = serialNumber;
+        }
+
+        public String getStorageCapacity() {
+            return storageCapacity;
+        }
+
+        public void setStorageCapacity(String storageCapacity) {
+            this.storageCapacity = storageCapacity;
+        }
+
+        public String getArrayName() {
+            return arrayName;
+        }
+
+        public void setArrayName(String arrayName) {
+            this.arrayName = arrayName;
+        }
+
+        public ArrayLicense(String arrayName, String storageCapacity, String serialNumber) {
+            this.arrayName = arrayName;
+            this.storageCapacity = storageCapacity;
+            this.serialNumber = serialNumber;
+        }
     }
 }

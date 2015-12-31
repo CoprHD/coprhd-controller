@@ -222,6 +222,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
 
+        public static AlternateIdConstraint getUnManagedVolumeByNativeGuidConstraint(String nativeGuid) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedVolume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
+
         public static AlternateIdConstraint getSnapshotNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(Snapshot.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);

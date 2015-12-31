@@ -106,6 +106,7 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
@@ -258,17 +259,40 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         
         if (srdfCopyRecommendations != null) {
             // We may have a Vplex protected SRDF copy- if so add those into the mix
-            List<VolumeDescriptor> srdfCopyDescriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
-                    srdfCopyRecommendations, task, vPoolCapabilities,
-                    taskList, allVolumes, true);
-            for (VolumeDescriptor desc: srdfCopyDescriptors) {
-                s_logger.info("SRDF Copy: " + desc.toString());
+            // This may be a Vplex volume or not
+            // TODO: Rework this to always call createVolumesAndDescriptors even for Vplex case.
+            for (Recommendation srdfCopyRecommendation : srdfCopyRecommendations) {
+                vArray = _dbClient.queryObject(VirtualArray.class, srdfCopyRecommendation.getVirtualArray());
+                vPool = srdfCopyRecommendation.getVirtualPool();
+                List<VolumeDescriptor> srdfCopyDescriptors = new ArrayList<VolumeDescriptor>();
+                List<Recommendation> copyRecommendations = new ArrayList<Recommendation>();
+                copyRecommendations.add(srdfCopyRecommendation);
+                if (srdfCopyRecommendation instanceof VPlexRecommendation) {
+                    String name = param.getName();
+                    param.setName(name + "-target-" + vArray.getLabel());
+                    srdfCopyDescriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
+                            copyRecommendations, task, vPoolCapabilities,
+                            taskList, allVolumes, true);
+                    param.setName(name);
+                } else {
+                    srdfCopyDescriptors = super.createVolumesAndDescriptors(srdfCopyDescriptors, 
+                            param.getName() + "_srdf_copy", vPoolCapabilities.getSize(), project, 
+                            vArray, vPool, copyRecommendations, 
+                            taskList, task, vPoolCapabilities);
+                }
+                for (VolumeDescriptor desc: srdfCopyDescriptors) {
+                    s_logger.info("SRDF Copy: " + desc.toString());
+                }
+                descriptors.addAll(srdfCopyDescriptors);
             }
-            descriptors.addAll(srdfCopyDescriptors);
         }
 
         // Log volume descriptor information
         logVolumeDescriptorPrecreateInfo(descriptors, task);
+        
+        if (false) {
+            throw APIException.methodNotAllowed.notSupported();
+        }
 
         // Now we get the Orchestration controller and use it to create the volumes of all types.
         try {
@@ -3450,12 +3474,28 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayId);
             String newVolumeLabel = generateVolumeLabel(volumeLabel, varrayCount, volumeCounter, 0);
             Recommendation childRecommendation = recommendation.getRecommendation();
+            boolean srdfTarget = (childRecommendation instanceof SRDFCopyRecommendation);
+            if (srdfTarget) {
+                // Targets get a naming based on varray label.
+                newVolumeLabel = volumeLabel;
+            }
             List<Recommendation> childRecommendations = new ArrayList<Recommendation>();
             childRecommendations.add(childRecommendation);
             TaskList taskList = new TaskList();
             descriptors = 
                     super.createVolumesAndDescriptors(descriptors, newVolumeLabel, size, vplexProject, varray, vpool, 
                     childRecommendations, taskList, task, vPoolCapabilities);
+            VolumeDescriptor.Type[] types;
+            if (srdfTarget) {
+                types =  new VolumeDescriptor.Type[] { 
+                        VolumeDescriptor.Type.SRDF_TARGET};
+            } else {
+                types =  new VolumeDescriptor.Type[] { 
+                                VolumeDescriptor.Type.BLOCK_DATA, 
+                                VolumeDescriptor.Type.SRDF_SOURCE, 
+                                VolumeDescriptor.Type.SRDF_EXISTING_SOURCE};
+            }
+            descriptors = VolumeDescriptor.filterByType(descriptors, types);
             return descriptors;
         }
         

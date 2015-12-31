@@ -76,6 +76,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Function;
@@ -306,6 +307,23 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         capabilities, volume.getCapacity());
 
                 descriptors.add(desc);
+                
+                // Add descriptor to SRDFRecommendation.Target if a Target.
+                // Then it will be returned if accessed by SRDFCopyRecommendation
+                if (volumeType == VolumeDescriptor.Type.SRDF_TARGET) {
+                    // Find the appropriate target
+                    SRDFRecommendation.Target target = 
+                            recommendation.getVirtualArrayTargetMap().get(volume.getVirtualArray());
+                    if (target != null) {
+                        List<VolumeDescriptor> targetDescriptors = target.getDescriptors();
+                        if (targetDescriptors == null) {
+                            targetDescriptors = new ArrayList<VolumeDescriptor>();
+                            target.setDescriptors(targetDescriptors);
+                        }
+                        targetDescriptors.add(desc);
+                    }
+                    
+                }
 
                 _log.info("Adding Non-Source Volume Descriptor for: " + desc.toString());
             }
@@ -600,6 +618,25 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             TaskList taskList, String task,
             VirtualPoolCapabilityValuesWrapper capabilities) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
+        
+        // If processing SRDFCopyRecommendations, then just return the SRDFTargets.
+        for (Recommendation recommendation: recommendations) {
+            if (recommendation instanceof SRDFCopyRecommendation) {
+                SRDFRecommendation srdfRecommendation = (SRDFRecommendation) recommendation.getRecommendation();
+                // Get the Target structure
+                SRDFRecommendation.Target target = srdfRecommendation.getVirtualArrayTargetMap()
+                                        .get(recommendation.getVirtualArray());
+                if (target.getDescriptors() != null) {
+                    volumeDescriptors.addAll(target.getDescriptors());
+                }
+            }
+            // We never mix recommendation types SRDFCopyRecommendation and SRDFRecommendation,
+            // so if we had SRDFCopyRecommendations, just return their descriptors now.
+            if (!volumeDescriptors.isEmpty()) {
+                return volumeDescriptors;
+            }
+        }
+        
         // Prepare the Bourne Volumes to be created and associated
         // with the actual storage system volumes created. Also create
         // a BlockTaskList containing the list of task resources to be

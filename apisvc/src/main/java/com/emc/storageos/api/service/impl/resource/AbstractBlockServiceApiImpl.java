@@ -87,6 +87,7 @@ import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
@@ -1738,7 +1739,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         BlockServiceApi api = null;
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         for (Recommendation recommendation : recommendations) {
-            if (recommendation instanceof SRDFRecommendation) {
+            if (recommendation instanceof SRDFRecommendation 
+                    || recommendation instanceof SRDFCopyRecommendation) {
                 api = BlockService.getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
             } else if (recommendation instanceof VolumeRecommendation) {
                 api = BlockService.getBlockServiceImpl(BlockServiceApi.DEFAULT);

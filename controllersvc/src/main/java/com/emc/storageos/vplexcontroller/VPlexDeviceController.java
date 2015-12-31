@@ -509,7 +509,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
 
                 // Build some needed maps to get started.
-                Map<URI, StorageSystem> arrayMap = buildArrayMap(vplexSystem, volumes, Type.BLOCK_DATA);
+                Type[] types = new Type[] { Type.BLOCK_DATA, Type.SRDF_SOURCE, Type.SRDF_EXISTING_SOURCE, Type.SRDF_TARGET}; 
+                Map<URI, StorageSystem> arrayMap = buildArrayMap(vplexSystem, volumes, types);
                 Map<URI, Volume> volumeMap = buildVolumeMap(vplexSystem, volumes, Type.VPLEX_VIRT_VOLUME);
 
                 // Set the project and tenant to those of an underlying volume.
@@ -574,13 +575,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @return Map<arrayURI, StorageSystem>
      */
     private Map<URI, StorageSystem> buildArrayMap(StorageSystem vplexSystem,
-            List<VolumeDescriptor> descriptors, VolumeDescriptor.Type type) {
+            List<VolumeDescriptor> descriptors, VolumeDescriptor.Type[] types) {
         Map<URI, StorageSystem> arrayMap = new HashMap<URI, StorageSystem>();
         // Get only the descriptors for the type if specified..
-        if (type != null) {
+        if (types != null) {
             descriptors = VolumeDescriptor.filterByType(descriptors,
-                    new VolumeDescriptor.Type[] { type },
-                    new VolumeDescriptor.Type[] {});
+                    types, new VolumeDescriptor.Type[] {});
         }
         for (VolumeDescriptor desc : descriptors) {
             if (arrayMap.containsKey(desc.getDeviceURI()) == false) {

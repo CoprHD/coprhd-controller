@@ -26,6 +26,7 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestOrchestrator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRecoverPointIngestOrchestrator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
@@ -336,7 +337,7 @@ public class VolumeIngestionUtil {
         return targetUriList;
     }
 
-    public static List<BlockObject> getVolumeObjects(StringSet targets, Map<String, BlockObject> createdObjectMap, DbClient dbClient) {
+    public static List<BlockObject> getVolumeObjects(StringSet targets, IngestionRequestContext requestContext, DbClient dbClient) {
         List<BlockObject> targetUriList = new ArrayList<BlockObject>();
         for (String targetId : targets) {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(targetId));
@@ -352,7 +353,7 @@ public class VolumeIngestionUtil {
             } else {
                 _logger.info("Volume not ingested yet {}. Checking in the created object map", targetId);
                 // check in the created object map
-                BlockObject blockObject = createdObjectMap.get(targetId);
+                BlockObject blockObject = requestContext.findCreatedBlockObject(targetId);
                 if (blockObject != null) {
                     _logger.info("Found the volume in the created object map");
                     targetUriList.add(blockObject);
@@ -362,7 +363,7 @@ public class VolumeIngestionUtil {
         return targetUriList;
     }
 
-    public static List<BlockObject> getMirrorObjects(StringSet targets, Map<String, BlockObject> createdObjectMap, DbClient dbClient) {
+    public static List<BlockObject> getMirrorObjects(StringSet targets, IngestionRequestContext requestContext, DbClient dbClient) {
         List<BlockObject> targetUriList = new ArrayList<BlockObject>();
         for (String targetId : targets) {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getMirrorByNativeGuid(targetId));
@@ -375,7 +376,7 @@ public class VolumeIngestionUtil {
             } else {
                 _logger.info("Mirror not ingested yet {}", targetId);
                 // check in the created object map
-                BlockObject blockObject = createdObjectMap.get(targetId);
+                BlockObject blockObject = requestContext.findCreatedBlockObject(targetId);
                 if (blockObject != null) {
                     _logger.info("Found the mirror in the created object map");
                     targetUriList.add(blockObject);
@@ -385,7 +386,7 @@ public class VolumeIngestionUtil {
         return targetUriList;
     }
 
-    public static List<BlockObject> getSnapObjects(StringSet targets, Map<String, BlockObject> createdObjectMap, DbClient dbClient) {
+    public static List<BlockObject> getSnapObjects(StringSet targets, IngestionRequestContext requestContext, DbClient dbClient) {
         List<BlockObject> targetUriList = new ArrayList<BlockObject>();
         for (String targetId : targets) {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotsByNativeGuid(targetId));
@@ -398,7 +399,7 @@ public class VolumeIngestionUtil {
             } else {
                 _logger.info("Snap not ingested yet {}", targetId);
                 // check in the created object map
-                BlockObject blockObject = createdObjectMap.get(targetId);
+                BlockObject blockObject = requestContext.findCreatedBlockObject(targetId);
                 if (blockObject != null) {
                     _logger.info("Found the snap in the created object map");
                     targetUriList.add(blockObject);
@@ -2974,7 +2975,6 @@ public class VolumeIngestionUtil {
             volume.setConsistencyGroup(rpCG.getId());
             volume.setProtectionSet(new NamedURI(pset.getId(), pset.getLabel()));
             volume.clearInternalFlags(BlockRecoverPointIngestOrchestrator.RP_INTERNAL_VOLUME_FLAGS);
-            _logger.info("Updating volume " + volume.getLabel() + " flags/settings");
 
             // For sources and targets, peg an RP journal volume to be associated with each.
             // This is a bit arbitrary for ingested RP volues as they may have 5 journal volumes for one source volume.
@@ -2997,6 +2997,8 @@ public class VolumeIngestionUtil {
             if (volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString())) {
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE);
             }
+
+            _logger.info("Updating volume " + volume.getLabel() + " flags/settings to " + volume.getInternalFlags());
 
             updatedObjects.add(volume);
         }

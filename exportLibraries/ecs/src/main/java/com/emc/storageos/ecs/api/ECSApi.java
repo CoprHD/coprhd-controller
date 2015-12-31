@@ -18,7 +18,8 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.model.ECSNamespace;
+import com.emc.storageos.services.util.SecurityUtils;
+import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
 
 /**
@@ -122,7 +123,7 @@ public class ECSApi {
      * @return storage pools
      * @throws ECSException
      */
-    public List<ECSStoragePool> getStoragePools() throws ECSException {
+    public List <ECSStoragePool> getStoragePools() throws ECSException {
         _log.info("ECSApi:getStoragePools enter");
         ClientResponse clientResp = null;
 
@@ -243,19 +244,25 @@ public class ECSApi {
 
         return ecsPort;
     }
-    
-    public List<ECSNamespace> getNamespaces() throws ECSException {
+
+    //Get list of each namespaces   
+    public List<String> getNamespaces() throws ECSException {
         _log.info("ECSApi:getNamespace enter");
         ClientResponse clientResp = null;
+        List<String> namespaceList = new ArrayList<String>();
         try {
+            String responseString = null;
             clientResp = get(URI_GET_NAMESPACES);
-            
-            //Get details of each namespaces and persist in DB
-            //clientResp.
-            
-            
+            responseString = clientResp.getEntity(String.class);
+            NamespaceCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                    NamespaceCommandResult.class);
+            for (int index = 0; index < ecsNsResult.getNamespace().size(); index++) {
+                namespaceList.add(ecsNsResult.getNamespace().get(index).getId());
+            }
+            return namespaceList;
         } catch (Exception e) {
             _log.error("Error occured while getting namespaces ", e);
+            throw e;
         } finally {
             if (null == clientResp) {
                 throw ECSException.exceptions.getNamespacesFailed("no response from ECS");
@@ -266,10 +273,8 @@ public class ECSApi {
             if (clientResp != null) {
                 clientResp.close();
             }
+            _log.info("ECSApi:getNamespace exit");
         }
-        
-        _log.info("ECSApi:getNamespace exit");
-        return null;
     }
     
     /**

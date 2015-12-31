@@ -155,31 +155,33 @@ public class ECSApiFactory {
         return ecsApi;
     }
 
-    /*
-     * public static void main(String[] args) {
-     * System.out.println("starting ecs main");
-     * URI uri = URI.create(String.format("https://xxxxxx:4443/login"));
-     * ECSApiFactory factory = new ECSApiFactory();
-     * factory.init();
-     * ECSApi ecsApi = factory.getRESTClient(uri, "root", "****");
-     * 
-     * String authToken = ecsApi.getAuthToken();
-     * System.out.println(authToken);
-     * 
-     * if (ecsApi.isSystemAdmin())
-     * System.out.println("Sys admin");
-     * else
-     * System.out.println("NOT Sys admin");
-     * 
-     * //ecsApi.getStoragePools();
-     * //ecsApi.getStoragePort("10.32.4.98");
-     * 
-     * //createBucket(String name, String namespace, String repGroup,
-     * //String retentionPeriod, String blkSizeHQ, String notSizeSQ) throws ECSException {
-     * ecsApi.createBucket("m1", "s3", "urn:storageos:ReplicationGroupInfo:b3bf2d47-d732-457c-bb9b-d260eb53a76a:global",
-     * "4", "99", "55", "testlogin");
-     *  ecsApi.deleteBucket("esc_myproj_bucket1");
-     * }
-     */
+     
+      public static void main(String[] args) {
+      System.out.println("starting ecs main");
+      URI uri = URI.create(String.format("https://10.247.39.127:4443/login"));
+      ECSApiFactory factory = new ECSApiFactory();
+      factory.init();
+      ECSApi ecsApi = factory.getRESTClient(uri, "root", "ChangeMe");
+      
+      String authToken = ecsApi.getAuthToken();
+      System.out.println(authToken);
+      
+      if (ecsApi.isSystemAdmin())
+          System.out.println("Sys admin");
+      else
+          System.out.println("NOT Sys admin");
+      
+      ecsApi.getNamespaces();
+      
+      //ecsApi.getStoragePools();
+      //ecsApi.getStoragePort("10.32.4.98");
+      
+      //createBucket(String name, String namespace, String repGroup,
+      //String retentionPeriod, String blkSizeHQ, String notSizeSQ) throws ECSException {
+      //ecsApi.createBucket("m1", "s3", "urn:storageos:ReplicationGroupInfo:b3bf2d47-d732-457c-bb9b-d260eb53a76a:global",
+      //"4", "99", "55", "testlogin");
+      //ecsApi.deleteBucket("esc_myproj_bucket1");
+      }
+     
 
 }

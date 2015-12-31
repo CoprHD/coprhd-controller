@@ -43,7 +43,7 @@
         <ref bean="storageSystemMatcher" />
         <ref bean="vmaxFASTInitialTierSelectionMatcher"/>
         <ref bean="poolPreferenceBasedOnDriveMathcer"/>
-        <ref bean="quotaMatcher" />
+        <ref bean="bucketquotaMatcher" />
         
 	</util:list>
 
@@ -95,7 +95,7 @@
     <bean id="longTermRetentionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.LongTermRetentionMatcher" />
     <bean id="hdsShadowImagePairCountMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HDSShadowImagePairCountMatcher"/>
     <bean id="minDataCenterMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MinDataCenterMatcher"/>
-    <bean id="quotaMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.QuotaMatcher"/>
+    <bean id="bucketquotaMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.BucketQuotaMatcher"/>
     
 	
 	<!-- The following bean represents how to inject a bean in a util class having static methods. 

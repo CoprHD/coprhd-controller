@@ -65,9 +65,11 @@ import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -108,12 +110,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private static final int ATOMIC_INTEGER_RETRY_INTERVAL_MS = 1000;
     private static final int ATOMIC_INTEGER_RETRY_TIME = 5;
     private static final String ATOMIC_INTEGER_ZK_PATH_FORMAT = "%s/%s/%s";
+    private static final String VDC_NODE_PREFIX = "node";
 
     private final ConcurrentMap<String, Object> _proxyCache = new ConcurrentHashMap<String, Object>();
 
     private ZkConnection _zkConnection;
 
     private int nodeCount = 0;
+    private String vdcShortId;
+    private String vdcEndpoint;
 
     private String sysSvcName;
     private String sysSvcVersion;
@@ -154,6 +159,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     public int getNodeCount() {
         return nodeCount;
+    }
+
+    public void setVdcShortId(String vdcId) {
+        vdcShortId = vdcId;
+    }
+
+    public void setVdcEndpoint(String vdcEndpoint) {
+        this.vdcEndpoint = vdcEndpoint;
     }
 
     public void setSysSvcName(String name) {
@@ -207,6 +220,49 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private void createSiteSpecificSection() throws Exception {
         addSite(siteId);
+
+        // create VDC parent ZNode for site config in ZK
+        ConfigurationImpl vdcConfig = new ConfigurationImpl();
+        vdcConfig.setKind(Site.CONFIG_KIND);
+        vdcConfig.setId(vdcShortId);
+        persistServiceConfiguration(vdcConfig);
+
+        // insert DR acitve site info to ZK
+        Site site = new Site();
+        site.setUuid(getSiteId());
+        site.setName("Default Active Site");
+        site.setVdcShortId(vdcShortId);
+        site.setStandbyShortId("");
+        site.setState(SiteState.ACTIVE);
+        site.setCreationTime(System.currentTimeMillis());
+        site.setVip(vdcEndpoint);
+        site.setNodeCount(getNodeCount());
+
+        Map<String, DualInetAddress> controlNodes = getInetAddessLookupMap().getControllerNodeIPLookupMap();
+        Map<String, String> ipv4Addresses = new HashMap<>();
+        Map<String, String> ipv6Addresses = new HashMap<>();
+
+        String nodeId;
+        int nodeIndex = 1;
+        for (Map.Entry<String, DualInetAddress> cnode : controlNodes.entrySet()) {
+            nodeId = VDC_NODE_PREFIX + nodeIndex++;
+            DualInetAddress addr = cnode.getValue();
+            if (addr.hasInet4()) {
+                ipv4Addresses.put(nodeId, addr.getInet4());
+            }
+            if (addr.hasInet6()) {
+                ipv6Addresses.put(nodeId, addr.getInet6());
+            }
+        }
+
+        site.setHostIPv4AddressMap(ipv4Addresses);
+        site.setHostIPv6AddressMap(ipv6Addresses);
+
+        persistServiceConfiguration(site.toConfiguration());
+
+        // update Site version in ZK
+        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
+        setTargetInfo(siteInfo);
     }
 
     @Override

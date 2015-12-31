@@ -16,7 +16,7 @@ _get_coordinator_var() {
     else
         _get_coordinator_var_normal
     fi
-    _get_props node_id node_index site_is_standby
+    _get_props node_id node_index site_is_standby vdc_myid network_vip_service
 }
 
 _get_coordinator_var_normal() {
@@ -164,9 +164,7 @@ _get_coordinatorclient_var() {
         echo "network_${i}_ipaddr_service=${!var}"
     done
 
-    echo "node_count=${_GENCONFIG_node_count}"
-
-    _get_props site_id
+    _get_props site_id node_count vdc_myid network_vip_service
 }
 
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/coordinator-var.xml         $(_get_coordinator_var)

@@ -1073,7 +1073,11 @@ public abstract class BlockIngestOrchestrator {
                 } else {
                     _logger.info("Checking for replica object in created object map");
                     String replicaGUID = replica.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-                    replicaBlockObject =  requestContext.findCreatedBlockObject(replicaGUID);
+                    replicaBlockObject = requestContext.findCreatedBlockObject(replicaGUID);
+                    if (replicaBlockObject == null) {
+                        _logger.info("Checking if the replica is ingested");
+                        replicaBlockObject = VolumeIngestionUtil.getBlockObject(replicaGUID, _dbClient);
+                    }
                 }
 
                 runReplicasIngestedCheck(replica, replicaBlockObject, currentUnManagedVolume, currentBlockObject, unManagedVolumeGUIDs,

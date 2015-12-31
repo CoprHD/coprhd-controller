@@ -70,6 +70,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -3444,6 +3445,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME,
                 vpool.getAutoTierPolicyName());
         
+        if (recommendation.getRecommendation() != null) {
+            // If this recommendation has a lower level recommendation, process that.
+            VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayId);
+            String newVolumeLabel = generateVolumeLabel(volumeLabel, varrayCount, volumeCounter, 0);
+            Recommendation childRecommendation = recommendation.getRecommendation();
+            List<Recommendation> childRecommendations = new ArrayList<Recommendation>();
+            childRecommendations.add(childRecommendation);
+            TaskList taskList = new TaskList();
+            descriptors = 
+                    super.createVolumesAndDescriptors(descriptors, newVolumeLabel, size, vplexProject, varray, vpool, 
+                    childRecommendations, taskList, task, vPoolCapabilities);
+            return descriptors;
+        }
+        
         for (int i = 0; i < resourceCount; i++) {
             String newVolumeLabel = generateVolumeLabel(volumeLabel, varrayCount, volumeCounter, resourceCount);
             validateVolumeLabel(newVolumeLabel, project);
@@ -3457,7 +3472,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         .getThinVolumePreAllocationSize(
                                 vpool.getThinVolumePreAllocationPercentage(), size);
             }
-
+            
             Volume volume = prepareVolume(VolumeType.BLOCK_VOLUME, null,
                     size, thinVolumePreAllocationSize, vplexProject,
                     varray, vpool, storageDeviceURI,

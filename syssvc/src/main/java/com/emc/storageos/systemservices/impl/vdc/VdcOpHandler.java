@@ -545,8 +545,10 @@ public abstract class VdcOpHandler {
                 }
                 flushVdcConfigToLocal();
             } else {
-                // TODO: restart db and geodb for blacklist to take effect (COP-19395)
                 flushVdcConfigToLocal();
+                // restart dbsvc/geodbsvc so that the internode authenticator takes effect.
+                localRepository.restart(Constants.DBSVC_NAME);
+                localRepository.restart(Constants.GEODBSVC_NAME);
             }
         }
     }

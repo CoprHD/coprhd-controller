@@ -123,7 +123,7 @@ public class UserGroupService extends TaggedResource {
         validateUserGroupCreateParam(param);
 
         // Check for active UserGroup with same name
-        checkDuplicateLabel(UserGroup.class, param.getLabel(), param.getLabel());
+        checkDuplicateLabel(UserGroup.class, param.getLabel());
 
         UserGroup userGroup = map(param);
         URI id = URIUtil.createId(UserGroup.class);

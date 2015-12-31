@@ -629,6 +629,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterStorageSystemNamespace(String namespace);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidParameterProtectionSystemNamespace(String namespace);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterSystemTypeforAutoTiering();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2594,6 +2597,21 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cgReferencesInvalidProtectionSystem(final URI cgUri, final URI protectionSystemUri);
+	
+	@DeclareServiceCode(ServiceCode.API_AUTH_KEYSTONE_PROVIDER_CREATE_NOT_ALLOWED)
+    public BadRequestException keystoneProviderAlreadyPresent();
+    
+	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException managerDNMustcontainUserNameAndTenantName();
+    
+	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException managerDNMustcontainEqualTo();
+    
+	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException managerDNInvalid();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException projectWithTagNonexistent(final String openstackTenantId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notEnoughPortsForMaxpath(final URI storageURI, final Integer portCount, final Integer maxPaths);

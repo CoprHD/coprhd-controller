@@ -544,6 +544,46 @@ public class IsilonApi {
             }
         }
     }
+    
+    /**
+     * Generic get resource when key is not applicable
+     * 
+     * @param url url to get from
+     * @param id identifier for the object
+     * @param c Class of object representing the return value
+     * @return T Object parsed from the response, on success
+     * @throws IsilonException
+     */
+    private <T> T getObj(URI url, String id, Class<T> c) throws IsilonException {
+
+        ClientResponse resp = null;
+        try {
+            T returnInstance = null;
+            resp = _client.get(url.resolve(id));
+
+            if (resp.hasEntity()) {
+                JSONObject jObj = resp.getEntity(JSONObject.class);
+                if (resp.getStatus() == 200) {
+                    returnInstance = new Gson().fromJson(jObj.toString(), c);
+                } else {
+                    processErrorResponse("get", id, resp.getStatus(), jObj);
+                }
+            } else {
+                // no entity in response
+                processErrorResponse("get", id, resp.getStatus(), null);
+            }
+            return returnInstance;
+        } catch (IsilonException ie) {
+            throw ie;
+        } catch (Exception e) {
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc("", id, response, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+    }
 
     /**
      * Generic modify resource with 204 as HTTP response code.
@@ -1116,7 +1156,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonNFSACL getNFSACL(String path) throws IsilonException {
-        return get(_baseUrl.resolve(URI_IFS), path, "ACL", IsilonNFSACL.class);
+        String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
+        return getObj(_baseUrl.resolve(URI_IFS),aclUrl,IsilonNFSACL.class);
     }
 
     /**

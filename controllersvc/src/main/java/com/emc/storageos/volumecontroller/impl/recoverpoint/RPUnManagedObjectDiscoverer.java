@@ -117,11 +117,6 @@ public class RPUnManagedObjectDiscoverer {
         
         // TODO: Break this up into smaller chunks
         for (GetCGsResponse cg : cgs) {
-            // DO NOT CHECK-IN!  WJEIV DEBUG ONLY
-            if (!cg.getCgName().equalsIgnoreCase("ViPR-bob_xio_cdp1")) {
-                continue;
-            }
-            
             log.info("Processing returned CG: " + cg.getCgName());
             boolean newCG = false;
 

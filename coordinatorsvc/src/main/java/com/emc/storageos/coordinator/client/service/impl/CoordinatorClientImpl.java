@@ -860,12 +860,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     
     @Override
     public List<Service> locateAllSvcsAllVers(String siteId, String name) throws CoordinatorException {
-        List<String> svcVerPaths = lookupServicePath(name);
+        List<String> svcVerPaths = lookupServicePath(siteId, name);
         List<Service> allActiveSvcs = new ArrayList<>();
         for (String version : svcVerPaths) {
             log.debug("locateAllSvcsAllVers->service version: {}", version);
             String serviceRoot = String.format("%1$s/%2$s", name, version);
-            List<String> servicePaths = lookupServicePath(serviceRoot);
+            List<String> servicePaths = lookupServicePath(siteId, serviceRoot);
 
             for (String spath : servicePaths) {
                 byte[] data = getServiceData(siteId, serviceRoot, spath);

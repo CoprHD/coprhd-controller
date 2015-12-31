@@ -37,7 +37,7 @@ public class DrInternodeAuthenticator implements IInternodeAuthenticator {
             log.info("Allow internode communication for {}", remoteAddress);
             return true;
         } else {
-            log.info("Disallow internode communication for {} since current site is degraded", remoteAddress);
+            log.debug("Refuse internode communication for {} since current site is degraded", remoteAddress);
             return false;
         }
     }

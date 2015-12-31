@@ -25,10 +25,10 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
-import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.PhysicalNAS;
@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExp
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
@@ -597,6 +598,11 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getFileCifsACLNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedCifsShareACL.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
+        }
+        
+        public static AlternateIdConstraint getFileNfsACLNativeGUIdConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedNFSShareACL.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
 

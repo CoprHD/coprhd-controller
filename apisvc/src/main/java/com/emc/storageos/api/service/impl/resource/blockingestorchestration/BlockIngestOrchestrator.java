@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +27,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -34,6 +36,7 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -42,6 +45,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -74,7 +78,7 @@ public abstract class BlockIngestOrchestrator {
 
     /**
      * Ingesta BlockObjects Volume, Snapshot, or Clone. All Replica subclasses should extend this.
-     *
+     * 
      * @param requestContext the IngestionRequestContext for this ingestion process
      * @param clazz the type Class of the current UnManagedVolume being ingested
      * @return BlockObject the ingestd BlockObject
@@ -611,7 +615,7 @@ public abstract class BlockIngestOrchestrator {
     protected boolean markUnManagedVolumeInactive(
             IngestionRequestContext requestContext, BlockObject currentBlockObject) {
         UnManagedVolume currentUnmanagedVolume = requestContext.getCurrentUnmanagedVolume();
-        
+
         _logger.info("Running unmanagedvolume {} replica ingestion status", currentUnmanagedVolume.getNativeGuid());
         boolean markUnManagedVolumeInactive = false;
 
@@ -739,7 +743,7 @@ public abstract class BlockIngestOrchestrator {
                         VolumeIngestionUtil.getUnManagedVolumeUris(processedUnManagedGUIDS, _dbClient));
 
                 if (!parentReplicaMap.isEmpty()) {
-                    setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap, 
+                    setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap,
                             requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getObjectsToBeCreatedMap(),
                             requestContext.getObjectsToBeUpdatedMap(),
                             processedUnManagedVolumes);
@@ -772,8 +776,8 @@ public abstract class BlockIngestOrchestrator {
                     VolumeIngestionUtil.getUnManagedVolumeUris(processedUnManagedGUIDS, _dbClient));
 
             if (!parentReplicaMap.isEmpty()) {
-                setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap, 
-                        requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getObjectsToBeCreatedMap(), 
+                setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap,
+                        requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getObjectsToBeCreatedMap(),
                         requestContext.getObjectsToBeUpdatedMap(), processedUnManagedVolumes);
                 return true;
             }
@@ -792,28 +796,54 @@ public abstract class BlockIngestOrchestrator {
             updatedObjects.put(currentUnmanagedVolume.getNativeGuid(), updateObjects);
         }
         for (BlockObject parent : parentReplicaMap.keySet()) {
+            boolean fullyIngestedVolume = true;
+            UnManagedVolume umVolume = VolumeIngestionUtil.getUnManagedVolumeForBlockObject(parent, _dbClient);
+            boolean isParentRPVolume = umVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umVolume);
             for (BlockObject replica : parentReplicaMap.get(parent)) {
                 if (replica instanceof BlockMirror) {
                     VolumeIngestionUtil.setupMirrorParentRelations(replica, parent, _dbClient);
                 } else if (replica instanceof Volume) {
                     if (isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
-                    VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
+                        VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
                     } else if (VolumeIngestionUtil.isVplexVolume(parent, _dbClient)
                             && VolumeIngestionUtil.isVplexBackendVolume(replica, _dbClient)) {
                         VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);
                     } else {
-                    VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);
+                        VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);
                     }
                 } else if (replica instanceof BlockSnapshot) {
                     VolumeIngestionUtil.setupSnapParentRelations(replica, parent, _dbClient);
                 }
                 VolumeIngestionUtil.clearInternalFlags(replica, updateObjects, _dbClient);
+                // Snaps/mirror/clones of RP volumes should be made visible only after the RP CG has been fully ingested.
+                if (isParentRPVolume) {
+                    replica.addInternalFlags(INTERNAL_VOLUME_FLAGS);
+                }
                 if (!createdObjects.containsKey(replica.getNativeGuid())) {
                     updateObjects.add(replica);
                 }
             }
             // clear the parent internal flags after all the replica relationships have been set
             VolumeIngestionUtil.clearInternalFlags(parent, updateObjects, _dbClient);
+            // if its RP volume, then check whether the RP CG is fully ingested.
+            if (isParentRPVolume) {
+                List<UnManagedVolume> ingestedUnManagedVolumes = new ArrayList<UnManagedVolume>(unManagedVolumes);
+                ingestedUnManagedVolumes.add(umVolume);
+                UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(umVolume, _dbClient);
+                // If we are not able to find the unmanaged protection set from the unmanaged volume, it means that the unmanaged volume
+                // has already been ingested. In this case, try to get it from the managed volume
+                if (umpset == null) {
+                    umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(parent, _dbClient);
+                }
+                fullyIngestedVolume = VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient);
+                // If fully ingested, then setup the RP CG too.
+                if (fullyIngestedVolume) {
+                    setupRPCG(umpset, updateObjects);
+                } else { // else mark the volume as internal. This will be marked visible when the RP CG is ingested
+                    parent.addInternalFlags(INTERNAL_VOLUME_FLAGS);
+                }
+            }
+
             if (!createdObjects.containsKey(parent.getNativeGuid())) {
                 updateObjects.add(parent);
             }
@@ -1074,6 +1104,26 @@ public abstract class BlockIngestOrchestrator {
                 foundIngestedReplicaNativeGuids.add(blockObj.getNativeGuid());
             }
         }
+    }
+
+    private void setupRPCG(UnManagedProtectionSet umpset, List<DataObject> updatedObjects) {
+        _logger.info("Ingesting all volumes associated with RP consistency group");
+
+        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(umpset, _dbClient);
+        BlockConsistencyGroup cg = VolumeIngestionUtil.createRPBlockConsistencyGroup(pset, _dbClient);
+        Iterator<Volume> volumesItr = _dbClient.queryIterativeObjects(Volume.class, URIUtil.toURIList(pset.getVolumes()));
+        List<Volume> volumes = new ArrayList<Volume>();
+        while (volumesItr.hasNext()) {
+            volumes.add(volumesItr.next());
+        }
+        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient);
+        umpset.setInactive(true);
+
+        updatedObjects.addAll(volumes);
+        updatedObjects.add(umpset);
+        // TODO - persisting objects here. Need to relook on this
+        _dbClient.createObject(pset);
+        _dbClient.createObject(cg);
     }
 
 }

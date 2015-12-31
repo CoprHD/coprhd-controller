@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -273,7 +274,7 @@ public class RPUnManagedObjectDiscoverer {
                             unManagedProtectionSet.getManagedVolumeIds().add(managedVolume.getId().toString());
                         }
 
-                        if (null != unManagedVolume) {
+                        if (!managedVolume.checkInternalFlags(Flag.INTERNAL_OBJECT) && null != unManagedVolume) {
                             log.info("Protection Set {} also has an orphaned UnManagedVolume {} that will be removed",
                                     nativeGuid, unManagedVolume.getLabel());
                             // remove the unManagedVolume from the UnManagedProtectionSet's UnManagedVolume ids

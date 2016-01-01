@@ -170,6 +170,8 @@ public class VdcConfigHelper {
     }
 
     public void syncVdcConfig(List<VdcConfig> newVdcConfigList, String assignedVdcId, boolean isRecover) {
+        boolean vdcConfigChanged = false;
+        
         // query existing vdc list from db
         // The new queryByType method returns an iterative list, convert it to a "real"
         // list first
@@ -195,6 +197,7 @@ public class VdcConfigHelper {
                     VdcUtil.invalidateVdcUrnCache();
                 }
                 createVdcConfigInZk(config);
+                vdcConfigChanged = true;
                 if (newVdc.getLocal()) {
                     drUtil.setLocalVdcShortId(newVdc.getShortId());
                 }
@@ -213,7 +216,8 @@ public class VdcConfigHelper {
             }
             dbClient.markForDeletion(vdc);
             deleteVdcConfigFromZk(vdc);
-            Map<String, String> addressesMap = queryHostIPAddressesMap(vdc);
+            vdcConfigChanged = true;
+            Map<String, String> addressesMap = dbClient.queryHostIPAddressesMap(vdc);
             if (!addressesMap.isEmpty()) {
                 // obsolete peers ip in cassandra system table
                 obsoletePeers.addAll(addressesMap.values());
@@ -235,6 +239,13 @@ public class VdcConfigHelper {
             updateDbSvcConfig(Constants.GEODBSVC_NAME, Constants.REINIT_DB, String.valueOf(true));
         }
 
+        if (vdcConfigChanged) {
+            triggerVdcConfigUpdate();
+        }
+    }
+
+    public void triggerVdcConfigUpdate() {
+        log.info("Vdc config change detected. Trigger a config change later");
         // trigger syssvc to update the vdc config to all the nodes in the current vdc
         // add a small deley so that sync process can finish
         wakeupExecutor.schedule(new Runnable() {
@@ -254,7 +265,6 @@ public class VdcConfigHelper {
             }
         }, WAKEUP_DELAY, TimeUnit.SECONDS);
     }
-
     public void syncVdcConfigPostSteps(VdcPostCheckParam checkParam) {
         // TODO: verify network strategy
         String type = checkParam.getConfigChangeType();
@@ -1058,19 +1068,9 @@ public class VdcConfigHelper {
         coordinator.persistServiceConfiguration(site.toConfiguration());
     }
     
-    private void deleteVdcConfigFromZk(VirtualDataCenter vdc) {
+    public void deleteVdcConfigFromZk(VirtualDataCenter vdc) {
         String path = String.format("%s/%s/%s", ZkPath.CONFIG, Site.CONFIG_KIND, vdc.getShortId());
         log.info("Delete vdc config at {}", path);
         dbClient.getCoordinatorClient().deletePath(path);
-    }
-    
-    public Map<String, String> queryHostIPAddressesMap(VirtualDataCenter vdc) {
-        Site activeSite = drUtil.getActiveSite(vdc.getShortId());
-        Map<String, String> hostIPv4AddressMap = activeSite.getHostIPv4AddressMap();
-        if (hostIPv4AddressMap != null && !hostIPv4AddressMap.isEmpty()) {
-            return hostIPv4AddressMap;
-        }
-
-        return activeSite.getHostIPv6AddressMap();
     }
 }

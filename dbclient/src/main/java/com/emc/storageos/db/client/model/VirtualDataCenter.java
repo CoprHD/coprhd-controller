@@ -276,7 +276,7 @@ public class VirtualDataCenter extends DataObject {
     }
 
     /**
-     * The method is deprecated. Use VdcConfigHelper.queryHostIPAddressMap(VirtualDataCenter)
+     * The method is deprecated. Use InternalDbClient.queryHostIPAddressMap(VirtualDataCenter)
      * 
      * @return Ipv4 or IPv6 addresses for this vdc
      */

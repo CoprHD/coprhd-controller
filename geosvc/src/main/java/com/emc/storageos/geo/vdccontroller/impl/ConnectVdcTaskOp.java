@@ -501,6 +501,8 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
 
         // update the current progress of connect vdc. the cluster would reboot later.
         updateOpStatus(ConnectionStatus.CONNECTING_SYNCED);
+        
+        helper.triggerVdcConfigUpdate();
     }
 
     private void postCheck() {

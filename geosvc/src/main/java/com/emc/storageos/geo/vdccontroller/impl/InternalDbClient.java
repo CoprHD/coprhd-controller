@@ -309,7 +309,8 @@ public class InternalDbClient extends DbClientImpl {
     public void removeVdcNodes(VirtualDataCenter vdc) {
         DbJmxClient geoInstance = getJmxClient(LOCALHOST);
         try {
-            geoInstance.removeVdc(vdc);
+            Collection<String> addrs = queryHostIPAddressesMap(vdc).values();
+            geoInstance.removeVdc(addrs);
             log.info("The hosts in {} is removed", vdc.getShortId());
         } catch (Exception e) {
             log.error("Failed to remove nodes in vdc {} e=", vdc.getShortId(), e);
@@ -339,7 +340,8 @@ public class InternalDbClient extends DbClientImpl {
         List<String> liveNodes = localJmxClient.getDcLiveNodes(VdcUtil.getLocalShortVdcId());
         for (String nodeIp : liveNodes) {
             DbJmxClient jmxClient = getJmxClient(nodeIp);
-            jmxClient.addVdcNodesToBlacklist(vdc);
+            Collection<String> addrs = queryHostIPAddressesMap(vdc).values();
+            jmxClient.addVdcNodesToBlacklist(addrs);
             log.info("Add node to blacklist {}", nodeIp);
         }
     }
@@ -358,7 +360,8 @@ public class InternalDbClient extends DbClientImpl {
         List<String> liveNodes = localJmxClient.getDcLiveNodes(VdcUtil.getLocalShortVdcId());
         for (String nodeIp : liveNodes) {
             DbJmxClient jmxClient = getJmxClient(nodeIp);
-            jmxClient.removeVdcNodesFromBlacklist(vdc);
+            Collection<String> addrs = queryHostIPAddressesMap(vdc).values();
+            jmxClient.removeVdcNodesFromBlacklist(addrs);
             log.info("Remove node from blacklist {}", nodeIp);
         }
     }
@@ -380,6 +383,15 @@ public class InternalDbClient extends DbClientImpl {
 
     public boolean isGeoDbClientEncrypted() {
         return geoContext.isClientToNodeEncrypted();
+    }
+    
+    public Map<String, String> queryHostIPAddressesMap(VirtualDataCenter vdc) {
+        Site activeSite = drUtil.getActiveSite(vdc.getShortId());
+        Map<String, String> hostIPv4AddressMap = activeSite.getHostIPv4AddressMap();
+        if (hostIPv4AddressMap != null && !hostIPv4AddressMap.isEmpty()) {
+            return hostIPv4AddressMap;
+        }
+        return activeSite.getHostIPv6AddressMap();
     }
 
     /**
@@ -591,11 +603,10 @@ public class InternalDbClient extends DbClientImpl {
             ssProxy.stopGossiping();
         }
 
-        public List<String> getHostIdMap(VirtualDataCenter vdc) {
+        public List<String> getHostIdMap(Collection<String> addrs) {
             List<String> ids = new ArrayList();
             Map<String, String> idsMap = ssProxy.getHostIdMap();
 
-            Collection<String> addrs = vdc.queryHostIPAddressesMap().values();
             for (String addr : addrs) {
                 ids.add(idsMap.get(addr));
             }
@@ -603,8 +614,8 @@ public class InternalDbClient extends DbClientImpl {
             return ids;
         }
 
-        public void removeVdc(VirtualDataCenter vdc) {
-            List<String> ids = getHostIdMap(vdc);
+        public void removeVdc(Collection<String> addrs) {
+            List<String> ids = getHostIdMap(addrs);
 
             for (String id : ids) {
                 ssProxy.removeNode(id);
@@ -624,15 +635,13 @@ public class InternalDbClient extends DbClientImpl {
             return status.getProgress();
         }
 
-        public void addVdcNodesToBlacklist(VirtualDataCenter vdc) {
-            Collection<String> addrs = vdc.queryHostIPAddressesMap().values();
+        public void addVdcNodesToBlacklist(Collection<String> addrs) {
             List<String> newBlacklist = new ArrayList<String>();
             newBlacklist.addAll(addrs);
             internodeAuthProxy.addToBlacklist(newBlacklist);
         }
 
-        public void removeVdcNodesFromBlacklist(VirtualDataCenter vdc) {
-            Collection<String> addrs = vdc.queryHostIPAddressesMap().values();
+        public void removeVdcNodesFromBlacklist(Collection<String> addrs) {
             List<String> newBlacklist = new ArrayList<String>();
             newBlacklist.addAll(addrs);
             internodeAuthProxy.removeFromBlacklist(newBlacklist);

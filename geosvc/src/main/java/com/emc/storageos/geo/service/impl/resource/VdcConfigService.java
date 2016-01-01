@@ -291,7 +291,7 @@ public class VdcConfigService {
 
     private boolean isDisconnectedEachOther(List<String> blackList, List<String> whiteList) {
         VirtualDataCenter myVdc = getLocalVdc();
-        Collection<String> addresses = helper.queryHostIPAddressesMap(myVdc).values();
+        Collection<String> addresses = dbClient.queryHostIPAddressesMap(myVdc).values();
         log.info("local vdc IP addresses:{}", addresses);
 
         boolean found = false;
@@ -397,6 +397,7 @@ public class VdcConfigService {
                     VirtualDataCenter existingVdc = dbClient.queryObject(VirtualDataCenter.class,
                             srcVdcId);
                     dbClient.markForDeletion(existingVdc);
+                    helper.deleteVdcConfigFromZk(existingVdc);
                     log.info("The existing vdc {} has been removed. The current vdc id will be {}.",
                             srcVdcId, assignedVdcId);
 

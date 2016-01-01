@@ -439,6 +439,7 @@ public class SchemaUtil {
         if (!isGeoDbsvc()) {
             // for local db, check if current vdc id is in the list
             if (!strategyOptions.containsKey(_vdcShortId)) {
+                strategyOptions.clear();
                 _log.info("Add {} to strategy options", _vdcShortId);
                 strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
                 return true;

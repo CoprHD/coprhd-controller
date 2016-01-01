@@ -143,7 +143,7 @@ public class ReconnectVdcTaskOp extends AbstractVdcTaskOp {
         for (URI id : ids) {
             VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, id);
             if (vdc.getConnectionStatus() == ConnectionStatus.CONNECTED) {
-                Collection<String> addresses = helper.queryHostIPAddressesMap(vdc).values();
+                Collection<String> addresses = dbClient.queryHostIPAddressesMap(vdc).values();
                 whiteList.addAll(addresses);
             }
         }

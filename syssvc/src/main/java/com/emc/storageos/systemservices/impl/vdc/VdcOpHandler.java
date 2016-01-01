@@ -5,6 +5,7 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -506,8 +508,6 @@ public abstract class VdcOpHandler {
      */
     public static class DrSwitchoverHandler extends VdcOpHandler {
         
-        private int retry;
-
         public DrSwitchoverHandler() {
         }
         
@@ -520,7 +520,7 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             
-            // Reload coordinator configuration on all sites
+            /*// Reload coordinator configuration on all sites
             flushVdcConfigToLocal();
             
             coordinator.stopCoordinatorSvcMonitor();
@@ -530,11 +530,19 @@ public abstract class VdcOpHandler {
                 refreshFirewall();
             }
             
-            refreshCoordinator();
+            refreshCoordinator();*/
             
             // Update site state
             if (site.getState().equals(SiteState.ACTIVE_SWITCHING_OVER)) {
                 log.info("This is switchover acitve site (old acitve)");
+                
+                flushVdcConfigToLocal();
+                
+                if (hasSingleNodeSite()) {
+                    log.info("Single node deployment detected. Need refresh firewall/ipsec");
+                    refreshIPsec();
+                    refreshFirewall();
+                }
                 
                 //stop related service to avoid accepting any provisioning operation
                 localRepository.stop("vasa");
@@ -542,15 +550,69 @@ public abstract class VdcOpHandler {
                 localRepository.stop("controller");
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
+                
+                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(Constants.SWITCHOVER_BARRIER_RESTART);
+                restartBarrier.wait();
             } else if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
                 log.info("This is switchover standby site (new active)");
+                
+                Site oldActiveSite = drUtil.listSitesInState(SiteState.ACTIVE_SWITCHING_OVER).get(0);
+                log.info("Old active site is {}", oldActiveSite);
+                
+                waitForOldActiveSiteFinishOperations();
+
+                notifyOldActiveSiteReboot(site);
+                
+                while (coordinator.isActiveSiteZKLeaderAlive(oldActiveSite)) {
+                    log.info("Old active site ZK leader is still alive, wait for another 10 seconds");
+                    Thread.sleep(1000 * 10);
+                }
+                log.info("ZK leader is gone from old active site, reconfig local ZK to select new leader");
+                
+                flushVdcConfigToLocal();
+                
+                if (hasSingleNodeSite()) {
+                    log.info("Single node deployment detected. Need refresh firewall/ipsec");
+                    refreshIPsec();
+                    refreshFirewall();
+                }
+                
+                refreshCoordinator();
+                
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_STANDBY_SITE);
             } else {
-                // for those not directly participating in the switchover, re-enable the coordinatorsvc
-                // monitor thread that we've stopped earlier.
-                // Enabling the thread too soon might switch the current site to participant mode
-                coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
-                coordinator.startCoordinatorSvcMonitor();
+                flushVdcConfigToLocal();
+            }
+        }
+        
+        private void notifyOldActiveSiteReboot(Site site) throws Exception {
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_STANDBY_SITE, SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            barrier.enter();
+            
+            if ("vipr1".equalsIgnoreCase(InetAddress.getLocalHost().getHostName())) {
+                log.info("Thsi is virp1, notify remote old active site to reboot");
+                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(Constants.SWITCHOVER_BARRIER_RESTART);
+                restartBarrier.setBarrier();
+            }
+            
+            log.info("reboot remote old active site and go on");
+        }
+
+        private void waitForOldActiveSiteFinishOperations() {
+            
+            while (true) {
+                try {
+                    List<Site> oldActiveSite = drUtil.listSitesInState(SiteState.ACTIVE_SWITCHING_OVER);
+                    if (oldActiveSite.size() > 0) { 
+                        log.info("Old active site {} is still doing switchover, wait for another 10 seconds", oldActiveSite.get(0));
+                        Thread.sleep(1000 * 5);
+                    } else {
+                        log.info("Old active site finish all switchover tasks, new active site begins to switchover");
+                        return;
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to check old active site status", e);
+                }
             }
         }
         

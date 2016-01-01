@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -636,6 +637,8 @@ public interface CoordinatorClient {
      * @return
      */
     public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty);
+    
+    public DistributedBarrier getDistributedBarrier(String barrierPath);
 
     /**
      * Checks for the existence of a lock (znode) at the given path.  The lock is available

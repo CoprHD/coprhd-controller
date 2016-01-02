@@ -508,6 +508,8 @@ public abstract class VdcOpHandler {
      */
     public static class DrSwitchoverHandler extends VdcOpHandler {
         
+        private static final int TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS = 1000 * 5;
+
         public DrSwitchoverHandler() {
         }
         
@@ -519,11 +521,12 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
+            SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
             
             coordinator.stopCoordinatorSvcMonitor();
             
             // Update site state
-            if (site.getState().equals(SiteState.ACTIVE_SWITCHING_OVER)) {
+            if (site.getUuid().equals(siteInfo.getSourceSiteUUID())) {
                 log.info("This is switchover acitve site (old acitve)");
                 
                 flushVdcConfigToLocal();
@@ -538,10 +541,9 @@ public abstract class VdcOpHandler {
                 
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(getSingleBarrierPath(Constants.SWITCHOVER_BARRIER_RESTART));
                 restartBarrier.wait();
-            } else if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+            } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");
                 
-                SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
                 Site oldActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getSourceSiteUUID());
                 log.info("Old active site is {}", oldActiveSite);
                 
@@ -570,7 +572,7 @@ public abstract class VdcOpHandler {
         private void waitForOldActiveZKLeaderDown(Site oldActiveSite) throws InterruptedException {
             while (coordinator.isActiveSiteZKLeaderAlive(oldActiveSite)) {
                 log.info("Old active site ZK leader is still alive, wait for another 10 seconds");
-                Thread.sleep(1000 * 5);
+                Thread.sleep(TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS);
             }
             log.info("ZK leader is gone from old active site, reconfig local ZK to select new leader");
         }
@@ -584,7 +586,7 @@ public abstract class VdcOpHandler {
             barrier.enter();
             
             if ("vipr1".equalsIgnoreCase(InetAddress.getLocalHost().getHostName())) {
-                log.info("Thsi is virp1, notify remote old active site to reboot");
+                log.info("This is virp1, notify remote old active site to reboot");
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(getSingleBarrierPath(Constants.SWITCHOVER_BARRIER_RESTART));
                 restartBarrier.setBarrier();
             }
@@ -598,8 +600,8 @@ public abstract class VdcOpHandler {
                 try {
                     List<Site> oldActiveSite = drUtil.listSitesInState(SiteState.ACTIVE_SWITCHING_OVER);
                     if (oldActiveSite.size() > 0) { 
-                        log.info("Old active site {} is still doing switchover, wait for another 10 seconds", oldActiveSite.get(0));
-                        Thread.sleep(1000 * 5);
+                        log.info("Old active site {} is still doing switchover, wait for another 5 seconds", oldActiveSite.get(0));
+                        Thread.sleep(TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS);
                     } else {
                         log.info("Old active site finish all switchover tasks, new active site begins to switchover");
                         return;
@@ -622,8 +624,6 @@ public abstract class VdcOpHandler {
             } finally {
                 barrier.leave();
             }
-
-            log.info("Reboot this node after switchover");
         }
         
         // See coordinator hack for DR in CoordinatorImpl.java. If single node

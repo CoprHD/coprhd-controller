@@ -827,12 +827,9 @@ public class DisasterRecoveryService {
             if (StringUtils.isEmpty(oldActiveSite.getStandbyShortId())) {
                 oldActiveSite.setStandbyShortId(newActiveSite.getVdcShortId());
             }
+            
             oldActiveSite.setState(SiteState.ACTIVE_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
-
-            // set new acitve site to ZK
-            newActiveSite.setState(SiteState.STANDBY_SWITCHING_OVER);
-            coordinator.persistServiceConfiguration(newActiveSite.toConfiguration());
 
             // trigger reconfig
             for (Site eachSite : drUtil.listSites()) {

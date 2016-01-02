@@ -589,6 +589,7 @@ public abstract class VdcOpHandler {
             if ("vipr1".equalsIgnoreCase(InetAddress.getLocalHost().getHostName())) {
                 log.info("This is virp1, notify remote old active site to reboot");
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(getSingleBarrierPath(Constants.SWITCHOVER_BARRIER_RESTART));
+                restartBarrier.removeBarrier();
                 restartBarrier.setBarrier();
             }
             

@@ -547,7 +547,7 @@ public abstract class VdcOpHandler {
                 Site oldActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getSourceSiteUUID());
                 log.info("Old active site is {}", oldActiveSite);
                 
-                waitForOldActiveSiteFinishOperations();
+                waitForOldActiveSiteFinishOperations(oldActiveSite.getUuid());
                 notifyOldActiveSiteReboot(site);
                 waitForOldActiveZKLeaderDown(oldActiveSite);
                 
@@ -594,13 +594,13 @@ public abstract class VdcOpHandler {
             log.info("reboot remote old active site and go on");
         }
 
-        private void waitForOldActiveSiteFinishOperations() {
+        private void waitForOldActiveSiteFinishOperations(String oldActiveSiteUUID) {
             
             while (true) {
                 try {
-                    List<Site> oldActiveSite = drUtil.listSitesInState(SiteState.ACTIVE_SWITCHING_OVER);
-                    if (oldActiveSite.size() > 0) { 
-                        log.info("Old active site {} is still doing switchover, wait for another 5 seconds", oldActiveSite.get(0));
+                    Site oldActiveSite = drUtil.getSiteFromLocalVdc(oldActiveSiteUUID);
+                    if (oldActiveSite.getState().equals(SiteState.STANDBY_SYNCED)) { 
+                        log.info("Old active site {} is still doing switchover, wait for another 5 seconds", oldActiveSite);
                         Thread.sleep(TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS);
                     } else {
                         log.info("Old active site finish all switchover tasks, new active site begins to switchover");

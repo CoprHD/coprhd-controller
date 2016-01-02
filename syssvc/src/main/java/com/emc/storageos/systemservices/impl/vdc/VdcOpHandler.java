@@ -558,7 +558,8 @@ public abstract class VdcOpHandler {
             } else if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
                 log.info("This is switchover standby site (new active)");
                 
-                Site oldActiveSite = drUtil.listSitesInState(SiteState.ACTIVE_SWITCHING_OVER).get(0);
+                SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
+                Site oldActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getSourceSiteUUID());
                 log.info("Old active site is {}", oldActiveSite);
                 
                 waitForOldActiveSiteFinishOperations();

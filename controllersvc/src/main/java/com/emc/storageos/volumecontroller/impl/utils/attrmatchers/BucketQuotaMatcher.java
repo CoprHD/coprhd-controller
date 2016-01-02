@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2008-2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
 
 import java.util.ArrayList;
@@ -20,9 +24,9 @@ import com.google.common.base.Joiner;
  * of the bucket
  *
  */
-public class QuotaMatcher extends AttributeMatcher {
+public class BucketQuotaMatcher extends AttributeMatcher {
 
-private static final Logger _logger = LoggerFactory.getLogger(QuotaMatcher.class);
+private static final Logger _logger = LoggerFactory.getLogger(BucketQuotaMatcher.class);
     
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
@@ -50,7 +54,7 @@ private static final Logger _logger = LoggerFactory.getLogger(QuotaMatcher.class
                 allPools.remove(pool);
             }
         }
-        _logger.info("Pools Matching Minimum Data Centers Ended {}, {}", hardQuota,
+        _logger.info("Pools Matching Hard quota Ended {}, {}", hardQuota,
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         return filteredPoolList;
 

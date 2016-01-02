@@ -56,6 +56,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
     // Max Retention days
     private Integer maxRetention;
     // Number of Data Centers on which this pool is spread
+    //This is required only for object storage pools
     private Integer dataCenters;
 
     // Storage Tier Information for each Pool

@@ -53,4 +53,6 @@ public interface ECSExceptions {
     @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACES_ERROR)
     public ECSException getNamespacesFailed(final String info);
 
+    @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACES_ERROR)
+    public ECSException getNamespacesFailed(final Throwable e);
 }

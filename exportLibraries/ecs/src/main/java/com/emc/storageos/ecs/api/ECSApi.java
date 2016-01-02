@@ -245,35 +245,40 @@ public class ECSApi {
         return ecsPort;
     }
 
-    //Get list of each namespaces   
+    /**
+     * Get the list of ECS namespace IDs
+     * 
+     * @return List of namespace strings
+     * @throws ECSException
+     */
     public List<String> getNamespaces() throws ECSException {
-        _log.info("ECSApi:getNamespace enter");
+        _log.debug("ECSApi:getNamespace enter");
         ClientResponse clientResp = null;
-        List<String> namespaceList = new ArrayList<String>();
+        List<String> namespaceIdList = new ArrayList<String>();
         try {
             String responseString = null;
             clientResp = get(URI_GET_NAMESPACES);
-            responseString = clientResp.getEntity(String.class);
-            NamespaceCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
-                    NamespaceCommandResult.class);
-            for (int index = 0; index < ecsNsResult.getNamespace().size(); index++) {
-                namespaceList.add(ecsNsResult.getNamespace().get(index).getId());
-            }
-            return namespaceList;
-        } catch (Exception e) {
-            _log.error("Error occured while getting namespaces ", e);
-            throw e;
-        } finally {
             if (null == clientResp) {
                 throw ECSException.exceptions.getNamespacesFailed("no response from ECS");
             } else if (clientResp.getStatus() != 200) {
                 throw ECSException.exceptions.getNamespacesFailed(getResponseDetails(clientResp));
             }
-            
+
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getNamespace ECS response is {}", responseString);
+            NamespaceCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                    NamespaceCommandResult.class);
+            for (int index = 0; index < ecsNsResult.getNamespace().size(); index++) {
+                namespaceIdList.add(ecsNsResult.getNamespace().get(index).getId());
+            }
+            return namespaceIdList;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getNamespacesFailed(e);
+        } finally {
             if (clientResp != null) {
                 clientResp.close();
             }
-            _log.info("ECSApi:getNamespace exit");
+            _log.debug("ECSApi:getNamespace exit");
         }
     }
     

@@ -520,18 +520,6 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             
-            /*// Reload coordinator configuration on all sites
-            flushVdcConfigToLocal();
-            
-            coordinator.stopCoordinatorSvcMonitor();
-            if (hasSingleNodeSite()) {
-                log.info("Single node deployment detected. Need refresh firewall/ipsec");
-                refreshIPsec();
-                refreshFirewall();
-            }
-            
-            refreshCoordinator();*/
-            
             coordinator.stopCoordinatorSvcMonitor();
             
             // Update site state
@@ -539,12 +527,7 @@ public abstract class VdcOpHandler {
                 log.info("This is switchover acitve site (old acitve)");
                 
                 flushVdcConfigToLocal();
-                
-                if (hasSingleNodeSite()) {
-                    log.info("Single node deployment detected. Need refresh firewall/ipsec");
-                    refreshIPsec();
-                    refreshFirewall();
-                }
+                proccessSingleNodeSiteCase();
                 
                 //stop related service to avoid accepting any provisioning operation
                 localRepository.stop("vasa");
@@ -553,7 +536,7 @@ public abstract class VdcOpHandler {
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
                 
-                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(Constants.SWITCHOVER_BARRIER_RESTART);
+                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(getSingleBarrierPath(Constants.SWITCHOVER_BARRIER_RESTART));
                 restartBarrier.wait();
             } else if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
                 log.info("This is switchover standby site (new active)");
@@ -563,29 +546,37 @@ public abstract class VdcOpHandler {
                 log.info("Old active site is {}", oldActiveSite);
                 
                 waitForOldActiveSiteFinishOperations();
-
                 notifyOldActiveSiteReboot(site);
-                
-                while (coordinator.isActiveSiteZKLeaderAlive(oldActiveSite)) {
-                    log.info("Old active site ZK leader is still alive, wait for another 10 seconds");
-                    Thread.sleep(1000 * 10);
-                }
-                log.info("ZK leader is gone from old active site, reconfig local ZK to select new leader");
+                waitForOldActiveZKLeaderDown(oldActiveSite);
                 
                 flushVdcConfigToLocal();
-                
-                if (hasSingleNodeSite()) {
-                    log.info("Single node deployment detected. Need refresh firewall/ipsec");
-                    refreshIPsec();
-                    refreshFirewall();
-                }
+                proccessSingleNodeSiteCase();
                 
                 refreshCoordinator();
-                
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_STANDBY_SITE);
             } else {
                 flushVdcConfigToLocal();
             }
+        }
+
+        private void proccessSingleNodeSiteCase() {
+            if (hasSingleNodeSite()) {
+                log.info("Single node deployment detected. Need refresh firewall/ipsec");
+                refreshIPsec();
+                refreshFirewall();
+            }
+        }
+
+        private void waitForOldActiveZKLeaderDown(Site oldActiveSite) throws InterruptedException {
+            while (coordinator.isActiveSiteZKLeaderAlive(oldActiveSite)) {
+                log.info("Old active site ZK leader is still alive, wait for another 10 seconds");
+                Thread.sleep(1000 * 5);
+            }
+            log.info("ZK leader is gone from old active site, reconfig local ZK to select new leader");
+        }
+        
+        private String getSingleBarrierPath(String barrierName) {
+            return String.format("%s/%s", ZkPath.SITES, barrierName);
         }
         
         private void notifyOldActiveSiteReboot(Site site) throws Exception {
@@ -594,7 +585,7 @@ public abstract class VdcOpHandler {
             
             if ("vipr1".equalsIgnoreCase(InetAddress.getLocalHost().getHostName())) {
                 log.info("Thsi is virp1, notify remote old active site to reboot");
-                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(Constants.SWITCHOVER_BARRIER_RESTART);
+                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(getSingleBarrierPath(Constants.SWITCHOVER_BARRIER_RESTART));
                 restartBarrier.setBarrier();
             }
             

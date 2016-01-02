@@ -522,6 +522,7 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
+            log.info("");
             
             coordinator.stopCoordinatorSvcMonitor();
             
@@ -540,7 +541,7 @@ public abstract class VdcOpHandler {
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
                 
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(getSingleBarrierPath(Constants.SWITCHOVER_BARRIER_RESTART));
-                restartBarrier.wait();
+                restartBarrier.waitOnBarrier();
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");
                 

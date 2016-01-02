@@ -532,6 +532,8 @@ public abstract class VdcOpHandler {
             
             refreshCoordinator();*/
             
+            coordinator.stopCoordinatorSvcMonitor();
+            
             // Update site state
             if (site.getState().equals(SiteState.ACTIVE_SWITCHING_OVER)) {
                 log.info("This is switchover acitve site (old acitve)");

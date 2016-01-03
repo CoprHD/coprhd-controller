@@ -46,7 +46,7 @@ public interface BackupConstants {
     public static final long MEGABYTE = 1024 * 1024;
 
     // Number of Kilobyte compare to byte
-    public static final long KILOBYTE = 1024;
+    public static final int KILOBYTE = 1024;
 
     // Delimiter for backup file name
     public static final String BACKUP_NAME_DELIMITER = "_";
@@ -84,4 +84,7 @@ public interface BackupConstants {
     String FTP_URL_PREFIX = "ftp://";
     String CONTENT_LENGTH_HEADER = "Content-Length:";
     int FILE_DOES_NOT_EXIST = 19;
+
+    //constants for download
+    public static final int DOWNLOAD_BUFFER_SIZE=KILOBYTE*4; //4k
 }

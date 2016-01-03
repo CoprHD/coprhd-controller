@@ -6,7 +6,6 @@ package com.emc.storageos.systemservices.impl.resource;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;
@@ -15,12 +14,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 import java.net.URI;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -28,14 +24,17 @@ import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.*;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.management.backup.BackupFile;
-import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.authorization.CheckPermission;
+import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
@@ -43,24 +42,19 @@ import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.DownloadExecutor;
 import com.emc.storageos.systemservices.impl.jobs.common.JobProducer;
-import com.sun.jersey.core.header.FormDataContentDisposition;
-import com.sun.jersey.multipart.FormDataParam;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil;
+import com.emc.storageos.systemservices.impl.resource.util.NodeInfo;
+import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 
+import com.emc.storageos.management.backup.BackupFile;
+import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.management.backup.BackupOps;
 import com.emc.storageos.management.backup.BackupSetInfo;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.BackupConstants;
-import com.emc.storageos.security.authorization.CheckPermission;
-import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil;
-import com.emc.storageos.systemservices.impl.resource.util.NodeInfo;
-import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 
@@ -70,13 +64,14 @@ import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 @Path("/backupset/")
 public class BackupService {
     private static final Logger log = LoggerFactory.getLogger(BackupService.class);
+
     private static final int ASYNC_STATUS = 202;
     private BackupOps backupOps;
     private BackupScheduler backupScheduler;
     private JobProducer jobProducer;
     private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
-    private String restoreCmd="/opt/storageos/bin/restore-from-ui.sh";
-    private String restoreLog="/var/log/restore-internal.log";
+    private final String restoreCmd="/opt/storageos/bin/restore-from-ui.sh";
+    private final String restoreLog="/var/log/restore-internal.log";
     private Thread downloadThread;
 
     @Autowired
@@ -365,7 +360,7 @@ public class BackupService {
      * <p>
      * Send backup file name to a node
      *
-     * @param request
+     * @param backupName the backup filename to be downloaded
      * @return the name and content info of backup files
      */
     @POST
@@ -379,6 +374,35 @@ public class BackupService {
         downloadThread.setName("backupDownloadThread");
         downloadThread.start();
 
+        return Response.ok().build();
+    }
+
+    /**
+     *  Download backup from the backup FTP server
+     *  each node will only downloads its backup data
+     *
+     * @param backupName the name of the backup on the FTP server
+     * @return server response indicating if the operation succeeds.
+     */
+    @POST
+    @Path("pull/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public Response restoreBackup(@QueryParam("file") String backupName ) {
+        log.info("The backup file {} to restore", backupName);
+
+        List<Service> sysSvcs = backupOps.getAllSysSvc();
+        for (Service svc : sysSvcs) {
+            log.info("lby0 syssvc id={} nodeId={} nodeName={} endpoint={} name={}",
+                    new Object[] {svc.getId(), svc.getNodeId(), svc.getNodeName(), svc.getEndpoint(), svc.getName()});
+        }
+
+        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, sysSvcs);
+        downloadThread = new Thread(downloadTask);
+        downloadThread.setDaemon(true);
+        downloadThread.setName("backupDownloadThread");
+        downloadThread.start();
+
+        log.info("done");
         return Response.ok().build();
     }
 
@@ -443,38 +467,6 @@ public class BackupService {
         throw APIException.badRequests.invalidParameter("backupname", backupName);
     }
 
-    /**
-     *  Download backup from the backup FTP server
-     *  each node will only downloads its backup data
-     *
-     * @param backupName the name of the backup on the FTP server
-     * @return server response indicating if the operation succeeds.
-     */
-    @POST
-    @Path("pull/")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public Response restoreBackup(@QueryParam("file") String backupName ) {
-        log.info("The backup file {} to restore", backupName);
-
-        Map<String, String> hosts = backupOps.getHosts();
-        List<Integer> ports = backupOps.getPorts();
-        log.info("lby0 hosts={} ports={}", hosts, ports);
-
-        List<Service> sysSvcs = backupOps.getAllSysSvc();
-        for (Service svc : sysSvcs) {
-            log.info("lby0 syssvc id={} nodeId={} nodeName={} endpoint={} name={}",
-                    new Object[] {svc.getId(), svc.getNodeId(), svc.getNodeName(), svc.getEndpoint(), svc.getName()});
-        }
-
-        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, sysSvcs);
-        downloadThread = new Thread(downloadTask);
-        downloadThread.setDaemon(true);
-        downloadThread.setName("backupDownloadThread");
-        downloadThread.start();
-
-        log.info("done");
-        return Response.ok().build();
-    }
 
     /**
      * This method returns a list of files on each node to be downloaded for specified tag

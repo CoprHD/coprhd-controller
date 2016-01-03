@@ -40,7 +40,7 @@ public class FtpClient {
         return builder;
     }
 
-    public static boolean startsWithIgnoreCase(String str, String prefix) {
+    private static boolean startsWithIgnoreCase(String str, String prefix) {
         log.info("lbyu str={} prefix={}", str, prefix);
         return str.regionMatches(true, 0, prefix, 0, prefix.length());
     }
@@ -50,13 +50,13 @@ public class FtpClient {
                 startsWithIgnoreCase(url, BackupConstants.FTP_URL_PREFIX);
     }
 
-    public Long getFileSize(String fileName) throws Exception {
+    public long getFileSize(String fileName) throws IOException, InterruptedException {
         ProcessBuilder builder = getBuilder();
 
         builder.command().add("-I");
         builder.command().add(uri + fileName);
 
-        Long length = null;
+        long length = 0;
 
         log.info("lby ftp command={}", builder.command());
 

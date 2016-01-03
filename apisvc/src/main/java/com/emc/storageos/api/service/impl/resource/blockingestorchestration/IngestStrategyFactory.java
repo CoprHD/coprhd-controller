@@ -20,27 +20,29 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 public class IngestStrategyFactory {
 
     private static final Logger _logger = LoggerFactory.getLogger(IngestStrategyFactory.class);
-    
+
     private BlockIngestOrchestrator blockVolumeIngestOrchestrator;
 
     private BlockIngestOrchestrator blockRemoteReplicationIngestOrchestrator;
 
     private BlockIngestOrchestrator blockRecoverPointIngestOrchestrator;
-    
+
     private BlockIngestOrchestrator blockVplexVolumeIngestOrchestrator;
 
     private BlockIngestExportOrchestrator maskPerHostIngestOrchestrator;
 
+    private BlockIngestExportOrchestrator hdsMultipleMaskPerHostIngestOrchestrator;
+
     private BlockIngestExportOrchestrator multipleMaskPerHostIngestOrchestrator;
 
     private BlockIngestExportOrchestrator unexportedVolumeIngestOrchestrator;
-    
+
     private BlockIngestOrchestrator blockSnapshotIngestOrchestrator;
-    
+
     private BlockIngestOrchestrator blockMirrorIngestOrchestrator;
 
     private final Map<String, IngestStrategy> ingestStrategyMap;
-    
+
     private final Map<String, IngestExportStrategy> ingestExportStrategyMap;
 
     private DbClient _dbClient;
@@ -84,7 +86,7 @@ public class IngestStrategyFactory {
             BlockIngestOrchestrator blockRecoverPointIngestOrchestrator) {
         this.blockRecoverPointIngestOrchestrator = blockRecoverPointIngestOrchestrator;
     }
-    
+
     public BlockIngestOrchestrator getBlockSnapshotIngestOrchestrator() {
         return blockSnapshotIngestOrchestrator;
     }
@@ -121,6 +123,20 @@ public class IngestStrategyFactory {
         this.multipleMaskPerHostIngestOrchestrator = multipleMaskPerHostIngestOrchestrator;
     }
 
+    /**
+     * @return the hdsMultipleMaskPerHostIngestOrchestrator
+     */
+    public BlockIngestExportOrchestrator getHdsMultipleMaskPerHostIngestOrchestrator() {
+        return hdsMultipleMaskPerHostIngestOrchestrator;
+    }
+
+    /**
+     * @param hdsMultipleMaskPerHostIngestOrchestrator the hdsMultipleMaskPerHostIngestOrchestrator to set
+     */
+    public void setHdsMultipleMaskPerHostIngestOrchestrator(BlockIngestExportOrchestrator hdsMultipleMaskPerHostIngestOrchestrator) {
+        this.hdsMultipleMaskPerHostIngestOrchestrator = hdsMultipleMaskPerHostIngestOrchestrator;
+    }
+
     public BlockIngestExportOrchestrator getUnexportedVolumeIngestOrchestrator() {
         return unexportedVolumeIngestOrchestrator;
     }
@@ -138,7 +154,7 @@ public class IngestStrategyFactory {
     public enum ReplicationStrategy {
         LOCAL, REMOTE, VPLEX, RP
     }
-    
+
     public enum VolumeType {
         VOLUME, SNAPSHOT, CLONE, MIRROR
     }
@@ -154,7 +170,7 @@ public class IngestStrategyFactory {
          * 
          * XtremIO,HDS are examples.
          */
-        MASK_PER_HOST("xtremio,hds"),
+        MASK_PER_HOST("xtremio"),
         /*
          * MULTIPLE_MASK_PER_HOST :
          * Arrays whose existing masking containers can be modeled to export mask in ViPR DB
@@ -166,6 +182,7 @@ public class IngestStrategyFactory {
          * VMAX,VNX Block are examples
          */
         MULTIPLE_MASK_PER_HOST("vmax,vnxblock,vplex"),
+        HDS_MULTIPLE_MASK_PER_HOST("hds"),
         NO_MASK("vnxe");
 
         private String ingestStrategy;
@@ -182,7 +199,7 @@ public class IngestStrategyFactory {
             for (IngestExportStrategyEnum strategy : copyOfValues) {
                 if (strategy.getIngestStrategy().contains(strategyName)) {
                     return strategy;
-            }
+                }
             }
             return null;
         }
@@ -214,7 +231,7 @@ public class IngestStrategyFactory {
         private static final IngestStrategyEnum[] copyOfValues = values();
 
     }
-    
+
     public IngestExportStrategy getIngestExportStrategy(IngestExportStrategyEnum strategyEnum) {
         IngestExportStrategy ingestStrategy = new IngestExportStrategy();
         ingestStrategy.setDbClient(_dbClient);
@@ -226,29 +243,37 @@ public class IngestStrategyFactory {
          * 
          * Eg: Ingest Exported HDS Remote Replicated Volume into ViPR
          */
-      case MASK_PER_HOST:
-          ingestStrategy.setIngestExportOrchestrator(maskPerHostIngestOrchestrator);
-          break;
-          
-          /*
-           * MULTIPLE_MASK_PER_HOST:
-           * Ingest Block Object, where the masking containers on Array CAN be
-           * modeled as Export mask in ViPR.
-           * 
-           * Eg: Ingest Exported VMAX Remote Replicated Volume (SRDF) into ViPR
-           */
-      case MULTIPLE_MASK_PER_HOST:
-          ingestStrategy.setIngestExportOrchestrator(multipleMaskPerHostIngestOrchestrator);
-          break;
-          
-      case NO_MASK:
-          ingestStrategy.setIngestExportOrchestrator(unexportedVolumeIngestOrchestrator);
-          break;
+            case MASK_PER_HOST:
+                ingestStrategy.setIngestExportOrchestrator(maskPerHostIngestOrchestrator);
+                break;
 
-      default:
-          break;
+            /*
+             * MULTIPLE_MASK_PER_HOST:
+             * Ingest Block Object, where the masking containers on Array CAN be
+             * modeled as Export mask in ViPR.
+             * 
+             * Eg: Ingest Exported VMAX Remote Replicated Volume (SRDF) into ViPR
+             */
+            case MULTIPLE_MASK_PER_HOST:
+                ingestStrategy.setIngestExportOrchestrator(multipleMaskPerHostIngestOrchestrator);
+                break;
+            /*
+             * HDS_MULTIPLE_MASKS_PER_HOST:
+             * In case of HDS, we are representing multiple xportMasks per cluster.
+             * Hence we should have separate orchestrator to process these masks.
+             */
+            case HDS_MULTIPLE_MASK_PER_HOST:
+                ingestStrategy.setIngestExportOrchestrator(hdsMultipleMaskPerHostIngestOrchestrator);
+                break;
+
+            case NO_MASK:
+                ingestStrategy.setIngestExportOrchestrator(unexportedVolumeIngestOrchestrator);
+                break;
+
+            default:
+                break;
         }
-        
+
         return ingestStrategy;
     }
 
@@ -264,34 +289,34 @@ public class IngestStrategyFactory {
         IngestStrategy ingestStrategy = new IngestStrategy();
         ingestStrategy.setDbClient(_dbClient);
         switch (strategyEnum) {
-          
-        case REMOTE_VOLUME:
-            ingestStrategy.setIngestResourceOrchestrator(blockRemoteReplicationIngestOrchestrator);
-            break;
-            
-        case LOCAL_CLONE:
-        case LOCAL_VOLUME:
-            ingestStrategy.setIngestResourceOrchestrator(blockVolumeIngestOrchestrator);
-            break;
-            
-        case LOCAL_SNAPSHOT:
-            ingestStrategy.setIngestResourceOrchestrator(blockSnapshotIngestOrchestrator);
-            break;
-            
-        case LOCAL_MIRROR:
-            ingestStrategy.setIngestResourceOrchestrator(blockMirrorIngestOrchestrator);
-            break;
-        
-        case VPLEX_VOLUME:
-            ingestStrategy.setIngestResourceOrchestrator(blockVplexVolumeIngestOrchestrator);
-            break;
 
-        case RP_VOLUME:
-            ingestStrategy.setIngestResourceOrchestrator(blockRecoverPointIngestOrchestrator);
-            break;
+            case REMOTE_VOLUME:
+                ingestStrategy.setIngestResourceOrchestrator(blockRemoteReplicationIngestOrchestrator);
+                break;
 
-        default:
-            break;
+            case LOCAL_CLONE:
+            case LOCAL_VOLUME:
+                ingestStrategy.setIngestResourceOrchestrator(blockVolumeIngestOrchestrator);
+                break;
+
+            case LOCAL_SNAPSHOT:
+                ingestStrategy.setIngestResourceOrchestrator(blockSnapshotIngestOrchestrator);
+                break;
+
+            case LOCAL_MIRROR:
+                ingestStrategy.setIngestResourceOrchestrator(blockMirrorIngestOrchestrator);
+                break;
+
+            case VPLEX_VOLUME:
+                ingestStrategy.setIngestResourceOrchestrator(blockVplexVolumeIngestOrchestrator);
+                break;
+
+            case RP_VOLUME:
+                ingestStrategy.setIngestResourceOrchestrator(blockRecoverPointIngestOrchestrator);
+                break;
+
+            default:
+                break;
 
         }
         return ingestStrategy;
@@ -328,7 +353,7 @@ public class IngestStrategyFactory {
         } else if (VolumeIngestionUtil.isMirror(unManagedVolume)) {
             volumeType = VolumeType.MIRROR.name();
         }
-        
+
         String strategyKey = replicationStrategy + "_" + volumeType;
         _logger.info("strategy key is " + strategyKey);
 
@@ -340,26 +365,26 @@ public class IngestStrategyFactory {
 
         return ingestStrategyMap.get(strategyKey);
     }
-    
+
     public IngestExportStrategy buildIngestExportStrategy(UnManagedVolume unManagedVolume) {
         boolean isVolumeExported = Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
                 SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString()));
         String systemType = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.SYSTEM_TYPE.toString(),
                 unManagedVolume.getVolumeInformation());
         _logger.info("system type is " + systemType);
-        
+
         IngestExportStrategyEnum exportStrategy = IngestExportStrategyEnum.NO_MASK;
         if (isVolumeExported) {
             exportStrategy = IngestExportStrategyEnum.getIngestStrategy(systemType);
         }
         _logger.info("export strategy is " + exportStrategy.name());
-        
+
         if (null == ingestExportStrategyMap.get(exportStrategy.name())) {
             IngestExportStrategy strategy = getIngestExportStrategy(exportStrategy);
             _logger.info("ingest strategy map does not contain key, adding " + exportStrategy + " for " + strategy);
             ingestExportStrategyMap.put(exportStrategy.name(), strategy);
         }
-        
+
         return ingestExportStrategyMap.get(exportStrategy.name());
     }
 

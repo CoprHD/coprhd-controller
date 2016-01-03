@@ -553,9 +553,9 @@ public abstract class VdcOpHandler {
                 waitForOldActiveZKLeaderDown(oldActiveSite);
                 
                 flushVdcConfigToLocal();
+                refreshCoordinator();
                 proccessSingleNodeSiteCase();
                 
-                refreshCoordinator();
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_STANDBY_SITE);
             } else {
                 flushVdcConfigToLocal();

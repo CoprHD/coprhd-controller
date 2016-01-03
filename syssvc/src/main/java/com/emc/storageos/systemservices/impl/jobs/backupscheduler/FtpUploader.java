@@ -7,31 +7,30 @@ package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.systemservices.impl.util.ProcessInputStream;
-import com.emc.storageos.systemservices.impl.util.ProcessOutputStream;
-import com.emc.storageos.systemservices.impl.util.ProcessRunner;
+import com.emc.storageos.management.backup.util.FtpClient;
+import com.emc.storageos.management.backup.util.ProcessInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Implements upload protocol using FTPS
  */
-public class FtpClient extends Uploader {
-    private static final Logger log = LoggerFactory.getLogger(FtpClient.class);
+public class FtpUploader extends Uploader {
+    private static final Logger log = LoggerFactory.getLogger(FtpUploader.class);
 
-    private final static String CONTENT_LENGTH_HEADER = "Content-Length:";
-    private final static String FTPS_URL_PREFIX = "ftps://";
-    private final static String FTP_URL_PREFIX = "ftp://";
-    private final static int FILE_DOES_NOT_EXIST = 19;
+    private final FtpClient ftpClient;
 
-    public FtpClient(SchedulerConfig cfg, BackupScheduler cli) {
+    public FtpUploader(SchedulerConfig cfg, BackupScheduler cli) {
         super(cfg, cli);
+        ftpClient = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getUploadPassword());
     }
 
     private ProcessBuilder getBuilder() {
+        log.info("lbyu uploadUrl={}", cfg.uploadUrl);
+        return ftpClient.getBuilder();
+        /*
         boolean isExplicit = startsWithIgnoreCase(this.cfg.uploadUrl, FTPS_URL_PREFIX);
 
         ProcessBuilder builder = new ProcessBuilder("curl", "-sSk", "-u", String.format("%s:%s",
@@ -41,18 +40,25 @@ public class FtpClient extends Uploader {
         }
 
         return builder;
+        */
     }
 
     public static boolean startsWithIgnoreCase(String str, String prefix) {
-        return str.regionMatches(true, 0, prefix, 0, prefix.length());
+        log.info("lbyu str={} prefix={}", str, prefix);
+        return FtpClient.startsWithIgnoreCase(str, prefix);
+
+        // return str.regionMatches(true, 0, prefix, 0, prefix.length());
     }
 
     public static boolean isSupported(String url) {
-        return startsWithIgnoreCase(url, FTPS_URL_PREFIX) || startsWithIgnoreCase(url, FTP_URL_PREFIX);
+        return FtpClient.isSupported(url);
+        // return startsWithIgnoreCase(url, BackupConstants.FTPS_URL_PREFIX) || startsWithIgnoreCase(url, BackupConstants.FTP_URL_PREFIX);
     }
 
     @Override
     public Long getFileSize(String fileName) throws Exception {
+        return ftpClient.getFileSize(fileName);
+        /*
         ProcessBuilder builder = getBuilder();
 
         builder.command().add("-I");
@@ -80,10 +86,13 @@ public class FtpClient extends Uploader {
         }
 
         return length;
+        */
     }
 
     @Override
     public OutputStream upload(String fileName, long offset) throws Exception {
+        return ftpClient.upload(fileName, offset);
+        /*
         ProcessBuilder builder = getBuilder();
 
         // We should send a "REST offset" command, but the earliest stage we can --quote it is before PASV/EPSV
@@ -104,10 +113,12 @@ public class FtpClient extends Uploader {
 
         log.info("lby2 ftp command={}", builder.command());
         return new ProcessOutputStream(builder.start());
+        */
     }
 
     @Override
     public List<String> listFiles(String prefix) throws Exception {
+        /*
         if (prefix == null) {
             return null;
         }
@@ -135,10 +146,13 @@ public class FtpClient extends Uploader {
         }
 
         return fileList;
+        */
+        return ftpClient.listFiles(prefix);
     }
 
     @Override
     public void rename(String sourceFileName, String destFileName) throws Exception {
+        /*
         ProcessBuilder builder = getBuilder();
         builder.command().add(this.cfg.uploadUrl);
         builder.command().add("-Q");
@@ -155,8 +169,11 @@ public class FtpClient extends Uploader {
                 throw new IOException(errText.length() > 0 ? errText.toString() : Integer.toString(exitCode));
             }
         }
+        */
+        ftpClient.rename(sourceFileName, destFileName);
     }
 
+    /*
     public InputStream download(String backupFileName) throws IOException {
         ProcessBuilder builder = getBuilder();
         String remoteBackupFile=cfg.uploadUrl+backupFileName;
@@ -169,4 +186,5 @@ public class FtpClient extends Uploader {
 
         return new ProcessInputStream(builder.start());
     }
+    */
 }

@@ -66,6 +66,7 @@ public interface BackupConstants {
 
     // The common part of backup info file name
     public static final String BACKUP_INFO_SUFFIX = BACKUP_NAME_DELIMITER + "info.properties";
+    public static final String BACKUP_ZK_FILE_SUFFIX = BACKUP_NAME_DELIMITER + "zk.zip";
     public static final String BACKUP_INFO_VERSION = "version";
     public static final String BACKUP_INFO_HOSTS = "hosts";
     public static final String EVENT_SERVICE_TYPE = "backup";
@@ -79,4 +80,8 @@ public interface BackupConstants {
     public static final String STORAGEOS_GROUP = "storageos";
 
     public static final File[] EMPTY_ARRAY = {};
+    String FTPS_URL_PREFIX = "ftps://";
+    String FTP_URL_PREFIX = "ftp://";
+    String CONTENT_LENGTH_HEADER = "Content-Length:";
+    int FILE_DOES_NOT_EXIST = 19;
 }

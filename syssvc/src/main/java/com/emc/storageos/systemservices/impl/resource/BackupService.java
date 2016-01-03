@@ -6,6 +6,7 @@ package com.emc.storageos.systemservices.impl.resource;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;
@@ -14,9 +15,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 import java.net.URI;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -24,8 +28,10 @@ import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.*;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.management.backup.BackupFile;
 import com.emc.storageos.management.backup.BackupFileSet;
@@ -37,6 +43,8 @@ import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.DownloadExecutor;
 import com.emc.storageos.systemservices.impl.jobs.common.JobProducer;
+import com.sun.jersey.core.header.FormDataContentDisposition;
+import com.sun.jersey.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -352,6 +360,28 @@ public class BackupService {
         }
     }
 
+    /**
+     * *Internal API, used only between nodes*
+     * <p>
+     * Send backup file name to a node
+     *
+     * @param request
+     * @return the name and content info of backup files
+     */
+    @POST
+    @Path("internal/push")
+    public Response downloadBackupFile(String backupName) {
+        log.info("lbyu backupName={}", backupName);
+
+        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, null);
+        downloadThread = new Thread(downloadTask);
+        downloadThread.setDaemon(true);
+        downloadThread.setName("backupDownloadThread");
+        downloadThread.start();
+
+        return Response.ok().build();
+    }
+
     class RestoreRunnable implements Runnable {
         private String[] cmd;
 
@@ -424,9 +454,19 @@ public class BackupService {
     @Path("pull/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response restoreBackup(@QueryParam("file") String backupName ) {
-        log.info("lby Download backup file {}", backupName);
+        log.info("The backup file {} to restore", backupName);
 
-        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName);
+        Map<String, String> hosts = backupOps.getHosts();
+        List<Integer> ports = backupOps.getPorts();
+        log.info("lby0 hosts={} ports={}", hosts, ports);
+
+        List<Service> sysSvcs = backupOps.getAllSysSvc();
+        for (Service svc : sysSvcs) {
+            log.info("lby0 syssvc id={} nodeId={} nodeName={} endpoint={} name={}",
+                    new Object[] {svc.getId(), svc.getNodeId(), svc.getNodeName(), svc.getEndpoint(), svc.getName()});
+        }
+
+        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, sysSvcs);
         downloadThread = new Thread(downloadTask);
         downloadThread.setDaemon(true);
         downloadThread.setName("backupDownloadThread");

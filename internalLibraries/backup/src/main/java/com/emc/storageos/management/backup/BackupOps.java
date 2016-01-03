@@ -16,9 +16,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -134,7 +136,7 @@ public class BackupOps {
      * 
      * @return map of node id to IP address for each ViPR host
      */
-    private Map<String, String> getHosts() {
+    public Map<String, String> getHosts() {
         if (hosts == null || hosts.isEmpty()) {
             hosts = initHosts();
         }
@@ -198,6 +200,10 @@ public class BackupOps {
         return this.quorumSize;
     }
 
+    public List<Integer> getPorts() {
+        return ports;
+    }
+
     /**
      * Sets jmx service ports
      * 
@@ -216,6 +222,10 @@ public class BackupOps {
      */
     public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
         this.coordinatorClient = coordinatorClient;
+    }
+
+    public CoordinatorClient getCoordinatorClient() {
+        return coordinatorClient;
     }
 
     /**
@@ -819,7 +829,7 @@ public class BackupOps {
         return false;
     }
 
-    private List<String> getAvailableNodes() {
+    public List<String> getAvailableNodes() {
         List<String> goodNodes = new ArrayList<String>();
         try {
             List<Service> svcs = coordinatorClient.locateAllServices(
@@ -842,6 +852,31 @@ public class BackupOps {
         return goodNodes;
     }
 
+    public List<Service> getAllSysSvc() {
+        //try {
+            return coordinatorClient.locateAllServices(
+                    ((CoordinatorClientImpl) coordinatorClient).getSysSvcName(),
+                    ((CoordinatorClientImpl) coordinatorClient).getSysSvcVersion(),
+                    (String) null, null);
+            /*
+            for (Service svc : svcs) {
+                String svcId = svc.getId();
+                String nodeId = String.format(Constants.NODE_ID_FORMAT, svcId.substring(svcId.lastIndexOf("-") + 1));
+                if (svcId.endsWith(Constants.STANDALONE_ID)) {
+                    nodeId = Constants.STANDALONE_ID;
+                }
+                goodNodes.add(nodeId);
+            }
+            */
+            // log.info("Available syssvcs: {}", sysSvcs);
+        /*
+        } catch (Exception e) {
+            log.warn("Failed to get available nodes by query syssvc beacon", e);
+            goodNodes.addAll(hosts.keySet());
+        }
+        */
+        // return goodNodes;
+    }
     /**
      * Create a connection to the JMX agent
      */

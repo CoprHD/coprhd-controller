@@ -44,6 +44,7 @@ public class ECSApi {
     private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json?namespace={1}";
     private static final String URI_BUCKET_INFO = "/object/bucket/{0}/info.json?namespace={1}";
     private static final String URI_GET_NAMESPACES = "/object/namespaces.json";
+    private static final String URI_GET_NAMESPACE_DETAILS = "/object/namespaces/namespace/{0}.json";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -244,44 +245,7 @@ public class ECSApi {
 
         return ecsPort;
     }
-
-    /**
-     * Get the list of ECS namespace IDs
-     * 
-     * @return List of namespace strings
-     * @throws ECSException
-     */
-    public List<String> getNamespaces() throws ECSException {
-        _log.debug("ECSApi:getNamespace enter");
-        ClientResponse clientResp = null;
-        List<String> namespaceIdList = new ArrayList<String>();
-        try {
-            String responseString = null;
-            clientResp = get(URI_GET_NAMESPACES);
-            if (null == clientResp) {
-                throw ECSException.exceptions.getNamespacesFailed("no response from ECS");
-            } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getNamespacesFailed(getResponseDetails(clientResp));
-            }
-
-            responseString = clientResp.getEntity(String.class);
-            _log.info("ECSApi:getNamespace ECS response is {}", responseString);
-            NamespaceCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
-                    NamespaceCommandResult.class);
-            for (int index = 0; index < ecsNsResult.getNamespace().size(); index++) {
-                namespaceIdList.add(ecsNsResult.getNamespace().get(index).getId());
-            }
-            return namespaceIdList;
-        } catch (Exception e) {
-            throw ECSException.exceptions.getNamespacesFailed(e);
-        } finally {
-            if (clientResp != null) {
-                clientResp.close();
-            }
-            _log.debug("ECSApi:getNamespace exit");
-        }
-    }
-    
+   
     /**
      * Create a Base Bucket instance
      * 
@@ -472,6 +436,72 @@ public class ECSApi {
     	}
     }
     
+    /**
+     * Get the list of ECS namespace IDs
+     * 
+     * @return List of namespace strings
+     * @throws ECSException
+     */
+    public List<String> getNamespaces() throws ECSException {
+        _log.debug("ECSApi:getNamespace enter");
+        ClientResponse clientResp = null;
+        List<String> namespaceIdList = new ArrayList<String>();
+        try {
+            String responseString = null;
+            clientResp = get(URI_GET_NAMESPACES);
+            if (null == clientResp) {
+                throw ECSException.exceptions.getNamespacesFailed("no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getNamespacesFailed(getResponseDetails(clientResp));
+            }
+
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getNamespace ECS response is {}", responseString);
+            NamespaceCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                    NamespaceCommandResult.class);
+            for (int index = 0; index < ecsNsResult.getNamespace().size(); index++) {
+                namespaceIdList.add(ecsNsResult.getNamespace().get(index).getId());
+            }
+            return namespaceIdList;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getNamespacesFailed(e);
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getNamespace exit");
+        }
+    }
+    
+    
+    public void getNamespaceDetails(String namespaceId) throws ECSException {
+        _log.debug("ECSApi:getNamespaceDetails enter");
+        ClientResponse clientResp = null;
+        try {
+            String responseString = null;
+            final String path = MessageFormat.format(URI_GET_NAMESPACE_DETAILS, namespaceId);
+            clientResp = get(path);
+            if (null == clientResp) {
+                throw ECSException.exceptions.getNamespaceDetailsFailed(namespaceId, "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getNamespaceDetailsFailed(namespaceId, getResponseDetails(clientResp));
+            }
+            
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getNamespaceDetails for {} ECS response is {}", namespaceId, responseString);
+            NamespaceDetailsCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                    NamespaceDetailsCommandResult.class);
+            int k =1;
+        } catch (Exception e) {
+
+        } finally {
+
+        }
+    }
+    
+    
+    
+    
     private ClientResponse get(final String uri) {
         ClientResponse clientResp = _client.get_json(_baseUrl.resolve(uri), authToken);
         if (clientResp != null && clientResp.getStatus() == 401) {
@@ -509,7 +539,7 @@ public class ECSApi {
         String detailedResponse = null;
         try {
             JSONObject jObj = clientResp.getEntity(JSONObject.class);
-            detailedResponse = String.format("Description:%s, Details:%s",
+            detailedResponse = String.format("ECS Description:%s, Details:%s",
                     jObj.getString("description"), jObj.getString("details"));
             _log.error(String.format("HTTP error code: %d, Complete ECS error response: %s", clientResp.getStatus(),
                     jObj.toString()));

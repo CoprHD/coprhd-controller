@@ -171,7 +171,8 @@ public class ECSApiFactory {
       else
           System.out.println("NOT Sys admin");
       
-      ecsApi.getNamespaces();
+      //ecsApi.getNamespaces();
+      ecsApi.getNamespaceDetails("provider");
       
       //ecsApi.getStoragePools();
       //ecsApi.getStoragePort("10.32.4.98");

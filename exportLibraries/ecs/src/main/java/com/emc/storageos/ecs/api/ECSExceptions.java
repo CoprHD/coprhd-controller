@@ -55,4 +55,10 @@ public interface ECSExceptions {
 
     @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACES_ERROR)
     public ECSException getNamespacesFailed(final Throwable e);
+    
+    @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACE_DETAILS_ERROR)
+    public ECSException getNamespaceDetailsFailed(final String namespace, final String info);
+
+    @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACE_DETAILS_ERROR)
+    public ECSException getNamespaceDetailsFailed(final String namespace, final Throwable e);
 }

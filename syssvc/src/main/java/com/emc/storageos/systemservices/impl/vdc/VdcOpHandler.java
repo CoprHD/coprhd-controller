@@ -541,6 +541,7 @@ public abstract class VdcOpHandler {
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
                 
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(getSingleBarrierPath(Constants.SWITCHOVER_BARRIER_RESTART));
+                restartBarrier.setBarrier();
                 restartBarrier.waitOnBarrier();
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");
@@ -590,7 +591,6 @@ public abstract class VdcOpHandler {
                 log.info("This is virp1, notify remote old active site to reboot");
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(getSingleBarrierPath(Constants.SWITCHOVER_BARRIER_RESTART));
                 restartBarrier.removeBarrier();
-                restartBarrier.setBarrier();
             }
             
             log.info("reboot remote old active site and go on");

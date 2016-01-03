@@ -410,7 +410,65 @@
 		</xmlElementSequenceAttributes>
 	</operation>
 	
+	<operation name="getLogicalUnitsInBatch" models="default">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Get,StorageArray,LogicalUnit,Filter,LDEV,ObjectLabel</xmlElementSequence>
+		<xmlElementsToClose>APIInfo</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>7.4.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Get</name>
+				<model>com.emc.storageos.hds.model.Get</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>LogicalUnit</name>
+				<model>com.emc.storageos.hds.model.LogicalUnit</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Filter</name>
+				<model>com.emc.storageos.hds.model.Filter</model>
+				<childExists>true</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>
 	
+	<operation name="getHSDsInBatch" models="default">
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Get,StorageArray,HostStorageDomain,Filter,WorldWideName,ISCSIName,Path</xmlElementSequence>
+		<xmlElementsToClose>APIInfo,WorldWideName,ISCSIName,Path</xmlElementsToClose>
+		<xmlElementSequenceAttributes>
+		    <xmlElementSequenceAttribute>
+				<name>APIInfo</name>
+				<properties>version</properties>
+				<values>7.4.1</values>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Get</name>
+				<model>com.emc.storageos.hds.model.Get</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>StorageArray</name>
+				<model>com.emc.storageos.hds.model.StorageArray</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>HostStorageDomain</name>
+				<model>com.emc.storageos.hds.model.HostStorageDomain</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>Filter</name>
+				<model>com.emc.storageos.hds.model.Filter</model>
+				<childExists>true</childExists>
+				<type>List</type>
+			</xmlElementSequenceAttribute>
+		</xmlElementSequenceAttributes>
+	</operation>	
 	
 	<operation name="getSystemsInfo" models="default">
 		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,StorageManager,Get,StorageArray</xmlElementSequence>

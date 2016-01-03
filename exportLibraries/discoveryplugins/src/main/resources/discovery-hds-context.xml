@@ -7,6 +7,7 @@
 		class="com.emc.storageos.volumecontroller.impl.plugins.HDSCommunicationInterface">
         <property name="hdsApiFactory" ref="hdsApiFactory" />
         <property name="volumeDiscoverer" ref="volumeDiscoverer" />
+        <property name="exportDiscoverer" ref="exportDiscoverer" />
         <property name="partitionManager" ref="partitionManager"/>
 	</bean>
     
@@ -17,6 +18,13 @@
 		class="com.emc.storageos.volumecontroller.impl.hds.discovery.HDSVolumeDiscoverer">
 		<property name="hdsApiFactory" ref="hdsApiFactory" />
 	</bean>
+	
+	<bean id="exportDiscoverer"
+		class="com.emc.storageos.volumecontroller.impl.hds.discovery.HDSUnManagedExportMasksDiscoverer">
+		<property name="hdsApiFactory" ref="hdsApiFactory" />
+	</bean>
+	
+	
 
 	 <bean id="hdsApiFactory" class="com.emc.storageos.hds.api.HDSApiFactory"
           init-method="init"/>

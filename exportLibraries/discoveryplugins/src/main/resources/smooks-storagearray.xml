@@ -149,6 +149,10 @@
 		<jb:value property="path" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/@path" />
 		<jb:value property="arrayGroup" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@arrayGroup" />
 		<jb:value property="raidType" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@raidType" />
+		<jb:value property="commandDeviceEx" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/@commandDeviceEx" />
+		<jb:value property="shadowImageVolumeType" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@shadowImageVolumeType" />
+		<jb:value property="quickShadowVolumeType" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@quickShadowVolumeType" />
+		<jb:value property="universalReplicatorType" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@universalReplicatorType" />
 		<jb:wiring property="ldevList" beanIdRef="ldevList" />
 	</jb:bean>
 	
@@ -165,6 +169,10 @@
 		<jb:value property="path" decoder="Integer" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@path" />
 		<jb:value property="arrayGroup" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@arrayGroup" />
 		<jb:value property="raidType" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@raidType" />
+		<jb:value property="commandDeviceEx" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/@commandDeviceEx" />
+    	<jb:value property="shadowImageVolumeType" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@shadowImageVolumeType" />
+		<jb:value property="quickShadowVolumeType" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@quickShadowVolumeType" />
+		<jb:value property="universalReplicatorType" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@universalReplicatorType" />
 		<jb:wiring property="ldevList" beanIdRef="ldevList" />
 	</jb:bean>
 	

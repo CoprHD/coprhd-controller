@@ -27,6 +27,7 @@ public interface HDSConstants {
     String JOURNALPOOL = "JOURNALPOOL";
     String ARRAY = "ARRAY";
     String VOLUME = "VOLUME";
+    String PORT = "PORT";
     String AT_THE_RATE_SYMBOL = "@";
     String PLUS_OPERATOR = "+";
     String HYPHEN_OPERATOR = "-";
@@ -75,6 +76,7 @@ public interface HDSConstants {
 
     // Input XML Generation Constants
     String CONDITION = "Condition";
+    String FILTER = "Filter";
     String STORAGEARRAY = "StorageArray";
     String OBJECTLABEL = "ObjectLabel";
     String ARRAY_GROUP = "ArrayGroup";
@@ -127,6 +129,8 @@ public interface HDSConstants {
     String RESTORE_THIN_IMAGE_PAIR_OP = "restoreThinImagePair";
     String DELETE_THIN_IMAGE_PAIR_OP = "deleteThinImagePair";
     String REFRESH_HOST_OP = "refreshHost";
+    String GET_LOGICALUNITS_IN_BATCH_OP = "getLogicalUnitsInBatch";
+    String GET_HSDS_IN_BATCH_OP = "getHSDsInBatch";
 
     String LU_FORMAT_TARGET = "LogicalUnitFormat";
     String LOGICALUNIT_LIST = "LogicalUnit_List";
@@ -149,6 +153,7 @@ public interface HDSConstants {
     String LUN_TARGET = "LUN";
     String PATH_LIST = "Path_List";
     String HOSTGROUP_LIST = "HostStorageDomain_List";
+    String FILTER_LIST = "Filter_List";
     String ADDWWNTOHOSTGROUP_LIST = "WWNForHostStorageDomain_List";
     String FREELUN = "FreeLUN";
     String SERVER_INFO = "ServerInfo";
@@ -198,4 +203,13 @@ public interface HDSConstants {
     String SATA_DRIVE_VALUE = "1";
     String SAS_DRIVE_VALUE = "4";
     String SSD_DRIVE_VALUE = "5";
+
+    String PVOL = "P-VOL";
+    String SVOL = "S-VOL";
+    String VVOL = "V-VOL";
+    String POOL = "POOL";
+    String SPVOL = "SP-VOL";
+    String JNLVOL = "JNL-VOL";
+    String MFJNL = "MF-JNL";
+
 }

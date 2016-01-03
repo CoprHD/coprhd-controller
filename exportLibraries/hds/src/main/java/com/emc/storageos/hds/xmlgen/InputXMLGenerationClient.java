@@ -57,7 +57,12 @@ public class InputXMLGenerationClient {
                         availableOperations.add(operation);
                     }
                 }
+            } else {
+                log.error("No operation list found to generate input xml.");
+                HDSException.exceptions.unableToGenerateInputXmlDueToNoOperations();
+            }
 
+            if (!availableOperations.isEmpty()) {
                 Operation operation = getModelSupportedOperation(attributeMap,
                         availableOperations);
                 if (null != operation) {
@@ -68,9 +73,11 @@ public class InputXMLGenerationClient {
                             .unableToGenerateInputXmlDueToUnSupportedModelFound();
                 }
             } else {
-                log.error("No operation list found to generate input xml.");
-                HDSException.exceptions.unableToGenerateInputXmlDueToNoOperations();
+                log.error("No matching Operation found");
+                HDSException.exceptions
+                        .unableToGenerateInputXmlDueToUnSupportedModelFound();
             }
+
         } catch (Exception ex) {
             HDSException.exceptions.unableToGenerateInputXmlForGivenRequest(ex
                     .getLocalizedMessage());

@@ -36,6 +36,10 @@ public class LogicalUnit {
     private String name;
     private String emulation;
     private String dpType;
+    private int commandDeviceEx;
+    private String shadowImageVolumeType;
+    private String quickShadowVolumeType;
+    private String universalReplicatorType;
 
     /**
      * Constructor to initialize LogicalUnit
@@ -267,6 +271,62 @@ public class LogicalUnit {
      */
     public void setDpType(String dpType) {
         this.dpType = dpType;
+    }
+
+    /**
+     * @return the commandDeviceEx
+     */
+    public int getCommandDeviceEx() {
+        return commandDeviceEx;
+    }
+
+    /**
+     * @param commandDeviceEx the commandDeviceEx to set
+     */
+    public void setCommandDeviceEx(int commandDeviceEx) {
+        this.commandDeviceEx = commandDeviceEx;
+    }
+
+    /**
+     * @return the shadowImageVolumeType
+     */
+    public String getShadowImageVolumeType() {
+        return shadowImageVolumeType;
+    }
+
+    /**
+     * @param shadowImageVolumeType the shadowImageVolumeType to set
+     */
+    public void setShadowImageVolumeType(String shadowImageVolumeType) {
+        this.shadowImageVolumeType = shadowImageVolumeType;
+    }
+
+    /**
+     * @return the quickShadowVolumeType
+     */
+    public String getQuickShadowVolumeType() {
+        return quickShadowVolumeType;
+    }
+
+    /**
+     * @param quickShadowVolumeType the quickShadowVolumeType to set
+     */
+    public void setQuickShadowVolumeType(String quickShadowVolumeType) {
+        this.quickShadowVolumeType = quickShadowVolumeType;
+    }
+
+    /**
+     * @return the universalReplicatorType
+     */
+    public String getUniversalReplicatorType() {
+        return universalReplicatorType;
+    }
+
+    /**
+     * @param universalReplicatorType the universalReplicatorType to set
+     */
+    public void setUniversalReplicatorType(String universalReplicatorType) {
+        this.universalReplicatorType = universalReplicatorType;
     }
 
     public String toXMLString() {

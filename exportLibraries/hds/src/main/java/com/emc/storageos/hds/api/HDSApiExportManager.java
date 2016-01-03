@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +21,11 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.hds.HDSException;
 import com.emc.storageos.hds.model.Add;
+import com.emc.storageos.hds.model.Condition;
 import com.emc.storageos.hds.model.Delete;
 import com.emc.storageos.hds.model.EchoCommand;
 import com.emc.storageos.hds.model.Error;
+import com.emc.storageos.hds.model.Filter;
 import com.emc.storageos.hds.model.FreeLun;
 import com.emc.storageos.hds.model.Get;
 import com.emc.storageos.hds.model.HDSHost;
@@ -479,6 +482,67 @@ public class HDSApiExportManager {
                 throw HDSException.exceptions
                         .invalidResponseFromHDS(String
                                 .format("Not able to query HostStorageDomain's due to invalid response %1$s from server",
+                                        response.getStatus()));
+            }
+        } finally {
+            if (null != responseStream) {
+                try {
+                    responseStream.close();
+                } catch (IOException e) {
+                    log.warn("IOException occurred while closing the response stream");
+                }
+            }
+        }
+        return hsdList;
+    }
+
+    /**
+     * API call to get the host groups created on array in batch fashion.
+     * 
+     * @param systemId
+     * @param type
+     * @return
+     * @throws Exception
+     */
+    public List<HostStorageDomain> getHostGroupInBatch(String systemId, String startElementNo, String batchSize)
+            throws Exception {
+        InputStream responseStream = null;
+        StorageArray storageArray = null;
+        List<HostStorageDomain> hsdList = null;
+        try {
+            Map<String, Object> attributeMap = new HashMap<String, Object>();
+            StorageArray array = new StorageArray(systemId);
+            attributeMap.put(HDSConstants.STORAGEARRAY, array);
+            Get getOp = new Get(HDSConstants.STORAGEARRAY);
+            attributeMap.put(HDSConstants.GET, getOp);
+            HostStorageDomain hsd = new HostStorageDomain();
+            attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
+            Condition condition = new Condition(startElementNo, batchSize);
+            Filter filter = new Filter();
+            filter.setCondition(condition);
+            attributeMap.put(HDSConstants.FILTER_LIST, Arrays.asList(filter));
+
+            String getAllHSDQuery = InputXMLGenerationClient.getInputXMLString(
+                    HDSConstants.GET_HSDS_IN_BATCH_OP, attributeMap,
+                    HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
+                    HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
+
+            log.info("Query to get HostGroups in batch: {}", getAllHSDQuery);
+            URI endpointURI = hdsApiClient.getBaseURI();
+            ClientResponse response = hdsApiClient.post(endpointURI, getAllHSDQuery);
+            if (HttpStatus.SC_OK == response.getStatus()) {
+                responseStream = response.getEntityInputStream();
+                JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(responseStream,
+                        HDSConstants.SMOOKS_CONFIG_FILE);
+                verifyErrorPayload(javaResult);
+                storageArray = javaResult.getBean(StorageArray.class);
+                if (null != storageArray) {
+                    hsdList = storageArray.getHsdList();
+                }
+            } else {
+                throw HDSException.exceptions
+                        .invalidResponseFromHDS(String
+                                .format("Not able to query HostGroup's in batch due to invalid response %1$s from server",
                                         response.getStatus()));
             }
         } finally {

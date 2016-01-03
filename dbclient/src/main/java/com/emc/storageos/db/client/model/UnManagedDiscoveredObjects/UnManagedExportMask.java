@@ -5,6 +5,7 @@
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
 import java.net.URI;
+import java.util.Set;
 
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
@@ -13,6 +14,7 @@ import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
@@ -35,6 +37,10 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     private StringSet _knownVolumeUris;
     private StringSet _unmanagedVolumeUris;
     private ZoneInfoMap _zoningMap;
+
+    private StringSetMap deviceDataMap;
+
+    private String exportType;
 
     @RelationIndex(cf = "UnManagedExportMaskRelationIndex", type = StorageSystem.class)
     @Name("storageSystem")
@@ -90,6 +96,15 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         this._knownInitiatorUris = knownInitiatorUris;
     }
 
+    public void addKnownInitiatorUris(final Set<String> knownInitiators) {
+        if (null == _knownInitiatorUris) {
+            setKnownInitiatorUris(new StringSet());
+        }
+        if (!knownInitiators.isEmpty()) {
+            _knownInitiatorUris.addAll(knownInitiators);
+        }
+    }
+
     @IndexByKey
     @AlternateId("KnownInitiatorNetworkIdIndex")
     @Name("knownInitiatorNetworkIds")
@@ -102,6 +117,15 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
 
     public void setKnownInitiatorNetworkIds(StringSet knownInitiatorNetworkIds) {
         this._knownInitiatorNetworkIds = knownInitiatorNetworkIds;
+    }
+
+    public void addKnownInitiatorNetworkIds(final Set<String> knownInitiatorNetworkIds) {
+        if (null == _knownInitiatorNetworkIds) {
+            setKnownInitiatorNetworkIds(new StringSet());
+        }
+        if (!knownInitiatorNetworkIds.isEmpty()) {
+            _knownInitiatorNetworkIds.addAll(knownInitiatorNetworkIds);
+        }
     }
 
     @Name("unmanagedInitiatorNetworkIds")
@@ -214,6 +238,67 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     }
 
     /**
+     * @return the deviceDataMap
+     */
+    @Name("deviceDataMap")
+    public StringSetMap getDeviceDataMap() {
+        return deviceDataMap;
+    }
+
+    /**
+     * @param deviceDataMap the deviceDataMap to set
+     */
+    public void setDeviceDataMap(StringSetMap deviceDataMap) {
+        this.deviceDataMap = deviceDataMap;
+    }
+
+    public void addDeviceDataMap(StringSetMap deviceDataMapEntries) {
+        if (this.deviceDataMap == null) {
+            setDeviceDataMap(deviceDataMapEntries);
+        } else {
+            this.deviceDataMap.putAll(deviceDataMapEntries);
+        }
+    }
+
+    public void replaceDeviceDataMapEntries(StringSetMap deviceDataMapEntries) {
+        if (null != deviceDataMapEntries
+                && !deviceDataMapEntries.isEmpty()) {
+            deviceDataMap.replace(deviceDataMapEntries);
+        }
+    }
+
+    public void removeDeviceDataMapEntry(String key) {
+        if (this.deviceDataMap != null) {
+            // This seemingly consorted logic is to avoid
+            // a concurrent update error.
+            StringSet set = deviceDataMap.get(key);
+            if (set != null && !set.isEmpty()) {
+                StringSet values = new StringSet();
+                values.addAll(set);
+                for (String value : values) {
+                    deviceDataMap.remove(key, value);
+                }
+            }
+        }
+    }
+
+    /**
+     * @return the exportType
+     */
+    @Name("exportType")
+    public String getExportType() {
+        return exportType;
+    }
+
+    /**
+     * @param exportType the exportType to set
+     */
+    public void setExportType(String exportType) {
+        this.exportType = exportType;
+        setChanged("exportType");
+    }
+
+    /**
      * Update initiator/volumes/ports
      * 
      * @param knownIniSet
@@ -255,6 +340,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         str.append(_maskingViewPath);
         str.append("; maskName: ").append(_maskName);
         str.append("; nativeId: ").append(_nativeId);
+        str.append("; exportType: ").append(exportType);
         str.append("; known initiators: ").append(this.getKnownInitiatorUris());
         str.append("; known initiator network ids: ").append(this.getKnownInitiatorNetworkIds());
         str.append("; unmanaged initiators network ids: ").append(this.getUnmanagedInitiatorNetworkIds());
@@ -262,8 +348,8 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         str.append("; unmanaged storage ports: ").append(this.getUnmanagedStoragePortNetworkIds());
         str.append("; known storage volumes: ").append(this.getKnownVolumeUris());
         str.append("; unmanaged storage volumes: ").append(this.getUnmanagedVolumeUris());
+        str.append("; deviceDataMap: ").append(this.getDeviceDataMap());
         str.append("; zoning map: ").append(this.getZoningMap());
         return str.toString();
     }
-
 }

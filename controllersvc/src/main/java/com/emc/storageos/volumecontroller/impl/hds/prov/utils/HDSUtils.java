@@ -28,6 +28,7 @@ import com.emc.storageos.hds.model.EchoCommand;
 import com.emc.storageos.hds.model.Error;
 import com.emc.storageos.hds.model.HostStorageDomain;
 import com.emc.storageos.hds.model.ISCSIName;
+import com.emc.storageos.hds.model.LogicalUnit;
 import com.emc.storageos.hds.model.Pool;
 import com.emc.storageos.hds.model.WorldWideName;
 import com.emc.storageos.plugins.AccessProfile;
@@ -423,6 +424,86 @@ public class HDSUtils {
                 return hsd.getNickname();
             }
         };
+    }
+
+    /**
+     * Checks whether the given LogicalUnit is a snapshot or not.
+     * 
+     * @param lu
+     * @return
+     */
+    public static boolean isSnapshot(LogicalUnit lu) {
+        return (HDSConstants.PVOL.equalsIgnoreCase(lu.getQuickShadowVolumeType())
+                || HDSConstants.VVOL.equalsIgnoreCase(lu.getQuickShadowVolumeType()) || HDSConstants.POOL
+                    .equalsIgnoreCase(lu.getQuickShadowVolumeType()));
+    }
+
+    /**
+     * Checks whether the given LogicalUnit is a Clone/Mirror or not.
+     * 
+     * @param lu
+     * @return
+     */
+    public static boolean isCloneOrMirror(LogicalUnit lu) {
+        return (HDSConstants.PVOL.equalsIgnoreCase(lu.getShadowImageVolumeType())
+                || HDSConstants.SVOL.equalsIgnoreCase(lu.getShadowImageVolumeType()) || HDSConstants.SPVOL
+                    .equalsIgnoreCase(lu.getShadowImageVolumeType()));
+    }
+
+    /**
+     * Checks whether the given LogicalUnit is a Remote replica or not.
+     * 
+     * @param lu
+     * @return
+     */
+    public static boolean isRemoteReplica(LogicalUnit lu) {
+        return (HDSConstants.PVOL.equalsIgnoreCase(lu.getUniversalReplicatorType())
+                || HDSConstants.VVOL.equalsIgnoreCase(lu.getUniversalReplicatorType()) ||
+                HDSConstants.SPVOL.equalsIgnoreCase(lu.getQuickShadowVolumeType())
+                || HDSConstants.JNLVOL.equalsIgnoreCase(lu.getUniversalReplicatorType()) || HDSConstants.MFJNL
+                    .equalsIgnoreCase(lu.getUniversalReplicatorType()));
+    }
+
+    /**
+     * Return the PortId from port nativeGuid.
+     * 
+     * @param nativeGuid
+     * @return
+     */
+    public static String getStoragePortNumber(String nativeGuid) {
+        Iterable<String> portNativeGuidSplitter = Splitter.on(HDSConstants.DOT_OPERATOR).limit(6).split(nativeGuid);
+        return Iterables.getLast(portNativeGuidSplitter);
+    }
+
+    /**
+     * Generates the nativeGuid format for the given portID.
+     * HDS+56752+PORT+PORT.R800.56752.140
+     * 
+     * @param storageSystem
+     * @param portID
+     * @return
+     */
+    public static String getPortNativeGuid(StorageSystem storageSystem, String portID) {
+        StringBuffer portNativeGuid = new StringBuffer(storageSystem.getSystemType().toUpperCase());
+        portNativeGuid.append(HDSConstants.PLUS_OPERATOR).append(storageSystem.getSerialNumber())
+                .append(HDSConstants.PLUS_OPERATOR).append(HDSConstants.PORT).append(HDSConstants.PLUS_OPERATOR);
+        portNativeGuid.append(getPortObjectId(storageSystem, portID));
+        return portNativeGuid.toString();
+    }
+
+    /**
+     * Return the
+     * 
+     * @param storageSystem
+     * @param portID
+     * @return
+     */
+    private static Object getPortObjectId(StorageSystem storageSystem, String portID) {
+        StringBuffer portObjectId = new StringBuffer(HDSConstants.PORT);
+        portObjectId.append(HDSConstants.DOT_OPERATOR);
+        Iterable<String> sysNativeGuidSplitter = Splitter.on(HDSConstants.DOT_OPERATOR).limit(2).split(storageSystem.getNativeGuid());
+        portObjectId.append(Iterables.getLast(sysNativeGuidSplitter)).append(HDSConstants.DOT_OPERATOR).append(portID);
+        return portObjectId.toString();
     }
 
 }

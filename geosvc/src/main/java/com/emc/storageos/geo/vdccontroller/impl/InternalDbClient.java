@@ -311,7 +311,7 @@ public class InternalDbClient extends DbClientImpl {
         try {
             Collection<String> addrs = queryHostIPAddressesMap(vdc).values();
             geoInstance.removeVdc(addrs);
-            log.info("The hosts in {} is removed", vdc.getShortId());
+            log.info("Hosts {} are removed", addrs);
         } catch (Exception e) {
             log.error("Failed to remove nodes in vdc {} e=", vdc.getShortId(), e);
         }
@@ -327,6 +327,7 @@ public class InternalDbClient extends DbClientImpl {
     public void runNodeRepairBackEnd(String reconnVdcShortId) throws Exception {
         log.info("Node repair for reconnect operation is starting at vdc {}", reconnVdcShortId);
         DbJmxClient localJmxClient = getJmxClient(LOCALHOST);
+        localJmxClient.dbMgrOps.resetRepairState();
         localJmxClient.runNodeRepairBackEnd();
     }
 
@@ -618,6 +619,7 @@ public class InternalDbClient extends DbClientImpl {
             List<String> ids = getHostIdMap(addrs);
 
             for (String id : ids) {
+                log.info("Remove node {}", id);
                 ssProxy.removeNode(id);
             }
         }

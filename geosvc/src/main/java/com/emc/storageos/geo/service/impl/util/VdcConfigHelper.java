@@ -215,8 +215,6 @@ public class VdcConfigHelper {
                 continue;
             }
             dbClient.markForDeletion(vdc);
-            deleteVdcConfigFromZk(vdc);
-            vdcConfigChanged = true;
             Map<String, String> addressesMap = dbClient.queryHostIPAddressesMap(vdc);
             if (!addressesMap.isEmpty()) {
                 // obsolete peers ip in cassandra system table
@@ -225,6 +223,8 @@ public class VdcConfigHelper {
             }
 
             dbClient.removeVdcNodesFromBlacklist(vdc);
+            deleteVdcConfigFromZk(vdc);
+            vdcConfigChanged = true;
         }
 
         if (!obsoletePeers.isEmpty()) {

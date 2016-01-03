@@ -95,6 +95,12 @@ public class DbRepairRunnable implements Runnable {
         return state != null ? state : new DbRepairJobState();
     }
 
+    public static void resetRepairState(CoordinatorClient coordinator, String keySpaceName, boolean isGeoDbsvc) {
+        log.info("Reset db repair state for {}", keySpaceName);
+        String stateKey = getStateKey(keySpaceName, isGeoDbsvc);
+        coordinator.removeRuntimeState(stateKey);
+    }
+    
     public static String getSelfLockNodeId(InterProcessLock lock) throws Exception {
         if (lock instanceof InterProcessMutex) {
             Collection<String> nodes = ((InterProcessMutex) lock).getParticipantNodes();

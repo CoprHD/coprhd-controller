@@ -541,7 +541,6 @@ public abstract class VdcOpHandler {
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
                 
                 DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(getSingleBarrierPath(Constants.SWITCHOVER_BARRIER_RESTART));
-                restartBarrier.setBarrier();
                 restartBarrier.waitOnBarrier();
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");

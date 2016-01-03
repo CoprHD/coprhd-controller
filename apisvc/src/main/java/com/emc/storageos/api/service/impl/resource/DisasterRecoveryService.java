@@ -837,7 +837,8 @@ public class DisasterRecoveryService {
             newActiveSite.setState(SiteState.STANDBY_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(newActiveSite.toConfiguration());
 
-            DistributedBarrier restartBarrier = coordinator.getDistributedBarrier(String.format("%s/%s", ZkPath.SITES, Constants.SWITCHOVER_BARRIER_RESTART));
+            DistributedBarrier restartBarrier = coordinator.getDistributedBarrier(String.format("%s/%s/%s", ZkPath.SITES,
+                    oldActiveSite.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART));
             restartBarrier.setBarrier();
             
             // trigger reconfig

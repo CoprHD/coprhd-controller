@@ -638,6 +638,12 @@ public interface CoordinatorClient {
      */
     public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty);
     
+    /**
+     * Create a Curator recipe - distributed barrier 
+     * 
+     * @param barrierPath Znode path for this barrier
+     * @return
+     */
     public DistributedBarrier getDistributedBarrier(String barrierPath);
 
     /**

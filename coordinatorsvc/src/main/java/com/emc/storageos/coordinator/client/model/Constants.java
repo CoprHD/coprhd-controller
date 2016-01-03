@@ -149,6 +149,7 @@ public interface Constants {
     
     public static final String SWITCHOVER_BARRIER_ACTIVE_SITE = "switchoverBarrierActiveSite";
     public static final String SWITCHOVER_BARRIER_STANDBY_SITE = "switchoverBarrierStandbySite";
+    public static final String SWITCHOVER_BARRIER_STANDBY_RESTART_OLD_ACTIVE = "switchoverStandbySiteRemoveBarrier";
     public static final String SWITCHOVER_BARRIER_RESTART = "switchoverRestartBarrier";
     public static final String FAILOVER_BARRIER = "failoverBarrier";
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";

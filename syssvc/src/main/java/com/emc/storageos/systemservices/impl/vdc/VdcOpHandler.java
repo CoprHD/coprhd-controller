@@ -540,7 +540,8 @@ public abstract class VdcOpHandler {
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_ACTIVE_SITE);
                 
-                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(getSingleBarrierPath(Constants.SWITCHOVER_BARRIER_RESTART));
+                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
+                        getSingleBarrierPath(site.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART));
                 restartBarrier.waitOnBarrier();
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");
@@ -549,7 +550,7 @@ public abstract class VdcOpHandler {
                 log.info("Old active site is {}", oldActiveSite);
                 
                 waitForOldActiveSiteFinishOperations(oldActiveSite.getUuid());
-                notifyOldActiveSiteReboot(site);
+                notifyOldActiveSiteReboot(oldActiveSite, site);
                 waitForOldActiveZKLeaderDown(oldActiveSite);
                 
                 flushVdcConfigToLocal();
@@ -578,17 +579,19 @@ public abstract class VdcOpHandler {
             log.info("ZK leader is gone from old active site, reconfig local ZK to select new leader");
         }
         
-        private String getSingleBarrierPath(String barrierName) {
-            return String.format("%s/%s", ZkPath.SITES, barrierName);
+        private String getSingleBarrierPath(String siteID, String barrierName) {
+            return String.format("%s/%s/%s", ZkPath.SITES, siteID, barrierName);
         }
         
-        private void notifyOldActiveSiteReboot(Site site) throws Exception {
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_STANDBY_SITE, SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
+        private void notifyOldActiveSiteReboot(Site oldActiveSite, Site site) throws Exception {
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_STANDBY_RESTART_OLD_ACTIVE,
+                    SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
             barrier.enter();
             
             if ("vipr1".equalsIgnoreCase(InetAddress.getLocalHost().getHostName())) {
                 log.info("This is virp1, notify remote old active site to reboot");
-                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(getSingleBarrierPath(Constants.SWITCHOVER_BARRIER_RESTART));
+                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
+                        getSingleBarrierPath(oldActiveSite.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART));
                 restartBarrier.removeBarrier();
             }
             
@@ -600,7 +603,7 @@ public abstract class VdcOpHandler {
             while (true) {
                 try {
                     Site oldActiveSite = drUtil.getSiteFromLocalVdc(oldActiveSiteUUID);
-                    if (oldActiveSite.getState().equals(SiteState.STANDBY_SYNCED)) { 
+                    if (!oldActiveSite.getState().equals(SiteState.STANDBY_SYNCED)) { 
                         log.info("Old active site {} is still doing switchover, wait for another 5 seconds", oldActiveSite);
                         Thread.sleep(TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS);
                     } else {

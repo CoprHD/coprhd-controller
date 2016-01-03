@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Map.Entry;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 
@@ -22,27 +23,25 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
  */
 public class ConfigurationImpl implements Configuration {
     private static final char RESERVED_CHAR = '_';
-    private static final String KIND_KEY = "_kind";
-    private static final String ID_KEY = "_id";
 
     private Properties _map = new Properties();
 
     @Override
     public String getKind() {
-        return _map.getProperty(KIND_KEY);
+        return _map.getProperty(Constants.KIND_KEY);
     }
 
     public void setKind(String kind) {
-        _map.setProperty(KIND_KEY, kind);
+        _map.setProperty(Constants.KIND_KEY, kind);
     }
 
     @Override
     public String getId() {
-        return _map.getProperty(ID_KEY);
+        return _map.getProperty(Constants.ID_KEY);
     }
 
     public void setId(String id) {
-        _map.setProperty(ID_KEY, id);
+        _map.setProperty(Constants.ID_KEY, id);
     }
 
     @Override
@@ -57,7 +56,7 @@ public class ConfigurationImpl implements Configuration {
         for (Entry<Object, Object> e : _map.entrySet()) {
             String k = (String) e.getKey();
             String v = (String) e.getValue();
-            if (!customOnly || (customOnly && !k.equals(KIND_KEY) && !k.equals(ID_KEY))) {
+            if (!customOnly || (customOnly && !k.equals(Constants.KIND_KEY) && !k.equals(Constants.ID_KEY))) {
                 toReturn.put(k, v);
             }
         }

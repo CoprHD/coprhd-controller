@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,11 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
+import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -288,6 +294,60 @@ public class BackupOps {
             releaseLock(backupLock);
             releaseLock(recoveryLock);
         }
+    }
+
+    public void addRestoreListener(NodeListener listener) throws Exception {
+        coordinatorClient.addNodeListener(listener);
+    }
+
+    public void removeRestoreListener(NodeListener listener) throws Exception {
+        coordinatorClient.removeNodeListener(listener);
+    }
+    /**
+     * Query restore status from ZK
+    */
+    public BackupRestoreStatus queryBackupUploadStatus() {
+        log.info("lbymmm");
+        Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
+                BackupConstants.BACKUP_RESTORE_STATUS, Constants.GLOBAL_ID);
+        log.info("lbymmm1 cfg={}", cfg);
+        Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
+
+        // remove unneeded keys
+        allItems.remove(Constants.KIND_KEY);
+        allItems.remove(Constants.ID_KEY);
+
+        log.info("lbymmm2");
+        BackupRestoreStatus restoreStatus = new BackupRestoreStatus(allItems);
+        log.info("lbym Restore status is: {}", restoreStatus);
+        return restoreStatus;
+    }
+
+    /**
+     * Persist upload status to ZK
+     */
+    public void persistBackupRestoreStatus(BackupRestoreStatus status) {
+        log.info("lbymm persist backup restore status");
+        Map<String, String> allItems = (status != null) ? status.getAllItems(): null;
+
+        log.info("lbymm allItems={}", allItems);
+        if (allItems == null || allItems.size() == 0){
+            return;
+        }
+
+        log.info("lbymm11");
+        ConfigurationImpl config = new ConfigurationImpl();
+        log.info("lbymm12");
+        config.setKind(BackupConstants.BACKUP_RESTORE_STATUS);
+        log.info("lbymm13");
+        config.setId(Constants.GLOBAL_ID);
+
+        log.info("lbym Setting restore status: {}", status);
+        for (Map.Entry<String, String> entry : allItems.entrySet()) {
+            config.setConfig(entry.getKey(), entry.getValue());
+        }
+        coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
+        log.info("Persist backup restore status to zk successfully");
     }
 
     class CreateBackupCallable extends BackupCallable<Void> {

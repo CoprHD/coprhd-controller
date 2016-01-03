@@ -85,6 +85,7 @@ public interface BackupConstants {
     String CONTENT_LENGTH_HEADER = "Content-Length:";
     int FILE_DOES_NOT_EXIST = 19;
 
-    //constants for download
+    //constants for restore
     public static final int DOWNLOAD_BUFFER_SIZE=KILOBYTE*4; //4k
+    public static final String BACKUP_RESTORE_STATUS = "RestoreStatus";
 }

@@ -26,6 +26,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
+import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -368,10 +369,17 @@ public class BackupService {
     public Response downloadBackupFile(String backupName) {
         log.info("lbyu backupName={}", backupName);
 
-        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, null);
+        //false = do not notify other nodes
+        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps, false);
+        downloadTask.registerListener();
+
+        log.info("lbym");
         downloadThread = new Thread(downloadTask);
+        log.info("lbym2");
         downloadThread.setDaemon(true);
+        log.info("lbym3");
         downloadThread.setName("backupDownloadThread");
+        log.info("lbym4");
         downloadThread.start();
 
         return Response.ok().build();
@@ -390,16 +398,23 @@ public class BackupService {
     public Response restoreBackup(@QueryParam("file") String backupName ) {
         log.info("The backup file {} to restore", backupName);
 
+        /*
         List<Service> sysSvcs = backupOps.getAllSysSvc();
         for (Service svc : sysSvcs) {
             log.info("lby0 syssvc id={} nodeId={} nodeName={} endpoint={} name={}",
                     new Object[] {svc.getId(), svc.getNodeId(), svc.getNodeName(), svc.getEndpoint(), svc.getName()});
         }
+        */
 
-        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, sysSvcs);
+        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps, true); //true = notify other nodes
+        downloadTask.registerListener();
+        log.info("lbym0");
         downloadThread = new Thread(downloadTask);
+        log.info("lbym4");
         downloadThread.setDaemon(true);
+        log.info("lbym5");
         downloadThread.setName("backupDownloadThread");
+        log.info("lbym6");
         downloadThread.start();
 
         log.info("done");

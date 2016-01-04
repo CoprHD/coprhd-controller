@@ -917,13 +917,15 @@ system.about.license=Licenses
 db.healthdashboard.title=Database Housekeeping Status
 
 # Backup page
-Backup.list.title=Backups
+Backup.list.title=Data Backup
 backup.name=Name
 backup.size=Size
 backup.creationtime=Creation Time
-backup.uploadstatus=Upload Status
-backup.upload=Upload
+backup.actionstatus=Status
+backup.action=Action
 backup.create.description=Enter the information needed to create backup
+backup.tab.local=Local Backups
+bakcup.tab.remote=Remote Backups
 BackupForm.title=Add Backup
 backupForm.name=Backup Name
 backupForm.force=Force Creation

@@ -25,11 +25,11 @@ public class BackupDataTable extends DataTable {
 		addColumn("creationtime").setCssClass("time").setRenderFunction(
 				"render.localDate");
 		addColumn("size");
-		addColumn("uploadstatus").setSearchable(false).setRenderFunction(
+		addColumn("actionstatus").setSearchable(false).setRenderFunction(
 				"render.uploadProgress");
-		addColumn("upload").setSearchable(false).setRenderFunction(
+		addColumn("action").setSearchable(false).setRenderFunction(
 				"render.uploadBtn");
-		sortAllExcept("upload", "uploadstatus");
+		sortAllExcept("action", "actionstatus");
 		setDefaultSort("name", "asc");
 		setRowCallback("createRowLink");
 	}

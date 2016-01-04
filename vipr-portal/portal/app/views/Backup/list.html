@@ -1,12 +1,25 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.adminDashboard', 'nav.backup'] /}
 
-#{DataTable.header titleKey:'Backup.list.title'/}
-#{DataTable.crudTable id:'backup', 
-                      dataTable:dataTable, 
-                      deleteConfirm:messages.get('backup.deleteConfirm')}
-  
-#{/DataTable.crudTable}
+<div id="backups">
+    <div class="content">
+        <div class="section-header">
+            <h1>&{'Backup.list.title'}</h1>
+        </div>
+
+        <ul class="nav nav-tabs">
+            <li id="localBackupTab" class="active"><a href="@{list()}">&{'backup.tab.local'}</a></li>
+            <li id="remoteBackupTab"><a href="@{list()}">&{'bakcup.tab.remote'}</a></li>
+        </ul>
+
+    #{DataTable.crudTable id:'backup',
+    dataTable:dataTable,
+    deleteConfirm:messages.get('backup.deleteConfirm')}
+
+    #{/DataTable.crudTable}
+
+    </div>
+</div>
 
 <script>
 render.uploadBtn = function(o, val) {
@@ -55,7 +68,7 @@ render.uploadProgressMessage = function(o, val) {
         'DONE':    Messages.get("renderFunctions.backupupload.status.done"),
         'CANCELLED':    Messages.get("renderFunctions.backupupload.status.cancel")
     };
-    
+
     var errors = {
            'FTP_NOT_CONFIGURED':     Messages.get("renderFunctions.backupupload.error.notconf"),
            'BACKUP_NOT_EXIST':   Messages.get("renderFunctions.backupupload.error.notexist"),
@@ -80,7 +93,7 @@ render.uploadProgress = function(o, val) {
     table.backup.dataTable.afterCreate(function(table) {
         var dataTable = table.getDataTable();
         var itemsJson = #{jsAction @itemsJson(':ids')/};
-        watchUploadState(dataTable, itemsJson, ['uploadstatus','error','upload']);
+        watchUploadState(dataTable, itemsJson, ['actionstatus','error','action']);
     });
 
 

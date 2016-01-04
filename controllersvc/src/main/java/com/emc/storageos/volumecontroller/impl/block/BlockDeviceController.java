@@ -27,7 +27,6 @@ import javax.xml.bind.DataBindingException;
 
 import com.emc.storageos.plugins.common.Constants;
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -216,7 +215,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public static final String RESTORE_VOLUME_STEP = "restoreVolume";
     private static final String RESTORE_VOLUME_METHOD_NAME = "restoreVolume";
-    
+
     private static final String ADD_VOLUMES_TO_CG_KEY = "ADD";
     private static final String REMOVE_VOLUMES_FROM_CG_KEY = "REMOVE";
 
@@ -643,15 +642,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         List<VolumeDescriptor> addDescriptors = VolumeDescriptor.filterByType(volumesDescriptorsToAdd,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
                 new VolumeDescriptor.Type[] {});
-        
+
         // Filter any BLOCK_DATAs that need to be removed from CG.
         List<VolumeDescriptor> removeDescriptors = VolumeDescriptor.filterByType(volumesDescriptorsToRemove,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
                 new VolumeDescriptor.Type[] {});
-        
+
         // We need at least one volume to check, so either get it from
         // the add descriptors or the delete descriptors.
-        VolumeDescriptor firstVolume = null;        
+        VolumeDescriptor firstVolume = null;
         if (!addDescriptors.isEmpty()) {
             firstVolume = addDescriptors.get(0);
         } else if (!removeDescriptors.isEmpty()) {
@@ -661,12 +660,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // No volumes to be added or removed, just return.
             return waitFor;
         }
-        
+
         if (NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI())) {
             _log.warn(String.format("Volume (%s) has a null CG reference, skip step.", firstVolume.getVolumeURI()));
             return waitFor;
         }
-                
+
         // Check for SRDF
         if (firstVolume.getType() != null) {
             if (VolumeDescriptor.Type.SRDF_SOURCE.toString().equalsIgnoreCase(firstVolume.getType().toString())
@@ -676,22 +675,21 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 return waitFor;
             }
         }
-       
+
         // We want the map to contain both the volumes to ADD and REMOVE segregated by device and also by CG.
         // The map will look like the below:
         // Device URI
         // --> CG URI
         // ----> ADD -> List of Volumes to Add from this CG for this device
         // ----> REMOVE -> List of Volumes to Remove from this CG for this device
-        Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap 
-            = createDeviceToCGMapFromDescriptors(addDescriptors, removeDescriptors);
+        Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap = createDeviceToCGMapFromDescriptors(addDescriptors, removeDescriptors);
 
         // Distill the steps down to Device -> CG -> ADD and REMOVE volumes
-        for (Map.Entry<URI,  Map<URI, Map<String, List<URI>>>> deviceEntry : deviceToCGMap.entrySet()) {
+        for (Map.Entry<URI, Map<URI, Map<String, List<URI>>>> deviceEntry : deviceToCGMap.entrySet()) {
             URI deviceURI = deviceEntry.getKey();
             Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceEntry.getValue();
             for (Map.Entry<URI, Map<String, List<URI>>> cgEntry : volumesToUpdateByCG.entrySet()) {
-                URI consistencyGroupURI = cgEntry.getKey();                       
+                URI consistencyGroupURI = cgEntry.getKey();
                 List<URI> volumesToAdd = cgEntry.getValue().get(ADD_VOLUMES_TO_CG_KEY);
                 List<URI> volumesToRemove = cgEntry.getValue().get(REMOVE_VOLUMES_FROM_CG_KEY);
 
@@ -706,7 +704,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             Joiner.on("\t").join(volumesToAdd),
                             consistencyGroupURI,
                             deviceURI));
-                }                
+                }
                 if (volumesToRemove != null) {
                     _log.info(String.format("Step created for removing volumes [%s] from CG [%s] on device [%s]",
                             Joiner.on("\t").join(volumesToRemove),
@@ -734,10 +732,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @return populated map
      */
     private Map<URI, Map<URI, Map<String, List<URI>>>> createDeviceToCGMapFromDescriptors(List<VolumeDescriptor> addDescriptors,
-            List<VolumeDescriptor> removeDescriptors) {        
-        Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap 
-            = new HashMap<URI, Map<URI, Map<String, List<URI>>>>();       
-        
+            List<VolumeDescriptor> removeDescriptors) {
+        Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap = new HashMap<URI, Map<URI, Map<String, List<URI>>>>();
+
         // Volumes to add
         for (VolumeDescriptor descr : addDescriptors) {
             // Segregated by device
@@ -746,48 +743,48 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (volumesToUpdateByCG == null) {
                 volumesToUpdateByCG = new HashMap<URI, Map<String, List<URI>>>();
                 deviceToCGMap.put(deviceURI, volumesToUpdateByCG);
-            }                        
-            // Segregated by CG
-            URI consistencyGroupURI = descr.getConsistencyGroupURI();  
-            Map<String, List<URI>> volumesToUpdate = volumesToUpdateByCG.get(consistencyGroupURI);
-            if (volumesToUpdate == null) {
-                volumesToUpdate = new HashMap<String, List<URI>>();
-                volumesToUpdateByCG.put(consistencyGroupURI, volumesToUpdate);
-            }              
-            // Segregated by volumes to ADD
-            List<URI> volumesToAdd = volumesToUpdate.get(ADD_VOLUMES_TO_CG_KEY);
-            if (volumesToAdd == null) {
-                volumesToAdd = new ArrayList<URI>();
-                volumesToUpdate.put(ADD_VOLUMES_TO_CG_KEY, volumesToAdd);
             }
-            volumesToAdd.add(descr.getVolumeURI());            
-        }
-        
-        // Volumes to remove
-        for (VolumeDescriptor descr : removeDescriptors) {                                                
-            // Segregated by device
-            URI deviceURI = descr.getDeviceURI();
-            Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceToCGMap.get(deviceURI);
-            if (volumesToUpdateByCG == null) {
-                volumesToUpdateByCG = new HashMap<URI, Map<String, List<URI>>>();
-                deviceToCGMap.put(deviceURI, volumesToUpdateByCG);
-            }                        
             // Segregated by CG
             URI consistencyGroupURI = descr.getConsistencyGroupURI();
             Map<String, List<URI>> volumesToUpdate = volumesToUpdateByCG.get(consistencyGroupURI);
             if (volumesToUpdate == null) {
                 volumesToUpdate = new HashMap<String, List<URI>>();
                 volumesToUpdateByCG.put(consistencyGroupURI, volumesToUpdate);
-            }              
+            }
+            // Segregated by volumes to ADD
+            List<URI> volumesToAdd = volumesToUpdate.get(ADD_VOLUMES_TO_CG_KEY);
+            if (volumesToAdd == null) {
+                volumesToAdd = new ArrayList<URI>();
+                volumesToUpdate.put(ADD_VOLUMES_TO_CG_KEY, volumesToAdd);
+            }
+            volumesToAdd.add(descr.getVolumeURI());
+        }
+
+        // Volumes to remove
+        for (VolumeDescriptor descr : removeDescriptors) {
+            // Segregated by device
+            URI deviceURI = descr.getDeviceURI();
+            Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceToCGMap.get(deviceURI);
+            if (volumesToUpdateByCG == null) {
+                volumesToUpdateByCG = new HashMap<URI, Map<String, List<URI>>>();
+                deviceToCGMap.put(deviceURI, volumesToUpdateByCG);
+            }
+            // Segregated by CG
+            URI consistencyGroupURI = descr.getConsistencyGroupURI();
+            Map<String, List<URI>> volumesToUpdate = volumesToUpdateByCG.get(consistencyGroupURI);
+            if (volumesToUpdate == null) {
+                volumesToUpdate = new HashMap<String, List<URI>>();
+                volumesToUpdateByCG.put(consistencyGroupURI, volumesToUpdate);
+            }
             // Segregated by volumes to REMOVE
             List<URI> volumesToRemove = volumesToUpdate.get(REMOVE_VOLUMES_FROM_CG_KEY);
             if (volumesToRemove == null) {
                 volumesToRemove = new ArrayList<URI>();
                 volumesToUpdate.put(REMOVE_VOLUMES_FROM_CG_KEY, volumesToRemove);
             }
-            volumesToRemove.add(descr.getVolumeURI());            
+            volumesToRemove.add(descr.getVolumeURI());
         }
-        
+
         return deviceToCGMap;
     }
 
@@ -1648,12 +1645,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }, null);
         // Check to see if there are any volumes flagged to not be fully deleted.
         // Any flagged volumes will be removed from the list of volumes to delete.
-        List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(volumes);                                
-        if (doNotDeleteDescriptors != null 
+        List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(volumes);
+        if (doNotDeleteDescriptors != null
                 && !doNotDeleteDescriptors.isEmpty()) {
             // If there are volumes we do not want fully deleted, remove
             // those volumes here.
-            volumes.removeAll(doNotDeleteDescriptors);          
+            volumes.removeAll(doNotDeleteDescriptors);
         }
 
         // If there are no volumes, just return
@@ -1764,8 +1761,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             WorkflowStepCompleter.stepFailed(opId, DeviceControllerException.exceptions.unexpectedCondition(e.getMessage()));
         }
     }
-    
-    
+
     /**
      * Add Steps to perform untag operations on underlying array for the volumes passed in.
      * 
@@ -1780,21 +1776,21 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // The the list of Volumes that the BlockDeviceController needs to process.
         List<VolumeDescriptor> untagVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] {
-                        VolumeDescriptor.Type.BLOCK_DATA }, null);
-        
+                VolumeDescriptor.Type.BLOCK_DATA }, null);
+
         // If there are no volumes, just return
         if (untagVolumeDescriptors.isEmpty()) {
             return waitFor;
         }
-        
+
         Map<URI, List<VolumeDescriptor>> untagVolumeDeviceMap = VolumeDescriptor.getDeviceMap(untagVolumeDescriptors);
-        
+
         // Add a step to perform an untag operation for all volumes in each device.
         for (URI deviceURI : untagVolumeDeviceMap.keySet()) {
             if (deviceURI != null) {
                 untagVolumeDescriptors = untagVolumeDeviceMap.get(deviceURI);
                 List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(untagVolumeDescriptors);
-    
+
                 workflow.createStep(UNTAG_VOLUME_STEP_GROUP,
                         String.format("Untagging volumes:%n%s", getVolumesMsg(_dbClient, volumeURIs)),
                         waitFor, deviceURI, getDeviceType(deviceURI),
@@ -1803,14 +1799,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMethodNullMethod(), null);
                 _log.info(String.format("Adding step to untag volumes (%s)", Joiner.on(",").join(volumeURIs)));
             }
-        }        
-        
+        }
+
         return UNTAG_VOLUME_STEP_GROUP;
     }
-    
+
     /**
      * Return a Workflow.Method for untagVolumes.
-     *
+     * 
      * @param systemURI The system to perform the action on
      * @param volumeURIs The volumes to perform the action on
      * @return the new WF
@@ -1818,7 +1814,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private Workflow.Method untagVolumesMethod(URI systemURI, List<URI> volumeURIs) {
         return new Workflow.Method("untagVolumes", systemURI, volumeURIs);
     }
-    
+
     /**
      * Performs an untag operation on all volumes.
      * 
@@ -1842,14 +1838,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     "untagVolume end - Array:%s", arrayName));
             while (volumeURIsIter.hasNext()) {
                 URI volumeURI = volumeURIsIter.next();
-                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);                
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
                 if (volume != null) {
-                    entryLogMsgBuilder.append(String.format("%nUntag operation: Volume: [%s](%s)", 
+                    entryLogMsgBuilder.append(String.format("%nUntag operation: Volume: [%s](%s)",
                             volume.getLabel(), volumeURI.toString()));
-                    exitLogMsgBuilder.append(String.format("%nUntag operation: Volume: [%s](%s)", 
-                            volume.getLabel(), volumeURI.toString()));                
-                    if (!volume.getInactive()) {                    
-                        volumes.add(volume);                    
+                    exitLogMsgBuilder.append(String.format("%nUntag operation: Volume: [%s](%s)",
+                            volume.getLabel(), volumeURI.toString()));
+                    if (!volume.getInactive()) {
+                        volumes.add(volume);
                     } else {
                         // Nothing to do for an inactive volume
                         continue;
@@ -1868,7 +1864,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         volumes, completer);
             }
             doSuccessTask(Volume.class, volumeURIs, opId);
-            WorkflowStepCompleter.stepSucceded(opId);            
+            WorkflowStepCompleter.stepSucceded(opId);
             _log.info(exitLogMsgBuilder.toString());
         } catch (InternalException e) {
             doFailTask(Volume.class, volumeURIs, opId, e);
@@ -2159,14 +2155,24 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
 
             if (system.checkIfVmax3()) {
+                _log.info("Creating workflow for restore VMAX3 snapshot {}", blockSnapshot.getId());
+
                 // To restore the source from a linked target volume for VMAX3 SnapVX, we must
                 // do the following:
                 //
-                // 1. Create a temporary snapshot session of the linked target volume.
-                // 2. Link the source volume of the BlockSnapshot to the temporary snapshot session in copy mode.
-                // 3. Wait for the data from the session to be copied to the source.
-                // 4. Unlink the source from the temporary session.
-                // 5. Delete the temporary session.
+                // 1. Terminate any stale restore sessions on the source.
+                // 2. Create a temporary snapshot session of the linked target volume.
+                // 3. Link the source volume of the BlockSnapshot to the temporary snapshot session in copy mode.
+                // 4. Wait for the data from the session to be copied to the source.
+                // 5. Unlink the source from the temporary session.
+                // 6. Delete the temporary session.
+
+                // Create a workflow step to terminate stale restore sessions on the source.
+                waitFor = workflow.createStep(BLOCK_VOLUME_RESTORE_GROUP,
+                        String.format("Terminating VMAX restore session from %s to %s", blockSnapshot.getId(), sourceVolume.getId()),
+                        waitFor, system.getId(), system.getSystemType(), BlockDeviceController.class,
+                        terminateRestoreSessionsMethod(system.getId(), sourceVolume.getId(), blockSnapshot.getId()),
+                        rollbackMethodNullMethod(), null);
 
                 // Create a BlockSnapshot to represent the passed source volume when it is
                 // it is linked to the snapshot session created in the previous step.

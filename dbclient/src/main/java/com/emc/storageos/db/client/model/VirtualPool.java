@@ -111,6 +111,9 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Boolean autoCrossConnectExport = false;
     // Max retention for a Virtual Pool
     private Integer maxRetention;
+    //Minimum number of data centers in this virtual pool
+    //This is required only for object virtual pools
+    private Integer minDataCenters;
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
@@ -1332,4 +1335,15 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         this.maxRetention = (null==maxRetention || maxRetention == 0) ? 0 : maxRetention;
         setChanged("maxRetention");
     }
+    
+    @Name("minDataCenters")
+    public Integer getMinDataCenters() {
+        return (minDataCenters==null) ? 0 : minDataCenters;
+    }
+
+    public void setMinDataCenters(Integer minDataCenters) {
+        this.minDataCenters = (null==minDataCenters || minDataCenters == 0) ? 0 : minDataCenters;
+        setChanged("minDataCenters");
+    }
+    
 }

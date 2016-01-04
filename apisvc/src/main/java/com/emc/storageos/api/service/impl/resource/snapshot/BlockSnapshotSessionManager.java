@@ -612,7 +612,7 @@ public class BlockSnapshotSessionManager {
      * 
      * @return TaskResourceRep representing the snapshot session task.
      */
-    public TaskResourceRep deleteSnapshotSession(URI snapSessionURI) {
+    public TaskList deleteSnapshotSession(URI snapSessionURI) {
         s_logger.info("START delete snapshot session {}", snapSessionURI);
 
         // Get the snapshot session.
@@ -640,7 +640,8 @@ public class BlockSnapshotSessionManager {
         op.setResourceType(ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION);
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, op);
         snapSession.getOpStatus().put(taskId, op);
-        TaskResourceRep response = toTask(snapSession, taskId);
+        TaskList response = new TaskList(); 
+        response.getTaskList().add(toTask(snapSession, taskId));
 
         // Delete the snapshot session.
         try {
@@ -653,7 +654,7 @@ public class BlockSnapshotSessionManager {
             } else {
                 sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
             }
-            cleanupFailure(Arrays.asList(response), new ArrayList<DataObject>(), errorMsg, taskId, sc);
+            cleanupFailure(response.getTaskList(), new ArrayList<DataObject>(), errorMsg, taskId, sc);
             throw e;
         }
 

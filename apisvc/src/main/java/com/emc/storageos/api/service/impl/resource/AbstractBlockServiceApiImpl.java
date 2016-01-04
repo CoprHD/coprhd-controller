@@ -369,7 +369,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 BlockObject bo = BlockObject.fetch(_dbClient, volumeURI);
                 if (bo instanceof Volume) {
                     Volume volume = (Volume) bo;
-                    if (volume.isVolumeExported(_dbClient)) {
+                    if (!volume.checkForRp() && volume.isVolumeExported(_dbClient)) {
+                        // Check to see if the volume is exported to a host in the non-RP case.
+                        throw APIException.badRequests.inventoryDeleteNotSupportedonExportedVolumes(volume.getNativeGuid());
+                    } else if (volume.checkForRp() && volume.isExportedNonRP(_dbClient)) {
+                        // Check to see if the volume is exported to anything other than RP.
                         throw APIException.badRequests.inventoryDeleteNotSupportedonExportedVolumes(volume.getNativeGuid());
                     }
                 } else if (bo instanceof BlockSnapshot) {
@@ -397,7 +401,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 Operation op = volume.getOpStatus().get(task);
                 op.ready("Volume succesfully deleted from ViPR");
                 volume.getOpStatus().updateTaskStatus(task, op);
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
             }
         } else {
             BlockOrchestrationController controller = getController(

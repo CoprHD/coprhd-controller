@@ -10,8 +10,10 @@ import static com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionM
 import static com.emc.storageos.svcs.errorhandling.resources.ServiceErrorFactory.toXml;
 
 import java.io.IOException;
+import java.net.URI;
 import java.security.Principal;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.servlet.Filter;
@@ -32,7 +34,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.keystone.KeystoneConstants;
+import com.emc.storageos.keystone.restapi.KeystoneApiClient;
+import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
+import com.emc.storageos.keystone.restapi.model.response.AuthTokenResponse;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -46,9 +57,13 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
 
     @Autowired
     private TokenValidator _tokenValidator;
+    @Autowired
+    private DbClient _dbClient;
 
     @Autowired
     protected StorageOSUserRepository _userRepo;
+    @Autowired
+    private KeystoneRestClientFactory _keystoneFactory;
 
     @Context
     protected HttpHeaders headers;
@@ -56,6 +71,10 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
     @Override
     public void destroy() {
         // nothing to do
+    }
+    
+    public KeystoneRestClientFactory getKeystoneFactory() {
+        return _keystoneFactory;
     }
 
     /**
@@ -149,6 +168,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
         final HttpServletRequest req = (HttpServletRequest) servletRequest;
         String authToken = req.getHeader(RequestProcessingUtils.AUTH_TOKEN_HEADER);
         String proxyToken = req.getHeader(RequestProcessingUtils.AUTH_PROXY_TOKEN_HEADER);
+        String keystoneUserAuthToken = req.getHeader(RequestProcessingUtils.KEYSTONE_AUTH_TOKEN_HEADER);
         if (authToken != null) {
             if (proxyLookup) {
                 if (proxyToken != null) {
@@ -162,6 +182,10 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
         if (proxyLookup) {
             _log.error("No token found for proxy token lookup.  Returning null.");
             return null;
+        }
+        if (null != keystoneUserAuthToken) {
+            _log.info("The request is for keystone - with token - " + keystoneUserAuthToken);
+            return createStorageOSUserUsingKeystone(keystoneUserAuthToken);
         }
 
         // in cookies
@@ -182,11 +206,125 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
         return null;
     }
 
+    private StorageOSUser createStorageOSUserUsingKeystone(String keystoneUserAuthToken)
+    {
+        _log.debug("START - createStorageOSUserUsingKeystone ");
+        StorageOSUser osUser = null;
+        // Get the required AuthenticationProvider
+        List<URI> authProvidersUri = _dbClient.queryByType(AuthnProvider.class, true);
+        List<AuthnProvider> allProviders = _dbClient.queryObject(AuthnProvider.class, authProvidersUri);
+        AuthnProvider keystoneAuthProvider = null;
+        for (AuthnProvider provider : allProviders) {
+            if (AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(provider.getMode())) {
+                keystoneAuthProvider = provider;
+                break; // We are interested in keystone provider only
+            }
+
+        }
+
+        if (null != keystoneAuthProvider) {
+            // From the AuthProvider, get the, managedDn, password, server URL and the admin token
+            Set<String> serverUris = keystoneAuthProvider.getServerUrls();
+            URI baseUri = null;
+            for (String uri : serverUris) {
+                baseUri = URI.create(uri);
+                // Single URI will be present
+                break;
+            }
+
+            String managerDn = keystoneAuthProvider.getManagerDN();
+            String password = keystoneAuthProvider.getManagerPassword();
+            Set<String> domains = keystoneAuthProvider.getDomains();
+            String adminToken = keystoneAuthProvider.getKeys().get(KeystoneConstants.AUTH_TOKEN);
+            String userName = managerDn.split(",")[0].split("=")[1];
+            String tenantName = managerDn.split(",")[1].split("=")[1];
+
+            // Invoke keystone API to validate the token
+            KeystoneApiClient apiClient = (KeystoneApiClient) _keystoneFactory.getRESTClient(baseUri, userName, password);
+            apiClient.setTenantName(tenantName);
+            apiClient.setAuthToken(adminToken);
+
+            // From the validation result, read the user role and tenantId
+            AuthTokenResponse validToken = apiClient.validateUserToken(keystoneUserAuthToken);
+            String openstackTenantId = validToken.getAccess().getToken().getTenant().getId();
+
+            String tempDomain = "";
+            for (String domain : domains) {
+                tempDomain = domain;
+                userName = userName + "@" + domain;
+                break;// There will be a single domain
+            }
+
+            // convert the openstack tenant id to vipr tenant id
+            String viprTenantId = getViPRTenantId(openstackTenantId, tempDomain);
+            if (null == viprTenantId) {
+                _log.warn("There is no mapping for the OpenStack Tenant in ViPR");
+                throw APIException.notFound.openstackTenantNotFound(openstackTenantId);
+            }
+
+            _log.debug("Creating OSuser with userName:" + userName + " tenantId:" + viprTenantId);
+
+            osUser = new StorageOSUser(userName, viprTenantId);
+            // TODO - remove this once the keystone api is fixed to is_admin=1|0 based on the roles in OpenStack
+            osUser.addRole(Role.TENANT_ADMIN.toString());
+
+            // Map the role to ViPR role
+            int role_num = validToken.getAccess().getMetadata().getIs_admin();
+            if (role_num == 1) {
+                osUser.addRole(Role.TENANT_ADMIN.toString());
+            }
+        }
+
+        _log.debug("END - createStorageOSUserUsingKeystone ");
+
+        return osUser;
+    }
+
     /**
+     * Convert openstack tenant id to ViPR tenant id
+     * 
+     * @param openstackTenantId
+     * @return
+     */
+    private String getViPRTenantId(String openstackTenantId, String domain) {
+        String tenantId = null;
+        List<URI> tenantOrgUris = _dbClient.queryByType(TenantOrg.class, true);
+        List<TenantOrg> tenantOrgList = _dbClient.queryObject(TenantOrg.class, tenantOrgUris);
+
+        boolean found = false;
+
+        for (TenantOrg singleTenant : tenantOrgList) {
+            StringSetMap userMappings = singleTenant.getUserMappings();
+            if (null != userMappings) {
+                StringSet mappingSet = userMappings.get(domain);
+                if (null != mappingSet) {
+                    for (String str : mappingSet) {
+                        if (str.contains(openstackTenantId)) {
+                            tenantId = singleTenant.getId().toString();
+                            found = true;
+                            break;// found the required tenant
+
+                        }
+                    }
+                }
+
+            }
+
+            if (found)
+            {
+                break;// exit outer for loop
+            }
+
+        }
+        return tenantId;
+    }
+
+    /*
      * Convenience function to return if the request has a proxy token header
      * specified or not
      * 
      * @param request
+     * 
      * @return true if the proxy token header is present
      */
     private boolean containsProxyToken(ServletRequest request) {

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2015 EMC Corporation
+# Copyright 2016 EMC Corporation
 # All Rights Reserved
 #
 
@@ -50,6 +50,7 @@ function createCache
 deb file:${ISO_MOUNT}/ubuntu/ wily main restricted
 deb http://us.archive.ubuntu.com/ubuntu/ wily main restricted universe
 deb http://download.virtualbox.org/virtualbox/debian wily contrib
+deb http://pkg.jenkins-ci.org/debian binary/
 EOF
 
   LANG=C
@@ -111,6 +112,7 @@ deb file:/tmp/iso/${ISO_MOUNT}/ubuntu/ wily main restricted
 deb file:/tmp/archives /
 #deb http://us.archive.ubuntu.com/ubuntu/ wily main restricted universe
 #deb http://download.virtualbox.org/virtualbox/debian wily contrib
+#deb http://pkg.jenkins-ci.org/debian binary/
 EOF
 
   cat > ${DIR_MOUNT}/etc/apt/preferences <<EOF
@@ -126,6 +128,10 @@ Pin-Priority: 998
 Package: *
 Pin: origin "download.virtualbox.org"
 Pin-Priority: 997
+
+Package: *
+Pin: origin "pkg.jenkins-ci.org"
+Pin-Priority: 996
 EOF
 
   chroot ${DIR_MOUNT} apt-get update
@@ -177,6 +183,13 @@ function installPackages
 
   # INSTALL PACKAGES
   chroot ${DIR_MOUNT} apt-get install -y --force-yes ${PACKAGES_LIST}
+  if [ -f ${DIR_MOUNT}/usr/share/virtualbox/VBoxGuestAdditions.iso ]; then
+    chroot ${DIR_MOUNT} mkdir -p /workspace/VBoxGuestAdditions
+    chroot ${DIR_MOUNT} mount -o loop,ro /usr/share/virtualbox/VBoxGuestAdditions.iso /workspace/VBoxGuestAdditions
+    chroot ${DIR_MOUNT} /workspace/VBoxGuestAdditions/VBoxLinuxAdditions.run
+    chroot ${DIR_MOUNT} umount /workspace/VBoxGuestAdditions
+    chroot ${DIR_MOUNT} rm -fr /workspace/VBoxGuestAdditions
+  fi
   FOUND=1
   while [ "x$FOUND" = "x1" ]; do
     FOUND=0
@@ -243,6 +256,90 @@ EOF
   sed -i -e "s/loopback ${LOOP_DISK1_NAME} \/${LOOP_DISK0_NAME}/insmod part_msdos/g" ${DIR_MOUNT}/boot/grub/grub.cfg
   sed -i -e "s/\/dev\/${LOOP_DISK0_NAME}/${UUID}/g" ${DIR_MOUNT}/boot/grub/grub.cfg
   rm ${DIR_MOUNT}/boot/grub/device.map
+
+  # END MOUNT IMAGE
+  umount -R ${DIR_MOUNT}
+  losetup -d ${LOOP_DISK1}
+  losetup -d ${LOOP_DISK0}
+  # END MOUNT IMAGE
+}
+
+function installVagrant
+{
+  DISK_QEMU=$2
+  SECTOR_INIT=$3
+  SECTOR_SIZE=$4
+  DIR_MOUNT=$5
+
+  # START MOUNT IMAGE
+  LOOP_DISK0=$( losetup -f )
+  losetup ${LOOP_DISK0} ${DISK_QEMU}
+  LOOP_DISK1=$( losetup -f )
+  losetup -o $((${SECTOR_SIZE}*${SECTOR_INIT})) ${LOOP_DISK1} ${LOOP_DISK0}
+  mount ${LOOP_DISK1} ${DIR_MOUNT}
+  # START MOUNT IMAGE
+
+  chroot ${DIR_MOUNT} groupadd vagrant
+  chroot ${DIR_MOUNT} useradd -m -g vagrant -s /bin/bash -d /home/vagrant vagrant
+  chroot ${DIR_MOUNT} mkdir -p /home/vagrant/.ssh
+  echo "127.0.0.1 localhost.localdomain" >> ${DIR_MOUNT}/etc/hosts
+  echo "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key" > ${DIR_MOUNT}/home/vagrant/.ssh/authorized_keys
+  echo "vagrant ALL=(ALL) NOPASSWD: ALL" >> ${DIR_MOUNT}/etc/sudoers
+  chroot ${DIR_MOUNT} chown -R vagrant:vagrant /home/vagrant
+
+  # END MOUNT IMAGE
+  umount -R ${DIR_MOUNT}
+  losetup -d ${LOOP_DISK1}
+  losetup -d ${LOOP_DISK0}
+  # END MOUNT IMAGE
+}
+
+function installContainer
+{
+  DISK_QEMU=$2
+  SECTOR_INIT=$3
+  SECTOR_SIZE=$4
+  DIR_MOUNT=$5
+  TBZ=$6
+
+  # START MOUNT IMAGE
+  LOOP_DISK0=$( losetup -f )
+  losetup ${LOOP_DISK0} ${DISK_QEMU}
+  LOOP_DISK1=$( losetup -f )
+  losetup -o $((${SECTOR_SIZE}*${SECTOR_INIT})) ${LOOP_DISK1} ${LOOP_DISK0}
+  mount ${LOOP_DISK1} ${DIR_MOUNT}
+  # START MOUNT IMAGE
+
+  echo '' > ${DIR_MOUNT}/etc/fstab
+  echo 'console"' >> ${DIR_MOUNT}/etc/securetty
+  rm -fr ${DIR_MOUNT}/run/*
+  [ ! -x /usr/bin/pigz ] || tar -c -f ${TBZ} -C ${DIR_MOUNT} -I pigz .
+  [ -x /usr/bin/pigz ] || tar -c -f ${TBZ} -C ${DIR_MOUNT} -J .
+
+  # END MOUNT IMAGE
+  umount -R ${DIR_MOUNT}
+  losetup -d ${LOOP_DISK1}
+  losetup -d ${LOOP_DISK0}
+  # END MOUNT IMAGE
+}
+
+function installOverlay
+{
+  DISK_QEMU=$2
+  SECTOR_INIT=$3
+  SECTOR_SIZE=$4
+  DIR_MOUNT=$5
+  WORKSPACE=$6
+
+  # START MOUNT IMAGE
+  LOOP_DISK0=$( losetup -f )
+  losetup ${LOOP_DISK0} ${DISK_QEMU}
+  LOOP_DISK1=$( losetup -f )
+  losetup -o $((${SECTOR_SIZE}*${SECTOR_INIT})) ${LOOP_DISK1} ${LOOP_DISK0}
+  mount ${LOOP_DISK1} ${DIR_MOUNT}
+  # START MOUNT IMAGE
+
+  [ ! -d ${WORKSPACE}/templates/root ] || cp -pr ${WORKSPACE}/templates/root/* ${DIR_MOUNT}/
 
   # END MOUNT IMAGE
   umount -R ${DIR_MOUNT}

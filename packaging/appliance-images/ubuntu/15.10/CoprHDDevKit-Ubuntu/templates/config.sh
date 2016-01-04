@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2015 EMC Corporation
+# Copyright 2016 EMC Corporation
 # All Rights Reserved
 #
 
@@ -66,6 +66,7 @@ parseOVF()
   ipv4netmask0=\$( more /tmp/cdromOvfEnv/ovf-env.xml | grep network.ipv4netmask0.SetupVM | grep -oP 'oe:value="\K[^"]*' )
   vip=\$( more /tmp/cdromOvfEnv/ovf-env.xml | grep network.vip.SetupVM | grep -oP 'oe:value="\K[^"]*' )
   interface=\$( ip addr | grep BROADCAST,MULTICAST | head -n 1 | tail -n 1 | cut -d ':' -f 2 | tr -d ' ' )
+  interface_secondary=\$( ip addr | grep BROADCAST,MULTICAST | head -n 2 | tail -n 1 | cut -d ':' -f 2 | tr -d ' ' )
 
   if [ ! -z "\$hostname" ]; then
     hostname "\$hostname"
@@ -116,6 +117,11 @@ parseOVF()
     fi
     if [ ! -z "\$ipv4netmask0" ]; then
       echo "  dns-nameservers \$ipv4dns" >> /etc/network/interfaces
+    fi
+    if [ ! -z "\$interface_secondary" ] && [ "\$interface" != "\$interface_secondary" ]; then
+      echo "# The \$interface_secondary network interface" >> /etc/network/interfaces
+      echo "auto \$interface_secondary" >> /etc/network/interfaces
+      echo "iface \$interface_secondary inet dhcp" >> /etc/network/interfaces
     fi
   fi
 }

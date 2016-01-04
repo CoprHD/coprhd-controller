@@ -700,7 +700,7 @@ public abstract class VdcOpHandler {
             Site localSite = drUtil.getLocalSite();
             
             reconfigVdc();
-            coordinator.reconfigZKToWritable(true);
+            coordinator.reconfigZKToWritable(false);
             
             
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILBACK_BARRIER, FAILBACK_BARRIER_TIMEOUT, drUtil.getLocalSite().getNodeCount(), false);

@@ -409,7 +409,6 @@ public enum OperationTypeEnum {
     ACTIVE_SWITCHOVER("ACTIVE BECOME STANDBY AFTER SWITCHOVER", "", "operation that marks switchover on old active site complete"),
     STANDBY_SWITCHOVER("STANDBY BECOME ACTIVE AFTER SWITCHOVER", "", "operation that marks switchover on new active site complete"),
     FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failling over to a standby site"),
-    ACTIVE_FAILOVER("ACTIVE BECOME STANDBY AFTER FAILOVER", "", "operation that marks failover on old active site complete"),
     STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information");
 

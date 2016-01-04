@@ -918,7 +918,6 @@ public class DisasterRecoveryService {
             Site oldActiveSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
             oldActiveSite.setState(SiteState.ACTIVE_FAILING_OVER);
             coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
-            recordDrOperationStatus(oldActiveSite);
 
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());

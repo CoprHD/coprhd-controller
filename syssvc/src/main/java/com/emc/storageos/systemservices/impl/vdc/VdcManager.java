@@ -506,9 +506,6 @@ public class VdcManager extends AbstractManager {
             case STANDBY_SWITCHING_OVER:
                 operationType = OperationTypeEnum.STANDBY_SWITCHOVER;
                 break;
-            case ACTIVE_FAILING_OVER:
-                operationType = OperationTypeEnum.ACTIVE_FAILOVER;
-                break;
             case STANDBY_FAILING_OVER:
                 operationType = OperationTypeEnum.STANDBY_FAILOVER;
                 break;

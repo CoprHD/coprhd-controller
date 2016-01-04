@@ -37,8 +37,8 @@
         <property name="sysSvcName" value="${syssvc.name}"/>
         <property name="sysSvcVersion" value="${syssvc.version}"/>
         <property name="nodeCount" ref="nodeCount"/>
-        <property name="vdcShortId" value="${vdc_myid}"/>
-        <property name="vdcEndpoint" value="${network_vip_service}"/>
+        <property name="vdcShortId" value="vdc1"/>
+        <property name="vdcEndpoint" value="localhost"/>
         <property name="inetAddessLookupMap" ref="inetAddessLookupMap"/>
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>

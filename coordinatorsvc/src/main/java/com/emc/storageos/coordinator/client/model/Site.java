@@ -290,4 +290,16 @@ public class Site {
         builder.append("]");
         return builder.toString();
     }
+
+    /**
+     * @return human-readable abstract of this site, only contains site name/vip/uuid
+     * The String returned by this method should only be used in display situation (e.g. log or audit log)
+     */
+    public String toBriefString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Site [name=").append(name);
+        builder.append(", vip=").append(vip);
+        builder.append(", uuid=").append(uuid).append("]");
+        return builder.toString();
+    }
 }

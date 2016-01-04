@@ -14,11 +14,13 @@ public class BackupRestoreStatus {
     private static final String KEY_BACKUP_SIZE = "backupSize";
     private static final String KEY_DOWNLOAD_SIZE = "downloadSize";
     private static final String KEY_STATUS = "status";
+    private static final String KEY_NODE_COMPLETED= "nodeCompleted";
 
     private String backupName;
     private long backupSize = 0;
     private long downloadSize = 0;
     private Status status = Status.NOT_STARTED;
+    private int nodeCompleted = 0;
 
     @XmlElement(name = "backup_name")
     public String getBackupName() {
@@ -36,6 +38,14 @@ public class BackupRestoreStatus {
 
     public void setStatus(Status status) {
         this.status = status;
+    }
+
+    public int getNodeCompleted() {
+        return nodeCompleted;
+    }
+
+    public void increaseNodeCompleted() {
+        nodeCompleted++;
     }
 
     /**
@@ -77,6 +87,7 @@ public class BackupRestoreStatus {
         map.put(KEY_BACKUP_SIZE, Long.toString(backupSize));
         map.put(KEY_DOWNLOAD_SIZE, Long.toString(downloadSize));
         map.put(KEY_STATUS, status.name());
+        map.put(KEY_NODE_COMPLETED, Integer.toString(nodeCompleted));
 
         return map;
     }
@@ -104,6 +115,9 @@ public class BackupRestoreStatus {
                     break;
                 case KEY_STATUS:
                     status = Status.valueOf(value);
+                    break;
+                case KEY_NODE_COMPLETED:
+                    nodeCompleted = Integer.parseInt(value);
                     break;
             }
         }

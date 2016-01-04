@@ -114,6 +114,18 @@ public class DownloadExecutor implements  Runnable {
         backupOps.persistBackupRestoreStatus(restoreStatus);
     }
 
+    public void updateDownloadSize(long size) {
+        log.info("lbymm increase download increase ={}", size);
+        restoreStatus = backupOps.queryBackupUploadStatus(remoteBackupFileName);
+        log.info("lbymm1");
+
+        long newSize = restoreStatus.getDownoadSize() + size;
+        restoreStatus.setDownoadSize(newSize);
+        log.info("lbyn new status={}", restoreStatus);
+        backupOps.persistBackupRestoreStatus(restoreStatus);
+
+    }
+
     @Override
     public void run() {
         try {
@@ -170,7 +182,7 @@ public class DownloadExecutor implements  Runnable {
         }
 
         // fix the download size
-        setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOAD_SUCCESS, 0, downloadSize);
+        postDownload(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS);
 
         try {
             zin.closeEntry();
@@ -178,6 +190,25 @@ public class DownloadExecutor implements  Runnable {
         }catch (IOException e) {
             log.info("lbyu exception will close ignored e=", e);
         }
+    }
+
+    private void postDownload(BackupRestoreStatus.Status status) {
+        restoreStatus = backupOps.queryBackupUploadStatus(remoteBackupFileName);
+        log.info("lbynn restoreStatus={}", restoreStatus);
+        restoreStatus.increaseNodeCompleted();
+        int completedNodes = restoreStatus.getNodeCompleted();
+        log.info("lbynn restoreStatus={} completedNodes={}", restoreStatus, completedNodes);
+
+        if (restoreStatus.getStatus() == BackupRestoreStatus.Status.DOWNLOADING) {
+            long nodeNumber = backupOps.getHosts().size();
+            log.info("lbynn nodeNumber={}", nodeNumber);
+            if (completedNodes == nodeNumber) {
+                restoreStatus.setStatus(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS);
+            }
+        }
+
+        log.info("lbynn after restoreStatus={}", restoreStatus);
+        backupOps.persistBackupRestoreStatus(restoreStatus);
     }
 
     private boolean belongsTo(String filename, String hostname) {
@@ -203,6 +234,7 @@ public class DownloadExecutor implements  Runnable {
             while ((length = zin.read(buf)) > 0) {
                 out.write(buf, 0, length);
                 downloadSize += length;
+                updateDownloadSize(length);
             }
         } catch(IOException e) {
             log.error("lbyn Failed to download {} from server", backupFileName);

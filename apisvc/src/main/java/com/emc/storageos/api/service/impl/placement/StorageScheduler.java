@@ -455,6 +455,11 @@ public class StorageScheduler implements Scheduler {
             Set<String> systemTypes = arrayInfo.get(AttributeMatcher.Attributes.system_type.name());
             if (null != systemTypes && !systemTypes.isEmpty()) {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.system_type.name(), systemTypes);
+                
+                //put quota value for ecs storage
+                if (systemTypes.contains("ecs") && capabilities.getQuota() != null) {
+                    provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.quota.name(), capabilities.getQuota());
+                }
             }
         }
 

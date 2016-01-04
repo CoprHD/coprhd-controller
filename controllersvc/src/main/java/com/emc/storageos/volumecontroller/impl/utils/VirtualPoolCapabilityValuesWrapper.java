@@ -36,6 +36,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String ADD_JOURNAL_CAPACITY = "add_journal_capacity";
     public static final String RP_COPY_TYPE = "rp_copy_type";
     public static final String RP_MAX_SNAPS = "rp_max_snaps";
+    public static final String QUOTA = "quota";
     
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -148,6 +149,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
         if (capabilities.contains(META_VOLUME_TYPE)) {
             _vpoolCapabilities.put(META_VOLUME_TYPE, capabilities.getMetaVolumeType());
+        }
+        
+        if (capabilities.contains(QUOTA)) {
+            _vpoolCapabilities.put(QUOTA, capabilities.getQuota());
         }
 
     }
@@ -272,6 +277,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public String getMetaVolumeType() {
         Object value = _vpoolCapabilities.get(META_VOLUME_TYPE);
+        return value != null ? (String) value : null;
+    }
+    
+    public String getQuota() {
+        Object value = _vpoolCapabilities.get(QUOTA);
         return value != null ? (String) value : null;
     }
 }

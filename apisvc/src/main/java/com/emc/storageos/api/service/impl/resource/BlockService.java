@@ -4888,7 +4888,7 @@ public class BlockService extends TaskResourceService {
         validateMirrorCount(sourceVolume, sourceVPool, count);
 
         // validate VMAX3 source volume for active snap sessions.
-        if (storageSystem.checkIfVmax3()) {
+        if (storageSystem != null && storageSystem.checkIfVmax3()) {
             BlockServiceUtils.validateVMAX3ActiveSnapSessionsExists(sourceVolume.getId(), _dbClient, MIRRORS);
         }
 

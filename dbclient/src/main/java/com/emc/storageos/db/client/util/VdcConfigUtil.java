@@ -101,6 +101,13 @@ public class VdcConfigUtil {
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
         String activeSiteId = drUtil.getActiveSiteId(vdcShortId);
         
+        Site localSite = drUtil.getLocalSite();
+        if (localSite.getState().equals(SiteState.ACTIVE_DEGRADED)) {
+            sites.clear();
+            sites.add(localSite);
+            activeSiteId = localSite.getUuid();
+        }
+        
         Collections.sort(sites, new Comparator<Site>() {
             @Override
             public int compare(Site a, Site b) {

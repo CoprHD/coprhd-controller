@@ -38,6 +38,16 @@ public enum SiteState {
             return true;
         }
     },
+    
+    /**
+     * Active site is back after failover operation is completed successfully.
+     */
+    ACTIVE_DEGRADED {
+        @Override
+        public boolean isDROperationOngoing() {
+            return false;
+        }
+    },
 
     /**
      *  Standby site. Adding site

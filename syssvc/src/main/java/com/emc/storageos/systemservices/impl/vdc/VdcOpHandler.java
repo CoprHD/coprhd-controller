@@ -687,6 +687,20 @@ public abstract class VdcOpHandler {
         }
     }
     
+    public static class DrFailbackDegradeHandler extends VdcOpHandler {
+
+        @Override
+        public boolean isRebootNeeded() {
+            return true;
+        }
+
+        @Override
+        public void execute() throws Exception {
+            reconfigVdc();
+        }
+        
+    }
+    
     public CoordinatorClientExt getCoordinator() {
         return coordinator;
     }

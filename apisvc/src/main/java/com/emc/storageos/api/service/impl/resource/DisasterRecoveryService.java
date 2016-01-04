@@ -68,6 +68,7 @@ import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
+import com.emc.storageos.model.dr.SiteNetwork;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -403,6 +404,30 @@ public class DisasterRecoveryService {
             return isActiveSite;
         } catch (Exception e) {
             log.error("Can't get site is Active or Standby");
+            throw APIException.badRequests.siteIdNotFound();
+        }
+    }
+
+    /**
+     * Get Networking info for a standby site
+     *
+     * @param uuid site UUID
+     * @return standby site network test representation
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    @Path("/{uuid}/network")
+    public SiteNetwork checkStandbyNetwork(@PathParam("uuid") String uuid) {
+        log.info("Begin to check site network");
+        SiteNetwork siteNetwork = new SiteNetwork();
+
+        try {
+            siteNetwork.setSitePing(drUtil.checkPing(uuid));
+            siteNetwork.setSiteBandwidth(drUtil.checkBandwidth(uuid));
+            return siteNetwork;
+        } catch (Exception e) {
+            log.error("Can't get site network info");
             throw APIException.badRequests.siteIdNotFound();
         }
     }

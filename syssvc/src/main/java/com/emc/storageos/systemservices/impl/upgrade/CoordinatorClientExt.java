@@ -15,7 +15,10 @@ import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
 import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO_LOCK;
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterInfo;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -34,6 +37,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
@@ -110,6 +114,7 @@ public class CoordinatorClientExt {
     private int _nodeCount = 0;
     private DrUtil drUtil;
     private volatile boolean stopCoordinatorSvcMonitor; // default to false
+    private volatile boolean stopNetworkMonitor;
     
     private DbServiceStatusChecker statusChecker = null;
 
@@ -1494,6 +1499,40 @@ public class CoordinatorClientExt {
                 _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);
             } 
         }
+    };
+
+    public void stopNetworkMonitor() {
+        stopNetworkMonitor = true;
+    }
+
+    /**
+     * Monitor local coordinatorsvc on standby site
+     */
+    private Runnable networkMonitor = new Runnable(){
+
+        public void run() {
+            if (stopNetworkMonitor) {
+                return;
+            }
+
+            try {
+                checkPing();
+                checkBandwidth();
+            } catch (Exception e) {
+                //try catch exception to make sure next scheduled run can be launched.
+                _log.error("Error occurs when monitor standby network", e);
+            }
+        }
+
+        private int checkPing() {
+            return 1337;
+        }
+
+
+        private int checkBandwidth() {
+            return 1337;
+        }
+
     };
 
     /**

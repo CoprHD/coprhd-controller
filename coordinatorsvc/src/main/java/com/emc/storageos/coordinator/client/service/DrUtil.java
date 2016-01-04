@@ -71,6 +71,28 @@ public class DrUtil {
     }
 
     /**
+     * Check site ping
+     *
+     * @return ping in milliseconds
+     */
+    public int checkPing(String siteUuid) {
+        Site site = getSiteFromLocalVdc(siteUuid);
+        String host = site.getVip();
+        return 1337;
+    }
+
+    /**
+     * Check site bandwidth
+     *
+     * @return ping in mb/s
+     */
+    public int checkBandwidth(String siteUuid) {
+        Site site = getSiteFromLocalVdc(siteUuid);
+        String host = site.getVip();
+        return 1337;
+    }
+
+    /**
      * The original purpose of this method is to allow QE engineers to tune DR operation timeout value by inserting timeout settings
      * into ZK via zkCli.sh so they could easily manipulate negative test cases (e.g. generate a add-standby failure in 1 minute)
      * @param key

@@ -481,11 +481,10 @@ public class ECSApi {
      * @return List of allowed or disallowd rep groups or none
      * @throws ECSException
      */
-    public List<String> getNamespaceDetails(String namespaceId, ECS_RepGroup_Type rgType) throws ECSException {
+    public ECSNamespaceRepGroup getNamespaceDetails(String namespaceId) throws ECSException {
         _log.debug("ECSApi:getNamespaceDetails enter");
         ClientResponse clientResp = null;
-        rgType = ECS_RepGroup_Type.NONE;
-        List<String> repGroup = new ArrayList<String>();
+        ECSNamespaceRepGroup nsRepGroup = new ECSNamespaceRepGroup();
         try {
             String responseString = null;
             final String path = MessageFormat.format(URI_GET_NAMESPACE_DETAILS, namespaceId);
@@ -502,25 +501,25 @@ public class ECSApi {
                     NamespaceDetailsCommandResult.class);
 
             if (ecsNsResult.getAllowed_vpools_list().size() != 0) {
-                rgType = ECS_RepGroup_Type.ALLOWED;
                 for (int index = 0; index < ecsNsResult.getAllowed_vpools_list().size(); index++) {
-                    //Its possible to have replication group list null or blank
+                    //Its possible to have replication group list blank
                     if (ecsNsResult.getAllowed_vpools_list().get(index) != null &&
                             !ecsNsResult.getAllowed_vpools_list().get(index).isEmpty())
-                        repGroup.add(ecsNsResult.getAllowed_vpools_list().get(index));
+                        nsRepGroup.setReplicationGroups(ecsNsResult.getAllowed_vpools_list().get(index));
                 }
-                return repGroup;
+                nsRepGroup.setRgType(ECS_RepGroup_Type.ALLOWED);
+                return nsRepGroup;
             }
 
             if (ecsNsResult.getDisallowed_vpools_list().size() != 0) {
-                rgType = ECS_RepGroup_Type.DISALLOWED;
                 for (int index = 0; index < ecsNsResult.getDisallowed_vpools_list().size(); index++) {
-                    //Its possible to have replication group list null or blank
+                    //Its possible to have replication group list blank
                     if (ecsNsResult.getDisallowed_vpools_list().get(index) != null &&
                             !ecsNsResult.getDisallowed_vpools_list().get(index).isEmpty())
-                        repGroup.add(ecsNsResult.getDisallowed_vpools_list().get(index));
+                        nsRepGroup.setReplicationGroups(ecsNsResult.getDisallowed_vpools_list().get(index));
                 }
-                return repGroup;
+                nsRepGroup.setRgType(ECS_RepGroup_Type.DISALLOWED);
+                return nsRepGroup;
             }
 
             return null;

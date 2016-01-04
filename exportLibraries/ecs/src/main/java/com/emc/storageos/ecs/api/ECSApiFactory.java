@@ -157,11 +157,7 @@ public class ECSApiFactory {
     }
 
 
-    public static void main(String[] s) {
-        System.out.println("starting ecs main==");
-    }
-    
-    /*
+
       public static void main(String[] args) {
           
       System.out.println("starting ecs main");
@@ -179,8 +175,8 @@ public class ECSApiFactory {
           System.out.println("NOT Sys admin");
       
       //ecsApi.getNamespaces();
-      ECS_RepGroup_Type rgType = ECS_RepGroup_Type.NONE;
-      ecsApi.getNamespaceDetails("provider", rgType);
+      ECSNamespaceRepGroup ns = ecsApi.getNamespaceDetails("provider");
+      int dummy = 0;
       
       //ecsApi.getStoragePools();
       //ecsApi.getStoragePort("10.32.4.98");
@@ -191,6 +187,5 @@ public class ECSApiFactory {
       //"4", "99", "55", "testlogin");
       //ecsApi.deleteBucket("esc_myproj_bucket1");
       }
-     */
 
 }

@@ -2425,7 +2425,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException migrationCantBeCancelled(String migrationName, String status);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cancelMigrationFailed(String migrationName, String reason);
 
@@ -2572,17 +2572,17 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cgReferencesInvalidProtectionSystem(final URI cgUri, final URI protectionSystemUri);
-	
-	@DeclareServiceCode(ServiceCode.API_AUTH_KEYSTONE_PROVIDER_CREATE_NOT_ALLOWED)
+
+    @DeclareServiceCode(ServiceCode.API_AUTH_KEYSTONE_PROVIDER_CREATE_NOT_ALLOWED)
     public BadRequestException keystoneProviderAlreadyPresent();
-    
-	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException managerDNMustcontainUserNameAndTenantName();
-    
-	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException managerDNMustcontainEqualTo();
-    
-	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException managerDNInvalid();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2661,7 +2661,7 @@ public interface BadRequestExceptions {
     public BadRequestException canNotCanceldbConsistencyCheck();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException vpoolChangeInvalidProtectionSystemOrCg(final String invalidVolumeIds);
+    public BadRequestException vpoolChangeInvalidProtectionSystemOrCg(final String invalidVolumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vpoolChangeNotAllowedInvalidVolumeList();

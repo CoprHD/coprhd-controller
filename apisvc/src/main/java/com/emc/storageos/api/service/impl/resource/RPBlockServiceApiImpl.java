@@ -1906,29 +1906,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // Validate all volumes to ensure they have a valid protection system and
         // consistency group associated to them.
         List<URI> volumeURIs = new ArrayList<URI>();
-        List<URI> invalidVolumes = new ArrayList<URI>();
-
-        for (Volume volume : volumes) {
-            // Collect a list of volume URIs to be used for the controller call.
-            volumeURIs.add(volume.getId());
-
-            // Collect a list of invalid volumes.
-            if (NullColumnValueGetter.isNullURI(volume.getProtectionController()) ||
-                    NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-                invalidVolumes.add(volume.getId());
-            }
-        }
-
-        // Either the protection system or CG is invalid so we must fail.
-        if (!invalidVolumes.isEmpty()) {
-            throw APIException.badRequests.vpoolChangeInvalidProtectionSystemOrCg(invalidVolumes.toString());
-        }
 
         Volume firstVol = volumes.get(0);
 
         // Verify that all volumes belong to the same consistency group.
         URI cgURI = firstVol.getConsistencyGroup();
+
         for (Volume volume : volumes) {
+            // Collect a list of volume URIs to be used for the controller call.
+            volumeURIs.add(volume.getId());
+
+            if (NullColumnValueGetter.isNullURI(volume.getProtectionController()) ||
+                    NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                // Either the protection system or CG is invalid so we must fail.
+                throw APIException.badRequests.vpoolChangeInvalidProtectionSystemOrCg(volume.getId().toString());
+            }
+
             if (!cgURI.equals(volume.getConsistencyGroup())) {
                 // Not all volumes belong to the same consistency group.
                 throw APIException.badRequests.vpoolChangeNotAllowedCGsMustBeTheSame();

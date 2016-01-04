@@ -1,3 +1,8 @@
+%{
+LOCAL = models.datatable.BackupDataTable.Type.LOCAL
+REMOTE = models.datatable.BackupDataTable.Type.REMOTE
+}%
+
 #{extends 'main.html' /}
 #{set navSelected: ['nav.adminDashboard', 'nav.backup'] /}
 
@@ -8,8 +13,10 @@
         </div>
 
         <ul class="nav nav-tabs">
-            <li id="localBackupTab" class="active"><a href="@{list()}">&{'backup.tab.local'}</a></li>
-            <li id="remoteBackupTab"><a href="@{list()}">&{'bakcup.tab.remote'}</a></li>
+            <li id="localBackupTab" #{if LOCAL.equals(type)}class="active"#{/if}>
+                <a href="@{list(LOCAL)}">&{'backup.tab.local'}</a></li>
+            <li id="remoteBackupTab" #{if REMOTE.equals(type)}class="active"#{/if}>
+                <a href="@{list(REMOTE)}">&{'backup.tab.remote'}</a></li>
         </ul>
 
     #{DataTable.crudTable id:'backup',

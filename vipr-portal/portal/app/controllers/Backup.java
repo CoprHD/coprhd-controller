@@ -9,6 +9,7 @@ import static controllers.Common.flashException;
 import java.util.List;
 
 import models.datatable.BackupDataTable;
+import models.datatable.BackupDataTable.Type;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -43,8 +44,13 @@ public class Backup extends Controller {
     protected static final String DELETED_SUCCESS = "backup.delete.success";
     protected static final String DELETED_ERROR = "backup.delete.error";
 
-    public static void list() {
-        BackupDataTable dataTable = new BackupDataTable();
+    public static void list(Type type) {
+        if (type == null) {
+            type = Type.LOCAL;
+        }
+        
+        BackupDataTable dataTable = new BackupDataTable(type);
+        renderArgs.put("type", type);
         render(dataTable);
     }
 
@@ -73,7 +79,7 @@ public class Backup extends Controller {
     }
 
     public static void cancel() {
-        list();
+        list(Type.LOCAL);
     }
 
     @FlashException(keep = true, referrer = { "create" })
@@ -96,7 +102,7 @@ public class Backup extends Controller {
     }
 
     public static void edit(String id) {
-        list();
+        list(Type.LOCAL);
     }
 
     @FlashException(value = "list")
@@ -111,13 +117,13 @@ public class Backup extends Controller {
                 flash.success(MessagesUtils.get("backups.deleted"));
             }
         }
-        list();
+        list(Type.LOCAL);
     }
 
     @FlashException(value = "list")
     public static void upload(String id) {
             BackupUtils.uploadBackup(id);
-            list();
+            list(Type.LOCAL);
     }
     
     public static void getUploadStatus(String id) {
@@ -131,7 +137,7 @@ public class Backup extends Controller {
         if (StringUtils.isNotBlank(referrer)) {
             redirect(referrer);
         } else {
-            list();
+            list(Type.LOCAL);
         }
     }
 

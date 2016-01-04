@@ -18,21 +18,35 @@ import com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 import com.google.common.collect.Lists;
 
 public class BackupDataTable extends DataTable {
-	private static final int MINIMUM_PROGRESS = 10;
+    private static final int MINIMUM_PROGRESS = 10;
 
-	public BackupDataTable() {
-		addColumn("name");
-		addColumn("creationtime").setCssClass("time").setRenderFunction(
-				"render.localDate");
-		addColumn("size");
-		addColumn("actionstatus").setSearchable(false).setRenderFunction(
-				"render.uploadProgress");
-		addColumn("action").setSearchable(false).setRenderFunction(
-				"render.uploadBtn");
-		sortAllExcept("action", "actionstatus");
-		setDefaultSort("name", "asc");
-		setRowCallback("createRowLink");
-	}
+    public enum Type {
+        LOCAL, REMOTE
+    }
+
+    public BackupDataTable() {
+        setupTable(Type.LOCAL);
+    }
+
+    public BackupDataTable(Type type) {
+        setupTable(type);
+    }
+
+    private void setupTable(Type type) {
+        addColumn("name");
+        addColumn("creationtime").setCssClass("time").setRenderFunction(
+                "render.localDate");
+        if (type == Type.LOCAL) {
+            addColumn("size");
+        }
+        addColumn("actionstatus").setSearchable(false).setRenderFunction(
+                "render.uploadProgress");
+        addColumn("action").setSearchable(false).setRenderFunction(
+                "render.uploadBtn");
+        sortAllExcept("action", "actionstatus");
+        setDefaultSort("name", "asc");
+        setRowCallback("createRowLink");
+    }
 
 	public static List<Backup> fetch() {
 		List<Backup> results = Lists.newArrayList();

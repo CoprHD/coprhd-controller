@@ -1346,4 +1346,15 @@ public class ControllerUtils {
         s_logger.info("totalVolumeCount {} volume size {}", totalVolumeCount, volumes.size());
         return totalVolumeCount == volumes.size();
     }
+
+    /**
+     * Check back end cg created on array or not for the given volume
+     * 
+     * @param volume
+     * @return
+     */
+    public static boolean checkCGCreatedOnBackEndArray(Volume volume) {
+
+        return (volume != null && StringUtils.isNotBlank(volume.getReplicationGroupInstance()));
+    }
 }

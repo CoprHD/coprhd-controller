@@ -1,6 +1,7 @@
 %{
   titleKey = 'ApplicationForm.' + (applicationForm?.id ? 'edit' : 'create') + '.title';
   descriptionKey = "application.create.description"
+  image = '/public/img/assets/Application.png'
 }%
 
 #{extends 'main.html' /}
@@ -55,15 +56,6 @@ $(document).ready(function() {
         }%
       #{Form.inputTextControlGroup field:field/}
     #{/field}
-    
-    #{field 'applicationForm.roles'}
-    	%{
-			field.options = roleOptions
-    		field.required = !editMode
-    		field.disabled = editMode
-    	}%
-    #{Form.selectManyControlGroup field:field /}
-  #{/field}
 
     #{Form.saveCancel cancelHref:@cancel() /}
   #{/form}

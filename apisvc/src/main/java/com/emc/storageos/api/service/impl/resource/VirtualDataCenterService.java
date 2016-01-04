@@ -266,11 +266,11 @@ public class VirtualDataCenterService extends TaskResourceService {
                     "key and certification", "update");
         }
 
-        if (StringUtils.isNotEmpty(param.getName())) {
+        VirtualDataCenter vdc = queryResource(id);
+
+        if (StringUtils.isNotEmpty(param.getName()) && !param.getName().equals(vdc.getLabel())) {
             checkForDuplicateName(param.getName(), VirtualDataCenter.class);
         }
-
-        VirtualDataCenter vdc = queryResource(id);
 
         /*
          * If vdc is in failed state:

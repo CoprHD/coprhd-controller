@@ -1528,7 +1528,7 @@ public class DisasterRecoveryService {
             log.info("This node is selected failback detector");
 
             service = Executors.newScheduledThreadPool(1);
-            service.scheduleAtFixedRate(failbackDetectMonitor, 0, 60 * 1000, TimeUnit.SECONDS);
+            service.scheduleAtFixedRate(failbackDetectMonitor, 0, 60, TimeUnit.SECONDS);
         }
 
         @Override

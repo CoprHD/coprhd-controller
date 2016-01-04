@@ -1411,7 +1411,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // already taken by a pre-existing volume.
                             Integer requestedHLU = volumesWithNoMask.get(initiatorId).get(boURI);
                             StringMap existingVolumesInMask = mask.getExistingVolumes();
-                            if (existingVolumesInMask != null &&
+                            if (existingVolumesInMask != null && requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED &&
                                     !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
@@ -1451,8 +1451,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 // 3. The volume is NON-FAST
                                 if (!partialMasks.contains(mask.getId()) || partialMasksContainSameSG(partialMasks, masks, mask)
                                         || volumePolicyName == null) {
-                                    // Exact fit case, no FAST policy
-                                    if (volumePolicyName == null && policy.localTierPolicy == null) {
+                                    // Exact fit case, no FAST policy (or for case of VMAX3, the MV is associated to the Optimized SLO)
+                                    if (volumePolicyName == null && (policy.localTierPolicy == null ||
+                                            (isVMAX3 && policy.localTierPolicy.contains(Constants.OPTIMIZED_SLO)))) {
                                         _log.info("Pre-existing Mask Matched rule 1B: volume and mask do not have FAST policy");
                                         match = true;
                                     }

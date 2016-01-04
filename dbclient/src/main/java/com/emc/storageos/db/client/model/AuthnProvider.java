@@ -5,6 +5,7 @@
 
 package com.emc.storageos.db.client.model;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 /**
  * Authentication provider configuration data object
  */
@@ -30,12 +31,13 @@ public class AuthnProvider extends DataObject {
     private long _lastModified;
     private String _searchScope;
     private Boolean _validateCertificates;
+    private StringMap keys;
     private StringSet _groupObjectClassNames;
     private StringSet _groupMemberAttributeTypeNames;
 
     // names to be used in the 'mode' element of the Provider
     public static enum ProvidersType {
-        ldap, ad
+        ldap, ad, keystone
     }
 
     // values to be used for the searchScope element
@@ -226,6 +228,43 @@ public class AuthnProvider extends DataObject {
     public void setLastModified(Long lastModified) {
         _lastModified = lastModified;
         setChanged("lastModified");
+    }
+    @Name("keys")
+    public StringMap getKeys() {
+        return keys;
+    }
+    public String getKeyValue(String key) {
+        String value = null;
+        if (keys != null ) {
+            value = keys.get(key);
+        }
+        return (value == null) ? NullColumnValueGetter.getNullStr() : value;
+    }
+    public void setKeys(StringMap keys) {
+        this.keys = keys;
+        setChanged("keys");
+    }
+    public void addKey(String key, String value) {
+        if (getKeys() == null) {
+            setKeys(new StringMap());
+        }
+        getKeys().put(key, value);
+        setChanged("keys");
+    }
+    public void removeKey(String key) {
+        if (keys != null) {
+            getKeys().remove(key);
+            setChanged("keys");
+        }
+    }
+    public void removeKeys(String[] keyArray) {
+        if (keys != null) {
+        	for(String key : keyArray)
+        	{
+        		getKeys().remove(key);
+        	}
+        	setChanged("keys");
+        }
     }
 
     @AllowedGeoVersion(version = EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT)

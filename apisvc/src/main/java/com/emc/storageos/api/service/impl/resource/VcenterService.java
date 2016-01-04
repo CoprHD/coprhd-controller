@@ -204,7 +204,7 @@ public class VcenterService extends TaskResourceService {
         }
 
         if (vcenter == null || (param.getName() != null && !param.getName().equals(vcenter.getLabel()))) {
-            checkDuplicateLabel(Vcenter.class, param.getName(), "vcenter");
+            checkDuplicateLabel(Vcenter.class, param.getName());
         }
 
         validateVcenterCredentials(param, vcenter);

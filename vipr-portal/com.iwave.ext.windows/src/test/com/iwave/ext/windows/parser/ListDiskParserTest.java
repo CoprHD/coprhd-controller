@@ -21,7 +21,7 @@ import com.iwave.ext.windows.model.DiskSummary;
 
 public class ListDiskParserTest {
 
-    private static final String LIST_DISK_FILENAME = "listdisk";
+    private static final String LIST_DISK_FILENAME = "ListDisk";
 
     private static final String ONLINE = "Online";
     private static final String OFFLINE = "Offline";

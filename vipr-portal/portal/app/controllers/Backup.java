@@ -48,7 +48,7 @@ public class Backup extends Controller {
         if (type == null) {
             type = Type.LOCAL;
         }
-        
+
         BackupDataTable dataTable = new BackupDataTable(type);
         renderArgs.put("type", type);
         render(dataTable);
@@ -60,20 +60,20 @@ public class Backup extends Controller {
     }
 
     public static void itemsJson(@As(",") String[] ids) {
-    	  List<BackupDataTable.Backup> results = Lists.newArrayList();
-          if (ids != null && ids.length > 0) {
-              for (String id : ids) {
-                  if (StringUtils.isNotBlank(id)) {
-                	  BackupSet backup = BackupUtils.getBackup(id);
-                      if (backup != null) {
-                          results.add(new BackupDataTable.Backup(backup));
-                      }
-                  }
-              }
-          }
-          renderJSON(results);
+        List<BackupDataTable.Backup> results = Lists.newArrayList();
+        if (ids != null && ids.length > 0) {
+            for (String id : ids) {
+                if (StringUtils.isNotBlank(id)) {
+                    BackupSet backup = BackupUtils.getBackup(id);
+                    if (backup != null) {
+                        results.add(new BackupDataTable.Backup(backup));
+                    }
+                }
+            }
+        }
+        renderJSON(results);
     }
-    
+
     public static void create() {
         render();
     }
@@ -122,16 +122,21 @@ public class Backup extends Controller {
 
     @FlashException(value = "list")
     public static void upload(String id) {
-            BackupUtils.uploadBackup(id);
-            list(Type.LOCAL);
+        BackupUtils.uploadBackup(id);
+        list(Type.LOCAL);
     }
-    
+
     public static void getUploadStatus(String id) {
-            BackupUploadStatus status = BackupUtils.getUploadStatus(id);
-            renderJSON(status);
-        
+        BackupUploadStatus status = BackupUtils.getUploadStatus(id);
+        renderJSON(status);
+
     }
-    
+
+    @FlashException(value = "list")
+    public static void restore(Type type, String id) {
+
+    }
+
     private static void backToReferrer() {
         String referrer = Common.getReferrer();
         if (StringUtils.isNotBlank(referrer)) {

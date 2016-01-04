@@ -19,26 +19,47 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
                 <a href="@{list(REMOTE)}">&{'backup.tab.remote'}</a></li>
         </ul>
 
-    #{DataTable.crudTable id:'backup',
-    dataTable:dataTable,
-    deleteConfirm:messages.get('backup.deleteConfirm')}
+    #{if LOCAL.equals(type)}
+        #{DataTable.crudTable id:'backup',
+        dataTable:dataTable,
+        deleteConfirm:messages.get('backup.deleteConfirm')}
+        #{/DataTable.crudTable}
+    #{/if}
 
-    #{/DataTable.crudTable}
+    #{if REMOTE.equals(type)}
+        #{DataTable.table id:'backup',
+        dataTable:dataTable,
+        source:@listJson()}
+        #{/DataTable.table}
+    #{/if}
 
     </div>
 </div>
 
 <script>
-render.uploadBtn = function(o, val) {
+render.uploadAndRestoreBtn = function(o, val) {
 	var odata = o.aData;
 	var name= odata.name;
 	var url = #{jsAction @upload()/};
 	var href = url(odata)+"/"+name;
+    var btns;
 	if (val.indexOf("_enable")>0){
-		return "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
+		btns = "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
 	}else{
-		return "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  disabled class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
+		btns = "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  disabled class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
 	}
+
+    btns += "&nbsp;&nbsp;<a id='" + val+"BtnId" + "' href='" + href + "' " +"  class=\"btn btn-default btn-xs\">" + "Restore" + "</a>";
+    return btns;
+
+}
+
+render.restoreBtn = function (o, val) {
+    var odata = o.aData;
+    var name = odata.name;
+    var url = #{jsAction @restore()/};
+    var href = url(odata) + "/" + name;
+    return "<a id='" + val + "BtnId" + "' href='" + href + "' " + "  class=\"btn btn-default btn-xs\">" + "Restore" + "</a>";
 }
 
 render.uploadProgressIcon = function(o, val) {

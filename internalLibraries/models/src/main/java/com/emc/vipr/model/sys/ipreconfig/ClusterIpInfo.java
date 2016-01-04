@@ -4,45 +4,34 @@
  */
 package com.emc.vipr.model.sys.ipreconfig;
 
+import com.emc.storageos.model.property.PropertyConstants;
+
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import java.io.*;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Cluster IP Information
+ * Each cluster could include multiple physical sites
  */
 @XmlRootElement(name = "cluster_ipinfo")
 public class ClusterIpInfo implements Serializable {
 
-    private ClusterIpv4Setting ipv4_setting;
-    private ClusterIpv6Setting ipv6_setting;
+    private Map<String, SiteIpInfo> siteIpInfoMap = new HashMap<String, SiteIpInfo>();
 
     public ClusterIpInfo() {
     }
 
-    public ClusterIpInfo(ClusterIpv4Setting ipv4_setting, ClusterIpv6Setting ipv6_setting) {
-        this.ipv4_setting = ipv4_setting;
-        this.ipv6_setting = ipv6_setting;
+    @XmlElementWrapper(name="sites")
+    public Map<String, SiteIpInfo> getSiteIpInfoMap() {
+        return siteIpInfoMap;
     }
 
-    @XmlElement(name = "ipv4_setting")
-    public ClusterIpv4Setting getIpv4Setting() {
-        return ipv4_setting;
-    }
-
-    public void setIpv4Setting(ClusterIpv4Setting ipv4_setting) {
-        this.ipv4_setting = ipv4_setting;
-    }
-
-    @XmlElement(name = "ipv6_setting")
-    public ClusterIpv6Setting getIpv6Setting() {
-        return ipv6_setting;
-    }
-
-    public void setIpv6Setting(ClusterIpv6Setting ipv6_setting) {
-        this.ipv6_setting = ipv6_setting;
+    public void setSiteIpInfoMap(Map<String, SiteIpInfo> siteIpInfoMap) {
+        this.siteIpInfoMap = siteIpInfoMap;
     }
 
     public byte[] serialize() throws IOException {
@@ -68,6 +57,7 @@ public class ClusterIpInfo implements Serializable {
         }
         return (ClusterIpInfo) obj;
     }
+
     /* (non-Javadoc)
    	 * @see java.lang.Object#hashCode()
    	 */
@@ -76,9 +66,7 @@ public class ClusterIpInfo implements Serializable {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((ipv4_setting == null) ? 0 : ipv4_setting.hashCode());
-		result = prime * result
-				+ ((ipv6_setting == null) ? 0 : ipv6_setting.hashCode());
+				+ ((siteIpInfoMap == null) ? 0 : siteIpInfoMap.hashCode());
 		return result;
 	}
 
@@ -91,10 +79,7 @@ public class ClusterIpInfo implements Serializable {
             return false;
         }
 
-        if (!ipv4_setting.equals(((ClusterIpInfo) obj).getIpv4Setting())) {
-            return false;
-        }
-        if (!ipv6_setting.equals(((ClusterIpInfo) obj).getIpv6Setting())) {
+        if (!siteIpInfoMap.equals(((ClusterIpInfo) obj).getSiteIpInfoMap())) {
             return false;
         }
 
@@ -105,32 +90,60 @@ public class ClusterIpInfo implements Serializable {
 	@Override
     public String toString() {
         StringBuffer propStrBuf = new StringBuffer();
-        propStrBuf.append(ipv4_setting.toString());
-        propStrBuf.append(ipv6_setting.toString());
+
+        SortedSet<String> keys = new TreeSet<String>(siteIpInfoMap.keySet());
+        for (String key : keys) {
+            propStrBuf.append(key);
+            propStrBuf.append(PropertyConstants.DELIMITER);
+            propStrBuf.append(siteIpInfoMap.get(key).toString());
+            propStrBuf.append("\n");
+        }
+
         return propStrBuf.toString();
     }
 
     /*
      * Load key/value property map
+     *
      */
-    public void loadFromPropertyMap(Map<String, String> propMap)
+    public void loadFromPropertyMap(Map<String, String> globalPropMap)
     {
-        ipv4_setting = new ClusterIpv4Setting();
-        ipv4_setting.loadFromPropertyMap(propMap);
+        /* TODO: change vdc site property prefix to vdc_<vdcshortId>_<siteShortId>
+        e.g. vdc_vdc1_site2_network_1_ipaddr */
 
-        ipv6_setting = new ClusterIpv6Setting();
-        ipv6_setting.loadFromPropertyMap(propMap);
-    }
+        // group global properties in site level - "<vdcsiteId> -> <vdcsiteInternalProperties>"
+        Map<String, Map<String, String>> vdcsitePropMap = new HashMap<String, Map<String, String>>();
+        SortedSet<String> globalPropNames = new TreeSet<String>(globalPropMap.keySet());
+        for (String globalPropName : globalPropNames) {
+            // separate global prop name to vdcsiteId and internal prop name;
+            String[] tmpFields = globalPropName.split("_");
+            String vdcsiteId = tmpFields[0] + "_" + tmpFields[1] + "_" + tmpFields[2];
+            String vdcsiteInternalPropName = globalPropName.split(vdcsiteId)[1];
 
-    public boolean isDefault() {
-        if (ipv4_setting.isDefault() && ipv6_setting.isDefault()) {
-            return true;
+            // put globalPropMap into vdcsitePropMap;
+            Map<String, String> sitePropMap = vdcsitePropMap.get(vdcsiteId);
+            if (null == sitePropMap) {
+                sitePropMap = new HashMap<String, String>();
+            }
+            sitePropMap.put(vdcsiteInternalPropName, globalPropMap.get(globalPropName));
+            vdcsitePropMap.put(vdcsiteId, sitePropMap);
         }
-        return false;
+
+        // load all the site level properties
+        SortedSet<String> vdcsiteIds = new TreeSet<String>(vdcsitePropMap.keySet());
+        for (String vdcsiteId : vdcsiteIds) {
+            SiteIpInfo siteIpInfo = siteIpInfoMap.get(vdcsiteId);
+            if (null == siteIpInfo) {
+                siteIpInfo = new SiteIpInfo();
+            }
+            siteIpInfo.loadFromPropertyMap(vdcsitePropMap.get(vdcsiteId));
+            siteIpInfoMap.put(vdcsiteId, siteIpInfo);
+        }
     }
 
     public String validate(int nodecount) {
         String errmsg = "";
+        /* TODO:
         if (ipv4_setting.isDefault() && ipv6_setting.isDefault()) {
             errmsg = "Both IPv4 and IPv6 networks are not configured.";
             return errmsg;
@@ -175,7 +188,7 @@ public class ClusterIpInfo implements Serializable {
             errmsg = "Nodes number does not match with the cluster.";
             return errmsg;
         }
-
+        */
         return errmsg;
     }
 }

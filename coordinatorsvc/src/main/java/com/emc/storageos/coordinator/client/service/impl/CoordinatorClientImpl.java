@@ -125,6 +125,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private DbVersionInfo dbVersionInfo;
 
+    // each vdc might include multiple sites. this _vdc_nodeid is unique within the vdc(among those sites).
+    private int _vdc_nodeid;
+
     private static Properties defaultProperties;
     private static Properties ovfProperties;
 
@@ -178,6 +181,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public void setDbVersionInfo(DbVersionInfo info) {
         dbVersionInfo = info;
+    }
+
+    private void setVdcnodeId(int id) {
+        _vdc_nodeid = id;
+    }
+    public int getVdcnodeId() {
+        return _vdc_nodeid;
     }
 
     // Suppress Sonar violation of Lazy initialization of static fields should be synchronized

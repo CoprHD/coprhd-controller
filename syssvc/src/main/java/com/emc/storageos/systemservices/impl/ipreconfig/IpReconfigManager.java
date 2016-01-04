@@ -7,6 +7,7 @@ package com.emc.storageos.systemservices.impl.ipreconfig;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.model.property.PropertyConstants;
@@ -44,9 +45,9 @@ public class IpReconfigManager implements Runnable {
     // ipreconfig entry in ZK
     Configuration config = null;
 
-    private ClusterIpInfo localIpinfo = null;   // local/current ip info
+    private ClusterIpInfo currentIpinfo = null;   // local/current ip info
     private ClusterIpInfo newIpinfo = null;     // new ip info
-    private Integer localNodeId;                // local node id (1~5)
+    private Integer vdcnodeId;                // local node id (1~5)
     private Integer nodeCount;
     private long expiration_time = 0L;         // ipreconfig would fail if not finished at this time
 
@@ -60,16 +61,20 @@ public class IpReconfigManager implements Runnable {
 
     private IpReconfigListener ipReconfigListener = null;
 
-    private Properties ovfProperties;    // local ovfenv properties
-
+    private Properties ovfProperties;    // current ovfenv ip properties of local site
     public void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
     }
-
-    // this shouldn't be named the same as the default getter, since the return type
-    // is different with the argument type of the setter.
     public Map<String, String> getOvfProps() {
         return (Map) ovfProperties;
+    }
+
+    private Properties ipProperties;    // current ip properties of all sites
+    public void setIpProperties(Properties ipProps) {
+        ipProperties = ipProps;
+    }
+    public Map<String, String> getIpProps() {
+        return (Map) ipProperties;
     }
 
     /**
@@ -94,7 +99,11 @@ public class IpReconfigManager implements Runnable {
      * 2. Register node listener for ipreconfig config znode in ZK
      */
     public void init() {
-        loadLocalOvfProps();
+        if (ipProperties == null) {
+            loadLocalOvfProps();
+        } else {
+            loadClusterIpProps();
+        }
         addIpreconfigListener();
 
         _coordinator.getZkConnection().curator().getConnectionStateListenable().addListener(_connectionListener);
@@ -105,16 +114,31 @@ public class IpReconfigManager implements Runnable {
      */
     private void loadLocalOvfProps() {
         Map<String, String> ovfprops = getOvfProps();
-        localIpinfo = new ClusterIpInfo();
-        localIpinfo.loadFromPropertyMap(ovfprops);
+        currentIpinfo = new ClusterIpInfo();
+        currentIpinfo.loadFromPropertyMap(ovfprops);
 
         String node_id = ovfprops.get(PropertyConstants.NODE_ID_KEY);
         if (node_id == null || node_id.equals(Constants.STANDALONE_ID)) {
-            localNodeId = 1;
+            vdcnodeId = 1;
         } else {
-            localNodeId = Integer.valueOf(node_id.split("vipr")[1]);
+            vdcnodeId = Integer.valueOf(node_id.split("vipr")[1]);
         }
         nodeCount = Integer.valueOf(ovfprops.get(PropertyConstants.NODE_COUNT_KEY));
+    }
+
+    private void loadClusterIpProps() {
+        Map<String, String> ipProps = getIpProps();
+        currentIpinfo = new ClusterIpInfo();
+        currentIpinfo.loadFromPropertyMap(ipProps);
+
+        nodeCount = 0;
+        SortedSet<String> globalPropNames = new TreeSet<String>(ipProps.keySet());
+        for (String globalPropName : globalPropNames) {
+            if (globalPropName.contains(PropertyConstants.NODE_COUNT_KEY)) {
+                nodeCount += Integer.valueOf(ipProps.get(globalPropName));
+            }
+        }
+        vdcnodeId = ((CoordinatorClientImpl)_coordinator.getCoordinatorClient()).getVdcnodeId();
     }
 
     /**
@@ -219,18 +243,18 @@ public class IpReconfigManager implements Runnable {
         log.info("driving ipreconfig state machine ...");
 
         // Start to handle ip reconfig procedure if it is started and not expired.
-        String localnode_status_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, localNodeId);
+        String localnode_status_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, vdcnodeId);
         IpReconfigConstants.NodeStatus localnode_status = IpReconfigConstants.NodeStatus.valueOf(config.getConfig(localnode_status_key));
         IpReconfigConstants.NodeStatus target_nodestatus = null;
 
         String base64Encoded_newipinfo = config.getConfig(IpReconfigConstants.CONFIG_IPINFO_KEY);
         newIpinfo = ClusterIpInfo.deserialize(Base64.decodeBase64(base64Encoded_newipinfo.getBytes(UTF_8)));
-        if (!newIpinfo.equals(localIpinfo)) {
+        if (!newIpinfo.equals(currentIpinfo)) {
             // NewIP has not been applied yet, in the process of syncing among all nodes.
             switch (localnode_status) {
                 case None:
                     // NewIP is just set in ZK.
-                    IpReconfigUtil.writeIpinfoFile(localIpinfo, IpReconfigConstants.OLDIP_PATH);
+                    IpReconfigUtil.writeIpinfoFile(currentIpinfo, IpReconfigConstants.OLDIP_PATH);
                     IpReconfigUtil.writeIpinfoFile(newIpinfo, IpReconfigConstants.NEWIP_PATH);
 
                     String strExpirationTime = config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY);
@@ -345,7 +369,7 @@ public class IpReconfigManager implements Runnable {
      * @throws Exception
      */
     private void persistZKNodeStatus(String nodestatus) throws Exception {
-        String nodestatus_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, localNodeId);
+        String nodestatus_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, vdcnodeId);
         config.setConfig(nodestatus_key, nodestatus);
         _coordinator.getCoordinatorClient().persistServiceConfiguration(config);
     }
@@ -744,7 +768,7 @@ public class IpReconfigManager implements Runnable {
      * @throws Exception
      */
     public ClusterIpInfo queryCurrentClusterIpinfo() throws Exception {
-        return localIpinfo;
+        return currentIpinfo;
     }
 
 }

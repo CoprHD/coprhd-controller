@@ -582,8 +582,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
             // check if replication mode change is supported
             StringBuffer replicationModeChangeReasonBuff = new StringBuffer();
-            if (VirtualPoolChangeAnalyzer.isSupportedReplicationModeChange(volume,
-                    currentVpool, newVpool, _dbClient, replicationModeChangeReasonBuff)) {
+            if (VirtualPoolChangeAnalyzer.isSupportedReplicationModeChange(
+                    currentVpool, newVpool, replicationModeChangeReasonBuff)) {
                 allowedOperations.add(VirtualPoolChangeOperationEnum.REPLICATION_MODE);
             }
 

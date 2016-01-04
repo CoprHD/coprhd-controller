@@ -665,7 +665,7 @@ public class BlockService extends TaskResourceService {
     /**
      * Creates and returns an instance of the block snapshot session manager to handle
      * a snapshot session creation request.
-     * 
+     *
      * @return BlockSnapshotSessionManager
      */
     private BlockSnapshotSessionManager getSnapshotSessionManager() {
@@ -2272,14 +2272,14 @@ public class BlockService extends TaskResourceService {
      * target volumes, or multiple linked target volumes depending on the
      * data passed in the request. This API is only supported on a limited
      * number of platforms that support this capability.
-     * 
+     *
      * @brief Create volume snapshot session
-     * 
+     *
      * @prereq Virtual pool for the volume must specify non-zero value for max_snapshots
-     * 
+     *
      * @param id The URI of a ViPR Volume.
      * @param param Volume snapshot parameters
-     * 
+     *
      * @return TaskList
      */
     @POST
@@ -2333,13 +2333,13 @@ public class BlockService extends TaskResourceService {
 
     /**
      * List volume snapshot sessions.
-     * 
+     *
      * @brief List volume snapshot sessions.
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id The URI of a ViPR Volume.
-     * 
+     *
      * @return Volume snapshot response containing list of snapshot sessions
      */
     @GET
@@ -3898,8 +3898,8 @@ public class BlockService extends TaskResourceService {
             return;
         }
 
-        if (VirtualPoolChangeAnalyzer.isSupportedReplicationModeChange(volume, currentVpool, newVpool,
-                _dbClient, notSuppReasonBuff)) {
+        if (VirtualPoolChangeAnalyzer.isSupportedReplicationModeChange(currentVpool, newVpool,
+                notSuppReasonBuff)) {
             _log.info("New VPool specifies an replication mode change");
             return;
         }
@@ -5101,9 +5101,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     * 
+     *
      * @param consistencyGroup
-     * 
+     *
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,

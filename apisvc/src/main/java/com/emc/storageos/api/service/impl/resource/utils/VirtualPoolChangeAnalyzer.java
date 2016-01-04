@@ -967,13 +967,27 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         return isSameVirtualPool(current, requested, null);
     }
 
-    public static boolean isSupportedReplicationModeChange(Volume volume,
-            VirtualPool currentVpool, VirtualPool newVpool, DbClient _dbClient,
-            StringBuffer notSuppReasonBuff) {
+    /**
+     * Checks to see if the replication mode change is supported.
+     *
+     * @param currentVpool the source virtual pool
+     * @param newVpool the target virtual pool
+     * @param notSuppReasonBuff the not supported reason string buffer
+     * @return
+     */
+    public static boolean isSupportedReplicationModeChange(VirtualPool currentVpool, VirtualPool newVpool, StringBuffer notSuppReasonBuff) {
         s_logger.info(String.format("Checking isSupportedReplicationModeChange from [%s] to [%s]...", currentVpool.getLabel(),
                 newVpool.getLabel()));
         // Make sure the VirtualPool's are not the same instance.
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
+            return false;
+        }
+
+        // Both the source and target vpools must specify RP protection.
+        // NOTE: If support for SRDF is added in the future, we must modify the conditions
+        if (!VirtualPool.vPoolSpecifiesProtection(currentVpool) || !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+            notSuppReasonBuff
+                    .append("Cannot modify the replication mode if both the source and target vpools do not specify RP protection.");
             return false;
         }
 

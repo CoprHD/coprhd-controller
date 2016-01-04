@@ -1227,12 +1227,22 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed("Standby is not a fresh installation");
         }
 
+        // software version should be the same
+        String currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class)
+                .getCurrentVersion().toString();
+        String standbySoftwareVersion = standby.getSoftwareVersion();
+        if (!currentSoftwareVersion.equals(standbySoftwareVersion)) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
+                    "Standby db software version %s is not same as active site %s",
+                    standbySoftwareVersion, currentSoftwareVersion));
+        }
+
         // DB schema version should be same
         String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
         String standbyDbSchemaVersion = standby.getDbSchemaVersion();
         if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
-                    "Standby db schema version %s is not same as acitve site %s",
+                    "Standby db schema version %s is not same as active site %s",
                     standbyDbSchemaVersion, currentDbSchemaVersion));
         }
 

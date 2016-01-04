@@ -236,6 +236,7 @@
         <property name="blockVplexVolumeIngestOrchestrator" ref="blockVplexVolumeIngestOrchestrator"/>
         <property name="maskPerHostIngestOrchestrator" ref="maskPerHostIngestOrchestrator"/>
         <property name="multipleMaskPerHostIngestOrchestrator" ref="multipleMaskPerHostIngestOrchestrator"/>
+        <property name="hdsMultipleMaskPerHostIngestOrchestrator" ref="hdsMultipleMaskPerHostIngestOrchestrator"/>
         <property name="unexportedVolumeIngestOrchestrator" ref="unexportedVolumeIngestOrchestrator"/>
         <property name="blockRecoverPointIngestOrchestrator" ref="blockRecoverPointIngestOrchestrator"/>
     </bean>
@@ -274,6 +275,10 @@
     </bean>
     
     <bean id ="multipleMaskPerHostIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.MultipleMaskPerHostIngestOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean id ="hdsMultipleMaskPerHostIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.HDSMultipleMaskPerHostIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
     </bean>
     

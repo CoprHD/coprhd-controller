@@ -134,7 +134,7 @@ public class StorageSystem extends DiscoveredSystemObject {
     private Double averagePortMetrics;
     
     public static enum SupportedFileReplicationTypes {
-        REMOTE("remote"), LOCAL("local"), ALL("all");
+        REMOTE("remote"), LOCAL("local");
 
         private final String _replicationType;
 

@@ -1128,7 +1128,7 @@ public interface BadRequestExceptions {
     public BadRequestException moreThanOneRemoteCopiesSpecified();
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException remoteCopyDoesNotExists(URI varray);
+    public BadRequestException remoteCopyDoesNotExists(URI varray, URI vpool);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicateRemoteSettingsDetected(URI varray);

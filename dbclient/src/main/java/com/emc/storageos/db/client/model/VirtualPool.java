@@ -139,8 +139,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
     
     public static enum FileReplicationRPOType {
-        SECONDS("seconds"), MINUTES("minutes"), 
-        HOURS("hours"), DAYS("days");
+        MINUTES("minutes"), 
+        HOURS("hours");
         private final String _value;
 
         FileReplicationRPOType(String v) {

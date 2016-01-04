@@ -863,7 +863,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
             				} else {
             					_log.error("Remote copy {} trying to remove does not exists in vpool {} ", remoteVarray,
                     					virtualPool.getId());
-            					throw APIException.badRequests.remoteCopyDoesNotExists(remoteVarray);
+            					throw APIException.badRequests.remoteCopyDoesNotExists(remoteVarray, remoteSettings.getVpool());
             				}
                         }
         			}

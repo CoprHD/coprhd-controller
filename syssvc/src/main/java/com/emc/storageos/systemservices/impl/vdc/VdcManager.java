@@ -151,7 +151,7 @@ public class VdcManager extends AbstractManager {
             boolean hasLock;
             try {
                 hasLock = hasRebootLock(svcId);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.info("Step1: Failed to verify if the current node has the reboot lock ", e);
                 retrySleep();
                 continue;
@@ -164,7 +164,7 @@ public class VdcManager extends AbstractManager {
                     wakeupOtherNodes();
                 } catch (InvalidLockOwnerException e) {
                     log.error("Step0: Failed to release the reboot lock: Not owner.");
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.info("Step0: Failed to release the reboot lock and will retry: {}", e.getMessage());
                     retrySleep();
                     continue;
@@ -174,7 +174,7 @@ public class VdcManager extends AbstractManager {
             // Step1: publish current state, and set target if empty
             try {
                 initializeLocalAndTargetInfo();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.info("Step1b failed and will be retried:", e);
                 retrySleep();
                 continue;
@@ -184,7 +184,7 @@ public class VdcManager extends AbstractManager {
             log.info("Step2: Power off if poweroff state != NONE. {}", targetPowerOffState);
             try {
                 gracefulPoweroffCluster();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.error("Step2: Failed to poweroff. {}", e);
             }
 
@@ -199,7 +199,7 @@ public class VdcManager extends AbstractManager {
                     updateVdcProperties(svcId);
                     //updateSwitchoverSiteState();
                     //updateFailoverSiteState();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.info("Step3: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
                     continue;
@@ -210,7 +210,7 @@ public class VdcManager extends AbstractManager {
             // Step4: set site error state if on acitve
             try {
                 updateSiteErrors();
-            } catch (RuntimeException e) {
+            } catch (Throwable e) {
                 log.error("Step4: Failed to set site errors. {}", e);
                 continue;
             }
@@ -222,7 +222,7 @@ public class VdcManager extends AbstractManager {
                     checkPreYodaUpgrade();
                     continue;
                 }
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
                 log.error("Step5: Failed to set back compat yoda upgrade. {}", ex);
                 continue;
             }

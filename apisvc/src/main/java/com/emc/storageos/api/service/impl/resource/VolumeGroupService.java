@@ -37,6 +37,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -59,6 +60,7 @@ import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
+import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -223,6 +225,20 @@ public class VolumeGroupService extends TaskResourceService {
         return result;
     }
 
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/volume-groups")
+    public NamedVolumeGroupsList getChildrenVolumeGroups(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, id);
+        NamedVolumeGroupsList result = new NamedVolumeGroupsList();
+        List<VolumeGroup> volumeGroups = getVolumeGroupChildren(_dbClient, volumeGroup);
+        for (VolumeGroup group : volumeGroups) {
+            result.getVolumeGroups().add(toNamedRelatedResource(group));
+        }
+        return result;
+    }
+
     /**
      * Delete the volume group.
      * When a volume group is deleted it will move to a "marked for deletion" state.
@@ -239,12 +255,19 @@ public class VolumeGroupService extends TaskResourceService {
     public Response deactivateVolumeGroup(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
         VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
-        ArgValidator.checkReference(VolumeGroup.class, id, checkForDelete(volumeGroup));
 
         if (!getVolumeGroupVolumes(_dbClient, volumeGroup).isEmpty()) {
             // application could not be deleted if it has volumes
             throw APIException.badRequests.volumeGroupWithVolumesCantBeDeleted(volumeGroup.getLabel());
         }
+
+        if (!getVolumeGroupChildren(_dbClient, volumeGroup).isEmpty()) {
+            // application could not be deleted if it has child volume groups
+            throw APIException.badRequests.volumeGroupWithChildrenCantBeDeleted(volumeGroup.getLabel());
+        }
+
+        // check for any other references to this volume group
+        ArgValidator.checkReference(VolumeGroup.class, id, checkForDelete(volumeGroup));
 
         _dbClient.markForDeletion(volumeGroup);
 
@@ -779,12 +802,12 @@ public class VolumeGroupService extends TaskResourceService {
                 ArgValidator.checkFieldUriType(voluri, Volume.class, "id");
                 Volume vol = dbClient.queryObject(Volume.class, voluri);
                 if (vol == null || vol.getInactive()) {
-                    log.info(String.format("The volume does not exist or has been deleted", voluri.toString()));
+                    log.warn(String.format("The volume [%s] will not be removed from application %s because it does not exist or has been deleted", voluri.toString(), volumeGroup.getLabel()));
                     continue;
                 }
                 StringSet volumeGroups = vol.getVolumeGroupIds();
                 if (volumeGroups == null || !volumeGroups.contains(volumeGroup.getId().toString())) {
-                    log.info(String.format("The volume %s is not assigned to the application", vol.getLabel()));
+                    log.warn(String.format("The volume %s will not be removed from application %s because it is not assigned to the application", vol.getLabel(), volumeGroup.getLabel()));
                     continue;
                 }
 
@@ -852,6 +875,24 @@ public class VolumeGroupService extends TaskResourceService {
         return result;
     }
 
+    /**
+     * get the children for this volume group
+     *
+     * @param dbClient
+     *            db client for db queries
+     * @param volumeGroup
+     *            volume group to get children for
+     * @return a list of volume groups
+     */
+    private static List<VolumeGroup> getVolumeGroupChildren(DbClient dbClient, VolumeGroup volumeGroup) {
+        List<VolumeGroup> result = new ArrayList<VolumeGroup>();
+        final List<VolumeGroup> volumeGroups = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, VolumeGroup.class,
+                ContainmentConstraint.Factory.getVolumesGroupsByVolumeGroupId(volumeGroup.getId()));
+        for (VolumeGroup volGroup : volumeGroups) {
+            result.add(volGroup);
+        }
+        return result;
+    }
 
     /**
      * Check if the application has any pending task
@@ -869,7 +910,7 @@ public class VolumeGroupService extends TaskResourceService {
     private String setParent(VolumeGroup volumeGroup, String parent) {
         String errorMsg = null;
         // add parent if specified
-        if (parent != null) {
+        if (parent != null && !parent.isEmpty()) {
             if (URIUtil.isValid(parent)) {
                 URI parentId = URI.create(parent);
                 ArgValidator.checkFieldUriType(parentId, VolumeGroup.class, "parent");
@@ -879,6 +920,8 @@ public class VolumeGroupService extends TaskResourceService {
                 } else {
                     volumeGroup.setParent(parentId);
                 }
+            } else if (NullColumnValueGetter.isNullValue(parent)) {
+                volumeGroup.setParent(NullColumnValueGetter.getNullURI());
             } else {
                 List<VolumeGroup> parentVg = CustomQueryUtility
                         .queryActiveResourcesByConstraint(_dbClient, VolumeGroup.class,

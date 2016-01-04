@@ -1233,7 +1233,7 @@ public class DisasterRecoveryService {
         String standbySoftwareVersion = standby.getSoftwareVersion();
         if (!currentSoftwareVersion.equals(standbySoftwareVersion)) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
-                    "Standby db software version %s is not same as active site %s",
+                    "Standby site software version %s is not same as active site %s",
                     standbySoftwareVersion, currentSoftwareVersion));
         }
 

@@ -784,9 +784,13 @@ public abstract class VirtualPoolService extends TaggedResource {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();
         }
 
-        // Get the QoS for the VirtualPool, otherwise throw exception
-        QosSpecification qosSpecification = QosService.getQos(vpool.getId(), _dbClient);
-        
+        QosSpecification qosSpecification = null;
+        // Check if Virtual Pool type equals block type
+        if(vpool.getType().equalsIgnoreCase(Type.block.name())){
+            // Get the QoS for the VirtualPool, otherwise throw exception
+            qosSpecification = QosService.getQos(vpool.getId(), _dbClient);
+        }
+
         // make sure vpool is unused by volumes/fileshares
         ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(vpool));
 
@@ -829,8 +833,10 @@ public abstract class VirtualPoolService extends TaggedResource {
             }
         }
 
-        // Remove Qos associated to this Virtual Pool
-        _dbClient.removeObject(qosSpecification);
+        if(vpool.getType().equalsIgnoreCase(Type.block.name()) && qosSpecification != null){
+            // Remove Qos associated to this Virtual Pool
+            _dbClient.removeObject(qosSpecification);
+        }
 
         _dbClient.markForDeletion(vpool);
 

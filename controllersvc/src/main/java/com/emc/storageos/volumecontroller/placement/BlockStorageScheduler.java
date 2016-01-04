@@ -149,7 +149,6 @@ public class BlockStorageScheduler {
      * @param volumeURIs - list of volumes
      * @param pathParams - Export path parameters (maxPaths, pathsPerInitiator)
      * @param existingZoningMap - A map of initiators to a set of previously allocated port URI strings.
-     * @param initiatorToNetworkLiteMap -- map of Initiator to Networklite 
      * @return Map<URI, List<URI>> Initiator URI to list of Target StoragePort URIs
      */
     private Map<URI, List<URI>> internalAssignStoragePorts(StorageSystem system,
@@ -2118,7 +2117,7 @@ public class BlockStorageScheduler {
     }
     
     /**
-     * Inverts the sense of the initiatorsByNetwork map to get a map of InitiatorTonetworkLite
+     * Inverts the sense of the initiatorsByNetwork map to get a map of InitiatorToNetworkLite
      * @param initiatorsByNetwork Map of NetworkLite to a list of Initiators it contains
      * @return map of Initiator to Network Lite
      */
@@ -2189,6 +2188,11 @@ public class BlockStorageScheduler {
         return preZonedPortsByNetwork;
     }
     
+    /**
+     * Gets the host name for a hostURI if available. Otherwise returns URI as string.
+     * @param hostURI -- host URI
+     * @return hostname string if available
+     */
     private String getHostName(URI hostURI) {
         if (hostURI == StoragePortsAssigner.unknown_host_uri) {
             return StoragePortsAssigner.unknown_host_uri.toString();

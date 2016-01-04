@@ -6,14 +6,20 @@
 package com.emc.storageos.api.service.impl.placement;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class PlacementManager {
@@ -53,7 +59,7 @@ public class PlacementManager {
      * @param vpool Virtual Pool
      * @return storage scheduler
      */
-    private Scheduler getBlockServiceImpl(VirtualPool vpool) {
+    public Scheduler getBlockServiceImpl(VirtualPool vpool) {
 
         // Select an implementation of the right scheduler
         Scheduler scheduler;
@@ -104,5 +110,98 @@ public class PlacementManager {
 
         return rpVPlex;
     }
+    
+    /**
+     * This method runs recursive call to group master virtualPool into multiple buckets based on the configuration
+     * vPoolBucketsByOrder will already be populated with root virtual pool. 
+     * @param masterVirtualPool
+     * @param order
+     * @param vPoolBucketsByOrder
+     * @throws CloneNotSupportedException 
+     */
+    public void groupMasterVirtualPoolIntoChildBuckets(VirtualPool masterVirtualPool, int order, Map<Integer,VirtualPool> vPoolBucketsByOrder ) throws CloneNotSupportedException {
+    	
+    	if (VirtualPool.vPoolSpecifiesHighAvailability(masterVirtualPool)) {
+    		VirtualPool haVPool = VirtualPool.getHAVPool(masterVirtualPool, dbClient);
+    		//use Clone of the virtual Pool, because we might be changing assigned pools
+    		vPoolBucketsByOrder.put(++order, (VirtualPool)haVPool.clone());
+    		groupMasterVirtualPoolIntoChildBuckets(haVPool, order,vPoolBucketsByOrder);
+    	}
+    	
+    	if (VirtualPool.vPoolSpecifiesSRDF(masterVirtualPool)) {
+    		 Map<URI,VpoolRemoteCopyProtectionSettings> srdfSettings = VirtualPool.getRemoteProtectionSettings(masterVirtualPool, dbClient);
+    		 for (Entry<URI, VpoolRemoteCopyProtectionSettings> srdfSetting : srdfSettings.entrySet()) {
+    			 VpoolRemoteCopyProtectionSettings srdfSettingDetail = srdfSetting.getValue();
+    			 URI vPoolUri = srdfSettingDetail.getVirtualPool();
+    			 if (null != vPoolUri) {
+    				 VirtualPool srdfTgtVpool = dbClient.queryObject(VirtualPool.class, vPoolUri);
+    				 vPoolBucketsByOrder.put(++order, (VirtualPool)srdfTgtVpool.clone());
+    				 groupMasterVirtualPoolIntoChildBuckets(srdfTgtVpool, order,vPoolBucketsByOrder);
+    			 }
+    		 }
+    	}
+		
+    	
+    }
+    
+    public List<StoragePool> getStoragePoolsBasedOnRecommendations(VirtualPool vPool, List<Recommendation> recommendations) {
+		return null;
+    	
+    }
+    /**
+     * The idea is we cannot have neither SRDF Protected|HA Pool defined on the source virtual Pool, hence if available, then they are actually
+     * defined as targets for the source.
+     * @param rootVirtualPool
+     * @param childVirtualPool
+     * @param recommendations
+     * @return
+     */
+    public List<Recommendation> chooseRecommendations(VirtualPool rootVirtualPool, VirtualPool childVirtualPool, List<Recommendation> recommendations) {
+    	//if child vpool is srdf protected, then it needs to be a child of root.On the root, the srdf tgt vpool cannot be srdf protected.
+    	if (VirtualPool.vPoolSpecifiesSRDF(childVirtualPool) || VirtualPool.vPoolSpecifiesHighAvailability(childVirtualPool)) {
+    		//return tgt recommendation
+    	} else {
+    		//return src recommendation
+    	}
+		return recommendations;
+    	
+    }
+    
+    /**
+     * The idea is to integrate the recommended StoragePool as source for the next virtual pool.
+     * @param vPool
+     * @param recommendation
+     */
+    public void integrateRecommendationPoolstoVirtualPool(VirtualPool vPool, Recommendation recommendation) {
+    	Set<String> recommendationPools = new HashSet<String>();
+    	recommendationPools.add(recommendation.getSourceStoragePool().toString());
+          if (null != vPool.getAssignedStoragePools()) {
+        	  vPool.getAssignedStoragePools().replace(recommendationPools);
+          }
+          if (null != vPool.getMatchedStoragePools()) {
+        	  vPool.getMatchedStoragePools().replace(recommendationPools);
+          }
+    }
+    
+    /**
+     * build Cascaded Capabilities
+     * @param vPool
+     * @param capabilities
+     */
+    public void buildCascadedCapabilities(VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
+    	//build capabilities for given virtual Pool's cascaded children
+    	//SRDF Child- Attributes.Remote_Copy- Protection Settings
+    	if (null != VirtualPool.getRemoteProtectionSettings(vPool, dbClient)) {
+    		capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_COPY_SETTINGS, VirtualPool.getRemoteProtectionSettings(vPool, dbClient));
+    	}
+    	if (null != VirtualPool.getHAVPool(vPool, dbClient)) {
+    		//TODO
+    	}
+    	
+    }
+    
 
 }
+
+
+

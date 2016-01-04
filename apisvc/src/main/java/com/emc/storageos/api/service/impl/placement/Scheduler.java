@@ -7,6 +7,9 @@ package com.emc.storageos.api.service.impl.placement;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.model.block.VirtualPoolChangeParam;
+import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 import java.util.List;
@@ -14,4 +17,8 @@ import java.util.List;
 public interface Scheduler {
     List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
             VirtualPoolCapabilityValuesWrapper capabilities);
+    
+    public List<Recommendation> scheduleStorageForCosChangeUnprotected(final Volume volume,
+            final VirtualPool vpool, final List<VirtualArray> targetVarrays,
+            final VirtualPoolChangeParam param);
 }

@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+
 /**
  * Wrapper for VirtualPoolParams HashMap
  * 
@@ -43,6 +45,9 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String META_VOLUME_MEMBER_COUNT = "metaVolumeMemberCount";
     public static final String META_VOLUME_TYPE = "metaVolumeType";
 
+    //srdf capabilities
+    public static final String REMOTE_COPY_SETTINGS = "remoteSettings";
+    
     private Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
     /**
@@ -274,4 +279,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(META_VOLUME_TYPE);
         return value != null ? (String) value : null;
     }
+    
+    public  Map<URI, VpoolRemoteCopyProtectionSettings> getProtectionSettings() {
+    	Object value = _vpoolCapabilities.get(REMOTE_COPY_SETTINGS);
+    	return value != null ? ( Map<URI, VpoolRemoteCopyProtectionSettings>)value : null;
+    }
+ 
 }

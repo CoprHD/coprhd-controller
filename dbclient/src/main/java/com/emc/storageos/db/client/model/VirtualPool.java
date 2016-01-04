@@ -27,7 +27,7 @@ import com.emc.storageos.model.valid.EnumType;
  * @author belliott
  */
 @Cf("VirtualPool")
-public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResource {
+public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResource,Cloneable {
     // service type
     private String _type;
     // brief description for this VirtualPool
@@ -42,7 +42,13 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Integer _pathsPerInitiator;
     // VirtualArrays where this VirtualPool is available
     private StringSet _virtualArrays;
-    // optional VirtualPool reference used for mirror placement
+    @Override
+	public Object clone() throws CloneNotSupportedException {
+		// TODO Auto-generated method stub
+		return super.clone();
+	}
+
+	// optional VirtualPool reference used for mirror placement
     private String _mirrorVirtualPool;
     // reference to additional VirtualPool values used to overlay object on file
     private String _refVirtualPool;

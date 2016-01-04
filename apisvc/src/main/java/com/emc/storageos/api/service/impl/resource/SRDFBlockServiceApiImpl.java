@@ -1063,4 +1063,51 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         return allowedOperations;
     }
 
+	@Override
+	public List<VolumeDescriptor> createVolumeDescriptors(VolumeCreate param,
+			Project project, VirtualArray vArray, VirtualPool vPool,
+			List<Recommendation> volRecommendations, TaskList taskList,
+			String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities)
+			throws InternalException {
+		 List<Recommendation> recommendations = volRecommendations;
+	        // Prepare the Bourne Volumes to be created and associated
+	        // with the actual storage system volumes created. Also create
+	        // a BlockTaskList containing the list of task resources to be
+	        // returned for the purpose of monitoring the volume creation
+	        // operation for each volume to be created.
+	        int volumeCounter = 1;
+	        String volumeLabel = param.getName();
+	        if (taskList == null) {
+	            taskList = new TaskList();
+	        }
+
+	        Iterator<Recommendation> recommendationsIter;
+
+	        final BlockConsistencyGroup consistencyGroup = vPoolCapabilities.getBlockConsistencyGroup() == null ? null
+	                : _dbClient.queryObject(BlockConsistencyGroup.class,
+	                		vPoolCapabilities.getBlockConsistencyGroup());
+
+	        // prepare the volumes
+	        List<URI> volumeURIs = prepareRecommendedVolumes(param, task, taskList, project, vArray,
+	                vPool, vPoolCapabilities.getResourceCount(), recommendations, consistencyGroup,
+	                volumeCounter, volumeLabel);
+
+	        // Execute the volume creations requests for each recommendation.
+	        recommendationsIter = recommendations.iterator();
+	        List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
+	        while (recommendationsIter.hasNext()) {
+	            Recommendation recommendation = recommendationsIter.next();
+	            try {
+	                volumeDescriptors = createVolumeDescriptors(
+	                        (SRDFRecommendation) recommendation, volumeURIs, vPoolCapabilities);
+	                // Log volume descriptor information
+	                logVolumeDescriptorPrecreateInfo(volumeDescriptors, task);
+	               
+	            } catch (InternalException e) {
+	            	_log.error("Error",e);
+	            }
+	        }
+	        return volumeDescriptors;
+	}
+
 }

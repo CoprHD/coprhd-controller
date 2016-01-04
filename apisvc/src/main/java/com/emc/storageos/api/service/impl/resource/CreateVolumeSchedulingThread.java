@@ -5,12 +5,20 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.placement.SRDFScheduler;
+import com.emc.storageos.api.service.impl.placement.Scheduler;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
@@ -69,9 +77,45 @@ class CreateVolumeSchedulingThread implements Runnable {
         _log.info("Starting scheduling/placement thread...");
         // Call out placementManager to get the recommendation for placement.
         try {
+        	Map<Integer, VirtualPool> vPoolBucketsByOrder = new HashMap<Integer, VirtualPool>();
+        	vPoolBucketsByOrder.put(0, vpool);
+        	
+        	this.blockService._placementManager.groupMasterVirtualPoolIntoChildBuckets(vpool, 1, vPoolBucketsByOrder);
+        	
+        	
+        	for (int i = 0; i< vPoolBucketsByOrder.size(); i++) {
+        		Set<Entry<Integer, VirtualPool>> bucketIterator1 = vPoolBucketsByOrder.entrySet();
+        		Entry<Integer, VirtualPool>  entryBucket= (Entry<Integer, VirtualPool>) bucketIterator1.toArray()[i];
+        		VirtualPool vPoolChild = entryBucket.getValue();
+        		Volume volume = null;
+        		if (i ==0) {
+        		
+        		//fill in the cascaded capabilities
+            	this.blockService._placementManager.buildCascadedCapabilities(vPoolChild, capabilities);
+            	//Get Recommendations for root level virtual pool
+                List rootRecommendations = this.blockService._placementManager.getRecommendationsForVolumeCreateRequest(
+                        varray, project, vPoolChild, capabilities);
+                List<VolumeDescriptor> volDescriptors =  blockServiceImpl.createVolumeDescriptors(param, project, varray, vPoolChild, rootRecommendations,
+                		taskList, task, capabilities);
+                volume = (Volume) this.blockService._dbClient.queryObject(volDescriptors.get(0).getVolumeURI());
+                
+        		} else {
+        			//do change vpool
+        			Scheduler scheduler = this.blockService._placementManager.getBlockServiceImpl(vPoolChild);
+        		   
+        			 List childRecommendations = scheduler.scheduleStorageForCosChangeUnprotected(volume, vPoolChild, 
+        					SRDFScheduler.getTargetVirtualArraysForVirtualPool(project, vPoolChild, this.blockService._dbClient,
+        		    		this.blockService._permissionsHelper), null);
+        		}
+        		
+        	}
+        	
+        	//fill in the cascaded capabilities
+        	this.blockService._placementManager.buildCascadedCapabilities(vpool, capabilities);
+        	//Get Recommendations for root level virtual pool
             List recommendations = this.blockService._placementManager.getRecommendationsForVolumeCreateRequest(
                     varray, project, vpool, capabilities);
-
+            
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
             }

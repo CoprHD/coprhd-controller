@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -64,6 +65,23 @@ public interface BlockServiceApi {
             VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;
+    
+    /**
+     * TODO refactor this parameter, added for prototype
+     * @param param
+     * @param project
+     * @param vArray
+     * @param vPool
+     * @param volRecommendations
+     * @param taskList
+     * @param task
+     * @param vPoolCapabilities
+     * @return
+     * @throws InternalException
+     */
+    public List<VolumeDescriptor> createVolumeDescriptors(VolumeCreate param, Project project,
+            VirtualArray vArray, VirtualPool vPool, List<Recommendation> volRecommendations, TaskList taskList,
+            String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities) throws InternalException;
 
     /**
      * Delete the passed volumes for the passed system.

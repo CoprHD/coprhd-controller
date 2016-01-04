@@ -3406,4 +3406,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexVolume.getStorageController());
         controller.resyncSnapshot(vplexSystem.getId(), snapshot.getId(), taskId);
     }
+
+	@Override
+	public List<VolumeDescriptor> createVolumeDescriptors(VolumeCreate param,
+			Project project, VirtualArray vArray, VirtualPool vPool,
+			List<Recommendation> volRecommendations, TaskList taskList,
+			String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities)
+			throws InternalException {
+		 List<URI> allVolumes = new ArrayList<URI>();
+	        List<VolumeDescriptor> descriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
+	                volRecommendations, task, vPoolCapabilities,
+	                taskList, allVolumes, true);
+
+	        // Log volume descriptor information
+	        logVolumeDescriptorPrecreateInfo(descriptors, task);
+	        return descriptors;
+	}
 }

@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +38,7 @@ import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
@@ -1314,5 +1316,16 @@ public class StorageScheduler implements Scheduler {
         reservationMap.put(volume.getId().toString(), String.valueOf(reservedCapacity));
         _dbClient.persistObject(pool);
     }
+
+	@Override
+	public List<Recommendation> scheduleStorageForCosChangeUnprotected(
+			Volume volume, VirtualPool vpool, List<VirtualArray> targetVarrays,
+			VirtualPoolChangeParam param) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	
+	
 
 }

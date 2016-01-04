@@ -21,12 +21,16 @@ import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -101,6 +105,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             // Make sure when there are multiple source objects,
             // each full copy has a unique name.
             aFCSource = fcSourceObj;
+            // TODO name across multiple AG/CGs
             String copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
             VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
             VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(
@@ -195,8 +200,22 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             taskList.getTaskList().add(volumeTask);
         }
 
-        addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
-                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
+        if (fcSourceObj instanceof Volume && ((Volume) fcSourceObj).isInVolumeGroup()) {
+            // TODO get COPY VolumeGroup
+            URI volumeGroupURI = URI.create(((Volume) fcSourceObj).getVolumeGroupIds().iterator().next());
+            VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupURI);
+            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroupURI, taskId,
+                    ResourceOperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY);
+            taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
+            
+            // get all volumes to create tasks for all CGs involved
+            List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
+            addConsistencyGroupTasks(volumes, taskList, taskId,
+                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
+        } else {
+            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
+        }
 
         try {
             BlockController controller = getController(BlockController.class,
@@ -207,6 +226,26 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             handleFailedRequest(taskId, taskList, fullCopyVolumes, ie, true);
         }
         return taskList;
+    }
+
+    /**
+     * Get volume group volumes
+     *
+     * @param volumeGroup
+     * @return The list of volumes in volume group
+     */
+    private static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
+        List<Volume> result = new ArrayList<Volume>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+        for (Volume vol : volumes) {
+            // TODO return only visible volumes. i.e skip backend or internal volumes?
+            if (!vol.getInactive()) {
+                result.add(vol);
+            }
+        }
+        return result;
     }
 
     /**

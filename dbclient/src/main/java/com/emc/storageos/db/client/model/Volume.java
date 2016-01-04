@@ -945,4 +945,13 @@ public class Volume extends BlockObject implements ProjectResource {
         setChanged("applicationIds");
     }
 
+    /**
+     * Checks if the volume is in volume group.
+     *
+     * @return true, if this volume is in volume group
+     */
+    public boolean isInVolumeGroup() {
+        return !getVolumeGroupIds().isEmpty();
+    }
+
 }

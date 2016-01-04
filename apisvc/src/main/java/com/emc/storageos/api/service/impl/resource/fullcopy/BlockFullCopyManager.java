@@ -38,6 +38,7 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -50,6 +51,9 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -240,6 +244,13 @@ public class BlockFullCopyManager {
             throws InternalException {
         s_logger.info("START create full copy for source {}", sourceURI);
 
+        // Create a unique task identifier.
+        String taskId = UUID.randomUUID().toString();
+
+        List<BlockObject> fcSourceObjList = null;
+        BlockFullCopyApi fullCopyApiImpl = null;
+        VirtualArray varray = null;
+        
         // Get the volume/snapshot.
         BlockObject fcSourceObj = BlockFullCopyUtils.queryFullCopyResource(sourceURI,
                 _uriInfo, true, _dbClient);
@@ -254,28 +265,70 @@ public class BlockFullCopyManager {
         // Check if the request calls for activation of the full copy
         boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE : param.getCreateInactive();
 
-        // Get the project for the full copy source object.
-        Project project = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
+        // if Volume is part of Application
+        if (fcSourceObj instanceof Volume && ((Volume) fcSourceObj).isInVolumeGroup()) {
+            // get all volumes
+            // TODO what if two VolumeGroups (Copy & DR) have different set of volumes?
+            // -Volume will be part of only one 'Copy' VolumeGroup. Check that case while vol.isInVolumeGroup()
+            URI volumeGroup = URI.create(((Volume) fcSourceObj).getVolumeGroupIds().iterator().next());
+            List<Volume> volumes = getVolumeGroupActiveVolumes(_dbClient, _dbClient.queryObject(VolumeGroup.class, volumeGroup));
+            // group volumes by Array Group
+            Map<String, List<Volume>> arrayGroupToVolumesMap = groupVolumesByArrayGroup(volumes);
+            fcSourceObjList = new ArrayList<BlockObject>();
+            for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
+                List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
+                fcSourceObj = volumeList.iterator().next();
+                // Get the project for the full copy source object.
+                Project project = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
 
-        // Get and verify the virtual array.
-        VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
-                fcSourceObj.getVirtualArray(), _uriInfo, _permissionsHelper, _dbClient);
+                // TODO check if volumes in Volume Group can be in different vArrays?
+                // Get and verify the virtual array.
+                varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
+                        fcSourceObj.getVirtualArray(), _uriInfo, _permissionsHelper, _dbClient);
 
-        // Get the platform specific block full copy implementation.
-        BlockFullCopyApi fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fcSourceObj);
+                // Get the platform specific block full copy implementation.
+                fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fcSourceObj);
 
-        // Get the list of all block objects for which we need to
-        // create full copies. For example, when creating a full copy
-        // for a volume in a consistency group, we may create full
-        // copies for all volumes in the consistency group.
-        List<BlockObject> fcSourceObjList = fullCopyApiImpl.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
+                // Get the list of all block objects for which we need to
+                // create full copies. For example, when creating a full copy
+                // for a volume in a consistency group, we may create full
+                // copies for all volumes in the consistency group.
+                List<BlockObject> fcSourceObjListPerArrayGroup = fullCopyApiImpl.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
 
-        // Validate the full copy request.
-        validateFullCopyCreateRequest(fcSourceObjList, project, name, count, createInactive,
-                fullCopyApiImpl);
+                // Validate the full copy request.
+                validateFullCopyCreateRequest(fcSourceObjListPerArrayGroup, project, name, count, createInactive,
+                        fullCopyApiImpl);
+                
+                fcSourceObjList.addAll(fcSourceObjListPerArrayGroup);
+            }
+            
+            // TODO which system type's BlockFullCopyApiImpl to call create() ?
+            // fullCopyApiImpl 
 
-        // Create a unique task identifier.
-        String taskId = UUID.randomUUID().toString();
+            // TODO create Task for Volume Group and all CGs involved
+
+        } else {
+
+            // Get the project for the full copy source object.
+            Project project = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
+
+            // Get and verify the virtual array.
+            varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
+                    fcSourceObj.getVirtualArray(), _uriInfo, _permissionsHelper, _dbClient);
+
+            // Get the platform specific block full copy implementation.
+            fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fcSourceObj);
+
+            // Get the list of all block objects for which we need to
+            // create full copies. For example, when creating a full copy
+            // for a volume in a consistency group, we may create full
+            // copies for all volumes in the consistency group.
+            fcSourceObjList = fullCopyApiImpl.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
+
+            // Validate the full copy request.
+            validateFullCopyCreateRequest(fcSourceObjList, project, name, count, createInactive,
+                    fullCopyApiImpl);
+        }
 
         // Create the full copies
         TaskList taskList = fullCopyApiImpl.create(fcSourceObjList, varray, name,
@@ -983,6 +1036,43 @@ public class BlockFullCopyManager {
         }
 
         return Integer.MAX_VALUE;
+    }
+
+    /**
+     * Get volume group active volumes. i.e. skip backend or internal volumes
+     *
+     * @param volumeGroup
+     * @return The list of active volumes in volume group
+     */
+    private List<Volume> getVolumeGroupActiveVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
+        List<Volume> result = new ArrayList<Volume>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+        for (Volume vol : volumes) {
+            if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                result.add(vol);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Group volumes by array group.
+     *
+     * @param volumes the volumes
+     * @return the map of array group to volumes
+     */
+    private Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes) {
+        Map<String, List<Volume>> arrayGroupToVolumes = new HashMap<String, List<Volume>>();
+        for (Volume volume : volumes) {
+            String repGroupName = volume.getReplicationGroupInstance();
+            if (arrayGroupToVolumes.get(repGroupName) == null) {
+                arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());
+            }
+            arrayGroupToVolumes.get(repGroupName).add(volume);
+        }
+        return arrayGroupToVolumes;
     }
 
 }

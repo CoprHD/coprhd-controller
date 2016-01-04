@@ -53,6 +53,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -407,6 +408,7 @@ public class VolumeGroupService extends TaskResourceService {
 
             for (VolumeGroupUtils util : utils) {
                 util.createVolumeGroupSnapshot(_dbClient, volumeList, param, volumeGroup, fcManager, taskId, response);
+                // TODO impl may change depending on FullCopy's progress
             }
         }
 
@@ -455,8 +457,7 @@ public class VolumeGroupService extends TaskResourceService {
         BlockFullCopyManager fcManager = getFullCopyManager();
 
         // get all volumes
-        // TODO only backend volumes?
-        List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
+        List<Volume> volumes = getVolumeGroupActiveVolumes(_dbClient, volumeGroup);
         // group volumes by Array Group
         Map<String, List<Volume>> arrayGroupToVolumesMap = groupVolumesByArrayGroup(volumes);
         for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
@@ -465,14 +466,11 @@ public class VolumeGroupService extends TaskResourceService {
             // TODO name for clone across array groups?
 
             for (VolumeGroupUtils util : utils) {
-                // Grab the first volume and call the block full copy
-                // manager to create the full copies for the volumes
-                // in the CG. Note that it will take into account the
-                // fact that the volume is in a CG.
-                TaskList taskList = getFullCopyManager().createFullCopy(volumeList.get(0).getId(), param);
-                response.getTaskList().addAll(taskList.getTaskList());
+
             }
         }
+
+        response = getFullCopyManager().createFullCopy(volumes.get(0).getId(), param);
 
         /*
          * addConsistencyGroupTask(consistencyGroup, response, taskId,
@@ -1116,6 +1114,25 @@ public class VolumeGroupService extends TaskResourceService {
         for (Volume vol : volumes) {
             // TODO return only visible volumes. i.e skip backend or internal volumes?
             if (!vol.getInactive()) {
+                result.add(vol);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get volume group active volumes. i.e. skip backend or internal volumes
+     *
+     * @param volumeGroup
+     * @return The list of active volumes in volume group
+     */
+    private static List<Volume> getVolumeGroupActiveVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
+        List<Volume> result = new ArrayList<Volume>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+        for (Volume vol : volumes) {
+            if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                 result.add(vol);
             }
         }

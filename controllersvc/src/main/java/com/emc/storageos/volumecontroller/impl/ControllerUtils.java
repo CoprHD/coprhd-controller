@@ -52,7 +52,9 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.common.Constants;
@@ -1356,5 +1358,43 @@ public class ControllerUtils {
     public static boolean checkCGCreatedOnBackEndArray(Volume volume) {
 
         return (volume != null && StringUtils.isNotBlank(volume.getReplicationGroupInstance()));
+    }
+
+    /**
+     * Get volume group volumes
+     *
+     * @param volumeGroup
+     * @return The list of volumes in volume group
+     */
+    public static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
+        List<Volume> result = new ArrayList<Volume>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
+        for (Volume vol : volumes) {
+            // TODO return only visible volumes. i.e skip backend or internal volumes?
+            if (!vol.getInactive()) {
+                result.add(vol);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Group volumes by array group.
+     *
+     * @param volumes the volumes
+     * @return the map of array group to volumes
+     */
+    public static Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes) {
+        Map<String, List<Volume>> arrayGroupToVolumes = new HashMap<String, List<Volume>>();
+        for (Volume volume : volumes) {
+            String repGroupName = volume.getReplicationGroupInstance();
+            if (arrayGroupToVolumes.get(repGroupName) == null) {
+                arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());
+            }
+            arrayGroupToVolumes.get(repGroupName).add(volume);
+        }
+        return arrayGroupToVolumes;
     }
 }

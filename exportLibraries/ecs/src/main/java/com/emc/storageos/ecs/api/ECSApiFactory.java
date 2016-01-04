@@ -22,6 +22,7 @@ import org.apache.commons.httpclient.protocol.Protocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.ECSNamespace.ECS_RepGroup_Type;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
@@ -155,8 +156,14 @@ public class ECSApiFactory {
         return ecsApi;
     }
 
-     
+
+    public static void main(String[] s) {
+        System.out.println("starting ecs main==");
+    }
+    
+    /*
       public static void main(String[] args) {
+          
       System.out.println("starting ecs main");
       URI uri = URI.create(String.format("https://10.247.39.127:4443/login"));
       ECSApiFactory factory = new ECSApiFactory();
@@ -172,7 +179,8 @@ public class ECSApiFactory {
           System.out.println("NOT Sys admin");
       
       //ecsApi.getNamespaces();
-      ecsApi.getNamespaceDetails("provider");
+      ECS_RepGroup_Type rgType = ECS_RepGroup_Type.NONE;
+      ecsApi.getNamespaceDetails("provider", rgType);
       
       //ecsApi.getStoragePools();
       //ecsApi.getStoragePort("10.32.4.98");
@@ -183,6 +191,6 @@ public class ECSApiFactory {
       //"4", "99", "55", "testlogin");
       //ecsApi.deleteBucket("esc_myproj_bucket1");
       }
-     
+     */
 
 }

@@ -16,6 +16,12 @@ import javax.xml.bind.annotation.XmlTransient;
 @Cf("ECSNamespace")
 public class ECSNamespace extends AbstractTenantResource {
     
+    public enum ECS_RepGroup_Type {
+        ALLOWED,
+        DISALLOWED,
+        NONE
+    };
+    
     //name of namespace
     private String _name;
     
@@ -32,10 +38,10 @@ public class ECSNamespace extends AbstractTenantResource {
     private String _ecsIp;
     
     //Allowed ECS replication groups
-    private List<String> _allowedReplicationGroups;
+    private ECS_RepGroup_Type _rgType;
     
     //Not Allowed ECS replication groups
-    private List<String> _disallowedReplicationGroups;
+    private List<String> _replicationGroups;
     
     //native device ID
     private String _nativeId;
@@ -88,22 +94,22 @@ public class ECSNamespace extends AbstractTenantResource {
         this._ecsIp = ecsIp;
     }
 
-    @Name("allowedReplicationGroups")
-    public List<String> getAllowedReplicationGroups() {
-        return _allowedReplicationGroups;
+    @Name("rgType")
+    public ECS_RepGroup_Type getRgType() {
+        return _rgType;
     }
     
-    public void setAllowedReplicationGroups(String allowedReplicationGroups) {
-        this._allowedReplicationGroups.add(allowedReplicationGroups);
+    public void setRgType(ECS_RepGroup_Type rgType) {
+        this._rgType = rgType;
     }
 
-    @Name("disallowedReplicationGroups")
-    public List<String> getDisallowedReplicationGroups() {
-        return _disallowedReplicationGroups;
+    @Name("replicationGroups")
+    public List<String> getReplicationGroups() {
+        return _replicationGroups;
     }
     
-    public void setDisllowedReplicationGroups(String disallowedReplicationGroups) {
-        this._disallowedReplicationGroups.add(disallowedReplicationGroups);
+    public void setReplicationGroups(String replicationGroups) {
+        this._replicationGroups.add(replicationGroups);
     }
 
     @Name("nativeId")

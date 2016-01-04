@@ -18,6 +18,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.ECSNamespace.ECS_RepGroup_Type;
 import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
@@ -47,7 +48,7 @@ public class ECSApi {
     private static final String URI_GET_NAMESPACE_DETAILS = "/object/namespaces/namespace/{0}.json";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
-
+    
     /**
      * Constructor for using http connections
      * 
@@ -473,10 +474,18 @@ public class ECSApi {
         }
     }
     
-    
-    public void getNamespaceDetails(String namespaceId) throws ECSException {
+    /**
+     * 
+     * @param Id of the namespace for which allowed/disallowed pools are required
+     * @param replicaiton group type
+     * @return List of allowed or disallowd rep groups or none
+     * @throws ECSException
+     */
+    public List<String> getNamespaceDetails(String namespaceId, ECS_RepGroup_Type rgType) throws ECSException {
         _log.debug("ECSApi:getNamespaceDetails enter");
         ClientResponse clientResp = null;
+        rgType = ECS_RepGroup_Type.NONE;
+        List<String> repGroup = new ArrayList<String>();
         try {
             String responseString = null;
             final String path = MessageFormat.format(URI_GET_NAMESPACE_DETAILS, namespaceId);
@@ -486,19 +495,45 @@ public class ECSApi {
             } else if (clientResp.getStatus() != 200) {
                 throw ECSException.exceptions.getNamespaceDetailsFailed(namespaceId, getResponseDetails(clientResp));
             }
-            
+
             responseString = clientResp.getEntity(String.class);
             _log.info("ECSApi:getNamespaceDetails for {} ECS response is {}", namespaceId, responseString);
             NamespaceDetailsCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
                     NamespaceDetailsCommandResult.class);
-            int k =1;
+
+            if (ecsNsResult.getAllowed_vpools_list().size() != 0) {
+                rgType = ECS_RepGroup_Type.ALLOWED;
+                for (int index = 0; index < ecsNsResult.getAllowed_vpools_list().size(); index++) {
+                    //Its possible to have replication group list null or blank
+                    if (ecsNsResult.getAllowed_vpools_list().get(index) != null &&
+                            !ecsNsResult.getAllowed_vpools_list().get(index).isEmpty())
+                        repGroup.add(ecsNsResult.getAllowed_vpools_list().get(index));
+                }
+                return repGroup;
+            }
+
+            if (ecsNsResult.getDisallowed_vpools_list().size() != 0) {
+                rgType = ECS_RepGroup_Type.DISALLOWED;
+                for (int index = 0; index < ecsNsResult.getDisallowed_vpools_list().size(); index++) {
+                    //Its possible to have replication group list null or blank
+                    if (ecsNsResult.getDisallowed_vpools_list().get(index) != null &&
+                            !ecsNsResult.getDisallowed_vpools_list().get(index).isEmpty())
+                        repGroup.add(ecsNsResult.getDisallowed_vpools_list().get(index));
+                }
+                return repGroup;
+            }
+
+            return null;
         } catch (Exception e) {
-
+            throw ECSException.exceptions.getNamespaceDetailsFailed(namespaceId, e);
         } finally {
-
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getNamespaceDetails exit");
         }
     }
-    
+
     
     
     

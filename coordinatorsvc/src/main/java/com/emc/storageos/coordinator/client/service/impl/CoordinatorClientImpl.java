@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -36,6 +37,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.DeleteBuilder;
 import org.apache.curator.framework.recipes.cache.NodeCache;
@@ -65,9 +67,11 @@ import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -91,6 +95,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
@@ -132,8 +137,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private NodeCacheWatcher nodeWatcher = new NodeCacheWatcher();
 
-    private String siteId;
     private DistributedAroundHook ownerLockAroundHook;
+    
+    private String vdcShortId;
+    
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
      * called
@@ -180,6 +187,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         dbVersionInfo = info;
     }
 
+    public void setVdcShortId(String vdcShortId) {
+        this.vdcShortId = vdcShortId;
+    }
+
     // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
     // This method is only called in tests and when Spring initialization, safe to suppress
     @SuppressWarnings("squid:S2444")
@@ -195,17 +206,69 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isSiteSpecificSectionInited() throws Exception {
-        String sitePath = getSitePrefix();
+        String siteConfigPath = String.format("%s/%s/%s", ZkPath.CONFIG, Site.CONFIG_KIND, vdcShortId);
+        log.info("config {}", siteConfigPath);
         try {
-            Stat stat = getZkConnection().curator().checkExists().forPath(sitePath);
+            Stat stat = getZkConnection().curator().checkExists().forPath(siteConfigPath);
+            log.info("Stat {}", stat);
             return stat != null;
         } catch (Exception e) {
-            log.error("Failed to access the path {}. Error {}", sitePath, e);
+            log.error("Failed to access the path {}. Error {}", siteConfigPath, e);
             throw e;
         }
     }
 
     private void createSiteSpecificSection() throws Exception {
+        String siteId = UUID.randomUUID().toString();
+        _zkConnection.setSiteId(siteId);
+        
+        // create VDC parent ZNode for site config in ZK
+        ConfigurationImpl vdcConfig = new ConfigurationImpl();
+        vdcConfig.setKind(Site.CONFIG_KIND);
+        vdcConfig.setId(vdcShortId);
+        persistServiceConfiguration(vdcConfig);
+
+        CoordinatorClientInetAddressMap nodeMap = getInetAddessLookupMap();
+        Map<String, DualInetAddress> controlNodes = nodeMap.getControllerNodeIPLookupMap();
+        HashMap<String, String> ipv4Addresses = new HashMap<String, String>();
+        HashMap<String, String> ipv6Addresses = new HashMap<String, String>();
+
+        String nodeId;
+        int nodeIndex = 0;
+        for (Map.Entry<String, DualInetAddress> cnode : controlNodes.entrySet()) {
+            nodeIndex++;
+            nodeId = "node" + nodeIndex;
+            DualInetAddress addr = cnode.getValue();
+            if (addr.hasInet4()) {
+                ipv4Addresses.put(nodeId, addr.getInet4());
+            }
+            if (addr.hasInet6()) {
+                ipv6Addresses.put(nodeId, addr.getInet6());
+            }
+        }
+
+        // insert DR acitve site info to ZK
+        Site site = new Site();
+        site.setUuid(siteId);
+        site.setName("Default Active Site");
+        site.setVdcShortId(vdcShortId);
+        site.setStandbyShortId("");
+        site.setHostIPv4AddressMap(ipv4Addresses);
+        site.setHostIPv6AddressMap(ipv6Addresses);
+        site.setState(SiteState.ACTIVE);
+        site.setCreationTime(System.currentTimeMillis());
+        String vip = ovfProperties.getProperty("network_vip");
+        if (StringUtils.isEmpty(vip)) {
+            vip = ovfProperties.getProperty("network_vip6");
+        }
+        site.setNodeCount(Math.max(ipv4Addresses.size(), ipv6Addresses.size()));
+        persistServiceConfiguration(site.toConfiguration());
+
+        if (!StringUtils.isEmpty(siteId)) {
+            siteId = UUID.randomUUID().toString();
+            FileUtils.writePlainFile("/data/zk/siteid", siteId.getBytes());
+        }
+        log.info("Create site specific section for {} successfully", siteId);
         addSite(siteId);
     }
 
@@ -228,8 +291,26 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             log.error("Failed to set site info of {}. Error {}", sitePath, e);
             throw e;
         }
+        
+        
     }
-
+    
+    private void persistSiteId() throws IOException {
+        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
+        List<Configuration> configs = queryAllConfiguration(siteKind);
+        if (configs.size() > 1) {
+            log.error("More than one sites detected in current vdc config. Could not identify current site id. You need manually update site id to /data/zk/siteid");
+            throw new IllegalStateException("Missing site id");
+        }
+        for (Configuration siteConfig : configs) {
+            Site site = new Site(siteConfig);
+            String siteId = site.getUuid();
+            FileUtils.writePlainFile("/data/zk/siteid", site.getUuid().getBytes());
+            log.info("Write site id to local disk {}", site.getUuid());
+            _zkConnection.setSiteId(siteId);
+        }
+    }
+    
     /**
      * Check and initialize site specific section for current site. If site specific section is empty,
      * we always assume current site is active site
@@ -238,16 +319,26 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     public void checkAndCreateSiteSpecificSection() throws Exception {
         if (isSiteSpecificSectionInited()) {
-            log.info("Site specific section for {} initialized", siteId);
+            String siteId = _zkConnection.getSiteId();
+            if (StringUtils.isEmpty(siteId)) {
+                log.info("Site specific section for {} initialized", siteId);
+                persistSiteId();
+            }
             return;
         }
 
-        log.info("The site specific section for {} has NOT been initialized", siteId);
+        log.info("The site specific section has NOT been initialized");
         InterProcessLock lock = getLock(ZkPath.SITES.name());
         try {
             lock.acquire();
-            if (!isSiteSpecificSectionInited())
+            if (isSiteSpecificSectionInited()) {
+                String siteId = _zkConnection.getSiteId();
+                if (StringUtils.isEmpty(siteId)) {
+                    persistSiteId();
+                }
+            } else {
                 createSiteSpecificSection();
+            }
         }catch (Exception e) {
             log.error("Failed to acquire the lock for {}. Error {}", ZkPath.SITES, e);
             throw e;
@@ -265,8 +356,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         if (_zkConnection.curator().isStarted()) {
             return;
         }
-
-        siteId = _zkConnection.getSiteId();
 
         _zkConnection.curator().getConnectionStateListenable()
                 .addListener(new org.apache.curator.framework.state.ConnectionStateListener() {
@@ -303,6 +392,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 });
         _zkConnection.connect();
 
+        // writing local node to zk
+        initInetAddressEntry();
+        
         try {
             checkAndCreateSiteSpecificSection();
 
@@ -321,8 +413,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             throw CoordinatorException.fatals.errorConnectingCoordinatorService(e);
         }
 
-        // writing local node to zk
-        initInetAddressEntry();
+        
     }
 
     @Override
@@ -558,7 +649,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private String getSitePrefix() {
-        return getSitePrefix(this.siteId);
+        return getSitePrefix(_zkConnection.getSiteId());
     }
 
     private String getSitePrefix(String siteId) {
@@ -580,7 +671,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private String getServicePath() {
-        return getServicePath(this.siteId);
+        return getServicePath(_zkConnection.getSiteId());
     }
 
     private String getKindPath(String siteId, String kind) {
@@ -677,7 +768,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
 
     private List<String> lookupServicePath(String serviceRoot) throws CoordinatorException {
-        return lookupServicePath(siteId, serviceRoot);
+        return lookupServicePath(_zkConnection.getSiteId(), serviceRoot);
     }
     
     /**
@@ -794,7 +885,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public List<Service> locateAllServices(String name, String version, String tag,
             String endpointKey) throws CoordinatorException {
-        return locateAllServices(siteId, name, version, tag, endpointKey);
+        return locateAllServices(_zkConnection.getSiteId(), name, version, tag, endpointKey);
     }
     
     @Override
@@ -807,7 +898,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             List<String> servicePaths = lookupServicePath(serviceRoot);
 
             for (String spath : servicePaths) {
-                byte[] data = getServiceData(this.siteId, serviceRoot, spath);
+                byte[] data = getServiceData(_zkConnection.getSiteId(), serviceRoot, spath);
                 if (data == null) {
                     continue;
                 }
@@ -1277,7 +1368,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     @Override
     public ClusterInfo.ClusterState getControlNodesState() {
-        return getControlNodesState(this.siteId, getNodeCount());
+        return getControlNodesState(_zkConnection.getSiteId(), getNodeCount());
     }
 
     @Override
@@ -1403,7 +1494,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     @Override
     public String getCurrentDbSchemaVersion() {
-        Configuration config = queryConfiguration(siteId, DB_CONFIG, GLOBAL_ID);
+        Configuration config = queryConfiguration(_zkConnection.getSiteId(), DB_CONFIG, GLOBAL_ID);
         if (config == null) {
             return null;
         }
@@ -1422,7 +1513,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public MigrationStatus getMigrationStatus() {
         log.debug("getMigrationStatus: target version: \"{}\"", getTargetDbSchemaVersion());
         // TODO support geodbsvc
-        Configuration config = queryConfiguration(siteId, getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()),
+        Configuration config = queryConfiguration(_zkConnection.getSiteId(), getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()),
                 GLOBAL_ID);
         if (config == null || config.getConfig(MIGRATION_STATUS) == null) {
             log.debug("config is null");
@@ -1461,7 +1552,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     public <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
             Pattern nodeIdFilter) throws Exception {
-        return getAllNodeInfos(clazz, nodeIdFilter, this.siteId);
+        return getAllNodeInfos(clazz, nodeIdFilter, _zkConnection.getSiteId());
     }
     
     private <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
@@ -1756,7 +1847,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
 	public String getSiteId() {
-		return siteId;
+		return _zkConnection.getSiteId();
 	}
 	
 	@Override

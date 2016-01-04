@@ -209,6 +209,7 @@ seed_provider:
             id: "db-${node_index}"
             seeds: "${standby_seeds_ipaddr}"
             siteid: "${site_id}"
+            vdcid: "${vdc_myid}"
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from

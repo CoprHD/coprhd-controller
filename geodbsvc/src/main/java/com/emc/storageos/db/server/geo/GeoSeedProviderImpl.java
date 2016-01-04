@@ -103,7 +103,11 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
-
+        
+        String vdcShortId= args.get(Constants.VDC_ID);
+        client.setVdcShortId(vdcShortId);
+        log.info("vdcShortId is {} ", vdcShortId);
+        
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
         CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
         if (inetAddressMap == null) {

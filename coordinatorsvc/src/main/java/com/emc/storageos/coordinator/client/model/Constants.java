@@ -139,6 +139,7 @@ public interface Constants {
     
     public static final String SITE_STATE = "state";
     public static final String SITE_ID= "siteid";
+    public static final String VDC_ID= "vdcid";
     
     public static final String KEY_CERTIFICATE_PAIR_CONFIG_KIND = "keyCertificatePairConfig";
     public static final String ZK_OBSERVER_CONFIG_SUFFIX= ":2888:2889:observer;2181";

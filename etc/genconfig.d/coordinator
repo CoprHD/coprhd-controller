@@ -166,7 +166,7 @@ _get_coordinatorclient_var() {
 
     echo "node_count=${_GENCONFIG_node_count}"
 
-    _get_props site_id
+    _get_props site_id vdc_myid
 }
 
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/coordinator-var.xml         $(_get_coordinator_var)

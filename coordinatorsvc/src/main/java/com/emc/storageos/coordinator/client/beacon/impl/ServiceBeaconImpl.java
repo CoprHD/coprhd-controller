@@ -19,8 +19,10 @@ import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
@@ -114,6 +116,7 @@ public class ServiceBeaconImpl implements ServiceBeacon {
     public void setSiteSpecific(boolean siteSpecific) {
         this.siteSpecific = siteSpecific;
     }
+
     /**
      * Init method.
      * Add state change listener
@@ -121,12 +124,26 @@ public class ServiceBeaconImpl implements ServiceBeacon {
      * Remove stale service registration from zk
      */
     public void init() {
-        _bInitialized = true;
-
+        
         _zkConnection.curator().getConnectionStateListenable().addListener(_connectionListener);
         _zkConnection.connect();
 
         if (siteSpecific) {
+            if (StringUtils.isEmpty(_zkConnection.getSiteId())) {
+                if (FileUtils.exists("/data/zk/siteid")) {
+                    try {
+                        byte[] data = FileUtils.readDataFromFile("/data/zk/siteid");
+                        String siteId = new String(data);
+                        _zkConnection.setSiteId(siteId);
+                    } catch (Exception ex) {
+                        _log.warn("Unexpected exception for site id ", ex);
+                        return;
+                    }
+                } else {
+                    _log.warn("Site Id not detected. Stop initialization");
+                    return;
+                }
+            }
             _serviceParentPath = String.format("%1$s/%2$s%3$s/%4$s/%5$s",
                     ZkPath.SITES, _zkConnection.getSiteId(), ZkPath.SERVICE, _service.getName(), _service.getVersion());
         } else {
@@ -134,12 +151,14 @@ public class ServiceBeaconImpl implements ServiceBeacon {
                     ZkPath.SERVICE, _service.getName(), _service.getVersion());
         }
         _servicePath = String.format("%1$s/%2$s", _serviceParentPath, _service.getId());
-
+        
         try {
             checkStaleRegistration();
         } catch (Exception ex) {
             _log.warn("Unable to remove stale service registration", ex);
         }
+        
+        _bInitialized = true;
     }
 
     /**

@@ -136,6 +136,12 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             }
             return false;
         }
+        public static boolean validFileReplication(final String name) {
+        	if (LOCAL.name().equalsIgnoreCase(name) || REMOTE.name().equalsIgnoreCase(name)) {
+        		return true;
+        	}
+            return false;
+        }
     }
     
     public static enum FileReplicationRPOType {
@@ -1068,7 +1074,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      */
     public static boolean vPoolSpecifiesFileReplication(final VirtualPool virtualPool) {
     	return (virtualPool.getFileReplicationType() != null  &&
-    			!FileReplicationType.NONE.name().equals(virtualPool.getFileReplicationType()));        
+    			FileReplicationType.validFileReplication(virtualPool.getFileReplicationType()));        
     }
 
     /**

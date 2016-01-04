@@ -182,7 +182,7 @@ public interface BlockStorageDriver extends StorageDriver {
      *
      * @param initiators Type: Input.
      * @param volumes    Type: Input.
-     * @param recommendedPorts recommended list of ports. Optional. Type: Input.
+     * @param recommendedPorts list of ports to select from for the export. Optional. Type: Input.
      * @param capabilities storage capabilities. Type: Input.
      * @return task
      */

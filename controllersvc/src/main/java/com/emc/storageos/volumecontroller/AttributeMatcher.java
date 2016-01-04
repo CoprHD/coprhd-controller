@@ -71,7 +71,9 @@ public abstract class AttributeMatcher {
         thin_volume_preallocation_percentage,
         unique_policy_names,
         remote_copy,
-        long_term_retention_policy
+        long_term_retention_policy,
+        min_datacenters,
+        quota
     }
 
     /**

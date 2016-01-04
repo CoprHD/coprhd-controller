@@ -51,6 +51,7 @@ import com.emc.vipr.client.core.StorageTiers;
 import com.emc.vipr.client.core.TasksResources;
 import com.emc.vipr.client.core.Tenants;
 import com.emc.vipr.client.core.Truststore;
+import com.emc.vipr.client.core.UnManagedCGs;
 import com.emc.vipr.client.core.UnManagedExportMasks;
 import com.emc.vipr.client.core.UnManagedFileSystems;
 import com.emc.vipr.client.core.UnManagedVolumes;
@@ -258,7 +259,7 @@ public class ViPRCoreClient {
     public BlockSnapshots blockSnapshots() {
         return new BlockSnapshots(this, client);
     }
-    
+
     public BlockSnapshotSessions blockSnapshotSessions() {
         return new BlockSnapshotSessions(this, client);
     }
@@ -322,6 +323,10 @@ public class ViPRCoreClient {
 
     public UnManagedVolumes unmanagedVolumes() {
         return new UnManagedVolumes(this, client);
+    }
+
+    public UnManagedCGs unmanagedCGs() {
+        return new UnManagedCGs(this, client);
     }
 
     public UnManagedExportMasks unmanagedExports() {

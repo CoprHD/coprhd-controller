@@ -18,6 +18,7 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.AuditLog;
 import com.emc.storageos.db.client.model.AuditLogTimeSeries;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -102,6 +103,7 @@ public class AuditLogManager {
         
         // Now insert the events into the database.
         try {
+            _dbClient.start();
             String bucketId = _dbClient.insertTimeSeries(AuditLogTimeSeries.class, dbAuditLogs);
             s_logger.info("AuditLog(s) persisted into Cassandra with bucketId/rowId : {}", bucketId);
         } catch (DatabaseException e) {

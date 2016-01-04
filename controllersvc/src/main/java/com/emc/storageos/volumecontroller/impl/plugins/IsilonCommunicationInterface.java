@@ -1112,14 +1112,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     /**
      * add user define the access zone to Discovery path
      * 
-     * @param accessZones
+     * @param nasServers
      */
-    void setDiscPathForAccess(List<IsilonAccessZone> accessZones) {
-        if (accessZones != null && !accessZones.isEmpty()) {
-            for (IsilonAccessZone isilonAccessZone : accessZones) {
-                if (isilonAccessZone.isSystem() == false) {
-                    getDiscPathsForUnManaged().add(isilonAccessZone.getPath() + "/");
-                    _log.info("setDiscPathForAccess: {}", isilonAccessZone.getPath() + "/");
+    void setDiscPathForAccess(Map<String, NASServer> nasServers) {
+        if (nasServers != null && !nasServers.isEmpty()) {
+            for (String path : nasServers.keySet()) {
+                String nasType = URIUtil.getTypeName(nasServers.get(path).getId());
+                if (StringUtils.isNotEmpty(path) && StringUtils.equals(nasType, "VirtualNAS")) {
+                    getDiscPathsForUnManaged().add(path);
+                    _log.info("setDiscPathForAccess: {}", path );
                 }
             }
         }
@@ -1202,8 +1203,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             // get the associated storage port for vnas Server
             List<IsilonAccessZone> isilonAccessZones = isilonApi.getAccessZones(null);
-            setDiscPathForAccess(isilonAccessZones);
             Map<String, NASServer> nasServers = getNASServer(storageSystem, isilonAccessZones);
+            setDiscPathForAccess(nasServers);
+            
 
             // Get All FileShare
             HashMap<String, HashSet<String>> allSMBShares = discoverAllSMBShares(storageSystem, isilonAccessZones);
@@ -2255,11 +2257,18 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             for (IsilonAccessZone isilonAccessZone : accessZones) {
                 if (isilonAccessZone.isSystem() == false) {
                     nasServer = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
-
-                    accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    if (nasServer != null) {
+                        accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    }else{
+                        _log.info("Nas server not available for path  {}, hence this filesystem will not be ingested",isilonAccessZone.getPath());
+                    }
                 } else {
                     nasServer = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
-                    accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    if (nasServer != null) {
+                        accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                    }else{
+                        _log.info("Nas server not available for path  {}, hence this filesystem will not be ingested",isilonAccessZone.getPath());
+                    }
                 }
             }
         }

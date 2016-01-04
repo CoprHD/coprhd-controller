@@ -32,7 +32,8 @@
 
            <property name="providerManaged">
                <set>
-                   <value>scaleiosystem</value>
+         <!--          <value>scaleiosystem</value>  -->
+                   <value>placeholdersystem</value>
                </set>
            </property>
 
@@ -40,6 +41,7 @@
                <set>
                    <value>driversystem</value> <!-- simulator -->
                    <value>cloudarray</value>
+                   <value>scaleiosystem</value>
                </set>
            </property>
 

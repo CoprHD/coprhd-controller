@@ -42,6 +42,7 @@ public class DiscoveredDataObject extends DataObject {
         scaleio,
         xtremio,
         ecs,
+        // E@R scaleiosystem,
         driversystem;
 
         static public boolean isDriverManagedStorageSystem(String storageType) {

@@ -381,20 +381,25 @@
         <property name="drivers">
             <map>
 
+                <!-- E@R
+                <entry key="scaleiosystem" value-ref="scaleioStorageDriver"/>
+                -->
+
                 <!--
-                <entry key="scaleio" value-ref="scaleioStorageDriver"/>
                 <entry key="cloudarray" value-ref="cloudarrayStorageDriver"/>
                 -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
             </map>
         </property>
     </bean>
-<!--
-    <bean id="scaleioStorageDriver" class="com.emc.storageos.driver.scaleio.ScaleioStorageDriver">
-    </bean>
-    <bean id="cloudarrayStorageDriver" class="com.emc.storageos.driver.cloudarray.CloudArrayStorageDriver">
-    </bean>
--->
+    <!-- E@R
+        <bean id="scaleioStorageDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
+        </bean>
+    -->
+    <!--
+        <bean id="cloudarrayStorageDriver" class="com.emc.storageos.driver.cloudarray.CloudArrayStorageDriver">
+        </bean>
+    -->
     <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
     </bean>
 

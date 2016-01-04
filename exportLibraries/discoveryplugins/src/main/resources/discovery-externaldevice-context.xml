@@ -5,9 +5,9 @@
 
 
     <!-- Discovery drivers -->
-    <!-- <bean id="scaleioDriver" class="com.emc.storageos.driver.scaleio.ScaleioStorageDriver">
-     </bean>
-     <bean id="cloudArrayDriver" class="com.emc.storageos.driver.cloudarray.CloudArrayStorageDriver">
+    <!-- E@R  <bean id="scaleioDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
+     </bean> -->
+     <!-- <bean id="cloudArrayDriver" class="com.emc.storageos.driver.cloudarray.CloudArrayStorageDriver">
      </bean> -->
      <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
      </bean>
@@ -15,8 +15,8 @@
      <bean id="externaldevice" class="com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface">
          <property name="drivers">
              <map>
-                <!--  <entry key="scaleio" value-ref="scaleioDriver"/>
-                <entry key="cloudarray" value-ref="cloudArrayDriver"/> -->
+                <!-- E@R  <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
+                <!--  <entry key="cloudarray" value-ref="cloudArrayDriver"/> -->
                 <!-- Test only  -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
             </map>

@@ -44,7 +44,6 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
     private Map<String, List<String>> remoteProtectionSettings;
     private Boolean _long_term_retention;
     private boolean uniquePolicyNames;
-    private Map<String, List<String>> fileRemoteProtectionSettings;
 
     public VirtualPoolPreCreateParamAttributeMapBuilder(String autoTieringPolicyName,
             String driveType, String haType, String haVarray, String haVpool,

@@ -131,6 +131,7 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
                 putAttributeInMap(Attributes.file_replication.toString(), fileRemoteProtectionSettings);
             }
         }
+        putAttributeInMap(Attributes.min_datacenters.toString(), _vpool.getMinDataCenters());
         return _attributeMap;
     }
 }

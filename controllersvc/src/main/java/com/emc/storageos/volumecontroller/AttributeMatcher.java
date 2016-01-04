@@ -74,7 +74,9 @@ public abstract class AttributeMatcher {
         long_term_retention_policy,
         file_replication_type,
         file_replication_copy_mode,
-        file_replication
+        file_replication,
+        min_datacenters,
+        quota
     }
 
     /**

@@ -119,7 +119,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Long _frRpoValue;
     // File Replication RPO type
     private String _frRpoType;
- // File Replication RPO type
+    // File Replication RPO type
     private String _replicationCopyMode;
     
     
@@ -173,6 +173,10 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             return null;
         }
     };
+
+    //Minimum number of data centers in this virtual pool
+    //This is required only for object virtual pools
+    private Integer minDataCenters;
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
@@ -1466,6 +1470,16 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setFileReplicationCopyMode(String replicationCopyMode) {
         this._replicationCopyMode = replicationCopyMode;
         setChanged("replicationCopyMode");
+    }
+
+    @Name("minDataCenters")
+    public Integer getMinDataCenters() {
+        return (minDataCenters==null) ? 0 : minDataCenters;
+    }
+
+    public void setMinDataCenters(Integer minDataCenters) {
+        this.minDataCenters = (null==minDataCenters || minDataCenters == 0) ? 0 : minDataCenters;
+        setChanged("minDataCenters");
     }
     
 }

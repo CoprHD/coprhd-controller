@@ -700,7 +700,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
             // Find the smart connect zones
-            IsilonNetworkPool isilonNetworkPoolSystem = null;
             List<IsilonNetworkPool> isilonNetworkPoolsSysAZ = new ArrayList<>();
 
             // get the system access zone and use it later
@@ -722,8 +721,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
             }
 
-            StoragePort storagePort = null;
-            StringSet storagePorts = null;
             List<IsilonNetworkPool> isilonNetworkPools = null;
 
             // process the access zones list
@@ -742,53 +739,29 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         }
                     }
                     
-                    // if the smart connect is null then ignore the access zone
-                    if (isilonNetworkPools != null && isilonNetworkPools.isEmpty()) {
-                    	_log.info("No network pools assigned to this access zone: {}. So ignore it.",
-                    			isilonAccessZone.getName());
-                    	continue;
-                    }
-
                     // find virtualNAS in db
                     virtualNAS = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                     if (virtualNAS == null) {
-                        virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
-                        newvNASList.add(virtualNAS);
+                    	if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
+                    		virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
+                    		newvNASList.add(virtualNAS);
+                    	}
                     } else {
                     	copyUpdatedPropertiesInVNAS(storageSystem, isilonAccessZone, virtualNAS);
                         existingvNASList.add(virtualNAS);
                     }
 
                     // Set authentication providers
-                    setCifsServerMap(isilonAccessZone, virtualNAS);
+                    setCifsServerMapForNASServer(isilonAccessZone, virtualNAS);
                     
                     // set protocol support
-                    virtualNAS.setProtocols(protocols);
-                    // set the smart connect
-                    if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
-                        storagePorts = virtualNAS.getStoragePorts();
-                        if (storagePorts == null) {
-                            storagePorts = new StringSet();
-                        } else {
-                            storagePorts.clear();
-                        }
-                        for (IsilonNetworkPool isiNetworkPool : isilonNetworkPools) {
-                            storagePort = findStoragePortByNativeId(storageSystem,
-                                    isiNetworkPool.getSc_dns_zone());
-                            if (storagePort != null) {
-                                storagePorts.add(storagePort.getId().toString());
-                            }
-                        }
-                        virtualNAS.setStoragePorts(storagePorts);
-                    } else {
-                    	/*
-                    	 * Smart connect zones are dissociated with this access zone.
-                    	 * So mark this access zone as not visible.
-                    	 */
-                    	_log.info("Setting discovery status of vnas {} as NOTVISIBLE", virtualNAS.getNasName());
-                    	virtualNAS.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
-                    	virtualNAS.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
+                    if (virtualNAS != null) {
+                    	virtualNAS.setProtocols(protocols);
                     }
+                    
+                    // set the smart connect
+                    setStoragePortsForNASServer(isilonNetworkPools, storageSystem, virtualNAS);
+
                 } else {
                     _log.info("Process the System access zone {} ", isilonAccessZone.toString());
                     // set protocols
@@ -810,25 +783,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         existingPhysicalNASList.add(physicalNAS);
                     }
                     // Set authentication providers
-                    setCifsServerMap(isilonAccessZone, physicalNAS);
+                    setCifsServerMapForNASServer(isilonAccessZone, physicalNAS);
 
-                    // set the smart connect
-                    if (isilonNetworkPoolsSysAZ != null) {
-                        storagePorts = physicalNAS.getStoragePorts();
-                        if (storagePorts == null) {
-                            storagePorts = new StringSet();
-                        } else {
-                            storagePorts.clear();
-                        }
-                        for (IsilonNetworkPool isiNetworkPool : isilonNetworkPoolsSysAZ) {
-                            storagePort = findStoragePortByNativeId(storageSystem,
-                                    isiNetworkPool.getSc_dns_zone());
-                            if (storagePort != null) {
-                                storagePorts.add(storagePort.getId().toString());
-                            }
-                        }
-                        physicalNAS.setStoragePorts(storagePorts);
-                    }
+                    // set the smart connect zone
+                    setStoragePortsForNASServer(isilonNetworkPoolsSysAZ, storageSystem, physicalNAS);
                 }
             }
 
@@ -847,7 +805,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
             if (existingvNASList != null && !existingvNASList.isEmpty()) {
-                _log.info("Modified Virtaul NAS servers size {}", existingvNASList.size());
+                _log.info("Modified Virtual NAS servers size {}", existingvNASList.size());
                 _dbClient.updateObject(existingvNASList);
                 discoveredVNASList.addAll(existingvNASList);
             }
@@ -869,6 +827,48 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. Storage system: " + storageSystemId);
             throw ice;
         }
+    }
+    
+    private void setStoragePortsForNASServer(List<IsilonNetworkPool> isilonNetworkPools,
+    		StorageSystem storageSystem, NASServer nasServer) {
+    	
+    	if (nasServer == null) {
+    		return;
+    	}
+    	
+    	StringSet storagePorts = nasServer.getStoragePorts();
+    	
+    	if (storagePorts == null) {
+    		storagePorts = new StringSet(); 
+    	} else {
+    		storagePorts.clear();
+    	}
+    	
+        if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
+            
+            for (IsilonNetworkPool isiNetworkPool : isilonNetworkPools) {
+                StoragePort storagePort = findStoragePortByNativeId(storageSystem,
+                        isiNetworkPool.getSc_dns_zone());
+                if (storagePort != null) {
+                    storagePorts.add(storagePort.getId().toString());
+                }
+            }
+        } else {
+        	/*
+        	 * Smart connect zones are dissociated with this access zone.
+        	 * So mark this access zone as not visible.
+        	 */
+        	_log.info("Setting discovery status of vnas {} as NOTVISIBLE", nasServer.getNasName());
+        	nasServer.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
+        	nasServer.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
+        	StringSet assignedVarrays = nasServer.getAssignedVirtualArrays();
+        	if (assignedVarrays != null) {
+        		nasServer.removeAssignedVirtualArrays(assignedVarrays);
+        	}
+        }
+        
+        _log.info("Setting storage ports for vNAS [{}] : {}", nasServer.getNasName(), storagePorts);
+        nasServer.setStoragePorts(storagePorts);
     }
 
     private void discoverCluster(StorageSystem storageSystem) throws IsilonCollectionException {
@@ -2854,7 +2854,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param isiAccessZone the Isilon access zone object
      * @param nasServer the NAS server in which CIF server map will be set
      */
-    private void setCifsServerMap(final IsilonAccessZone isiAccessZone, NASServer nasServer) {
+    private void setCifsServerMapForNASServer(final IsilonAccessZone isiAccessZone, NASServer nasServer) {
+    	
+    	if(nasServer == null) {
+    		return;
+    	}
         
     	_log.info("Set the authentication providers for NAS: {}", nasServer.getNasName());
     	String providerName = null;

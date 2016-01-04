@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -84,6 +85,7 @@ import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopyType;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -1114,8 +1116,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // number of snaps to the default value of 128. It is necessary to set
             // the default because xtremio uses snap technology for replication
             // Eventually this value should be configurable and passed as part of the VPool RecoverPoint settings
-            if (RPHelper.protectXtremioVolume(volume, _dbClient)) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_MAX_SNAPS, 128);
+            // If capabilities is null this is an expand operation no need to set the max number of snaps
+            if (RPHelper.protectXtremioVolume(volume, _dbClient) && capabilities != null) {                
+            	capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_MAX_SNAPS, 128);        	
             }
 
             VolumeDescriptor desc = null;
@@ -1512,6 +1515,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volume = _dbClient.queryObject(Volume.class, volume.getId());
             }
 
+            volume.setSyncActive(true);
             volume.setLabel(label);
             volume.setCapacity(SizeUtil.translateSize(size));
             volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin
@@ -1753,6 +1757,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         try {
             super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
         } catch (Exception e) {
+            // Set the task to failed
+            for (URI volumeID : volumeURIs) {
+                if (e instanceof ServiceCoded) {
+                    _dbClient.error(Volume.class, volumeID, task, (ServiceCoded)e);
+                } else {
+                    _dbClient.error(Volume.class, volumeID, task, RecoverPointException.exceptions.deletingRPVolume(e));
+                }
+            }
             throw RecoverPointException.exceptions.deletingRPVolume(e);
         }
     }
@@ -2781,6 +2793,20 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 cleanVolumeFromExports(assocVolumeURI, true);
             }
         }
+        
+        // If we're deleting the last volume, we can delete the ProtectionSet object
+        Set<URI> psetsDeleted = new HashSet<URI>();
+        for (URI sourceVolumeURI : sourceVolumeURIs) {
+            Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
+            if (sourceVolume.getProtectionSet() != null) {
+                ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet().getURI());
+                if (!psetsDeleted.contains(sourceVolume.getProtectionSet().getURI()) &&
+                        _rpHelper.getVolumesToDelete(sourceVolumeURIs).size() == pset.getVolumes().size()) {
+                    _dbClient.markForDeletion(pset);
+                    psetsDeleted.add(sourceVolume.getProtectionSet().getURI());
+                }
+            }
+        }        
     }
 
     @Override

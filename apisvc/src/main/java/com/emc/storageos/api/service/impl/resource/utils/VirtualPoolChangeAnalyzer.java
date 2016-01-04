@@ -1072,6 +1072,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String[] exclude = EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE;
         excluded.addAll(Arrays.asList(exclude));
         excluded.addAll(Arrays.asList(generallyExcluded));
+        // PROTECTION_VARRAY_SETTINGS changes every time a vpool is duplicated so we will ignore it, otherwise
+        // this change vpool operation is blocked.
+        // RP_RPO_VALUE will be updated from null to 0 if any vpool update is performed so we will ignore it,
+        // otherwise this change vpool operation is blocked.
+        excluded.addAll(Arrays.asList(RP_RPO_VALUE, PROTECTION_VARRAY_SETTINGS));
         if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(currentVpool)
                 && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(newVpool)) {
             // get current & new HA vPools and compare

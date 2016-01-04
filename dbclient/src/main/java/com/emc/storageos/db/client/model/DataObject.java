@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Calendar;
 import java.util.Collection;
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.util.KeyspaceUtil;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.valid.Length;
 
 /**
@@ -31,6 +33,8 @@ import com.emc.storageos.model.valid.Length;
 public abstract class DataObject implements Serializable {
     static final long serialVersionUID = -5278839624050514418L;
     public static final String INACTIVE_FIELD_NAME = "inactive";
+    private static final int DEFAULT_MIN_LABEL_LENGTH = 2;
+    private static final String READ_LABEL_METHOD_NAME = "getLabel";
 
     private static final Logger _log = LoggerFactory.getLogger(DataObject.class);
 
@@ -131,8 +135,31 @@ public abstract class DataObject implements Serializable {
      * @param label
      */
     public void setLabel(String label) {
+        // COP-18886 revert this fix for Darth SP1 to unblock unmanaged volume ingestion
+        // it didn't really help us much if we don't fix existing records anyways.
+        // validateLabel(label);
         _label = label;
         setChanged("label");
+    }
+    
+    private void validateLabel(String label) {
+        int minLength = getPrefixIndexMinLength();
+        if (label != null && label.length() < minLength) {
+            String clazzName = this.getClass().getSimpleName();
+            throw DatabaseException.fatals.fieldLengthTooShort(clazzName, this.getId(), READ_LABEL_METHOD_NAME, label.length(), minLength);
+        }
+    }
+    
+    private int getPrefixIndexMinLength()  {
+        int length = DEFAULT_MIN_LABEL_LENGTH;
+        try {
+            Method method = DataObject.class.getDeclaredMethod(READ_LABEL_METHOD_NAME, null);
+            PrefixIndex annotation = method.getAnnotation(PrefixIndex.class);
+            length = annotation.minChars();
+        } catch (Exception e) {
+            _log.error("get declared method error:", e);
+        }
+        return length;
     }
 
     /**
@@ -387,12 +414,12 @@ public abstract class DataObject implements Serializable {
      * providing some typesafe setters/getters.
      */
     public static enum Flag {
-        INTERNAL_OBJECT(0),
-        NO_METERING(1),
-        NO_PUBLIC_ACCESS(2),
-        SUPPORTS_FORCE(3),
-        RECOVERPOINT(4),
-        DELETION_IN_PROGRESS(5);
+        INTERNAL_OBJECT(0),         // 0x01
+        NO_METERING(1),             // 0x02
+        NO_PUBLIC_ACCESS(2),        // 0x04
+        SUPPORTS_FORCE(3),          // 0x08
+        RECOVERPOINT(4),            // 0x10
+        DELETION_IN_PROGRESS(5);    // 0x20
 
         private final long mask;
 

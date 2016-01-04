@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSE
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -56,14 +58,15 @@ import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonClusterConfig;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
+import com.emc.storageos.isilon.restapi.IsilonNFSACL;
 import com.emc.storageos.isilon.restapi.IsilonNetworkPool;
+import com.emc.storageos.isilon.restapi.IsilonPool;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfo;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfoV2;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
-import com.emc.storageos.isilon.restapi.IsilonStoragePool;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -693,7 +696,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
             // Find the smart connect zones
-            IsilonNetworkPool isilonNetworkPoolSystem = null;
             List<IsilonNetworkPool> isilonNetworkPoolsSysAZ = new ArrayList<>();
 
             // get the system access zone and use it later
@@ -715,8 +717,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
             }
 
-            StoragePort storagePort = null;
-            StringSet storagePorts = null;
             List<IsilonNetworkPool> isilonNetworkPools = null;
 
             // process the access zones list
@@ -735,53 +735,29 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         }
                     }
                     
-                    // if the smart connect is null then ignore the access zone
-                    if (isilonNetworkPools != null && isilonNetworkPools.isEmpty()) {
-                    	_log.info("No network pools assigned to this access zone: {}. So ignore it.",
-                    			isilonAccessZone.getName());
-                    	continue;
-                    }
-
                     // find virtualNAS in db
                     virtualNAS = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                     if (virtualNAS == null) {
-                        virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
-                        newvNASList.add(virtualNAS);
+                    	if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
+                    		virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
+                    		newvNASList.add(virtualNAS);
+                    	}
                     } else {
                     	copyUpdatedPropertiesInVNAS(storageSystem, isilonAccessZone, virtualNAS);
                         existingvNASList.add(virtualNAS);
                     }
 
                     // Set authentication providers
-                    setCifsServerMap(isilonAccessZone, virtualNAS);
+                    setCifsServerMapForNASServer(isilonAccessZone, virtualNAS);
                     
                     // set protocol support
-                    virtualNAS.setProtocols(protocols);
-                    // set the smart connect
-                    if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
-                        storagePorts = virtualNAS.getStoragePorts();
-                        if (storagePorts == null) {
-                            storagePorts = new StringSet();
-                        } else {
-                            storagePorts.clear();
-                        }
-                        for (IsilonNetworkPool isiNetworkPool : isilonNetworkPools) {
-                            storagePort = findStoragePortByNativeId(storageSystem,
-                                    isiNetworkPool.getSc_dns_zone());
-                            if (storagePort != null) {
-                                storagePorts.add(storagePort.getId().toString());
-                            }
-                        }
-                        virtualNAS.setStoragePorts(storagePorts);
-                    } else {
-                    	/*
-                    	 * Smart connect zones are dissociated with this access zone.
-                    	 * So mark this access zone as not visible.
-                    	 */
-                    	_log.info("Setting discovery status of vnas {} as NOTVISIBLE", virtualNAS.getNasName());
-                    	virtualNAS.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
-                    	virtualNAS.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
+                    if (virtualNAS != null) {
+                    	virtualNAS.setProtocols(protocols);
                     }
+                    
+                    // set the smart connect
+                    setStoragePortsForNASServer(isilonNetworkPools, storageSystem, virtualNAS);
+
                 } else {
                     _log.info("Process the System access zone {} ", isilonAccessZone.toString());
                     // set protocols
@@ -803,25 +779,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         existingPhysicalNASList.add(physicalNAS);
                     }
                     // Set authentication providers
-                    setCifsServerMap(isilonAccessZone, physicalNAS);
+                    setCifsServerMapForNASServer(isilonAccessZone, physicalNAS);
 
-                    // set the smart connect
-                    if (isilonNetworkPoolsSysAZ != null) {
-                        storagePorts = physicalNAS.getStoragePorts();
-                        if (storagePorts == null) {
-                            storagePorts = new StringSet();
-                        } else {
-                            storagePorts.clear();
-                        }
-                        for (IsilonNetworkPool isiNetworkPool : isilonNetworkPoolsSysAZ) {
-                            storagePort = findStoragePortByNativeId(storageSystem,
-                                    isiNetworkPool.getSc_dns_zone());
-                            if (storagePort != null) {
-                                storagePorts.add(storagePort.getId().toString());
-                            }
-                        }
-                        physicalNAS.setStoragePorts(storagePorts);
-                    }
+                    // set the smart connect zone
+                    setStoragePortsForNASServer(isilonNetworkPoolsSysAZ, storageSystem, physicalNAS);
                 }
             }
 
@@ -840,7 +801,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
             if (existingvNASList != null && !existingvNASList.isEmpty()) {
-                _log.info("Modified Virtaul NAS servers size {}", existingvNASList.size());
+                _log.info("Modified Virtual NAS servers size {}", existingvNASList.size());
                 _dbClient.updateObject(existingvNASList);
                 discoveredVNASList.addAll(existingvNASList);
             }
@@ -862,6 +823,48 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. Storage system: " + storageSystemId);
             throw ice;
         }
+    }
+    
+    private void setStoragePortsForNASServer(List<IsilonNetworkPool> isilonNetworkPools,
+    		StorageSystem storageSystem, NASServer nasServer) {
+    	
+    	if (nasServer == null) {
+    		return;
+    	}
+    	
+    	StringSet storagePorts = nasServer.getStoragePorts();
+    	
+    	if (storagePorts == null) {
+    		storagePorts = new StringSet(); 
+    	} else {
+    		storagePorts.clear();
+    	}
+    	
+        if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
+            
+            for (IsilonNetworkPool isiNetworkPool : isilonNetworkPools) {
+                StoragePort storagePort = findStoragePortByNativeId(storageSystem,
+                        isiNetworkPool.getSc_dns_zone());
+                if (storagePort != null) {
+                    storagePorts.add(storagePort.getId().toString());
+                }
+            }
+        } else {
+        	/*
+        	 * Smart connect zones are dissociated with this access zone.
+        	 * So mark this access zone as not visible.
+        	 */
+        	_log.info("Setting discovery status of vnas {} as NOTVISIBLE", nasServer.getNasName());
+        	nasServer.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
+        	nasServer.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
+        	StringSet assignedVarrays = nasServer.getAssignedVirtualArrays();
+        	if (assignedVarrays != null) {
+        		nasServer.removeAssignedVirtualArrays(assignedVarrays);
+        	}
+        }
+        
+        _log.info("Setting storage ports for vNAS [{}] : {}", nasServer.getNasName(), storagePorts);
+        nasServer.setStoragePorts(storagePorts);
     }
 
     private void discoverCluster(StorageSystem storageSystem) throws IsilonCollectionException {
@@ -921,13 +924,22 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             _log.info("discoverPools for storage system {} - start", storageSystemId);
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-            StoragePool storagePool;
+
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
 
-            List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
-            for (IsilonStoragePool isilonPool : isilonStoragePools) {
+            _log.info("Isilon OneFS version: {}", storageSystem.getFirmwareVersion());
+            List<? extends IsilonPool> isilonPools = null;
+            if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, storageSystem.getFirmwareVersion()) >= 0) {
+            	_log.info("Querying for Isilon storage pools...");
+            	isilonPools = isilonApi.getStoragePools();
+            } else {
+            	_log.info("Querying for Isilon disk pools...");
+            	isilonPools = isilonApi.getDiskPools();
+            }
+            
+            for (IsilonPool isilonPool : isilonPools) {
                 // Check if this storage pool was already discovered
-                storagePool = null;
+            	StoragePool storagePool = null;
                 String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem, isilonPool.getNativeId(),
                         NativeGUIDGenerator.POOL);
@@ -943,8 +955,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     }
                 }
 
-                if (storagePool == null)
-                {
+                if (storagePool == null) {
                     // New storage pool
                     storagePool = new StoragePool();
                     storagePool.setId(URIUtil.createId(StoragePool.class));
@@ -978,9 +989,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
 
                 // scale capacity size
-                storagePool.setFreeCapacity(isilonPool.getAvailable() / BYTESCONVERTER);
-                storagePool.setTotalCapacity(isilonPool.getTotal() / BYTESCONVERTER);
-                storagePool.setSubscribedCapacity(isilonPool.getUsed() / BYTESCONVERTER);
+                storagePool.setFreeCapacity(isilonPool.getAvailableBytes() / BYTESCONVERTER);
+                storagePool.setTotalCapacity(isilonPool.getTotalBytes() / BYTESCONVERTER);
+                storagePool.setSubscribedCapacity(isilonPool.getUsedBytes() / BYTESCONVERTER);
                 if (ImplicitPoolMatcher.checkPoolPropertiesChanged(storagePool.getCompatibilityStatus(),
                         DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name())
                         || ImplicitPoolMatcher.checkPoolPropertiesChanged(storagePool.getDiscoveryStatus(), DiscoveryStatus.VISIBLE.name())) {
@@ -1200,6 +1211,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             List<UnManagedCifsShareACL> oldunManagedCifsShareACLList = new ArrayList<UnManagedCifsShareACL>();
 
             HashMap<String, HashSet<Integer>> expMap = discoverAllExports(storageSystem, isilonAccessZones);
+            List<UnManagedNFSShareACL> unManagedNfsShareACLList = new ArrayList<UnManagedNFSShareACL>();
+            List<UnManagedNFSShareACL> oldunManagedNfsShareACLList = new ArrayList<UnManagedNFSShareACL>();
 
             UnManagedExportVerificationUtility validationUtility = new UnManagedExportVerificationUtility(
                     _dbClient);
@@ -1244,7 +1257,34 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         boolean alreadyExist = unManagedFs == null ? false : true;
                         unManagedFs = createUnManagedFileSystem(unManagedFs,
                                 fsUnManagedFsNativeGuid, storageSystem, storagePool, nasServer, fs);
+                        List<UnManagedNFSShareACL> tempUnManagedNfsShareACL = new ArrayList<UnManagedNFSShareACL>();
+                        UnManagedNFSShareACL existingNfsACL = null;
+                        getUnmanagedNfsShareACL(unManagedFs, tempUnManagedNfsShareACL, storagePort, fs, isilonApi);
 
+                        if (tempUnManagedNfsShareACL != null && !tempUnManagedNfsShareACL.isEmpty()) {
+                            unManagedFs.setHasNFSAcl(true);
+                        }
+                        for (UnManagedNFSShareACL unManagedNFSACL : tempUnManagedNfsShareACL) {
+                            _log.info("Unmanaged File share acls : {}", unManagedNFSACL);
+                            String fsShareNativeId = unManagedNFSACL.getFileSystemNfsACLIndex();
+                            _log.info("UMFS Share ACL index {}", fsShareNativeId);
+                            String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
+                                    .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
+                            _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
+                            // set native guid, so each entry unique
+                            unManagedNFSACL.setNativeGuid(fsUnManagedFileShareNativeGuid);
+                            // Check whether the NFS share ACL was present in ViPR DB.
+                            existingNfsACL = checkUnManagedFsNfssACLExistsInDB(_dbClient, unManagedNFSACL.getNativeGuid());
+                            if (existingNfsACL == null) {
+                                unManagedNfsShareACLList.add(unManagedNFSACL);
+                            } else {
+                                unManagedNfsShareACLList.add(unManagedNFSACL);
+                                // delete the existing acl
+                                existingNfsACL.setInactive(true);
+                                oldunManagedNfsShareACLList.add(existingNfsACL);
+                            }
+                        }
+                        
                         // get umcifs & ACLs for given filesystem
                         UnManagedCifsShareACL existingACL = null;
                         List<UnManagedCifsShareACL> tempunManagedCifsShareACL = new ArrayList<UnManagedCifsShareACL>();
@@ -1416,12 +1456,28 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _dbClient.createObject(unManagedCifsShareACLList);
                 unManagedCifsShareACLList.clear();
             }
+            
+            // save NFS ACLs in db
+            if (!unManagedNfsShareACLList.isEmpty()) {
+                _log.info("Saving Number of UnManagedNfsShareACL(s) {}", unManagedNfsShareACLList.size());
+                _dbClient.createObject(unManagedNfsShareACLList);
+                unManagedNfsShareACLList.clear();
+            }
+            
             // save old acls
             if (!oldunManagedCifsShareACLList.isEmpty()) {
                 _log.info("Saving Number of UnManagedFileExportRule(s) {}", oldunManagedCifsShareACLList.size());
                 _dbClient.persistObject(oldunManagedCifsShareACLList);
                 oldunManagedCifsShareACLList.clear();
             }
+            
+         // save old acls
+            if (!oldunManagedNfsShareACLList.isEmpty()) {
+                _log.info("Saving Number of NFS UnManagedFileExportRule(s) {}", oldunManagedNfsShareACLList.size());
+                _dbClient.updateObject(oldunManagedNfsShareACLList);
+                oldunManagedNfsShareACLList.clear();
+            }
+            
 
             _log.info("Discovered {} Isilon file systems.", totalIsilonFSDiscovered);
             // Process those active unmanaged fs objects available in database but not in newly discovered items, to mark them inactive.
@@ -1801,6 +1857,53 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return;
     }
+    
+    /**
+     * get UnManaged NFS Shares and their ACLs
+     * 
+     * @param unManagedFileSystem
+     * @param unManagedNfsACLList
+     * @param storagePort
+     * @param fs
+     * @param isilonApi
+     */
+    private void getUnmanagedNfsShareACL(UnManagedFileSystem unManagedFileSystem,
+            List<UnManagedNFSShareACL> unManagedNfsACLList,
+            StoragePort storagePort,
+            FileShare fs, IsilonApi isilonApi) {
+
+        _log.info(
+                "getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start",
+                fs.getName());
+        IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(fs.getPath());
+
+        for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
+
+            UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
+
+            unmanagedNFSAcl.setFileSystemPath(fs.getPath());
+
+            String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+
+            if (tempUname.length > 1) {
+                unmanagedNFSAcl.setDomain(tempUname[0]);
+                unmanagedNFSAcl.setUser(tempUname[1]);
+            } else {
+                unmanagedNFSAcl.setUser(tempUname[0]);
+            }
+
+            unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+            unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+            unmanagedNFSAcl.setPermissions(StringUtils.join(
+                    getIsilonAccessList(tempAcl.getAccessrights()), ","));
+
+            unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+            unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+
+            unManagedNfsACLList.add(unmanagedNFSAcl);
+
+        }
+    }
 
     @Override
     public void scan(AccessProfile arg0) throws BaseCollectionException {
@@ -1851,6 +1954,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
             unManagedFileSystem.setHasExports(false);
             unManagedFileSystem.setHasShares(false);
+    		unManagedFileSystem.setHasNFSAcl(false);
         }
 
         if (null == unManagedFileSystem.getExtensions()) {
@@ -2548,6 +2652,34 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return expMapTree;
     }
+    
+    /**
+     * convert Isilon's access permissions key set to ViPR's NFS permission set
+     * 
+     * @param permissions
+     * @return
+     */
+    private ArrayList<String> getIsilonAccessList(ArrayList<String> permissions) {
+
+        ArrayList<String> accessRights = new ArrayList<String>();
+        for (String per : permissions) {
+
+            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_read.toString())) {
+                accessRights.add("Read");
+            }
+            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_write.toString())) {
+                accessRights.add("write");
+            }
+            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_execute.toString())) {
+                accessRights.add("execute");
+            }
+            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_all.toString())) {
+                accessRights.add("FullControl");
+            }
+        }
+        return accessRights;
+
+    }    
 
     /**
      * set the Max limits for static db metrics
@@ -2695,7 +2827,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param isiAccessZone the Isilon access zone object
      * @param nasServer the NAS server in which CIF server map will be set
      */
-    private void setCifsServerMap(final IsilonAccessZone isiAccessZone, NASServer nasServer) {
+    private void setCifsServerMapForNASServer(final IsilonAccessZone isiAccessZone, NASServer nasServer) {
+    	
+    	if(nasServer == null) {
+    		return;
+    	}
         
     	_log.info("Set the authentication providers for NAS: {}", nasServer.getNasName());
     	String providerName = null;

@@ -8,6 +8,7 @@ package com.emc.storageos.isilon.restapi;
 import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -50,7 +51,8 @@ public class IsilonApi {
     private static final URI URI_CLUSTER = URI.create("/platform/1/cluster/identity");
     private static final URI URI_CLUSTER_CONFIG = URI.create("/platform/1/cluster/config");
     private static final URI URI_STATS = URI.create("/platform/1/statistics/");
-    private static final URI URI_STORAGE_POOLS = URI.create("/platform/1/diskpool/diskpools");
+    private static final URI URI_STORAGE_POOLS = URI.create("/platform/1/storagepool/storagepools");
+    private static final URI URI_DISK_POOLS = URI.create("/platform/1/diskpool/diskpools");
     private static final URI URI_ARRAY_GLOBAL_STATUS = URI.create("/platform/1/protocols/nfs/settings/global");
     private static final URI URI_ARRAY_GLOBAL_STATUS_ONEFS8 = URI.create("/platform/3/protocols/nfs/settings/global");
     private static final URI URI_STORAGE_PORTS = URI
@@ -534,6 +536,46 @@ public class IsilonApi {
         } catch (Exception e) {
             String response = String.format("%1$s", (resp == null) ? "" : resp);
             throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc(key, id, response, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+    }
+    
+    /**
+     * Generic get resource when key is not applicable
+     * 
+     * @param url url to get from
+     * @param id identifier for the object
+     * @param c Class of object representing the return value
+     * @return T Object parsed from the response, on success
+     * @throws IsilonException
+     */
+    private <T> T getObj(URI url, String id, Class<T> c) throws IsilonException {
+
+        ClientResponse resp = null;
+        try {
+            T returnInstance = null;
+            resp = _client.get(url.resolve(id));
+
+            if (resp.hasEntity()) {
+                JSONObject jObj = resp.getEntity(JSONObject.class);
+                if (resp.getStatus() == 200) {
+                    returnInstance = new Gson().fromJson(jObj.toString(), c);
+                } else {
+                    processErrorResponse("get", id, resp.getStatus(), jObj);
+                }
+            } else {
+                // no entity in response
+                processErrorResponse("get", id, resp.getStatus(), null);
+            }
+            return returnInstance;
+        } catch (IsilonException ie) {
+            throw ie;
+        } catch (Exception e) {
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc("", id, response, e);
         } finally {
             if (resp != null) {
                 resp.close();
@@ -1112,7 +1154,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonNFSACL getNFSACL(String path) throws IsilonException {
-        return get(_baseUrl.resolve(URI_IFS), path, "ACL", IsilonNFSACL.class);
+        String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
+        return getObj(_baseUrl.resolve(URI_IFS),aclUrl,IsilonNFSACL.class);
     }
 
     /**
@@ -1121,9 +1164,21 @@ public class IsilonApi {
      * @return storage pools
      * @throws IsilonException
      */
-    public List<IsilonStoragePool> getStoragePools() throws IsilonException {
+    public List<? extends IsilonPool> getStoragePools() throws IsilonException {
         IsilonList<IsilonStoragePool> pools = list(_baseUrl.resolve(URI_STORAGE_POOLS),
-                "diskpools", IsilonStoragePool.class, null);
+        		"storagepools", IsilonStoragePool.class, null);
+        return pools.getList();
+    }
+    
+    /**
+     * Get disk pools for OneFS version < 7.2
+     * 
+     * @return disk pools
+     * @throws IsilonException
+     */
+    public List<? extends IsilonPool> getDiskPools() throws IsilonException {
+        IsilonList<IsilonDiskPool> pools = list(_baseUrl.resolve(URI_DISK_POOLS),
+        		"diskpools", IsilonDiskPool.class, null);
         return pools.getList();
     }
 

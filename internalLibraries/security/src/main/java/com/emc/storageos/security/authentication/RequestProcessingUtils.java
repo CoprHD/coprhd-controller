@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.keystone.KeystoneConstants;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
@@ -23,6 +24,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 public class RequestProcessingUtils {
     private static final Logger _log = LoggerFactory.getLogger(RequestProcessingUtils.class);
     public static final String REDIRECT_FROM_AUTHSVC = "auth-redirected";
+    public static final String KEYSTONE_AUTH_TOKEN_HEADER =  KeystoneConstants.AUTH_TOKEN;
     public static final String AUTH_TOKEN_HEADER = "X-SDS-AUTH-TOKEN";
     public static final String AUTH_PORTAL_TOKEN_HEADER = "X-SDS-PORTAL-AUTH-TOKEN";
     public static final String AUTH_PROXY_TOKEN_HEADER = "X-SDS-AUTH-PROXY-TOKEN";

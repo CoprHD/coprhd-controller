@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
@@ -607,7 +608,11 @@ public class BackupOps {
         }
         if (!acquired) {
             log.error("Unable to acquire lock: {}", name);
+            if (name.equals(RecoveryConstants.RECOVERY_LOCK)) {
+                throw BackupException.fatals.unableToGetRecoveryLock(name);
+            }
             throw BackupException.fatals.unableToGetLock(name);
+
         }
         log.info("Got lock: {}", name);
         return lock;
@@ -827,7 +832,11 @@ public class BackupOps {
                     (String) null, null);
             for (Service svc : svcs) {
                 String svcId = svc.getId();
-                goodNodes.add("vipr" + svcId.substring(svcId.lastIndexOf("-") + 1));
+                String nodeId = String.format(Constants.NODE_ID_FORMAT, svcId.substring(svcId.lastIndexOf("-") + 1));
+                if (svcId.endsWith(Constants.STANDALONE_ID)) {
+                    nodeId = Constants.STANDALONE_ID;
+                }
+                goodNodes.add(nodeId);
             }
             log.debug("Available nodes: {}", goodNodes);
         } catch (Exception e) {

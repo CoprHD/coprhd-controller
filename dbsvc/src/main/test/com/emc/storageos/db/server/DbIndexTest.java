@@ -695,7 +695,7 @@ public class DbIndexTest extends DbsvcTestBase {
     private DbClientTest.DbClientImplUnitTester createClient() {
         DbClientTest.DbClientImplUnitTester dbClient = new DbClientTest.DbClientImplUnitTester();
         dbClient.setCoordinatorClient(_coordinator);
-        dbClient.setDbVersionInfo(_dbVersionInfo);
+        dbClient.setDbVersionInfo(sourceVersion);
         dbClient.setBypassMigrationLock(true);
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
@@ -1569,7 +1569,7 @@ public class DbIndexTest extends DbsvcTestBase {
         for (int i = 0; i < dataFiles.length; i++) {
             String fileName = dataFiles[i];
             Descriptor desc = Descriptor.fromFilename(String.format("%s/%s", dirPath, fileName));
-            SSTableExport.export(desc, outs, null);
+            SSTableExport.export(desc, outs, null, null);
             if (i + 1 < dataFiles.length) {
                 outs.println(",");
             }

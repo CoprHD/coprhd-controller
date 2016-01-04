@@ -9,6 +9,7 @@ import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Strings;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -130,10 +131,8 @@ public class BackupExecutor {
                 this.cfg.retainedBackups.add(tag);
                 this.cfg.persist();
 
-                descParams = this.cli.getDescParams(tag);
-                this.cli.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
                 return;
-            } catch (BackupException e) {
+            } catch (InternalServerErrorException e) {
                 lastException = e;
                 log.error(String.format("Exception when creating backup %s (retry #%d)",
                         tag, retryCount), e);
@@ -147,9 +146,6 @@ public class BackupExecutor {
         }
 
         if (lastException != null) {
-            descParams = this.cli.getDescParams(tag);
-            descParams.add(lastException.getLocalizedMessage());
-            this.cli.auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             this.cfg.sendBackupFailureToRoot(tag, lastException.getMessage());
         }
     }
@@ -174,7 +170,7 @@ public class BackupExecutor {
             if (!this.cfg.retainedBackups.contains(tag)) {
                 try {
                     this.cli.deleteBackup(tag);
-                } catch (BackupException e) {
+                } catch (InternalServerErrorException e) {
                     log.error("Failed to delete scheduled backup from cluster", e);
                 }
             }

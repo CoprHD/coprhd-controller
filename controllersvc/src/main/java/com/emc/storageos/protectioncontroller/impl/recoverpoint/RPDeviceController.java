@@ -110,7 +110,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -2373,24 +2372,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param snapshots snapshot list
-     * 
+     *
      * @param initatorURIs initiators to send to the block controller
-     * 
+     *
      * @param token The task object
      */
     @Override
@@ -2574,19 +2573,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2699,15 +2698,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     * 
+     *
      * @param workflow Workflow
-     * 
+     *
      * @param waitFor waitFor step id
-     * 
+     *
      * @param snapshots list of snapshot to disable
-     * 
+     *
      * @param rpSystem RP system
-     * 
+     *
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -2875,24 +2874,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportGroupID The export group
-     * 
+     *
      * @param snapshot RP snapshot
-     * 
+     *
      * @param lun HLU
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -3654,25 +3653,43 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 volume.setVirtualPool(newVpoolURI);
                 volumes.add(volume);
 
-                // Check if it is a VPlex volume, and get backend volumes
-                Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
-                if (backendSrc != null) {
-                    // Change the back end volume's vPool too
-                    backendSrc.setVirtualPool(newVpoolURI);
-                    vplexBackendVolumes.add(backendSrc);
-                    _log.info(String.format(
-                            "Changing VirtualPool for VPLEX backend source volume %s (%s) from %s to %s",
-                            backendSrc.getLabel(), backendSrc.getId(), oldVpoolURI, newVpoolURI));
+                // If this is a VPlex volume, there will be
+                StringSet associatedVolumeIds = volume.getAssociatedVolumes();
 
-                    // VPlex volume, check if it is distributed
-                    Volume backendHa = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient, false);
-                    if (backendHa != null) {
-                        VirtualPool newHAVpool = VirtualPool.getHAVPool(newVpool, _dbClient);
-                        if (newHAVpool == null) { // it may not be set
-                            newHAVpool = newVpool;
+                // Perform additional tasks if this volume is a VPlex volume
+                if (associatedVolumeIds != null && !associatedVolumeIds.isEmpty()) {
+                    Volume backendSrc = null;
+                    Volume backendHa = null;
+
+                    for (String associatedVolumeId : associatedVolumeIds) {
+                        Volume associatedVolume = _dbClient.queryObject(Volume.class,
+                                URI.create(associatedVolumeId));
+                        // Assign the associated volumes to either be the source or HA
+                        if (associatedVolume != null) {
+                            if (associatedVolume.getVirtualArray().equals(volume.getVirtualArray())) {
+                                backendSrc = associatedVolume;
+                            } else {
+                                backendHa = associatedVolume;
+                            }
                         }
-                        backendHa.setVirtualPool(newHAVpool.getId());
-                        vplexBackendVolumes.add(backendHa);
+                    }
+
+                    if (backendSrc != null) {
+                        // Change the back end volume's vPool too
+                        backendSrc.setVirtualPool(newVpoolURI);
+                        vplexBackendVolumes.add(backendSrc);
+                        _log.info(String.format(
+                                "Changing VirtualPool for VPLEX backend source volume %s (%s) from %s to %s",
+                                backendSrc.getLabel(), backendSrc.getId(), oldVpoolURI, newVpoolURI));
+
+                        if (backendHa != null) {
+                            VirtualPool newHAVpool = VirtualPool.getHAVPool(newVpool, _dbClient);
+                            if (newHAVpool == null) { // it may not be set
+                                newHAVpool = newVpool;
+                            }
+                            backendHa.setVirtualPool(newHAVpool.getId());
+                            vplexBackendVolumes.add(backendHa);
+                        }
                     }
                 }
             }
@@ -3777,7 +3794,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -4181,7 +4198,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */

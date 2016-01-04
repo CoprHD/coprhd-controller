@@ -2,7 +2,7 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
+package com.emc.storageos.systemservices.impl.restore;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -18,6 +18,7 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.management.backup.BackupOps;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +35,10 @@ public class DownloadExecutor implements  Runnable {
     private String remoteBackupFileName;
     private BackupOps backupOps;
     private boolean notifyOthers;
-    private BackupRestoreStatus.ErrorCode errorCode = BackupRestoreStatus.ErrorCode.NO_ERROR;
     private String localHostName;
+    private BackupRestoreStatus restoreStatus;
     DownloadListener listener = new DownloadListener();
 
-    //public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, List<Service> svcs) {
     public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps, boolean notifyOthers) {
         if (cfg.uploadUrl == null) {
             try {
@@ -93,32 +93,31 @@ public class DownloadExecutor implements  Runnable {
         }
     }
 
-    public void setDownloadStatus(String backupName, BackupRestoreStatus.Status status, float progress,
-                                BackupRestoreStatus.ErrorCode errorCode) {
-        log.info("lbymm set download status backupName={} status={} progress={} erroCode={}", new Object[] { backupName, status, progress, errorCode});
-        BackupRestoreStatus restoreStatus = backupOps.queryBackupUploadStatus();
+    public void setDownloadStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long downloadSize) {
+        log.info("lbymm set download status backupName={} status={}", backupName, status);
+        restoreStatus = backupOps.queryBackupUploadStatus(backupName);
         log.info("lbymm1");
-        restoreStatus.setBackupName(backupName);
-        log.info("lbymm2");
         restoreStatus.setStatus(status);
-        log.info("lbymm3");
-        restoreStatus.updateProgress(localHostName, progress);
-        log.info("lbymm4");
-        restoreStatus.setErrorCode(errorCode);
-        log.info("lbymm5");
+
+        if (backupSize > 0) {
+            restoreStatus.setBackupSize(backupSize);
+        }
+
+        if (downloadSize > 0) {
+            restoreStatus.setDownoadSize(downloadSize);
+        }
+
         backupOps.persistBackupRestoreStatus(restoreStatus);
-        log.info("lbymm6");
     }
 
     @Override
     public void run() {
         try {
             localHostName = InetAddress.getLocalHost().getHostName();
-            setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.IN_PROGRESS, 0, errorCode);
             download();
             notifyOtherNodes();
         }catch (Exception e) {
-            setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOAD_FAILED, 0, errorCode);
+            setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOAD_FAILED, 0, 0);
             log.error("Failed to download e=", e);
         }finally {
             try {
@@ -133,36 +132,47 @@ public class DownloadExecutor implements  Runnable {
         log.info("download start");
         ZipInputStream zin = getDownloadStream();
 
-        try {
-            long size = client.getFileSize(remoteBackupFileName);
-            log.info("lby size={}", size);
-        }catch (IOException | InterruptedException e) {
-            log.error("Failed to get zip file size e=",e);
-            throw e;
+        if (notifyOthers) {
+            // This is the first node to download backup files
+            try {
+                long size = client.getFileSize(remoteBackupFileName);
+                log.info("lby size={}", size);
+
+                setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOADING, size, 0);
+            } catch (IOException | InterruptedException e) {
+                log.error("Failed to get zip file size e=", e);
+                throw e;
+            }
+        }else {
+            setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOADING, 0, 0);
         }
 
         int dotIndex=remoteBackupFileName.lastIndexOf(".");
-        String backupFolder=remoteBackupFileName.substring(0,dotIndex);
+        String backupFolder=remoteBackupFileName.substring(0, dotIndex);
         log.info("lbyx backupFolder={}", backupFolder);
 
         String localHostName = InetAddress.getLocalHost().getHostName();
         log.info("lby local hostname={}", localHostName);
 
+        long downloadSize = 0;
         ZipEntry zentry = zin.getNextEntry();
         while (zentry != null) {
             log.info("lbyy file {}", zentry.getName());
             if (belongsTo(zentry.getName(), localHostName)) {
                 log.info("lbyy to download {}", backupFolder+"/"+zentry.getName());
-                downloadMyBackupFile(backupFolder+"/"+zentry.getName(), zin);
+                downloadSize += downloadMyBackupFile(backupFolder+"/"+zentry.getName(), zin);
             }
             zentry = zin.getNextEntry();
         }
+
+        // fix the download size
+        setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOAD_SUCCESS, 0, downloadSize);
 
         try {
             zin.closeEntry();
             zin.close();
         }catch (IOException e) {
-            log.info("lbyu exception will close ignored e=",e);
+            log.info("lbyu exception will close ignored e=", e);
         }
     }
 
@@ -173,8 +183,9 @@ public class DownloadExecutor implements  Runnable {
                 filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
     }
 
-    private void downloadMyBackupFile(String backupFileName, ZipInputStream zin) throws IOException {
-        File file = new File("/data/backup", backupFileName);
+    private long downloadMyBackupFile(String backupFileName, ZipInputStream zin) throws IOException {
+        long downloadSize = 0;
+        File file = new File(backupOps.getBackupDir(), backupFileName);
         log.info("lbyu file={}", file.getAbsoluteFile());
         if (!file.exists()) {
             file.getParentFile().mkdirs();
@@ -187,8 +198,16 @@ public class DownloadExecutor implements  Runnable {
         try (FileOutputStream out = new FileOutputStream(file)) {
             while ((length = zin.read(buf)) > 0) {
                 out.write(buf, 0, length);
+                downloadSize += length;
             }
+        } catch(IOException e) {
+            log.error("lbyn Failed to download {} from server", backupFileName);
+            setDownloadStatus(remoteBackupFileName,
+                    BackupRestoreStatus.Status.DOWNLOAD_FAILED, 0, 0);
+            throw e;
         }
+
+        return downloadSize;
     }
 
     private void notifyOtherNodes() {

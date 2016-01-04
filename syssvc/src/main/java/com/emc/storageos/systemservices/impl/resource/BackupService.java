@@ -26,7 +26,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
-import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +40,7 @@ import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
-import com.emc.storageos.systemservices.impl.jobs.backupscheduler.DownloadExecutor;
+import com.emc.storageos.systemservices.impl.restore.DownloadExecutor;
 import com.emc.storageos.systemservices.impl.jobs.common.JobProducer;
 import com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil;
 import com.emc.storageos.systemservices.impl.resource.util.NodeInfo;

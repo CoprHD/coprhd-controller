@@ -38,6 +38,7 @@ import javax.management.remote.JMXServiceURL;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.management.backup.restore.RestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -306,16 +307,12 @@ public class BackupOps {
     /**
      * Query restore status from ZK
     */
-    public BackupRestoreStatus queryBackupUploadStatus() {
+    public BackupRestoreStatus queryBackupUploadStatus(String backupName) {
         log.info("lbymmm");
         Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
-                BackupConstants.BACKUP_RESTORE_STATUS, Constants.GLOBAL_ID);
+                getBackupConfigKind(backupName), Constants.GLOBAL_ID);
         log.info("lbymmm1 cfg={}", cfg);
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
-
-        // remove unneeded keys
-        allItems.remove(Constants.KIND_KEY);
-        allItems.remove(Constants.ID_KEY);
 
         log.info("lbymmm2");
         BackupRestoreStatus restoreStatus = new BackupRestoreStatus(allItems);
@@ -323,12 +320,17 @@ public class BackupOps {
         return restoreStatus;
     }
 
+    private String getBackupConfigKind(String backupName) {
+        return BackupConstants.BACKUP_RESTORE_STATUS+backupName;
+    }
+
     /**
      * Persist upload status to ZK
      */
     public void persistBackupRestoreStatus(BackupRestoreStatus status) {
+    // public void persistBackupRestoreStatus(RestoreStatus status) {
         log.info("lbymm persist backup restore status");
-        Map<String, String> allItems = (status != null) ? status.getAllItems(): null;
+        Map<String, String> allItems = (status != null) ? status.toMap(): null;
 
         log.info("lbymm allItems={}", allItems);
         if (allItems == null || allItems.size() == 0){
@@ -338,14 +340,18 @@ public class BackupOps {
         log.info("lbymm11");
         ConfigurationImpl config = new ConfigurationImpl();
         log.info("lbymm12");
-        config.setKind(BackupConstants.BACKUP_RESTORE_STATUS);
+        String backupName = status.getBackupName();
+        config.setKind(getBackupConfigKind(backupName));
         log.info("lbymm13");
         config.setId(Constants.GLOBAL_ID);
 
         log.info("lbym Setting restore status: {}", status);
+
         for (Map.Entry<String, String> entry : allItems.entrySet()) {
             config.setConfig(entry.getKey(), entry.getValue());
         }
+
+       // Configuration config = status.toConfiguration();
         coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
         log.info("Persist backup restore status to zk successfully");
     }
@@ -477,7 +483,7 @@ public class BackupOps {
 
     private void validateBackupName(String backupTag) {
         Preconditions.checkArgument(isValidLinuxFileName(backupTag)
-                && !backupTag.contains(BackupConstants.BACKUP_NAME_DELIMITER),
+                        && !backupTag.contains(BackupConstants.BACKUP_NAME_DELIMITER),
                 "Invalid backup name: %s", backupTag);
     }
 

@@ -366,12 +366,10 @@ public class RPUnManagedObjectDiscoverer {
                     // Find this volume in UnManagedVolumes based on wwn
                     StringSet rpTargetVolumeIds = new StringSet();
                     
-                    // See if the unmanaged volume is in the list of volumes to update (it should be)
+                    // See if the unmanaged volume is in the list of volumes to update 
+                    // (it should be, unless the backing array has not been discovered)
                     UnManagedVolume unManagedVolume = findUnManagedVolumeForWwn(volume.getWwn(), dbClient, storageNativeIdPrefixes);
-                    
-                    // Grab the already-modified unmanaged volume from the map
-                    unManagedVolume = unManagedVolumesToUpdateByWwn.get(unManagedVolume.getWwn());
-                    
+
                     if (null == unManagedVolume) {
                         log.info("Protection Set {} contains unknown volume: {}. Skipping.",
                                 nativeGuid, volume.getWwn());
@@ -597,11 +595,10 @@ public class RPUnManagedObjectDiscoverer {
                 if (volumes != null && !volumes.isEmpty()) {
                     log.info("Found XIO unmanaged volume: " + volumes.get(0).getLabel());
                     return volumes.get(0);
-                }                
-                
+                }
             }
         }
-        
+
         return unManagedVolume;
     }
 

@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.hds.discovery;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -196,27 +197,54 @@ public class HDSUnManagedExportMasksDiscoverer extends AbstractDiscoverer {
             List<Path> pathList) {
         try {
             ZoneInfoMap zoningMap = networkController.getInitiatorsZoneInfoMap(initiators, storagePorts);
-            StringSetMap itlMap = new StringSetMap();
-            StringSet itlSet = new StringSet();
-            for (ZoneInfo zoneInfo : zoningMap.values()) {
-                log.info("Found zone: {} for initiator {} and port {}", new Object[] { zoneInfo.getZoneName(),
-                        zoneInfo.getInitiatorWwn(), zoneInfo.getPortWwn() });
-                for (Path path : pathList) {
-                    StringBuffer itl = new StringBuffer(zoneInfo.getInitiatorWwn());
-                    itl.append(HDSConstants.UNDERSCORE_OPERATOR).append(zoneInfo.getPortWwn()).append(HDSConstants.UNDERSCORE_OPERATOR)
-                            .append(path.getDevNum());
-                    itlSet.add(itl.toString());
-                }
-            }
             if (null != zoningMap && !zoningMap.isEmpty()) {
+                log.info("Found zones: {} ", zoningMap.values());
+                StringSetMap deviceDataMap = mask.getDeviceDataMap();
+                if (null == deviceDataMap) {
+                    deviceDataMap = new StringSetMap();
+                }
+                for (Path path : pathList) {
+                    updateITLMapForVolume(path.getDevNum(), zoningMap.values(), deviceDataMap);
+                }
                 mask.addZoningMap(zoningMap);
-                itlMap.put(hsdId, itlSet);
-                mask.addDeviceDataMap(itlMap);
+                mask.addDeviceDataMap(deviceDataMap);
             }
         } catch (Exception ex) {
             log.error("Failed to get the zoning map for mask {}", mask.getMaskName());
             mask.setZoningMap(null);
         }
+    }
+
+    /**
+     * Update ITL Info in the DeviceDataMap.
+     * 
+     * @param devNum
+     * @param values
+     * @param deviceDataMap
+     */
+    private void updateITLMapForVolume(String devNum, Collection<ZoneInfo> values, StringSetMap deviceDataMap) {
+        StringSet volumeITs = deviceDataMap.get(devNum);
+        if (null == volumeITs) {
+            volumeITs = new StringSet();
+        }
+        volumeITs.addAll(extractITInfoFromZoneMap(values));
+        deviceDataMap.put(devNum, volumeITs);
+    }
+
+    /**
+     * Extracts the Initiator Target information from the ZoningMap.
+     * 
+     * @param zoneInfoList
+     * @return
+     */
+    private StringSet extractITInfoFromZoneMap(Collection<ZoneInfo> zoneInfoList) {
+        StringSet itInfoSet = new StringSet();
+        for (ZoneInfo zoneInfo : zoneInfoList) {
+            String iniWwn = zoneInfo.getInitiatorWwn().replace(HDSConstants.COLON, HDSConstants.EMPTY_STR);
+            String targetWwn = zoneInfo.getPortWwn().replace(HDSConstants.COLON, HDSConstants.EMPTY_STR);
+            itInfoSet.add(iniWwn + HDSConstants.UNDERSCORE_OPERATOR + targetWwn);
+        }
+        return itInfoSet;
     }
 
     /**

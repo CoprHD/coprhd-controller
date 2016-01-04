@@ -1155,7 +1155,7 @@ public class CoordinatorClientExt {
     public ArrayList<String> getAllNodeIds() {
         ArrayList<String> fullList = new ArrayList<String>();
 
-        if (getMyNodeId().equals("standalone")) {
+        if (!getMyNodeId().equals("standalone")) {
             for (int i = 1; i <= getNodeCount(); i++) {
                 fullList.add(ProductName.getName() + i);
             }
@@ -1490,7 +1490,7 @@ public class CoordinatorClientExt {
 
                     //node is in participant mode, check if active site is back
 
-                    if (isActiveSiteHeathy()) {
+                    if (isActiveSiteHealthy()) {
                         _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
                         reconnectZKToActiveSite();
                     } else {
@@ -1523,7 +1523,7 @@ public class CoordinatorClientExt {
                     readOnlyNodes.add(node);
                 }
                 else if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(nodeState)) {
-                    // Found another node in read only
+                    // Found another node in observer
                     observerNodes.add(node);
                 }
                 _log.debug("State for {}: {}",node,nodeState);
@@ -1533,16 +1533,21 @@ public class CoordinatorClientExt {
             int numParticipants = numOnline - readOnlyNodes.size() - observerNodes.size();
             int quorum = getNodeCount() / 2 + 1;
 
-            _log.debug("Observer nodes: "+observerNodes.size());
-            _log.debug("Read Only nodes: "+readOnlyNodes.size());
-            _log.debug("Participant nodes: "+numParticipants);
-            _log.debug("nodes Online: "+numOnline);
+            _log.debug("Observer nodes: {}",observerNodes.size());
+            _log.debug("Read Only nodes: {}",readOnlyNodes.size());
+            _log.debug("Participant nodes: {}",numParticipants);
+            _log.debug("nodes Online: {}",numOnline);
 
             // if there is a participant we need to reconfigure or it will be stuck there
             // if there are only participants no need to reconfigure
             // if there are only read only nodes and we have quorum we need to reconfigure
-            if((0 < numParticipants && numParticipants < numOnline) || (readOnlyNodes.size() == numOnline && numOnline >= quorum)){
-                _log.info("Reconfiguring nodes to participant: ",observerNodes,readOnlyNodes);
+            if(0 < numParticipants && numParticipants < numOnline) {
+                _log.info("Nodes must have consistent zk mode. Reconfiguring all nodes to participant: {}",
+                        observerNodes.addAll(readOnlyNodes));
+                reconfigZKToWritable(observerNodes,readOnlyNodes);
+            }
+            else if (readOnlyNodes.size() == numOnline && numOnline >= quorum){
+                _log.info("A quorum of nodes are read-only, Reconfiguring nodes to participant: {}",readOnlyNodes);
                 reconfigZKToWritable(observerNodes,readOnlyNodes);
             }
         }
@@ -1724,7 +1729,7 @@ public class CoordinatorClientExt {
      *
      * @return true for stable, otherwise false
      */
-    public boolean isActiveSiteHeathy() {
+    public boolean isActiveSiteHealthy() {
         DrUtil drUtil = new DrUtil(_coordinator);
         Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
 

@@ -303,7 +303,7 @@ public class BackupOps {
     /**
      * Query restore status from ZK
     */
-    public BackupRestoreStatus queryBackupUploadStatus(String backupName) {
+    public BackupRestoreStatus queryBackupRestoreStatus(String backupName) {
         log.info("lbymmm");
         Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
                 getBackupConfigKind(backupName), Constants.GLOBAL_ID);

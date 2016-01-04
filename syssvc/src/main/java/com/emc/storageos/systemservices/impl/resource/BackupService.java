@@ -26,6 +26,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -457,6 +458,23 @@ public class BackupService {
 
         log.info("done");
         return Response.ok().build();
+    }
+
+    /**
+     *  Query restore status
+     *  @param backupName the name of the backup
+     * @return server response indicating if the operation succeeds.
+     */
+    @GET
+    @Path("restore/status")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public BackupRestoreStatus queryRestoreStatus(@QueryParam("backupname") String backupName) {
+        log.info("Query restore status backupName={}", backupName);
+        BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName);
+
+        log.info("done");
+        return status;
     }
 
     private File getBackupDir(String backupName) {

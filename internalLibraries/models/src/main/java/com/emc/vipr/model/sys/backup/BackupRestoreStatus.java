@@ -4,10 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import java.util.HashMap;
 import java.util.Map;
 
+@XmlRootElement(name = "restore_status")
 public class BackupRestoreStatus {
     private static final Logger log = LoggerFactory.getLogger(BackupRestoreStatus.class);
     private static final String KEY_BACKUP_NAME = "backupName";
@@ -22,6 +24,10 @@ public class BackupRestoreStatus {
     private Status status = Status.NOT_STARTED;
     private int nodeCompleted = 0;
 
+    public BackupRestoreStatus() {
+
+    }
+    
     @XmlElement(name = "backup_name")
     public String getBackupName() {
         return this.backupName;
@@ -51,7 +57,7 @@ public class BackupRestoreStatus {
     /**
      * The status of uploading backup set
      */
-    @XmlType(name = "backupRestoreStatus_Status")
+    @XmlType(name = "restore_Status")
     public enum Status {
         NOT_STARTED,
         DOWNLOADING,

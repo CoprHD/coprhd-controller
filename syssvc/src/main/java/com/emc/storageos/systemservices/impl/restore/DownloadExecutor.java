@@ -98,7 +98,7 @@ public class DownloadExecutor implements  Runnable {
     public void setDownloadStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long downloadSize) {
         log.info("lbymm set download status backupName={} status={} backupSize={} downloadSize={}",
                 new Object[] {backupName, status, backupSize, downloadSize});
-        restoreStatus = backupOps.queryBackupUploadStatus(backupName);
+        restoreStatus = backupOps.queryBackupRestoreStatus(backupName);
         restoreStatus.setBackupName(backupName);
         log.info("lbymm1");
         restoreStatus.setStatus(status);
@@ -116,7 +116,7 @@ public class DownloadExecutor implements  Runnable {
 
     public void updateDownloadSize(long size) {
         log.info("lbymm increase download increase ={}", size);
-        restoreStatus = backupOps.queryBackupUploadStatus(remoteBackupFileName);
+        restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName);
         log.info("lbymm1");
 
         long newSize = restoreStatus.getDownoadSize() + size;
@@ -193,7 +193,7 @@ public class DownloadExecutor implements  Runnable {
     }
 
     private void postDownload(BackupRestoreStatus.Status status) {
-        restoreStatus = backupOps.queryBackupUploadStatus(remoteBackupFileName);
+        restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName);
         log.info("lbynn restoreStatus={}", restoreStatus);
         restoreStatus.increaseNodeCompleted();
         int completedNodes = restoreStatus.getNodeCompleted();

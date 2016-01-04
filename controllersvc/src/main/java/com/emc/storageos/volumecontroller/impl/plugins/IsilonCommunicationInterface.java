@@ -128,7 +128,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String ONEFS_V7_2 = "7.2.0.0";
     private IsilonApiFactory _factory;
     private static final String SYNC_LICENCE_ACTIVATED = "Activated";
-    private static final String SYNC_LICENCE_EVALUTION = "Evaluation";
+    private static final String SYNC_LICENCE_EVALUATION = "Evaluation";
 
     private List<String> _discPathsForUnManaged;
 
@@ -925,7 +925,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         URI storageSystemId = storageSystem.getId();
         Set<String> validSyncLicenceStatus = new HashSet<String>();
     	validSyncLicenceStatus.add(SYNC_LICENCE_ACTIVATED);
-    	validSyncLicenceStatus.add(SYNC_LICENCE_EVALUTION);
+    	validSyncLicenceStatus.add(SYNC_LICENCE_EVALUATION);
     	
         try {
             _log.info("discoverPools for storage system {} - start", storageSystemId);

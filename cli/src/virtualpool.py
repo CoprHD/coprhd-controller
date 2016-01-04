@@ -480,13 +480,11 @@ class VirtualPool(object):
                             " Please provide valid format " +
                             "varray:vpool") 
             copyEntry = dict()
-            remoteCopy = dict()
             if(len(copyParam) > 0):
                 varray = nh_obj.varray_query(copyParam[0])
                 copyEntry['varray'] = varray
                 if(len(copyParam) > 1):
                     copyEntry['vpool'] = self.vpool_query(copyParam[1], "file")
-                #remoteCopy['protection_varray_vpool'] = copyEntry
                 remoteCopies.append(copyEntry)
         return remoteCopies         
     
@@ -514,7 +512,7 @@ class VirtualPool(object):
             replicationpolicy['rpo_type'] = policyParams[3].upper()
         
         replicationParams = dict()
-        if(policy is not None):
+        if(policy is not None and replicationpolicy is not None):
             replicationParams['file_replication_policy'] = replicationpolicy
         if(copies is not None):
             replicationParams['copies'] = self.get_file_remote_copies(copies)

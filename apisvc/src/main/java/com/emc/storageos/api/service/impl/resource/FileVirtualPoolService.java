@@ -591,7 +591,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
                     }           		
             	}
             	
-            	if( FileReplicationType.REMOTE.name().equals(vPool.getFileReplicationType()) && 
+            	if (FileReplicationType.REMOTE.name().equals(vPool.getFileReplicationType()) && 
             			copies != null && !copies.isEmpty()) {
             		if (copies.size() > 1) {
             			_log.error("Single remote copy supported, you have given {} copies ", copies.size());
@@ -628,7 +628,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
                         remoteSettingsMap.put(remoteCopySettings.getVirtualArray(), remoteCopySettings);
             		}
             		
-            		//vPool.setProtectionRemoteCopySettings(remoteCopiesMap);
             		vPool.setFileRemoteCopySettings(remoteCopiesMap);
             		vPool.setFileReplicationType(FileReplicationType.REMOTE.name());
             		_log.info("File Replication type {} and number of remote copies {}",
@@ -926,6 +925,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
         		_dbClient.updateObject(removeRemoteSettingsList);
         	}
         }
-        _log.info("File Replication setting are update to virtual pool {} ", virtualPool.getLabel());
+        _log.info("File replication settings are updated to virtual pool {} ", virtualPool.getLabel());
     }
 }

@@ -254,10 +254,9 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
 
     public void addDeviceDataMap(StringSetMap deviceDataMapEntries) {
         if (this.deviceDataMap == null) {
-            setDeviceDataMap(deviceDataMapEntries);
-        } else {
-            this.deviceDataMap.putAll(deviceDataMapEntries);
+            this.deviceDataMap = new StringSetMap();
         }
+        this.deviceDataMap.putAll(deviceDataMapEntries);
     }
 
     public void replaceDeviceDataMapEntries(StringSetMap deviceDataMapEntries) {

@@ -102,10 +102,12 @@ public class VdcConfigUtil {
         String activeSiteId = drUtil.getActiveSiteId(vdcShortId);
         
         Site localSite = drUtil.getLocalSite();
+        boolean activeDegraded = false;
         if (localSite.getState().equals(SiteState.ACTIVE_DEGRADED)) {
             sites.clear();
             sites.add(localSite);
             activeSiteId = localSite.getUuid();
+            activeDegraded = true;
         }
         
         Collections.sort(sites, new Comparator<Site>() {
@@ -194,7 +196,7 @@ public class VdcConfigUtil {
             // right now we assume that SITE_IDS and SITE_IS_STANDBY only makes sense for local VDC
             // moving forward this may or may not be the case.
             vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
-            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(drUtil.isStandby()));
+            vdcConfig.put(SITE_IS_STANDBY, activeDegraded ? "true" : String.valueOf(drUtil.isStandby()));
         }
     }
 

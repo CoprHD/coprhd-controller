@@ -124,7 +124,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         WebResource rRoot = createRequest(SITE_INTERNAL_LIST);
         ClientResponse resp = null;
         
-        resp = addSignature(rRoot).post(ClientResponse.class);
+        resp = addSignature(rRoot).get(ClientResponse.class);
         SiteList response = resp.getEntity(SiteList.class);
         return response;
     }

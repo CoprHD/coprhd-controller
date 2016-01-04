@@ -63,8 +63,8 @@ public class XtremIOV1Client extends XtremIOClient {
         for (XtremIOObjectInfo volumeInfo : volumeLinks) {
             try {
                 URI volumeURI = URI.create(URIUtil.getFromPath(volumeInfo.getHref()));
-                ClientResponse response = get(volumeURI);
                 log.debug("Trying to get volume details for {}", volumeURI.toString());
+                ClientResponse response = get(volumeURI);
                 XtremIOVolumes volumes = getResponseObject(XtremIOVolumes.class, response);
                 log.info("Volume {}", volumes.getContent().getVolInfo().get(1) + "-"
                         + volumes.getContent().getVolInfo().get(2));

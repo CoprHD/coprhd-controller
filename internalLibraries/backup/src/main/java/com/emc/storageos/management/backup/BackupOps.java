@@ -17,11 +17,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -38,9 +36,7 @@ import javax.management.remote.JMXServiceURL;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.management.backup.restore.RestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
-import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -321,7 +317,7 @@ public class BackupOps {
     }
 
     private String getBackupConfigKind(String backupName) {
-        return BackupConstants.BACKUP_RESTORE_STATUS+backupName;
+        return BackupConstants.BACKUP_RESTORE_STATUS+"/"+backupName;
     }
 
     /**

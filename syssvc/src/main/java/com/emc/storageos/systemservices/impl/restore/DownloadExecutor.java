@@ -68,7 +68,9 @@ public class DownloadExecutor implements  Runnable {
     class DownloadListener implements NodeListener {
         @Override
         public String getPath() {
-            String path = String.format("/config/%s/%s", BackupConstants.BACKUP_RESTORE_STATUS, Constants.GLOBAL_ID);
+            String path = String.format("/config/%s/%s/%s",
+                    BackupConstants.BACKUP_RESTORE_STATUS, remoteBackupFileName,
+                    Constants.GLOBAL_ID);
             log.info("lbym config path={}", path);
             return path;
         }
@@ -94,8 +96,10 @@ public class DownloadExecutor implements  Runnable {
     }
 
     public void setDownloadStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long downloadSize) {
-        log.info("lbymm set download status backupName={} status={}", backupName, status);
+        log.info("lbymm set download status backupName={} status={} backupSize={} downloadSize={}",
+                new Object[] {backupName, status, backupSize, downloadSize});
         restoreStatus = backupOps.queryBackupUploadStatus(backupName);
+        restoreStatus.setBackupName(backupName);
         log.info("lbymm1");
         restoreStatus.setStatus(status);
 

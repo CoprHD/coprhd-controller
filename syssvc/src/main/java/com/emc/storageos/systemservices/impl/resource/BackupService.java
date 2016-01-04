@@ -397,14 +397,6 @@ public class BackupService {
     public Response restoreBackup(@QueryParam("file") String backupName ) {
         log.info("The backup file {} to restore", backupName);
 
-        /*
-        List<Service> sysSvcs = backupOps.getAllSysSvc();
-        for (Service svc : sysSvcs) {
-            log.info("lby0 syssvc id={} nodeId={} nodeName={} endpoint={} name={}",
-                    new Object[] {svc.getId(), svc.getNodeId(), svc.getNodeName(), svc.getEndpoint(), svc.getName()});
-        }
-        */
-
         DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps, true); //true = notify other nodes
         downloadTask.registerListener();
         log.info("lbym0");

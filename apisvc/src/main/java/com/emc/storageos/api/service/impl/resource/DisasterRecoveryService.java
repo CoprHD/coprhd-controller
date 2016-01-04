@@ -1562,10 +1562,6 @@ public class DisasterRecoveryService {
                         continue;
                     } else {
                         if (hasActiveSiteInRemote(site)) {
-                            Site localSite = drUtil.getLocalSite();
-                            localSite.setState(SiteState.ACTIVE_DEGRADED);
-                            
-                            coordinator.persistServiceConfiguration(localSite.toConfiguration());
                             drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_FAILBACK_DEGRADE);
                             return;
                         }

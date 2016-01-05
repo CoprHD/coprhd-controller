@@ -94,7 +94,11 @@ public class RPCGVolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter 
     }
 
     /**
-     * Roll back vPool on vplex backend volumes.
+     * Rollback the virtual pool changes on vplex backend volumes.
+     *
+     * @param volume the VPlex volume
+     * @param volumesToUpdate the list of volumes that need to be updated in the database
+     * @param dbClient the DB client reference
      */
     private void rollBackVpoolOnVplexBackendVolume(Volume volume, List<Volume> volumesToUpdate, DbClient dbClient) {
         // Check if it is a VPlex volume, and get backend volumes

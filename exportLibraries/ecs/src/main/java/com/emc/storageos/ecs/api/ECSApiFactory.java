@@ -161,7 +161,8 @@ public class ECSApiFactory {
       public static void main(String[] args) {
           
       System.out.println("starting ecs main");
-      URI uri = URI.create(String.format("https://10.247.39.135:4443/login"));
+//      URI uri = URI.create(String.format("https://10.247.39.135:4443/login"));
+      URI uri = URI.create(String.format("https://10.241.172.43:4443/login"));
       ECSApiFactory factory = new ECSApiFactory();
       factory.init();
       ECSApi ecsApi = factory.getRESTClient(uri, "root", "ChangeMe");
@@ -174,11 +175,13 @@ public class ECSApiFactory {
       else
           System.out.println("NOT Sys admin");
       
-      //ecsApi.getNamespaces();
-      ECSNamespaceRepGroup ns = ecsApi.getNamespaceDetails("provider");
-      int dummy = 2;
-      dummy = ns.getReplicationGroups().size();
+      ecsApi.getStoragePools();
       
+      //ecsApi.getNamespaces();
+//      ECSNamespaceRepGroup ns = ecsApi.getNamespaceDetails("provider");
+//      int dummy = 2;
+//      dummy = ns.getReplicationGroups().size();
+//      
       
       //ecsApi.getStoragePools();
       //ecsApi.getStoragePort("10.32.4.98");

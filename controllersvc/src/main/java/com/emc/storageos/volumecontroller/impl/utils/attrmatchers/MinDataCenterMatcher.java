@@ -49,7 +49,7 @@ public class MinDataCenterMatcher extends AttributeMatcher {
             StoragePool pool = poolIterator.next();
             if (pool.getDataCenters() < minDataCenters) {
             	_logger.info("Ignoring pool {} as Data Centers is less :", pool.getNativeGuid());
-            	allPools.remove(pool);
+            	filteredPoolList.remove(pool);
             }
         }
         _logger.info("Pools Matching Minimum Data Centers Ended {}, {}", minDataCenters,

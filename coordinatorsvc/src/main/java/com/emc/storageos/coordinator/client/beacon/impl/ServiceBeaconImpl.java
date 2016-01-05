@@ -5,7 +5,6 @@
 
 package com.emc.storageos.coordinator.client.beacon.impl;
 
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
@@ -20,11 +19,8 @@ import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;

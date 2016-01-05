@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -37,7 +36,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.DeleteBuilder;
 import org.apache.curator.framework.recipes.cache.NodeCache;
@@ -95,7 +93,6 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
-import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
@@ -264,6 +261,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         // update Site version in ZK
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
         setTargetInfo(siteInfo);
+        
+        addSite(site.getUuid());
         
         log.info("Create site specific section for {} successfully", site.getUuid());
     }

@@ -489,11 +489,11 @@
     },
     {
       "title": "applicationservices.title",
-      "image": "icon_data_services.png",
+      "image": "icon_application.png",
       "description": "applicationservices.description",
       "services": [
         {
-          "image": "icon_create_bucket.png",
+          "image": "icon_application_add_volumes.png",
           "baseService": "AddVolumesToApplication"
         },
         {

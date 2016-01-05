@@ -3475,4 +3475,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.deleteVolumes(volumeDescriptors, taskId);
     }
+
+	@Override
+	public List<VolumeDescriptor> createVolumeDescriptors(VolumeCreate param,
+			Project project, VirtualArray vArray, VirtualPool vPool,
+			List<Recommendation> volRecommendations, TaskList taskList,
+			String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities)
+			throws InternalException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

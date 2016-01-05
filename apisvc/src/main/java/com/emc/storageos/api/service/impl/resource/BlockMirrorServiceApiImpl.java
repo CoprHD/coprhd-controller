@@ -27,6 +27,7 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.SynchronizationState;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -813,5 +814,15 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         Operation op = _dbClient.createTaskOpStatus(object.getClass(), object.getId(), taskId, opType);
         taskList.addTask(toTask(object, taskId, op));
     }
+
+	@Override
+	public List<VolumeDescriptor> createVolumeDescriptors(VolumeCreate param,
+			Project project, VirtualArray vArray, VirtualPool vPool,
+			List<Recommendation> volRecommendations, TaskList taskList,
+			String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities)
+			throws InternalException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }

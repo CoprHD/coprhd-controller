@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
+import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -4187,4 +4188,12 @@ public class RecoverPointScheduler implements Scheduler {
             return buff.toString();
         } // end toString
     } // end PlacementStatus class
+
+	@Override
+	public List<Recommendation> scheduleStorageForCosChangeUnprotected(
+			Volume volume, VirtualPool vpool, List<VirtualArray> targetVarrays,
+			VirtualPoolChangeParam param) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

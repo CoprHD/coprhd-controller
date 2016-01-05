@@ -32,6 +32,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.base.Joiner;
 
 /**
  * Background thread that runs the placement, scheduling, and controller dispatching of a create volume
@@ -95,6 +96,7 @@ class CreateVolumeSchedulingThread implements Runnable {
             	//Get Recommendations for root level virtual pool
                 List rootRecommendations = this.blockService._placementManager.getRecommendationsForVolumeCreateRequest(
                         varray, project, vPoolChild, capabilities);
+                _log.info("Root Recommendations : ",Joiner.on("@@@@#####").join(rootRecommendations));
                 List<VolumeDescriptor> volDescriptors =  blockServiceImpl.createVolumeDescriptors(param, project, varray, vPoolChild, rootRecommendations,
                 		taskList, task, capabilities);
                 volume = (Volume) this.blockService._dbClient.queryObject(volDescriptors.get(0).getVolumeURI());
@@ -106,12 +108,14 @@ class CreateVolumeSchedulingThread implements Runnable {
         			 List childRecommendations = scheduler.scheduleStorageForCosChangeUnprotected(volume, vPoolChild, 
         					SRDFScheduler.getTargetVirtualArraysForVirtualPool(project, vPoolChild, this.blockService._dbClient,
         		    		this.blockService._permissionsHelper), null);
+        			  _log.info("Child Recommendations : ",Joiner.on("@@@@#####").join(childRecommendations));
         		}
         		
         	}
         	
+        	return;
         	//fill in the cascaded capabilities
-        	this.blockService._placementManager.buildCascadedCapabilities(vpool, capabilities);
+       /* 	this.blockService._placementManager.buildCascadedCapabilities(vpool, capabilities);
         	//Get Recommendations for root level virtual pool
             List recommendations = this.blockService._placementManager.getRecommendationsForVolumeCreateRequest(
                     varray, project, vpool, capabilities);
@@ -128,7 +132,7 @@ class CreateVolumeSchedulingThread implements Runnable {
 
             // Call out to the respective block service implementation to prepare
             // and create the volumes based on the recommendations.
-            blockServiceImpl.createVolumes(param, project, varray, vpool, recommendations, taskList, task, capabilities);
+            blockServiceImpl.createVolumes(param, project, varray, vpool, recommendations, taskList, task, capabilities); */
         } catch (Exception ex) {
             for (TaskResourceRep taskObj : taskList.getTaskList()) {
                 if (ex instanceof ServiceCoded) {

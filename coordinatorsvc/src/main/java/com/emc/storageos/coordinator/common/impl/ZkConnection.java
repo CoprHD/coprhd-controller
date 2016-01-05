@@ -210,12 +210,12 @@ public class ZkConnection {
     /**
      * Create is version 1 UUID(time based) 
      * 
-     * @param timeToUse most significant bits for this uuid
+     * @param timestamp timestamp in milliseconds
      * @param leastSigBits least significant bits for the uuid
      */
-    private String createTimeUUID(long timeToUse, long leastSigBits) {
+    private String createTimeUUID(long timestamp, long leastSigBits) {
         long mostSigBits;
-        timeToUse = (timeToUse * 10000) + 0x01B21DD213814000L;
+        long timeToUse = (timestamp * 10000) + 0x01B21DD213814000L;
         // time low
         mostSigBits = timeToUse << 32;
         // time mid

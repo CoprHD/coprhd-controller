@@ -246,6 +246,9 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 _dbClient.persistObject(storagePorts.get(EXISTING));
             }
 
+            //Discover ECS Namespaces
+            discoverECSNamespaces();
+            
             //Discovery success
             detailedStatusMessage = String.format("Discovery completed successfully for ECS: %s",
                     storageSystemId.toString());
@@ -275,7 +278,13 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                             / (double) 1000));
         }
     }
-
+    
+    private void discoverECSNamespaces() {
+        
+                
+        
+    }
+    
     /**
      * Get ecs device represented by the StorageDevice
      *

@@ -475,6 +475,11 @@ public class StorageScheduler implements Scheduler {
             Set<String> systemTypes = arrayInfo.get(AttributeMatcher.Attributes.system_type.name());
             if (null != systemTypes && !systemTypes.isEmpty()) {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.system_type.name(), systemTypes);
+                
+                //put quota value for ecs storage
+                if (systemTypes.contains("ecs") && capabilities.getQuota() != null) {
+                    provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.quota.name(), capabilities.getQuota());
+                }
             }
         }
 
@@ -1304,6 +1309,12 @@ public class StorageScheduler implements Scheduler {
         createdMirror.setLabel(volumeLabel);
         createdMirror.setStorageController(volume.getStorageController());
         createdMirror.setVirtualArray(volume.getVirtualArray());
+        // Setting the source Volume autoTieringPolicy in Mirror.
+        // @TODO we must accept the policy as an input for mirrors and requires API changes.
+        // Hence for timebeing, we are setting the source policy in mirror.
+        if (!NullColumnValueGetter.isNullURI(volume.getAutoTieringPolicyUri())) {
+            createdMirror.setAutoTieringPolicyUri(volume.getAutoTieringPolicyUri());
+        }
         createdMirror.setProtocol(new StringSet());
         createdMirror.getProtocol().addAll(volume.getProtocol());
         createdMirror.setCapacity(volume.getCapacity());

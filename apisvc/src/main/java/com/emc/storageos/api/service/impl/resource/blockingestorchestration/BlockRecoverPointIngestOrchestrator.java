@@ -58,6 +58,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 
 /**
@@ -692,6 +693,18 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         } else if (!(Volume.PersonalityTypes.SOURCE.toString().equalsIgnoreCase(type)) &&
                 (virtualPool.getProtectionVarraySettings() != null)) {
             throw IngestionException.exceptions.invalidRPVirtualPool(unManagedVolume.getLabel(), virtualPool.getLabel());
+        }
+
+        // check if the RP protected volume has any mirrors. If yes, throw an error as we don't support this configuration in ViPR as of now
+        if (VolumeIngestionUtil.checkUnManagedVolumeHasReplicas(unManagedVolume)) {
+            StringSet mirrors = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.MIRRORS.toString(),
+                    unManagedVolume.getVolumeInformation());
+            if (mirrors != null && !mirrors.isEmpty()) {
+                String mirrorsString = Joiner.on(", ").join(mirrors);
+                _logger.info("Unmanaged RP volume {} has mirrors: {} associated which is not supported", unManagedVolume.getLabel(),
+                        mirrorsString);
+                throw IngestionException.exceptions.rpUnManagedVolumeCannotHaveMirrors(unManagedVolume.getLabel(), mirrorsString);
+            }
         }
     }
 

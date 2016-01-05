@@ -27,7 +27,7 @@ public class ComputeImageServer extends DataObject {
     private String imageServerSecondIp;
     private String imageServerHttpPort="44491";
     private Integer sshPort = 22;
-    private Integer sshTimeoutMs = 10000;
+    private Integer sshTimeoutMs = 20000;
     private Integer imageImportTimeoutMs = 1800000;
     private Integer osInstallTimeoutMs = 3600000;
     private Integer jobPollingIntervalMs = 60000;

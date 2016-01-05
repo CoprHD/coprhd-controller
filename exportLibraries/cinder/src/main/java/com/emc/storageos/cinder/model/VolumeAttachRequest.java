@@ -5,6 +5,7 @@
 
 package com.emc.storageos.cinder.model;
 
+import javax.xml.bind.annotation.XmlElement;
 import com.google.gson.annotations.SerializedName;
 
 public class VolumeAttachRequest {
@@ -35,6 +36,7 @@ public class VolumeAttachRequest {
      */
 
     @SerializedName("os-initialize_connection")
+    @XmlElement(name = "os-initialize-connection")
     public InitializeConnection initializeConnection = new InitializeConnection();
 
     public class InitializeConnection

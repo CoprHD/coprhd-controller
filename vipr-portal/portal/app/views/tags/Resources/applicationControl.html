@@ -9,29 +9,20 @@
   #{tenantSelector}  
     #{ifnot projects}
       <span class="text-warning">&{'resources.noprojects'}</span>
-      #{if application}
-		<div class="well well-sm form-inline">
-      		#{Form.selectApplication application:application, selectedApplication:session?.activeApplicationId/}
-    	</div>
-  		#{/if}  
     #{/ifnot}
     #{elseif project|| application}
-    <div class="well well-sm form-inline">
+    
       		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
       		#{Form.selectApplication application:application/}
-    	</div>
+    	
   
     #{/elseif}
   #{/tenantSelector}
 #{/if}
 #{else}
   #{ifnot projects}
-    <div class="alert alert-warning">&{'resources.noprojects'}</div>  
-    #{if application}
-		<div class="well well-sm form-inline">
-      		#{Form.selectApplication application:application, selectedApplication:session?.activeApplicationId/}
-    	</div>
-  #{/if}
+    <div class="alert alert-warning">&{'resources.noprojects'}</div> 
+    
   #{/ifnot}
   #{elseif project|| application}
     <div class="well well-sm form-inline">

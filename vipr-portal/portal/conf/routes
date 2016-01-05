@@ -18,6 +18,7 @@ GET     /dashboard                                      AdminDashboard.dashboard
 GET     /scheduledorders/edit/{id}              catalog.ScheduledOrders.edit
 
 GET     /backup/upload/{id}        Backup.upload
+GET     /backup/restore/{id}       Backup.restore
 *       /backup/{action}           Backup.{action}
 
 GET     /hosts/edit/{id}       					compute.Hosts.edit

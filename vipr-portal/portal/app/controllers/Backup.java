@@ -132,8 +132,12 @@ public class Backup extends Controller {
 
     }
 
-    @FlashException(value = "list")
-    public static void restore(Type type, String id) {
+    public static void restore(String id) {
+        renderArgs.put("id", id);
+        render();
+    }
+
+    public static void checkBackupDownloadProgress() {
 
     }
 

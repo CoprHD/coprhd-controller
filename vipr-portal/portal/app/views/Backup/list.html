@@ -49,6 +49,8 @@ render.uploadAndRestoreBtn = function(o, val) {
 		btns = "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  disabled class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
 	}
 
+    url = #{jsAction @restore()/};
+    href = url(odata) + "/" + name;
     btns += "&nbsp;&nbsp;<a id='" + val+"BtnId" + "' href='" + href + "' " +"  class=\"btn btn-default btn-xs\">" + "Restore" + "</a>";
     return btns;
 

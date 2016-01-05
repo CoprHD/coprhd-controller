@@ -28,8 +28,8 @@
 #{/else}
 <br/>
 <div id="switchdesc">
-	<span> &{'disasterRecovery.switchover.setting'} <b style="font-size:13px">${standby_name}</b> &{'disasterRecovery.switchover.active.to'}
-	 <b style="font-size:13px">${active_name}</b> &{'disasterRecovery.switchover.standby.to'}</span> <br/><br/>
+	<span> &{'disasterRecovery.switchover.setting'} <b style="font-size:14px">${standby_name}</b> &{'disasterRecovery.switchover.active.to'}</span>
+	<br/><br/>
 	<dl>
   		<dt id="loadingStatus"> #{loading/}</dt>
   		#{if iamPrimary }
@@ -39,9 +39,8 @@
 			<dd id="checkFailoverStatus">&{'disasterRecovery.failover.progress'} </dd>
 		#{/else}
 	</dl>
-	<span id="failoverWarining">&{'disasterRecovery.failover.progress.warning'}</span><br/><br/>
-	<br/>
-	<span id="redirectSite">
+	<span id="failoverWarining">&{'disasterRecovery.failover.progress.warning'}</span>
+	<span id="redirectSite" hidden="hidden">
 		&{'disasterRecovery.switchover.login.instruction'} <a href="https://${standby_vip}" >${standby_name}</a>
 	</span>
 </div>
@@ -70,12 +69,14 @@ function checkFailoverProgressUpdate() {
 				$("#loadingStatus").text('&{'disasterRecovery.failover.complete'}');
  				$("#checkFailoverStatus").text('');
  				$("#failoverWarining").text('');
+ 				$("#redirectSite").show();
 			}
 			if(result.state == "STANDBY_ERROR") {
 				$("#loadingStatus").text('&{'disasterRecovery.failover.uncomplete'}');
 				$("#checkFailoverStatus").text('');
 				$("#failoverWarining").text('');
 				$("#redirectSite").text('&{'disasterRecovery.switchover.failed.instruction'}');
+				$("#redirectSite").show();
 			}
         },
         error: function() {

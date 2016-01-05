@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,6 +42,7 @@ public class DrUtil {
     private static final Logger log = LoggerFactory.getLogger(DrUtil.class);
     
     private static final int COORDINATOR_PORT = 2181;
+    private static final int CONNECTION_TIMEOUT = 30*1000;
     public static final String ZOOKEEPER_MODE_OBSERVER = "observer";
     public static final String ZOOKEEPER_MODE_READONLY = "read-only";
 
@@ -369,7 +371,9 @@ public class DrUtil {
      */
     public String getCassandraDcId(Site site) {
         String dcId = null;
-        if (StringUtils.isEmpty(site.getStandbyShortId()) || site.getVdcShortId().equals(site.getStandbyShortId())) {
+        // Use vdc short id as Cassandra Data cener name for first site in a DR config. 
+        // To keep the backward compatibility with geo
+        if (site.getSiteShortId().equals(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID)) {
             dcId = site.getVdcShortId();
         } else {
             dcId = site.getUuid();
@@ -414,7 +418,8 @@ public class DrUtil {
         Socket sock = null;
         try {
             log.info("get local coordinator mode from {}:{}", nodeId, COORDINATOR_PORT);
-            sock = new Socket(nodeId, COORDINATOR_PORT);
+            sock = new Socket();
+            sock.connect(new InetSocketAddress(nodeId, COORDINATOR_PORT),CONNECTION_TIMEOUT);
             OutputStream output = sock.getOutputStream();
             output.write("mntr".getBytes());
             sock.shutdownOutput();

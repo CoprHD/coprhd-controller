@@ -35,9 +35,11 @@ import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePool.CopyTypes;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageSystem.SupportedFileReplicationTypes;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
@@ -125,6 +127,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String ONEFS_V8 = "8.0.0.0";
     private static final String ONEFS_V7_2 = "7.2.0.0";
     private IsilonApiFactory _factory;
+    private static final String SYNC_LICENCE_ACTIVATED = "Activated";
+    private static final String SYNC_LICENCE_EVALUATION = "Evaluation";
 
     private List<String> _discPathsForUnManaged;
 
@@ -919,14 +923,25 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         List<StoragePool> existingPools = new ArrayList<StoragePool>();
 
         URI storageSystemId = storageSystem.getId();
-
+        Set<String> validSyncLicenceStatus = new HashSet<String>();
+    	validSyncLicenceStatus.add(SYNC_LICENCE_ACTIVATED);
+    	validSyncLicenceStatus.add(SYNC_LICENCE_EVALUATION);
+    	
         try {
             _log.info("discoverPools for storage system {} - start", storageSystemId);
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
-
+            boolean syncServiceEnabled = isilonApi.isSyncIQEnabled(storageSystem.getFirmwareVersion());
+            boolean syncLicenceValid = validSyncLicenceStatus.contains(isilonApi.getReplicationLicenseInfo());
+            //Set file replication type for Isilon storage system!!!
+            if (syncLicenceValid && syncServiceEnabled) {
+            	StringSet supportReplicationTypes = new StringSet();
+            	supportReplicationTypes.add(SupportedFileReplicationTypes.REMOTE.name());
+            	supportReplicationTypes.add(SupportedFileReplicationTypes.LOCAL.name());
+            	storageSystem.setSupportedReplicationTypes(supportReplicationTypes);
+            }
+            
             _log.info("Isilon OneFS version: {}", storageSystem.getFirmwareVersion());
             List<? extends IsilonPool> isilonPools = null;
             if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, storageSystem.getFirmwareVersion()) >= 0) {
@@ -986,6 +1001,18 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     storagePool.getProtocols().add(NFSv4);
                 } else {
                     storagePool.getProtocols().remove(NFSv4);
+                }
+                
+                // Add the Copy type ASYNC, if the Isilon is enabled with SyncIQ service!!
+                StringSet copyTypesSupported = new StringSet();
+                copyTypesSupported.add(CopyTypes.ASYNC.name());
+                if (syncLicenceValid && syncServiceEnabled) {
+                    storagePool.setSupportedCopyTypes(copyTypesSupported);
+                } else {
+                	if (storagePool.getSupportedCopyTypes() != null && 
+                			!storagePool.getSupportedCopyTypes().isEmpty() ){
+                		storagePool.getSupportedCopyTypes().clear();
+                	}
                 }
 
                 // scale capacity size
@@ -2971,5 +2998,4 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return storagePort;
     }
-
 }

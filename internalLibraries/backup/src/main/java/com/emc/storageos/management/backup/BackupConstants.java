@@ -88,4 +88,7 @@ public interface BackupConstants {
     //constants for restore
     public static final int DOWNLOAD_BUFFER_SIZE=KILOBYTE*4; //4k
     public static final String BACKUP_RESTORE_STATUS = "RestoreStatus";
+    public static final String RESTORE_LOCK="restore";
+    String BACKUP_LOCK = "backup";
+    int LOCK_TIMEOUT = 1000;
 }

@@ -11,22 +11,24 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URI;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.management.backup.BackupOps;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
-import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.systemservices.impl.client.SysClientFactory;
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.util.FtpClient;
+import com.emc.storageos.management.backup.BackupOps;
+import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
+import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 
 public class DownloadExecutor implements  Runnable {
     private static final Logger log = LoggerFactory.getLogger(DownloadExecutor.class);
@@ -126,7 +128,11 @@ public class DownloadExecutor implements  Runnable {
 
     @Override
     public void run() {
+        InterProcessLock lock = null;
         try {
+            lock = backupOps.getLock(BackupConstants.RESTORE_LOCK,
+                    -1, TimeUnit.MILLISECONDS); // -1= no timeout
+
             localHostName = InetAddress.getLocalHost().getHostName();
             download();
             notifyOtherNodes();
@@ -136,8 +142,9 @@ public class DownloadExecutor implements  Runnable {
         }finally {
             try {
                 backupOps.removeRestoreListener(listener);
+                backupOps.releaseLock(lock);
             }catch (Exception e) {
-                log.error("Failed to remvoe listener e=",e);
+                log.error("Failed to remove listener e=",e);
             }
         }
     }

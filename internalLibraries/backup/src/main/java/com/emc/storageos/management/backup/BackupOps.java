@@ -57,12 +57,10 @@ import com.google.common.base.Preconditions;
 
 public class BackupOps {
     private static final Logger log = LoggerFactory.getLogger(BackupOps.class);
-    private static final String BACKUP_LOCK = "backup";
     private static final String IP_ADDR_DELIMITER = ":";
     private static final String IP_ADDR_FORMAT = "%s" + IP_ADDR_DELIMITER + "%d";
     private static final Format FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
     private static final String BACKUP_FILE_PERMISSION = "644";
-    private static final int LOCK_TIMEOUT = 1000;
     private String serviceUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     private Map<String, String> hosts;
     private Map<String, String> dualAddrHosts;
@@ -284,8 +282,8 @@ public class BackupOps {
         InterProcessLock backupLock = null;
         InterProcessLock recoveryLock = null;
         try {
-            recoveryLock = getLock(RecoveryConstants.RECOVERY_LOCK, LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
-            backupLock = getLock(BACKUP_LOCK, LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            recoveryLock = getLock(RecoveryConstants.RECOVERY_LOCK, BackupConstants.LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            backupLock = getLock(BackupConstants.BACKUP_LOCK, BackupConstants.LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
             createBackupWithoutLock(backupTag, force);
         } finally {
             releaseLock(backupLock);
@@ -554,7 +552,7 @@ public class BackupOps {
         validateBackupName(backupTag);
         InterProcessLock lock = null;
         try {
-            lock = getLock(BACKUP_LOCK, LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            lock = getLock(BackupConstants.BACKUP_LOCK, BackupConstants.LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
             deleteBackupWithoutLock(backupTag, false);
         } finally {
             releaseLock(lock);
@@ -660,26 +658,31 @@ public class BackupOps {
         }
     }
 
-    private InterProcessLock getLock(String name, long time, TimeUnit unit) {
-        boolean acquired = false;
+    public InterProcessLock getLock(String name, long time, TimeUnit unit) {
         InterProcessLock lock = null;
         log.info("Try to acquire lock: {}", name);
         try {
             lock = coordinatorClient.getLock(name);
-            acquired = lock.acquire(time, unit);
+            if (time >=0) {
+                boolean acquired = lock.acquire(time, unit);
+
+                if (!acquired) {
+                    log.error("Unable to acquire lock: {}", name);
+                    throw BackupException.fatals.unableToGetLock(name);
+                }
+            }else {
+                lock.acquire(); // no timeout
+            }
         } catch (Exception e) {
             log.error("Failed to acquire lock: {}", name);
             throw BackupException.fatals.failedToGetLock(name, e);
         }
-        if (!acquired) {
-            log.error("Unable to acquire lock: {}", name);
-            throw BackupException.fatals.unableToGetLock(name);
-        }
+
         log.info("Got lock: {}", name);
         return lock;
     }
 
-    private void releaseLock(InterProcessLock lock) {
+    public void releaseLock(InterProcessLock lock) {
         if (lock == null) {
             log.info("The lock is null, no need to release");
             return;

@@ -3513,7 +3513,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (addVolsGroupName == null || addVolsGroupName.isEmpty()) {
                 Set<URI> vols = virtVolBackVolMap.keySet();
                 Iterator<URI> it = vols.iterator();
-                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(it.next().toString(), "replicationGroupName is not specified.");
+                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(it.next().toString(), "replicationGroupName is not specified");
             }
             List<Volume> volsToValidate = new ArrayList<Volume>();
             for (URI virtVolId : virtVolBackVolMap.keySet()) {

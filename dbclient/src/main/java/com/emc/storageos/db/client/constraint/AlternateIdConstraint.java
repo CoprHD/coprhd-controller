@@ -316,6 +316,11 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(ExportMask.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("initiators"), altId);
         }
+        
+        public static AlternateIdConstraint getInitiatorHostConstraintConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(Initiator.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("hostname"), altId);
+        }
 
         public static AlternateIdConstraint getNetworkStoragePortConstraint(String networkId) {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);

@@ -262,6 +262,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         private String rpSite;
         private URI varray;
         private List<URI> volumes;
+        private URI host;
 
         public RPExport() {
         }
@@ -305,6 +306,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         public void setVolumes(List<URI> volumes) {
             this.volumes = volumes;
+        }
+        
+        public URI getHost(){
+        	return host;
+        }
+        
+        public void setHost(URI host) {
+        	this.host = host;
         }
 
         @Override
@@ -1151,6 +1160,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     exportGroupVolumesAdded.put(exportGroup.getId(), volumesToAdd.keySet());
                 }
 
+                //Update host information on the Source volume
+                if (rpExport.getHost() != null) {
+                	_log.info("RP Export: add host information to export");
+                	if (exportGroup.getHosts() == null) {
+                		exportGroup.setHosts(new StringSet());
+                	}
+                	exportGroup.getHosts().add(rpExport.getHost().toString());
+                }
+                
                 // Persist the export group
                 if (addExportGroupToDB) {
                     exportGroup.addInitiators(initiatorSet);
@@ -1802,7 +1820,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         vpoolURI = getVirtualPoolChangeVirtualPool(volumeDescriptors);
                     } else {
                         vpoolURI = volume.getVirtualPool();
-                    }
+                    }                                       
 
                     VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
 
@@ -1858,6 +1876,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         rpExportMap.put(key, rpExport);
                     }
 
+                    if (vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
+                    	for(VolumeDescriptor desc : volumeDescriptors) {
+                    		if (desc.getVolumeURI().equals(vol.getId())) {
+                            	_log.info("Add host information for the source volume");
+                    			rpExport.setHost(desc.getHost());
+                    			break;
+                    		}
+                    	}
+                    }
                     _log.info("Add Volume: " + volumeLabel + " to export: " + rpExport);
 
                     rpExport.getVolumes().add(volumeId);

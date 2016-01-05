@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -25,14 +26,19 @@ import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -1296,6 +1302,14 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, Set<Initiator>> maskToInitiatorsMap,
             Set<URI> partialMasks, String token) {
         boolean isVMAX3 = storage.checkIfVmax3();
+        
+        //Bharath TODO: test only
+        masksMap = applyVolumesToMasksUsingRPVMAXRules(storage, exportGroup, existingMasksToUpdateWithNewVolumes, volumesWithNoMask, masksMap, maskToInitiatorsMap, partialMasks, token);
+        
+        if (masksMap.isEmpty()) {
+        	return false;
+        }
+                           
         // Rule 1: See if there is a mask that matches our policy and only our policy
         if (!applyVolumesToMasksUsingRule(exportGroup, token,
                 existingMasksToUpdateWithNewVolumes,
@@ -1324,6 +1338,80 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return true;
     }
 
+    
+    //TODO Bharath
+    /**
+     * @param storage
+     * @param exportGroup
+     * @param existingMasksToUpdateWithNewVolumes
+     * @param volumesWithNoMask
+     * @param masksMap
+     * @param maskToInitiatorsMap
+     * @param partialMasks
+     * @param token
+     * @return
+     */
+    private Map<ExportMask, ExportMaskPolicy> applyVolumesToMasksUsingRPVMAXRules(StorageSystem storage, ExportGroup exportGroup,
+	            Map<URI, Map<URI, Integer>> existingMasksToUpdateWithNewVolumes,
+	            Map<URI, Map<URI, Integer>> volumesWithNoMask,
+	            Map<ExportMask, ExportMaskPolicy> masksMap,
+	            Map<URI, Set<Initiator>> maskToInitiatorsMap,
+	            Set<URI> partialMasks, String token) {
+    	
+    	//If there is no host information in the exportGroup, then just return the maskMap for further processing
+    	if (!exportGroup.checkInternalFlags(Flag.RECOVERPOINT) || null == exportGroup.getHosts() || exportGroup.getHosts().isEmpty() ) {
+    		return masksMap;
+    	}
+    	
+    	//Get the host to which the volume is being exported       	
+    	URI host = URI.create(exportGroup.getHosts().iterator().next());
+    	
+    	//Get the initiators of this host
+    	List<String> hostInitiatorNames = new ArrayList<String>();    	
+    	URIQueryResultList uriQueryList = new URIQueryResultList();
+      
+       _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(host, Initiator.class, "host"), uriQueryList);
+        
+       Iterator<URI> uriIter = uriQueryList.iterator();
+        while(uriIter.hasNext()) {
+            Initiator initiator = _dbClient.queryObject(Initiator.class, uriIter.next());
+            hostInitiatorNames.add(Initiator.normalizePort(initiator.getInitiatorPort()));   
+            _log.info("Host initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
+        }
+        
+        //Next, fetch all the Masking view for the host
+        //Bharath TODO: change the last argument to true and test once Ameer's changes are in. 
+        Map<String, Set<URI>> hostMaskingViews = getDevice().findExportMasks(storage, hostInitiatorNames, true);
+    	                        
+        //In the case of an RP protected volume, the masksMap contains all the masks matching the RP initiators that was passed down. 
+        //We need to weed through this list to find only those masking view that is compatible with the list of host masking views.
+        Map<ExportMask, ExportMaskPolicy> matchingMaskMap = new HashMap<ExportMask, ExportMaskPolicy>();
+        for(Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {        	
+        	ExportMask rpMaskingView = maskMap.getKey();
+        	        	
+        	for (Entry<String, Set<URI>> hostMaskingViewMap : hostMaskingViews.entrySet()) {
+        		Set<URI> hostMVs  = hostMaskingViewMap.getValue();
+        		for (URI hostMV : hostMVs) {
+        			ExportMask hostMaskingView = _dbClient.queryObject(ExportMask.class, hostMV);
+        		
+        			//Find a masking view for the RP, if one exists, that matches
+        			if (hostMaskingView.getStoragePorts().containsAll(rpMaskingView.getStoragePorts())) {    					
+        				if (!matchingMaskMap.containsKey(rpMaskingView)) {
+        					_log.info(String.format("Found a RP masking view %s that has the same storage ports as the host %s to which we are exporting the volume. OK to use " , rpMaskingView.getMaskName(), hostMaskingView.getMaskName()));
+        					matchingMaskMap.put(rpMaskingView, maskMap.getValue());
+        					//TODO: may break when we find the first one. if there are multiple RP mv's that each map to a host mv, then everything is returned.
+        					//If we break here, make sure that when the volumes are exported, the correct host masking view is picked, one that corresponds to the RP masking view
+        					//that was selected here.
+        				}
+        			}
+        		}
+        	}        	        
+        }
+    	
+    	return matchingMaskMap;
+    }
+    
     /**
      * Apply business rules to "add" volumes to specific export masks.
      *

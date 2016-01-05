@@ -1097,7 +1097,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @throws ControllerException
      */
     private List<VolumeDescriptor> createVolumeDescriptors(RPProtectionRecommendation recommendation, List<URI> volumeURIs,
-            VirtualPoolCapabilityValuesWrapper capabilities, URI oldVpool) {
+            VirtualPoolCapabilityValuesWrapper capabilities, URI oldVpool, URI host) {
 
         List<Volume> preparedVolumes = _dbClient.queryObject(Volume.class, volumeURIs);
 
@@ -1161,6 +1161,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 desc = new VolumeDescriptor(volumeType, volume.getStorageController(), volume.getId(), volume.getPool(),
                         null, capabilities, volume.getCapacity());
+                
+                if (volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
+                	_log.info(String.format("Volume %s - Exported to host %s", volume.getLabel(), host.toString()));
+                	desc.setHost(host);
+                }
                 descriptors.add(desc);
             }
         }
@@ -1676,7 +1681,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             while (recommendationsIter.hasNext()) {
                 RPProtectionRecommendation recommendation = (RPProtectionRecommendation) recommendationsIter.next();
 
-                volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities, oldVpoolId));
+                volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities, oldVpoolId, param.getHost()));
                 logDescriptors(volumeDescriptors);
 
                 BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
@@ -2151,7 +2156,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 _log.info("Expand Volume requested size : {}", newSize);
                 _log.info("Expand source calculated size : {}", capacities.get(Volume.PersonalityTypes.SOURCE));
                 _log.info("Expand target calcaluted size : {}", capacities.get(Volume.PersonalityTypes.TARGET));
-                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null, null);
+                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null, null, null);
 
                 for (VolumeDescriptor volDesc : volumeDescriptors) {
                     if (volDesc.getType() == VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE) {
@@ -2176,7 +2181,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 // Step 3: Call the controller to do the expand.
                 _log.info("Expand volume request size : {}", normalizedRequestSize);
-                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null, null);
+                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null, null, null);
 
                 for (VolumeDescriptor volDesc : volumeDescriptors) {
                     volDesc.setVolumeSize(normalizedRequestSize);

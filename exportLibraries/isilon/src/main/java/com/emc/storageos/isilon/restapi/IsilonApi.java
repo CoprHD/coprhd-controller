@@ -65,6 +65,7 @@ public class IsilonApi {
     private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
     private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
     private static final URI URI_REPLICATION_POLICIES = URI.create("/platform/1/sync/policies/");
+    private static final URI URI_TARGET_REPLICATION_POLICIES = URI.create("platform/1/sync/target/policies/");
     private static final URI URI_REPLICATION_JOBS = URI.create("/platform/1/sync/jobs/");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
@@ -1650,6 +1651,16 @@ public class IsilonApi {
     }
 
     /**
+     * Get Target Replication Policy information from the Isilon array
+     * 
+     * @return IsilonSyncPolicy object
+     * @throws IsilonException
+     */
+    public IsilonSyncTargetPolicy getTargetReplicationPolicy(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_TARGET_REPLICATION_POLICIES), id, "policies", IsilonSyncTargetPolicy.class);
+    }
+
+    /**
      * Create Replication Policy
      * 
      * @param replicationPolicy IsilonSyncPolicy object
@@ -1663,7 +1674,7 @@ public class IsilonApi {
     /**
      * Modify Replication Policy
      * 
-     * @param id identifier of the Replication Policy to modify
+     * @param id identifier/name of the Replication Policy to modify
      * @param syncPolicy IsilonSyncPolicy object with the modified properties
      * @throws IsilonException
      */
@@ -1684,6 +1695,7 @@ public class IsilonApi {
     /**
      * Get Replication Jobs information from the Isilon array
      * 
+     * @param id identifier for the replication policy
      * @return Replication Jobs object
      * @throws IsilonException
      */

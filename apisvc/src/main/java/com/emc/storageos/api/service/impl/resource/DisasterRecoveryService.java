@@ -194,7 +194,7 @@ public class DisasterRecoveryService {
             standbySite.setNodeCount(standbyConfig.getNodeCount());
             standbySite.setUuid(standbyConfig.getUuid());
             String shortId = generateShortId(drUtil.listSites());
-            standbySite.setStandbyShortId(shortId);
+            standbySite.setSiteShortId(shortId);
             standbySite.setDescription(param.getDescription());
             standbySite.setState(SiteState.STANDBY_ADDING);
             if (log.isDebugEnabled()) {
@@ -840,8 +840,8 @@ public class DisasterRecoveryService {
 
             // Set old active site's state, short id and key
             oldActiveSite = drUtil.getSiteFromLocalVdc(oldActiveUUID);
-            if (StringUtils.isEmpty(oldActiveSite.getStandbyShortId())) {
-                oldActiveSite.setStandbyShortId(newActiveSite.getVdcShortId());
+            if (StringUtils.isEmpty(oldActiveSite.getSiteShortId())) {
+                oldActiveSite.setSiteShortId(newActiveSite.getVdcShortId());
             }
             oldActiveSite.setState(SiteState.ACTIVE_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
@@ -1423,7 +1423,7 @@ public class DisasterRecoveryService {
     private String generateShortId(List<Site> existingSites) throws Exception {
         Set<String> existingShortIds = new HashSet<String>();
         for (Site site : existingSites) {
-            existingShortIds.add(site.getStandbyShortId());
+            existingShortIds.add(site.getSiteShortId());
         }
 
         for (int i = 1; i < MAX_NUM_OF_STANDBY; i++) {

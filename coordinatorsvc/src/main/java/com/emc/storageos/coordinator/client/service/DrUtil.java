@@ -361,7 +361,7 @@ public class DrUtil {
         String dcId = null;
         // Use vdc short id as Cassandra Data cener name for first site in a DR config. 
         // To keep the backward compatibility with geo
-        if (site.getStandbyShortId().equals(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID)) {
+        if (site.getSiteShortId().equals(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID)) {
             dcId = site.getVdcShortId();
         } else {
             dcId = site.getUuid();

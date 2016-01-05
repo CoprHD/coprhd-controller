@@ -110,7 +110,7 @@ public class VdcConfigUtil {
             boolean isActiveSite = site.getUuid().equals(activeSiteId);
 
             if (shouldExcludeFromConfig(site)) {
-                log.info("Ignore site {} of vdc {}", site.getStandbyShortId(), site.getVdcShortId());
+                log.info("Ignore site {} of vdc {}", site.getSiteShortId(), site.getVdcShortId());
                 continue;
             }
 
@@ -130,7 +130,7 @@ public class VdcConfigUtil {
             Map<String, String> siteIPv6Addrs = site.getHostIPv6AddressMap();
 
             List<String> siteHosts = getHostsFromIPAddrMap(siteIPv4Addrs, siteIPv6Addrs);
-            String siteShortId = site.getStandbyShortId();
+            String siteShortId = site.getSiteShortId();
             
             // sort the host names as vipr1, vipr2 ...
             Collections.sort(siteHosts);
@@ -165,7 +165,7 @@ public class VdcConfigUtil {
             // moving forward this may or may not be the case.
             vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
             vdcConfig.put(SITE_IS_STANDBY, String.valueOf(drUtil.isStandby()));
-            String activeSiteShortId = drUtil.getSiteFromLocalVdc(activeSiteId).getStandbyShortId();
+            String activeSiteShortId = drUtil.getSiteFromLocalVdc(activeSiteId).getSiteShortId();
             vdcConfig.put(SITE_ACTIVE_ID, activeSiteShortId);
         }
     }

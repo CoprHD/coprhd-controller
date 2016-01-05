@@ -15,8 +15,8 @@ import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * ViPR Job created when an underlying CIM job is created to create
@@ -50,7 +50,7 @@ public class SmisBlockSnapshotSessionCGCreateJob extends SmisJob {
                 // Get the snapshot sessions.
                 Iterator<BlockSnapshotSession> iterator = dbClient.queryIterativeObjects(BlockSnapshotSession.class,
                         getTaskCompleter().getIds(), true);
-                ArrayList<BlockSnapshotSession> snapSessions = Lists.newArrayList(iterator);
+                List<BlockSnapshotSession> snapSessions = Lists.newArrayList(iterator);
 
                 // Update Settings instance for the session.
                 CIMConnectionFactory cimConnectionFactory = jobContext.getCimConnectionFactory();

@@ -12,6 +12,7 @@ import java.util.Set;
 import javax.ws.rs.core.UriInfo;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -229,6 +230,13 @@ public interface BlockSnapshotSessionApi {
      * @param sourceObj A reference to the source object.
      */
     public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj);
+
+    /**
+     * Get all BlockSnapshotSessions for the passed consistency group.
+     *
+     * @param groupObj A reference to the consistency group object.
+     */
+    public List<BlockSnapshotSession> getSnapshotSessionsForConsistencyGroup(BlockConsistencyGroup groupObj);
 
     /**
      * Verifies there are no active mirrors for the snapshot session source volume.

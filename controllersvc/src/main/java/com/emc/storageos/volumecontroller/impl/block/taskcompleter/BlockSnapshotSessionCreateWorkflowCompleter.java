@@ -8,6 +8,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +61,15 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
             List<URI> snapSessionURIs = getIds();
             for (URI snapSessionURI : snapSessionURIs) {
                 BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-                BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+
+                BlockObject sourceObj = null;
+                if (snapSession.hasConsistencyGroup()) {
+                    List<Volume> volumesPartOfCG =
+                            ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), dbClient);
+                    sourceObj = volumesPartOfCG.get(0);
+                } else {
+                    sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+                }
 
                 // Record the results.
                 recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.CREATE_SNAPSHOT_SESSION,

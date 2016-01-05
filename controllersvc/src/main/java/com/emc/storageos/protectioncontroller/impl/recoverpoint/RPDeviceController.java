@@ -3697,7 +3697,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             _dbClient.updateObject(volumes);
             _dbClient.updateObject(vplexBackendVolumes);
 
-            // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool
+            // The RPVolumeVpoolChangeTaskCompleter will restore the old Virtual Pool
             taskCompleter = new RPCGVolumeVpoolChangeTaskCompleter(volumeURIs, oldVpools, task);
         } catch (Exception ex) {
             _log.error("Unexpected exception reading volume or generating taskCompleter: ", ex);
@@ -3715,12 +3715,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 VirtualPool newVirtualPool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 // Add workflow step
                 addUpdateConsistencyGroupPolicyStep(workflow, protectionSystem, consistencyGroup,
-                        newVirtualPool.getRpCopyMode(), taskCompleter);
+                        newVirtualPool.getRpCopyMode());
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info(
                         "The updateAutoTieringPolicy workflow has {} step(s). Starting the workflow.",
                         workflow.getAllStepStatus().size());
+
                 workflow.executePlan(taskCompleter,
                         "Updated the consistency group policy successfully.");
             } else {
@@ -3742,13 +3743,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param copyMode the requested copy mode (SYNCHRONOUS or ASYNCHRONOUS)
      * @return the step identifier
      */
-    public String addUpdateConsistencyGroupPolicyStep(Workflow workflow, ProtectionSystem protectionSystem, URI cgUri, String copyMode,
-            RPCGVolumeVpoolChangeTaskCompleter taskCompleter)
+    public String addUpdateConsistencyGroupPolicyStep(Workflow workflow, ProtectionSystem protectionSystem, URI cgUri, String copyMode)
             throws InternalException {
 
         String stepId = workflow.createStepId();
         Workflow.Method updateCgPolicyMethod = new Workflow.Method(METHOD_UPDATE_CG_POLICY_STEP, protectionSystem,
-                cgUri, copyMode, taskCompleter);
+                cgUri, copyMode);
 
         workflow.createStep(STEP_UPDATE_CG_POLICY,
                 String.format("Create subtask to update replication mode for CG %s to %s: ", cgUri, copyMode),
@@ -3761,19 +3761,32 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return STEP_UPDATE_CG_POLICY;
     }
 
-    public boolean udpateConsistencyGroupPolicyStep(ProtectionSystem protectionSystem, URI cgUri, String copyMode,
-            RPCGVolumeVpoolChangeTaskCompleter taskCompleter, String stepId) {
+    /**
+     * Updates the consistency group policy (replication mode).
+     *
+     * @param protectionSystem the RP protection system
+     * @param cgUri the consistency group ID
+     * @param copyMode the copy/replication mode (sync or async)
+     * @param stepId the step ID
+     * @return true if the step executes successfully, false otherwise.
+     */
+    public boolean udpateConsistencyGroupPolicyStep(ProtectionSystem protectionSystem, URI cgUri, String copyMode, String stepId) {
         try {
             _log.info(String.format("Updating consistency group policy for CG %s.", cgUri));
-
             WorkflowStepCompleter.stepExecuting(stepId);
 
-            // Lock the CG or fail
-            lockCG(taskCompleter);
-
             RecoverPointClient rp = RPHelper.getRecoverPointClient(protectionSystem);
-
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+
+            // lock around update policy operations on the same CG
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, cgUri, protectionSystem.getId()));
+            boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.RP_CG));
+            if (!lockAcquired) {
+                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                        String.format("Upgrade policy for RP consistency group %s; id: %s", cg.getLabel(), cgUri.toString()));
+            }
+
             CGPolicyParams policyParams = new CGPolicyParams(copyMode);
             UpdateCGPolicyParams updateParams = new UpdateCGPolicyParams(
                     cg.getCgNameOnStorageSystem(protectionSystem.getId()), policyParams);

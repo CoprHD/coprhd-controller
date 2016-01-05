@@ -382,9 +382,6 @@ public class RPUnManagedObjectDiscoverer {
                     for (GetVolumeResponse targetVolume : rset.getVolumes()) {
                         // Find this volume in UnManagedVolumes based on wwn
                         UnManagedVolume targetUnManagedVolume = findUnManagedVolumeForWwn(targetVolume.getWwn(), dbClient, storageNativeIdPrefixes);
-                        
-                        // Grab the already-modified unmanaged volume from the map
-                        targetUnManagedVolume = unManagedVolumesToUpdateByWwn.get(targetUnManagedVolume.getWwn());
 
                         if (null == targetUnManagedVolume) {
                             log.info("Protection Set {} contains unknown target volume: {}. Skipping.",

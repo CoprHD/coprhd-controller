@@ -51,7 +51,7 @@ private static final Logger _logger = LoggerFactory.getLogger(BucketQuotaMatcher
             StoragePool pool = poolIterator.next();
             if (pool.getFreeCapacity() < hardQuota) {
                 _logger.info("Ignoring pool {} as Free capacity is less :", pool.getNativeGuid());
-                allPools.remove(pool);
+                filteredPoolList.remove(pool);
             }
         }
         _logger.info("Pools Matching Hard quota Ended {}, {}", hardQuota,

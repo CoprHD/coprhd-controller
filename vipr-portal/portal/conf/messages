@@ -952,9 +952,10 @@ restore.from.version=Restore From Data Backup
 restore.download.progress=Download Progress
 restore.download.progress.description=The system is downloading the backup file
 restore.rootPassword=Root Password
-restore.checkbox=Geo
-restore.checkbox.help=Is it Geo Environment
+restore.checkbox=no
+restore.checkbox.help=To restore the vdc1 in an all crashed Geo Environment
 restore.prompt=Click OK to restore your data, the System will reboot and you will be directed to login.
+restore.disconnect=Please make sure the VDC to be restored has been disconnected from other VDCs.
 
 # System Node Recovery
 system.noderecovery.title=Node Recovery

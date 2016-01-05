@@ -50,26 +50,13 @@
                 }%
                 #{Form.inputPasswordControlGroup field:field/}
             #{/field}
-
-            #{field 'restore.checkbox'}
-            %{
-                field.value = 'false'
-                field.cssClass = 'checkbox'
-                }%
-                #{Form.booleanCheckBoxControlGroup field:field/}
-            #{/field}
         </div>
 
+        <div>
+            <label><input type="checkbox"> &{'restore.checkbox.help'}</label>
+            <div class="alert alert-danger"> &{'restore.disconnect'} </div>
+        </div>
         <div class="alert alert-info"> &{'restore.prompt'} </div>
-
-    *{<button id="okButton" type="submit" class="btn btn-primary btn-sm btn-success"
-                onclick="window.location = '@{infra.Upgrade.checkDbStatusOK()}';" style="margin-bottom: 0px">
-            #{icon 'ok-sign'/} &{'upgrade.checkDbConfirm'}
-        </button>
-        <button id="cancelDbButton" type="submit" class="btn btn-primary btn-sm btn-danger"
-                onclick="window.location = '@{infra.Upgrade.cancelCheckDbStatus()}';" style="margin-bottom: 0px">
-            #{icon 'danger'/} &{'upgrade.checkDbCancel'}
-        </button>}*
 
         #{Form.button 'button.ok', class:'primary', icon:'ok-sign', submit:'deleteModalForm'/}
         #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}

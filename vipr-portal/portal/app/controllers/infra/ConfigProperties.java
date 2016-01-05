@@ -38,6 +38,7 @@ import play.mvc.Controller;
 import play.mvc.With;
 import util.BourneUtil;
 import util.ConfigPropertyUtils;
+import util.DisasterRecoveryUtils;
 import util.MailSettingsValidator;
 import util.MessagesUtils;
 import util.PasswordUtil;
@@ -150,22 +151,43 @@ public class ConfigProperties extends Controller {
     }
 
     private static List<PropertyPage> loadPropertyPages() {
+        boolean isPrimarySite = DisasterRecoveryUtils.isPrimarySite();
         Map<String, Property> properties = loadProperties();
         Map<String, PropertyPage> pages = Maps.newLinkedHashMap();
-        addPage(pages, new NetworkPropertyPage(properties));
-        if (PlatformUtils.isAppliance()) {
-            addPage(pages, new SecurityPropertyPage(properties));
+        Map<String, PropertyPage> excludePages = Maps.newLinkedHashMap();
+
+        if (isPrimarySite) {
+            addPage(pages, new NetworkPropertyPage(properties));
+            if (PlatformUtils.isAppliance()) { // ALIK Commented for debug
+                addPage(pages, new SecurityPropertyPage(properties));
+            }
+            addPage(pages, new ControllerPropertyPage(properties));
+            addPage(pages, new DiscoveryPropertyPage(properties));
+            if (!SetupUtils.isOssBuild()) {
+                addPage(pages, new SupportPropertyPage(properties));
+            }
+            addPage(pages, new SmtpPropertyPage(properties));
         }
-        addPage(pages, new ControllerPropertyPage(properties));
-        addPage(pages, new DiscoveryPropertyPage(properties));
-        if (!SetupUtils.isOssBuild()) {
-            addPage(pages, new SupportPropertyPage(properties));
+        else {
+            addPage(excludePages, new NetworkPropertyPage(properties));
+            addPage(excludePages, new SecurityPropertyPage(properties));
+            addPage(excludePages, new ControllerPropertyPage(properties));
+            addPage(excludePages, new DiscoveryPropertyPage(properties));
+            addPage(excludePages, new SupportPropertyPage(properties));
+            addPage(excludePages, new SmtpPropertyPage(properties));
         }
-        addPage(pages, new SmtpPropertyPage(properties));
+
         addPage(pages, new UpgradePropertyPage(properties));
-        addPage(pages, new PasswordPropertyPage(properties));
+
+        if (isPrimarySite) {
+            addPage(pages, new PasswordPropertyPage(properties));
+        }
+        else {
+            addPage(excludePages, new PasswordPropertyPage(properties));
+        }
+
         addPage(pages, new BackupPropertyPage(properties));
-        addDefaultPages(pages, properties.values());
+        addDefaultPages(pages, properties.values(), excludePages);
         return Lists.newArrayList(pages.values());
     }
 
@@ -174,14 +196,20 @@ public class ConfigProperties extends Controller {
         return page;
     }
 
-    private static void addDefaultPages(Map<String, PropertyPage> pages, Collection<Property> properties) {
+    private static void addDefaultPages(Map<String, PropertyPage> pages, Collection<Property> properties,
+            Map<String, PropertyPage> excludePages) {
         for (Property property : properties) {
             String pageName = StringUtils.defaultIfBlank(property.getPageName(), DEFAULT_PAGE);
             PropertyPage page = pages.get(pageName);
-            if (page == null) {
+            if ((page == null) && (excludePages.get(pageName) == null)) {
                 page = addPage(pages, new DefaultPropertyPage(pageName));
+                page.getProperties().add(property);
             }
-            page.getProperties().add(property);
+            else {
+                if (page != null) {
+                    page.getProperties().add(property);
+                }
+            }
         }
     }
 

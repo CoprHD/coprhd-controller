@@ -3565,29 +3565,30 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<Volume> backingVols = entry.getValue();
 
             boolean backingVolsAreInCG = false;
+            URI cgUri = null;
             for (Volume backingVol : backingVols) {
-                URI cgUri = backingVol.getConsistencyGroup();
+                cgUri = backingVol.getConsistencyGroup();
                 if (!NullColumnValueGetter.isNullURI(cgUri) && !NullColumnValueGetter.isNullValue(backingVol.getReplicationGroupInstance())) {
                     backingVolsAreInCG = true;
                     break;
                 }
-                if (backingVolsAreInCG) {
-                    volumesInCG.add(vvUri);
+            }
+            if (backingVolsAreInCG) {
+                volumesInCG.add(vvUri);
 
-                    // if the backing volumes are in a array cg, we need to verify that all virtual volumes from the
-                    // cg are on the list to be added
-                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
-                    List<Volume> cgvolumes = getActiveCGVolumes(cg);
-                    for (Volume cgvol : cgvolumes) {
-                        if (!virtVolBackVolMap.keySet().contains(cgvol.getId())) {
-                            Volume virtVol = _dbClient.queryObject(Volume.class, vvUri);
-                            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(virtVol.getLabel(),
-                                    "not all volumes in consistency group are in the add volume list");
-                        }
+                // if the backing volumes are in a array cg, we need to verify that all virtual volumes from the
+                // cg are on the list to be added
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+                List<Volume> cgvolumes = getActiveCGVolumes(cg);
+                for (Volume cgvol : cgvolumes) {
+                    if (!virtVolBackVolMap.keySet().contains(cgvol.getId())) {
+                        Volume virtVol = _dbClient.queryObject(Volume.class, vvUri);
+                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(virtVol.getLabel(),
+                                "not all volumes in consistency group are in the add volume list");
                     }
-                } else {
-                    volsNotInCG.put(vvUri, backingVols);
                 }
+            } else {
+                volsNotInCG.put(vvUri, backingVols);
             }
         }
 

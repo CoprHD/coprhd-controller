@@ -14,12 +14,12 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.util.VPlexUtil;
 
 @SuppressWarnings("serial")
 public class RPCGVolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
@@ -102,31 +102,50 @@ public class RPCGVolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter 
      */
     private void rollBackVpoolOnVplexBackendVolume(Volume volume, List<Volume> volumesToUpdate, DbClient dbClient) {
         // Check if it is a VPlex volume, and get backend volumes
-        Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
-        if (backendSrc != null) {
-            _log.info("Rolling back virtual pool on VPLEX backend Source volume {}({})", backendSrc.getId(), backendSrc.getLabel());
+        StringSet associatedVolumeIds = volume.getAssociatedVolumes();
 
-            if (oldVpools != null && oldVpools.containsKey(backendSrc.getId())) {
-                URI oldVpoolURI = oldVpools.get(volume.getId());
+        // Perform additional tasks if this volume is a VPlex volume
+        if (associatedVolumeIds != null && !associatedVolumeIds.isEmpty()) {
+            Volume backendSrc = null;
+            Volume backendHa = null;
 
-                backendSrc.setVirtualPool(oldVpoolURI);
-                _log.info("Set volume's virtual pool back to {}", oldVpoolURI);
-                volumesToUpdate.add(backendSrc);
-
-                // VPlex volume, check if it is distributed
-                Volume backendHa = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient, false);
-                if (backendHa != null) {
-                    _log.info("Rolling back virtual pool on VPLEX backend Distributed volume {}({})", backendHa.getId(),
-                            backendHa.getLabel());
-
-                    VirtualPool oldVpoolObj = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
-                    VirtualPool oldHAVpool = VirtualPool.getHAVPool(oldVpoolObj, dbClient);
-                    if (oldHAVpool == null) { // it may not be set
-                        oldHAVpool = oldVpoolObj;
+            for (String associatedVolumeId : associatedVolumeIds) {
+                Volume associatedVolume = dbClient.queryObject(Volume.class,
+                        URI.create(associatedVolumeId));
+                // Assign the associated volumes to either be the source or HA
+                if (associatedVolume != null) {
+                    if (associatedVolume.getVirtualArray().equals(volume.getVirtualArray())) {
+                        backendSrc = associatedVolume;
+                    } else {
+                        backendHa = associatedVolume;
                     }
-                    backendHa.setVirtualPool(oldHAVpool.getId());
-                    _log.info("Set volume's virtual pool back to {}", oldHAVpool.getId());
-                    volumesToUpdate.add(backendHa);
+                }
+            }
+
+            if (backendSrc != null) {
+                _log.info("Rolling back virtual pool on VPLEX backend Source volume {}({})", backendSrc.getId(), backendSrc.getLabel());
+
+                if (oldVpools != null && oldVpools.containsKey(backendSrc.getId())) {
+                    URI oldVpoolURI = oldVpools.get(volume.getId());
+
+                    backendSrc.setVirtualPool(oldVpoolURI);
+                    _log.info("Set volume's virtual pool back to {}", oldVpoolURI);
+                    volumesToUpdate.add(backendSrc);
+
+                    // VPlex volume, check if it is distributed
+                    if (backendHa != null) {
+                        _log.info("Rolling back virtual pool on VPLEX backend Distributed volume {}({})", backendHa.getId(),
+                                backendHa.getLabel());
+
+                        VirtualPool oldVpoolObj = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
+                        VirtualPool oldHAVpool = VirtualPool.getHAVPool(oldVpoolObj, dbClient);
+                        if (oldHAVpool == null) { // it may not be set
+                            oldHAVpool = oldVpoolObj;
+                        }
+                        backendHa.setVirtualPool(oldHAVpool.getId());
+                        _log.info("Set volume's virtual pool back to {}", oldHAVpool.getId());
+                        volumesToUpdate.add(backendHa);
+                    }
                 }
             }
         }

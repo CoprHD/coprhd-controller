@@ -22,12 +22,20 @@ import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSession
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.PermissionsEnforcingResourceFilter;
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
+import com.emc.storageos.api.service.impl.response.ProjOwnedSnapResRepFilter;
+import com.emc.storageos.api.service.impl.response.ResRepFilter;
+import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
@@ -146,13 +154,13 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * 
      * @param id The URI of the BlockSnapshotSession instance to be deleted.
      * 
-     * @return TaskResourceRep representing the snapshot session task.
+     * @return TaskList representing the tasks for deleting snapshot sessions.
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep deactivateSnapshotSession(@PathParam("id") URI id) {
+    public TaskList deactivateSnapshotSession(@PathParam("id") URI id) {
         return getSnapshotSessionManager().deleteSnapshotSession(id);
     }
 
@@ -287,6 +295,58 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.BLOCK_SNAPSHOT_SESSION;
+    }
+    
+    /**
+     * Get search results by project alone.
+     * 
+     * @return SearchedResRepList
+     */
+    @Override
+    protected SearchedResRepList getProjectSearchResults(URI projectId) {
+        SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getProjectBlockSnapshotSessionConstraint(projectId),
+                resRepList);
+        return resRepList;
+    }
+    
+    /**
+     * Get search results by name in zone or project.
+     * 
+     * @return SearchedResRepList
+     */
+    @Override
+    protected SearchedResRepList getNamedSearchResults(String name, URI projectId) {
+        SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
+        if (projectId == null) {
+            _dbClient.queryByConstraint(
+                    PrefixConstraint.Factory.getLabelPrefixConstraint(getResourceClass(), name),
+                    resRepList);
+        } else {
+            _dbClient.queryByConstraint(
+                    ContainmentPrefixConstraint.Factory.getBlockSnapshotSessionUnderProjectConstraint(
+                            projectId, name), resRepList);
+        }
+        return resRepList;
+    }
+
+    /**
+     * Get object specific permissions filter
+     * 
+     */
+    @Override
+    public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
+            PermissionsHelper permissionsHelper) {
+        return new ProjOwnedSnapResRepFilter(user, permissionsHelper, BlockSnapshotSession.class);
+    }
+    
+    /**
+     * Block snapshot session is not a zone level resource
+     */
+    @Override
+    protected boolean isZoneLevelResource() {
+        return false;
     }
 
     /**

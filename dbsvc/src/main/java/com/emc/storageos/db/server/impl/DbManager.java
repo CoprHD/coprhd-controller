@@ -10,6 +10,7 @@ import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerMBean;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
+import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 
@@ -57,6 +58,10 @@ public class DbManager implements DbManagerMBean {
     @Autowired
     private SchemaUtil schemaUtil;
 
+    @Autowired
+    private JmxServerWrapper jmxServer;
+
+
     ScheduledFuture<?> scheduledRepairTrigger;
 
     // Max retry times after a db repair failure
@@ -83,7 +88,7 @@ public class DbManager implements DbManagerMBean {
      * @throws Exception
      */
     private boolean startNodeRepair(String keySpaceName, int maxRetryTimes, boolean crossVdc, boolean noNewReapir) throws Exception {
-        DbRepairRunnable runnable = new DbRepairRunnable(this.executor, this.coordinator, keySpaceName,
+        DbRepairRunnable runnable = new DbRepairRunnable(jmxServer, this.executor, this.coordinator, keySpaceName,
                 this.schemaUtil.isGeoDbsvc(), maxRetryTimes, noNewReapir);
         // call preConfig() here to set IN_PROGRESS for db repair triggered by schedule since we use it in getDbRepairStatus.
         runnable.preConfig();

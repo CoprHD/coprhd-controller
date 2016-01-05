@@ -2302,10 +2302,12 @@ public class SmisCommandHelper implements SmisConstants {
      * @param storageSystem
      * @param volume
      * @param flag
+     * @return tagSet - boolean indicating whether the recoverpoint tag was successfully enabled or disabled
      * @throws Exception
      */
-    public void doApplyRecoverPointTag(final StorageSystem storageSystem,
+    public boolean doApplyRecoverPointTag(final StorageSystem storageSystem,
             Volume volume, boolean flag) throws Exception {
+        boolean tagSet = false;
         // Set/Unset the RP tag (if applicable)
         if (volume != null && storageSystem != null && volume.checkForRp() && storageSystem.getSystemType() != null
                 && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
@@ -2315,10 +2317,12 @@ public class SmisCommandHelper implements SmisConstants {
             _log.info(String.format("Volume [%s](%s) will be %s for RP",
                     volume.getLabel(), volume.getId(),
                     (flag ? "tagged" : "untagged")));
-            setRecoverPointTag(storageSystem, volumePathList, flag);
+            tagSet = setRecoverPointTag(storageSystem, volumePathList, flag);
         } else {
             _log.info(String.format("Volume [%s](%s) is not valid for RP tagging operation", volume.getLabel(), volume.getId()));
+            tagSet = true;
         }
+        return tagSet;
     }
 
     /**
@@ -3775,6 +3779,10 @@ public class SmisCommandHelper implements SmisConstants {
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class,
                         volumeUri);
                 nativeGuid = NativeGUIDGenerator.generateNativeGuid(storage, snapshot);
+            } else if (URIUtil.isType(volumeUri, BlockMirror.class)) {
+                BlockMirror mirror = _dbClient.queryObject(BlockMirror.class,
+                        volumeUri);
+                nativeGuid = NativeGUIDGenerator.generateNativeGuid(storage, mirror);
             }
             volumePaths.put(nativeGuid, volumeUri);
         }
@@ -5377,26 +5385,42 @@ public class SmisCommandHelper implements SmisConstants {
             if (!snapshots.isEmpty()) {
                 volume = _dbClient.queryObject(Volume.class, snapshots.get(0).getParent());
             }
-        }
-        else if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
+        } else if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
             volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
+        } else if (URIUtil.isType(blockObjectURI, BlockMirror.class)) {
+            BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, blockObjectURI);
+            policyName = getPolicyByBlockObject(mirror.getPool(), autoTierPolicyName, mirror.getAutoTieringPolicyUri());
         }
 
         if (volume != null) {
-            StoragePool storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
-            if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
-                    || (NullColumnValueGetter.isNullURI(volume.getAutoTieringPolicyUri()))) {
-                policyName = policyName.append(Constants.OPTIMIZED_SLO).append(Constants._plusDelimiter)
-                        .append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter).append(storagePool.getPoolName());
-            } else {
-                AutoTieringPolicy autoTierPolicy = _dbClient.queryObject(AutoTieringPolicy.class, volume.getAutoTieringPolicyUri());
-                policyName = policyName.append(autoTierPolicy.getVmaxSLO()).append(Constants._plusDelimiter)
-                        .append(autoTierPolicy.getVmaxWorkload().toUpperCase()).append(Constants._plusDelimiter)
-                        .append(storagePool.getPoolName());
-            }
+            policyName = getPolicyByBlockObject(volume.getPool(), autoTierPolicyName, volume.getAutoTieringPolicyUri());
         }
         return policyName.toString();
+    }
+
+    /**
+     * Get the policy by BlockObject autoTieringPolicy URI.
+     * 
+     * @param pool
+     * @param autoTierPolicyName
+     * @param policyURI
+     * @return
+     */
+    private StringBuffer getPolicyByBlockObject(URI pool, String autoTierPolicyName, URI policyURI) {
+        StoragePool storagePool = _dbClient.queryObject(StoragePool.class, pool);
+        StringBuffer policyName = new StringBuffer();
+        if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
+                || (NullColumnValueGetter.isNullURI(policyURI))) {
+            policyName = policyName.append(Constants.OPTIMIZED_SLO).append(Constants._plusDelimiter)
+                    .append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter).append(storagePool.getPoolName());
+        } else {
+            AutoTieringPolicy autoTierPolicy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
+            policyName = policyName.append(autoTierPolicy.getVmaxSLO()).append(Constants._plusDelimiter)
+                    .append(autoTierPolicy.getVmaxWorkload().toUpperCase()).append(Constants._plusDelimiter)
+                    .append(storagePool.getPoolName());
+        }
+        return policyName;
     }
 
     /**

@@ -7,17 +7,17 @@ package com.emc.storageos.ecs.api;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.ECSNamespace.ECS_RepGroup_Type;
+import com.emc.storageos.db.client.model.ECSNamespace;
 
 public class ECSNamespaceRepGroup {
     private List<String> replicationGroups = new ArrayList<String>();
-    private ECS_RepGroup_Type rgType;
+    private ECSNamespace.ECS_RepGroup_Type rgType;
     
-    public ECS_RepGroup_Type getRgType() {
+    public ECSNamespace.ECS_RepGroup_Type getRgType() {
         return rgType;
     }
     
-    public void setRgType(ECS_RepGroup_Type rgType) {
+    public void setRgType(ECSNamespace.ECS_RepGroup_Type rgType) {
         this.rgType = rgType;
     }
 

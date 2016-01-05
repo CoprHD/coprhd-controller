@@ -22,7 +22,6 @@ import org.apache.commons.httpclient.protocol.Protocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.model.ECSNamespace.ECS_RepGroup_Type;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
@@ -175,13 +174,13 @@ public class ECSApiFactory {
       else
           System.out.println("NOT Sys admin");
       
-      ecsApi.getStoragePools();
+      //ecsApi.getStoragePools();
       
-      //ecsApi.getNamespaces();
-//      ECSNamespaceRepGroup ns = ecsApi.getNamespaceDetails("provider");
-//      int dummy = 2;
-//      dummy = ns.getReplicationGroups().size();
-//      
+      ecsApi.getNamespaces();
+      ECSNamespaceRepGroup ns = ecsApi.getNamespaceDetails("globalns");
+      int dummy = 2;
+      dummy = ns.getReplicationGroups().size();
+      
       
       //ecsApi.getStoragePools();
       //ecsApi.getStoragePort("10.32.4.98");

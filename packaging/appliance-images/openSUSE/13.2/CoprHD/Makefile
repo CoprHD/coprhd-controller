@@ -217,8 +217,12 @@ $(BOX): | $(VMDK)
 	chroot $(IMAGE_DIR) mkdir -p /home/vagrant/.ssh
 	echo "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key" > $(IMAGE_DIR)/home/vagrant/.ssh/authorized_keys
 	echo "vagrant ALL=(ALL) NOPASSWD: ALL" >> $(IMAGE_DIR)/etc/sudoers
-	echo "BOOTPROTO='dhcp'" >> $(IMAGE_DIR)/etc/sysconfig/network/ifcfg-ens34
-	echo "STARTMODE='auto'" >> $(IMAGE_DIR)/etc/sysconfig/network/ifcfg-ens34
+	echo 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="?*", ATTR{type}=="1", KERNEL=="eth0", NAME="eth0"' >> $(IMAGE_DIR)/etc/udev/rules.d/70-persistent-net.rules
+	echo 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="?*", ATTR{type}=="1", KERNEL=="eth1", NAME="eth1"' >> $(IMAGE_DIR)/etc/udev/rules.d/70-persistent-net.rules
+	echo "BOOTPROTO='dhcp'" >> $(IMAGE_DIR)/etc/sysconfig/network/ifcfg-eth0
+	echo "STARTMODE='auto'" >> $(IMAGE_DIR)/etc/sysconfig/network/ifcfg-eth0
+	echo "BOOTPROTO='dhcp'" >> $(IMAGE_DIR)/etc/sysconfig/network/ifcfg-eth1
+	echo "STARTMODE='auto'" >> $(IMAGE_DIR)/etc/sysconfig/network/ifcfg-eth1
 	chroot $(IMAGE_DIR) chown -R vagrant:vagrant /home/vagrant
 	-! mountpoint -q $(IMAGE_DIR)/var/cache/kiwi || umount $(IMAGE_DIR)/var/cache/kiwi
 	-mountpoint -q $(WORKSPACE)/iso/mount || mount $(WORKSPACE)/iso/$(ISO_FILE) $(WORKSPACE)/iso/mount
@@ -227,6 +231,9 @@ $(BOX): | $(VMDK)
 	chroot $(IMAGE_DIR) userdel -r vagrant
 	chroot $(IMAGE_DIR) groupdel vagrant
 	sed -i "/^vagrant/d" $(IMAGE_DIR)/etc/sudoers
+	rm $(IMAGE_DIR)/etc/udev/rules.d/70-persistent-net.rules
+	rm $(IMAGE_DIR)/etc/sysconfig/network/ifcfg-eth0
+	rm $(IMAGE_DIR)/etc/sysconfig/network/ifcfg-eth1
 	VBoxManage createvm --name "$(NAME)-$(VERSION).$(JOB)" --basefolder $(OUTPUT_DIR)/box --register
 	VBoxManage modifyvm "$(NAME)-$(VERSION).$(JOB)" --memory $(RAM) --cpus 1 --acpi on --boot1 dvd --nic1 bridged --bridgeadapter1 eth0 --ostype Linux_64
 	VBoxManage storagectl "$(NAME)-$(VERSION).$(JOB)" --name "IDE Controller" --add ide
@@ -242,6 +249,7 @@ $(BOX): | $(VMDK)
 	sed -i "s|__NAME__|$(NAME)|g" $(BUILD_DIR)/Vagrantfile
 	sed -i "s|__VERSION__|$(VERSION).$(JOB)|g" $(BUILD_DIR)/Vagrantfile
 	sed -i "s|__MAC__|$(MAC)|g" $(BUILD_DIR)/Vagrantfile
+	sed -i "s|__RAM__|$(RAM)|g" $(BUILD_DIR)/Vagrantfile
 
 $(TBZ): | $(VMDK)
 	$(call targetLog,+)

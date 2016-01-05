@@ -1124,7 +1124,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 combinedVolumeList.addAll(sourceVolumes);
                 combinedVolumeList.addAll(targetVolumes);
                 completer = new SRDFTaskCompleter(combinedVolumeList, opId);
-                getRemoteMirrorDevice().doResumeLink(system, tgtVolumes.iterator().next(), completer);
+                getRemoteMirrorDevice().doResumeLink(system, tgtVolumes.iterator().next(), false, completer);
             } else {
                 log.info("There are no more volumes in the SRDF group {} {}, so no need to call resume.", group.getLabel(), group.getId());
                 WorkflowStepCompleter.stepSucceded(opId);
@@ -1180,7 +1180,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 combinedVolumeList.addAll(sourceVolumes);
                 combinedVolumeList.addAll(targetVolumes);
                 completer = new SRDFTaskCompleter(combinedVolumeList, opId);
-                getRemoteMirrorDevice().doSuspendLink(system, tgtVolumes.iterator().next(), false, completer);
+                getRemoteMirrorDevice().doSuspendLink(system, tgtVolumes.iterator().next(), false, false, completer);
             } else {
                 log.info("There are no more volumes in the SRDF group {} {}, so no need to call suspend.", group.getLabel(), group.getId());
                 WorkflowStepCompleter.stepSucceded(opId);
@@ -1206,7 +1206,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             StorageSystem system = getStorageSystem(systemURI);
             Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
             completer = new SRDFTaskCompleter(sourceURI, targetURI, opId);
-            getRemoteMirrorDevice().doResumeLink(system, targetVolume, completer);
+            getRemoteMirrorDevice().doResumeLink(system, targetVolume, false, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
@@ -1571,7 +1571,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             Volume target = dbClient.queryObject(Volume.class, targetURI);
             List<URI> combined = Arrays.asList(sourceURI, targetURI);
             completer = new SRDFLinkPauseCompleter(combined, opId);
-            getRemoteMirrorDevice().doSuspendLink(system, target, consExempt, completer);
+            getRemoteMirrorDevice().doSuspendLink(system, target, consExempt, false, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
@@ -1787,7 +1787,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(target));
                     StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
                             targetVolume.getStorageController());
-                    getRemoteMirrorDevice().doSuspendLink(targetSystem, targetVolume, false, completer);
+                    getRemoteMirrorDevice().doSuspendLink(targetSystem, targetVolume, false, true, completer);
                 }
             } else if (op.equalsIgnoreCase("resume")) {
                 completer = new SRDFLinkResumeCompleter(combined, task);
@@ -1795,7 +1795,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(target));
                     StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
                             targetVolume.getStorageController());
-                    getRemoteMirrorDevice().doResumeLink(targetSystem, targetVolume, completer);
+                    getRemoteMirrorDevice().doResumeLink(targetSystem, targetVolume, true, completer);
                 }
             } else if (op.equalsIgnoreCase("start")) {
                 completer = new SRDFLinkStartCompleter(combined, task);

@@ -101,7 +101,7 @@ public interface RemoteMirroring {
      * @param consExempt
      * @param completer
      */
-    void doSuspendLink(StorageSystem system, Volume target, boolean consExempt, TaskCompleter completer);
+    void doSuspendLink(StorageSystem system, Volume target, boolean consExempt, boolean refreshVolumeProperties, TaskCompleter completer);
 
     /**
      * Resume replication links.
@@ -110,7 +110,7 @@ public interface RemoteMirroring {
      * @param target
      * @param completer
      */
-    void doResumeLink(StorageSystem system, Volume target, TaskCompleter completer);
+    void doResumeLink(StorageSystem system, Volume target, boolean refreshVolumeProperties, TaskCompleter completer);
 
     /**
      * Failover replication links.

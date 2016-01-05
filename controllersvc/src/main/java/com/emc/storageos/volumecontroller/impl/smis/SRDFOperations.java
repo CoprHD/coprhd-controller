@@ -1356,7 +1356,8 @@ public class SRDFOperations implements SmisConstants {
         }
     }
 
-    public void performSuspend(StorageSystem system, Volume target, boolean consExempt, TaskCompleter completer) {
+    public void performSuspend(StorageSystem system, Volume target, boolean consExempt, boolean refreshVolumeProperties,
+            TaskCompleter completer) {
         log.info("START performSuspend (consExempt={})", consExempt);
         checkTargetHasParentOrFail(target);
 
@@ -1366,7 +1367,9 @@ public class SRDFOperations implements SmisConstants {
             SRDFOperationContext suspendCtx = getContextFactory(system).build(op, target);
             suspendCtx.perform();
 
-            refreshTargetVolumeProperties(system, target);
+            if (refreshVolumeProperties) {
+                refreshTargetVolumeProperties(system, target);
+            }
         } catch (RemoteGroupAssociationNotFoundException e) {
             log.warn("No remote group association found for {}.  It may have already been removed.", target.getId());
         } catch (Exception e) {
@@ -1381,7 +1384,7 @@ public class SRDFOperations implements SmisConstants {
         }
     }
 
-    public void performEstablish(StorageSystem system, Volume target, TaskCompleter completer) {
+    public void performEstablish(StorageSystem system, Volume target, boolean refreshVolumeProperties, TaskCompleter completer) {
         log.info("START performEstablish");
         checkTargetHasParentOrFail(target);
 
@@ -1396,7 +1399,9 @@ public class SRDFOperations implements SmisConstants {
             establishCtx.appendFilters(new BrokenSynchronizationsOnlyFilter(utils));
             establishCtx.perform();
 
-            refreshTargetVolumeProperties(system, target);
+            if (refreshVolumeProperties) {
+                refreshTargetVolumeProperties(system, target);
+            }
         } catch (Exception e) {
             log.error("Failed to establish srdf link {}", target.getSrdfParent().getURI(), e);
             error = SmisException.errors.jobFailed(e.getMessage());

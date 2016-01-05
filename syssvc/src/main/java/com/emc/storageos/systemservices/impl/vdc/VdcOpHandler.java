@@ -576,6 +576,7 @@ public abstract class VdcOpHandler {
                     localSite = drUtil.getLocalSite();
                     if (localSite.getState().equals(SiteState.STANDBY_DEGRADED)) {
                         // nobody get the lock before me
+                        log.info("Setting local site {} to STANDBY_SYNCING", localSite.getUuid());
                         localSite.setState(SiteState.STANDBY_SYNCING);
                         coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
                     }

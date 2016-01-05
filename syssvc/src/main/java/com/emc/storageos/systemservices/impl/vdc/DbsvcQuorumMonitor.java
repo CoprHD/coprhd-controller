@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +22,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.common.DbConfigConstants;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class DbsvcQuorumMonitor implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(DbsvcQuorumMonitor.class);
@@ -69,17 +71,34 @@ public class DbsvcQuorumMonitor implements Runnable {
 
         // degrade all standby sites in a single batch
         if (!sitesToDegrade.isEmpty()) {
-            for (Site standbySite : sitesToDegrade) {
-                standbySite.setState(SiteState.STANDBY_DEGRADING);
-                coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
-                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_DEGRADE_STANDBY);
+            InterProcessLock lock;
+            try {
+                lock = drUtil.getDROperationLock();
+            } catch (APIException e) {
+                log.warn("There are ongoing dr operations. Try again later.");
+                return;
             }
-            drUtil.updateVdcTargetVersion(coordinatorClient.getSiteId(), SiteInfo.DR_OP_DEGRADE_STANDBY);
+
+            try {
+                for (Site standbySite : sitesToDegrade) {
+                    standbySite.setState(SiteState.STANDBY_DEGRADING);
+                    coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
+                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_DEGRADE_STANDBY);
+                }
+                drUtil.updateVdcTargetVersion(coordinatorClient.getSiteId(), SiteInfo.DR_OP_DEGRADE_STANDBY);
+            } catch (Exception e) {
+                log.error("Failed to initiate degrade standby operation. Try again later", e);
+            } finally {
+                try {
+                    lock.release();
+                } catch (Exception e) {
+                    log.error("Failed to release the dr operation lock", e);
+                }
+            }
         }
     }
 
     private void checkAndRejoinSite(Site standbySite) {
-        // TODO: obtain a DR lock
         String siteId = standbySite.getUuid();
         int nodeCount = standbySite.getNodeCount();
         // We must wait until all the dbsvc/geodbsvc instances are back
@@ -88,21 +107,41 @@ public class DbsvcQuorumMonitor implements Runnable {
                 drUtil.getNumberOfLiveServices(siteId, Constants.GEODBSVC_NAME) == nodeCount) {
             log.info("All the dbsvc/geodbsvc instances are back. Rejoining site {}", standbySite.getUuid());
 
+            // in seconds
             int gcGracePeriod = DbConfigConstants.DEFAULT_GC_GRACE_PERIOD;
             String strVal = dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
             if (strVal != null) {
                 gcGracePeriod = Integer.parseInt(strVal);
             }
             SiteMonitorResult monitorResult = coordinatorClient.getTargetInfo(siteId, SiteMonitorResult.class);
-            if ((System.currentTimeMillis() - monitorResult.getDbQuorumLostSince()) / 1000 >= gcGracePeriod
-                    + drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD) / 1000) {
-                log.error("site {} has been degraded for too long, we will re-init the target standby", siteId);
-                standbySite.setState(SiteState.STANDBY_SYNCING);
-                coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
-                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
-                        System.currentTimeMillis());
-            } else {
-                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_REJOIN_STANDBY);
+
+            InterProcessLock lock;
+            try {
+                lock = drUtil.getDROperationLock();
+            } catch (APIException e) {
+                log.warn("There are ongoing dr operations. Try again later.");
+                return;
+            }
+
+            try {
+                if ((System.currentTimeMillis() - monitorResult.getDbQuorumLostSince()) / 1000 >= gcGracePeriod
+                        + drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD) / 1000) {
+                    log.error("site {} has been degraded for too long, we will re-init the target standby", siteId);
+                    standbySite.setState(SiteState.STANDBY_SYNCING);
+                    coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
+                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
+                            System.currentTimeMillis());
+                } else {
+                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_REJOIN_STANDBY);
+                }
+            } catch (Exception e) {
+                log.error("Failed to initiate rejoin standby operation. Try again later", e);
+            } finally {
+                try {
+                    lock.release();
+                } catch (Exception e) {
+                    log.error("Failed to release the dr operation lock", e);
+                }
             }
         }
     }

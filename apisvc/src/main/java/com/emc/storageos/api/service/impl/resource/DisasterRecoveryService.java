@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
@@ -103,8 +102,6 @@ public class DisasterRecoveryService {
     private static final String SHORTID_FMT = "standby%d";
     private static final int MAX_NUM_OF_STANDBY = 10;
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
-    private static final String DR_OPERATION_LOCK = "droperation";
-    private static final int LOCK_WAIT_TIME_SEC = 5;
     private static final String NTPSERVERS = "network_ntpservers";
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
@@ -179,7 +176,7 @@ public class DisasterRecoveryService {
         String siteId = standbyConfig.getUuid();
         precheckForStandbyAttach(standbyConfig);
 
-        InterProcessLock lock = getDROperationLock();
+        InterProcessLock lock = drUtil.getDROperationLock();
 
         Site standbySite = null;
         try {
@@ -492,7 +489,7 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.removeStandbyPrecheckFailed(SiteNamesStr, e.getMessage());
         }
 
-        InterProcessLock lock = getDROperationLock();
+        InterProcessLock lock = drUtil.getDROperationLock();
 
         List<String> sitesString = new ArrayList<>();
         try {
@@ -659,7 +656,7 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNameStr, e.getMessage());
         }
 
-        InterProcessLock lock = getDROperationLock();
+        InterProcessLock lock = drUtil.getDROperationLock();
 
         // any error is not retry-able beyond this point.
         List<String> sitesString = new ArrayList<>();
@@ -723,7 +720,7 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(standby.getName(), e.getMessage());
         }
 
-        InterProcessLock lock = getDROperationLock();
+        InterProcessLock lock = drUtil.getDROperationLock();
 
         try {
             for (Site site : drUtil.listStandbySites()) {
@@ -830,7 +827,7 @@ public class DisasterRecoveryService {
 
         String oldActiveUUID = drUtil.getActiveSiteId();
 
-        InterProcessLock lock = getDROperationLock();
+        InterProcessLock lock = drUtil.getDROperationLock();
 
         Site newActiveSite = null;
         Site oldActiveSite = null;
@@ -1163,50 +1160,6 @@ public class DisasterRecoveryService {
             log.error("Can't find site {} from ZK", uuid);
             throw APIException.badRequests.siteIdNotFound();
         }
-    }
-
-    /**
-     * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation, throw Exception otherwise
-     */
-    private InterProcessLock getDROperationLock() {
-        // Try to acquire lock, succeed or throw Exception
-        InterProcessLock lock = coordinator.getLock(DR_OPERATION_LOCK);
-        boolean acquired;
-        try {
-            acquired = lock.acquire(LOCK_WAIT_TIME_SEC, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            try {
-                lock.release();
-            } catch (Exception ex) {
-                log.error("Fail to release DR operation lock", ex);
-            }
-            throw APIException.internalServerErrors.failToAcquireDROperationLock();
-        }
-        if (!acquired) {
-            throw APIException.internalServerErrors.failToAcquireDROperationLock();
-        }
-
-        // Has successfully acquired lock
-        // Check if there's ongoing DR operation, if there is, release lock and throw exception
-        Site ongoingSite = null;
-        List<Site> sites = drUtil.listSites();
-        for (Site site : sites) {
-            if (site.getState().isDROperationOngoing()) {
-                ongoingSite = site;
-                break;
-            }
-        }
-        if (ongoingSite != null) {
-            try {
-                lock.release();
-            } catch (Exception e) {
-                log.error("Fail to release DR operation lock", e);
-            }
-            throw APIException.internalServerErrors.concurrentDROperationNotAllowed(ongoingSite.getName(), ongoingSite.getState()
-                    .toString());
-        }
-
-        return lock;
     }
 
     /*

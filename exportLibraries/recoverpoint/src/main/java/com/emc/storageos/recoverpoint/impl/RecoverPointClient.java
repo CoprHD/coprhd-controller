@@ -1257,17 +1257,17 @@ public class RecoverPointClient {
      */
     public void updateConsistencyGroupPolicy(UpdateCGPolicyParams policyParam) {
         if (policyParam == null) {
-            logger.info("Unable to update policy for CG. The update paramaters are invalid.");
+            logger.warn("Unable to update policy for CG. The update paramaters are invalid.");
             return;
         }
 
         if (policyParam.getPolicyParams() == null) {
-            logger.info("Unable to update policy for CG. The update paramaters are missing.");
+            logger.warn("Unable to update policy for CG. The update paramaters are missing.");
             return;
         }
 
         if (policyParam.getPolicyParams().getCopyMode() == null) {
-            logger.info("Unable to update CG policy copy mode. The copy mode paramaters is missing.");
+            logger.warn("Unable to update CG policy copy mode. The copy mode paramaters is missing.");
             return;
         }
 

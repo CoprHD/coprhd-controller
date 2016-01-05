@@ -58,6 +58,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;
+import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
@@ -87,7 +88,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
-import com.google.common.collect.Lists;
 
 /**
  * APIs implementation to standby sites lifecycle management such as add-standby, remove-standby, failover, pause
@@ -105,7 +105,6 @@ public class DisasterRecoveryService {
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
     private static final String DR_OPERATION_LOCK = "droperation";
     private static final int LOCK_WAIT_TIME_SEC = 5;
-    private static final int DEFAULT_GC_GRACE_PERIOD = 5 * 24 * 60 * 60; // 5 days;
     private static final String NTPSERVERS = "network_ntpservers";
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
@@ -730,7 +729,7 @@ public class DisasterRecoveryService {
             for (Site site : drUtil.listStandbySites()) {
                 long dataRevision = 0;
                 if (site.getUuid().equals(uuid)) {
-                    int gcGracePeriod = DEFAULT_GC_GRACE_PERIOD;
+                    int gcGracePeriod = DbConfigConstants.DEFAULT_GC_GRACE_PERIOD;
                     String strVal = dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
                     if (strVal != null) {
                         gcGracePeriod = Integer.parseInt(strVal);

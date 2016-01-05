@@ -560,8 +560,10 @@ public class DbClientContext {
                     site.getState().equals(SiteState.STANDBY_DEGRADED)) {
                 continue; // ignore a standby site which is paused by customer explicitly
             }
-            if (drUtil.isQuorumLost(site, svcName)) {
-                log.info("Still keep write consistency level to LOCAL_QUORUM");
+            String siteUuid = site.getUuid();
+            int count = drUtil.getNumberOfLiveServices(siteUuid, svcName);
+            if (count <= site.getNodeCount() / 2) {
+                log.info("Service {} of quorum nodes on site {} is down. Still keep write consistency level to LOCAL_QUORUM", svcName, siteUuid);
                 return;
             }      
         }

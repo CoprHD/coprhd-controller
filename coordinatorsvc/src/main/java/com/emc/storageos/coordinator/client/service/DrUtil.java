@@ -281,17 +281,13 @@ public class DrUtil {
      * 
      * @return number to indicate servers 
      */
-    public boolean isQuorumLost(Site site, String svcName) {
+    public int getNumberOfLiveServices(String siteUuid, String svcName) {
         try {
-            List<Service> svcs = coordinator.locateAllSvcsAllVers(site.getUuid(), svcName);
-            if (svcs.size() <= site.getNodeCount() / 2) {
-                log.info("Service {} of quorum nodes on site {} is down", svcName, site.getUuid());
-                return true;
-            }
-            return false;
+            List<Service> svcs = coordinator.locateAllSvcsAllVers(siteUuid, svcName);
+            return svcs.size();
         } catch (RetryableCoordinatorException ex) {
             if (ex.getServiceCode() == ServiceCode.COORDINATOR_SVC_NOT_FOUND) {
-                return true;
+                return 0;
             }
             throw ex;
         }

@@ -38,6 +38,9 @@ public class BlockConsistencyGroupAddVolumeCompleter extends BlockConsistencyGro
             super.complete(dbClient, status, coded);
             if (status == Status.ready) {
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, getId());
+                if (groupName == null) {
+                    groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+                }
                 for (URI voluri : addVolumeList) {
                     Volume volume = dbClient.queryObject(Volume.class, voluri);
                     if (volume != null && !volume.getInactive()) {

@@ -47,6 +47,9 @@ public class ZkConnection {
     // 3 times of connection timeout value, which means will retry 3 times.
     private static final int DEFAULT_TIMEOUT_MS = 3 * DEFAULT_CONN_TIMEOUT;
 
+    // lock file name when updating site id file
+    private static final String SITEID_LOCKFILE="site_id_lock";
+    
     // zk cluster connection
     private CuratorFramework _zkConnection;
 
@@ -169,7 +172,8 @@ public class ZkConnection {
      * Generate site unique id for current cluster. UUID is formed as 2 parts 
      *   - creation time of znode /sites
      *   - hashcode of list zk server IPs
-     * The uuid is stored at a local file specified by siteIdFile
+     * The uuid is stored at a local file specified by siteIdFile. It was generated 
+     * only once during first boot
      */
     private void generateSiteId() {
         try {
@@ -177,13 +181,16 @@ public class ZkConnection {
             siteZkPath.ensure(curator().getZookeeperClient());
             Stat stat = curator().checkExists().forPath(ZkPath.SITES.toString());
             long ctime = stat.getCtime();
-            long leastSigBits = _connectString.hashCode();
+            
+            int iphash = _connectString.hashCode();
+            long leastSigBits = (iphash << 32) | iphash;
+            
             siteId = createTimeUUID(ctime, leastSigBits);
             _logger.info("Site UUID is {}", siteId);
             
             if (!FileUtils.exists(siteIdFile)) {
                 // grab a lock file before writing site id file
-                String lockFile = FileUtils.generateTmpFileName("site_id_lock");
+                String lockFile = FileUtils.generateTmpFileName(SITEID_LOCKFILE);
                 if (!FileUtils.exists(lockFile)) {
                     FileUtils.writePlainFile(lockFile, "".getBytes());
                 }
@@ -203,12 +210,12 @@ public class ZkConnection {
     /**
      * Create is version 1 UUID(time based) 
      * 
-     * @param timeToUse most significant bits for this uuid
+     * @param timestamp timestamp in milliseconds
      * @param leastSigBits least significant bits for the uuid
      */
-    private String createTimeUUID(long timeToUse, long leastSigBits) {
+    private String createTimeUUID(long timestamp, long leastSigBits) {
         long mostSigBits;
-        timeToUse = (timeToUse * 10000) + 0x01B21DD213814000L;
+        long timeToUse = (timestamp * 10000) + 0x01B21DD213814000L;
         // time low
         mostSigBits = timeToUse << 32;
         // time mid

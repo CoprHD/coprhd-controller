@@ -44,6 +44,7 @@ import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -165,7 +166,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap = new HashMap<String, List<UnManagedVolume>>();
         Map<String, StringSet> igKnownVolumesMap = new HashMap<String, StringSet>();
-        Map<String, List<String>> volumeSnapsMap = new HashMap<String, List<String>>();
 
         String xioClusterName = xtremIOClient.getClusterDetails(storageSystem.getSerialNumber()).getName();
         // get the xtremio volume links and process them in batches
@@ -310,8 +310,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
         techType.add(BlockSnapshot.TechnologyType.NATIVE.toString());
         unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(), techType);
 
-        StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
-
         log.debug("Matched Pools : {}", Joiner.on("\t").join(parentMatchedVPools));
         if (null == parentMatchedVPools || parentMatchedVPools.isEmpty()) {
             // Clearn all vpools as no matching vpools found.
@@ -412,6 +410,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
             List<Initiator> hostInitiators = hostInitiatorsMap.get(hostname);
             Set<String> hostIGs = hostIGNamesMap.get(hostname);
 
+            boolean isRpBackendMask = false;
+            if (!isRpBackendMask && ExportUtils.checkIfInitiatorsForRP(hostInitiators)) {
+                log.info("host {} contains RP initiators, "
+                        + "so this mask contains RP protected volumes", hostname);
+                isRpBackendMask = true;
+            }
+            
             boolean isVplexBackendMask = false;
             for (Initiator hostInitiator : hostInitiators) {
                 if (!isVplexBackendMask && VPlexControllerUtils.isVplexInitiator(hostInitiator, dbClient)) {
@@ -443,6 +448,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         hostUnManagedVol.setInitiatorNetworkIds(knownNetworkIdSet);
                         hostUnManagedVol.setInitiatorUris(knownIniSet);
                         hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
+                        
                         if (isVplexBackendMask) {
                             log.info("marking unmanaged Xtremio volume {} as a VPLEX backend volume",
                                     hostUnManagedVol.getLabel());
@@ -450,6 +456,23 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                     SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString(),
                                     Boolean.TRUE.toString());
                         }
+                        
+                        // RP processing for this volume in this mask.  By default, the RP characteristics are set to false, so
+                        // here we check if the volume is in any non-RP mask.  If so, it's exported to something other than RP, and
+                        // we need to mark that so we can do an exported-volume ingestion.  Secondly if any mask associated with this
+                        // volume IS associated with RP, we want to mark that volume as RP enabled.
+                        if (!isRpBackendMask) {
+                            log.info("unmanaged volume {} is exported to something other than RP.  Marking IS_NONRP_EXPORTED.", hostUnManagedVol.getLabel());
+                            hostUnManagedVol.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
+                                    "true");                            
+                        } else {
+                            log.info("unmanaged volume {} is an RP volume", hostUnManagedVol.getLabel());
+                            hostUnManagedVol.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
+                                    "true");                            
+                        }
+                        
                         mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                         unManagedExportVolumesToUpdate.add(hostUnManagedVol);
                     }
@@ -580,7 +603,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 igVolumes.add(unManagedVolume);
             }
         }
+
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
+
+        // Set these default to false.  The individual storage discovery will change them if needed.
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), "false");
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(), "false");
 
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(volume.getVolInfo().get(1));

@@ -2385,6 +2385,24 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 BlockSnapshot snapshot = prepareSnapshotFromVolume(volumeToSnap, snapshotName, (isRPTarget ? volume : null));
                 snapshot.setTechnologyType(snapshotType);
+                               
+                // Check to see if the RP Copy Name of this volume contains any of the RP Source 
+                // suffix's appended by ViPR
+                boolean rpCopyNameContainsSrcSuffix = NullColumnValueGetter.isNotNullValue(volume.getRpCopyName())
+                                                        && (volume.getRpCopyName().contains(SRC_COPY_SUFFIX) 
+                                                            || volume.getRpCopyName().contains(MP_ACTIVE_COPY_SUFFIX)  
+                                                            || volume.getRpCopyName().contains(MP_STANDBY_COPY_SUFFIX));
+                // Hotfix for COP-18957
+                // Check to see if the requested volume is a former Source.
+                // We do this by checking to see if this is a Target volume and that the RP Copy Name
+                // contains any of the RP Source suffix's appended by ViPR.
+                //
+                // TODO: This is a short term solution since there will be a better way of determining
+                // this in future releases.
+                //
+                // FIXME: One concern here is RP ingestion where ViPR isn't the one who sets the copy names.
+                // Valid concern and this needs to be changed when RP ingest supports RP+VPLEX: Yoda/Yoda+.
+                boolean isFormerSource = isRPTarget && rpCopyNameContainsSrcSuffix;
 
                 // Check to see if the requested volume is a former target that is now the
                 // source as a result of a swap. This is done by checking the source volume's
@@ -2394,16 +2412,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // add/remove protection. This check should be removed at that point and another
                 // method to check for a swapped state should be used.
                 boolean isFormerTarget = false;
-                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
                 if (NullColumnValueGetter.isNotNullValue(volume.getPersonality()) &&
                         volume.getPersonality().equals(PersonalityTypes.SOURCE.name()) &&
-                        !VirtualPool.vPoolSpecifiesProtection(vpool)) {
+                        !rpCopyNameContainsSrcSuffix) {
                     isFormerTarget = true;
                 }
 
-                if (((isRPTarget || isFormerTarget) && vplex) || !vplex) {
-                    // For RP+Vplex target and former target volumes, we do not want to create a
-                    // backing array CG snap. To avoid doing this, we do not set the consistency group.
+                if (((isRPTarget || isFormerTarget) && vplex && !isFormerSource) || !vplex) {
+                    // For RP+Vplex targets (who are not former source volumes) and former target volumes, 
+                    // we do not want to create a backing array CG snap. To avoid doing this, we do not 
+                    // set the consistency group.
                     // OR
                     // This is a native snapshot so do not set the consistency group, otherwise
                     // the SMIS code/array will get confused trying to look for a consistency

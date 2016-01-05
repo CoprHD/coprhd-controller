@@ -129,6 +129,14 @@ fi
 
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
+DO_SETUP_ONLY=0
+for a in $* 
+do
+    if [ "$a"x = "-setup_onlyx" ]; then
+        DO_SETUP_ONLY=1
+    fi
+done
+
 case $SS in
     all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec)
     ;;
@@ -2531,6 +2539,11 @@ recoverpoint_ingest_setup()
 	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
     fi	
 
+    if [ ${RPVPLEX_TESTS} = "1" ]; then
+	run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+    fi
+
     # Especially with the simulator, the previous RP discovery may still be running
     state=`protectionsystem list | grep ${RP_SIMULATOR} | awk '{print $(NF-1)}'`
     while [ "$state" = "IN_PROGRESS" ]; do
@@ -2593,11 +2606,15 @@ recoverpoint_ingest_test()
 	fail unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp-sync $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 
         # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
+	#run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+	#volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
         # Recreate unmanaged volumes/protection sets
-	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
-	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+	#run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	#if [ ${RPVPLEX_TESTS} = "1" ]; then
+	#    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	#    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	#fi
+	#run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${vplextag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
@@ -2639,6 +2656,11 @@ recoverpoint_ingest_test()
 	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
     fi	
 
+    if [ ${RPVPLEX_TESTS} = "1" ]; then
+	run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+    fi
+
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
     # Re-ingest
@@ -2650,6 +2672,10 @@ recoverpoint_ingest_test()
 	#/opt/storageos/bin/dbutils list Volume > /tmp/vol2.txt
         # Recreate unmanaged volumes/protection sets
 	#run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	#if [ ${RPVPLEX_TESTS} = "1" ]; then
+	#    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	#    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	#fi
 	#run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 	#/opt/storageos/bin/dbutils list Volume > /tmp/vol3.txt
 
@@ -8048,7 +8074,9 @@ snapvx_tests()
 }
 
 ${SS}_setup
-${SS}_tests
+if [ $DO_SETUP_ONLY -eq 0 ]; then
+    ${SS}_tests
+fi
 
 if [ $WS_SETUP_MODE -eq 1 ] ; then
     output_conf

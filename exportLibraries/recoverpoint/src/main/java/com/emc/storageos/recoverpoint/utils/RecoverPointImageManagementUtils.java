@@ -312,15 +312,7 @@ public class RecoverPointImageManagementUtils {
         if (firstCopy != null && secondCopy != null) {
             GlobalCopyUID firstCopyGlobalCopyUID = firstCopy.getGlobalCopyUID();
             GlobalCopyUID secondCopyGlobalCopyUID = secondCopy.getGlobalCopyUID();
-
-            ClusterUID firstCopyClusterUID = firstCopyGlobalCopyUID.getClusterUID();
-            ClusterUID secondCopyClusterUID = secondCopyGlobalCopyUID.getClusterUID();
-
-            if (firstCopyClusterUID != null && secondCopyClusterUID != null
-                    && firstCopyClusterUID.getId() == secondCopyClusterUID.getId()
-                    && firstCopyGlobalCopyUID.getCopyUID() == secondCopyGlobalCopyUID.getCopyUID()) {
-                return true;
-            }
+            return copiesEqual(firstCopyGlobalCopyUID, secondCopyGlobalCopyUID);
         }
 
         return false;

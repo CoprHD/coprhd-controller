@@ -69,7 +69,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     List<BlockObject> _objectsIngestedByExportProcessing;
 
     /**
-     * Constructor. 
+     * Constructor.
      * 
      * @param dbClient a reference to the database client
      * @param unManagedVolumeUrisToProcess the UnmanagedVolumes to be processed by this request
@@ -81,13 +81,13 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      */
     public BaseIngestionRequestContext(DbClient dbClient, List<URI> unManagedVolumeUrisToProcess, VirtualPool vpool,
             VirtualArray virtualArray, Project project, TenantOrg tenant, String vplexIngestionMethod) {
-        this._dbClient = dbClient;
-        this._unManagedVolumeUrisToProcessIterator = unManagedVolumeUrisToProcess.iterator();
-        this._vpool = vpool;
-        this._virtualArray = virtualArray;
-        this._project = project;
-        this._tenant = tenant;
-        this._vplexIngestionMethod = vplexIngestionMethod;
+        _dbClient = dbClient;
+        _unManagedVolumeUrisToProcessIterator = unManagedVolumeUrisToProcess.iterator();
+        _vpool = vpool;
+        _virtualArray = virtualArray;
+        _project = project;
+        _tenant = tenant;
+        _vplexIngestionMethod = vplexIngestionMethod;
     }
 
     /*
@@ -126,7 +126,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     }
 
     /**
-     * Instantiates the correct VolumeIngestionContext type for the 
+     * Instantiates the correct VolumeIngestionContext type for the
      * current UnManagedVolume being processed, based on the UnManagedVolume type.
      */
     protected static class VolumeIngestionContextFactory {
@@ -457,7 +457,9 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsIngestedByExportProcessing()
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsIngestedByExportProcessing
+     * ()
      */
     @Override
     public List<BlockObject> getObjectsIngestedByExportProcessing() {
@@ -571,5 +573,17 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     @Override
     public void setDeviceInitiators(List<Initiator> deviceInitiators) {
         this._deviceInitiators = deviceInitiators;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.lang.
+     * String)
+     */
+    @Override
+    public BlockObject findCreatedBlockObject(String nativeGuid) {
+        return getObjectsToBeCreatedMap().get(nativeGuid);
     }
 }

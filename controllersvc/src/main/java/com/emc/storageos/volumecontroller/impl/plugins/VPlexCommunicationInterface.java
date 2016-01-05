@@ -24,6 +24,8 @@ import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sun.net.util.IPAddressUtil;
+
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -62,6 +64,7 @@ import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.metering.vplex.VPlexCollectionException;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkUtil;
@@ -89,8 +92,6 @@ import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
-
-import sun.net.util.IPAddressUtil;
 
 /**
  * Discovery framework plug-in class for discovering VPlex storage systems.
@@ -421,11 +422,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 timer = System.currentTimeMillis();
                 Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap = new HashMap<String, Set<UnManagedExportMask>>();
                 Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap = new HashMap<String, Set<VPlexStorageViewInfo>>();
-                discoverUnmanagedStorageViews(accessProfile, client, vvolMap, volumeToExportMasksMap, volumeToStorageViewMap);
+                Set<String> recoverPointExportMasks = new HashSet<String>();
+                discoverUnmanagedStorageViews(accessProfile, client, vvolMap, volumeToExportMasksMap, volumeToStorageViewMap,
+                        recoverPointExportMasks);
                 tracker.storageViewFetch = System.currentTimeMillis() - timer;
 
                 timer = System.currentTimeMillis();
-                discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap, volumeToStorageViewMap, tracker);
+                discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap, volumeToStorageViewMap,
+                        recoverPointExportMasks, tracker);
                 tracker.unmanagedVolumeProcessing = System.currentTimeMillis() - timer;
 
                 s_logger.info(tracker.getPerformanceReport());
@@ -515,7 +519,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, VPlexVirtualVolumeInfo> allVirtualVolumes,
             Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap,
             Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap,
-            UnmanagedDiscoveryPerformanceTracker tracker) throws BaseCollectionException {
+            Set<String> recoverPointExportMasks, UnmanagedDiscoveryPerformanceTracker tracker) throws BaseCollectionException {
 
         String statusMessage = "Starting discovery of Unmanaged VPLEX Volumes.";
         s_logger.info(statusMessage + " Access Profile Details :  IpAddress : "
@@ -649,12 +653,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                     backendVolumeGuidToVvolGuidMap, volumeToStorageViewMap);
                             newUnmanagedVolumes.add(unmanagedVolume);
                         }
-
+                        boolean nonRpExported = false;
                         Set<UnManagedExportMask> uems = volumeToExportMasksMap.get(unmanagedVolume.getNativeGuid());
                         if (uems != null) {
                             s_logger.info("{} UnManagedExportMasks found in the map for volume {}", uems.size(),
                                     unmanagedVolume.getNativeGuid());
                             for (UnManagedExportMask uem : uems) {
+                                boolean backendMaskFound = false;
                                 s_logger.info("   adding UnManagedExportMask {} to UnManagedVolume", uem.getMaskingViewPath());
                                 unmanagedVolume.getUnmanagedExportMasks().add(uem.getId().toString());
                                 uem.getUnmanagedVolumeUris().add(unmanagedVolume.getId().toString());
@@ -672,11 +677,40 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 for (String path : uem.getUnmanagedInitiatorNetworkIds()) {
                                     s_logger.info("   UnManagedExportMask has this initiator unknown to ViPR: {}", path);
                                 }
+
+                                // Check if this volume is in an RP mask, and mark it as an RP
+                                // volume if it is
+                                if (!recoverPointExportMasks.isEmpty() && recoverPointExportMasks.contains(uem.getId().toString())) {
+                                    s_logger.info("unmanaged volume {} is an RP volume", unmanagedVolume.getLabel());
+                                    unmanagedVolume.putVolumeCharacterstics(
+                                            SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
+                                            TRUE);
+                                    backendMaskFound = true;
+                                }
+
+                                if (!backendMaskFound) {
+                                    nonRpExported = true;
+                                }
                             }
 
                             persistUnManagedExportMasks(null, unmanagedExportMasksToUpdate, false);
                         }
-
+                        // If this mask isn't RP, then this volume is exported to a host/cluster/initiator or VPLEX. Mark
+                        // this as a convenience to ingest features.
+                        if (nonRpExported) {
+                            s_logger.info("unmanaged volume {} is exported to something other than RP.  Marking IS_NONRP_EXPORTED.",
+                                    unmanagedVolume.getLabel());
+                            unmanagedVolume.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
+                                    TRUE);
+                        } else {
+                            s_logger.info(
+                                    "unmanaged volume {} is not exported OR not exported to something other than RP.  Not marking IS_NONRP_EXPORTED.",
+                                    unmanagedVolume.getLabel());
+                            unmanagedVolume.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
+                                    FALSE);
+                        }
                         persistUnManagedVolumes(newUnmanagedVolumes, knownUnmanagedVolumes, false);
 
                     } else {
@@ -687,7 +721,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     if (null != unmanagedVolume && !unmanagedVolume.getInactive()) {
                         allUnmanagedVolumes.add(unmanagedVolume.getId());
                     }
-                    
+
                     tracker.volumeTimeResults.put(name, System.currentTimeMillis() - timer);
                     tracker.totalVolumesDiscovered++;
 
@@ -759,7 +793,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 .getStorageSystemUnManagedVolumeConstraint(vplexUri), results);
 
         List<UnManagedVolume> changedVolumes = new ArrayList<UnManagedVolume>();
-        Iterator<UnManagedVolume> allUnmanagedVolumes = 
+        Iterator<UnManagedVolume> allUnmanagedVolumes =
                 _dbClient.queryIterativeObjects(UnManagedVolume.class, results, true);
         while (allUnmanagedVolumes.hasNext()) {
             UnManagedVolume unManagedVolume = allUnmanagedVolumes.next();
@@ -985,13 +1019,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 continue;
             }
 
-            // CTRL-12225 we shouldn't ingest to vpools that have recoverpoint enabled
-            if (VirtualPool.vPoolSpecifiesRPVPlex(vpool)) {
-                s_logger.info("   virtual pool {} is not valid because it is RecoverPoint enabled",
-                        vpool.getLabel());
-                continue;
-            }
-
             // If the volume is in a CG, the vpool must specify multi-volume consistency.
             Boolean mvConsistency = vpool.getMultivolumeConsistency();
             if ((TRUE.equals(unManagedVolumeCharacteristics.get(
@@ -1027,7 +1054,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         volume.addVolumeInformation(unManagedVolumeInformation);
 
         // discover backend volume data
-        boolean isRecoverPointEnabled = false;
         String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
                 _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
         if (!VplexBackendIngestionContext.DISCOVERY_MODE_INGESTION_ONLY.equals(discoveryMode)) {
@@ -1040,11 +1066,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
                     // map this backend volume's GUID to its parent front-end volume GUID
                     backendVolumeGuidToVvolGuidMap.put(bvol.getNativeGuid(), volume.getNativeGuid());
-
-                    // check for recoverpoint enabled status
-                    String rpEnabled = bvol.getVolumeCharacterstics()
-                            .get(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
-                    isRecoverPointEnabled = (null != rpEnabled && Boolean.parseBoolean(rpEnabled));
 
                     // check if this backend volume is a full copy (and is target of clone)
                     // if so, write this volume's GUID to the parent vvol's LOCAL_REPLICA_SOURCE_VOLUME
@@ -1146,12 +1167,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         }
 
-        // set an is-ingestable flag, used later by the ingest process
-        String ingestable = isRecoverPointEnabled ? FALSE : TRUE;
         unManagedVolumeCharacteristics.put(
-                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), ingestable);
+                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);
 
-        if (null == matchedVPools || matchedVPools.isEmpty() || isRecoverPointEnabled) {
+        if (null == matchedVPools || matchedVPools.isEmpty()) {
             // clean all supported vpools.
             volume.getSupportedVpoolUris().clear();
             s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
@@ -1332,7 +1351,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     private void discoverUnmanagedStorageViews(AccessProfile accessProfile, VPlexApiClient client,
             Map<String, VPlexVirtualVolumeInfo> vvolMap,
             Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap,
-            Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap) throws BaseCollectionException {
+            Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap,
+            Set<String> recoverPointExportMasks) throws BaseCollectionException {
 
         String statusMessage = "Starting discovery of Unmanaged VPLEX Storage Views.";
         s_logger.info(statusMessage + " Access Profile Details :  IpAddress : "
@@ -1358,6 +1378,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Set<URI> allCurrentUnManagedExportMaskUris = new HashSet<URI>();
             List<UnManagedExportMask> unManagedExportMasksToCreate = new ArrayList<UnManagedExportMask>();
             List<UnManagedExportMask> unManagedExportMasksToUpdate = new ArrayList<UnManagedExportMask>();
+
+            Set<URI> rpPortInitiators = RPHelper.getBackendPortInitiators(_dbClient);
 
             List<VPlexStorageViewInfo> storageViews = client.getStorageViews();
             for (VPlexStorageViewInfo storageView : storageViews) {
@@ -1496,6 +1518,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     uem.setId(URIUtil.createId(UnManagedExportMask.class));
                 }
 
+                if (checkRecoverPointExportMask(uem, knownInitiators, rpPortInitiators)) {
+                    recoverPointExportMasks.add(uem.getId().toString());
+                }
                 updateZoningMap(uem, knownInitiators, knownPorts);
                 persistUnManagedExportMasks(unManagedExportMasksToCreate, unManagedExportMasksToUpdate, false);
                 allCurrentUnManagedExportMaskUris.add(uem.getId());
@@ -1539,6 +1564,41 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             mask.setZoningMap(null);
             s_logger.error("Failed to get the zoning map for vplex mask {}", mask.getMaskName());
         }
+    }
+
+    /**
+     * Checks if the unmanaged export mask is RP mask by looking at the initiators
+     * and determining if any of them represent RPA front-end ports
+     * 
+     * @param uem - the UnManagedExportMask
+     * @param initiators - the initiators to test for RPA ports status
+     * @param rpPortInitiators - the RP front-end ports
+     */
+    private boolean checkRecoverPointExportMask(UnManagedExportMask mask, List<Initiator> initiators, Set<URI> rpPortInitiators) {
+        StringBuilder nonRecoverPointInitiators = new StringBuilder();
+        int rpPortInitiatorCount = 0;
+        for (Initiator init : initiators) {
+            if (rpPortInitiators.contains(init.getId())) {
+                s_logger.info("export mask {} contains RPA initiator {}",
+                        mask.getMaskName(), init.getInitiatorPort());
+                rpPortInitiatorCount++;
+            } else {
+                nonRecoverPointInitiators.append(init.getInitiatorPort()).append(" ");
+            }
+        }
+
+        if (rpPortInitiatorCount > 0) {
+            s_logger.info("export mask {} contains {} RPA initiators",
+                    mask.getMaskName(), rpPortInitiatorCount);
+            if (rpPortInitiatorCount < initiators.size()) {
+                s_logger.warn("   there are some ports in this mask that are not "
+                        + "RPA initiators: " + nonRecoverPointInitiators);
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -2211,6 +2271,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         public <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
             List<Map.Entry<K, V>> listOfEntries = new LinkedList<Map.Entry<K, V>>(map.entrySet());
             Collections.sort(listOfEntries, new Comparator<Map.Entry<K, V>>() {
+                @Override
                 public int compare(Map.Entry<K, V> o1, Map.Entry<K, V> o2) {
                     return (o1.getValue()).compareTo(o2.getValue());
                 }

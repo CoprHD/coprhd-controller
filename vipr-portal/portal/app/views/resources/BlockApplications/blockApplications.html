@@ -1,0 +1,22 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.block.app'] /}
+
+
+#{DataTable.header titleKey:'Application.list.title'/}
+#{DataTable.table id:'application', 
+                      dataTable:dataTable,
+                      source:@blockApplicationsJson(),
+                      selectable:true,                      
+                      deleteConfirm:messages.get('Application.deleteConfirm')}
+#{/DataTable.table}
+
+
+<script type="text/javascript">
+function renderLink(o, val) {
+    var data = o.aData;
+    var url = #{jsAction @blockApplicationDetails(':id') /};
+    var href = url(data);
+    
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+</script>

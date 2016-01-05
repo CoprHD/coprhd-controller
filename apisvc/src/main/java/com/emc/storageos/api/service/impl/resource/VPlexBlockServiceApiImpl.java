@@ -3480,6 +3480,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(),
                             "the VPLEX virtual volume has been deleted");
                 }
+                URI cgUri = addVol.getConsistencyGroup();
+                if (NullColumnValueGetter.isNullURI(cgUri)) {
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(),
+                            "the VPLEX virtual volume is not in a consistency group");
+                }
 
                 // get the backing volumes
                 StringSet backingVolumes = addVol.getAssociatedVolumes();

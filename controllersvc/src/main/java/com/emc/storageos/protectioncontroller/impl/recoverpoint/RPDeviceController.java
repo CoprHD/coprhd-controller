@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -263,6 +264,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         private URI varray;
         private List<URI> volumes;
         private URI host;
+        boolean isJournalExport;
 
         public RPExport() {
         }
@@ -314,6 +316,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         
         public void setHost(URI host) {
         	this.host = host;
+        }
+        
+        public boolean getIsJournalExport() {
+        	return isJournalExport;
+        }
+        
+        public void setIsJournalExport(boolean isJournalExport) {
+        	this.isJournalExport = isJournalExport;
         }
 
         @Override
@@ -1037,9 +1047,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 _log.info(String.format("RP Export: StorageSystem = [%s] RPSite = [%s] VirtualArray = [%s]", storageSystem.getLabel(),
                         rpSiteName, varray.getLabel()));
 
+                boolean isJournalExport = rpExport.getIsJournalExport();
                 // Setup the export group - we may or may not need to create it, but we need to have everything ready in case we do
                 ExportGroup exportGroup = RPHelper.createRPExportGroup(internalSiteName, varray, _dbClient.queryObject(Project.class, 
                         params.getProject()), rpSystem, storageSystem, 0);
+                
+                if (isJournalExport) {
+                	exportGroup.addInternalFlags(Flag.RECOVERPOINT_JOURNAL);
+                	exportGroup.setGeneratedName(exportGroup.getGeneratedName()+"_JOURNAL");
+                }
 
                 // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
                 Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
@@ -1778,7 +1794,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 URI volumeId = volume.getId();
 
                 // Generate a unique key based on Storage System + Internal Site + Virtual Array
-                String key = storageSystem.toString() + rpSiteName + varray.toString();
+                String key = storageSystem.toString() + rpSiteName + varray.toString() + "JOURNAL";
 
                 // Try and get an existing rp export object from the map using the key
                 RPExport rpExport = rpExportMap.get(key);
@@ -1788,6 +1804,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     rpExport = new RPExport(storageSystem, rpSiteName, varray);
                     rpExportMap.put(key, rpExport);
                 }
+                rpExport.setIsJournalExport(true);
 
                 _log.info(String.format("Add Journal Volume: [%s] to export : [%s]", volumeLabel, rpExport));
 
@@ -3599,7 +3616,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // rpSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + rpSiteName + "_" + varray.getLabel()
                 // and replacing all non alpha-numerics with "" (except "_").
                 String generatedName = exportGroup.getGeneratedName().trim().replaceAll(ALPHA_NUMERICS, "");
-                if (generatedName.equals(exportGroupToFind.getGeneratedName())) {
+                if (generatedName.equals(exportGroupToFind.getGeneratedName())) {                
                     _log.info("Export Group already exists in database.");
                     return exportGroup;
                 }

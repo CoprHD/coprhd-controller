@@ -478,6 +478,10 @@ public interface ContainmentConstraint extends Constraint {
             return getConstraint(BlockSnapshot.class, "consistencyGroup", cgId);
         }
 
+        public static ContainmentConstraint getBlockSnapshotSessionByConsistencyGroup(URI cgId) {
+            return getConstraint(BlockSnapshotSession.class, "consistencyGroup", cgId);
+        }
+
         public static ContainmentConstraint getExportMaskExportGroupConstraint(URI id) {
             DataObjectType doType = TypeMap.getDoType(ExportGroup.class);
             ColumnField field = doType.getColumnField("exportMasks");

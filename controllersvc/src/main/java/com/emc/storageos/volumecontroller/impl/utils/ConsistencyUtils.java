@@ -62,25 +62,16 @@ public class ConsistencyUtils {
     }
 
     public static BlockConsistencyGroup getSnapshotSessionConsistencyGroup(URI snapshotSession, DbClient dbClient) {
-        BlockConsistencyGroup cgResult = null;
         BlockSnapshotSession snapshotSessionObj = dbClient.queryObject(BlockSnapshotSession.class, snapshotSession);
 
         if (snapshotSessionObj != null) {
-            URI parent = snapshotSessionObj.getParent().getURI();
-            BlockObject parentObj = BlockObject.fetch(dbClient, parent);
-            if (parentObj instanceof BlockSnapshot) {
-                return null;
-            }
-            Volume parentVolumeObj = (Volume) parentObj;
-            if (!isNullURI(parentVolumeObj.getConsistencyGroup())) {
-                URI cgId = parentVolumeObj.getConsistencyGroup();
-                if (cgId != null) {
-                    cgResult = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
-                }
+            URI consistencyGroupId = snapshotSessionObj.getConsistencyGroup();
+
+            if (!isNullURI(consistencyGroupId)) {
+                return dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             }
         }
-
-        return cgResult;
+        return null;
     }
 
     /**

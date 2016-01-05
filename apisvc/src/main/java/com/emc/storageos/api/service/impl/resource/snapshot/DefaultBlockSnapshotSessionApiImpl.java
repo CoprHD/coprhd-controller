@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -286,34 +287,31 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
             String newTargetsName, List<URI> snapSessionURIs, Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String taskId) {
 
+
+        // Create a single snap session for one volume in the CG
+        BlockObject source = sourceObjList.get(0);
+        BlockSnapshotSession snapSession =
+                prepareSnapshotSessionFromSource(source, snapSessionLabel, snapSessionLabel, taskId);
+        snapSessionURIs.add(snapSession.getId());
+
+        // For each volume in the CG, create X target BlockSnapshot instances
         int sourceCount = 0;
-        List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
         for (BlockObject sourceObj : sourceObjList) {
-            // Attempt to create distinct labels here when creating sessions
-            // for more than one source.
-            String instanceLabel = snapSessionLabel;
-            if (sourceObjList.size() > 1) {
-                instanceLabel = String.format("%s-%s", snapSessionLabel, ++sourceCount);
-            }
-            BlockSnapshotSession snapSession = prepareSnapshotSessionFromSource(sourceObj, snapSessionLabel, instanceLabel, taskId);
 
             // If new targets are to be created and linked to the snapshot session, prepare
             // the BlockSnapshot instances to represent those targets.
             if (newTargetCount > 0) {
-                Map<URI, BlockSnapshot> snapshotMap = prepareSnapshotsForSession(sourceObj, sourceCount, newTargetCount, newTargetsName);
+                Map<URI, BlockSnapshot> snapshotMap =
+                        prepareSnapshotsForSession(sourceObj, sourceCount++, newTargetCount, newTargetsName);
                 snapSessionSnapshotMap.put(snapSession.getId(), snapshotMap);
             } else {
                 snapSessionSnapshotMap.put(snapSession.getId(), new HashMap<URI, BlockSnapshot>());
             }
-
-            // Update the snap sessions and URIs lists.
-            snapSessionURIs.add(snapSession.getId());
-            snapSessions.add(snapSession);
         }
 
-        // Create and return the prepares snapshot sessions.
-        _dbClient.createObject(snapSessions);
-        return snapSessions;
+        // Create and return the prepared snapshot session.
+        _dbClient.createObject(snapSession);
+        return Lists.newArrayList(snapSession);
     }
 
     /**
@@ -323,16 +321,26 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
             String taskId) {
         BlockSnapshotSession snapSession = new BlockSnapshotSession();
+        Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
+        Operation op = new Operation();
+
         snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
         snapSession.setLabel(instanceLabel);
         snapSession.setSessionLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(snapSessionLabel,
                 SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
-        snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
-        Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
+
+
         snapSession.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
         snapSession.setOpStatus(new OpStatusMap());
-        Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION);
+
+        if (sourceObj.hasConsistencyGroup()) {
+            snapSession.setConsistencyGroup(sourceObj.getConsistencyGroup());
+            op.setResourceType(ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
+        } else {
+            snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
+            op.setResourceType(ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION);
+        }
+
         snapSession.getOpStatus().createTaskStatus(taskId, op);
         return snapSession;
     }
@@ -619,6 +627,12 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj) {
         return CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
                 ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceObj.getId()));
+    }
+
+    @Override
+    public List<BlockSnapshotSession> getSnapshotSessionsForConsistencyGroup(BlockConsistencyGroup group) {
+        return CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(group.getId()));
     }
 
     @Override

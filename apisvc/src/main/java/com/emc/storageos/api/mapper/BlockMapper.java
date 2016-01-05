@@ -352,6 +352,12 @@ public class BlockMapper {
         // Map base class fields.
         mapDataObjectFields(from, to);
 
+        // Map snapshot session consistency group.
+        URI consistencyGroup = from.getConsistencyGroup();
+        if (consistencyGroup != null) {
+            to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, consistencyGroup));
+        }
+
         // Map snapshot session parent i.e., the snapshot session source.
         NamedURI parentNamedURI = from.getParent();
         if (parentNamedURI != null) {

@@ -5463,8 +5463,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     createBlockSnapshotSessionMethod(systemURI, snapSessionURIs),
                     rollbackMethodNullMethod(), null);
 
+            // FIXME
+            // We can assume that only a single session will exist for CG/non-CG cases, so grab the target list like
+            // this to see if any exist.
+            List tgtList = sessionSnapshotURIMap.get(snapSessionURIs.get(0));
+
             // If necessary add a step for each session to create the new targets and link them to the session.
-            if ((sessionSnapshotURIMap != null) && (!sessionSnapshotURIMap.isEmpty())) {
+            if ((sessionSnapshotURIMap != null) && (!tgtList.isEmpty())) {
 
                 if (checkSnapshotSessionConsistencyGroup(snapSessionURIs.get(0), _dbClient, completer)) {
                     workflow.createStep(LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
@@ -5927,9 +5932,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     @Override
     public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
-        BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-        List<URI> snapSessionURIs = getSnapshotSessionsByInstance(snapSession.getSessionInstance(), _dbClient);
-        TaskCompleter completer = new BlockSnapshotSessionDeleteWorkflowCompleter(snapSessionURIs, opId);
+        TaskCompleter completer = new BlockSnapshotSessionDeleteWorkflowCompleter(snapSessionURI, opId);
         try {
             // Get a new workflow delete the snapshot session.
             Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_SNAPSHOT_SESSION_WF_NAME, false, opId);

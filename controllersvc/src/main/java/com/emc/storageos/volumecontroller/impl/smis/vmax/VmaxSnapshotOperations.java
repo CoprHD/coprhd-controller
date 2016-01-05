@@ -8,6 +8,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -1392,16 +1393,16 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             _log.info("Create snapshot session group operation START");
 
             BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIs.get(0));
-            URI sourceObjURI = snapSession.getParent().getURI();
-            Volume sourceObj = _dbClient.queryObject(Volume.class, sourceObjURI);
+            BlockConsistencyGroup consistencyGroup =
+                    _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
 
-            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, sourceObj.getTenant().getURI());
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, consistencyGroup.getTenant().getURI());
             String tenantName = tenant.getLabel();
 
             final String label = _nameGenerator.generate(tenantName, snapSession.getLabel(),
                     snapSessionURIs.get(0).toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
 
-            String groupName = _helper.getConsistencyGroupName(sourceObj, system);
+            String groupName = _helper.getConsistencyGroupName(consistencyGroup, system);
             CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(system, groupName);
 
             try {
@@ -1832,7 +1833,16 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     completer.ready(_dbClient);
                 } else {
                     CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                    URI sourceURI = snapSession.getParent().getURI();
+
+                    URI sourceURI = null;
+                    if (snapSession.hasConsistencyGroup()) {
+                        List<Volume> volumesPartOfCG =
+                                ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), _dbClient);
+                        sourceURI = volumesPartOfCG.get(0).getId();
+                    } else {
+                        sourceURI = snapSession.getParent().getURI();
+                    }
+
                     BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
                     CIMObjectPath sourcePath = _cimPath.getBlockObjectPath(system, sourceObj);
 

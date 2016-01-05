@@ -12,8 +12,6 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.QueryResultList;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -44,7 +42,6 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +54,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,7 +62,6 @@ import java.util.UUID;
 import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
-import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 import static java.lang.String.format;
 
@@ -262,9 +257,11 @@ public class BlockSnapshotSessionManager {
         // Prepare the ViPR BlockSnapshotSession instances and BlockSnapshot
         // instances for any new targets to be created and linked to the
         // snapshot sessions.
-        List<URI> snapSessionURIs = new ArrayList<URI>();
-        Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap = new HashMap<URI, Map<URI, BlockSnapshot>>();
-        List<BlockSnapshotSession> snapSessions = snapSessionApiImpl.prepareSnapshotSessions(snapSessionSourceObjList, snapSessionLabel,
+        List<URI> snapSessionURIs = new ArrayList<>();
+        Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap = new HashMap<>();
+        // TODO Should only be one single snapshot returned here?
+        List<BlockSnapshotSession> snapSessions = snapSessionApiImpl.prepareSnapshotSessions(snapSessionSourceObjList,
+                snapSessionLabel,
                 newLinkedTargetsCount, newTargetsName, snapSessionURIs, snapSessionSnapshotMap, taskId);
 
         // Populate the preparedObjects list and create tasks for each snapshot session.
@@ -642,18 +639,10 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(sourceVolume);
 
         // Get the BlockSnapshotSession instances for the source and prepare the result.
-        List<BlockSnapshotSession> snapSessionsForSource = snapSessionApiImpl.getSnapshotSessionsForSource(sourceVolume);
+        List<BlockSnapshotSession> snapSessions = snapSessionApiImpl.getSnapshotSessionsForConsistencyGroup(group);
 
-        Set<String> instances = new HashSet<>();
-        for (BlockSnapshotSession session : snapSessionsForSource) {
-            instances.add(session.getSessionInstance());
-        }
-
-        for (String instance : instances) {
-            List<BlockSnapshotSession> sessions = snapSessionApiImpl.getSnapshotSessionsBySessionInstance(instance);
-            for (BlockSnapshotSession session : sessions) {
-                result.getSnapSessionRelatedResourceList().add(toNamedRelatedResource(session));
-            }
+        for (BlockSnapshotSession snapSession : snapSessions) {
+            result.getSnapSessionRelatedResourceList().add(toNamedRelatedResource(snapSession));
         }
 
         return result;
@@ -673,7 +662,15 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         // Get the snapshot session source object.
-        URI snapSessionSourceURI = snapSession.getParent().getURI();
+        URI snapSessionSourceURI = null;
+        if (snapSession.hasConsistencyGroup()) {
+            List<Volume> volumesPartOfCG =
+                    ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), _dbClient);
+            snapSessionSourceURI = volumesPartOfCG.get(0).getId();
+        } else {
+            snapSessionSourceURI = snapSession.getParent().getURI();
+        }
+
         BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSessionSourceURI, _uriInfo, true,
                 _dbClient);
 
@@ -688,30 +685,13 @@ public class BlockSnapshotSessionManager {
 
         // Create the task identifier.
         String taskId = UUID.randomUUID().toString();
-
-        // Create a list of CG snap sessions, or single snap session for non-CG
-        List<URI> snapshotSessionURIs = null;
-        if (snapSessionSourceObj.hasConsistencyGroup()) {
-            QueryResultList resultList = new URIQueryResultList();
-            _dbClient.queryByConstraint(getBlockSnapshotSessionBySessionInstance(snapSession.getSessionInstance()),
-                    resultList);
-            snapshotSessionURIs = Lists.newArrayList(resultList.iterator());
-        } else {
-            snapshotSessionURIs = Lists.newArrayList(snapSessionURI);
-        }
-
         TaskList taskList = new TaskList();
-        Iterator<BlockSnapshotSession> snapshotSessions = _dbClient.queryIterativeObjects(BlockSnapshotSession.class,
-                snapshotSessionURIs);
-        while(snapshotSessions.hasNext()) {
-            BlockSnapshotSession blockSnapshotSession = snapshotSessions.next();
-            // Create the operation status entry in the status map for the snapshot.
-            Operation op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION);
-            _dbClient.createTaskOpStatus(BlockSnapshotSession.class, blockSnapshotSession.getId(), taskId, op);
-            blockSnapshotSession.getOpStatus().put(taskId, op);
-            taskList.addTask(toTask(blockSnapshotSession, taskId));
-        }
+
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION);
+        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, op);
+        snapSession.getOpStatus().put(taskId, op);
+        taskList.addTask(toTask(snapSession, taskId));
 
         // Delete the snapshot session.
         try {

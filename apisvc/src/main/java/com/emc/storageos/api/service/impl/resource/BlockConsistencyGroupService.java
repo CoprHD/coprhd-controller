@@ -559,7 +559,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public BlockSnapshotSessionList getConsistencyGroupSnapshotSessions(@PathParam("id") final URI consistencyGroupId) {
         ArgValidator.checkUri(consistencyGroupId);
-        final BlockConsistencyGroup consistencyGroup = _permissionsHelper.getObjectById(consistencyGroupId,
+        BlockConsistencyGroup consistencyGroup = _permissionsHelper.getObjectById(consistencyGroupId,
                 BlockConsistencyGroup.class);
         ArgValidator.checkEntityNotNull(consistencyGroup, consistencyGroupId,
                 isIdEmbeddedInURL(consistencyGroupId));

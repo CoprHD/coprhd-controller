@@ -160,7 +160,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
             port.setDeviceLabel("er-port-1234577" + i+ storageSystem.getNativeId());
             port.setPortName(port.getDeviceLabel());
-            port.setNetworkId("er-network77+ storageSystem.getNativeId()");
+            port.setNetworkId("er-network77"+ storageSystem.getNativeId());
             port.setTransportType(StoragePort.TransportType.FC);
             port.setPortNetworkId("60:FE:FE:FE:FE:FE:FE:1" + i);
             port.setOperationalStatus(StoragePort.OperationalStatus.OK);

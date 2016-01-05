@@ -139,7 +139,7 @@ done
 
 case $SS in
 
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|driversystem)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|driversystem|scaleiosystem)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -3501,7 +3501,14 @@ isilon_setup()
 driversystem_setup()
 {
     echo "driversystem setup"
-    #discoveredsystem create driverManagedSystem driversystem  10.246.55.66 8080 root password
+    discoveredsystem create driverManagedSystem driversystem  10.246.55.66 8080 root password
+}
+
+
+scaleiosystem_setup()
+{
+    echo "scaleiosystem setup"
+    discoveredsystem create driverManagedScaleIOSystem scaleiosystem  10.250.55.66 8080 root password
 }
 
 driversystem_tests()
@@ -3509,7 +3516,7 @@ driversystem_tests()
    echo "driversystem tests"
    PROJECT=erProject
    vol=erVolTest006-1
-   run blocksnapshot create $PROJECT/${vol} erSnap001
+#   run blocksnapshot create $PROJECT/${vol} erSnap001
 }
 #
 # add ECS storage device and storage pool

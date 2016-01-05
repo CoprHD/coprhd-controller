@@ -66,6 +66,7 @@ public class ObjectBucketACL extends DataObject {
     }
 
     @Name("bucketACLIndex")
+    @AlternateId("bucketACLIndexTable")
     public String getBucketACLIndex() {
         return bucketACLIndex;
     }
@@ -94,7 +95,6 @@ public class ObjectBucketACL extends DataObject {
 
     public void setBucketId(URI bucketId) {
         this.bucketId = bucketId;
-        calculateACLIndex();
         setChanged("bucketId");
     }
 
@@ -147,8 +147,8 @@ public class ObjectBucketACL extends DataObject {
         StringBuffer aclIndexBuffer = new StringBuffer();
 
         if (userOrGroupOrCustom != null) {
-            if (this.bucketName != null) {
-                aclIndexBuffer.append(this.bucketName)
+            if (this.bucketId != null) {
+                aclIndexBuffer.append(this.bucketId)
                         .append(this.domain == null ? "" : this.domain)
                         .append(userOrGroupOrCustom);
                 this.setBucketACLIndex(aclIndexBuffer.toString());

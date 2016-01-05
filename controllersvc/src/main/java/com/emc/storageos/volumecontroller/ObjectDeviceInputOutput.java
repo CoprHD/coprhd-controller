@@ -16,8 +16,7 @@ package com.emc.storageos.volumecontroller;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.net.URI;
-import com.emc.storageos.db.client.model.StoragePool;
+
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
 
@@ -39,6 +38,7 @@ public class ObjectDeviceInputOutput {
     private List<BucketACE> bucketAclToAdd = new ArrayList<>();
     private List<BucketACE> bucketAclToModify = new ArrayList<>();
     private List<BucketACE> bucketAclToDelete = new ArrayList<>();
+    private List<BucketACE> existingBucketAcl = new ArrayList<>();
 
     /*
      * get and set of each members
@@ -129,6 +129,15 @@ public class ObjectDeviceInputOutput {
 
     public void setBucketAclToDelete(List<BucketACE> bucketAclToDelete) {
         this.bucketAclToDelete = bucketAclToDelete;
+    }
+    
+    
+    public List<BucketACE> getExistingBucketAcl() {
+        return existingBucketAcl;
+    }
+
+    public void setExistingBucketAcl(List<BucketACE> existingBucketAcl) {
+        this.existingBucketAcl = existingBucketAcl;
     }
 
     public void setAllBuckectAcl(BucketACLUpdateParams param) {

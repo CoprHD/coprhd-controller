@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.model.file.NfsACE.NfsPermission;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
@@ -478,7 +479,7 @@ public class BucketACLUtility {
             while (dbAclIterator.hasNext()) {
 
                 ObjectBucketACL dbBucketAce = dbAclIterator.next();
-                if (bucketName.equals(dbBucketAce.getBucketName())) {
+                if (bucketId.equals(dbBucketAce.getBucketId())) {
                     BucketACE ace = new BucketACE();
                     ace.setBucketName(dbBucketAce.getBucketName());
                     ace.setDomain(dbBucketAce.getDomain());
@@ -540,7 +541,7 @@ public class BucketACLUtility {
 
         // Construct ACL Index
         StringBuffer aclIndex = new StringBuffer();
-        aclIndex.append(this.bucketName).append(domainOfReqAce).append(userOrGroupOrCustomGroup);
+        aclIndex.append(this.bucketId).append(domainOfReqAce).append(userOrGroupOrCustomGroup);
 
         acl = this.queryACLByIndex(aclIndex.toString());
 
@@ -577,54 +578,34 @@ public class BucketACLUtility {
         }
 
         String permissionsValue = bucketACE.getPermissions();
-        try {
-            BucketPermissions permissions = BucketPermissions
-                    .valueOf(permissionsValue.toUpperCase());
-            if (permissions != null) {
-                bucketACE.setPermissions(getFormattedPermissionText(permissions));
+        String[] permissionsArray = permissionsValue.split("\\|");
+        
+        for (String permission : permissionsArray) {
+            if (isValidEnum(permission, BucketPermissions.class)) {
                 bucketACE.proceedToNextStep();
+            }else{
+                _log.error("Invalid value for permission: {}", permissionsValue);
+                bucketACE.cancelNextStep(BucketACLOperationErrorType.INVALID_PERMISSIONS);
+                return;
             }
-        } catch (Exception e) {
-            _log.error("Invalid value for permission: {}", permissionsValue);
-            bucketACE.cancelNextStep(BucketACLOperationErrorType.INVALID_PERMISSIONS);
-            return;
         }
-
+        
     }
-
-    private String getFormattedPermissionText(BucketPermissions permission) {
-        String permissionText = null;
-
-        switch (permission) {
-            case READ:
-                permissionText = ObjectControllerConstants.BUCKET_PERMISSION_READ;
-                break;
-            case WRITE:
-                permissionText = ObjectControllerConstants.BUCKET_PERMISSION_WRITE;
-                break;
-            case FULL_CONTROL:
-                permissionText = ObjectControllerConstants.BUCKET_PERMISSION_FULL_CONTROL;
-                break;
-            case DELETE:
-                permissionText = ObjectControllerConstants.BUCKET_PERMISSION_DELETE;
-                break;
-            case EXECUTE:
-                permissionText = ObjectControllerConstants.BUCKET_PERMISSION_EXECUTE;
-                break;
-            case WRITE_ACL:
-                permissionText = ObjectControllerConstants.BUCKET_PERMISSION_WRITE_ACL;
-                break;
-            case READ_ACL:
-                permissionText = ObjectControllerConstants.BUCKET_PERMISSION_READ_ACL;
-                break;
-            case PRIVILEGED_WRITE:
-                permissionText = ObjectControllerConstants.BUCKET_PERMISSION_PRIVILEGED_WRITE;
-                break;
-            case NONE:
-                permissionText = ObjectControllerConstants.BUCKET_PERMISSION_NONE;
-                break;
+    
+    /**
+     * Check the provided String value is a valid type of enum or not
+     * 
+     * @param value String need to be checked
+     * @param enumClass the enum class for which it need to be checked.
+     * @return true/false
+     */
+    public <T extends Enum<T>> boolean isValidEnum(String value, Class<T> enumClass) {
+        for (T e : enumClass.getEnumConstants()) {
+            if (e.name().equalsIgnoreCase(value)) {
+                return true;
+            }
         }
-        return permissionText;
+        return false;
     }
 
     private void verifyUserGroupCustomgroup(BucketACE bucketACE) {

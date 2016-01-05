@@ -476,26 +476,32 @@ public class BucketService extends TaskResourceService {
     public TaskResourceRep updateBucketACL(@PathParam("id") URI id,
             ObjectBucketACLUpdateParams param) throws InternalException {
 
+        _log.info("Update bucket acl request received. BucketId: {}",
+                id.toString());
+        _log.info("Request body: {}", param.toString());
+
         Bucket bucket = null;
         ArgValidator.checkFieldUriType(id, Bucket.class, "id");
         bucket = _dbClient.queryObject(Bucket.class, id);
         ArgValidator.checkEntity(bucket, id, isIdEmbeddedInURL(id));
 
+        // Verify the Bucket ACL Settings
+        BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getName(), bucket.getId());
+        bucketACLUtil.verifyBucketACL(param);
+        _log.info("Request payload verified. No errors found.");
+
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
         ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());
-
+        
         String task = UUID.randomUUID().toString();
         _log.info(String.format(
                 "Bucket ACL Update --- Bucket id: %1$s, Task: %2$s", id, task));
 
+
         Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
                 task, ResourceOperationTypeEnum.UPDATE_BUCKET_ACL);
         op.setDescription("Bucket ACL update");
-        
-        BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getName(), bucket.getId());
-        bucketACLUtil.verifyBucketACL(param);
-        _log.info("Request payload verified. No errors found.");
-        
+
         controller.updateBucketACL(bucket.getStorageDevice(), id, param, task);
 
         auditOp(OperationTypeEnum.UPDATE_BUCKET_ACL, true, AuditLogManager.AUDITOP_BEGIN,
@@ -516,6 +522,9 @@ public class BucketService extends TaskResourceService {
     @Path("/{id}/acl")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public BucketACL getBucketACL(@PathParam("id") URI id) {
+        _log.info("Request recieved to get Bucket ACL with Id: {}", id);
+
+        // Validate the Bucket
         Bucket bucket = null;
         ArgValidator.checkFieldUriType(id, Bucket.class, "id");
         bucket = _dbClient.queryObject(Bucket.class, id);
@@ -524,6 +533,7 @@ public class BucketService extends TaskResourceService {
         BucketACL bucketAcl = new BucketACL();
         BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getName(), bucket.getId());
         List<BucketACE> bucketAces = bucketACLUtil.queryExistingBucketACL();
+
         _log.info("Number of existing ACLs found : {} ", bucketAces.size());
         if (!bucketAces.isEmpty()) {
             bucketAcl.setBucketACL(bucketAces);

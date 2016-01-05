@@ -6,21 +6,31 @@
 package com.emc.storageos.volumecontroller.impl;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.CifsShareACL;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectController;
 import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
@@ -152,6 +162,8 @@ public class ObjectDeviceController implements ObjectController {
         objectArgs.setAllBuckectAcl(param);
         objectArgs.setName(bucketObj.getName());
         objectArgs.setNamespace(bucketObj.getNamespace());
+        // Query for existing ACL and setting it.
+        objectArgs.setExistingBucketAcl(queryExistingBucketAcl(objectArgs,bucket));
 
         BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucketACL(storageObj, bucketObj, objectArgs, param, opId);
 
@@ -166,6 +178,64 @@ public class ObjectDeviceController implements ObjectController {
     public void deleteBucketACL(URI storage, URI bucket, String opId) throws InternalException {
         // TODO Auto-generated method stub
         
+    }
+    
+    private List<BucketACE> queryExistingBucketAcl(ObjectDeviceInputOutput args, URI buckeId) {
+
+        _log.info("Querying  ACL of Bucket {}", args.getName());
+        List<BucketACE> acl = new ArrayList<BucketACE>();
+
+        try {
+            List<ObjectBucketACL> dbBucketAclList = queryDbBucketAcl(args,buckeId);
+            Iterator<ObjectBucketACL> dbAclIter = dbBucketAclList.iterator();
+            while (dbAclIter.hasNext()) {
+
+                ObjectBucketACL dbBucketAcl = dbAclIter.next();
+                BucketACE ace = new BucketACE();
+                ace.setDomain(dbBucketAcl.getDomain());
+                ace.setBucketName(dbBucketAcl.getBucketName());
+                ace.setGroup(dbBucketAcl.getGroup());
+                ace.setPermissions(dbBucketAcl.getPermissions());
+                ace.setNamespace(dbBucketAcl.getNamespace());
+                ace.setUser(dbBucketAcl.getUser());
+                ace.setCustomGroup(dbBucketAcl.getCustomGroup());
+
+                acl.add(ace);
+            }
+
+        } catch (Exception e) {
+            _log.error("Error while querying ACL(s) of a share {}", e);
+        }
+
+        return acl;
+    }
+    
+    private List<ObjectBucketACL> queryDbBucketAcl(ObjectDeviceInputOutput args, URI bucketId) {
+        List<ObjectBucketACL> acls = new ArrayList<ObjectBucketACL>();
+        try {
+
+            ContainmentConstraint containmentConstraint = null;
+
+            _log.info("Querying DB for ACL of Bucket {} ",
+                        args.getName());
+                containmentConstraint = ContainmentConstraint.Factory.getBucketAclsConstraint(bucketId);
+
+           List<ObjectBucketACL> bucketAclList = CustomQueryUtility.queryActiveResourcesByConstraint(
+                    _dbClient, ObjectBucketACL.class, containmentConstraint);
+
+            Iterator<ObjectBucketACL> bucketAclIter = bucketAclList.iterator();
+            while (bucketAclIter.hasNext()) {
+
+                ObjectBucketACL bucketAce = bucketAclIter.next();
+                if (args.getName().equals(bucketAce.getBucketName())) {
+                    acls.add(bucketAce);
+                }
+            }
+        } catch (Exception e) {
+            _log.error("Error while querying DB for ACL(s) of a share {}", e);
+        }
+
+        return acls;
     }
     
 

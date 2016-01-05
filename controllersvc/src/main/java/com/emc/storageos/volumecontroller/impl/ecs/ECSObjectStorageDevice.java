@@ -24,6 +24,7 @@ import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.ecs.api.ECSBucketACL;
 import com.emc.storageos.ecs.api.ECSException;
+import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -155,14 +156,100 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     @Override
     public BiosCommandResult doUpdateBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, BucketACLUpdateParams param,
             String taskId) throws ControllerException {
+        List<BucketACE> aclToAdd = objectArgs.getBucketAclToAdd();
+        List<BucketACE> aclToModify = objectArgs.getBucketAclToModify();
+        List<BucketACE> aclToDelete = objectArgs.getBucketAclToDelete();
+        // Get existing Acl for the Bucket
+        List<BucketACE> aclsToProcess = objectArgs.getExistingBucketAcl();
+        
+        aclsToProcess.addAll(aclToAdd);
+        // Process ACLs to modify
+        for (BucketACE existingAce : aclsToProcess) {
+            String domainOfExistingAce = existingAce.getDomain();
+            if (domainOfExistingAce == null) {
+                domainOfExistingAce = "";
+            }
+            for (BucketACE aceToModify : aclToModify) {
+                String domainOfmodifiedAce = aceToModify.getDomain();
+                if (domainOfmodifiedAce == null) {
+                    domainOfmodifiedAce = "";
+                }
+
+                if (aceToModify.getUser() != null && existingAce.getUser() != null) {
+                    if (domainOfExistingAce.concat(existingAce.getUser()).equalsIgnoreCase(
+                            domainOfmodifiedAce.concat(aceToModify.getUser()))) {
+
+                        existingAce.setPermissions(aceToModify.getPermissions());
+                    }
+                }
+
+                if (aceToModify.getGroup() != null && existingAce.getGroup() != null) {
+                    if (domainOfExistingAce.concat(existingAce.getGroup()).equalsIgnoreCase(
+                            domainOfmodifiedAce.concat(aceToModify.getGroup()))) {
+                        existingAce.setPermissions(aceToModify.getPermissions());
+                    }
+                }
+                
+                if (aceToModify.getCustomGroup() != null && existingAce.getCustomGroup() != null) {
+                    if (domainOfExistingAce.concat(existingAce.getCustomGroup()).equalsIgnoreCase(
+                            domainOfmodifiedAce.concat(aceToModify.getCustomGroup()))) {
+                        existingAce.setPermissions(aceToModify.getPermissions());
+                    }
+                }
+            }
+        }
+        
+        // Process ACLs to delete
+        for (BucketACE aceToDelete : aclToDelete) {
+
+            String domainOfDeleteAce = aceToDelete.getDomain();
+            if (domainOfDeleteAce == null) {
+                domainOfDeleteAce = "";
+            }
+
+            for (Iterator<BucketACE> iterator = aclsToProcess.iterator(); iterator.hasNext();) {
+                BucketACE existingAcl = iterator.next();
+
+                String domainOfExistingAce = existingAcl.getDomain();
+                if (domainOfExistingAce == null) {
+                    domainOfExistingAce = "";
+                }
+
+                if (aceToDelete.getUser() != null
+                        && existingAcl.getUser() != null) {
+                    if (domainOfDeleteAce.concat(aceToDelete.getUser())
+                            .equalsIgnoreCase(domainOfExistingAce.concat(existingAcl.getUser()))) {
+                        iterator.remove();
+                    }
+                }
+
+                if (aceToDelete.getGroup() != null
+                        && existingAcl.getGroup() != null) {
+                    if (domainOfDeleteAce.concat(aceToDelete.getGroup())
+                            .equalsIgnoreCase(domainOfExistingAce.concat(existingAcl.getGroup()))) {
+                        iterator.remove();
+                    }
+                }
+                
+                if (aceToDelete.getCustomGroup() != null
+                        && existingAcl.getCustomGroup() != null) {
+                    if (domainOfDeleteAce.concat(aceToDelete.getCustomGroup())
+                            .equalsIgnoreCase(domainOfExistingAce.concat(existingAcl.getCustomGroup()))) {
+                        iterator.remove();
+                    }
+                }
+            }
+        }
+        
+        //suri
         ECSApi objectAPI = getAPI(storageObj);
         try {
-            String payload = toJsonString(objectArgs);
+            String payload = toJsonString(objectArgs, aclsToProcess);
             objectAPI.updateBucketACL(objectArgs.getName(), payload);
             updateBucketACLInDB(param, objectArgs, bucket);
 
         } catch (ECSException e) {
-            _log.error("Retention Update for Bucket : {} failed.", objectArgs.getName(), e);
+            _log.error("ACL Update for Bucket : {} failed.", objectArgs.getName(), e);
             completeTask(bucket.getId(), taskId, e);
             return BiosCommandResult.createErrorResult(e);
         }
@@ -176,47 +263,53 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
         try {
             // Create new Acl
-            List<BucketACE> aclToAdd = param.getAclToAdd().getBucketACL();
+            if (param.getAclToAdd() != null) {
+                List<BucketACE> aclToAdd = param.getAclToAdd().getBucketACL();
 
-            if (aclToAdd != null && !aclToAdd.isEmpty()) {
-                for (BucketACE ace : aclToAdd) {
-                    ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
-                    dbBucketAcl.setId(URIUtil.createId(ObjectBucketACL.class));
-                    copyToPersistBucketACL(ace, dbBucketAcl, args, bucket.getId());
-                    _log.info("Storing new acl in DB: {}", dbBucketAcl);
-                    _dbClient.createObject(dbBucketAcl);
+                if (aclToAdd != null && !aclToAdd.isEmpty()) {
+                    for (BucketACE ace : aclToAdd) {
+                        ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
+                        dbBucketAcl.setId(URIUtil.createId(ObjectBucketACL.class));
+                        copyToPersistBucketACL(ace, dbBucketAcl, args, bucket.getId());
+                        _log.info("Storing new acl in DB: {}", dbBucketAcl);
+                        _dbClient.createObject(dbBucketAcl);
+                    }
                 }
             }
 
             // Modify existing Acl
-            List<BucketACE> aclToModify = param.getAclToModify().getBucketACL();
+            if (param.getAclToModify() != null) {
+                List<BucketACE> aclToModify = param.getAclToModify().getBucketACL();
 
-            if (aclToModify != null && !aclToModify.isEmpty()) {
-                for (BucketACE ace : aclToModify) {
-                    ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
-                    copyToPersistBucketACL(ace, dbBucketAcl, args, bucket.getId());
-                    ObjectBucketACL dbBucketAclTemp = getExistingBucketAclFromDB(dbBucketAcl);
-                    if (dbBucketAclTemp != null) {
-                        dbBucketAcl.setId(dbBucketAclTemp.getId());
-                        _log.info("Modifying acl in DB: {}", dbBucketAcl);
-                        _dbClient.updateObject(dbBucketAcl);
+                if (aclToModify != null && !aclToModify.isEmpty()) {
+                    for (BucketACE ace : aclToModify) {
+                        ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
+                        copyToPersistBucketACL(ace, dbBucketAcl, args, bucket.getId());
+                        ObjectBucketACL dbBucketAclTemp = getExistingBucketAclFromDB(dbBucketAcl);
+                        if (dbBucketAclTemp != null) {
+                            dbBucketAcl.setId(dbBucketAclTemp.getId());
+                            _log.info("Modifying acl in DB: {}", dbBucketAcl);
+                            _dbClient.updateObject(dbBucketAcl);
+                        }
                     }
                 }
             }
 
             // Delete existing Acl
-            List<BucketACE> aclToDelete = param.getAclToDelete().getBucketACL();
+            if (param.getAclToDelete() != null) {
+                List<BucketACE> aclToDelete = param.getAclToDelete().getBucketACL();
 
-            if (aclToDelete != null && !aclToDelete.isEmpty()) {
-                for (BucketACE ace : aclToDelete) {
-                    ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
-                    copyToPersistBucketACL(ace, dbBucketAcl, args, bucket.getId());
-                    ObjectBucketACL dbNfsAclTemp = getExistingBucketAclFromDB(dbBucketAcl);
-                    if (dbNfsAclTemp != null) {
-                        dbBucketAcl.setId(dbNfsAclTemp.getId());
-                        dbBucketAcl.setInactive(true);
-                        _log.info("Marking acl inactive in DB: {}", dbBucketAcl);
-                        _dbClient.updateObject(dbBucketAcl);
+                if (aclToDelete != null && !aclToDelete.isEmpty()) {
+                    for (BucketACE ace : aclToDelete) {
+                        ObjectBucketACL dbBucketAcl = new ObjectBucketACL();
+                        copyToPersistBucketACL(ace, dbBucketAcl, args, bucket.getId());
+                        ObjectBucketACL dbNfsAclTemp = getExistingBucketAclFromDB(dbBucketAcl);
+                        if (dbNfsAclTemp != null) {
+                            dbBucketAcl.setId(dbNfsAclTemp.getId());
+                            dbBucketAcl.setInactive(true);
+                            _log.info("Marking acl inactive in DB: {}", dbBucketAcl);
+                            _dbClient.updateObject(dbBucketAcl);
+                        }
                     }
                 }
             }
@@ -229,7 +322,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
     private void copyToPersistBucketACL(BucketACE ace, ObjectBucketACL dbBucketAcl, ObjectDeviceInputOutput args, URI bucketId) {
 
-        dbBucketAcl.setBucketName(args.getName());
+        
         dbBucketAcl.setNamespace(args.getNamespace());
         dbBucketAcl.setBucketId(bucketId);
 
@@ -249,6 +342,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         if (ace.getPermissions() != null) {
             dbBucketAcl.setPermissions(ace.getPermissions());
         }
+        dbBucketAcl.setBucketName(args.getName());
 
     }
 
@@ -274,19 +368,16 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         return null;
     }
 
-    private String toJsonString(ObjectDeviceInputOutput objectArgs) {
+    private String toJsonString(ObjectDeviceInputOutput objectArgs,List<BucketACE> aclsToProcess) {
         ECSBucketACL ecsBucketAcl = new ECSBucketACL();
-
-        List<BucketACE> aclToAdd = objectArgs.getBucketAclToAdd();
-        List<BucketACE> aclToModify = objectArgs.getBucketAclToModify();
-        List<BucketACE> aclToDelete = objectArgs.getBucketAclToDelete();
 
         List<ECSBucketACL.UserAcl> user_acl = Lists.newArrayList();
         List<ECSBucketACL.GroupAcl> group_acl = Lists.newArrayList();
         List<ECSBucketACL.CustomGroupAcl> customgroup_acl = Lists.newArrayList();
-        String PERMISSION_DELEMITER = ",";
+        String PERMISSION_DELEMITER = "\\|";
+        
 
-        for (BucketACE aceToAdd : aclToAdd) {
+        for (BucketACE aceToAdd : aclsToProcess) {
             ECSBucketACL.UserAcl userAcl = ecsBucketAcl.new UserAcl();
             ECSBucketACL.GroupAcl groupAcl = ecsBucketAcl.new GroupAcl();
             ECSBucketACL.CustomGroupAcl customgroupAcl = ecsBucketAcl.new CustomGroupAcl();
@@ -320,48 +411,6 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                     customgroupAcl.setCustomgroup(userOrGroupOrCustomgroup);
                     if (aceToAdd.getPermissions() != null) {
                         customgroupAcl.setPermission(aceToAdd.getPermissions().split(PERMISSION_DELEMITER));
-                    }
-                    customgroup_acl.add(customgroupAcl);
-                    break;
-
-            }
-
-        }
-
-        for (BucketACE aceToModify : aclToModify) {
-            ECSBucketACL.UserAcl userAcl = ecsBucketAcl.new UserAcl();
-            ECSBucketACL.GroupAcl groupAcl = ecsBucketAcl.new GroupAcl();
-            ECSBucketACL.CustomGroupAcl customgroupAcl = ecsBucketAcl.new CustomGroupAcl();
-
-            String type = "user";
-            String userOrGroupOrCustomgroup = aceToModify.getUser();
-            if (userOrGroupOrCustomgroup == null) {
-                userOrGroupOrCustomgroup = aceToModify.getGroup() != null ? aceToModify.getGroup() : aceToModify.getCustomGroup();
-                type = aceToModify.getGroup() != null ? "group" : "customgroup";
-            }
-            if (aceToModify.getDomain() != null && !aceToModify.getDomain().isEmpty()) {
-                userOrGroupOrCustomgroup = aceToModify.getDomain() + "\\" + userOrGroupOrCustomgroup;
-            }
-
-            switch (type) {
-                case "user":
-                    userAcl.setUser(userOrGroupOrCustomgroup);
-                    if (aceToModify.getPermissions() != null) {
-                        userAcl.setPermission(aceToModify.getPermissions().split(PERMISSION_DELEMITER));
-                    }
-                    user_acl.add(userAcl);
-                    break;
-                case "group":
-                    groupAcl.setGroup(userOrGroupOrCustomgroup);
-                    if (aceToModify.getPermissions() != null) {
-                        groupAcl.setPermission(aceToModify.getPermissions().split(PERMISSION_DELEMITER));
-                    }
-                    group_acl.add(groupAcl);
-                    break;
-                case "customgroup":
-                    customgroupAcl.setCustomgroup(userOrGroupOrCustomgroup);
-                    if (aceToModify.getPermissions() != null) {
-                        customgroupAcl.setPermission(aceToModify.getPermissions().split(PERMISSION_DELEMITER));
                     }
                     customgroup_acl.add(customgroupAcl);
                     break;

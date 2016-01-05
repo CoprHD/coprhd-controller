@@ -21,6 +21,12 @@
       type:"assetType.vipr.snapshotSessionsByVolume"
     },
     
+    linkedSnapshot:{
+      type:"assetType.vipr.linkedSnapshotsForVolume",
+      select: "many",
+      required: "false"
+    },
+    
     advanced:{
       type:"group",
       lockable: true,

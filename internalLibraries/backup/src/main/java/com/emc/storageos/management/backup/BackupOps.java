@@ -11,18 +11,11 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.text.Format;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import javax.management.JMX;
 import javax.management.MBeanServerConnection;
@@ -32,6 +25,8 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
+import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.model.property.PropertyInfo;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -267,6 +262,7 @@ public class BackupOps {
         } else {
             validateBackupName(backupTag);
         }
+        precheckForCreation(backupTag);
 
         InterProcessLock backupLock = null;
         InterProcessLock recoveryLock = null;
@@ -477,6 +473,43 @@ public class BackupOps {
         String version = info.getCurrentVersion().toString();
         log.info("Current ViPR version: {}", version);
         return version;
+    }
+
+    private void precheckForCreation(String backupTag) {
+        // Check "backup_max_manual_copies"
+        if (!isScheduledBackupTag(backupTag)) {
+            int currentManualBackupNumber = getCurrentManualBackupNumber();
+            int maxManualBackupNumber = getMaxManualBackupNumber();
+            if (currentManualBackupNumber >= maxManualBackupNumber) {
+                throw BackupException.fatals.manualBackupNumberExceedLimit(
+                        currentManualBackupNumber, maxManualBackupNumber);
+            }
+        }
+    }
+
+    private int getCurrentManualBackupNumber() {
+        int manualBackupNumber = 0;
+        Set<String> backups = listRawBackup(true).uniqueTags();
+        for (String backupTag : backups) {
+            if (!isScheduledBackupTag(backupTag)) {
+                manualBackupNumber++;
+                log.debug("Backup({}) is manual created", backupTag);
+            }
+        }
+        return manualBackupNumber;
+    }
+
+    private int getMaxManualBackupNumber() {
+        PropertyInfo propInfo = coordinatorClient.getPropertyInfo();
+        return Integer.parseInt(propInfo.getProperty(BackupConstants.BACKUP_MAX_MANUAL_COPIES));
+    }
+
+    public static boolean isScheduledBackupTag(String tag) {
+        // This pattern need to consider extension, version part could be longer and node count could bigger
+        String regex = String.format(BackupConstants.SCHEDULED_BACKUP_TAG_REGEX_PATTERN, ProductName.getName(),
+                BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN.length());
+        Pattern backupNamePattern = Pattern.compile(regex);
+        return backupNamePattern.matcher(tag).find();
     }
 
     /**

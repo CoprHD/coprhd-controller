@@ -88,7 +88,7 @@ public class SchedulerConfig {
         this.coordinator = coordinatorClient;
         this.encryptionProvider = encryptionProvider;
         this.dbClient = dbClient;
-        this.mailHelper = new MailHelper(coordinator.getCoordinatorClient());
+        this.mailHelper = new MailHelper(coordinator == null ? null : coordinator.getCoordinatorClient());
     }
 
     public String getUploadPassword() {

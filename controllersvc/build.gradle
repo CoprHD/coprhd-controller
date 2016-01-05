@@ -40,6 +40,7 @@ dependencies {
             project(":recoverpoint"),
             project(":compute"),
             project(":cinder"),
+	    project(":glance"),
             project(":hds"),
             project(":scaleio"),
             project(":xtremio"),

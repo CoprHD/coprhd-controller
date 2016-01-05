@@ -57,6 +57,12 @@
 								#{if site.state == "STANDBY_RESUMING"}
 									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.resuming'}</span>
 								#{/if}
+								#{if site.state == "ACTIVE_FAILBACK_DEGRADING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.failbackDegrading'}</span>
+								#{/if}
+								#{if site.state == "ACTIVE_FAILBACK_DEGRADED"}
+									<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span> &{'renderFunctions.disasterRecovery.status.standby.failbackDegraded'}</span>
+								#{/if}
 								#{if site.state == "STANDBY_ERROR"}
 									<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png"><span> &{'renderFunctions.disasterRecovery.status.standby.error'}</span>
 								#{/if}

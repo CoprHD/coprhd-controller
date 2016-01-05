@@ -128,6 +128,9 @@ function standbyStatusIcon(o, val) {
         'STANDBY_FAILING_OVER': 'label-danger',
         'STANDBY_REMOVING': 'label-danger',
         'STANDBY_RESUMING': 'label-info',
+        'STANDBY_RESUMING': 'label-info',
+        'ACTIVE_FAILBACK_DEGRADING': 'label-info',
+        'ACTIVE_FAILBACK_DEGRADED': 'label-success',
         'STANDBY_ERROR':  'label-danger'
     }
     var icons = {
@@ -144,6 +147,8 @@ function standbyStatusIcon(o, val) {
         'STANDBY_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_REMOVING': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_RESUMING': 'glyphicon glyphicon-refresh rotate',
+        'ACTIVE_FAILBACK_DEGRADING': 'glyphicon glyphicon-refresh rotate',
+        'ACTIVE_FAILBACK_DEGRADED': 'glyphicon glyphicon-ok'
         'STANDBY_ERROR':  'glyphicon glyphicon-remove'
     }
 
@@ -161,6 +166,8 @@ function standbyStatusIcon(o, val) {
             'STANDBY_FAILING_OVER': Messages.get("renderFunctions.disasterRecovery.status.standby.failingover"),
             'STANDBY_REMOVING': Messages.get("renderFunctions.disasterRecovery.status.standby.removing"),
             'STANDBY_RESUMING': Messages.get("renderFunctions.disasterRecovery.status.standby.resuming"),
+            'ACTIVE_FAILBACK_DEGRADING': Messages.get("renderFunctions.disasterRecovery.status.standby.failbackDegrading"),
+            'ACTIVE_FAILBACK_DEGRADED': Messages.get("renderFunctions.disasterRecovery.status.standby.failbackDegraded"),
             'STANDBY_ERROR':  Messages.get("renderFunctions.disasterRecovery.status.standby.error")
 	};
 

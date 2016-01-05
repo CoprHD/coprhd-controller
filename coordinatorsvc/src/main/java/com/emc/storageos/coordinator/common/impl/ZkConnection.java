@@ -174,7 +174,11 @@ public class ZkConnection {
             siteId = createTimeUUID(ctime);
             _logger.info("Site UUID is {}", siteId);
             if (!FileUtils.exists(siteIdFile)) {
-                Path path = Paths.get(siteIdFile);
+                String lockFile = FileUtils.generateTmpFileName("site_id_lock");
+                if (!FileUtils.exists(lockFile)) {
+                    FileUtils.writePlainFile(lockFile, "".getBytes());
+                }
+                Path path = Paths.get(lockFile);
                 FileChannel fileChannel = FileChannel.open(path, StandardOpenOption.WRITE);
                 try (FileLock lock = fileChannel.lock()) {
                     FileUtils.writePlainFile(siteIdFile, siteId.getBytes());

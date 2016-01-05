@@ -43,7 +43,6 @@
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>
         <property name="dbVersionInfo" ref="dbVersionInfo"/>
-        <property name="vdcShortId" value="${vdc_myid}"/>
     </bean>
 
     <bean id="nodeCount" class="java.lang.Integer">

@@ -9,7 +9,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -78,19 +82,64 @@ public class DrUtil {
     public int checkPing(String siteUuid) {
         Site site = getSiteFromLocalVdc(siteUuid);
         String host = site.getVip();
-        return 1337;
+        int ping = testPing(host,80);
+        return ping;
     }
 
     /**
-     * Check site bandwidth
+     * Connect using layer4 (sockets)
      *
-     * @return ping in mb/s
+     * @param
+     * @return delay if the specified host responded, -1 if failed
      */
-    public int checkBandwidth(String siteUuid) {
-        Site site = getSiteFromLocalVdc(siteUuid);
-        String host = site.getVip();
-        return 1337;
+    static int testPing(String hostAddress, int port) {
+        InetAddress inetAddress = null;
+        InetSocketAddress socketAddress = null;
+        SocketChannel sc = null;
+        long timeToRespond = -1;
+        long start, stop;
+
+        try {
+            inetAddress = InetAddress.getByName(hostAddress);
+        } catch (UnknownHostException e) {
+            System.out.println("Problem, unknown host:");
+            e.printStackTrace();
+        }
+
+        try {
+            socketAddress = new InetSocketAddress(inetAddress, port);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Problem, port may be invalid:");
+            e.printStackTrace();
+        }
+
+        // Open the channel, set it to non-blocking, initiate connect
+        try {
+            sc = SocketChannel.open();
+            sc.configureBlocking(true);
+            start = System.nanoTime();
+            if (sc.connect(socketAddress)) {
+                stop = System.nanoTime();
+                timeToRespond = (stop - start);
+            }
+        } catch (IOException e) {
+            System.out.println("Problem, connection could not be made:");
+            e.printStackTrace();
+        }
+
+        try {
+            sc.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if (timeToRespond > Integer.MAX_VALUE) {
+            log.error("maybe throw a PingCalculationException?");
+        }
+
+        return (int) timeToRespond/1000000;
     }
+
 
     /**
      * The original purpose of this method is to allow QE engineers to tune DR operation timeout value by inserting timeout settings

@@ -68,7 +68,6 @@ import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
-import com.emc.storageos.model.dr.SiteNetwork;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -418,14 +417,12 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @Path("/{uuid}/network")
-    public SiteNetwork checkStandbyNetwork(@PathParam("uuid") String uuid) {
+    public Response checkStandbyNetwork(@PathParam("uuid") String uuid) {
         log.info("Begin to check site network");
-        SiteNetwork siteNetwork = new SiteNetwork();
 
         try {
-            siteNetwork.setSitePing(drUtil.checkPing(uuid));
-            siteNetwork.setSiteBandwidth(drUtil.checkBandwidth(uuid));
-            return siteNetwork;
+            int ping =drUtil.checkPing(uuid);
+            return Response.ok(ping).build();
         } catch (Exception e) {
             log.error("Can't get site network info");
             throw APIException.badRequests.siteIdNotFound();
@@ -1089,7 +1086,7 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Query the transition timings for specific standby site
+     * Query the details, such as transition timings, for specific standby site
      * 
      * @param uuid site UUID
      * @return SiteActionsTime with detail information
@@ -1098,18 +1095,18 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
             Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    @Path("/{uuid}/time")
-    public SiteDetailRestRep getSiteTime(@PathParam("uuid") String uuid) {
+    @Path("/{uuid}/details")
+    public SiteDetailRestRep getSiteDetails(@PathParam("uuid") String uuid) {
         log.info("Begin to get site paused time by uuid {}", uuid);
 
-        SiteDetailRestRep standbyTimes = new SiteDetailRestRep();
+        SiteDetailRestRep standbyDetails = new SiteDetailRestRep();
         try {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 
-            standbyTimes.setCreationTime(new Date(standby.getCreationTime()));
+            standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
 
             if (standby.getState().equals(SiteState.STANDBY_PAUSED)) {
-                standbyTimes.setPausedTime(new Date(standby.getLastStateUpdateTime()));
+                standbyDetails.setPausedTime(new Date(standby.getLastStateUpdateTime()));
             }
             // Add last-synced time to lastUpdateTime when available
         } catch (CoordinatorException e) {
@@ -1119,7 +1116,7 @@ public class DisasterRecoveryService {
             log.error("Find find site from ZK for UUID {} : {}" + uuid, e);
         }
 
-        return standbyTimes;
+        return standbyDetails;
     }
 
     /**

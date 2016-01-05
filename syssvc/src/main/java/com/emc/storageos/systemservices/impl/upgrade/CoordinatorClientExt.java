@@ -1517,7 +1517,6 @@ public class CoordinatorClientExt {
 
             try {
                 checkPing();
-                checkBandwidth();
             } catch (Exception e) {
                 //try catch exception to make sure next scheduled run can be launched.
                 _log.error("Error occurs when monitor standby network", e);
@@ -1525,11 +1524,15 @@ public class CoordinatorClientExt {
         }
 
         private int checkPing() {
-            return 1337;
-        }
 
+            //Only leader on active site will test ping (no networking info if active down?)
+            String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
+            String ZOOKEEPER_MODE_LEADER = "leader";
+            if (ZOOKEEPER_MODE_LEADER.equals(state)) {
+                //I'm the leader
 
-        private int checkBandwidth() {
+            }
+
             return 1337;
         }
 

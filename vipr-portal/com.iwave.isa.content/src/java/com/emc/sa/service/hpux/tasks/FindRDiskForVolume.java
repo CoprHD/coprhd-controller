@@ -38,6 +38,6 @@ public class FindRDiskForVolume extends RetryableCommandTask<String, CommandExce
 
     @Override
     protected boolean canRetry(CommandException e) {
-        return e instanceof HDiskNotFoundException;
+        return e instanceof RDiskNotFoundException;
     }
 }

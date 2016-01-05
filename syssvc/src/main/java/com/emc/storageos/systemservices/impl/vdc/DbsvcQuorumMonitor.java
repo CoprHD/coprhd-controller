@@ -45,18 +45,23 @@ public class DbsvcQuorumMonitor implements Runnable {
         List<Site> standbySites = drUtil.listStandbySites();
         List<Site> sitesToDegrade = new ArrayList<>();
         for (Site standbySite : standbySites) {
-            if (!standbySite.getState().equals(SiteState.STANDBY_SYNCED)) {
-                // skip those standby sites that are not synced yet
+            boolean isStandbySynced = standbySite.getState().equals(SiteState.STANDBY_SYNCED);
+            boolean isStandbyDegraded = standbySite.getState().equals(SiteState.STANDBY_DEGRADED);
+            if (!isStandbySynced && !isStandbyDegraded) {
+                // we only care about sites that are sync'ed or degraded
                 continue;
             }
 
             SiteMonitorResult monitorResult = updateSiteMonitorResult(standbySite);
-            if (monitorResult.getDbQuorumLostSince() == 0) {
+            if (isStandbyDegraded && monitorResult.getDbQuorumLostSince() == 0) {
                 // Db quorum is intact
-                continue;
+                // TODO:
+                // 1. reinit standby site if degraded for more than 5 days
+                // 2. obtain a DR lock
+                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_REJOIN_STANDBY);
             }
 
-            if (System.currentTimeMillis() - monitorResult.getDbQuorumLostSince() >=
+            if (isStandbySynced && System.currentTimeMillis() - monitorResult.getDbQuorumLostSince() >=
                     drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD)) {
                 log.info("Db quorum lost over 15 minutes, degrading site {}");
                 sitesToDegrade.add(standbySite);

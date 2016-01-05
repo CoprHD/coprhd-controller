@@ -64,6 +64,7 @@ public abstract class VdcOpHandler {
     private static final String LOCK_FAILOVER_REMOVE_OLD_ACTIVE="drFailoverRemoveOldActiveLock";
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
     private static final String LOCK_DEGRADE_STANDBY="drDegradeStandbyLock";
+    private static final String LOCK_REJOIN_STANDBY="drRejoinStandbyLock";
     private static final String LOCK_ADD_STANDBY="drAddStandbyLock";
 
     public static final String NTPSERVERS = "network_ntpservers";
@@ -550,6 +551,48 @@ public abstract class VdcOpHandler {
                 localRepository.restart(Constants.DBSVC_NAME);
                 localRepository.restart(Constants.GEODBSVC_NAME);
             }
+        }
+    }
+
+    /**
+     * Process DR config change for rejoin-standby op
+     *  - To-be-rejoined site - rebuild db/zk data from active site and apply the config
+     *  - Other sites - will not be notified
+     */
+    public static class DrRejoinStandbyHandler extends VdcOpHandler {
+        public DrRejoinStandbyHandler() {
+        }
+
+        @Override
+        public void execute() throws Exception {
+            Site localSite = drUtil.getLocalSite();
+            InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_REJOIN_STANDBY);
+            while (localSite.getState().equals(SiteState.STANDBY_DEGRADED)) {
+                try {
+                    log.info("Acquiring lock {}", LOCK_DEGRADE_STANDBY);
+                    lock.acquire();
+                    log.info("Acquired lock {}", LOCK_DEGRADE_STANDBY);
+
+                    localSite = drUtil.getLocalSite();
+                    if (localSite.getState().equals(SiteState.STANDBY_DEGRADED)) {
+                        // nobody get the lock before me
+                        localSite.setState(SiteState.STANDBY_SYNCING);
+                        coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                    }
+                } finally {
+                    try {
+                        log.info("Releasing lock {}", LOCK_DEGRADE_STANDBY);
+                        lock.release();
+                        log.info("Released lock {}", LOCK_DEGRADE_STANDBY);
+                    } catch (Exception e) {
+                        log.error("Failed to release lock {}", LOCK_DEGRADE_STANDBY);
+                    }
+                }
+
+                localRepository.restart(Constants.DBSVC_NAME);
+                localRepository.restart(Constants.GEODBSVC_NAME);
+            }
+            flushVdcConfigToLocal();
         }
     }
 

@@ -49,9 +49,9 @@ public class VdcConfigUtilTest {
         Assert.assertEquals("2.1.1.4", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc2", "site1", 4)));
         Assert.assertEquals("2.1.1.5", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc2", "site1", 5)));
         Assert.assertEquals("3.1.1.1", vdcConfig.get(String.format(VdcConfigUtil.VDC_SITE_IPADDR_PTN, "vdc3", "site1", 1)));
-        Assert.assertEquals("", vdcConfig.get(VdcConfigUtil.SITE_IDS));
+        Assert.assertEquals("site1", vdcConfig.get(VdcConfigUtil.SITE_IDS));
         Assert.assertEquals("false", vdcConfig.get(VdcConfigUtil.SITE_IS_STANDBY));
-        Assert.assertEquals("", vdcConfig.get(VdcConfigUtil.SITE_MYID));
+        Assert.assertEquals("site1", vdcConfig.get(VdcConfigUtil.SITE_MYID));
     }
 
     private static class VdcCoordinatorClient extends CoordinatorClientImpl {
@@ -63,7 +63,7 @@ public class VdcConfigUtilTest {
             site.setUuid(siteId);
             site.setVdcShortId("vdc1");
             site.setNodeCount(3);
-            site.setSiteShortId("");
+            site.setSiteShortId("site1");
             site.setHostIPv4AddressMap(new StringMap() {
                 {
                     put("node1", "1.1.1.1");
@@ -80,7 +80,7 @@ public class VdcConfigUtilTest {
             site.setUuid(siteId);
             site.setVdcShortId("vdc2");
             site.setNodeCount(5);
-            site.setSiteShortId("");
+            site.setSiteShortId("site1");
             site.setHostIPv4AddressMap(new StringMap() {
                 {
                     put("node1", "2.1.1.1");
@@ -99,7 +99,7 @@ public class VdcConfigUtilTest {
             site.setUuid(siteId);
             site.setVdcShortId("vdc3");
             site.setNodeCount(1);
-            site.setSiteShortId("");
+            site.setSiteShortId("site1");
             site.setHostIPv4AddressMap(new StringMap() {
                 {
                     put("node1", "3.1.1.1");

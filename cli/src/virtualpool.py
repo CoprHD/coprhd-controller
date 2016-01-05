@@ -503,7 +503,7 @@ class VirtualPool(object):
             raise SOSError(SOSError.CMD_LINE_ERR,
                                " Please provide valid replication policy ")
         
-        replicationpolicy['replication_type'] = policyParams[0]
+        replicationpolicy['replication_type'] = policyParams[0].upper()
         if(len(policyParams) > 1):
             replicationpolicy['copy_mode'] = policyParams[1]
         if(len(policyParams) > 2):
@@ -987,7 +987,6 @@ class VirtualPool(object):
                 parms['drive_type'] = drivetype
 
         body = json.dumps(parms)
-        print body
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "PUT",
                                              self.URI_VPOOL_SHOW.format(

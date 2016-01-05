@@ -1534,7 +1534,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * 
      * @param storage [in] - StorageSystem object representing the array
      * @param initiatorNames [in] - Port identifiers (WWPN or iSCSI name)
-     * @param mustHaveAllPorts [in] - Indicates if true, *all* the passed in initiators
+     * @param mustHaveAllInitiators [in] - Indicates if true, *all* the passed in initiators
      *            have to be in the existing matching mask. If false,
      *            a mask with *any* of the specified initiators will be
      *            considered a hit.
@@ -1543,7 +1543,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
-            boolean mustHaveAllPorts) {
+            boolean mustHaveAllInitiators) {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
         Map<URI, ExportMask> maskMap = new HashMap<>();
@@ -1650,9 +1650,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
 
             // COP-19514 - After we've found all ExportMasks that are related to a given set of initiators, we
-            // need to eliminate any that do not have all the initiators if mustHaveAllPorts=true
+            // need to eliminate any that do not have all the initiators if mustHaveAllInitiators=true. The
+            // masksNotContainingAllInitiators set is used to hold references to those ExportMasks that do not
+            // match the criteria of having all the initiators.
             Set<URI> masksNotContainingAllInitiators = new HashSet<>();
-            if (mustHaveAllPorts) {
+            if (mustHaveAllInitiators) {
                 // Check if each ExportMask has all the ports. If not, add it to masksNotContainingAllInitiators
                 for (URI exportMaskURI : maskMap.keySet()) {
                     ExportMask mask = maskMap.get(exportMaskURI);

@@ -3415,12 +3415,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     }
     
     /**
-     * get backing volumes to be added the application
-     * @param addBackingVols
-     * @param addVolumes
-     * @param volumeGroup
-     * @param taskId
+     * get backing volumes to be removed from the application
+     * @param removeVolIds output list of volume ids
+     * @param removeVolumes input list of volumes
      * @return URI of the storage system the backing volumes are in (this will need to change)
+     * @return
      */
     private URI getVolumesToRemoveFormApplication(List<URI> removeVolIds, List<Volume> removeVolumes) {
         // TODO all vplex volumes being added to a application must be in the same cg
@@ -3454,11 +3453,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     }
     
     /**
-     * get backing volumes to be added the application
-     * @param addBackingVols
-     * @param addVolumes
-     * @param volumeGroup
-     * @param taskId
+     * get backing volumes to be added the the application
+     * @param addBackingVols output list of volumes to be added after validation
+     * @param addVolumes input list of volumes to add
+     * @param volumeGroup application to add to
+     * @param taskId task id used if some volumes are already in a backend array CG
      * @return URI of the storage system the backing volumes are in (this will need to change)
      */
     private URI getVolumesToAddToApplication(ApplicationAddVolumeList addBackingVols, VolumeGroupVolumeList addVolumes, VolumeGroup volumeGroup, 

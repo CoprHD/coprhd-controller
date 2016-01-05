@@ -102,6 +102,13 @@ public class ApplicationTaskCompleter extends TaskCompleter{
         dbClient.updateObject(volume);
     }
     
+    /**
+     * get the volume to be updated after application add and remove operations
+     * could be the volume passed in if it's a simple block volume or the vplex virtual volume if it's a backing volume
+     * @param voluri uri of volume operated on during add or remove volume from application operation
+     * @param dbClient
+     * @return the volume to update
+     */
     private Volume getVolume(URI voluri, DbClient dbClient) {
         // if this is a vplex volume, update the parent virtual volume
         List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,

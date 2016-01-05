@@ -40,9 +40,19 @@ public enum SiteState {
     },
     
     /**
-     * Active site is back after failover operation is completed successfully.
+     * Active site is back after failover, doing down grade.
      */
-    ACTIVE_DEGRADED {
+    ACTIVE_DOWNGRADING {
+        @Override
+        public boolean isDROperationOngoing() {
+            return false;
+        }
+    },
+    
+    /**
+     * Active site is back after failover, site has been down graded.
+     */
+    ACTIVE_DOWNGRADED {
         @Override
         public boolean isDROperationOngoing() {
             return false;

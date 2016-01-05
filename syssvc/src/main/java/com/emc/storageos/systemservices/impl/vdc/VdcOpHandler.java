@@ -706,7 +706,7 @@ public abstract class VdcOpHandler {
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILBACK_BARRIER, FAILBACK_BARRIER_TIMEOUT, drUtil.getLocalSite().getNodeCount(), false);
             barrier.enter();
             
-            localSite.setState(SiteState.ACTIVE_DEGRADED);
+            localSite.setState(SiteState.ACTIVE_DOWNGRADED);
             coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
             
             barrier.leave();

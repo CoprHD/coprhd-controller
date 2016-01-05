@@ -367,19 +367,15 @@ public class BackupService {
     @POST
     @Path("internal/push")
     public Response downloadBackupFile(String backupName) {
-        log.info("lbyu backupName={}", backupName);
+        log.info("lbyu To download backupName={}", backupName);
 
         //false = do not notify other nodes
         DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps, false);
         downloadTask.registerListener();
 
-        log.info("lbym");
         downloadThread = new Thread(downloadTask);
-        log.info("lbym2");
         downloadThread.setDaemon(true);
-        log.info("lbym3");
         downloadThread.setName("backupDownloadThread");
-        log.info("lbym4");
         downloadThread.start();
 
         return Response.ok().build();
@@ -400,13 +396,9 @@ public class BackupService {
 
         DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps, true); //true = notify other nodes
         downloadTask.registerListener();
-        log.info("lbym0");
         downloadThread = new Thread(downloadTask);
-        log.info("lbym4");
         downloadThread.setDaemon(true);
-        log.info("lbym5");
         downloadThread.setName("backupDownloadThread");
-        log.info("lbym6");
         downloadThread.start();
 
         log.info("done");
@@ -557,7 +549,6 @@ public class BackupService {
         for (final NodeInfo node : nodes) {
             String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
                     node.getIpAddress(), node.getPort());
-            log.info("lby processing node: {}", baseNodeURL);
             SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
                     URI.create(baseNodeURL));
             for (String fileName : getFileNameList(files.subsetOf(null, null, node.getId()))) {

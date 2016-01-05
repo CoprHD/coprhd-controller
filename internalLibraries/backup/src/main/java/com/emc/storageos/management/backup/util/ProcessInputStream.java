@@ -47,6 +47,10 @@ public class ProcessInputStream extends InputStream {
     @Override
     public void close() throws IOException {
         if (this.stdinStream != null) {
+            int remains;
+            while (( remains = stdinStream.available()) > 0) {
+                stdinStream.skip(remains);
+            }
             this.stdinStream.close();
             this.stdinStream = null;
         }

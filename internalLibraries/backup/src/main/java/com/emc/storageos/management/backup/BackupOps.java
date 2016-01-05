@@ -304,13 +304,11 @@ public class BackupOps {
      * Query restore status from ZK
     */
     public BackupRestoreStatus queryBackupRestoreStatus(String backupName) {
-        log.info("lbymmm");
         Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
                 getBackupConfigKind(backupName), Constants.GLOBAL_ID);
         log.info("lbymmm1 cfg={}", cfg);
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
 
-        log.info("lbymmm2");
         BackupRestoreStatus restoreStatus = new BackupRestoreStatus(allItems);
         log.info("lbym Restore status is: {}", restoreStatus);
         return restoreStatus;
@@ -324,8 +322,7 @@ public class BackupOps {
      * Persist upload status to ZK
      */
     public void persistBackupRestoreStatus(BackupRestoreStatus status) {
-    // public void persistBackupRestoreStatus(RestoreStatus status) {
-        log.info("lbymm persist backup restore status");
+        log.info("lbymm persist backup restore status {}", status);
         Map<String, String> allItems = (status != null) ? status.toMap(): null;
 
         log.info("lbymm allItems={}", allItems);
@@ -333,12 +330,9 @@ public class BackupOps {
             return;
         }
 
-        log.info("lbymm11");
         ConfigurationImpl config = new ConfigurationImpl();
-        log.info("lbymm12");
         String backupName = status.getBackupName();
         config.setKind(getBackupConfigKind(backupName));
-        log.info("lbymm13");
         config.setId(Constants.GLOBAL_ID);
 
         log.info("lbym Setting restore status: {}", status);
@@ -347,7 +341,6 @@ public class BackupOps {
             config.setConfig(entry.getKey(), entry.getValue());
         }
 
-       // Configuration config = status.toConfiguration();
         coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
         log.info("Persist backup restore status to zk successfully");
     }

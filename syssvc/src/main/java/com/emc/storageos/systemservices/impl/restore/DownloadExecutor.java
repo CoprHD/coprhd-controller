@@ -117,13 +117,11 @@ public class DownloadExecutor implements  Runnable {
     public void updateDownloadSize(long size) {
         log.info("lbymm increase download increase ={}", size);
         restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName);
-        log.info("lbymm1");
 
         long newSize = restoreStatus.getDownoadSize() + size;
         restoreStatus.setDownoadSize(newSize);
         log.info("lbyn new status={}", restoreStatus);
         backupOps.persistBackupRestoreStatus(restoreStatus);
-
     }
 
     @Override
@@ -170,13 +168,12 @@ public class DownloadExecutor implements  Runnable {
         String localHostName = InetAddress.getLocalHost().getHostName();
         log.info("lby local hostname={}", localHostName);
 
-        long downloadSize = 0;
         ZipEntry zentry = zin.getNextEntry();
         while (zentry != null) {
             log.info("lbyy file {}", zentry.getName());
             if (belongsTo(zentry.getName(), localHostName)) {
                 log.info("lbyy to download {}", backupFolder+"/"+zentry.getName());
-                downloadSize += downloadMyBackupFile(backupFolder+"/"+zentry.getName(), zin);
+                downloadMyBackupFile(backupFolder+"/"+zentry.getName(), zin);
             }
             zentry = zin.getNextEntry();
         }
@@ -221,7 +218,6 @@ public class DownloadExecutor implements  Runnable {
     private long downloadMyBackupFile(String backupFileName, ZipInputStream zin) throws IOException {
         long downloadSize = 0;
         File file = new File(backupOps.getBackupDir(), backupFileName);
-        log.info("lbyu file={}", file.getAbsoluteFile());
         if (!file.exists()) {
             file.getParentFile().mkdirs();
             file.createNewFile();
@@ -237,7 +233,7 @@ public class DownloadExecutor implements  Runnable {
                 updateDownloadSize(length);
             }
         } catch(IOException e) {
-            log.error("lbyn Failed to download {} from server", backupFileName);
+            log.error("Failed to download {} from server", backupFileName);
             setDownloadStatus(remoteBackupFileName,
                     BackupRestoreStatus.Status.DOWNLOAD_FAILED, 0, 0);
             throw e;
@@ -247,13 +243,12 @@ public class DownloadExecutor implements  Runnable {
     }
 
     private void notifyOtherNodes() {
-        log.info("lbyu notify other nodes");
+        log.info("Notify other nodes");
         if (notifyOthers == false) {
             return;
         }
 
         URI pushUri = SysClientFactory.URI_NODE_BACKUPS_PUSH;
-        log.info("lbyx pushUrl={}", pushUri);
 
         List<Service> sysSvcs = backupOps.getAllSysSvc();
         for (Service svc : sysSvcs) {
@@ -262,6 +257,7 @@ public class DownloadExecutor implements  Runnable {
 
             if (localHostName.equals(svc.getNodeName())) {
                 log.info("lbym local host skip");
+                continue;
             }
 
             SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
@@ -270,11 +266,10 @@ public class DownloadExecutor implements  Runnable {
     }
 
     private ZipInputStream getDownloadStream() throws IOException {
-        log.info("lbyu get download stream backupfile={}", remoteBackupFileName);
+        log.info("Get download stream backupfile={}", remoteBackupFileName);
 
         InputStream in = client.download(remoteBackupFileName);
         ZipInputStream zin = new ZipInputStream(in);
-        log.info("lby in={} zin={}", in ,zin);
 
         return zin;
     }

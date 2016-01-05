@@ -27,7 +27,7 @@ public class BackupRestoreStatus {
     public BackupRestoreStatus() {
 
     }
-    
+
     @XmlElement(name = "backup_name")
     public String getBackupName() {
         return this.backupName;
@@ -97,6 +97,7 @@ public class BackupRestoreStatus {
 
         return map;
     }
+
     public BackupRestoreStatus(Map<String, String> configs) {
         log.info("lbymt0 configs={}", configs);
         update(configs);
@@ -135,10 +136,12 @@ public class BackupRestoreStatus {
         StringBuffer sb = new StringBuffer();
         sb.append("BackupName:");
         sb.append(getBackupName());
-        sb.append("backupSize:");
+        sb.append(", backupSize:");
         sb.append(getBackupSize());
-        sb.append("downloadSize:");
+        sb.append(", downloadSize:");
         sb.append(getDownoadSize());
+        sb.append(", nodeCompleted:");
+        sb.append(getNodeCompleted());
         sb.append(", status:");
         sb.append(getStatus());
 

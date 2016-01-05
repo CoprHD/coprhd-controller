@@ -2061,6 +2061,7 @@ vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a 
 
 #Object Specefic
 vpool.maxRetention=Maximum Retention (Days)
+vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
 
 # Block Specific
@@ -2677,7 +2678,9 @@ computeImageServers.tftpBootDir=TFTPBOOT Directory
 computeImageServers.confirmPassword=Comfirm Password
 computeImageServers.computeImageServerStatus=Image Server Status
 computeImageServers.osInstallNetworkAddress=OS Install Network Address
-computeImageServers.osInstallTimeOut=OS Install Timeout
+computeImageServers.osInstallTimeOut=OS Install Timeout in seconds
+computeImageServers.sshTimeout=Timeout in seconds for SSH commands sent to Image Server
+computeImageServers.imageImportTimeout=Image Import Timeout in seconds
 computeImageServers.availableComputeImages=Available Images
 computeImageServers.failedComputeImages=Images Failed to import
 computeImageServers.confirmPassword.not.match=User Password and Confirm Password do not match

@@ -2421,7 +2421,7 @@ public class VolumeIngestionUtil {
                         }
                         for (URI eMaskUri : exportMaskUris) {
                             ExportMask eMask = dbClient.queryObject(ExportMask.class, eMaskUri);
-                            if (eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
+                            if (null != eMask && eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
                                 _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
                                 exportMasks.add(eMask);
                             } else {

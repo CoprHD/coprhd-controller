@@ -3508,7 +3508,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (virtVolBackVolMap.isEmpty()) {
                 return null;
             }
-
+            
+            // Having backend volumes not in replication group, make sure replicationGroupName is specified
+            if (addVolsGroupName == null || addVolsGroupName.isEmpty()) {
+                Set<URI> vols = virtVolBackVolMap.keySet();
+                Iterator<URI> it = vols.iterator();
+                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(it.next().toString(), "replicationGroupName is not specified.");
+            }
             List<Volume> volsToValidate = new ArrayList<Volume>();
             for (URI virtVolId : virtVolBackVolMap.keySet()) {
                 Volume vol = _dbClient.queryObject(Volume.class, virtVolId);

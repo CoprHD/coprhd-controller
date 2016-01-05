@@ -61,10 +61,12 @@ public class DbsvcQuorumMonitor implements Runnable {
                 drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_REJOIN_STANDBY);
             }
 
-            if (isStandbySynced && System.currentTimeMillis() - monitorResult.getDbQuorumLostSince() >=
-                    drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD)) {
-                log.info("Db quorum lost over 15 minutes, degrading site {}");
-                sitesToDegrade.add(standbySite);
+            if (isStandbySynced && monitorResult.getDbQuorumLostSince() != 0) {
+                if (System.currentTimeMillis() - monitorResult.getDbQuorumLostSince() >=
+                        drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD)) {
+                    log.info("Db quorum lost over 15 minutes, degrading site {}", standbySite.getName());
+                    sitesToDegrade.add(standbySite);
+                }
             }
         }
 

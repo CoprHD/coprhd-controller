@@ -163,7 +163,7 @@ _get_coordinatorclient_var() {
         local var="_GENCONFIG_network_${i}_ipaddr_service"
         echo "network_${i}_ipaddr_service=${!var}"
     done
-    _get_props site_id node_count vdc_myid network_vip_service
+    _get_props node_count vdc_myid network_vip_service
 }
 
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/coordinator-var.xml         $(_get_coordinator_var)

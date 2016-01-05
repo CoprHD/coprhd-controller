@@ -7,7 +7,13 @@ package com.emc.storageos.coordinator.common.impl;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +28,8 @@ import org.apache.curator.framework.api.UnhandledErrorListener;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.curator.retry.RetryUntilElapsed;
+import org.apache.curator.utils.EnsurePath;
+import org.apache.zookeeper.data.Stat;
 
 /**
  * Wraps CuratorFramework with spring friendly config setters and default
@@ -47,6 +55,7 @@ public class ZkConnection {
     // zk timeout ms
     private int _timeoutMs = DEFAULT_TIMEOUT_MS;
 
+    private String siteIdFile;
     private String siteId;
 
     public String getSiteId() {
@@ -56,7 +65,11 @@ public class ZkConnection {
     public void setSiteId(String siteId) {
         this.siteId = siteId;
     }
-
+    
+    public void setSiteIdFile(String siteIdFile) {
+        this.siteIdFile = siteIdFile;
+    }
+    
     /**
      * Set coordinator cluster node URI's and build a connector.
      * <p/>
@@ -72,6 +85,7 @@ public class ZkConnection {
             URI uri = server.get(i);
             connectString.append(String.format("%1$s:%2$d,", uri.getHost(), uri.getPort()));
         }
+        
         _connectString = connectString.substring(0, connectString.length() - 1);
     }
 
@@ -109,6 +123,10 @@ public class ZkConnection {
                     _logger.info("Current connection state {}", newState);
                 }
             });
+            if (FileUtils.exists(siteIdFile)) {
+                siteId = new String(FileUtils.readDataFromFile(siteIdFile));
+                _logger.info("Current site id is {}", siteId);
+            }
         } catch (Exception e) {
             throw CoordinatorException.fatals.failedToBuildZKConnector(e);
         }
@@ -122,6 +140,10 @@ public class ZkConnection {
     public synchronized void connect() {
         if (!_zkConnection.isStarted()) {
             _zkConnection.start();
+        }
+        // check if site id for current connection
+        if (StringUtils.isEmpty(siteId)) {
+            generateSiteId();
         }
     }
 
@@ -141,5 +163,46 @@ public class ZkConnection {
      */
     public CuratorFramework curator() {
         return _zkConnection;
+    }
+    
+    private void generateSiteId() {
+        try {
+            EnsurePath siteZkPath = new EnsurePath(ZkPath.SITES.toString());
+            siteZkPath.ensure(curator().getZookeeperClient());
+            Stat stat = curator().checkExists().forPath(ZkPath.SITES.toString());
+            long ctime = stat.getCtime();
+            siteId = createTimeUUID(ctime);
+            _logger.info("Site UUID is {}", siteId);
+            if (!FileUtils.exists(siteIdFile)) {
+                Path path = Paths.get(siteIdFile);
+                FileChannel fileChannel = FileChannel.open(path, StandardOpenOption.WRITE);
+                try (FileLock lock = fileChannel.lock()) {
+                    FileUtils.writePlainFile(siteIdFile, siteId.getBytes());
+                    _logger.info("Write site id {} to file", siteId);
+                }
+            }
+        } catch (Exception ex) {
+            _logger.error("Cannot generate site uuid", ex);
+            throw CoordinatorException.fatals.failedToBuildZKConnector(ex);
+        }
+    }
+    /**
+     * Get cluster uuid for current vipr instance. It is version 1 UUID(time based). 
+     * 
+     * @param timeToUse
+     * @return
+     */
+    private String createTimeUUID(long timeToUse) {
+        long mostSigBits;
+        // time low
+        mostSigBits = timeToUse << 32;
+        // time mid
+        mostSigBits |= (timeToUse & 0xFFFF00000000L) >> 16;
+        // time hi and version
+        mostSigBits |= 0x1000 | ((timeToUse >> 48) & 0x0FFF); // version 1
+        
+        long leastSigBits;
+        leastSigBits = _connectString.hashCode();
+        return new UUID(mostSigBits, leastSigBits).toString();
     }
 }

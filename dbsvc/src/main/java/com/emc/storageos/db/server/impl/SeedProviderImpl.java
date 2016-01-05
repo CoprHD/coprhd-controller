@@ -91,18 +91,12 @@ public class SeedProviderImpl implements SeedProvider {
 
         ZkConnection connection = new ZkConnection();
         connection.setServer(uri);
+        String siteId= args.get(Constants.SITE_ID_FILE);
+        connection.setSiteIdFile(siteId);
         connection.build();
-
-        String siteId= args.get(Constants.SITE_ID);
-        connection.setSiteId(siteId);
-        _logger.info("siteId is {}", siteId);
         
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
-        
-        String vdcShortId= args.get(Constants.VDC_ID);
-        client.setVdcShortId(vdcShortId);
-        _logger.info("vdcShortId is {} ", vdcShortId);
 
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
         CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");

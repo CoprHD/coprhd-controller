@@ -51,7 +51,7 @@ _get_dbconf_props() {
         echo "standby_seeds_ipaddr="
     fi
 
-    _get_props network_ipaddr_effective node_index site_id vdc_myid
+    _get_props network_ipaddr_effective node_index
 }
 
 _is_empty_dir() {

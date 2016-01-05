@@ -142,8 +142,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private DistributedAroundHook ownerLockAroundHook;
     
-    private String vdcShortId;
-    
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
      * called
@@ -164,10 +162,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     public int getNodeCount() {
         return nodeCount;
-    }
-
-    public void setVdcShortId(String vdcId) {
-        vdcShortId = vdcId;
     }
 
     public void setVdcEndpoint(String vdcEndpoint) {
@@ -230,58 +224,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private void createSiteSpecificSection() throws Exception {
-        String siteId = UUID.randomUUID().toString();
-        _zkConnection.setSiteId(siteId);
-        
-        // create VDC parent ZNode for site config in ZK
-        ConfigurationImpl vdcConfig = new ConfigurationImpl();
-        vdcConfig.setKind(Site.CONFIG_KIND);
-        vdcConfig.setId(vdcShortId);
-        persistServiceConfiguration(vdcConfig);
-
-        CoordinatorClientInetAddressMap nodeMap = getInetAddessLookupMap();
-        Map<String, DualInetAddress> controlNodes = nodeMap.getControllerNodeIPLookupMap();
-        HashMap<String, String> ipv4Addresses = new HashMap<String, String>();
-        HashMap<String, String> ipv6Addresses = new HashMap<String, String>();
-
-        String nodeId;
-        int nodeIndex = 0;
-        for (Map.Entry<String, DualInetAddress> cnode : controlNodes.entrySet()) {
-            nodeIndex++;
-            nodeId = "node" + nodeIndex;
-            DualInetAddress addr = cnode.getValue();
-            if (addr.hasInet4()) {
-                ipv4Addresses.put(nodeId, addr.getInet4());
-            }
-            if (addr.hasInet6()) {
-                ipv6Addresses.put(nodeId, addr.getInet6());
-            }
-        }
-
-        // insert DR acitve site info to ZK
-        Site site = new Site();
-        site.setUuid(siteId);
-        site.setName("Default Active Site");
-        site.setVdcShortId(vdcShortId);
-        site.setStandbyShortId("");
-        site.setHostIPv4AddressMap(ipv4Addresses);
-        site.setHostIPv6AddressMap(ipv6Addresses);
-        site.setState(SiteState.ACTIVE);
-        site.setCreationTime(System.currentTimeMillis());
-        String vip = ovfProperties.getProperty("network_vip");
-        if (StringUtils.isEmpty(vip)) {
-            vip = ovfProperties.getProperty("network_vip6");
-        }
-        site.setNodeCount(Math.max(ipv4Addresses.size(), ipv6Addresses.size()));
-        persistServiceConfiguration(site.toConfiguration());
-
-        if (!StringUtils.isEmpty(siteId)) {
-            siteId = UUID.randomUUID().toString();
-            FileUtils.writePlainFile("/data/zk/siteid", siteId.getBytes());
-        }
-        log.info("Create site specific section for {} successfully", siteId);
-        addSite(siteId);
-
         // create VDC parent ZNode for site config in ZK
         ConfigurationImpl vdcConfig = new ConfigurationImpl();
         vdcConfig.setKind(Site.CONFIG_KIND);
@@ -320,19 +262,22 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         site.setHostIPv6AddressMap(ipv6Addresses);
 
         persistServiceConfiguration(site.toConfiguration());
-
+        
         // update Site version in ZK
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
         setTargetInfo(siteInfo);
+        
+        log.info("Create site specific section for {} successfully", site.getUuid());
     }
 
-    @Override
+    
     /**
      * Create a znode "/site/<uuid>" for specific site. This znode should have the following sub zones
      *  - config : site specific configurations
      *  - service: service beacons of this site
      *  - mutex: locks for nodes in this ste
      */
+    @Override
     public void addSite(String siteId) throws Exception {
         String sitePath = getSitePrefix(siteId);
         ZkConnection zkConnection = getZkConnection();
@@ -345,24 +290,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             log.error("Failed to set site info of {}. Error {}", sitePath, e);
             throw e;
         }
-        
-        
-    }
-    
-    private void persistSiteId() throws IOException {
-        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
-        List<Configuration> configs = queryAllConfiguration(siteKind);
-        if (configs.size() > 1) {
-            log.error("More than one sites detected in current vdc config. Could not identify current site id. You need manually update site id to /data/zk/siteid");
-            throw new IllegalStateException("Missing site id");
-        }
-        for (Configuration siteConfig : configs) {
-            Site site = new Site(siteConfig);
-            String siteId = site.getUuid();
-            FileUtils.writePlainFile("/data/zk/siteid", site.getUuid().getBytes());
-            log.info("Write site id to local disk {}", site.getUuid());
-            _zkConnection.setSiteId(siteId);
-        }
     }
     
     /**
@@ -371,13 +298,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      *
      * @throws Exception
      */
-    public void checkAndCreateSiteSpecificSection() throws Exception {
+    private void checkAndCreateSiteSpecificSection() throws Exception {
         if (isSiteSpecificSectionInited()) {
-            String siteId = _zkConnection.getSiteId();
-            if (StringUtils.isEmpty(siteId)) {
-                log.info("Site specific section for {} initialized", siteId);
-                persistSiteId();
-            }
+            log.info("Site specific section for {} initialized", getSiteId());
             return;
         }
 
@@ -385,12 +308,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         InterProcessLock lock = getLock(ZkPath.SITES.name());
         try {
             lock.acquire();
-            if (isSiteSpecificSectionInited()) {
-                String siteId = _zkConnection.getSiteId();
-                if (StringUtils.isEmpty(siteId)) {
-                    persistSiteId();
-                }
-            } else {
+            if (!isSiteSpecificSectionInited()) {
                 createSiteSpecificSection();
             }
         }catch (Exception e) {
@@ -407,7 +325,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public void start() throws IOException {
+        _zkConnection.connect();
+        
         if (_zkConnection.curator().isStarted()) {
+            log.warn("CoordinatorClient.start() is skipped due to uninitialized zk connection");
             return;
         }
 
@@ -444,7 +365,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                         });
                     }
                 });
-        _zkConnection.connect();
+        
 
         // writing local node to zk
         initInetAddressEntry();
@@ -466,7 +387,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             }
             throw CoordinatorException.fatals.errorConnectingCoordinatorService(e);
         }
-
         
     }
 

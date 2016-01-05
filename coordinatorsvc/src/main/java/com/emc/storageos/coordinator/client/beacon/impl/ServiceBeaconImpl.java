@@ -5,6 +5,7 @@
 
 package com.emc.storageos.coordinator.client.beacon.impl;
 
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
@@ -21,6 +22,7 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
+import com.netflix.astyanax.util.TimeUUIDUtils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -129,21 +131,6 @@ public class ServiceBeaconImpl implements ServiceBeacon {
         _zkConnection.connect();
 
         if (siteSpecific) {
-            if (StringUtils.isEmpty(_zkConnection.getSiteId())) {
-                if (FileUtils.exists("/data/zk/siteid")) {
-                    try {
-                        byte[] data = FileUtils.readDataFromFile("/data/zk/siteid");
-                        String siteId = new String(data);
-                        _zkConnection.setSiteId(siteId);
-                    } catch (Exception ex) {
-                        _log.warn("Unexpected exception for site id ", ex);
-                        return;
-                    }
-                } else {
-                    _log.warn("Site Id not detected. Stop initialization");
-                    return;
-                }
-            }
             _serviceParentPath = String.format("%1$s/%2$s%3$s/%4$s/%5$s",
                     ZkPath.SITES, _zkConnection.getSiteId(), ZkPath.SERVICE, _service.getName(), _service.getVersion());
         } else {

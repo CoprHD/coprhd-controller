@@ -685,11 +685,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // --> CG URI
         // ----> ADD -> List of Volumes to Add from this CG for this device
         // ----> REMOVE -> List of Volumes to Remove from this CG for this device
-        Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap
-            = createDeviceToCGMapFromDescriptors(addDescriptors, removeDescriptors);
+        Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap = createDeviceToCGMapFromDescriptors(addDescriptors, removeDescriptors);
 
         // Distill the steps down to Device -> CG -> ADD and REMOVE volumes
-        for (Map.Entry<URI,  Map<URI, Map<String, List<URI>>>> deviceEntry : deviceToCGMap.entrySet()) {
+        for (Map.Entry<URI, Map<URI, Map<String, List<URI>>>> deviceEntry : deviceToCGMap.entrySet()) {
             URI deviceURI = deviceEntry.getKey();
             Map<URI, Map<String, List<URI>>> volumesToUpdateByCG = deviceEntry.getValue();
             for (Map.Entry<URI, Map<String, List<URI>>> cgEntry : volumesToUpdateByCG.entrySet()) {
@@ -737,8 +736,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     private Map<URI, Map<URI, Map<String, List<URI>>>> createDeviceToCGMapFromDescriptors(List<VolumeDescriptor> addDescriptors,
             List<VolumeDescriptor> removeDescriptors) {
-        Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap
-            = new HashMap<URI, Map<URI, Map<String, List<URI>>>>();
+        Map<URI, Map<URI, Map<String, List<URI>>>> deviceToCGMap = new HashMap<URI, Map<URI, Map<String, List<URI>>>>();
 
         // Volumes to add
         for (VolumeDescriptor descr : addDescriptors) {
@@ -1767,7 +1765,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-
     /**
      * Add Steps to perform untag operations on underlying array for the volumes passed in.
      *
@@ -1782,7 +1779,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // The the list of Volumes that the BlockDeviceController needs to process.
         List<VolumeDescriptor> untagVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] {
-                        VolumeDescriptor.Type.BLOCK_DATA }, null);
+                VolumeDescriptor.Type.BLOCK_DATA }, null);
 
         // If there are no volumes, just return
         if (untagVolumeDescriptors.isEmpty()) {
@@ -1812,7 +1809,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for untagVolumes.
-     *
+     * 
      * @param systemURI The system to perform the action on
      * @param volumeURIs The volumes to perform the action on
      * @return the new WF
@@ -2180,14 +2177,24 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
 
             if (system.checkIfVmax3()) {
+                _log.info("Creating workflow for restore VMAX3 snapshot {}", blockSnapshot.getId());
+
                 // To restore the source from a linked target volume for VMAX3 SnapVX, we must
                 // do the following:
                 //
-                // 1. Create a temporary snapshot session of the linked target volume.
-                // 2. Link the source volume of the BlockSnapshot to the temporary snapshot session in copy mode.
-                // 3. Wait for the data from the session to be copied to the source.
-                // 4. Unlink the source from the temporary session.
-                // 5. Delete the temporary session.
+                // 1. Terminate any stale restore sessions on the source.
+                // 2. Create a temporary snapshot session of the linked target volume.
+                // 3. Link the source volume of the BlockSnapshot to the temporary snapshot session in copy mode.
+                // 4. Wait for the data from the session to be copied to the source.
+                // 5. Unlink the source from the temporary session.
+                // 6. Delete the temporary session.
+
+                // Create a workflow step to terminate stale restore sessions on the source.
+                waitFor = workflow.createStep(BLOCK_VOLUME_RESTORE_GROUP,
+                        String.format("Terminating VMAX restore session from %s to %s", blockSnapshot.getId(), sourceVolume.getId()),
+                        waitFor, system.getId(), system.getSystemType(), BlockDeviceController.class,
+                        terminateRestoreSessionsMethod(system.getId(), sourceVolume.getId(), blockSnapshot.getId()),
+                        rollbackMethodNullMethod(), null);
 
                 // Create a BlockSnapshot to represent the passed source volume when it is
                 // it is linked to the snapshot session created in the previous step.

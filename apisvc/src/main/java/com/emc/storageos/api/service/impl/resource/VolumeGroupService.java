@@ -148,7 +148,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VolumeGroupRestRep createVolumeGroup(VolumeGroupCreateParam param) {
         ArgValidator.checkFieldNotEmpty(param.getName(), VOLUME_GROUP_NAME);
-        checkDuplicateLabel(VolumeGroup.class, param.getName(), "Volume Group");
+        checkDuplicateLabel(VolumeGroup.class, param.getName());
         Set<String> roles = param.getRoles();
         ArgValidator.checkFieldNotEmpty(roles, VOLUME_GROUP_ROLES);
         for (String role : roles) {
@@ -298,7 +298,7 @@ public class VolumeGroupService extends TaskResourceService {
         boolean isChanged = false;
         String vgName = param.getName();
         if (vgName != null && !vgName.isEmpty() && !vgName.equalsIgnoreCase(volumeGroup.getLabel())) {
-            checkDuplicateLabel(VolumeGroup.class, vgName, "Volume Group");
+            checkDuplicateLabel(VolumeGroup.class, vgName);
             volumeGroup.setLabel(vgName);
             isChanged = true;
         }

@@ -11,7 +11,7 @@
 <header>
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="navbar-header">
-      <a class="navbar-brand" href="@{Dashboard.index()}">#{Branding.applicationName/}</a>
+       <a class="navbar-brand" href="@{Dashboard.index()}">#{Branding.applicationName/}</a>
       <button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-collapse-1">
         <span class="sr-only">&{'navigation.toggle'}</span><span class="icon-bar"></span>
         <span class="icon-bar"></span>
@@ -52,34 +52,40 @@
 </header>
 
 #{nav.mainMenu}
-
+<div style="margin-top:10px">
   *{ DASHBOARD }*
-  #{deadbolt.restrict roles:[['SYSTEM_AUDITOR'],['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'],['SYSTEM_MONITOR']]}
+  #{deadbolt.restrict roles:[['SYSTEM_AUDITOR'],['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'],['SYSTEM_MONITOR'],['SECURITY_ADMIN']]}
     #{nav.menu 'adminDashboard', icon:'vipricon-dashboard'}
-        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SYSTEM_AUDITOR']]}
+        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SYSTEM_AUDITOR'], ['SECURITY_ADMIN']]}
           #{nav.menuSection 'nav.adminDashboard'}
-            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
+              #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
               #{nav.item 'adminDashboardPage', href: @AdminDashboard.dashboard()/}
+              #{/deadbolt.restrict}
+              #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SECURITY_ADMIN']]}
               #{if controllers.infra.DisasterRecovery.isPrimarySite()}
               	#{nav.item 'systemHealthDashboard', href: @SystemHealth.systemHealth()/}
+                #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
               	#{nav.item 'backup', href: @Backup.list()/}
+                #{/deadbolt.restrict}
               	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
                 	#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
               	#{/if}
               	#{nav.item 'dbHealthDashboard', href: @SystemHealth.dbHealth()/}
               #{/if}
-            #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}  
-            #{/deadbolt.restrict}
+              #{/deadbolt.restrict}
+              #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
+              #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}
+              #{/deadbolt.restrict}
             #{deadbolt.restrict roles:[['SYSTEM_AUDITOR']]}
               #{nav.item 'auditLog', href: @infra.AuditLog.list()/}
             #{/deadbolt.restrict}
           #{/nav.menuSection}
         #{/deadbolt.restrict}
     #{/nav.menu}
-  #{/deadbolt.restrict}      
+  #{/deadbolt.restrict}
   
   *{ PHSYICAL ASSETS }*
-  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
+  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
   	#{if controllers.infra.DisasterRecovery.isPrimarySite()}
       #{nav.menu 'assets', icon:'vipricon-physicalassets'}
         #{nav.menuSection 'nav.assets'}  
@@ -105,7 +111,7 @@
               #{nav.item 'hosts', href: @compute.Hosts.list()/}
               #{nav.item 'hostClusters', href: @compute.HostClusters.list()/}
             #{/deadbolt.restrict}
-            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
+            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
               #{nav.item 'vcenters', href: @compute.VCenters.list()/}
             #{/deadbolt.restrict}
             #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
@@ -274,6 +280,8 @@
       #{/nav.menuSection} 
     #{/nav.menu}
   #{/deadbolt.restrict}
+
+</div>
 
 #{/nav.mainMenu}
 #{get 'menu'/}

@@ -52,6 +52,7 @@ class Authentication(object):
     BOOL_VALS = ['true', 'false']
     ZONE_ROLES = ['SYSTEM_ADMIN', 'SECURITY_ADMIN', 'SYSTEM_MONITOR',
                   'SYSTEM_AUDITOR']
+    MODES = ['ad', 'ldap', 'keystone']
 
     def __init__(self, ipAddr, port):
         '''
@@ -311,14 +312,10 @@ class Authentication(object):
         '''
         Makes REST API call to add authentication provider
         specified user after validation.
-        Returns:
-            SUCCESS OR FAILURE
+        Returns:  SUCCESS OR FAILURE
         '''
-
-        domainlist_array = []
+        
         domainlist_array = domains.split(',')
-
-        urlslist_array = []
         urlslist_array = url.split(',')
 
         parms = {'mode': mode,
@@ -326,36 +323,47 @@ class Authentication(object):
                  #'server_cert': certificate,
                  'manager_dn': managerdn,
                  'manager_password': managerpwd,
-                 'search_base': searchbase,
-                 'search_filter': searchfilter,
-                 'search_scope': searchscope,
-                 'group_attribute': groupattr,
                  'name': name,
                  'description': description,
-                 'disable': disable,
-                 'max_page_size': maxpagesize,
-                 'domains': domainlist_array}
+                 'disable': disable}
+        
+        if(searchbase is not None and searchbase is not ""):
+            parms['search_base'] = searchbase
 
-        if(whitelist is not ""):
+        if(searchfilter is not None and searchfilter is not ""):
+            parms['search_filter'] = searchfilter
+
+        if(searchscope is not None and searchscope is not ""):
+            parms['search_scope'] = searchscope
+
+        if(groupattr is not None and groupattr is not ""):
+            parms['group_attribute'] = groupattr
+
+        if(maxpagesize is not None and maxpagesize is not ""):
+            parms['max_page_size'] = maxpagesize
+
+        if(domains is not None and domains is not ""):
+            domainlist_array = domains.split(',')
+            parms['domains'] = domainlist_array
+
+        if(whitelist is not None and whitelist is not ""):
             whitelist_array = []
             whitelist_array = whitelist.split(',')
             parms['group_whitelist_values'] = whitelist_array
-			
-	if(groupobjectclasses is not ""):
+            
+        if(groupobjectclasses is not None and groupobjectclasses is not ""):
             groupobjectclasses_array = []
             groupobjectclasses_array = groupobjectclasses.split(',')
             parms['group_object_class'] = groupobjectclasses_array
-			
-	if(groupmemberattributes is not ""):
+        
+        if(groupmemberattributes is not None and groupmemberattributes is not ""):
             groupmemberattributes_array = []
             groupmemberattributes_array = groupmemberattributes.split(',')
             parms['group_member_attribute'] = groupmemberattributes_array
 
-
         body = json.dumps(parms)
 
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "POST",
+        common.service_json_request(self.__ipAddr, self.__port, "POST",
             Authentication.URI_VDC_AUTHN_PROFILE,
             body)
 
@@ -485,10 +493,6 @@ class Authentication(object):
 
         authnprov_id = self.query_authentication_provider(name)
 
-        server_assignments = dict()
-        domain_assignments = dict()
-        whitelist_assignments = dict()
-
         urls = dict()
         domains = dict()
         whitelist = dict()
@@ -496,54 +500,60 @@ class Authentication(object):
         groupmemberattributes = dict()
 
         urls['add'] = []
-        for iter in add_urls:
-            if(iter is not ""):
-                urls['add'].append(iter)
+        if(add_urls is not None):
+            for iter1 in add_urls:
+                if(iter1 is not ""):
+                    urls['add'].append(iter1)
 
         urls['remove'] = []
-        for iter in remove_urls:
-            if(iter is not ""):
-                urls['remove'].append(iter)
+        if(remove_urls is not None):
+            for iter1 in remove_urls:
+                if(iter1 is not ""):
+                    urls['remove'].append(iter1)
 
         domains['add'] = []
-        for iter in add_domains:
-            if(iter is not ""):
-                domains['add'].append(iter)
+        if(add_domains is not None):
+            for iter1 in add_domains:
+                if(iter1 is not ""):
+                    domains['add'].append(iter1)
 
         domains['remove'] = []
-        for iter in remove_domains:
-            if(iter is not ""):
-                domains['remove'].append(iter)
+        if(remove_domains is not None):
+            for iter1 in remove_domains:
+                if(iter1 is not ""):
+                    domains['remove'].append(iter1)
 
         whitelist['remove'] = []
-        for iter in remove_whitelist:
-            if(iter is not ""):
-                whitelist['remove'].append(iter)
+        if(remove_whitelist is not None):
+            for iter1 in remove_whitelist:
+                if(iter1 is not ""):
+                    whitelist['remove'].append(iter1)
 
         whitelist['add'] = []
-        for iter in add_whitelist:
-            if(iter is not ""):
-                whitelist['add'].append(iter)
+        if(add_whitelist is not None):
+            for iter1 in add_whitelist:
+                if(iter1 is not ""):
+                    whitelist['add'].append(iter1)
 
         groupobjectclasses['remove'] = []
-        for iter in remove_groupobjectclasses:
-            if(iter is not ""):
-                groupobjectclasses['remove'].append(iter)
+        for iter1 in remove_groupobjectclasses:
+            if(iter1 is not ""):
+                groupobjectclasses['remove'].append(iter1)
 
         groupobjectclasses['add'] = []
-        for iter in add_groupobjectclasses:
-            if(iter is not ""):
-                groupobjectclasses['add'].append(iter)
+        for iter1 in add_groupobjectclasses:
+            if(iter1 is not ""):
+                groupobjectclasses['add'].append(iter1)
 
         groupmemberattributes['remove'] = []
-        for iter in remove_groupmemberattributes:
-            if(iter is not ""):
-                groupmemberattributes['remove'].append(iter)
+        for iter1 in remove_groupmemberattributes:
+            if(iter1 is not ""):
+                groupmemberattributes['remove'].append(iter1)
 
         groupmemberattributes['add'] = []
-        for iter in add_groupmemberattributes:
-            if(iter is not ""):
-                groupmemberattributes['add'].append(iter)
+        for iter1 in add_groupmemberattributes:
+            if(iter1 is not ""):
+                groupmemberattributes['add'].append(iter1)
 
         '''for domain in add_domains:
                 domainlist.append({'domain': domain})
@@ -552,14 +562,24 @@ class Authentication(object):
         parms = {'mode': mode,
                  'manager_dn': managerdn,
                  'manager_password': managerpwd,
-                 'search_base': searchbase,
-                 'search_filter': searchfilter,
-                 'search_scope': searchscope,
-                 'group_attribute': groupattr,
                  'name': name,
                  'description': description,
-                 'disable': disable,
-                 'max_page_size': maxpagesize}
+                 'disable': disable}
+        
+        if(searchbase is not None):
+            parms['search_base'] = searchbase
+
+        if(searchfilter is not None):
+            parms['search_filter'] = searchfilter
+
+        if(searchscope is not None):
+            parms['search_scope'] = searchscope
+
+        if(groupattr is not None):
+            parms['group_attribute'] = groupattr
+
+        if(maxpagesize is not None):
+            parms['max_page_size'] = maxpagesize
 
         if((len(urls['add']) > 0) or (len(urls['remove']) > 0)):
             urls = self.cleanup_dict(urls)
@@ -580,7 +600,7 @@ class Authentication(object):
         if((len(groupmemberattributes['add']) > 0) or (len(groupmemberattributes['remove']) > 0)):
             groupmemberattributes = self.cleanup_dict(groupmemberattributes)
             parms['group_memberattr_changes'] = groupmemberattributes
-			
+
         body = json.dumps(parms)
 
         if (force_groupattributeupdate is 'true'):
@@ -935,46 +955,18 @@ def add_authentication_provider(args):
 
         for sectioniter in sectionslst:
             mode = config.get(sectioniter, "mode")
-            url = config.get(sectioniter, "url")
-            managerdn = config.get(sectioniter, 'managerdn')
-            searchbase = config.get(sectioniter, 'searchbase')
-            searchfilter = config.get(sectioniter, 'searchfilter')
-            #searchkey = config.get(sectioniter, 'searchkey')
-            groupattr = config.get(sectioniter, 'groupattr')
-            name = config.get(sectioniter, 'name')
-            domains = config.get(sectioniter, 'domains')
-            whitelist = config.get(sectioniter, 'whitelist')
-            description = config.get(sectioniter, 'description')
-            searchscope = config.get(sectioniter, 'searchscope')
+            if(mode is ""):
+                raise SOSError(SOSError.VALUE_ERR, "mode should not be empty")
 
-            maxpagesize = config.get(sectioniter, 'maxpagesize')
-            disable = config.get(sectioniter, 'disable')
-			
-            groupobjectclasses = config.get(sectioniter, 'groupobjectclasses')
-            groupmemberattributes = config.get(sectioniter, 'groupmemberattributes')
+            if (mode is not None
+                and mode not in Authentication.MODES):
+                raise SOSError(SOSError.VALUE_ERR,
+                     "mode should be one of" + str(Authentication.MODES))
 
-            if((domains is "") or (url is "") or (managerdn is "") or 
-               (searchbase is "") or (searchfilter is "")
-               or (groupattr is "") or (name is "") or (description is "") or
-               (searchscope is "") or (mode is "")):
-                raise SOSError(SOSError.VALUE_ERR, "domains," +
-                               "url,managerdn," +
-                               "searchbase,searchfilter,groupattr," +
-                               "name,description,searchscope and mode" +
-                               " can not be empty")
-
-            defined_and_valid_value('search scope', searchscope,
-                                    Authentication.SEARCH_SCOPE)
-            defined_and_valid_value('disable', disable,
-                                    Authentication.BOOL_VALS)
-
-            passwd_user = common.get_password(name)
-
-            res = obj.add_authentication_provider(
-                mode, url, None, managerdn, passwd_user, searchbase,
-                searchfilter, None, groupattr, name, domains, whitelist,
-                searchscope, description, disable, None,
-                maxpagesize, groupobjectclasses, groupmemberattributes)
+            if(mode == 'keystone'):
+                add_keystone_provider(config, sectioniter, obj, mode)
+            else:
+                add_other_provider(config, sectioniter, obj, mode)
 
     except IOError as e:
         common.format_err_msg_and_raise("add", "authentication provider",
@@ -991,6 +983,76 @@ def add_authentication_provider(args):
     except (ConfigParser.ParsingError, ConfigParser.Error) as e:
         common.format_err_msg_and_raise("add", "authentication provider",
                                         str(e), SOSError.VALUE_ERR)
+
+def add_keystone_provider(config, sectioniter, obj, mode):
+    url = config.get(sectioniter, "url")
+    managerdn = config.get(sectioniter, 'managerdn')
+    name = config.get(sectioniter, 'name')
+    description = config.get(sectioniter, 'description')
+    disable = config.get(sectioniter, 'disable')
+    groupattr = config.get(sectioniter, 'groupattr')
+    domains = config.get(sectioniter, 'domains')
+
+    if((url is "") or (managerdn is "") or (name is "") or
+                (description is "")):
+                    raise SOSError(SOSError.VALUE_ERR, "For keystone mode" +
+                                   "name, description, url and managerdn" +
+                                   " can not be empty")
+
+    defined_and_valid_value('disable', disable,
+                                    Authentication.BOOL_VALS)
+
+    passwd_user = common.get_password(name)
+
+    obj.add_authentication_provider(
+                mode, url, None, managerdn, passwd_user, None,
+                None, None, groupattr, name, domains, None,
+                None, description, disable, None,
+                None, None, None)
+
+
+def add_other_provider(config, sectioniter, obj, mode):
+    url = config.get(sectioniter, "url")
+    managerdn = config.get(sectioniter, 'managerdn')
+    name = config.get(sectioniter, 'name')
+    description = config.get(sectioniter, 'description')
+    disable = config.get(sectioniter, 'disable')
+    searchbase = config.get(sectioniter, 'searchbase')
+    searchfilter = config.get(sectioniter, 'searchfilter')
+    #searchkey = config.get(sectioniter, 'searchkey')
+    groupattr = config.get(sectioniter, 'groupattr')
+    domains = config.get(sectioniter, 'domains')
+    whitelist = config.get(sectioniter, 'whitelist')
+    searchscope = config.get(sectioniter, 'searchscope')
+    maxpagesize = config.get(sectioniter, 'maxpagesize')
+
+    groupobjectclassnames = config.get(sectioniter, 'groupobjectclassnames')
+    groupmemberattributetypenames = config.get(sectioniter, 'groupmemberattributetypenames')
+
+    if((domains is "") or (url is "") or (managerdn is "") or
+       (searchbase is "") or (searchfilter is "") or
+       (groupattr is "") or (name is "") or (description is "") or
+       (searchscope is "")):
+        raise SOSError(SOSError.VALUE_ERR, "For ad/ldap, domains" +
+                               ",url,managerdn," +
+                               "searchbase,searchfilter,groupattr," +
+                               "name,description and searchscope" +
+                               " can not be empty")
+
+    defined_and_valid_value('search scope', searchscope,
+                                    Authentication.SEARCH_SCOPE)
+    defined_and_valid_value('disable', disable,
+                                    Authentication.BOOL_VALS)
+
+    passwd_user = common.get_password(name)
+
+    obj.add_authentication_provider(mode, url, None, managerdn, passwd_user,
+                                    searchbase, searchfilter, None, groupattr,
+                                    name, domains, whitelist, searchscope,
+                                    description, disable, None,
+                                    maxpagesize, groupobjectclassnames, groupmemberattributetypenames)
+
+
 
 
 def delete_authentication_provider(args):
@@ -1051,56 +1113,10 @@ def update_authentication_provider(args):
 
         for sectioniter in sectionslst:
             mode = get_attribute_value(config, sectioniter, "mode")
-
-            add_urls = config.get(sectioniter, "add-urls")
-            remove_urls = config.get(sectioniter, "remove-urls")
-            add_domains = config.get(sectioniter, 'add-domains')
-            remove_domains = config.get(sectioniter, 'remove-domains')
-            add_whitelist = config.get(sectioniter, 'add-whitelist')
-            remove_whitelist = config.get(sectioniter, 'remove-whitelist')
-
-            managerdn = get_attribute_value(config, sectioniter, 'managerdn')
-            searchbase = get_attribute_value(config, sectioniter, 'searchbase')
-            searchfilter = get_attribute_value(config, sectioniter,
-                                               'searchfilter')
-            #searchkey = config.get(sectioniter, 'searchkey')
-            groupattr = get_attribute_value(config, sectioniter, 'groupattr')
-            name = get_attribute_value(config, sectioniter, 'name')
-            description = get_attribute_value(config, sectioniter,
-                                              'description')
-            searchscope = get_attribute_value(config, sectioniter,
-                                              'searchscope')
-
-            maxpagesize = get_attribute_value(config, sectioniter,
-                                              'maxpagesize')
-            disable = get_attribute_value(config, sectioniter, 'disable')
-
-            defined_and_valid_value('search scope', searchscope,
-                                    Authentication.SEARCH_SCOPE)
-            defined_and_valid_value('disable', disable,
-                                    Authentication.BOOL_VALS)
-
-            passwd_user = common.get_password(name)
-			
-	    add_groupobjectclasses = config.get(sectioniter, 'add-groupobjectclasses')
-	    remove_groupobjectclasses = config.get(sectioniter, 'remove-groupobjectclasses')
-	    
-	    add_groupmemberattributes = config.get(sectioniter, 'add-groupmemberattributes')
-	    remove_groupmemberattributes = config.get(sectioniter, 'remove-groupmemberattributes')
-
-	    force_groupattributeupdate = config.get(sectioniter, 'force-groupattributeupdate')
-
-            res = obj.update_authentication_provider(
-                mode, add_urls.split(','), remove_urls.split(','),
-                None, managerdn, passwd_user,
-                searchbase, searchfilter, None,
-                groupattr, name, add_domains.split(','),
-                remove_domains.split(','), add_whitelist.split(','),
-                remove_whitelist.split(','), searchscope, description,
-                disable, None, maxpagesize,
-                add_groupobjectclasses.split(','), remove_groupobjectclasses.split(','),
-                add_groupmemberattributes.split(','), remove_groupmemberattributes.split(','),
-                force_groupattributeupdate)
+            if(mode is not None and mode == 'keystone'):
+                update_keystone_provider(config, sectioniter, mode, obj)
+            else:
+                update_other_providers(config, sectioniter, mode, obj)
 
     except IOError as e:
         common.format_err_msg_and_raise("update", "authentication provider",
@@ -1117,6 +1133,75 @@ def update_authentication_provider(args):
     except (ConfigParser.ParsingError, ConfigParser.Error) as e:
         common.format_err_msg_and_raise("update", "authentication provider",
                                         str(e), SOSError.VALUE_ERR)
+        
+def update_keystone_provider(config, sectioniter, mode, obj):
+    managerdn = get_attribute_value(config, sectioniter, 'managerdn')
+    add_urls = config.get(sectioniter, "add-urls")
+    remove_urls = config.get(sectioniter, "remove-urls")
+    name = get_attribute_value(config, sectioniter, 'name')
+    description = get_attribute_value(config, sectioniter, 'description')
+    disable = get_attribute_value(config, sectioniter, 'disable')
+    add_domains = config.get(sectioniter, 'add-domains')
+    remove_domains = config.get(sectioniter, 'remove-domains')
+    groupattr = get_attribute_value(config, sectioniter, 'groupattr')
+    defined_and_valid_value('disable', disable,
+                            Authentication.BOOL_VALS)
+
+    passwd_user = common.get_password(name)
+
+    obj.update_authentication_provider(
+                mode, add_urls.split(','), remove_urls.split(','),
+                None, managerdn, passwd_user,
+                None, None, None,
+                groupattr, name, add_domains.split(','),
+                remove_domains.split(','), None,
+                None, None, description,
+                disable, None, None, None,
+                None, None, None, False)
+
+
+def update_other_providers(config, sectioniter, mode, obj):
+    managerdn = get_attribute_value(config, sectioniter, 'managerdn')
+    add_urls = config.get(sectioniter, "add-urls")
+    remove_urls = config.get(sectioniter, "remove-urls")
+    name = get_attribute_value(config, sectioniter, 'name')
+    description = get_attribute_value(config, sectioniter, 'description')
+
+    add_domains = config.get(sectioniter, 'add-domains')
+    remove_domains = config.get(sectioniter, 'remove-domains')
+    add_whitelist = config.get(sectioniter, 'add-whitelist')
+    remove_whitelist = config.get(sectioniter, 'remove-whitelist')
+    searchbase = get_attribute_value(config, sectioniter, 'searchbase')
+    searchfilter = get_attribute_value(config, sectioniter, 'searchfilter')
+    groupattr = get_attribute_value(config, sectioniter, 'groupattr')
+    searchscope = get_attribute_value(config, sectioniter, 'searchscope')
+    maxpagesize = get_attribute_value(config, sectioniter, 'maxpagesize')
+    disable = get_attribute_value(config, sectioniter, 'disable')
+    defined_and_valid_value('search scope', searchscope,
+                            Authentication.SEARCH_SCOPE)
+    defined_and_valid_value('disable', disable,
+                            Authentication.BOOL_VALS)
+
+    passwd_user = common.get_password(name)
+
+    add_groupobjectclassnames = config.get(sectioniter, 'add-groupobjectclassnames')
+    remove_groupobjectclassnames = config.get(sectioniter, 'remove-groupobjectclassnames')
+    add_groupmemberattributetypenames = config.get(sectioniter, 'add-groupmemberattributetypenames')
+    remove_groupmemberattributetypenames = config.get(sectioniter, 'remove-groupmemberattributetypenames')
+    force_groupattributeupdate = config.get(sectioniter, 'force-groupattributeupdate')
+
+    res = obj.update_authentication_provider(
+                mode, add_urls.split(','), remove_urls.split(','),
+                None, managerdn, passwd_user,
+                searchbase, searchfilter, None,
+                groupattr, name, add_domains.split(','),
+                remove_domains.split(','), add_whitelist.split(','),
+                remove_whitelist.split(','), searchscope, description,
+                disable, None, maxpagesize,
+                add_groupobjectclassnames.split(','), remove_groupobjectclassnames.split(','),
+                add_groupmemberattributetypenames.split(','), remove_groupmemberattributetypenames.split(','),
+                force_groupattributeupdate)
+
 
 
 def defined_and_valid_value(fieldname, value, valid_list):

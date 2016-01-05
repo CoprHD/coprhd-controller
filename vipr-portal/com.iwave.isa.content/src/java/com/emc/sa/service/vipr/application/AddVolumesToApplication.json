@@ -1,0 +1,20 @@
+{
+  baseKey:"AddVolumesToApplication.Application",
+  serviceId:"AddVolumesToApplication",
+  fields:{
+  
+    application:{
+      type:"assetType.vipr.application"
+    },
+  
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volumes:{
+      type:"assetType.vipr.sourceBlockVolume",
+      select: "many"
+    }
+  }
+}

@@ -486,6 +486,21 @@
           "baseService": "DeleteBucket"
         }
       ]
+    },
+    {
+      "title": "applicationservices.title",
+      "image": "icon_data_services.png",
+      "description": "applicationservices.description",
+      "services": [
+        {
+          "image": "icon_create_bucket.png",
+          "baseService": "AddVolumesToApplication"
+        },
+        {
+          "image": "icon_create_bucket.png",
+          "baseService": "RemoveVolumesFromApplication"
+        }
+      ]
     }
   ]
 }

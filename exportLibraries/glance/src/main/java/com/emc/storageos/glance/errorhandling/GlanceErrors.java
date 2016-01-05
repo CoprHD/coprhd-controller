@@ -21,7 +21,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  * <p/>
  * For more information or to see an example, check the Developers Guide section
  * in the Error Handling Wiki page:
- * https://asdwiki.isus.emc.com:8443/display/OS/Error+Handling+Framework+and+Exceptions+in+ViPR
  */
 
 @MessageBundle

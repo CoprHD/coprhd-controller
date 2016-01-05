@@ -141,7 +141,7 @@ public class ZkConnection {
         if (!_zkConnection.isStarted()) {
             _zkConnection.start();
         }
-        // check if site id for current connection
+        // check if site id exists
         if (StringUtils.isEmpty(siteId)) {
             generateSiteId();
         }
@@ -165,15 +165,24 @@ public class ZkConnection {
         return _zkConnection;
     }
     
+    /**
+     * Generate site unique id for current cluster. UUID is formed as 2 parts 
+     *   - creation time of znode /sites
+     *   - hashcode of list zk server IPs
+     * The uuid is stored at a local file specified by siteIdFile
+     */
     private void generateSiteId() {
         try {
             EnsurePath siteZkPath = new EnsurePath(ZkPath.SITES.toString());
             siteZkPath.ensure(curator().getZookeeperClient());
             Stat stat = curator().checkExists().forPath(ZkPath.SITES.toString());
             long ctime = stat.getCtime();
-            siteId = createTimeUUID(ctime);
+            long leastSigBits = _connectString.hashCode();
+            siteId = createTimeUUID(ctime, leastSigBits);
             _logger.info("Site UUID is {}", siteId);
+            
             if (!FileUtils.exists(siteIdFile)) {
+                // grab a lock file before writing site id file
                 String lockFile = FileUtils.generateTmpFileName("site_id_lock");
                 if (!FileUtils.exists(lockFile)) {
                     FileUtils.writePlainFile(lockFile, "".getBytes());
@@ -190,14 +199,16 @@ public class ZkConnection {
             throw CoordinatorException.fatals.failedToBuildZKConnector(ex);
         }
     }
+    
     /**
-     * Get cluster uuid for current vipr instance. It is version 1 UUID(time based). 
+     * Create is version 1 UUID(time based) 
      * 
-     * @param timeToUse
-     * @return
+     * @param timeToUse most significant bits for this uuid
+     * @param leastSigBits least significant bits for the uuid
      */
-    private String createTimeUUID(long timeToUse) {
+    private String createTimeUUID(long timeToUse, long leastSigBits) {
         long mostSigBits;
+        timeToUse = (timeToUse * 10000) + 0x01B21DD213814000L;
         // time low
         mostSigBits = timeToUse << 32;
         // time mid
@@ -205,8 +216,6 @@ public class ZkConnection {
         // time hi and version
         mostSigBits |= 0x1000 | ((timeToUse >> 48) & 0x0FFF); // version 1
         
-        long leastSigBits;
-        leastSigBits = _connectString.hashCode();
         return new UUID(mostSigBits, leastSigBits).toString();
     }
 }

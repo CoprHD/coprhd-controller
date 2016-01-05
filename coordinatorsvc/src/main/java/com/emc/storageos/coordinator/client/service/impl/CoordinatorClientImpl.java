@@ -211,11 +211,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isSiteSpecificSectionInited() throws Exception {
-        String siteConfigPath = String.format("%s/%s/%s", ZkPath.CONFIG, Site.CONFIG_KIND, vdcShortId);
-        log.info("config {}", siteConfigPath);
+        String siteConfigPath = String.format("%s/%s", ZkPath.CONFIG, Site.CONFIG_KIND);
         try {
             Stat stat = getZkConnection().curator().checkExists().forPath(siteConfigPath);
-            log.info("Stat {}", stat);
             return stat != null;
         } catch (Exception e) {
             log.error("Failed to access the path {}. Error {}", siteConfigPath, e);
@@ -325,10 +323,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public void start() throws IOException {
-        _zkConnection.connect();
-        
         if (_zkConnection.curator().isStarted()) {
-            log.warn("CoordinatorClient.start() is skipped due to uninitialized zk connection");
             return;
         }
 
@@ -366,6 +361,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                     }
                 });
         
+        _zkConnection.connect();
 
         // writing local node to zk
         initInetAddressEntry();

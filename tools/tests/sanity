@@ -7413,7 +7413,7 @@ _success() {
 #executes a command that is expected to fail
 fail(){
     cmd=$*
-    echo $cmd
+    echo === $cmd
     trap - ERR
     $cmd 2>&1
     status=$?
@@ -7465,6 +7465,9 @@ output_conf(){
 volumegroup_setup()
 {
     echo "**** Executing volume group setup"
+    vmaxblock_setup
+    vnxblock_setup
+    consistencygroup_block_cos_setup
 }
 
 volumegroup_crud_test()
@@ -7492,10 +7495,197 @@ volumegroup_crud_test()
     fail volumegroup show ${newappname}
 }
 
+volume_id()
+{
+    volid=`volume list ${PROJECT} | grep ${1} | awk '{print $7}'`
+    echo volume id is $volid
+    return volid
+}
+
+volumegroup_createvols()
+{
+    #unique=12044
+    unique=${RANDOM}
+    basename=vgsanity-${unique}
+    VG_CGNAME1=cg1${unique}
+    VG_CGNAME2=cg2${unique}
+    VG_COPYVG1=${basename}-copyvg1
+    VG_COPYVG2=${basename}-copyvg2
+    VG_MOBIVG1=${basename}-mobivg1
+
+    run blockconsistencygroup create ${PROJECT} ${VG_CGNAME1}
+    a=`blockconsistencygroup show ${VG_CGNAME1} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
+    b=${a:1}
+    VG_CGID1=${b%'"'*}
+    echo cgid1 is ${VG_CGID1}
+
+    run blockconsistencygroup create ${PROJECT} ${VG_CGNAME2}
+    c=`blockconsistencygroup show ${VG_CGNAME2} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
+    d=${c:1}
+    VG_CGID2=${d%'"'*}
+    echo cgid2 is ${VG_CGID2}
+
+    run volume create ${basename}-cg $PROJECT $NH $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME1} --count 3
+    VG_CGVOL1="${basename}-cg-1"
+    VG_CGVOL2="${basename}-cg-2"
+    VG_CGVOL3="${basename}-cg-3"
+    VG_CGVOLID1=`volume list ${PROJECT} | grep ${VG_CGVOL1} | awk '{print $7}'`
+    VG_CGVOLID2=`volume list ${PROJECT} | grep ${VG_CGVOL2} | awk '{print $7}'`
+    VG_CGVOLID3=`volume list ${PROJECT} | grep ${VG_CGVOL3} | awk '{print $7}'`
+    echo cgvolid1 is ${VG_CGVOLID1}
+    echo cgvolid2 is ${VG_CGVOLID2}
+    echo cgvolid3 is ${VG_CGVOLID3}
+
+    run volume create ${basename} $PROJECT $NH $VG_VPOOL $BLK_SIZE --thinVolume true --count 3
+    VG_VOL1="${basename}-1"
+    VG_VOL2="${basename}-2"
+    VG_VOL3="${basename}-3"
+    VG_VOLID1=`volume list ${PROJECT} | grep ${VG_VOL1} | awk '{print $7}'`
+    VG_VOLID2=`volume list ${PROJECT} | grep ${VG_VOL2} | awk '{print $7}'`
+    VG_VOLID3=`volume list ${PROJECT} | grep ${VG_VOL3} | awk '{print $7}'`
+    echo volid1 is ${VG_VOLID1}
+    echo volid2 is ${VG_VOLID2}
+    echo volid3 is ${VG_VOLID3}
+
+    run volumegroup create ${VG_COPYVG1} copy1 COPY
+    run volumegroup create ${VG_COPYVG2} copy2 COPY
+    run volumegroup create ${VG_MOBIVG1} mobility MOBILITY
+}
+
+volumegroup_deleteall()
+{
+    run volume delete $PROJECT/$VG_CGVOL1 --wait
+    run volume delete $PROJECT/$VG_CGVOL2 --wait
+    run volume delete $PROJECT/$VG_CGVOL3 --wait
+    run volume delete $PROJECT/$VG_VOL1 --wait
+    run volume delete $PROJECT/$VG_VOL2 --wait
+    run volume delete $PROJECT/$VG_VOL3 --wait
+    run blockconsistencygroup delete ${VG_CGNAME1}
+    run blockconsistencygroup delete ${VG_CGNAME2}
+    run volumegroup delete ${VG_COPYVG1}
+    run volumegroup delete ${VG_COPYVG2}
+    run volumegroup delete ${VG_MOBIVG1}
+}
+
+# adds and removes volumes from a COPY volume group
+volumegroup_volume_negative_tests()
+{
+    # can't add if there are other volumes in the CG
+    fail volumegroup add-volumes ${VG_COPYVG1} ${VG_CGVOLID1}
+
+    # can't add two volumes to two copy groups but same cg
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_VOLID1} ${VG_CGID2}
+    run blockconsistencygroup check_volume $PROJECT ${VG_VOL1} ${VG_CGNAME2}
+    fail volumegroup add-volumes ${VG_COPYVG2} ${VG_VOLID2} ${VG_CGID2}
+
+    # can't add the same volume to two copy volume groups
+    fail volumegroup add-volumes ${VG_COPYVG2} ${VG_VOLID1}
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_VOLID1}
+    fail blockconsistencygroup check_volume $PROJECT ${VG_VOL1} ${VG_CGNAME1}
+
+    # VG_CG1 is a block consistency group with 3 volumes
+    # these thre volumes are not in any aplication
+    # we shojudln't be able to add a volume to an app and add to that CG
+    fail volumegroup add-volumes ${VG_COPYVG1} ${VG_VOLID1} ${VG_CGID1}
+
+    # can't add just one out of 3 voluems in a CG
+    fail volumegroup add-volumes ${VG_COPYVG1} ${VG_CGVOLID1}
+}
+
+# adds and removes volumes from a COPY volume group
+volumegroup_volume_tests()
+{
+    # add 3 volumes from same CG to application
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CGVOLID1},${VG_CGVOLID2},${VG_CGVOLID3}
+
+    # add one volume not in a CG to the same CG
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_VOLID1} ${VG_CGID1}
+
+    # add 1 volume not in a CG to a different CG
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_VOLID2} ${VG_CGID2}
+
+    # add the saem volume to a mobility group
+    run volumegroup add-volumes ${VG_MOBIVG1} ${VG_VOLID2}
+
+    # remove
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_VOLID2}
+    run volumegroup remove-volumes ${VG_MOBIVG1} ${VG_VOLID2}
+
+    # add 1 volume not in a CG to a different copy vg
+    run volumegroup add-volumes ${VG_COPYVG2} ${VG_VOLID2} ${VG_CGID2}
+
+    #remove from one copy group then add to another
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CGVOLID1}
+    run volumegroup add-volumes ${VG_COPYVG2} ${VG_CGVOLID1} ${VG_CGID2}
+    
+}
+
 volumegroup_tests()
 {
     echo "**** Executing volume group tests"
-    volumegroup_crud_test
+    VG_VPOOL_CG=$VMAX_COS_GROUP
+    VG_VPOOL=$COS_VMAXBLOCK_THIN
+    #volumegroup_crud_test
+    volumegroup_createvols
+    #volumegroup_volume_negative_tests
+    #volumegroup_volume_tests
+    #volumegroup_deleteall
+    #volumegroup_volumesnocg_test
+    #volumegroup_volumescg_test
+    #volumegroup_multi_volume_tests
+}
+
+# adds and removes volumes from a COPY volume group
+xvolumegroup_volume_tests()
+{
+    volnocg=vgsanity-${RANDOM}
+    cgname=${volnocg}-cg
+    vgname=${volnocg}-vg
+
+    run blockconsistencygroup create ${PROJECT} ${cgname}
+    a=`blockconsistencygroup show ${cgname} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
+    b=${a:1}
+    cgid=${b%'"'*}
+    echo cgid is ${cgid}
+
+    if [ "$VG_CG_TEST" = "1" ]; then
+        run volume create ${volnocg} $PROJECT $NH $VG_VPOOL $BLK_SIZE --thinVolume true --consistencygroup ${cgname}
+    else
+        run volume create ${volnocg} $PROJECT $NH $VG_VPOOL $BLK_SIZE --thinVolume true
+    fi
+    volid=`volume list ${PROJECT} | grep ${volnocg} | awk '{print $7}'`
+    echo volume id is $volid
+
+    run volumegroup create ${vgname} descrip COPY
+
+    run volumegroup add-volumes ${vgname} ${volid} ${cgid}
+    sleep 10
+    run blockconsistencygroup check_volume $PROJECT ${volnocg} ${cgname}
+    run volumegroup show-volumes ${vgname}
+
+    run volumegroup remove-volumes ${vgname} ${volid}
+    sleep 10
+    fail blockconsistencygroup check_volume $PROJECT ${volnocg} ${cgname}
+    run volumegroup show-volumes ${vgname}
+
+    run volume delete $PROJECT/$volnocg --wait
+    run blockconsistencygroup delete ${cgname}
+    run volumegroup delete ${vgname}
+}
+
+volumegroup_volumescg_test()
+{
+    consistencygroup_block_cos_setup
+    VG_VPOOL=$VMAX_COS_GROUP
+    VG_CG_TEST=1
+    volumegroup_volume_tests
+}
+
+volumegroup_volumesnocg_test()
+{
+    VG_VPOOL=$COS_VMAXBLOCK_THIN
+    VG_CG_TEST=0
+    volumegroup_volume_tests
 }
 
 vplexsnap_setup()

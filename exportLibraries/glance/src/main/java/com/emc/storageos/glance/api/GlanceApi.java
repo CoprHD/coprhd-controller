@@ -73,34 +73,3 @@ public class GlanceApi {
     }
     
 }
-
-//How To Use Glance API
-
-/*
-		//GlanceEndPointInfo(String hostName, String userName,String password, String tenantName)
-		GlanceEndPointInfo ep = new GlanceEndPointInfo("10.247.39.185","admin", "ChangeMe", "tenant1");
-		
-		//initialise Glance Api
-		ClientConfig config = new DefaultClientConfig();
-		Client jerseyClient = Client.create(config);
-		GlanceApi glanceApi = new GlanceApi(ep, jerseyClient);
-
-        //initialise Glance Base URI
-		String restBaseUri = "http://10.247.39.185:9292/v1/images/bac0e68b-0736-4b18-b4dc-198b8077520f";
-
-		
-		if(restBaseUri.startsWith(GlanceConstants.HTTP_URL)) 
-        {
-        	ep.setGlanceBaseUriHttp(restBaseUri);
-        }
-        else 
-        {
-        	ep.setGlanceBaseUriHttps(restBaseUri); // for HTTPS
-        }
-        
-        //Pass Authentication Token
-		ep.setGlanceToken(Token); 
-		
-	   //Get glance response
-       ClientResponse js_response =  glanceApi.getGlanceImage(restBaseUri, Token);
-*/

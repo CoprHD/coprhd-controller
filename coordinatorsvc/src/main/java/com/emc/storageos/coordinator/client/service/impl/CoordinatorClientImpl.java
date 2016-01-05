@@ -233,7 +233,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         site.setUuid(getSiteId());
         site.setName("Default Active Site");
         site.setVdcShortId(vdcShortId);
-        site.setStandbyShortId("");
+        site.setStandbyShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
         site.setVip(vdcEndpoint);

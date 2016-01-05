@@ -100,7 +100,7 @@ import com.google.common.collect.Lists;
 public class DisasterRecoveryService {
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
 
-    private static final String SHORTID_FMT = "standby%d";
+    private static final String SHORTID_FMT = "site%d";
     private static final int MAX_NUM_OF_STANDBY = 10;
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
     private static final String DR_OPERATION_LOCK = "droperation";

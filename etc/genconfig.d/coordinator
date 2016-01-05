@@ -22,9 +22,9 @@ _get_coordinator_var() {
 _get_coordinator_var_normal() {
     # generate participants for nodes in primary site 
     local cursite_begin_index="0"
-    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_node_count"
     local primary_cnt="${!var}"
-    if [ -n "${_GENCONFIG_site_ids}" ] && [ "${primary_cnt}" == "1" ]; then
+    if [ -n "${_GENCONFIG_site_ids}" ] && [[ "${_GENCONFIG_site_ids}" == *,*  ]] && [ "${primary_cnt}" == "1" ]; then
         # DR dual coordinator hack for 1+0. See CoordinatorImpl.java for
         # more description
         primary_cnt="2"
@@ -34,8 +34,8 @@ _get_coordinator_var_normal() {
             # use ipaddr from ovf-env
             ipaddr="${_GENCONFIG_network_1_ipaddr_service}"
         else
-            local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_1_ipaddr"
-            local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_1_ipaddr6"
+            local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_1_ipaddr"
+            local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_1_ipaddr6"
             ipaddr="${!var}"
             [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
         fi
@@ -50,8 +50,8 @@ _get_coordinator_var_normal() {
                 local var="_GENCONFIG_network_${i}_ipaddr_service"
                 ipaddr="${!var}"
             else
-                local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr"
-	        local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr6"
+                local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_${i}_ipaddr"
+	        local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_${i}_ipaddr6"
                 ipaddr="${!var}"
                 [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
             fi
@@ -65,13 +65,15 @@ _get_coordinator_var_normal() {
     if [ -n "${_GENCONFIG_site_ids}" ] ; then
         local begin="${primary_cnt}" # begin index in all node list
         local total="0"              # total number of all standby nodes
-        for standby in ${_GENCONFIG_site_ids}; do
-            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_node_count"
+        for site in ${_GENCONFIG_site_ids}; do
+            [ "${site}" == "${_GENCONFIG_site_active_id}" ] && continue
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_node_count"
             local standby_cnt="${!var}"
             total="$((${standby_cnt} + ${total}))"
         done
         echo "--foreach:iter_standby:$(seq --separator=',' $((${begin} + 1)) $((${begin} + ${total})) )"
         for standby in ${_GENCONFIG_site_ids} ; do
+            [ "${standby}" == "${_GENCONFIG_site_active_id}" ] && continue
             if [ "${_GENCONFIG_site_myid}" == "${standby}" ] ; then
                 cursite_begin_index="$((${begin}))"
             fi
@@ -105,7 +107,7 @@ _get_coordinator_var_normal() {
 _get_coordinator_var_participant() {
     # generate participants for nodes in primary site
     local cursite_begin_index="0"
-    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_node_count"
     local primary_cnt="${!var}"
 
     # generate observers for standby sites

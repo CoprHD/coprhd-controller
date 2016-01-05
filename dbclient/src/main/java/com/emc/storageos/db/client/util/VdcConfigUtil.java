@@ -34,18 +34,15 @@ public class VdcConfigUtil {
     public static final String VDC_CONFIG_VERSION = "vdc_config_version";
     public static final String VDC_MYID = "vdc_myid";
     public static final String VDC_IDS = "vdc_ids";
-    public static final String VDC_NODE_COUNT_PTN = "vdc_%s_node_count";
-    public static final String VDC_IPADDR_PTN = "vdc_%s_network_%d_ipaddr";
-    public static final String VDC_IPADDR6_PTN = "vdc_%s_network_%d_ipaddr6";
-    public static final String VDC_STANDBY_NODE_COUNT_PTN = "vdc_%s_%s_node_count";
-    public static final String VDC_STANDBY_IPADDR6_PTN = "vdc_%s_%s_network_%d_ipaddr6";
-    public static final String VDC_STANDBY_IPADDR_PTN = "vdc_%s_%s_network_%d_ipaddr";
-    public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
-    public static final String VDC_STANDBY_VIP_PTN = "vdc_%s_%s_network_vip";
+    public static final String VDC_SITE_NODE_COUNT_PTN = "vdc_%s_%s_node_count";
+    public static final String VDC_SITE_IPADDR6_PTN = "vdc_%s_%s_network_%d_ipaddr6";
+    public static final String VDC_SITE_IPADDR_PTN = "vdc_%s_%s_network_%d_ipaddr";
+    public static final String VDC_SITE_VIP_PTN = "vdc_%s_%s_network_vip";
     public static final String SITE_IS_STANDBY="site_is_standby";
     public static final String SITE_MY_UUID="site_my_uuid";
     public static final String SITE_MYID="site_myid";
     public static final String SITE_IDS="site_ids";
+    public static final String SITE_ACTIVE_ID="site_active_id";
     public static final String BACK_COMPAT_PREYODA="back_compat_preyoda";
     
     private DrUtil drUtil;
@@ -141,45 +138,25 @@ public class VdcConfigUtil {
             for (String hostName : siteHosts) {
                 siteNodeCnt++;
                 String address = siteIPv4Addrs.get(hostName);
-                if (isActiveSite) {
-                    vdcConfig.put(String.format(VDC_IPADDR_PTN, vdcShortId, siteNodeCnt),
-                            address == null ? "" : address);
-                } else {
-                    vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, vdcShortId, siteShortId, siteNodeCnt),
-                            address == null ? "" : address);
-                }
+                
+                vdcConfig.put(String.format(VDC_SITE_IPADDR_PTN, vdcShortId, siteShortId, siteNodeCnt),
+                      address == null ? "" : address);
 
                 address = siteIPv6Addrs.get(hostName);
-                if (isActiveSite) {
-                    vdcConfig.put(String.format(VDC_IPADDR6_PTN, vdcShortId, siteNodeCnt),
-                            address == null ? "" : address);
-                } else {
-                    vdcConfig.put(String.format(VDC_STANDBY_IPADDR6_PTN, vdcShortId, siteShortId, siteNodeCnt),
-                            address == null ? "" : address);
-                }
+                vdcConfig.put(String.format(VDC_SITE_IPADDR6_PTN, vdcShortId, siteShortId, siteNodeCnt),
+                      address == null ? "" : address);
             }
 
-            if (isActiveSite) {
-                vdcConfig.put(String.format(VDC_NODE_COUNT_PTN, vdcShortId), String.valueOf(siteNodeCnt));
-            } else {
-                vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, vdcShortId, siteShortId),
-                        String.valueOf(siteNodeCnt));
-            }
+            vdcConfig.put(String.format(VDC_SITE_NODE_COUNT_PTN, vdcShortId, siteShortId),
+                    String.valueOf(siteNodeCnt));
 
-            if (isActiveSite) {
-                vdcConfig.put(String.format(VDC_VIP_PTN, vdcShortId), site.getVip());
-            } else {
-                vdcConfig.put(String.format(VDC_STANDBY_VIP_PTN, vdcShortId, siteShortId), site.getVip());
-            }
+            vdcConfig.put(String.format(VDC_SITE_VIP_PTN, vdcShortId, siteShortId), site.getVip());
 
             if (drUtil.isLocalSite(site)) {
                 vdcConfig.put(SITE_MYID, siteShortId);
                 vdcConfig.put(SITE_MY_UUID, site.getUuid());
             }
-
-            if (!isActiveSite) {
-                shortIds.add(siteShortId);
-            }
+            shortIds.add(siteShortId);
         }
         Collections.sort(shortIds);
 
@@ -188,6 +165,8 @@ public class VdcConfigUtil {
             // moving forward this may or may not be the case.
             vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
             vdcConfig.put(SITE_IS_STANDBY, String.valueOf(drUtil.isStandby()));
+            String activeSiteShortId = drUtil.getSiteFromLocalVdc(activeSiteId).getStandbyShortId();
+            vdcConfig.put(SITE_ACTIVE_ID, activeSiteShortId);
         }
     }
 

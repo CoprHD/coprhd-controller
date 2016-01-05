@@ -3406,7 +3406,9 @@ recoverpoint_tests()
 		if [ "$RP_CRR" = "1" ] ; then
 		    recoverpoint_ingest_test rp${vplextag}_crr
 		fi
-
+                
+                if [ "$RP_CLR" = "1" ] ; then
+		    recoverpoint_ingest_test rp${vplextag}_clr
 		fi
 	    fi
 

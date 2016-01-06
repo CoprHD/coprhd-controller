@@ -167,6 +167,14 @@ public class VolumeGroupService extends TaskResourceService {
             throw APIException.badRequests.volumeGroupCantBeCreated(volumeGroup.getLabel(), msg);
         }
 
+        // TODO make sure properties (migration type, etc) are set when creating mobility group
+        if (param.getRoles().contains(VolumeGroup.VolumeGroupRole.MOBILITY.name())) {
+            volumeGroup.setMigrationType(param.getMigrationType());
+            volumeGroup.setMigrationGroupBy(param.getMigrationGroupBy());
+            volumeGroup.setSourceStorageSystem(param.getSourceStorageSystem());
+            volumeGroup.setSourceVirtualPool(param.getSourceVirtualPool());
+        }
+
         _dbClient.createObject(volumeGroup);
         auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP, true, null, volumeGroup.getId().toString(),
                 volumeGroup.getLabel());

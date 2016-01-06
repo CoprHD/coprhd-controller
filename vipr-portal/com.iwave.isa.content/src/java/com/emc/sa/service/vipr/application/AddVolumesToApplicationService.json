@@ -9,7 +9,24 @@
   
     project:{
       type:"assetType.vipr.project",
-      lockable: true
+      lockable: true,
+      required: "false"
+    },
+    
+    virtualPool:{
+     type:"assetType.vipr.blockVirtualPool",
+     lockable: true,
+     required: "false"
+    },
+    
+    consistencyGroup:{
+     type:"assetType.vipr.consistencyGroup",
+     required:false,
+    },
+    
+    replicationGroup:{
+     type:"text",
+     required:false
     },
     
     volumes:{

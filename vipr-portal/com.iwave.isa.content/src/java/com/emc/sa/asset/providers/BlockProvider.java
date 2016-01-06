@@ -201,6 +201,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createVolumeOptions(null, listSourceVolumes(api(ctx), project));
     }
 
+    @Asset("sourceBlockVolume")
+    @AssetDependencies({ "project", "blockVirtualPool", "consistencyGroup" })
+    public List<AssetOption> getApplicationSourceVolumes(AssetOptionsContext ctx, URI project, URI vpool, URI cg) {
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(new AssetOption(project.toString(), project.toString()));
+        options.add(new AssetOption(vpool.toString(), vpool.toString()));
+        options.add(new AssetOption(cg.toString(), cg.toString()));
+        return options;
+        // return createVolumeOptions(null, listSourceVolumes(api(ctx), project));
+    }
+
     @Asset("sourceBlockVolumeInConsistencyGroup")
     @AssetDependencies({ "project", "consistencyGroup" })
     public List<AssetOption> getSourceVolumesWithoutConsistencyGroup(AssetOptionsContext ctx, URI project, URI consistencyGroup) {

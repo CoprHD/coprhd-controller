@@ -3231,10 +3231,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                  * Query all volumes belonging to that Volume Group,
                  * Group volumes by Array Replication Group and create workflow step for each Array Group that runs in parallel
                  */
-
+                _log.info("Creating Volume Group full copy. Volume Group {}", volumeGroup.getLabel());
                 // add VolumeGroup to taskCompleter
                 taskCompleter.addVolumeGroupId(volumeGroup.getId());
 
+                isCG = true;    // VolumeGroup Volumes will be in CG
                 List<Volume> allVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
                 Map<String, List<Volume>> arrayGroupToVolumes = ControllerUtils.groupVolumesByArrayGroup(allVolumes);
                 for (String arrayGroupName : arrayGroupToVolumes.keySet()) {
@@ -3247,8 +3248,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     }
                     storage = sourceVolumeAG.getStorageController();
                     storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-                    isCG = true;    // VolumeGroup Volumes will be in CG
-                    _log.info("Creating group full copy");
+                    _log.info("Creating full copy for group {}", arrayGroupName);
                     createCGFullCopyMethod(storage, sourceVolumeAG.getId(), fullCopyVolumesAG, storageSystem, workflow, createInactive,
                             isCG);
                 }

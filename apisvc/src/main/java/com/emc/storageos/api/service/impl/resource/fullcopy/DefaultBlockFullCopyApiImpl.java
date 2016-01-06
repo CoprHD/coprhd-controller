@@ -20,6 +20,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -227,7 +228,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
             
             // get all volumes to create tasks for all CGs involved
-            List<Volume> volumes = getVolumeGroupVolumes(_dbClient, volumeGroup);
+            List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             addConsistencyGroupTasks(volumes, taskList, taskId,
                     ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
         } else {
@@ -244,26 +245,6 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             handleFailedRequest(taskId, taskList, fullCopyVolumes, ie, true);
         }
         return taskList;
-    }
-
-    /**
-     * Get volume group volumes
-     *
-     * @param volumeGroup
-     * @return The list of volumes in volume group
-     */
-    private static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
-        List<Volume> result = new ArrayList<Volume>();
-        final List<Volume> volumes = CustomQueryUtility
-                .queryActiveResourcesByConstraint(dbClient, Volume.class,
-                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Volume vol : volumes) {
-            // TODO return only visible volumes. i.e skip backend or internal volumes?
-            if (!vol.getInactive()) {
-                result.add(vol);
-            }
-        }
-        return result;
     }
 
     /**

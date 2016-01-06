@@ -111,10 +111,6 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                         _dbClient, _helper, _cimPath,
                         SYNC_TYPE.CLONE);
             }
-            if (sourceGroupName.equalsIgnoreCase("Appl1CG1")) {
-                sourceGroupName = null;
-                throw new Exception("On Purpose");
-            }
             // Create CG clone
             CIMObjectPath job = VmaxGroupOperationsUtils.internalCreateGroupReplica(storage, sourceGroupName, targetGroupLabel,
                     targetGroupPath, createInactive, taskCompleter,

@@ -2710,6 +2710,9 @@ public interface BadRequestExceptions {
     public BadRequestException fullcopyNotAllowedWhenBackendVolumeDoestHavingCG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException replicaOperationNotAllowedForNonCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidSnapshotSessionSource(final String sourceId);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

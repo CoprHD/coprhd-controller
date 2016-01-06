@@ -1351,6 +1351,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
+        // TODO block CG create clone if any of its volumes is in COPY type VolumeGroup
+
         // Grab the first volume and call the block full copy
         // manager to create the full copies for the volumes
         // in the CG. Note that it will take into account the

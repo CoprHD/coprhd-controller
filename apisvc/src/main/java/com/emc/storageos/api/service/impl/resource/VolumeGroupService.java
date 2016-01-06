@@ -45,7 +45,6 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
@@ -56,6 +55,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -68,7 +68,6 @@ import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
-import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
@@ -412,6 +411,11 @@ public class VolumeGroupService extends TaskResourceService {
         // Query Volume Group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
+        // allow replica operation only for COPY type VolumeGroup
+        if (!volumeGroup.getRoles().contains(VolumeGroupRole.COPY.name())) {
+            throw APIException.badRequests.replicaOperationNotAllowedForNonCopyTypeVolumeGroup(volumeGroup.getLabel(), "full copy");
+        }
+
         TaskList response = new TaskList();
         BlockFullCopyManager fcManager = getFullCopyManager();
 
@@ -422,7 +426,7 @@ public class VolumeGroupService extends TaskResourceService {
         for (VolumeGroupUtils util : utils) {
             // TODO XtremIO array does not support clone.
             // If volume group has mix of storage arrays, entire Clone creation workflow will fail (rolled back)
-            // In such cases and not to have partial clone, we need to restrict user at API level.
+            // In such cases and not to have partial clone, we may need to restrict user at API level.
             // may be use Copy-VolumeGroupUtils to validate such things.
         }
 
@@ -1001,6 +1005,7 @@ public class VolumeGroupService extends TaskResourceService {
                 .queryActiveResourcesByConstraint(dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
         for (Volume vol : volumes) {
+            // TODO I think it should return all array groups including backend groups. check it
             if (vol.getReplicationGroupInstance() != null && !result.contains(vol.getReplicationGroupInstance())) {
                 result.add(vol.getReplicationGroupInstance());
             }
@@ -1023,7 +1028,6 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Check if the application has any pending task
-     * 
      * @param application
      */
     private void checkForApplicationPendingTasks(VolumeGroup volumeGroup) {

@@ -135,8 +135,8 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RPCGExportCom
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RPCGExportDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RPCGExportOrchestrationCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RPCGProtectionTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RPCGVolumeVpoolChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.TaskLockingCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.plugins.RPStatisticsHelper;
@@ -3630,7 +3630,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             URI newVpoolURI, String task) throws InternalException {
         _log.info(String.format("Request to update consistency group policy for volumes %s through virtual pool change to %s", volumeURIs,
                 newVpoolURI));
-        RPCGVolumeVpoolChangeTaskCompleter taskCompleter = null;
+        VolumeVpoolChangeTaskCompleter taskCompleter = null;
         URI oldVpoolURI = null;
         List<Volume> volumes = new ArrayList<Volume>();
         List<Volume> vplexBackendVolumes = new ArrayList<Volume>();
@@ -3697,8 +3697,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             _dbClient.updateObject(volumes);
             _dbClient.updateObject(vplexBackendVolumes);
 
-            // The RPVolumeVpoolChangeTaskCompleter will restore the old Virtual Pool
-            taskCompleter = new RPCGVolumeVpoolChangeTaskCompleter(volumeURIs, oldVpools, task);
+            // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool
+            taskCompleter = new VolumeVpoolChangeTaskCompleter(volumeURIs, oldVpools, task);
         } catch (Exception ex) {
             _log.error("Unexpected exception reading volume or generating taskCompleter: ", ex);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);

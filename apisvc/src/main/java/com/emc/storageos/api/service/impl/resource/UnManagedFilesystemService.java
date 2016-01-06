@@ -31,8 +31,6 @@ import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.FileSystemIngestionUtil;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
-import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
-import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -100,12 +98,6 @@ public class UnManagedFilesystemService extends TaggedResource {
      */
     private static final Logger _logger = LoggerFactory
             .getLogger(UnManagedFilesystemService.class);
-
-    private CustomConfigHandler customConfigHandler;
-
-    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
-        this.customConfigHandler = customConfigHandler;
-    }
 
     @Override
     protected DataObject queryResource(URI id) {
@@ -766,9 +758,6 @@ public class UnManagedFilesystemService extends TaggedResource {
      */
     public boolean isIngestUmfsValidForProject(Project project, DbClient dbClient, String nasUri) {
 
-        boolean shareVNASWithMultipleProjects = Boolean.valueOf(customConfigHandler.getComputedCustomConfigValue(
-                CustomConfigConstants.SHARE_VNAS_WITH_MULTIPLE_PROJECTS, "global", null));
-
         _logger.info("Inside isIngestUmfsValidForProject() project name: {}", project.getLabel());
         boolean isIngestValid = true;
 
@@ -778,35 +767,20 @@ public class UnManagedFilesystemService extends TaggedResource {
             _logger.info("vNAS name: {}", virtualNAS.getNasName());
             StringSet projectVNASServerSet = project.getAssignedVNasServers();
             if (projectVNASServerSet != null && !projectVNASServerSet.isEmpty()) {
-                if (!shareVNASWithMultipleProjects) {
-                    /*
-                     * Step 1: check file system is mounted to VNAS
-                     * Step 2: if project has any associated vNAS
-                     * Step 3: then check nasUri in project associated vNAS list
-                     */
-                    if (!projectVNASServerSet.contains(nasUri) && !virtualNAS.isNotAssignedToProject()) {
+                /*
+                 * Step 1: check file system is mounted to VNAS
+                 * Step 2: if project has any associated vNAS
+                 * Step 3: then check nasUri in project associated vNAS list
+                 */
+                if (!projectVNASServerSet.contains(nasUri) && !virtualNAS.isNotAssignedToProject()) {
+                    _logger.info("vNAS: {} is not associated with project: {}.",
+                            virtualNAS.getNasName(), project.getLabel());
+                    isIngestValid = false;
+                } else {
+                    if (!virtualNAS.isNotAssignedToProject()) {
                         _logger.info("vNAS: {} is associated with other project.",
                                 virtualNAS.getNasName());
                         isIngestValid = false;
-                    } else {
-                        if (!virtualNAS.isNotAssignedToProject()) {
-                            _logger.info("vNAS: {} is associated with other project.",
-                                    virtualNAS.getNasName());
-                            isIngestValid = false;
-                        }
-                    }
-                } else {
-                    isIngestValid = false;
-                    if (!projectVNASServerSet.contains(nasUri)) {
-                        _logger.info("vNAS: {} is not associated project: {}",
-                                virtualNAS.getNasName(), project.getLabel());
-                        isIngestValid = true;
-                    } else {
-                        _logger.info("vNAS: {} is associated project: {}",
-                                virtualNAS.getNasName(), project.getLabel());
-                        if (!virtualNAS.isNotAssignedToProject()) {
-                            isIngestValid = true;
-                        }
                     }
                 }
             }

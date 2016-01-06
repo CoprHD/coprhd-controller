@@ -94,7 +94,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
             ScaleIOVolume result = null;
             if (scaleIOHandle != null) {
-                result = scaleIOHandle.modifyVolumeCapacity(volume.getNativeId(), newCapacity)
+                result = scaleIOHandle.modifyVolumeCapacity(volume.getNativeId(), String.valueOf(newCapacity));
             }
 
             if (result != null) {

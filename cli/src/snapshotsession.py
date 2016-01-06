@@ -9,6 +9,7 @@
 
 import common
 import volume
+import snapshot
 import consistencygroup
 import json
 from common import SOSError
@@ -221,7 +222,19 @@ class SnapshotSession(object):
         o = common.json_decode(s)
         return o
     
-    def snapshotsession_relink_target(self, snapsession_label, resuri, targetid):
+    def get_target_ids_from_names(self, storageresType, storageresTypeName, resuri, target_names):
+        target_ids = []
+        for name in target_names:
+            snapshotResourceObj = snapshot.Snapshot(self.__ipAddr, self.__port)
+            uri = snapshotResourceObj.snapshot_query(storageresType, storageresTypeName, resuri, name)
+            if(uri is None):
+                raise SOSError(
+                    SOSError.CMD_LINE_ERR,
+                    "-Invalid target name :" + name)
+            target_ids.append(uri)
+        return target_ids
+    
+    def snapshotsession_relink_target(self, snapsession_label, storageresType, storageresTypeName, resuri, target_names):
         
         # check if snapshot session does'nt exist
         is_snapshot_exist = True
@@ -241,12 +254,10 @@ class SnapshotSession(object):
                 " does not exist")
         
         snapshotsession_uri = self.snapshotsession_name_to_uri(resuri, snapsession_label)
-        
+        target_ids = self.get_target_ids_from_names(storageresType, storageresTypeName, resuri, target_names)
         body = None
-        target_id_list = []
-        target_id_list.append(targetid)
         parms = {
-            'ids' : target_id_list
+            'ids' : target_ids
             }
         
         body = json.dumps(parms)
@@ -259,8 +270,30 @@ class SnapshotSession(object):
         o = common.json_decode(s)
         return o
     
-    def snapshotsession_unlink_target(self, snapsession_label, resuri, targetid, delete_target):
-        
+    
+    def _get_target_delete_tuple(self, resources, resuri, storageresType, storageresTypeName):
+        copyEntries = []
+        for copy in resources:
+            copyParam = []
+            copyParam = copy.split(":")
+            copydict = dict()
+            snapshotResourceObj = snapshot.Snapshot(self.__ipAddr, self.__port)
+            uri = snapshotResourceObj.snapshot_query(storageresType, storageresTypeName, resuri, copyParam[0])
+            copydict['id'] = uri
+            if(len(copyParam) > 1):
+                if(copyParam[1] == "delete"):
+                    copydict['delete_target'] = True
+                else:
+                    raise SOSError(
+                    SOSError.CMD_LINE_ERR,
+                    "Please specify :delete if the target volume is to be deleted")
+            else:
+                copydict['delete_target'] = False
+            copyEntries.append(copydict)
+        return copyEntries
+
+    
+    def snapshotsession_unlink_target(self, snapsession_label, resuri, target_names, storageresType, storageresTypeName):
         # check if snapshot session does'nt exist
         is_snapshot_exist = True
         try:
@@ -279,14 +312,8 @@ class SnapshotSession(object):
                 " does not exist")
         
         snapshotsession_uri = self.snapshotsession_name_to_uri(resuri, snapsession_label)
-        
+        linked_target_list = self._get_target_delete_tuple(target_names, resuri, storageresType, storageresTypeName)
         body = None
-        linked_target = {
-                         'id' : targetid
-                         }
-        linked_target['delete_target'] = delete_target
-        linked_target_list = []
-        linked_target_list.append(linked_target)
         parms = {
             'linked_targets' : linked_target_list
             }
@@ -299,6 +326,7 @@ class SnapshotSession(object):
             SnapshotSession.URI_UNLINK_TARGET_TO_SNAPSHOT_SESSION.format(snapshotsession_uri), body)
         o = common.json_decode(s)
         return o
+
     
     def snapshotsession_show(self, snapsession_label, resuri):
         # check if snapshot session does'nt exist
@@ -372,8 +400,21 @@ class SnapshotSession(object):
             SnapshotSession.URI_RESTORE_SNAPSHOT_SESSION.format(id), None)
         o = common.json_decode(s)
         return o
-        
-    def snapshotsession_bulk(self, snapshot_session_ids):
+    
+    def get_snapshotsession_ids_from_names(self, resuri, snapshot_session_names):
+        snapshot_session_ids = []
+        for name in snapshot_session_names:
+            uri = self.snapshotsession_name_to_uri(resuri, name)
+            if(uri is None):
+                raise SOSError(
+                    SOSError.CMD_LINE_ERR,
+                    "-Invalid snapshot session name :" + name)
+            snapshot_session_ids.append(uri)
+        return snapshot_session_ids
+    
+
+    def snapshotsession_bulk(self, resuri, snapshot_session_names):
+        snapshot_session_ids = self.get_snapshotsession_ids_from_names(resuri, snapshot_session_names)
         body = None
         parms = {
                  'id' : snapshot_session_ids
@@ -610,9 +651,9 @@ def relink_target_parser(subcommand_parsers, common_parser):
                                 dest='volume',
                                 help='Name of a volume',
                                 required=True)
-    mandatory_args.add_argument('-target_id', '-id',
-                               dest='target_id',
-                               help='This option specifies the id of the target to be linked to the snapshot session',
+    mandatory_args.add_argument('-target_vol_names', '-tgnames',
+                               dest='target_names', nargs='+',
+                               help='List of target volumes',
                                required=True)
 
     relink_target_parser.set_defaults(func=snapshotsession_relink_target)
@@ -630,7 +671,7 @@ def snapshotsession_relink_target(args):
             args.project,
             args.tenant)
         
-        obj.snapshotsession_relink_target(args.name, resourceUri, args.target_id)
+        obj.snapshotsession_relink_target(args.name, storageresType, storageresTypeName, resourceUri, args.target_names)
         return
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -668,14 +709,10 @@ def unlink_target_parser(subcommand_parsers, common_parser):
                                 dest='volume',
                                 help='Name of a volume',
                                 required=True)
-    mandatory_args.add_argument('-target_id', '-id',
-                               dest='target_id',
-                               help='This option specifies the id of the target to be linked to the snapshot session',
+    mandatory_args.add_argument('-target_vol_names', '-tgnames',
+                               dest='target_names', nargs='+',
+                               help='List of target volumes in the format <target_name>:delete',
                                required=True)
-    unlink_target_parser.add_argument('-delete_target', '-del',
-                               dest='delete_target',
-                               help='This option specifies whether to delete the target volume after unlinking',
-                               action='store_true')
     unlink_target_parser.set_defaults(func=snapshotsession_unlink_target)
 
 
@@ -691,7 +728,7 @@ def snapshotsession_unlink_target(args):
             args.project,
             args.tenant)
         
-        obj.snapshotsession_unlink_target(args.name, resourceUri, args.target_id, args.delete_target)
+        obj.snapshotsession_unlink_target(args.name, resourceUri, args.target_names, storageresType, storageresTypeName)
         return
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -865,14 +902,29 @@ def bulk_parser(subcommand_parsers, common_parser):
                                                   'bulk snapshot session CLI usage.',
                                                   parents=[common_parser],
                                                   conflict_handler='resolve',
-                                                  help='Gets the details of the BlockSnapshotSession instances with the ids specified')
+                                                  help='Gets the details of the BlockSnapshotSession instances with the names specified')
 
     mandatory_args = bulk_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-SnapshotSessionIDs', '-ids',
-                                metavar='<ids>',
-                                dest='ids',
+    mandatory_args.add_argument('-SnapshotSessionNames', '-ns',
+                                metavar='<SnapshotSessionNames>',
+                                dest='names',
                                 nargs='+',
-                                help='IDs of Snapshot Sessions',
+                                help='Names of Snapshot Sessions',
+                                required=True)
+    bulk_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant',
+                               required=False)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-volume', '-vol',
+                                metavar='<volumename>',
+                                dest='volume',
+                                help='Name of a volume',
                                 required=True)
     bulk_parser.set_defaults(func=snapshotsession_bulk)
 
@@ -881,7 +933,14 @@ def snapshotsession_bulk(args):
 
     obj = SnapshotSession(args.ip, args.port)
     try:
-        respContent = obj.snapshotsession_bulk(args.ids)
+        storageresType = SnapshotSession.BLOCK
+        storageresTypeName = SnapshotSession.VOLUMES
+        resourceUri = obj.storageResource_query(
+            storageresType,
+            args.volume,
+            args.project,
+            args.tenant)
+        respContent = obj.snapshotsession_bulk(resourceUri, args.names)
         return common.format_json_object(respContent)
     except SOSError as e:
         common.format_err_msg_and_raise(

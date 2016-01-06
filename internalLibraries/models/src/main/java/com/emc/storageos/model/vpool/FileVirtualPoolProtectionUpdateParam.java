@@ -23,7 +23,6 @@ public class FileVirtualPoolProtectionUpdateParam extends VirtualPoolProtectionP
     /**
      * The replication protection settings for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "replication_params")
     public FileVirtualPoolReplicationUpdateParam getReplicationParam() {

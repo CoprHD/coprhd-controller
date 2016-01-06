@@ -35,7 +35,6 @@ public class ObjectVirtualPoolParam extends VirtualPoolCommonParam {
     /**
      * The minimum number of data centers required for each CoprHD storage pool
      * 
-     * @valid none
      */
     @XmlElement(name = "min_datacenters")
     public Integer getMinDataCenters() {

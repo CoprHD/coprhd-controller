@@ -84,7 +84,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
 
     /**
      * @deprecated use getMaxPaths instead of getNumPaths
-     * @see #getMaxPaths()
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
@@ -96,7 +95,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
 
     /**
      * @deprecated use setMaxPaths instead of setNumPaths
-     * @see #setMaxPaths()
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated

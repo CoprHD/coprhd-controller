@@ -41,8 +41,6 @@ public class SnapshotSessionUnlinkTargetParam {
     /**
      * Get the id of a BlockSnapshot representing a linked target.
      * 
-     * @valid none
-     * 
      * @return The id of a BlockSnapshot representing a linked target.
      */
     @XmlElement(required = true)
@@ -62,8 +60,9 @@ public class SnapshotSessionUnlinkTargetParam {
     /**
      * Get whether or not the target should be deleted.
      * 
-     * @valid true
-     * @valid false
+     * Valid values:
+     *     true
+     *     false
      * 
      * @return Whether or not the target should be deleted.
      */

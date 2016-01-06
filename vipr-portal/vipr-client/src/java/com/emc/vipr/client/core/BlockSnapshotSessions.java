@@ -129,7 +129,7 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * @param snapshotSessionId 
      *           The URI of the BlockSnapshotSession instance to which the
      *           new targets will be linked.
-     * @param param 
+     * @param linkTargetsParam
      *           The linked target information.
      * @return a task for monitoring the progress of the operation.
      */
@@ -146,7 +146,7 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * @param snapshotSessionId 
      *           The URI of the BlockSnapshotSession instance to which the
      *           the targets will be relinked.
-     * @param param 
+     * @param relinkTargetsParam
      *           The linked target information.
      * @return a task for monitoring the progress of the operation.
      */
@@ -163,7 +163,7 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      * @param snapshotSessionId 
      *           The URI of the BlockSnapshotSession instance to which the
      *           new targets are currently linked.
-     * @param param 
+     * @param unlinkTargetsParam
      *           The linked target information.
      * @return a task for monitoring the progress of the operation.
      */

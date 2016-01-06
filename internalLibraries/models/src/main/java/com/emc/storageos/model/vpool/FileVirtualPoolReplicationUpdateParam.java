@@ -67,7 +67,6 @@ public class FileVirtualPoolReplicationUpdateParam {
     /**
      * The file replication protection policy for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "file_replication_policy")
     public FileReplicationPolicy getSourcePolicy() {

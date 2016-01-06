@@ -44,8 +44,6 @@ public class SnapshotSessionNewTargetsParam {
     /**
      * Get the number of new targets to create and link to the snapshot session.
      * 
-     * @valid none
-     * 
      * @return The number of new targets to create and link to the snapshot session.
      */
     @XmlElement(required = true)
@@ -64,8 +62,6 @@ public class SnapshotSessionNewTargetsParam {
 
     /**
      * Get the name to use for the targets.
-     * 
-     * @valid none
      * 
      * @return The name to use for the targets.
      */
@@ -92,8 +88,9 @@ public class SnapshotSessionNewTargetsParam {
      * the session. This is not true for volumes linked in "nocopy"
      * copy-mode.
      * 
-     * @valid copy
-     * @valid nocopy
+     * Valid values:
+     *     copy
+     *     nocopy
      * 
      * @return The copy mode for the new target volumes to be linked to
      *         the block snapshot session.

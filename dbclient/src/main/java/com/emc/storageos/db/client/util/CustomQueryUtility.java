@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.SMISProvider;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -34,6 +35,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.Row;
@@ -80,6 +82,24 @@ public class CustomQueryUtility {
         return queryActiveResourcesByConstraint(dbClient,
                 StoragePort.class,
                 AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(nativeGuid));
+    }
+
+    public static List<ProtectionSet> getActiveProtectionSetByNativeGuid(DbClient dbClient, String nativeGuid) {
+        return queryActiveResourcesByConstraint(dbClient,
+                ProtectionSet.class,
+                AlternateIdConstraint.Factory.getProtectionSetByNativeGuidConstraint(nativeGuid));
+    }
+
+    public static List<UnManagedProtectionSet> getUnManagedProtectionSetByNativeGuid(DbClient dbClient, String nativeGuid) {
+        return queryActiveResourcesByConstraint(dbClient,
+                UnManagedProtectionSet.class,
+                AlternateIdConstraint.Factory.getUnManagedProtectionSetByNativeGuidConstraint(nativeGuid));
+    }
+
+    public static List<UnManagedProtectionSet> getUnManagedProtectionSetByUnManagedVolumeId(DbClient dbClient, String unManagedVolumeId) {
+        return queryActiveResourcesByConstraint(dbClient,
+                UnManagedProtectionSet.class,
+                AlternateIdConstraint.Factory.getUnManagedProtectionSetByUnManagedVolumeConstraint(unManagedVolumeId));
     }
 
     public static List<StorageHADomain> getActiveStorageHADomainByNativeGuid(DbClient dbClient, String nativeGuid) {
@@ -346,7 +366,7 @@ public class CustomQueryUtility {
     /**
      * Returns a list from an iterator
      * SHOULD ONLY BE USED ON ITERATORS KNOWN TO HAVE FEW ITEMS ONLY!!!!!
-     *
+     * 
      * @param itr the iterator
      * @return a list of the iterator items. Empty list if the iterator is empty.
      */

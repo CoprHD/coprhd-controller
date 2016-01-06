@@ -17,8 +17,11 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.DiscoverUnmanagedVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumesForStorageSystem;
+import com.emc.sa.service.vipr.tasks.DiscoverUnmanagedCGs;
+import com.emc.sa.service.vipr.tasks.GetProtectionSystems;
 import com.emc.sa.service.vipr.tasks.GetStorageSystems;
 import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.protection.ProtectionSystemRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 
 @Service("DiscoverUnmanagedVolumes")
@@ -54,9 +57,20 @@ public class DiscoverUnmanagedVolumesService extends ViPRService {
 
             int postCount = countUnmanagedVolumes(storageSystem.getId().toString());
             logInfo("discover.unmanaged.volume.service.discovered", postCount, storageSystem.getName());
-
         }
 
+        List<ProtectionSystemRestRep> protectionSystemRestReps =
+                execute(new GetProtectionSystems());
+
+        for (ProtectionSystemRestRep protectionSystem : protectionSystemRestReps) {
+
+            logInfo("discover.unmanaged.volume.service.discoveringcgs", protectionSystem.getName());
+
+            execute(new DiscoverUnmanagedCGs(protectionSystem.getId().toString(), DiscoverUnmanagedCGs.UnmanagedNamespace.UNMANAGED_CGS));
+
+            logInfo("discover.unmanaged.volume.service.discoveredcgs", protectionSystem.getName());
+        }
+        
     }
 
     private int countUnmanagedVolumes(String storageSystem) {

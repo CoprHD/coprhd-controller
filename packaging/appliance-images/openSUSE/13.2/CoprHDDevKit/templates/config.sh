@@ -259,6 +259,12 @@ EOF
 suseRemoveYaST
 
 #======================================
+# Set java7 as default version
+=======================================
+/usr/sbin/update-alternatives --set java /usr/lib64/jvm/jre-1.7.0-openjdk/bin/java
+/usr/sbin/update-alternatives --set javac /usr/lib64/jvm/java-1.7.0-openjdk/bin/javac
+
+#======================================
 # Umount kernel filesystems
 #--------------------------------------
 baseCleanMount

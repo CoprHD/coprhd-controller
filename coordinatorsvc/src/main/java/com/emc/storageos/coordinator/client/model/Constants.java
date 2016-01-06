@@ -150,6 +150,4 @@ public interface Constants {
     public static final String FAILOVER_BARRIER = "failoverBarrier";
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
     public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";
-    String KIND_KEY = "_kind";
-    String ID_KEY = "_id";
 }

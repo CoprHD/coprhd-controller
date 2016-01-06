@@ -84,15 +84,19 @@ public class ApplicationSupport extends Controller {
     }
 
     public static void delete(@As(",") String[] ids) {
-        if (ids != null && ids.length > 0) {
-            boolean deleteExecuted = false;
-            for (String application : ids) {
-                AppSupportUtil.deleteApplication(uri(application));
-                deleteExecuted = true;
-            }
-            if (deleteExecuted == true) {
-                flash.success(MessagesUtils.get("applications.deleted"));
-            }
+        try {
+        		if (ids != null && ids.length > 0) {
+        		boolean deleteExecuted = false;
+        		for (String application : ids) {
+        			AppSupportUtil.deleteApplication(uri(application));
+        			deleteExecuted = true;
+        		}
+        		if (deleteExecuted == true) {
+        			flash.success(MessagesUtils.get("applications.deleted"));
+        		}
+        	}
+        } catch(ViPRException e) {
+        	flashException(e);
         }
         list();
     }

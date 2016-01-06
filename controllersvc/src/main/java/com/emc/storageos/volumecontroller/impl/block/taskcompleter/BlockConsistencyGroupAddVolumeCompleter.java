@@ -11,9 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
@@ -22,10 +22,12 @@ public class BlockConsistencyGroupAddVolumeCompleter extends BlockConsistencyGro
     private static final long serialVersionUID = -871023109512730999L;
     private static final Logger log = LoggerFactory.getLogger(BlockConsistencyGroupAddVolumeCompleter.class);
     private List<URI> addVolumeList = null;
+    String groupName;
     
-    public BlockConsistencyGroupAddVolumeCompleter(URI cgURI, List<URI>addVolumesList, String opId) {
+    public BlockConsistencyGroupAddVolumeCompleter(URI cgURI, List<URI>addVolumesList, String groupName, String opId) {
         super(cgURI, opId);
         this.addVolumeList = addVolumesList;
+        this.groupName = groupName;
     }
     
     @Override
@@ -36,12 +38,14 @@ public class BlockConsistencyGroupAddVolumeCompleter extends BlockConsistencyGro
             super.complete(dbClient, status, coded);
             if (status == Status.ready) {
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, getId());
-                String groupName = (cg.getAlternateLabel() != null) ?
-                        cg.getAlternateLabel() : cg.getLabel();
+                if (groupName == null) {
+                    groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+                }
                 for (URI voluri : addVolumeList) {
                     Volume volume = dbClient.queryObject(Volume.class, voluri);
                     if (volume != null && !volume.getInactive()) {
                         volume.setReplicationGroupInstance(groupName);
+                        volume.setConsistencyGroup(this.getConsistencyGroupURI());
                         dbClient.updateObject(volume);
                     }
                 }

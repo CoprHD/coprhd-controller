@@ -39,36 +39,42 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
         String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTaskImpl task = new DriverTaskImpl(taskID);
 
-        if (volumes.size() == 0) {
-            task.setStatus(DriverTask.TaskStatus.ABORTED);
-            return task;
-        }
+        if (volumes != null && volumes.size() > 0) {
+            successful = 0;
 
-        for (StorageVolume volume : volumes) {
-            try {
+            // Assume volumes can be created for different storage systems
+            for (StorageVolume volume : volumes) {
                 String allocatedCapacity = volume.getAllocatedCapacity().toString();
                 String storagePoolId = volume.getStoragePoolId();
 
-                ScaleIORestClient scaleIOHandle = this.getClientBySystemId(volume.getStorageSystemId());
+                ScaleIORestClient client = this.getClientBySystemId(volume.getStorageSystemId());
 
-                ScaleIOVolume result = null;
-                if (scaleIOHandle != null) {
-                   result = scaleIOHandle.addVolume(null, storagePoolId, "myVolume", allocatedCapacity, false);
-                }
+                if (client != null) {
+                    ScaleIOVolume result = null;
 
-                if (result != null) {
-                    task.setStatus(DriverTask.TaskStatus.READY);
+                    try {
+                        result = client.addVolume(null, storagePoolId, "myVolume", allocatedCapacity, false);
+
+                        if (result != null) {
+                            successful++;
+                        } else {
+                            log.error("Exception while creating volume");
+                        }
+
+                    } catch (Exception e) {
+                        log.error("Exception while creating volume", e);
+                    }
+
                 } else {
-                    task.setStatus(DriverTask.TaskStatus.FAILED);
-                    break;
+                    log.error("Exception while getting client instance");
                 }
-
-                return task;
-
-            } catch (Exception e) {
-                task.setStatus(DriverTask.TaskStatus.ABORTED);
             }
 
+            this.setTaskStatus(snapshots.size(), successful, task);
+
+        } else {
+            log.error("Empty volume input list");
+            task.setStatus(DriverTask.TaskStatus.FAILED);
         }
 
         return task;

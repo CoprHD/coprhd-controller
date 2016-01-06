@@ -223,7 +223,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String METHOD_ROLLBACK_CREATE_BOOKMARK_STEP = "createBookmarkRollbackStep";
 
     private static final String STEP_UPDATE_CG_POLICY = "rpUpdateConsistencyGroupPolicy";
-    private static final String METHOD_UPDATE_CG_POLICY_STEP = "udpateConsistencyGroupPolicyStep";
+    private static final String METHOD_UPDATE_CG_POLICY_STEP = "updateConsistencyGroupPolicyStep";
 
     private static final String STEP_CREATE_BLOCK_SNAPSHOT = "createBlockSnapshot";
 
@@ -3796,10 +3796,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
             _log.error("Operation failed with Exception: ", e);
-            return stepFailed(stepId, (ServiceCoded) e, "udpateConsistencyGroupPolicyStep");
+            return stepFailed(stepId, (ServiceCoded) e, "updateConsistencyGroupPolicyStep");
         } catch (Exception e) {
             _log.error("Operation failed with Exception: ", e);
-            return stepFailed(stepId, e, "udpateConsistencyGroupPolicyStep");
+            return stepFailed(stepId, e, "updateConsistencyGroupPolicyStep");
         }
 
         return true;

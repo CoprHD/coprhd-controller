@@ -58,7 +58,6 @@ suseConfig
 zypper addrepo --name repo-oss --no-gpgcheck --no-check http://download.opensuse.org/distribution/13.2/repo/oss repo-oss.repo
 zypper addrepo --name devel-languages-python --no-gpgcheck --no-check http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 devel-languages-python.repo
 zypper addrepo --name server-monitoring --no-gpgcheck --no-check http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 server-monitoring.repo
-zypper addrepo --name home-scalpel4k --no-gpgcheck --no-check http://download.opensuse.org/repositories/home:/scalpel4k/openSUSE_13.2 home-scalpel4k.repo
 zypper addrepo --name home-seife-testing --no-gpgcheck --no-check http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 home-seife-testing.repo
 zypper refresh
 

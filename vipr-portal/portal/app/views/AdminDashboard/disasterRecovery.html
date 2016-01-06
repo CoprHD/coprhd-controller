@@ -1,0 +1,75 @@
+<div id="disasterPanel" >
+  <div class="panel panel-default">
+    <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.disasterRecovery'}</h3></div>
+    <div class="panel-body">
+
+ 	<div class="row">
+  		<div class="col-md-12">
+    		<div class="disasterDashboard">
+      			<table class="table table-condensed table-striped">
+					<thead>
+					<tr>
+						<th>&{'disasterRecovery.name'}</th>
+						<th>&{'disasterRecovery.VirtualIP'}</th>
+						<th>&{'disasterRecovery.status'}</th>
+					</tr>
+					</thead>
+        			<tbody>
+        				#{list items:drsites, as:'site'}
+        				<tr>
+							<td>${site.name}</td>
+							<td>${site.vip}</td>
+							<td>
+								#{if site.state == "ACTIVE"}
+									<span class="glyphicon glyphicon-ok" style="color:#00FF00"></span><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>
+								#{/if}
+								#{if site.state == "ACTIVE_SWITCHING_OVER"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.primary.switchingover'}</span>
+								#{/if}
+								#{if site.state == "ACTIVE_FAILING_OVER"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.primary.failingover'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_ADDING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.adding'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_SYNCING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.syncing'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_SYNCED"}
+									<span class="glyphicon glyphicon-ok" style="color:#00FF00" ></span><span> &{'renderFunctions.disasterRecovery.status.standby.synced'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_PAUSING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.pausing'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_PAUSED"}
+									<span class="glyphicon glyphicon-pause" style="color:#00BFFF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.paused'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_TESTING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.testing'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_SWITCHING_OVER"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.standby.switchingover'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_FAILING_OVER"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.standby.failingover'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_REMOVING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.standby.removing'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_RESUMING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.resuming'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_ERROR"}
+									<span class="glyphicon glyphicon-remove" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.standby.error'}</span>
+								#{/if}
+							</td>
+						</tr>
+						#{/list}
+        			</tbody>
+      			</table>
+    		</div>
+  		</div>
+	</div>
+  </div>
+</div>
+

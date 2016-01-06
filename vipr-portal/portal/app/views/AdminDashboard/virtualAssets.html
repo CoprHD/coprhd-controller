@@ -3,7 +3,7 @@
     <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.virtualAssets'}</h3></div>
     #{if virtualStorageArrayCount != null}
       <ul class="list-group">
-        #{if controllers.security.Security.isSystemAdminOrRestrictedSystemAdmin()}
+        #{if controllers.security.Security.isSystemAdminOrRestrictedSystemAdmin() && controllers.infra.DisasterRecovery.isPrimarySite()}
           <a class="list-group-item" href="@{VirtualArrays.list()}">&{'adminDashboard.virtualStorageArrays'} #{badgeNumber virtualStorageArrayCount/}</a>
           #{license.ifController}
             <a class="list-group-item" href="@{arrays.BlockVirtualPools.list()}">&{'adminDashboard.blockVirtualPools'} #{badgeNumber blockVirtualPoolCount/}</a>

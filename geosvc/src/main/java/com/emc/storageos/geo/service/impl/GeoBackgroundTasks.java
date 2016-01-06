@@ -246,7 +246,7 @@ public class GeoBackgroundTasks {
         }
 
         private int getReinitCount() {
-            List<Configuration> configs = _coordinatorClient.queryAllConfiguration(Constants.GEODB_CONFIG);
+            List<Configuration> configs = _coordinatorClient.queryAllConfiguration(_coordinatorClient.getSiteId(), Constants.GEODB_CONFIG);
             int reinitCount = 0;
             for (int i = 0; i < configs.size(); i++) {
                 Configuration config = configs.get(i);

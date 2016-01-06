@@ -70,6 +70,7 @@ _usage() {
 			   -memory:          (Optional) Amount of memory for each VM (default is 8192)
                -poweron          (Optional) Auto power on the VM after deploy, (no power on by default)
                -interactive      (Optional) Interactive way to redeploy
+               -ipsec_key        (Optional) IPSec pre-shared key
 
            example: $0 -mode redeploy -file your_setting_file_path -nodeid 1 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron
 
@@ -176,6 +177,8 @@ network_vip=${vip}
 network_gateway6=${gateway6}
 network_prefix_length=${ipv6_prefix_length}
 network_vip6=${vip6}
+
+ipsec_key_ovfenv=${ipsec_key}
 
 node_count=${node_count}"
 }
@@ -1226,6 +1229,9 @@ _init_parameters() {
         -clusterversion)
             # comes from the config file of redeploy mode
             cluster_version="${settings[$i]}"
+            ;;
+        -ipsec_key)
+            ipsec_key="${ipsec_key:-${settings[$i]}}"
             ;;
         *)
             _fatal "Unknown option ${option}" ;;

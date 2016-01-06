@@ -48,7 +48,15 @@ public class PlatformUtils {
         String[] props = getOvfenvPropertyStrings();
         Map<String, String> propMap = new HashMap<String, String>();
         for (String s : props) {
-            propMap.put(s.split(PropertyConstants.DELIMITER)[0], s.split(PropertyConstants.DELIMITER)[1]);
+            if(s.contains(PropertyConstants.DELIMITER)) {
+                if (s.split(PropertyConstants.DELIMITER).length == 2) {
+                    propMap.put(s.split(PropertyConstants.DELIMITER)[0], s.split(PropertyConstants.DELIMITER)[1]);
+                }else if(s.split(PropertyConstants.DELIMITER).length == 1) {
+                    propMap.put(s.split(PropertyConstants.DELIMITER)[0],"");
+                }else {
+                    log.error("ovf properties file contain line in unexpected format : {}", s);
+                }
+            }
         }
 
         // load major properties (network info etc.)
@@ -311,7 +319,7 @@ public class PlatformUtils {
      * @return Product ident
      */
     public static String getProductIdent() throws IOException {
-        byte[] productIdent = FileUtils.readDataFromFile(PRODUCT_IDENT_PATH);
+    	byte[] productIdent = FileUtils.readDataFromFile(PRODUCT_IDENT_PATH);
         return new String(productIdent).trim();
     }
 }

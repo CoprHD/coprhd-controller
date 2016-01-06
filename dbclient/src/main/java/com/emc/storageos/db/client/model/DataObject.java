@@ -135,17 +135,18 @@ public abstract class DataObject implements Serializable {
      * @param label
      */
     public void setLabel(String label) {
-        validateLabel(label);
+        // COP-18886 revert this fix for Darth SP1 to unblock unmanaged volume ingestion
+        // it didn't really help us much if we don't fix existing records anyways.
+        // validateLabel(label);
         _label = label;
         setChanged("label");
     }
     
     private void validateLabel(String label) {
         int minLength = getPrefixIndexMinLength();
-        if (label!=null & label.length() < minLength) {
+        if (label != null && label.length() < minLength) {
             String clazzName = this.getClass().getSimpleName();
-            String id = this.getId().toString();
-            throw DatabaseException.fatals.fieldLengthTooShort(clazzName, id, READ_LABEL_METHOD_NAME, label.length(), minLength);
+            throw DatabaseException.fatals.fieldLengthTooShort(clazzName, this.getId(), READ_LABEL_METHOD_NAME, label.length(), minLength);
         }
     }
     
@@ -413,12 +414,12 @@ public abstract class DataObject implements Serializable {
      * providing some typesafe setters/getters.
      */
     public static enum Flag {
-        INTERNAL_OBJECT(0),
-        NO_METERING(1),
-        NO_PUBLIC_ACCESS(2),
-        SUPPORTS_FORCE(3),
-        RECOVERPOINT(4),
-        DELETION_IN_PROGRESS(5);
+        INTERNAL_OBJECT(0),         // 0x01
+        NO_METERING(1),             // 0x02
+        NO_PUBLIC_ACCESS(2),        // 0x04
+        SUPPORTS_FORCE(3),          // 0x08
+        RECOVERPOINT(4),            // 0x10
+        DELETION_IN_PROGRESS(5);    // 0x20
 
         private final long mask;
 

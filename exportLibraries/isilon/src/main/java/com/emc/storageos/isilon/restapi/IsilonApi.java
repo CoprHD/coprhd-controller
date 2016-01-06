@@ -63,6 +63,8 @@ public class IsilonApi {
 
     private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
+    private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
+    private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -536,6 +538,46 @@ public class IsilonApi {
         } catch (Exception e) {
             String response = String.format("%1$s", (resp == null) ? "" : resp);
             throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc(key, id, response, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+    }
+    
+    /**
+     * Generic get resource when key is not applicable
+     * 
+     * @param url url to get from
+     * @param id identifier for the object
+     * @param c Class of object representing the return value
+     * @return T Object parsed from the response, on success
+     * @throws IsilonException
+     */
+    private <T> T getObj(URI url, String id, Class<T> c) throws IsilonException {
+
+        ClientResponse resp = null;
+        try {
+            T returnInstance = null;
+            resp = _client.get(url.resolve(id));
+
+            if (resp.hasEntity()) {
+                JSONObject jObj = resp.getEntity(JSONObject.class);
+                if (resp.getStatus() == 200) {
+                    returnInstance = new Gson().fromJson(jObj.toString(), c);
+                } else {
+                    processErrorResponse("get", id, resp.getStatus(), jObj);
+                }
+            } else {
+                // no entity in response
+                processErrorResponse("get", id, resp.getStatus(), null);
+            }
+            return returnInstance;
+        } catch (IsilonException ie) {
+            throw ie;
+        } catch (Exception e) {
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc("", id, response, e);
         } finally {
             if (resp != null) {
                 resp.close();
@@ -1114,7 +1156,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonNFSACL getNFSACL(String path) throws IsilonException {
-        return get(_baseUrl.resolve(URI_IFS), path, "ACL", IsilonNFSACL.class);
+        String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
+        return getObj(_baseUrl.resolve(URI_IFS),aclUrl,IsilonNFSACL.class);
     }
 
     /**
@@ -1544,6 +1587,54 @@ public class IsilonApi {
             }
         }
         return isNfsv4Enabled;
+    }
+    
+    
+    /**
+     * Checks to see if the SyncIQ service is enabled on the isilon device
+     * 
+     * @return boolean true if exists, false otherwise
+     */
+    public boolean isSyncIQEnabled(String firmwareVersion) throws IsilonException {
+        ClientResponse resp = null;
+        boolean isSyncIqEnabled = false;
+        
+        try {
+            // Verify the Sync service is enable or not
+        	// JSON response for the below should have service=on
+            resp = _client.get(_baseUrl.resolve(URI_SYNCIQ_SERVICE_STATUS));
+            JSONObject jsonResp = resp.getEntity(JSONObject.class);
+            
+            String syncService = jsonResp.getJSONObject("settings").getString("service");
+            if (syncService != null && !syncService.isEmpty()) {
+            	sLogger.info("IsilonApi - SyncIQ service status {} ", syncService);
+            	if("on".equalsIgnoreCase(syncService)) {
+            		isSyncIqEnabled = true;
+            	}
+            }
+        } catch (Exception e) {
+            throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+        return isSyncIqEnabled;
+    }
+    
+    /**
+     * Get SyncIq license information from the Isilon array
+     * 
+     * @return IsilonReplicationLicenseInfo object
+     * @throws IsilonException
+     * @throws JSONException
+     */
+
+    public String getReplicationLicenseInfo() throws IsilonException, JSONException {
+        ClientResponse clientResp = _client.get(_baseUrl.resolve(URI_REPLICATION_LICENSE_INFO));
+        JSONObject jsonResp = clientResp.getEntity(JSONObject.class);
+        String licenseStatus = jsonResp.get("status").toString();
+        return licenseStatus;
     }
     
     private String getURIWithZoneName(String id, String zoneName) {

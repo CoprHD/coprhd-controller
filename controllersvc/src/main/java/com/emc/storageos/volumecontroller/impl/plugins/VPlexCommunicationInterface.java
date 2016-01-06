@@ -101,6 +101,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     // string constants
     public static final String VPLEX_INITIATOR_HOSTNAME_PREFIX = "vplex_";
     private static final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
+    private static final String REGISTERED_PORT_PREFIX = "REGISTERED_0X";
+    private static final String REGISTERED_PATTERN = "^" + REGISTERED_PORT_PREFIX + ".*$";
     private static final String TRUE = "true";
     private static final String FALSE = "false";
     private static final String LOCAL = "local";
@@ -653,13 +655,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                     backendVolumeGuidToVvolGuidMap, volumeToStorageViewMap);
                             newUnmanagedVolumes.add(unmanagedVolume);
                         }
+
                         boolean nonRpExported = false;
                         Set<UnManagedExportMask> uems = volumeToExportMasksMap.get(unmanagedVolume.getNativeGuid());
                         if (uems != null) {
                             s_logger.info("{} UnManagedExportMasks found in the map for volume {}", uems.size(),
                                     unmanagedVolume.getNativeGuid());
                             for (UnManagedExportMask uem : uems) {
-                                boolean backendMaskFound = false;
                                 s_logger.info("   adding UnManagedExportMask {} to UnManagedVolume", uem.getMaskingViewPath());
                                 unmanagedVolume.getUnmanagedExportMasks().add(uem.getId().toString());
                                 uem.getUnmanagedVolumeUris().add(unmanagedVolume.getId().toString());
@@ -685,16 +687,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                     unmanagedVolume.putVolumeCharacterstics(
                                             SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
                                             TRUE);
-                                    backendMaskFound = true;
-                                }
-
-                                if (!backendMaskFound) {
+                                } else {
+                                    // this volume is contained in at least one export mask that is non-RP
                                     nonRpExported = true;
                                 }
                             }
 
                             persistUnManagedExportMasks(null, unmanagedExportMasksToUpdate, false);
                         }
+
                         // If this mask isn't RP, then this volume is exported to a host/cluster/initiator or VPLEX. Mark
                         // this as a convenience to ingest features.
                         if (nonRpExported) {
@@ -703,6 +704,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             unmanagedVolume.putVolumeCharacterstics(
                                     SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
                                     TRUE);
+                            unmanagedVolume.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), TRUE);
                         } else {
                             s_logger.info(
                                     "unmanaged volume {} is not exported OR not exported to something other than RP.  Not marking IS_NONRP_EXPORTED.",
@@ -710,7 +713,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             unmanagedVolume.putVolumeCharacterstics(
                                     SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
                                     FALSE);
+                            unmanagedVolume.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), FALSE);
                         }
+
                         persistUnManagedVolumes(newUnmanagedVolumes, knownUnmanagedVolumes, false);
 
                     } else {
@@ -931,13 +937,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         // set volume characteristics and volume information
         Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
         StringMap unManagedVolumeCharacteristics = new StringMap();
-
-        // check if volume is exported
-        String isExported = info.isExported() ? TRUE : FALSE;
-        unManagedVolumeCharacteristics.put(
-                SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isExported);
-        unManagedVolumeCharacteristics.put(
-                SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), isExported);
 
         // Set up default MAXIMUM_IO_BANDWIDTH and MAXIMUM_IOPS
         StringSet bwValues = new StringSet();
@@ -1415,15 +1414,19 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 for (String initiatorNetworkId : storageView.getInitiatorPwwns()) {
 
                     s_logger.info("looking at initiator network id " + initiatorNetworkId);
-                    if (WWNUtility.isValidWWNAlias(initiatorNetworkId)) {
-                        initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
-                        s_logger.info("   wwn normalized to " + initiatorNetworkId);
-                    } else if (initiatorNetworkId.matches(ISCSI_PATTERN)
+                    if (initiatorNetworkId.matches(ISCSI_PATTERN)
                             && (iSCSIUtility.isValidIQNPortName(initiatorNetworkId)
                             || iSCSIUtility.isValidEUIPortName(initiatorNetworkId))) {
-                        s_logger.info("   iSCSI storage port normalized to " + initiatorNetworkId);
+                        s_logger.info("\tiSCSI network id normalized to " + initiatorNetworkId);
+                    } else if (initiatorNetworkId.matches(REGISTERED_PATTERN)) {
+                        initiatorNetworkId = initiatorNetworkId.substring(REGISTERED_PORT_PREFIX.length());
+                        initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
+                        s_logger.info("\tRegistered network id normalized to " + initiatorNetworkId);
+                    } else if (WWNUtility.isValidWWNAlias(initiatorNetworkId)) {
+                        initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
+                        s_logger.info("\twwn normalized to " + initiatorNetworkId);
                     } else {
-                        s_logger.warn("   this is not a valid FC or iSCSI network id format, skipping");
+                        s_logger.warn("\tthis is not a valid network id format, skipping");
                         continue;
                     }
 

@@ -461,14 +461,24 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         // Get the snapshot session source object.
-        BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
+        URI snapSessionSourceURI = null;
+        if (snapSession.hasConsistencyGroup()) {
+            List<Volume> volumesPartOfCG =
+                    ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), _dbClient);
+            snapSessionSourceURI = volumesPartOfCG.get(0).getId();
+        } else {
+            snapSessionSourceURI = snapSession.getParent().getURI();
+        }
+
+        // Get the snapshot session source object.
+        BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSessionSourceURI,
                 _uriInfo, true, _dbClient);
 
         // Get the project for the snapshot session source object.
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
 
         // Get the target information.
-        Map<URI, Boolean> targetMap = new HashMap<URI, Boolean>();
+        Map<URI, Boolean> targetMap = new HashMap<>();
         for (SnapshotSessionUnlinkTargetParam targetInfo : param.getLinkedTargets()) {
             URI targetURI = targetInfo.getId();
             Boolean deleteTarget = targetInfo.getDeleteTarget();

@@ -269,6 +269,10 @@ public class BlockService extends TaskResourceService {
 
     private static final int MAX_VOLUME_COUNT = 100;
 
+    private static final Long V2CYLINDERSIZE = 983040L;
+
+    private static final int MAX_GK_CYLINDER_COUNT = 20;
+
     private TenantsService _tenantsService;
 
     PlacementManager _placementManager;
@@ -741,7 +745,13 @@ public class BlockService extends TaskResourceService {
             volumeSize = SizeUtil.translateSize(param.getSize());
             // Validate the requested volume size is at least 1 GB.
             if (volumeSize < GB) {
-                throw APIException.badRequests.leastVolumeSize("1");
+                boolean invalidVolumeSize = true;
+                if (volumeSize <= (V2CYLINDERSIZE * MAX_GK_CYLINDER_COUNT)) {
+
+                }
+                if (invalidVolumeSize) {
+                    throw APIException.badRequests.leastVolumeSize("1");
+                }
             }
             capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volumeSize);
         }

@@ -62,7 +62,7 @@ rm -rf ${RPM_BUILD_DIR}
 /etc/init.d/boot.getOvfEnv
 
 %changelog
- * Wed Jan 6 2016 Rodrigo Oshiro <ApplianceDevelopmentGroup@emc.com> 0:3.4-4
+ * Wed Jan 6 2016 Rodrigo Oshiro <ApplianceDevelopmentGroup@emc.com> 0:3.5-1
  - Adding ovf.properties.example for manual network configuration
 
  * Thu Dec 3 2015 Rodrigo Oshiro <ApplianceDevelopmentGroup@emc.com> 0:3.4-3

@@ -221,7 +221,7 @@ public class VdcManager extends AbstractManager {
             // Step4: set site error state if on active
             try {
                 updateSiteErrors();
-            } catch (RuntimeException e) {
+            } catch (Exception e) {
                 log.error("Step4: Failed to set site errors. {}", e);
                 continue;
             }

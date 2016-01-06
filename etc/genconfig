@@ -61,9 +61,6 @@ _gen_prop2() {
     #'node_id
     [ -z ${_GENCONFIG_node_id} ] && export _GENCONFIG_node_id='standalone'
 
-    #'site_id')
-    export _GENCONFIG_site_id=$(_genconfig_site_id ${_GENCONFIG_site_id})
-
     #'site_is_standby'
     if [ -z ${_GENCONFIG_site_is_standby} ] ; then
         export _GENCONFIG_site_is_standby='false'
@@ -209,17 +206,26 @@ _gen_prop2() {
     #'vdc_myid')
     [ -z "${_GENCONFIG_vdc_myid}" ] && export _GENCONFIG_vdc_myid='vdc1'
 
-    #'vdc_vdc1_node_count')
-    [ -z "${_GENCONFIG_vdc_vdc1_node_count}" ] && export _GENCONFIG_vdc_vdc1_node_count=${_GENCONFIG_node_count}
+    #'site_ids')
+    [ -z "${_GENCONFIG_site_ids}" ] && export _GENCONFIG_site_ids='site1'
+
+    #'site_myid')
+    [ -z "${_GENCONFIG_site_myid}" ] && export _GENCONFIG_site_myid='site1'
+
+    #'site_active_id')
+    [ -z "${_GENCONFIG_site_active_id}" ] && export _GENCONFIG_site_active_id='site1'
+
+    #'vdc_vdc1_site1_node_count')
+    [ -z "${_GENCONFIG_vdc_vdc1_site1_node_count}" ] && export _GENCONFIG_vdc_vdc1_site1_node_count=${_GENCONFIG_node_count}
 
     #'vdc_vdc1_network_'*'_ipaddr')
     for node_index in ${_GENCONFIG_node_indexes}; do
-        local var="_GENCONFIG_vdc_vdc1_network_${node_index}_ipaddr"
+        local var="_GENCONFIG_vdc_vdc1_site1_network_${node_index}_ipaddr"
         if [ -z "${!var}" ]; then
             local var2="_GENCONFIG_network_${node_index}_ipaddr"
             eval export ${var}=${!var2}
         fi
-        var="_GENCONFIG_vdc_vdc1_network_${node_index}_ipaddr6"
+        var="_GENCONFIG_vdc_vdc1_site1_network_${node_index}_ipaddr6"
         if [ -z "${!var}" ]; then
             local var2="_GENCONFIG_network_${node_index}_ipaddr6"
             eval export ${var}=${!var2}
@@ -230,17 +236,21 @@ _gen_prop2() {
 
     #'vdc_'*'_network_'*'_ipaddr6')
     for vdc in ${_GENCONFIG_vdc_ids}; do
-        local var="_GENCONFIG_vdc_${vdc}_node_count"
-        for node_index in $(seq -s ' ' ${!var}); do
-            local var2="_GENCONFIG_vdc_${vdc}_network_${node_index}_ipaddr6"
-            eval export ${var2}=$(_get_ipv6_uncompressed ${!var2})
+        for site in ${_GENCONFIG_site_ids}; do
+            local var="_GENCONFIG_vdc_${vdc}_${site}_node_count"
+            for node_index in $(seq -s ' ' ${!var}); do
+                local var2="_GENCONFIG_vdc_${vdc}_network_${node_index}_ipaddr6"
+                eval export ${var2}=$(_get_ipv6_uncompressed ${!var2})
+            done
         done
     done
 
     #'vdc_'*'_network_vip6')
     for vdc in ${_GENCONFIG_vdc_ids}; do
-        local var="_GENCONFIG_vdc_${vdc}_network_vip6"
-        eval export ${var}=$(_get_ipv6_uncompressed ${!var})
+        for site in ${_GENCONFIG_site_ids}; do
+            local var="_GENCONFIG_vdc_${vdc}_${site}_network_vip6"
+            eval export ${var}=$(_get_ipv6_uncompressed ${!var})
+        done
     done
     IFS="${OLD_IFS}"
 
@@ -280,6 +290,9 @@ _gen_foreach() {
 
     local vdcs=${_GENCONFIG_vdc_ids}
     echo "--foreach:iter_vdcs:${vdcs}"
+
+    local sites=${_GENCONFIG_site_ids}
+    echo "--foreach:iter_sites:${sites}"
 }
 
 _gen_config_version() {

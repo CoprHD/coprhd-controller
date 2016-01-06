@@ -100,13 +100,14 @@ import com.google.common.collect.Lists;
 public class DisasterRecoveryService {
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
 
-    private static final String SHORTID_FMT = "standby%d";
+    private static final String SHORTID_FMT = "site%d";
     private static final int MAX_NUM_OF_STANDBY = 10;
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
     private static final String DR_OPERATION_LOCK = "droperation";
     private static final int LOCK_WAIT_TIME_SEC = 5;
     private static final int DEFAULT_GC_GRACE_PERIOD = 5 * 24 * 60 * 60; // 5 days;
     private static final String NTPSERVERS = "network_ntpservers";
+    private static final int SITE_NAME_LENGTH_LIMIT = 64;
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -165,6 +166,7 @@ public class DisasterRecoveryService {
 
         // parameter validation and precheck
         validateAddParam(param, existingSites);
+        // check the version before using the ViPR client, otherwise there might be compatibility issues.
         precheckStandbyVersion(param);
 
         ViPRCoreClient viprCoreClient;
@@ -194,7 +196,7 @@ public class DisasterRecoveryService {
             standbySite.setNodeCount(standbyConfig.getNodeCount());
             standbySite.setUuid(standbyConfig.getUuid());
             String shortId = generateShortId(drUtil.listSites());
-            standbySite.setStandbyShortId(shortId);
+            standbySite.setSiteShortId(shortId);
             standbySite.setDescription(param.getDescription());
             standbySite.setState(SiteState.STANDBY_ADDING);
             if (log.isDebugEnabled()) {
@@ -840,8 +842,8 @@ public class DisasterRecoveryService {
 
             // Set old active site's state, short id and key
             oldActiveSite = drUtil.getSiteFromLocalVdc(oldActiveUUID);
-            if (StringUtils.isEmpty(oldActiveSite.getStandbyShortId())) {
-                oldActiveSite.setStandbyShortId(newActiveSite.getVdcShortId());
+            if (StringUtils.isEmpty(oldActiveSite.getSiteShortId())) {
+                oldActiveSite.setSiteShortId(newActiveSite.getVdcShortId());
             }
             oldActiveSite.setState(SiteState.ACTIVE_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
@@ -1035,8 +1037,8 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.siteIdNotFound();
         }
 
-        if (StringUtil.isBlank(siteParam.getName())) {
-            throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site name should not be empty.");
+        if (!validSiteName(siteParam.getName())) {
+            throw APIException.internalServerErrors.updateSiteFailed(site.getName(), "Site name should not be empty or longer than 60 characters.");
         }
 
         for (Site eachSite : drUtil.listSites()) {
@@ -1063,6 +1065,12 @@ public class DisasterRecoveryService {
         }
     }
 
+    private boolean validSiteName(String siteName) {
+        if (!StringUtils.isBlank(siteName) && siteName.length() <= SITE_NAME_LENGTH_LIMIT) {
+            return true;
+        }
+        return false;
+    }
     /**
      * Query the transition timings for specific standby site
      * 
@@ -1232,7 +1240,7 @@ public class DisasterRecoveryService {
         String standbyDbSchemaVersion = standby.getDbSchemaVersion();
         if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
-                    "Standby db schema version %s is not same as acitve site %s",
+                    "Standby db schema version %s is not same as active site %s",
                     standbyDbSchemaVersion, currentDbSchemaVersion));
         }
 
@@ -1283,7 +1291,9 @@ public class DisasterRecoveryService {
                     e.getMessage()));
         }
 
-        if (!isVersionMatchedForStandbyAttach(currentSoftwareVersion, standbySoftwareVersion)) {
+        // enforcing a strict match between active/standby software versions
+        // otherwise the standby site will automatically upgrade/downgrade to the same version with the active site
+        if (!currentSoftwareVersion.equals(standbySoftwareVersion)) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
                     "Standby site version %s is not equals to current version %s",
                     standbySoftwareVersion, currentSoftwareVersion));
@@ -1402,8 +1412,12 @@ public class DisasterRecoveryService {
     }
 
     protected void validateAddParam(SiteAddParam param, List<Site> existingSites) {
+        String siteName = param.getName();
+        if (!validSiteName(siteName)) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Site name should not be empty or longer than 64 characters");
+        }
         for (Site site : existingSites) {
-            if (site.getName().equals(param.getName())) {
+            if (site.getName().equals(siteName)) {
                 throw APIException.internalServerErrors.addStandbyPrecheckFailed("Duplicate site name");
             }
 
@@ -1423,7 +1437,7 @@ public class DisasterRecoveryService {
     private String generateShortId(List<Site> existingSites) throws Exception {
         Set<String> existingShortIds = new HashSet<String>();
         for (Site site : existingSites) {
-            existingShortIds.add(site.getStandbyShortId());
+            existingShortIds.add(site.getSiteShortId());
         }
 
         for (int i = 1; i < MAX_NUM_OF_STANDBY; i++) {
@@ -1449,16 +1463,6 @@ public class DisasterRecoveryService {
         log.info("Has useful data in DB {}", hasDataInDB);
 
         return freshInstall && !hasDataInDB;
-    }
-
-    protected boolean isVersionMatchedForStandbyAttach(SoftwareVersion currentSoftwareVersion, SoftwareVersion standbySoftwareVersion) {
-        if (currentSoftwareVersion == null || standbySoftwareVersion == null) {
-            return false;
-        }
-
-        String versionString = standbySoftwareVersion.toString();
-        SoftwareVersion standbyVersionWildcard = new SoftwareVersion(versionString.substring(0, versionString.lastIndexOf(".")) + ".*");
-        return currentSoftwareVersion.weakEquals(standbyVersionWildcard);
     }
 
     // encapsulate the create ViPRCoreClient operation for easy UT writing because need to mock ViPRCoreClient

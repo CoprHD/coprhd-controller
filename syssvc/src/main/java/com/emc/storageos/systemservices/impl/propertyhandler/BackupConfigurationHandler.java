@@ -48,7 +48,7 @@ public class BackupConfigurationHandler extends DefaultUpdateHandler {
         int intervalValue = digitLen > 0 ? Integer.parseInt(intervalValueStr) : 0;
         if (intervalValue <= 0) {
             _log.error("The interval value({}) parsed from string({}) is invalid", intervalValueStr, intervalStr);
-            throw BadRequestException.badRequests.backupIntervalInvalid(intervalStr);
+            throw BadRequestException.badRequests.backupIntervalIsInvalid(intervalStr);
         }
 
         String intervalUnitStr = intervalStr.substring(digitLen);
@@ -56,12 +56,12 @@ public class BackupConfigurationHandler extends DefaultUpdateHandler {
             ScheduleTimeRange.ScheduleInterval intervalUnit = ScheduleTimeRange.parseInterval(intervalUnitStr);
         } catch (Exception ex) {
             _log.error("The interval unit({}) parsed from string({}) is invalid", intervalUnitStr, intervalStr);
-            throw BadRequestException.badRequests.backupIntervalInvalid(intervalStr);
+            throw BadRequestException.badRequests.backupIntervalIsInvalid(intervalStr);
         }
     }
 
     /**
-     * do nothing
+     * Do nothing
      *
      * @param oldProps
      * @param newProps

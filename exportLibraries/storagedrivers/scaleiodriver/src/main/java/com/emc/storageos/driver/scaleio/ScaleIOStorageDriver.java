@@ -40,7 +40,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
         DriverTaskImpl task = new DriverTaskImpl(taskID);
 
         if (volumes != null && volumes.size() > 0) {
-            successful = 0;
+            int successful = 0;
 
             // Assume volumes can be created for different storage systems
             for (StorageVolume volume : volumes) {
@@ -53,7 +53,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                     ScaleIOVolume result = null;
 
                     try {
-                        result = client.addVolume(null, storagePoolId, "myVolume", allocatedCapacity, false);
+                        result = client.addVolume(volume.getStorageSystemId(), volume.getStoragePoolId(),
+                                volume.getDisplayName(), allocatedCapacity);
 
                         if (result != null) {
                             successful++;
@@ -70,7 +71,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                 }
             }
 
-            this.setTaskStatus(snapshots.size(), successful, task);
+            this.setTaskStatus(volumes.size(), successful, task);
 
         } else {
             log.error("Empty volume input list");

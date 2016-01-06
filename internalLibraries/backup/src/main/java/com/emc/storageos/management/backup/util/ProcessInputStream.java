@@ -1,22 +1,21 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.management.backup.util;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-/**
- * Created by brian on 12/30/15.
- */
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ProcessInputStream extends InputStream {
     private static final Logger log = LoggerFactory.getLogger(ProcessInputStream.class);
 
     InputStream stdinStream;
     ProcessRunner processor;
     StringBuilder errText = new StringBuilder();
-
-    public static final int ERROR_TEXT_MAX_LENGTH = 1024;
 
     public ProcessInputStream(ProcessRunner processor) {
         this.processor = processor;

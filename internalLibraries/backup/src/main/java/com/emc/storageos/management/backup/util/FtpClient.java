@@ -1,19 +1,20 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.management.backup.util;
-
-import com.emc.storageos.management.backup.BackupConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by brian on 16-1-3.
- */
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.management.backup.BackupConstants;
+
 public class FtpClient {
     private static final Logger log = LoggerFactory.getLogger(FtpClient.class);
 
@@ -28,7 +29,6 @@ public class FtpClient {
     }
 
     public ProcessBuilder getBuilder() {
-        log.info("lbyu uploadUrl={}", uri);
         boolean isExplicit = startsWithIgnoreCase(uri, BackupConstants.FTPS_URL_PREFIX);
 
         ProcessBuilder builder = new ProcessBuilder("curl", "-sSk", "-u", String.format("%s:%s",
@@ -41,7 +41,6 @@ public class FtpClient {
     }
 
     private static boolean startsWithIgnoreCase(String str, String prefix) {
-        log.info("lbyu str={} prefix={}", str, prefix);
         return str.regionMatches(true, 0, prefix, 0, prefix.length());
     }
 
@@ -57,8 +56,6 @@ public class FtpClient {
         builder.command().add(uri + fileName);
 
         long length = 0;
-
-        log.info("lby ftp command={}", builder.command());
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
             StringBuilder errText = new StringBuilder();
@@ -99,7 +96,6 @@ public class FtpClient {
         builder.command().add("-");
         builder.command().add(uri + fileName);
 
-        log.info("lby2 ftp command={}", builder.command());
         return new ProcessOutputStream(builder.start());
     }
 
@@ -111,7 +107,6 @@ public class FtpClient {
         builder.command().add("-l");
         builder.command().add(uri);
 
-        log.info("lby3 ftp command={}", builder.command());
         List<String> fileList = new ArrayList<String>();
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
             StringBuilder errText = new StringBuilder();
@@ -156,8 +151,6 @@ public class FtpClient {
         ProcessBuilder builder = getBuilder();
         String remoteBackupFile = uri + backupFileName;
         builder.command().add(remoteBackupFile);
-
-        log.info("lby cmd={}", builder.command());
 
         return new ProcessInputStream(builder.start());
     }

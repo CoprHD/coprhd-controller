@@ -24,6 +24,7 @@ public class ClientConfig {
     public static final int DEFAULT_API_PORT = 4443;
     public static final int DEFAULT_PORTAL_PORT = 443;
     public static final int DEFAULT_BULK_SIZE = 500;
+    public static final int DEFAULT_ITL_BULK_SIZE = 50;
     public static final int DEFAULT_MAX_CONCURRENT_TASK_REQUESTS = 50;
     public static final int DEFAULT_TASKS_EXECUTION_TIMEOUT_SECONDS = 30;
     public static final int SESSION_KEY_RENEW_TIMEOUT = 1000 * 60 * 60 * 7; // 7 hours
@@ -42,6 +43,7 @@ public class ClientConfig {
     private int port = DEFAULT_API_PORT;
     private int portalPort = DEFAULT_PORTAL_PORT;
     private int bulkSize = DEFAULT_BULK_SIZE;
+    private int itlBulkSize = DEFAULT_ITL_BULK_SIZE;
     private int sessionKeyRenewTimeout = SESSION_KEY_RENEW_TIMEOUT;
     private String host;
     private SSLSocketFactory socketFactory;
@@ -236,6 +238,23 @@ public class ClientConfig {
             throw new ViPRException("BulkSize must be between 1 and 4000 inclusive");
         }
         this.bulkSize = bulkSize;
+    }
+
+    public int getITLBulkSize() {
+        return itlBulkSize;
+    }
+
+    /**
+     * Sets the number of items to retrieve per ITL bulk request. When doing large queries it will query the
+     * bulk API in chunks of the size set by this option. Defaults to 50.
+     * 
+     * @param itlBulkSize Number of items to retrieve per bulk request. Maximum is 4000.
+     */
+    public void setITLBulkSize(int itlBulkSize) {
+        if (itlBulkSize < 1 || itlBulkSize > 4000) {
+            throw new ViPRException("ITLBulkSize must be between 1 and 4000 inclusive");
+        }
+        this.itlBulkSize = itlBulkSize;
     }
 
     /**

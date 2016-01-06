@@ -20,6 +20,8 @@ public class ComputeImageServerUpdate {
     private String imageServerPassword;
     private String tftpBootDir;
     private Integer osInstallTimeout;
+    private Integer sshTimeout;
+    private Integer imageImportTimeout;
 
     public ComputeImageServerUpdate() {
 
@@ -28,7 +30,7 @@ public class ComputeImageServerUpdate {
     public ComputeImageServerUpdate(String name, String imageServerAddress,
             String imageServerSecondIp, String imageServerUser,
             String imageServerPassword, String tftpBootDir,
-            Integer osInstallTimeout) {
+            Integer osInstallTimeout, Integer sshTimeout, Integer imageImportTimeout) {
         super();
         this.setName(name);
         this.imageServerIp = imageServerAddress;
@@ -37,6 +39,8 @@ public class ComputeImageServerUpdate {
         this.imageServerPassword = imageServerPassword;
         this.tftpBootDir = tftpBootDir;
         this.osInstallTimeout = osInstallTimeout;
+        this.sshTimeout = sshTimeout;
+        this.imageImportTimeout = imageImportTimeout;
     }
 
     /**
@@ -155,5 +159,37 @@ public class ComputeImageServerUpdate {
      */
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * @return the sshTimeout
+     */
+    @XmlElement(name = "ssh_timeout")
+    @JsonProperty("ssh_timeout")
+    public Integer getSshTimeout() {
+        return sshTimeout;
+    }
+
+    /**
+     * @param sshTimeout the sshTimeout to set
+     */
+    public void setSshTimeout(Integer sshTimeout) {
+        this.sshTimeout = sshTimeout;
+    }
+
+    /**
+     * @return the imageImportTimeout
+     */
+    @XmlElement(name = "imageimport_timeout")
+    @JsonProperty("imageimport_timeout")
+    public Integer getImageImportTimeout() {
+        return imageImportTimeout;
+    }
+
+    /**
+     * @param imageImportTimeout the imageImportTimeout to set
+     */
+    public void setImageImportTimeout(Integer imageImportTimeout) {
+        this.imageImportTimeout = imageImportTimeout;
     }
 }

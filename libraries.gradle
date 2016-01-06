@@ -56,7 +56,6 @@ ext {
     apache_cassandra = [
         slf4j,
         log4j,
-        logback,
         joda_time,
         jna,
         netty_4,

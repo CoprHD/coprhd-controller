@@ -30,6 +30,8 @@
          <ref bean="remoteMirrorProtectionMatcher"/>
          <ref bean="longTermRetentionMatcher"/>
          <ref bean="hdsShadowImagePairCountMatcher"/>
+         <ref bean="fileReplicationMatcher" />
+         <ref bean="minDataCenterMatcher"/>
 	</util:list>
 	
 	<util:list id="placementMatchers">
@@ -42,7 +44,8 @@
         <ref bean="storageSystemMatcher" />
         <ref bean="vmaxFASTInitialTierSelectionMatcher"/>
         <ref bean="poolPreferenceBasedOnDriveMathcer"/>
-        
+        <ref bean="fileReplicationMatcher" />
+        <ref bean="bucketquotaMatcher" />
 	</util:list>
 
     <util:list id="basicPlacementMatchers">
@@ -50,7 +53,13 @@
         <ref bean="neighborhoodsMatcher" />
         <ref bean="storageSystemMatcher" />
     </util:list>
-    
+
+
+	<util:list id="connectivityMatchers">
+		<ref bean="numPathsMatcher" />
+	</util:list>
+
+
     <bean id="portMetricsProcessor" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -86,7 +95,9 @@
     <bean id="compatiblePoolMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CompatiblePoolMatcher" />
     <bean id="longTermRetentionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.LongTermRetentionMatcher" />
     <bean id="hdsShadowImagePairCountMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HDSShadowImagePairCountMatcher"/>
-    
+    <bean id="fileReplicationMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileReplicationAttrMatcher" />
+    <bean id="minDataCenterMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MinDataCenterMatcher"/>
+    <bean id="bucketquotaMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.BucketQuotaMatcher"/>
 	
 	<!-- The following bean represents how to inject a bean in a util class having static methods. 
 	     Ex. matcherFramework bean in a ImplicitPoolMatcher static method. -->

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 
 /**
  * BackupUploadStatus is a class used by REST API to represent the backupset upload status
@@ -142,6 +143,7 @@ public class BackupUploadStatus implements Serializable {
     /**
      * The status of uploading backup set
      */
+    @XmlType(name = "backupUploadStatus_Status")
     public enum Status {
         NOT_STARTED,  // have not started yet
         IN_PROGRESS,  // in progress
@@ -153,6 +155,7 @@ public class BackupUploadStatus implements Serializable {
     /**
      * The error code of upload failure
      */
+    @XmlType(name = "backupUploadStatus_ErrorCode")
     public enum ErrorCode {
         FTP_NOT_CONFIGURED,      // FTP server has not been configured
         BACKUP_NOT_EXIST,        // Can not find the target backup files on disk

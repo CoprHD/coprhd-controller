@@ -107,7 +107,7 @@ public class DisasterRecoveryService {
     private static final int LOCK_WAIT_TIME_SEC = 5;
     private static final int DEFAULT_GC_GRACE_PERIOD = 5 * 24 * 60 * 60; // 5 days;
     private static final String NTPSERVERS = "network_ntpservers";
-    private static final int SITE_NAME_LENGTH_LIMIT = 60;
+    private static final int SITE_NAME_LENGTH_LIMIT = 64;
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;

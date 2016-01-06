@@ -5,7 +5,10 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,14 +60,24 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingComple
                 case error:
                     break;
                 case ready:
-                    // Remove the linked target from the linked targets for the session.
-                    URI snapshotURI = getId();
-                    String snapshotId = snapshotURI.toString();
+                    // Remove the linked targets from the linked targets for the session.
+                    List<BlockSnapshot> snapshots = new ArrayList<>();
+                    BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, getId());
                     BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, _snapSessionURI);
                     StringSet linkedTargets = snapSession.getLinkedTargets();
-                    if ((linkedTargets != null) && (linkedTargets.contains(snapshotId))) {
-                        linkedTargets.remove(snapshotId);
-                        dbClient.updateObject(snapSession);
+
+                    if (snapshotObj.hasConsistencyGroup()) {
+                        snapshots.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(
+                                snapshotObj.getReplicationGroupInstance(), dbClient));
+                    } else {
+                        snapshots.add(snapshotObj);
+                    }
+
+                    for (BlockSnapshot snapshot : snapshots) {
+                        snapshot.setInactive(true);
+                        if ((linkedTargets != null) && (linkedTargets.contains(snapshot.getId().toString()))) {
+                            linkedTargets.remove(snapshot.getId().toString());
+                        }
                     }
 
                     // Note that even if the target is not deleted, mark the associated
@@ -72,10 +85,9 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingComple
                     // with an array snapshot, it is really no longer a BlockSnapshot
                     // instance in ViPR. In the unlink job we have created a ViPR Volume
                     // to represent the former snapshot target volume. So here we mark the
-                    // BlcokSnapshot inactive so it is garbage collected.
-                    BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                    snapshot.setInactive(true);
-                    dbClient.updateObject(snapshot);
+                    // BlockSnapshot inactive so it is garbage collected.
+                    dbClient.updateObject(snapshots);
+                    dbClient.updateObject(snapSession);
                     break;
                 default:
                     String errMsg = String.format("Unexpected status %s for completer for step %s", status.name(), getOpId());

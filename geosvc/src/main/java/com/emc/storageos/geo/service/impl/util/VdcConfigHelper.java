@@ -1057,7 +1057,7 @@ public class VdcConfigHelper {
         site.setUuid(vdc.getActiveSiteId()); 
         site.setName("Default Active Site");
         site.setVdcShortId(vdc.getShortId());
-        site.setStandbyShortId("");
+        site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
         site.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
         site.setState(SiteState.ACTIVE);

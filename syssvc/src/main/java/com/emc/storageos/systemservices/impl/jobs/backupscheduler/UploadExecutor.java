@@ -210,8 +210,7 @@ public class UploadExecutor {
             throw new IllegalStateException("Invalid query parameter");
         }
         this.cfg.reload();
-        log.info("Current uploaded backup list: {}",
-                this.cfg.uploadedBackups.toArray(new String[this.cfg.uploadedBackups.size()]));
+        log.info("Current uploaded backup list: {}", this.cfg.uploadedBackups);
         if (this.cfg.uploadedBackups.contains(backupTag)) {
             log.info("{} is in the uploaded backup list", backupTag);
             return new BackupUploadStatus(backupTag, Status.DONE, 100, null);

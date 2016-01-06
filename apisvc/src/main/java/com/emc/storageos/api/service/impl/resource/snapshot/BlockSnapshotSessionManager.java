@@ -4,6 +4,30 @@
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
+import static com.emc.storageos.api.mapper.BlockMapper.map;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+import static java.lang.String.format;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriInfo;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.BlockService;
@@ -43,28 +67,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriInfo;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import static com.emc.storageos.api.mapper.BlockMapper.map;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-import static com.emc.storageos.api.mapper.TaskMapper.toTask;
-import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
-import static java.lang.String.format;
 
 /**
  * Class that implements all block snapshot session requests.
@@ -277,8 +279,8 @@ public class BlockSnapshotSessionManager {
             snapSessionSnapshotURIs.add(Lists.newArrayList(uris));
         }
 
-//        addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
-//                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
+        // addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
+        // ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION);
 
         // Create the snapshot sessions.
         try {
@@ -533,7 +535,7 @@ public class BlockSnapshotSessionManager {
      * object.
      * 
      * @param snapSessionURI The URI of the BlockSnapshotSession instance to be restored.
-     *
+     * 
      * @return TaskResourceRep representing the snapshot session task.
      */
     public TaskList restoreSnapshotSession(URI snapSessionURI) {
@@ -543,38 +545,40 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         // Get the snapshot session source object.
-        URI snapSessionSourceURI = snapSession.getParent().getURI();
-        BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
-                _uriInfo, true, _dbClient);
+        List<BlockObject> snapSessionSourceObjs = new ArrayList<>();
+        if (snapSession.hasConsistencyGroup()) {
+            List<Volume> volumesPartOfCG = ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), _dbClient);
+            for (Volume sourceVolume : volumesPartOfCG) {
+                snapSessionSourceObjs.add(sourceVolume);
+            }
+        } else {
+            snapSessionSourceObjs.add(BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(), _uriInfo,
+                    true, _dbClient));
+        }
 
         // Get the project for the snapshot session source object.
-        Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
+        Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObjs.get(0), _dbClient);
 
         // Get the platform specific block snapshot session implementation.
-        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
+        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObjs.get(0));
 
         // Validate that the snapshot session can be restored.
-        snapSessionApiImpl.validateRestoreSnapshotSession(snapSessionSourceObj, project);
+        snapSessionApiImpl.validateRestoreSnapshotSession(snapSessionSourceObjs, project);
 
         // Create the task identifier.
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
 
-        List<BlockSnapshotSession> sessionsBySessionInstance =
-                snapSessionApiImpl.getSnapshotSessionsBySessionInstance(snapSession.getSessionInstance());
-
-        for (BlockSnapshotSession sessionBySessionInstance : sessionsBySessionInstance) {
-            // Create the operation status entry in the status map for the snapshot.
-            Operation op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION);
-            _dbClient.createTaskOpStatus(BlockSnapshotSession.class, sessionBySessionInstance.getId(), taskId, op);
-            sessionBySessionInstance.getOpStatus().put(taskId, op);
-            taskList.addTask(toTask(sessionBySessionInstance, taskId));
-        }
+        // Create the operation status entry in the status map for the snapshot.
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION);
+        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSessionURI, taskId, op);
+        snapSession.getOpStatus().put(taskId, op);
+        taskList.addTask(toTask(snapSession, taskId));
 
         // Restore the snapshot session.
         try {
-            snapSessionApiImpl.restoreSnapshotSession(snapSession, snapSessionSourceObj, taskId);
+            snapSessionApiImpl.restoreSnapshotSession(snapSession, snapSessionSourceObjs.get(0), taskId);
         } catch (Exception e) {
             String errorMsg = format("Failed to restore snapshot session %s: %s", snapSessionURI, e.getMessage());
             ServiceCoded sc = null;
@@ -589,7 +593,8 @@ public class BlockSnapshotSessionManager {
 
         // Create the audit log entry.
         auditOp(OperationTypeEnum.RESTORE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN,
-                snapSessionURI.toString(), snapSessionSourceURI.toString(), snapSessionSourceObj.getStorageController().toString());
+                snapSessionURI.toString(), snapSessionSourceObjs.get(0).getId().toString(), snapSessionSourceObjs.get(0)
+                        .getStorageController().toString());
 
         s_logger.info("FINISH restore snapshot session {}", snapSessionURI);
         return taskList;
@@ -813,7 +818,7 @@ public class BlockSnapshotSessionManager {
 
     /**
      * Creates tasks against consistency groups associated with a request and adds them to the given task list.
-     *
+     * 
      * @param objects
      * @param taskList
      * @param taskId
@@ -821,7 +826,7 @@ public class BlockSnapshotSessionManager {
      * @param <T>
      */
     protected <T extends BlockObject> void addConsistencyGroupTasks(List<T> objects, TaskList taskList, String taskId,
-                                                                    ResourceOperationTypeEnum operationTypeEnum) {
+            ResourceOperationTypeEnum operationTypeEnum) {
         Set<URI> consistencyGroups = new HashSet<>();
         for (T object : objects) {
             if (!isNullURI(object.getConsistencyGroup())) {

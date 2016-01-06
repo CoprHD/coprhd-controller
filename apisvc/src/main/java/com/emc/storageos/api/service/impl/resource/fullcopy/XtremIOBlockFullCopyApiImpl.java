@@ -18,7 +18,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- * The ExtremeIO storage system implementation for the block full copy API.
+ * The XtremeIO storage system implementation for the block full copy API.
  */
 public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
 

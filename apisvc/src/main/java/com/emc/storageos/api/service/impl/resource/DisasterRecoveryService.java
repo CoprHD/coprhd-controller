@@ -161,6 +161,7 @@ public class DisasterRecoveryService {
 
         // parameter validation and precheck
         validateAddParam(param, existingSites);
+        // check the version before using the ViPR client, otherwise there might be compatibility issues.
         precheckStandbyVersion(param);
 
         ViPRCoreClient viprCoreClient;
@@ -1184,7 +1185,7 @@ public class DisasterRecoveryService {
         String standbyDbSchemaVersion = standby.getDbSchemaVersion();
         if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
-                    "Standby db schema version %s is not same as acitve site %s",
+                    "Standby db schema version %s is not same as active site %s",
                     standbyDbSchemaVersion, currentDbSchemaVersion));
         }
 
@@ -1235,7 +1236,9 @@ public class DisasterRecoveryService {
                     e.getMessage()));
         }
 
-        if (!isVersionMatchedForStandbyAttach(currentSoftwareVersion, standbySoftwareVersion)) {
+        // enforcing a strict match between active/standby software versions
+        // otherwise the standby site will automatically upgrade/downgrade to the same version with the active site
+        if (!currentSoftwareVersion.equals(standbySoftwareVersion)) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
                     "Standby site version %s is not equals to current version %s",
                     standbySoftwareVersion, currentSoftwareVersion));
@@ -1401,16 +1404,6 @@ public class DisasterRecoveryService {
         log.info("Has useful data in DB {}", hasDataInDB);
 
         return freshInstall && !hasDataInDB;
-    }
-
-    protected boolean isVersionMatchedForStandbyAttach(SoftwareVersion currentSoftwareVersion, SoftwareVersion standbySoftwareVersion) {
-        if (currentSoftwareVersion == null || standbySoftwareVersion == null) {
-            return false;
-        }
-
-        String versionString = standbySoftwareVersion.toString();
-        SoftwareVersion standbyVersionWildcard = new SoftwareVersion(versionString.substring(0, versionString.lastIndexOf(".")) + ".*");
-        return currentSoftwareVersion.weakEquals(standbyVersionWildcard);
     }
 
     // encapsulate the create ViPRCoreClient operation for easy UT writing because need to mock ViPRCoreClient

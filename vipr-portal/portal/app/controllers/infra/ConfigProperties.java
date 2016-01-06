@@ -64,6 +64,7 @@ import controllers.security.Security;
 public class ConfigProperties extends Controller {
 
     private static final String DEFAULT_PAGE = "general";
+    private static final String OTHER = "Other";
     private static final int MAX_FLASH = 2048;
 
     public static void properties() {
@@ -158,7 +159,7 @@ public class ConfigProperties extends Controller {
 
         if (isPrimarySite) {
             addPage(pages, new NetworkPropertyPage(properties));
-            if (PlatformUtils.isAppliance()) { // ALIK Commented for debug
+            if (PlatformUtils.isAppliance()) { //This done to maintain the current tab order
                 addPage(pages, new SecurityPropertyPage(properties));
             }
             addPage(pages, new ControllerPropertyPage(properties));
@@ -167,27 +168,26 @@ public class ConfigProperties extends Controller {
                 addPage(pages, new SupportPropertyPage(properties));
             }
             addPage(pages, new SmtpPropertyPage(properties));
+            addPage(pages, new UpgradePropertyPage(properties));
+            addPage(pages, new PasswordPropertyPage(properties));
         }
         else {
+            if (PlatformUtils.isAppliance()) {
+                addPage(pages, new SecurityPropertyPage(properties));
+            }
             addPage(excludePages, new NetworkPropertyPage(properties));
-            addPage(excludePages, new SecurityPropertyPage(properties));
             addPage(excludePages, new ControllerPropertyPage(properties));
             addPage(excludePages, new DiscoveryPropertyPage(properties));
             addPage(excludePages, new SupportPropertyPage(properties));
             addPage(excludePages, new SmtpPropertyPage(properties));
-        }
-
-        addPage(pages, new UpgradePropertyPage(properties));
-
-        if (isPrimarySite) {
-            addPage(pages, new PasswordPropertyPage(properties));
-        }
-        else {
+            addPage(excludePages, new UpgradePropertyPage(properties));
+            addPage(excludePages, new DefaultPropertyPage(OTHER));
             addPage(excludePages, new PasswordPropertyPage(properties));
         }
 
         addPage(pages, new BackupPropertyPage(properties));
         addDefaultPages(pages, properties.values(), excludePages);
+
         return Lists.newArrayList(pages.values());
     }
 

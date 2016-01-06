@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -54,30 +54,30 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 	}
 
 	@Name("NumberOfVols")
-	public String get_numberOfVols() {
+	public String getNumberOfVols() {
 		return _numberOfVols;
 	}
 
-	public void set_numberOfVols(String _numberOfVols) {
-		this._numberOfVols = _numberOfVols;
+	public void setNumberOfVols(String numberOfVols) {
+		this._numberOfVols = numberOfVols;
 	}
 
 	@Name("Name")
-	public String get_name() {
+	public String getName() {
 		return _name;
 	}
 
-	public void set_name(String _name) {
-		this._name = _name;
+	public void setName(String name) {
+		this._name = name;
 	}
 
 	@Name("StorageSystem")
-	public URI get_storageSystemUri() {
+	public URI getStorageSystemUri() {
 		return _storageSystemUri;
 	}
 
-	public void set_storageSystemUri(URI _storageSystemUri) {
-		this._storageSystemUri = _storageSystemUri;
+	public void setStorageSystemUri(URI storageSystemUri) {
+		this._storageSystemUri = storageSystemUri;
 	}
 
 	@Name("AssociatedVolumes")
@@ -109,8 +109,8 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 		return _managedVolumesMap;
 	}
 
-	public void setManagedVolumesMap(StringMap _managedVolumesMap) {
-		this._managedVolumesMap = _managedVolumesMap;
+	public void setManagedVolumesMap(StringMap managedVolumesMap) {
+		this._managedVolumesMap = managedVolumesMap;
 	}
 
 	@Name("NumberOfVolumesNotIngested")
@@ -119,8 +119,8 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
 	}
 
 	public void setNumberOfVolumesNotIngested(
-			Integer _numberOfVolumesNotIngested) {
-		this._numberOfVolumesNotIngested = _numberOfVolumesNotIngested;
+			Integer numberOfVolumesNotIngested) {
+		this._numberOfVolumesNotIngested = numberOfVolumesNotIngested;
 	}	 
     
 }

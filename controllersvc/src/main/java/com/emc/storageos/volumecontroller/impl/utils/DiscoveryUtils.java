@@ -732,11 +732,12 @@ public class DiscoveryUtils {
     }
     
     /**
-     * check UnManagedConsistencyGroup exists in DB
+     * Determines if the UnManagedConsistencyGroup object exists in the database
      * 
-     * @param nativeGuid
-     * @param dbClient
-     * @return
+     * @param nativeGuid - native Guid for the unmanaged consistency group
+     * @param dbClient - database client
+     * @return unmanagedCG - null if it does not exist in the database, otherwise it returns the 
+     *         UnManagedConsistencyGroup object from the database
      * @throws IOException
      */
     public static UnManagedConsistencyGroup checkUnManagedCGExistsInDB(DbClient dbClient, String nativeGuid) {

@@ -379,20 +379,23 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         String createSrdfPairStep = null;
         if (volumesInRDFGroupsOnProvider.isEmpty() && SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
             log.info("RA Group {} was empty", group.getId());
-            createSrdfPairStep = createNonCGSrdfPairStepsOnEmptyGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor, workflow);
+            createSrdfPairStep = createNonCGSrdfPairStepsOnEmptyGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor,
+                    workflow);
         } else {
             log.info("RA Group {} not empty", group.getId());
-            createSrdfPairStep = createNonCGSrdfPairStepsOnPopulatedGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor,
+            createSrdfPairStep = createNonCGSrdfPairStepsOnPopulatedGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap,
+                    waitFor,
                     workflow);
         }
         // Generate workflow step to refresh source and target system .
         String refreshSourceSystemStep = null;
         if (null != system) {
-        	refreshSourceSystemStep = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, system, null, createSrdfPairStep, workflow);
+            refreshSourceSystemStep = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, system, null, createSrdfPairStep, workflow);
         }
         String refreshTargetSystemStep = null;
         if (null != targetSystem) {
-        	refreshTargetSystemStep = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, refreshSourceSystemStep, workflow);
+            refreshTargetSystemStep = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, refreshSourceSystemStep,
+                    workflow);
         }
 
         // Refresh target volume properties
@@ -889,11 +892,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
                 if (!source.hasConsistencyGroup()) {
                     // No CG, so suspend single link (cons_exempt used in case of Asynchronous)
-                	boolean consExempt = true;
-                	boolean activeMode = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
-                	if (activeMode){
-                		consExempt = false;
-                	}
+                    boolean consExempt = true;
+                    boolean activeMode = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
+                    if (activeMode) {
+                        consExempt = false;
+                    }
                     Workflow.Method suspendMethod = suspendSRDFLinkMethod(system.getId(),
                             source.getId(), targetURI, consExempt);
                     String suspendStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
@@ -905,7 +908,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             DETACH_SRDF_MIRRORS_STEP_DESC, suspendStep, system.getId(),
                             system.getSystemType(), getClass(), detachMethod, null, null);
                     waitFor = detachStep;
-                    if(activeMode){
+                    if (activeMode) {
                         // We need to fill up necessary maps to be able to call Resume once on the SRDF
                         // group when all the requested volumes are removed from the SRDF group.
                         URI groupId = group.getId();
@@ -1425,7 +1428,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return stepId;
 
     }
-    
+
     /**
      * This method creates steps to create SRDF pairs in a populated SRDF group.
      * 
@@ -1463,7 +1466,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Method suspendGroupMethod = suspendSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
         Method resumeRollbackMethod = resumeSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
 
-        waitFor = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
+        String suspendGroupStep = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
                 SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
                 system.getSystemType(), getClass(), suspendGroupMethod, resumeRollbackMethod, null);
 
@@ -1474,19 +1477,19 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 
-        waitFor = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
-                CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_DESC, waitFor, system.getId(),
+        String createListReplicaStep = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
+                CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_DESC, suspendGroupStep, system.getId(),
                 system.getSystemType(), getClass(), createListMethod, rollbackMethod, null);
 
         /*
          * Invoke Resume on the SRDF group to get all pairs back in the READY state.
          */
         Method resumeGroupMethod = resumeSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
-        waitFor = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
-                RESUME_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+        String resumeGroupStep = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
+                RESUME_SRDF_MIRRORS_STEP_DESC, createListReplicaStep, system.getId(),
                 system.getSystemType(), getClass(), resumeGroupMethod, rollbackMethodNullMethod(), null);
 
-        return waitFor;
+        return resumeGroupStep;
     }
 
     /**
@@ -2079,7 +2082,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
     /**
      * Attempts to acquire a workflow lock based on the RDF group name.
-     *
+     * 
      * @param workflow
      * @param locks
      * @throws LockRetryException

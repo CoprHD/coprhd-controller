@@ -693,7 +693,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doAddToReplicationGroup(final StorageSystem storage, final URI consistencyGroupId, final String replicationGroupName,
-            final List<URI> replicas, final TaskCompleter taskCompleter) throws DeviceControllerException {
+            final List<URI> replicas, final TaskCompleter taskCompleter) throws DeviceControllerException {/*
         // Adds replica to cg
 
         // 8.0.3 will support adding replicas to replication group but the replicas should be added to the
@@ -702,7 +702,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 replicationGroupName);
         List<URI> replicasToAdd;
         try {
-            /*
+            
              * if (!storage.deviceIsType(Type.vnxblock)) {
              * replicasToAdd = _helper.filterReplicasAlreadyPartOfReplicationGroup(
              * storage, replicationGroupName, replicas);
@@ -721,7 +721,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
              * } else {
              * _log.info("There is no corresponding replication group for VNX mirrors and clones");
              * }
-             */
+             
 
             // persist group name/settings instance (for VMAX3) in replica objects
             List<BlockObject> replicaList = new ArrayList<BlockObject>();
@@ -774,7 +774,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             return;
         }
 
-    }
+    */}
 
     @Override
     public void doRemoveFromConsistencyGroup(StorageSystem storage,

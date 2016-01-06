@@ -74,7 +74,6 @@ public class DownloadExecutor implements  Runnable {
             log.error("Fail to add node listener for restore status config znode", e);
             throw APIException.internalServerErrors.addListenerFailed();
         }
-        log.info("lbym1");
     }
 
     class DownloadListener implements NodeListener {
@@ -83,7 +82,6 @@ public class DownloadExecutor implements  Runnable {
             String path = String.format("/config/%s/%s/%s",
                     BackupConstants.BACKUP_RESTORE_STATUS, remoteBackupFileName,
                     Constants.GLOBAL_ID);
-            log.info("lbym config path={}", path);
             return path;
         }
 
@@ -92,7 +90,7 @@ public class DownloadExecutor implements  Runnable {
          */
         @Override
         public void nodeChanged() {
-            log.info("lbym The restore status changed");
+            log.info("The restore status changed");
         }
 
         /**
@@ -100,19 +98,18 @@ public class DownloadExecutor implements  Runnable {
          */
         @Override
         public void connectionStateChanged(State state) {
-            log.info("lbym Restore status connection state changed to {}", state);
+            log.info("Restore status connection state changed to {}", state);
             if (state.equals(State.CONNECTED)) {
-                log.info("Curator (re)connected. Waking up the ip reconfig procedure...");
+                log.info("Curator (re)connected.");
             }
         }
     }
 
     public void setDownloadStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long downloadSize) {
-        log.info("lbymm set download status backupName={} status={} backupSize={} downloadSize={}",
+        log.info("Set download status backupName={} status={} backupSize={} downloadSize={}",
                 new Object[] {backupName, status, backupSize, downloadSize});
         restoreStatus = backupOps.queryBackupRestoreStatus(backupName);
         restoreStatus.setBackupName(backupName);
-        log.info("lbymm1");
         restoreStatus.setStatus(status);
 
         if (backupSize > 0) {
@@ -127,12 +124,11 @@ public class DownloadExecutor implements  Runnable {
     }
 
     public void updateDownloadSize(long size) {
-        log.info("lbymm increase download increase ={}", size);
+        log.info("Increase download size ={}", size);
         restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName);
 
         long newSize = restoreStatus.getDownoadSize() + size;
         restoreStatus.setDownoadSize(newSize);
-        log.info("lbyn new status={}", restoreStatus);
         backupOps.persistBackupRestoreStatus(restoreStatus);
     }
 

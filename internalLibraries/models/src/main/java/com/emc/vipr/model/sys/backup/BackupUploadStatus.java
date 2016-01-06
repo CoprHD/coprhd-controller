@@ -157,7 +157,6 @@ public class BackupUploadStatus implements Serializable {
      */
     @XmlType(name = "backupUploadStatus_ErrorCode")
     public enum ErrorCode {
-        NO_ERROR,                // NO error
         FTP_NOT_CONFIGURED,      // FTP server has not been configured
         BACKUP_NOT_EXIST,        // Can not find the target backup files on disk
         INVALID_BACKUP,          // Target backup is invalid

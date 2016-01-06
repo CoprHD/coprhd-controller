@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.vipr.model.sys.backup;
 
 import org.slf4j.Logger;
@@ -157,6 +161,3 @@ public class BackupRestoreStatus {
         return sb.toString();
     }
 }
-
-
-

@@ -358,11 +358,9 @@ public class BackupService {
 
     /**
      * *Internal API, used only between nodes*
-     * <p>
      * Send backup file name to a node
      *
      * @param backupName the backup filename to be downloaded
-     * @return the name and content info of backup files
      */
     @POST
     @Path("internal/push")

@@ -206,9 +206,11 @@ public class BackupOps {
         return this.quorumSize;
     }
 
+    /*
     public List<Integer> getPorts() {
         return ports;
     }
+    */
 
     /**
      * Sets jmx service ports
@@ -230,9 +232,11 @@ public class BackupOps {
         this.coordinatorClient = coordinatorClient;
     }
 
+    /*
     public CoordinatorClient getCoordinatorClient() {
         return coordinatorClient;
     }
+    */
 
     /**
      * Gets vdc list
@@ -310,6 +314,7 @@ public class BackupOps {
     public void removeRestoreListener(NodeListener listener) throws Exception {
         coordinatorClient.removeNodeListener(listener);
     }
+
     /**
      * Query restore status from ZK
     */
@@ -963,30 +968,12 @@ public class BackupOps {
     }
 
     public List<Service> getAllSysSvc() {
-        //try {
-            return coordinatorClient.locateAllServices(
-                    ((CoordinatorClientImpl) coordinatorClient).getSysSvcName(),
-                    ((CoordinatorClientImpl) coordinatorClient).getSysSvcVersion(),
-                    (String) null, null);
-            /*
-            for (Service svc : svcs) {
-                String svcId = svc.getId();
-                String nodeId = String.format(Constants.NODE_ID_FORMAT, svcId.substring(svcId.lastIndexOf("-") + 1));
-                if (svcId.endsWith(Constants.STANDALONE_ID)) {
-                    nodeId = Constants.STANDALONE_ID;
-                }
-                goodNodes.add(nodeId);
-            }
-            */
-            // log.info("Available syssvcs: {}", sysSvcs);
-        /*
-        } catch (Exception e) {
-            log.warn("Failed to get available nodes by query syssvc beacon", e);
-            goodNodes.addAll(hosts.keySet());
-        }
-        */
-        // return goodNodes;
+        return coordinatorClient.locateAllServices(
+                ((CoordinatorClientImpl) coordinatorClient).getSysSvcName(),
+                ((CoordinatorClientImpl) coordinatorClient).getSysSvcVersion(),
+                (String) null, null);
     }
+
     /**
      * Create a connection to the JMX agent
      */

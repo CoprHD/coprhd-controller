@@ -644,10 +644,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             return ConfigurationImpl.parse(data);
         } catch (KeeperException.NoNodeException ignore) {
             // Ignore exception, don't re-throw
-            log.info("Caught exception but ignoring it: " + ignore);
+            log.debug("Caught exception but ignoring it: " + ignore);
             return null;
         } catch (Exception e) {
-            log.info("lbymm e=", e);
             throw CoordinatorException.fatals.unableToFindConfigurationForKind(kind, id, e);
         }
     }

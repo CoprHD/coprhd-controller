@@ -39,10 +39,12 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
         String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTaskImpl task = new DriverTaskImpl(taskID);
 
-        StorageVolume volume;
-        for (int i = 0; i < volumes.size(); i++) {
-            volume = volumes.get(i);
+        if (volumes.size() == 0) {
+            task.setStatus(DriverTask.TaskStatus.ABORTED);
+            return task;
+        }
 
+        for (StorageVolume volume : volumes) {
             try {
                 String allocatedCapacity = volume.getAllocatedCapacity().toString();
                 String storagePoolId = volume.getStoragePoolId();
@@ -66,7 +68,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
             } catch (Exception e) {
                 task.setStatus(DriverTask.TaskStatus.ABORTED);
-                e.printStackTrace();
             }
 
         }
@@ -88,6 +89,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
         String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTaskImpl task = new DriverTaskImpl(taskID);
 
+        if (newCapacity <= 0) {
+            task.setStatus(DriverTask.TaskStatus.ABORTED);
+            return task;
+        }
+
         try {
             ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(volume.getStorageSystemId(),
                     "10.193.17.82", 443, "root", "testo123$A");
@@ -105,7 +111,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
         } catch (Exception e) {
             task.setStatus(DriverTask.TaskStatus.ABORTED);
-            e.printStackTrace();
         }
 
         return task;
@@ -123,10 +128,12 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
         String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTaskImpl task = new DriverTaskImpl(taskID);
 
-        StorageVolume volume;
-        for (int i = 0; i < volumes.size(); i++) {
-            volume = volumes.get(i);
+        if (volumes.size() == 0) {
+            task.setStatus(DriverTask.TaskStatus.ABORTED);
+            return task;
+        }
 
+        for (StorageVolume volume : volumes) {
             try {
 
                 ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(volume.getStorageSystemId(),
@@ -139,7 +146,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
 
             } catch (Exception e) {
                 task.setStatus(DriverTask.TaskStatus.ABORTED);
-                e.printStackTrace();
             }
 
         }

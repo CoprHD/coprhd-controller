@@ -44,11 +44,7 @@ public class SRDFMetroMatcher extends AttributeMatcher {
         Map<String, List<String>> remoteCopySettings = (Map<String, List<String>>)
                 attributeMap.get(Attributes.remote_copy.toString());
         Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
-        if (null != copyModes && copyModes.contains(SupportedCopyModes.ACTIVE.toString())) {
-            return true;
-        } else {
-            return false;
-        }
+        return (null != copyModes && copyModes.contains(SupportedCopyModes.ACTIVE.toString()));            
     }
 
     private Set<String> getSupportedCopyModesFromGivenRemoteSettings(Map<String, List<String>> remoteCopySettings) {

@@ -816,7 +816,7 @@ public class SRDFUtils implements SmisConstants {
     }
 
     /**
-     * Utility method that returns target volumes fro the RDF group
+     * Utility method that returns target volumes for the RDF group
      * 
      * @param group Reference to RemoteDirectorGroup
      * @return list of volumes

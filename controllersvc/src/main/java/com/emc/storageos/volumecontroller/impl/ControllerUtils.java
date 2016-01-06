@@ -1255,6 +1255,18 @@ public class ControllerUtils {
     }
 
     /**
+     * Check whether the given volume is XtremIO volume
+     *
+     * @param volume
+     * @param dbClient
+     * @return
+     */
+    public static boolean isXtremIOVolume(Volume volume, DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+        return storage != null && storage.deviceIsType(Type.xtremio);
+    }
+
+    /**
      * Check whether the given volume is in VNX virtual replication group
      *
      * @param volume

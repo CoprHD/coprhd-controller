@@ -1047,7 +1047,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     consistencyGroup.getStorageController(), StorageSystem.class);
         }
 
-        // VPlex, VNX, ScaleIO, and VMax volumes only
+        // IBMXIV, XtremIO, VPlex, VNX, ScaleIO, and VMax volumes only
         String systemType = cgStorageSystem.getSystemType();
         if (!systemType.equals(DiscoveredDataObject.Type.vplex.name())
                 && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())

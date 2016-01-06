@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import javax.cim.CIMObjectPath;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +27,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -35,6 +37,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -109,14 +112,16 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                 if (cgObj != null 
                         && cgObj.created(storage.getId())
-                        && !vol.checkForRp()) {     
+                        && !vol.checkForRp() && !Volume.checkForVplexBackEndVolume(dbClient, vol)) {
                     // Only set this flag to true if the CG reference is valid
                     // and it is already created on the storage system.
-                    // Also, exclude RP volumes.
+                    // Also, exclude RP/VPLEX volumes.
                     isCG = true;
                 } 
             }
             
+            _log.info("isCG {}", isCG);
+
             // find the project this volume belongs to.
             URI projectUri = volumes.get(0).getProject().getURI();
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
@@ -673,6 +678,104 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
                             consistencyGroup.getLabel(), e.getMessage()));
         }
+    }
+
+    @Override
+    public void doCreateListReplica(StorageSystem storage, List<URI> replicaList, Boolean createInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        doCreateSnapshot(storage, replicaList, createInactive, false, taskCompleter);
+
+    }
+
+    @Override
+    public void doDetachListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+
+    }
+
+    @Override
+    public void doAddToReplicationGroup(final StorageSystem storage, final URI consistencyGroupId, final String replicationGroupName,
+            final List<URI> replicas, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        // Adds replica to cg
+
+        // 8.0.3 will support adding replicas to replication group but the replicas should be added to the
+        // device masking group corresponding to the consistency group
+        _log.info("Adding replicas to Device Masking Group equivalent to its ReplicationGroup {}",
+                replicationGroupName);
+        List<URI> replicasToAdd;
+        try {
+            /*
+             * if (!storage.deviceIsType(Type.vnxblock)) {
+             * replicasToAdd = _helper.filterReplicasAlreadyPartOfReplicationGroup(
+             * storage, replicationGroupName, replicas);
+             * 
+             * if (!replicasToAdd.isEmpty()) {
+             * CIMArgument[] inArgsAdd;
+             * inArgsAdd = _helper.getAddVolumesToMaskingGroupInputArguments(storage,
+             * replicationGroupName, replicasToAdd, null, true);
+             * CIMArgument[] outArgsAdd = new CIMArgument[5];
+             * _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+             * SmisConstants.ADD_MEMBERS, inArgsAdd, outArgsAdd, null);
+             * } else {
+             * _log.info("Requested replicas {} are already part of the Replication Group {}, hence skipping AddMembers call..",
+             * Joiner.on(", ").join(replicas), replicationGroupName);
+             * }
+             * } else {
+             * _log.info("There is no corresponding replication group for VNX mirrors and clones");
+             * }
+             */
+
+            // persist group name/settings instance (for VMAX3) in replica objects
+            List<BlockObject> replicaList = new ArrayList<BlockObject>();
+            String settingsInst = null;
+            if (storage.checkIfVmax3() && URIUtil.isType(replicas.get(0), BlockSnapshot.class)) {
+                List<BlockSnapshot> blockSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupName, dbClient);
+                if (blockSnapshots != null && !blockSnapshots.isEmpty()) {
+                    settingsInst = blockSnapshots.get(0).getSettingsInstance();
+                }
+            }
+
+            for (URI replica : replicas) {
+                BlockObject replicaObj = BlockObject.fetch(dbClient, replica);
+
+                replicaObj.setReplicationGroupInstance(replicationGroupName);
+                // don't set CG on Clones
+                if (replicaObj instanceof BlockMirror || replicaObj instanceof BlockSnapshot) {
+                    replicaObj.setConsistencyGroup(consistencyGroupId);
+
+                    if (replicaObj instanceof BlockMirror) {
+                        BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class,
+                                consistencyGroupId);
+                        String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
+                        CIMObjectPath syncPath = _cimPath.getGroupSynchronizedPath(storage, groupName, replicationGroupName);
+                        ((BlockMirror) replicaObj).setSynchronizedInstance(syncPath.toString());
+                    } else if (replicaObj instanceof BlockSnapshot) {
+                        if (settingsInst != null) {
+                            ((BlockSnapshot) replicaObj).setSettingsInstance(settingsInst);
+                        }
+                    }
+                }
+
+                replicaList.add(replicaObj);
+            }
+
+            dbClient.updateAndReindexObject(replicaList);
+            taskCompleter.ready(dbClient);
+        } catch (Exception e) {
+            if (null != replicas && !replicas.isEmpty()) {
+                for (URI replicaURI : replicas) {
+                    BlockObject blockObj = dbClient.queryObject(BlockObject.class, replicaURI);
+                    blockObj.setReplicationGroupInstance(null);
+                    dbClient.updateObject(blockObj);
+                }
+            }
+            _log.error("Problem while adding replica to device masking group :{}", consistencyGroupId, e);
+            taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                    .failedToAddMembersToReplicationGroup(replicationGroupName,
+                            storage.getLabel(), e.getMessage()));
+            return;
+        }
+
     }
 
     @Override

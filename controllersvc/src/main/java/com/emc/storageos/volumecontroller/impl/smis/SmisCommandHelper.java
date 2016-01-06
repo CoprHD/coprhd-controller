@@ -4306,6 +4306,10 @@ public class SmisCommandHelper implements SmisConstants {
                 long currentMillis = Calendar.getInstance().getTimeInMillis();
                 long deltaLastRefreshValue = currentMillis - storage.getLastRefresh();
                 if (deltaLastRefreshValue < REFRESH_THRESHOLD) {
+                    // In case of SRDF Active mode resume operation, its possible that second call
+                    // to refreshSystem might be done where REFRESH_THRESHOLD value might not be met so we
+                    // will pause thread for the remainder of the time as we need to make sure refresh
+                    // system is executed to be able to get correct access state for the target volumes.
                     long sleepDuration = REFRESH_THRESHOLD - deltaLastRefreshValue;
                     _log.info(String.format("Sleep for %d msecs before calling refresh because last "
                             + "refresh was done %d msecs ago", sleepDuration, deltaLastRefreshValue));

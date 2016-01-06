@@ -914,6 +914,22 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     }
 
     /**
+     * Method will invoke the SMI-S operation to delete the ReplicationGroup.
+     *
+     * @param system StorageSystem where the pool and volume exist
+     * @param replicationGroupInstance InstanceID of the SMI-S ReplicationGroup
+     * @throws Exception
+     */
+    private void deleteTargetGroup(StorageSystem system, String replicationGroupInstance) throws Exception {
+        CIMObjectPath groupPath = _cimPath.getReplicationGroupObjectPath(system, replicationGroupInstance);
+        CIMArgument[] outArgs = new CIMArgument[5];
+
+        CIMArgument[] deleteGroupInArgs = _helper.getDeleteReplicationGroupInputArguments(system, groupPath, true);
+        _helper.invokeMethod(system, _cimPath.getControllerReplicationSvcPath(system),
+                DELETE_GROUP, deleteGroupInArgs, outArgs);
+    }
+
+    /**
      * Method will invoke the SMI-S operation to return the Volumes represented by the native ids to the storage pool
      * 
      * @param storageSystem - StorageSystem where the pool and volume exist
@@ -1749,7 +1765,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 if (deleteTarget) {
                     _log.info("Delete target device {}:{}", targetDeviceId, snapshotURI);
                     Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
-                    deleteTargetDevices(system, nativeIds.toArray(new String[] {}), completer);
+                    if (snapshot.hasConsistencyGroup()) {
+                        deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+                    }
+                    deleteTargetDevices(system, nativeIds.toArray(new String[]{}), completer);
                     _log.info("Delete target device complete");
                 } else if (!syncObjectFound) {
                     // Need to be sure the completer is called.

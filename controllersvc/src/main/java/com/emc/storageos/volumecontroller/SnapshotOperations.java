@@ -6,7 +6,6 @@ package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -233,12 +232,12 @@ public interface SnapshotOperations {
      * This is the case where the source object(s) is in a consistency group.
      * 
      * @param system Reference to the storage system.
-     * @param snapSessionURIs The URIs of the ViPR BlockSnapshotSession instances.
+     * @param snapSessionURI The URIs of the ViPR BlockSnapshotSession instances.
      * @param completer Reference to a task completer to invoke upon completion of the operation.
-     * 
+     *
      * @throws DeviceControllerException
      */
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void createGroupSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException;
 
     /**
@@ -262,16 +261,16 @@ public interface SnapshotOperations {
      * Creates a new target volume group and links it to an array snapshot on the passed storage system.
      *
      * @param system A reference to the storage system.
-     * @param snapSessionSnapshotMap Map of BlockSnapshotSession URI's to their BlockSnapshot instance URI,
+     * @param snapshotSessionURI
+     *@param snapSessionSnapshotURIs Map of BlockSnapshotSession URI's to their BlockSnapshot instance URI,
      *                               representing the linked target.
      * @param copyMode The copy mode in which the target is linked to the snapshot.
      * @param targetsExist true if the target exists, false if a new one needs to be created.
      * @param completer A reference to the task completer.
-     *
-     * @throws DeviceControllerException
+*     @throws DeviceControllerException
      */
-    public void linkSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap,
-                                          String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException;
+    public void linkSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
+                                               String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException;
 
     /**
      * Re-links a target volume to an array snapshot on the passed storage system.

@@ -42,6 +42,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -257,25 +258,23 @@ public class BlockSnapshotSessionManager {
         // Prepare the ViPR BlockSnapshotSession instances and BlockSnapshot
         // instances for any new targets to be created and linked to the
         // snapshot sessions.
-        List<URI> snapSessionURIs = new ArrayList<>();
-        Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap = new HashMap<>();
-        // TODO Should only be one single snapshot returned here?
-        List<BlockSnapshotSession> snapSessions = snapSessionApiImpl.prepareSnapshotSessions(snapSessionSourceObjList,
+        List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
+        BlockSnapshotSession snapSession = snapSessionApiImpl.prepareSnapshotSession(snapSessionSourceObjList,
                 snapSessionLabel,
-                newLinkedTargetsCount, newTargetsName, snapSessionURIs, snapSessionSnapshotMap, taskId);
+                newLinkedTargetsCount, newTargetsName, snapSessionSnapshots, taskId);
 
         // Populate the preparedObjects list and create tasks for each snapshot session.
         TaskList response = new TaskList();
         List<DataObject> preparedObjects = new ArrayList<>();
-        Map<URI, List<URI>> snapSessionSnapshotURIMap = new HashMap<>();
-        preparedObjects.addAll(snapSessions);
-        for (BlockSnapshotSession snapSession : snapSessions) {
-            URI snapSessionURI = snapSession.getId();
-            response.getTaskList().add(toTask(snapSession, taskId));
-            preparedObjects.addAll(snapSessionSnapshotMap.get(snapSessionURI).values());
-            List<URI> snapSessionSnapshotURIs = new ArrayList<>();
-            snapSessionSnapshotURIs.addAll(snapSessionSnapshotMap.get(snapSessionURI).keySet());
-            snapSessionSnapshotURIMap.put(snapSessionURI, snapSessionSnapshotURIs);
+
+        response.getTaskList().add(toTask(snapSession, taskId));
+        preparedObjects.add(snapSession);
+
+        List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
+        for (Map<URI, BlockSnapshot> snapshotMap : snapSessionSnapshots) {
+            preparedObjects.addAll(snapshotMap.values());
+            Set<URI> uris = snapshotMap.keySet();
+            snapSessionSnapshotURIs.add(Lists.newArrayList(uris));
         }
 
 //        addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
@@ -283,8 +282,8 @@ public class BlockSnapshotSessionManager {
 
         // Create the snapshot sessions.
         try {
-            snapSessionApiImpl.createSnapshotSession(snapSessionSourceObj, snapSessionURIs,
-                    snapSessionSnapshotURIMap, newTargetsCopyMode, taskId);
+            snapSessionApiImpl.createSnapshotSession(snapSessionSourceObj, snapSession.getId(),
+                    snapSessionSnapshotURIs, newTargetsCopyMode, taskId);
         } catch (Exception e) {
             String errorMsg = format("Failed to create snapshot sessions for source %s: %s", sourceURI, e.getMessage());
             ServiceCoded sc = null;

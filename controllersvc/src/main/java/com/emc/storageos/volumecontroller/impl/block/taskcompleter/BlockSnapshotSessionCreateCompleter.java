@@ -32,11 +32,11 @@ public class BlockSnapshotSessionCreateCompleter extends TaskLockingCompleter {
     /**
      * Constructor
      * 
-     * @param snapSessionURIs The ids of the BlockSnapshotSession instances in the database.
+     * @param snapSessionURI The ids of the BlockSnapshotSession instances in the database.
      * @param stepId The id of the WF step in which the session is being created.
      */
-    public BlockSnapshotSessionCreateCompleter(List<URI> snapSessionURIs, String stepId) {
-        super(BlockSnapshotSession.class, snapSessionURIs, stepId);
+    public BlockSnapshotSessionCreateCompleter(URI snapSessionURI, String stepId) {
+        super(BlockSnapshotSession.class, snapSessionURI, stepId);
     }
 
     /**
@@ -45,41 +45,38 @@ public class BlockSnapshotSessionCreateCompleter extends TaskLockingCompleter {
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            List<URI> snapSessionURIs = getIds();
-            for (URI snapSessionURI : snapSessionURIs) {
-                BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+            BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, getId());
 
-                // Update the status map of the snapshot session.
-                switch (status) {
-                    case error:
-                        // Mark any linked targets inactive. This would not
-                        // normally case when failing to create a snapshot
-                        // session as targets are not linked when a new
-                        // snapshot session is prepared in ViPR. However,
-                        // it could be the case when restoring a source volume
-                        // form a linked target.
-                        StringSet linkedTargets = snapSession.getLinkedTargets();
-                        if ((linkedTargets != null) && (!linkedTargets.isEmpty())) {
-                            for (String linkedTarget : linkedTargets) {
-                                BlockSnapshot target = dbClient.queryObject(BlockSnapshot.class, URI.create(linkedTarget));
-                                if (target != null) {
-                                    target.setInactive(true);
-                                    dbClient.updateObject(target);
-                                }
+            // Update the status map of the snapshot session.
+            switch (status) {
+                case error:
+                    // Mark any linked targets inactive. This would not
+                    // normally case when failing to create a snapshot
+                    // session as targets are not linked when a new
+                    // snapshot session is prepared in ViPR. However,
+                    // it could be the case when restoring a source volume
+                    // form a linked target.
+                    StringSet linkedTargets = snapSession.getLinkedTargets();
+                    if ((linkedTargets != null) && (!linkedTargets.isEmpty())) {
+                        for (String linkedTarget : linkedTargets) {
+                            BlockSnapshot target = dbClient.queryObject(BlockSnapshot.class, URI.create(linkedTarget));
+                            if (target != null) {
+                                target.setInactive(true);
+                                dbClient.updateObject(target);
                             }
                         }
+                    }
 
-                        // Mark ViPR snapshot session inactive on error.
-                        snapSession.setInactive(true);
-                        dbClient.updateObject(snapSession);
-                        break;
-                    case ready:
-                        break;
-                    default:
-                        String errMsg = String.format("Unexpected status %s for completer for step %s", status.name(), getOpId());
-                        s_logger.info(errMsg);
-                        throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
-                }
+                    // Mark ViPR snapshot session inactive on error.
+                    snapSession.setInactive(true);
+                    dbClient.updateObject(snapSession);
+                    break;
+                case ready:
+                    break;
+                default:
+                    String errMsg = String.format("Unexpected status %s for completer for step %s", status.name(), getOpId());
+                    s_logger.info(errMsg);
+                    throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
 
             super.complete(dbClient, status, coded);

@@ -81,10 +81,10 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      * {@inheritDoc}
      */
     @Override
-    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
+    public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
-        snapSessionImpl.createSnapshotSession(sourceObj, snapSessionURIs, snapSessionSnapshotMap, copyMode, taskId);
+        snapSessionImpl.createSnapshotSession(sourceObj, snapSessionURI, snapSessionSnapshotURIs, copyMode, taskId);
     }
 
     /**
@@ -196,11 +196,11 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      * {@inheritDoc}
      */
     @Override
-    public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<URI> snapSessionURIs, Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String taskId) {
+    public BlockSnapshotSession prepareSnapshotSession(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
+            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshotsMap, String taskId) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObjList.get(0).getStorageController());
-        return snapSessionImpl.prepareSnapshotSessions(sourceObjList, snapSessionLabel, newTargetCount, newTargetsName, snapSessionURIs,
-                snapSessionSnapshotMap, taskId);
+        return snapSessionImpl.prepareSnapshotSession(sourceObjList, snapSessionLabel, newTargetCount, newTargetsName,
+                snapSessionSnapshotsMap, taskId);
     }
 
     /**

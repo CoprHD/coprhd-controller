@@ -61,14 +61,13 @@ public interface BlockSnapshotSessionApi {
      * @param snapSessionLabel The snapshot session label for these snapshot sessions.
      * @param newTargetCount The number of new targets to create and link to each snapshot session.
      * @param newTargetsName The requested name for the new linked targets.
-     * @param snapSessionURIs This OUT parameter gets populated with the URIs of the created snapshot sessions.
-     * @param snapSessionSnapshotMap This OUT parameter gets populated with the BlockSnaphot instances created for each session, if any.
+     * @param snapSessionSnapshots This OUT parameter gets populated with the BlockSnaphot instances created for each session, if any.
      * @param taskId The unique task identifier.
      * 
      * @return
      */
-    public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<URI> snapSessionURIs, Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String taskId);
+    public BlockSnapshotSession prepareSnapshotSession(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
+            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId);
 
     /**
      * Prepare a ViPR BlockSnapshotSession instance for the passed source object.
@@ -101,13 +100,13 @@ public interface BlockSnapshotSessionApi {
      * Creates a new block snapshot session.
      * 
      * @param sourceObj A reference to the source object.
-     * @param snapSessionURIs The URI of the ViPR BlockSnashotSession instances to be created.
-     * @param snapSessionSnapshotMap A map containing the URis of the BlockSnapshot instances for each session.
+     * @param snapSessionURI The URI of the ViPR BlockSnashotSession instances to be created.
+     * @param snapSessionSnapshotURIs A map containing the URis of the BlockSnapshot instances for each session.
      * @param copyMode The copy mode for linked targets.
      * @param taskId A unique task identifier.
      */
-    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId);
+    public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId);
 
     /**
      * Validates a link new targets to block snapshot session request.

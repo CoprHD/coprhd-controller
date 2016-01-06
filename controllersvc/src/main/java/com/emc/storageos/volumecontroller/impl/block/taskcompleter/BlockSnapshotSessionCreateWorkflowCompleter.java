@@ -35,7 +35,7 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
     public static final String SNAPSHOT_SESSION_CREATE_FAIL_MSG = "Failed to create Block Snapshot Session %s for source %s";
 
     // A map of the BlockSnapshot instances linked to the session for the request.
-    private final Map<URI, List<URI>> _sessionSnapshotMap;
+    private final List<List<URI>> _sessionSnapshotURIs;
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionCreateWorkflowCompleter.class);
@@ -47,9 +47,9 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
      * @param sessionSnapshotsMap A map of the BlockSnapshot instances linked to the session for the request.
      * @param taskId The unique task identifier.
      */
-    public BlockSnapshotSessionCreateWorkflowCompleter(List<URI> snapSessionURIs, Map<URI, List<URI>> sessionSnapshotsMap, String taskId) {
-        super(snapSessionURIs, taskId);
-        _sessionSnapshotMap = sessionSnapshotsMap;
+    public BlockSnapshotSessionCreateWorkflowCompleter(URI snapSessionURI, List<List<URI>> sessionSnapshotURIs, String taskId) {
+        super(snapSessionURI, taskId);
+        _sessionSnapshotURIs = sessionSnapshotURIs;
     }
 
     /**
@@ -58,30 +58,29 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            List<URI> snapSessionURIs = getIds();
-            for (URI snapSessionURI : snapSessionURIs) {
-                BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+            BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, getId());
 
-                BlockObject sourceObj = null;
-                if (snapSession.hasConsistencyGroup()) {
-                    List<Volume> volumesPartOfCG =
-                            ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), dbClient);
-                    sourceObj = volumesPartOfCG.get(0);
-                } else {
-                    sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
-                }
+            BlockObject sourceObj = null;
+            if (snapSession.hasConsistencyGroup()) {
+                List<Volume> volumesPartOfCG =
+                        ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), dbClient);
+                sourceObj = volumesPartOfCG.get(0);
+            } else {
+                sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+            }
 
-                // Record the results.
-                recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.CREATE_SNAPSHOT_SESSION,
-                        status, snapSession, sourceObj);
+            // Record the results.
+            recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.CREATE_SNAPSHOT_SESSION,
+                    status, snapSession, sourceObj);
 
-                // Update the status map of the snapshot session.
-                switch (status) {
-                    case error:
-                        // For those BlockSnapshot instances representing linked targets that
-                        // were not successfully created and linked to the array snapshot
-                        // represented by the BlockSnapshotSession instance, mark them inactive.
-                        for (URI snapshotURI : _sessionSnapshotMap.get(snapSessionURI)) {
+            // Update the status map of the snapshot session.
+            switch (status) {
+                case error:
+                    // For those BlockSnapshot instances representing linked targets that
+                    // were not successfully created and linked to the array snapshot
+                    // represented by the BlockSnapshotSession instance, mark them inactive.
+                    for (List<URI> snapshotURIs : _sessionSnapshotURIs) {
+                        for (URI snapshotURI : snapshotURIs) {
                             // Successfully linked targets will be in the list of linked
                             // targets for the session.
                             StringSet linkedTargets = snapSession.getLinkedTargets();
@@ -95,18 +94,17 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
                                 }
                             }
                         }
+                    }
 
-                        setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
-                        break;
-                    case ready:
-                        setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
-                        break;
-                    default:
-                        String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
-                        s_logger.info(errMsg);
-                        throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
-                }
-
+                    setErrorOnDataObject(dbClient, BlockSnapshotSession.class, getId(), coded);
+                    break;
+                case ready:
+                    setReadyOnDataObject(dbClient, BlockSnapshotSession.class, getId());
+                    break;
+                default:
+                    String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
+                    s_logger.info(errMsg);
+                    throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
 
             if (isNotifyWorkflow()) {

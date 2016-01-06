@@ -361,7 +361,9 @@ public class DrUtil {
      */
     public String getCassandraDcId(Site site) {
         String dcId = null;
-        if (StringUtils.isEmpty(site.getStandbyShortId()) || site.getVdcShortId().equals(site.getStandbyShortId())) {
+        // Use vdc short id as Cassandra Data cener name for first site in a DR config. 
+        // To keep the backward compatibility with geo
+        if (site.getSiteShortId().equals(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID)) {
             dcId = site.getVdcShortId();
         } else {
             dcId = site.getUuid();

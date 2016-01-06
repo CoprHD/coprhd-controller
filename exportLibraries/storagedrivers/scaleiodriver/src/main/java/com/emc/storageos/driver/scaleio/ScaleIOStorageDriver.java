@@ -132,7 +132,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                 ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(volume.getStorageSystemId(),
                         "10.193.17.82", 443, "root", "testo123$A");
 
-                ScaleIOVolume result = null;
                 if (scaleIOHandle != null) {
                     scaleIOHandle.removeVolume(volume.getNativeId());
                     task.setStatus(DriverTask.TaskStatus.READY);

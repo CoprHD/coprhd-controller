@@ -49,8 +49,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
                 String allocatedCapacity = volume.getAllocatedCapacity().toString();
                 String storagePoolId = volume.getStoragePoolId();
 
-                ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(volume.getStorageSystemId(),
-                        "10.193.17.82", 443, "root", "testo123$A");
+                ScaleIORestClient scaleIOHandle = this.getClientBySystemId(volume.getStorageSystemId());
 
                 ScaleIOVolume result = null;
                 if (scaleIOHandle != null) {
@@ -95,8 +94,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
         }
 
         try {
-            ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(volume.getStorageSystemId(),
-                    "10.193.17.82", 443, "root", "testo123$A");
+            ScaleIORestClient scaleIOHandle = this.getClientBySystemId(volume.getStorageSystemId());
 
             ScaleIOVolume result = null;
             if (scaleIOHandle != null) {
@@ -136,8 +134,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
         for (StorageVolume volume : volumes) {
             try {
 
-                ScaleIORestClient scaleIOHandle = handleFactory.getClientHandle(volume.getStorageSystemId(),
-                        "10.193.17.82", 443, "root", "testo123$A");
+                ScaleIORestClient scaleIOHandle = this.getClientBySystemId(volume.getStorageSystemId());
 
                 if (scaleIOHandle != null) {
                     scaleIOHandle.removeVolume(volume.getNativeId());
@@ -689,6 +686,50 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver {
         attributes.put(ScaleIOConstants.PASSWORD, listPwd);
 
         this.driverRegistry.setDriverAttributesForKey(ScaleIOConstants.DRIVER_NAME, systemNativeId, attributes);
+    }
+
+    /**
+     * get Rest Client
+     *
+     * @param systemId storage system id
+     * @return
+     */
+    private ScaleIORestClient getClientBySystemId(String systemId) {
+        String ip_address, port, username, password;
+        ScaleIORestClient client;
+        ip_address = this.getConnInfoFromRegistry(systemId, ScaleIOConstants.IP_ADDRESS);
+        port = this.getConnInfoFromRegistry(systemId, ScaleIOConstants.PORT_NUMBER);
+        username = this.getConnInfoFromRegistry(systemId, ScaleIOConstants.USER_NAME);
+        password = this.getConnInfoFromRegistry(systemId, ScaleIOConstants.PASSWORD);
+        if (ip_address != null && port != null && username != null && password != null) {
+            try {
+                client = handleFactory.getClientHandle(systemId, ip_address, Integer.parseInt(port), username, password);
+                return client;
+            } catch (Exception e) {
+                log.error("Exception when creating rest client instance.", e);
+                return null;
+            }
+        } else {
+            log.info("Exception when retrieving connection information found.");
+            return null;
+        }
+    }
+
+    /**
+     * set task status by checking the number of successful sub-tasks.
+     *
+     * @param sizeOfTasks
+     * @param sizeOfSuccTask
+     * @param task
+     */
+    private void setTaskStatus(int sizeOfTasks, int sizeOfSuccTask, DriverTask task) {
+        if (sizeOfSuccTask == 0) {
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+        } else if (sizeOfSuccTask < sizeOfTasks) {
+            task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+        } else {
+            task.setStatus(DriverTask.TaskStatus.READY);
+        }
     }
 
 }

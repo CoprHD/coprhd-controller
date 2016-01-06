@@ -184,7 +184,25 @@ public class VolumeGroupService extends TaskResourceService {
     public VolumeGroupRestRep getVolumeGroup(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
         VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
-        return DbObjectMapper.map(volumeGroup);
+        VolumeGroupRestRep resp = DbObjectMapper.map(volumeGroup);
+        resp.setReplicationGroupNames(getReplicationGroupNames(volumeGroup));
+        return resp;
+    }
+
+    /**
+     * gets the list of replication group names associated with this COPY type volume group
+     * @return list of replication group names or empty list if the volume group is not COPY or no volumes exist in 
+     * the volume group
+     */
+    private Set<String> getReplicationGroupNames(VolumeGroup group) {
+        
+        Set<String> groupNames = new HashSet<String>();
+        if (group.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())){
+            for (Volume volume : getVolumeGroupVolumes(_dbClient, group)) {
+                groupNames.add(volume.getReplicationGroupInstance());
+            }
+        }
+        return groupNames;
     }
 
     /**
@@ -225,6 +243,12 @@ public class VolumeGroupService extends TaskResourceService {
         return result;
     }
 
+    /**
+     * Get the list of child volume groups
+     * 
+     * @param id
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/volume-groups")

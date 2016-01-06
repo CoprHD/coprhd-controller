@@ -5,7 +5,10 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.List;
 
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +52,17 @@ public class BlockSnapshotSessionUnlinkTargetsWorkflowCompleter extends BlockSna
         URI snapSessionURI = getId();
         try {
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-            BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+
+            // Get the snapshot session source object.
+            URI snapSessionSourceURI = null;
+            if (snapSession.hasConsistencyGroup()) {
+                List<Volume> volumesPartOfCG =
+                        ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), dbClient);
+                snapSessionSourceURI = volumesPartOfCG.get(0).getId();
+            } else {
+                snapSessionSourceURI = snapSession.getParent().getURI();
+            }
+            BlockObject sourceObj = BlockObject.fetch(dbClient, snapSessionSourceURI);
 
             // Record the results.
             recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGET,

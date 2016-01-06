@@ -185,24 +185,8 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
         VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
         VolumeGroupRestRep resp = DbObjectMapper.map(volumeGroup);
-        resp.setReplicationGroupNames(getReplicationGroupNames(volumeGroup));
+        resp.setReplicationGroupNames(CopyVolumeGroupUtils.getReplicationGroupNames(volumeGroup, _dbClient));
         return resp;
-    }
-
-    /**
-     * gets the list of replication group names associated with this COPY type volume group
-     * @return list of replication group names or empty list if the volume group is not COPY or no volumes exist in 
-     * the volume group
-     */
-    private Set<String> getReplicationGroupNames(VolumeGroup group) {
-        
-        Set<String> groupNames = new HashSet<String>();
-        if (group.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())){
-            for (Volume volume : getVolumeGroupVolumes(_dbClient, group)) {
-                groupNames.add(volume.getReplicationGroupInstance());
-            }
-        }
-        return groupNames;
     }
 
     /**
@@ -694,6 +678,24 @@ public class VolumeGroupService extends TaskResourceService {
                 throw e;
             }
         }
+        
+        /**
+         * gets the list of replication group names associated with this COPY type volume group
+         * @return list of replication group names or empty list if the volume group is not COPY or no volumes exist in 
+         * the volume group
+         */
+        public static Set<String> getReplicationGroupNames(VolumeGroup group, DbClient dbClient) {
+            
+            Set<String> groupNames = new HashSet<String>();
+            if (group.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())){
+                List<Volume> volumes = getVolumeGroupVolumes(dbClient, group);
+                if (volumes != null && !volumes.isEmpty()) {
+                    BlockServiceApi serviceAPI = getBlockService(dbClient, volumes.iterator().next());
+                    groupNames.addAll(serviceAPI.getReplicationGroupNames(group));
+                }
+            }
+            return groupNames;
+        }
 
         /**
          * Validate the volumes to be added to the volume group.
@@ -850,7 +852,7 @@ public class VolumeGroupService extends TaskResourceService {
          * @param type The system type
          * @return
          */
-        private String getVolumeType(String type) {
+        private static String getVolumeType(String type) {
             if (BLOCK_TYPES.contains(type)) {
                 return BLOCK;
             } else {
@@ -870,7 +872,7 @@ public class VolumeGroupService extends TaskResourceService {
             }
         }
 
-        private BlockServiceApi getBlockService(DbClient dbClient, final Volume volume) {
+        private static BlockServiceApi getBlockService(DbClient dbClient, final Volume volume) {
             URI systemUri = volume.getStorageController();
             StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
             String type = system.getSystemType();

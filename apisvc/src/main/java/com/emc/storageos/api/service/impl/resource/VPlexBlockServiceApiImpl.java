@@ -3647,6 +3647,29 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
+     */
+    @Override
+    public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {
+        List<String> groupNames = new ArrayList<String>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));
+        for (Volume volume : volumes) {
+            StringSet backingVolumes = volume.getAssociatedVolumes();
+            if (backingVolumes != null) {
+                for (String backingVolId : backingVolumes) {
+                    Volume backingVol = _dbClient.queryObject(Volume.class, URI.create(backingVolId));
+                    if (backingVol != null && !backingVol.getInactive() && backingVol.getReplicationGroupInstance() != null) {
+                        groupNames.add(backingVol.getReplicationGroupInstance());
+                    }
+                }
+            }
+        }
+        return groupNames;
+    }
+
     /**
      * Check if the volumes are in a CG and in the same backend CG
      * 

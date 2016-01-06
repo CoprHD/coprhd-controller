@@ -3024,7 +3024,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // Check if already created, if not create, if so just complete.
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
             if (!cg.created(storage)) {
-                getDevice(storageObj.getSystemType()).doCreateConsistencyGroup(storageObj, consistencyGroup, null, completer);
+                String groupName = ControllerUtils.generateReplicationGroupName(storageObj, cg, null);
+                getDevice(storageObj.getSystemType()).doCreateConsistencyGroup(storageObj, consistencyGroup, groupName, completer);
             } else {
                 _log.info(String.format("Consistency group %s (%s) already created", cg.getLabel(), cg.getId()));
                 completer.ready(_dbClient);
@@ -4097,6 +4098,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             taskCompleter = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
+            String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, null, _dbClient);
             getDevice(storageSystem.getSystemType()).doCreateConsistencyGroup(
                     storageSystem, consistencyGroup, null, taskCompleter);
         } catch (Exception e) {

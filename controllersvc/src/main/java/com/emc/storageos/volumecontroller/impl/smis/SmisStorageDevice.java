@@ -1588,7 +1588,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doCreateConsistencyGroup(final StorageSystem storage, final URI consistencyGroupId, String replicationGroupName,
+    public void doCreateConsistencyGroup(final StorageSystem storage, final URI consistencyGroupId, String groupName,
             final TaskCompleter taskCompleter) throws DeviceControllerException {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
@@ -1598,12 +1598,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             CIMArgument[] outArgs = new CIMArgument[5];
 
             boolean srdfCG = false;
-            String deviceName = null;
-            String groupName = replicationGroupName;
-            if (groupName == null) {
-                groupName = (consistencyGroup.getAlternateLabel() != null) ?
-                    consistencyGroup.getAlternateLabel() : consistencyGroup.getLabel();
-            }
+            String deviceName = groupName;
             if (!storage.deviceIsType(Type.vnxblock)) {
                 // create target CG on source provider
                 StorageSystem forProvider = storage;
@@ -1625,9 +1620,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
                 // VMAX instanceID, e.g., 000196700567+EMC_SMI_RG1414546375042 (8.0.2 provider)
                 deviceName = instanceID.split(Constants.PATH_DELIMITER_REGEX)[storage.getUsingSmis80() ? 1 : 0];
-            } else {
-                deviceName = SmisConstants.VNX_VIRTUAL_RG + groupName;
-                _log.info("VNX virtual replication group {}", deviceName);
             }
 
             consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), deviceName);
@@ -2035,8 +2027,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 CIMObjectPath cgPath = null;
                 CIMInstance cgPathInstance = null;
                 boolean isVPlex = consistencyGroup.checkForType(Types.VPLEX);
-                String groupName = (replicationGroupName != null) ? replicationGroupName : _helper
-                        .getConsistencyGroupName(consistencyGroup, storage);
+                String groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName);
                 // If this is for VPlex, we would create backend consistency group if it does not exist yet.
                 if (!consistencyGroup.nameExistsForStorageSystem(storage.getId(), groupName)) {
                     if (isVPlex) {

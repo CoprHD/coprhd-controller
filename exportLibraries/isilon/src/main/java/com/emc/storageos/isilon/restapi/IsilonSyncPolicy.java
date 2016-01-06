@@ -11,7 +11,7 @@ public class IsilonSyncPolicy {
      * on the source cluster and files that no longer match the selection criteria are deleted from the target directory.
      */
     public static enum Action {
-        copy,                 // for archival
+        copy,                   // for archival
         sync       // for fail over
     }
 
@@ -22,7 +22,7 @@ public class IsilonSyncPolicy {
     private String target_host;
     private String schedule;
     private String description;
-    private String last_job_state;
+    private IsilonSyncJob.State last_job_state;
 
     /*
      * If set to true, replication jobs are automatically run based on the associated replication policy and schedule. If set to false,
@@ -120,7 +120,7 @@ public class IsilonSyncPolicy {
         this.schedule = schedule;
     }
 
-    public String getLast_job_state() {
+    public IsilonSyncJob.State getLast_job_state() {
         return last_job_state;
     }
 

@@ -2224,7 +2224,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 	}
 
 	public BiosCommandResult doStartReplicationPolicy(StorageSystem system, String policyName) {
-
+		IsilonXMLApiResult result;
 		try {
 			IsilonApi isi = getIsilonDevice(system);
 			IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
@@ -2234,14 +2234,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 				}
 				IsilonSyncJob job = isi.getReplicationJob(policyName);
 				if (job.equals(null)) {
-					IsilonXMLApiResult result = isiStartReplicationJob(system, policyName);
+					result = isiStartReplicationJob(system, policyName);
 					if (result.isCommandSuccess()) {
 						_log.info("IsilonFileStorageDevice doStartReplicationPolicy - {}  - complete", policyName);
 					}
 				} else {
 					IsilonSyncJob.State jobState = job.getState();
 					if (!jobState.equals(IsilonSyncJob.State.running)) {
-						IsilonXMLApiResult result = isiStartReplicationJob(system, policyName);
+						result = isiStartReplicationJob(system, policyName);
 						if (result.isCommandSuccess()) {
 							_log.info("IsilonFileStorageDevice doStartReplicationPolicy - {}  - complete", policyName);
 						}
@@ -2383,16 +2383,113 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
 	public BiosCommandResult doFailoverTest(StorageSystem system, String policyName) {
 		try {
+			// target (secondary cluster IP address,password required)
+			// At least one successful replication job completion prior to
+			// failover.
 			IsilonApi isi = getIsilonDevice(system);
 			IsilonSshApi sshDmApi = new IsilonSshApi();
 			sshDmApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+
+			// Failover
 			IsilonXMLApiResult result = sshDmApi.executeSsh("sync recovery" + "" + "allow-write" + "" + policyName, "");
 			IsilonSyncTargetPolicy targetPolicy = isi.getTargetReplicationPolicy(policyName);
 			if (result.isCommandSuccess() && targetPolicy.getFoFbState()
 					.equals(IsilonSyncTargetPolicy.failover_failback_state.writes_enabled)) {
-
+				_log.info("Failover to secondary Cluster - {}  finished successfully", system.getIpAddress());
 			}
+			// Failover Revert
+			result = sshDmApi.executeSsh("sync recovery" + "" + "allow-write" + "" + policyName, "" + "--revert");
+			targetPolicy = isi.getTargetReplicationPolicy(policyName);
+			if (result.isCommandSuccess() && targetPolicy.getFoFbState()
+					.equals(IsilonSyncTargetPolicy.failover_failback_state.writes_disabled)) {
+				_log.info("Failover reversion on secondary Cluster - {}  finished successfully", system.getIpAddress());
+			}
+
 			return BiosCommandResult.createSuccessfulResult();
+		} catch (IsilonException e) {
+			return BiosCommandResult.createErrorResult(e);
+		}
+	}
+
+	public BiosCommandResult doFailBack(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName) {
+		String mirrorPolicyName = policyName.concat("_mirror");
+		IsilonSyncPolicy mirrorPolicy;
+		IsilonSyncPolicy sourcePolicy;
+		IsilonXMLApiResult result;
+		try {
+
+			// Primary Cluster API,CLI client
+			IsilonApi isiPrimary = getIsilonDevice(primarySystem);
+			IsilonSshApi sshDmApiPrimary = new IsilonSshApi();
+			sshDmApiPrimary.setConnParams(primarySystem.getIpAddress(), primarySystem.getUsername(),
+					primarySystem.getPassword());
+
+			// Secondary Cluster API,CLI client
+			IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
+			IsilonSshApi sshDmApiSecondary = new IsilonSshApi();
+			sshDmApiSecondary.setConnParams(secondarySystem.getIpAddress(), secondarySystem.getUsername(),
+					secondarySystem.getPassword());
+
+			/*
+			 * Step 1. Creates a mirror replication policy for the secondary
+			 * cluster i.e Resync-prep on primary cluster , this will disable
+			 * primary cluster replication policy.
+			 */
+			result = sshDmApiPrimary.executeSsh("sync recovery" + "" + "resync-prep" + "" + policyName, "");
+			// TODO wait till the mirror policy is created , it may take time..
+			sourcePolicy = isiPrimary.getReplicationPolicy(policyName);
+			mirrorPolicy = isiSecondary.getReplicationPolicy(mirrorPolicyName);
+
+			/*
+			 * Step 2. Start the mirror replication policy manually, this will
+			 * replicate new data (written during failover) from secondary
+			 * cluster to primary cluster.
+			 */
+			if (result.isCommandSuccess() && mirrorPolicy != null && !sourcePolicy.getEnabled()) {
+				_log.info("Mirror Policy {} created successfully on secondary - {} cluster", mirrorPolicy.toString(),
+						secondarySystem.getIpAddress());
+				isiStartReplicationJob(secondarySystem, mirrorPolicyName);
+				IsilonSyncJob job = isiSecondary.getReplicationJob(mirrorPolicyName);
+				while (job != null && job.getState().equals(IsilonSyncJob.State.running)) {
+					// TODO some code to wait till next polling
+					job = isiSecondary.getReplicationJob(mirrorPolicyName);
+				}
+				mirrorPolicy = isiSecondary.getReplicationPolicy(mirrorPolicyName);
+				if (mirrorPolicy.getLast_job_state().equals(IsilonSyncJob.State.finished)) {
+					_log.info(
+							"Data Replication from secondary cluster - {} to primary cluster-{} for "
+									+ "miror replication policy-{} completed successfully",
+							secondarySystem.getIpAddress(), primarySystem.getIpAddress(), mirrorPolicyName);
+				}
+			}
+
+			/*
+			 * Step 3. Allow Write on Primary Cluster local target after
+			 * replication from step 2.
+			 */
+			result = sshDmApiPrimary.executeSsh("sync recovery" + "" + "allow-write" + "" + mirrorPolicyName, "");
+			IsilonSyncTargetPolicy localTargetPolicy = isiPrimary.getTargetReplicationPolicy(mirrorPolicyName);
+			if (result.isCommandSuccess() && localTargetPolicy.getFoFbState()
+					.equals(IsilonSyncTargetPolicy.failover_failback_state.writes_enabled)) {
+				_log.info("Allow Write on Primary Cluster {} local target after replication done",
+						primarySystem.getIpAddress());
+			}
+
+			/*
+			 * Step 4. Resync-prep on secondary cluster , same as step 1 but
+			 * will be executed on secondary cluster instead of primary cluster.
+			 */
+			result = sshDmApiPrimary.executeSsh("sync recovery" + "" + "resync-prep" + "" + mirrorPolicyName, "");
+			// TODO wait till the mirror policy is created , it may take time..
+			mirrorPolicy = isiSecondary.getReplicationPolicy(mirrorPolicyName);
+			sourcePolicy = isiPrimary.getReplicationPolicy(policyName);
+			if (result.isCommandSuccess() && sourcePolicy != null && !mirrorPolicy.getEnabled()) {
+				_log.info("Fail back to primary cluster - {} from secondary cluster - {} completed ",
+						primarySystem.getIpAddress(), secondarySystem.getIpAddress());
+			}
+
+			return BiosCommandResult.createSuccessfulResult();
+
 		} catch (IsilonException e) {
 			return BiosCommandResult.createErrorResult(e);
 		}

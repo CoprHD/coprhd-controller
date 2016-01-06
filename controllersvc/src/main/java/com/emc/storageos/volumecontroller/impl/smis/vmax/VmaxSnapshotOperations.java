@@ -1387,12 +1387,12 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void createGroupSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException {
         if (system.checkIfVmax3()) {
             _log.info("Create snapshot session group operation START");
 
-            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIs.get(0));
+            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
             BlockConsistencyGroup consistencyGroup =
                     _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
 
@@ -1400,7 +1400,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             String tenantName = tenant.getLabel();
 
             final String label = _nameGenerator.generate(tenantName, snapSession.getLabel(),
-                    snapSessionURIs.get(0).toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
+                    snapSessionURI.toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
 
             String groupName = _helper.getConsistencyGroupName(consistencyGroup, system);
             CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(system, groupName);
@@ -1507,7 +1507,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     }
 
     @Override
-    public void linkSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap,
+    public void linkSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
                                                String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         _log.info("Link new target group to snapshot session group START");
 
@@ -1515,10 +1515,9 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         List<String> targetDeviceIds = new ArrayList<>();
 
         // Gather all snapshots to be created
-        List<URI> snapshotUris = newArrayList(concat(snapSessionSnapshotMap.values()));
+        List<URI> snapshotUris = snapSessionSnapshotURIs;
         List<BlockSnapshot> snapshots = newArrayList(_dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotUris));
         final Map<URI, BlockSnapshot> uriToSnapshot = new HashMap<>();
-        URI snapSessionURI = snapSessionSnapshotMap.keySet().iterator().next();
         BlockSnapshot sampleSnapshot = snapshots.get(0);
         Volume sampleParent = _dbClient.queryObject(Volume.class, sampleSnapshot.getParent().getURI());
         String sourceGroupName = _helper.getConsistencyGroupName(sampleParent, system);
@@ -1565,7 +1564,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
 
             CIMObjectPath sourceGroupPath = _cimPath.getReplicationGroupObjectPath(system, sourceGroupName);
-            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapshotSessionURI);
             String syncAspectPath = snapSession.getSessionInstance();
             CIMObjectPath settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName,
                     syncAspectPath);

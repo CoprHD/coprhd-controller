@@ -10,7 +10,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
@@ -674,7 +673,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void createGroupSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -690,7 +689,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
     }
 
     @Override
-    public void linkSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
+    public void linkSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs, String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 

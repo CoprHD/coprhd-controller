@@ -124,13 +124,13 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
+    public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId) {
         // Invoke the BlockDeviceController to create the array snapshot session and create and link
         // target volumes as necessary.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, sourceObj.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.createSnapshotSession(storageSystem.getId(), snapSessionURIs, snapSessionSnapshotMap, copyMode, taskId);
+        controller.createSnapshotSession(storageSystem.getId(), snapSessionURI, snapSessionSnapshotURIs, copyMode, taskId);
     }
 
     /**

@@ -930,13 +930,13 @@ public interface BlockStorageDevice {
      * Creates new array snapshots on the passed storage system.
      * 
      * @param system A reference to the storage system.
-     * @param snapSessionURIs The URIs of the BlockSnapshotSession instances in ViPR
+     * @param snapSessionURI The URIs of the BlockSnapshotSession instances in ViPR
      *            that will represent these array snapshots.
      * @param completer A reference to the task completer.
-     * 
+     *
      * @throws DeviceControllerException
      */
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void doCreateSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException;
 
     /**
@@ -960,15 +960,15 @@ public interface BlockStorageDevice {
      * Creates a new target volume group and links it to an array snapshot on the passed storage system.
      *
      * @param system A reference to the storage system.
-     * @param snapSessionSnapshotMap Map of BlockSnapshotSession URI's to their BlockSnapshot instance URI,
+     * @param snapshotSessionURI
+     *@param snapSessionSnapshotURIs Map of BlockSnapshotSession URI's to their BlockSnapshot instance URI,
      *                               representing the linked target.
      * @param copyMode The copy mode in which the target is linked to the snapshot.
      * @param targetsExist true if the target exists, false if a new one needs to be created.
      * @param completer A reference to the task completer.
-     *
-     * @throws DeviceControllerException
+*     @throws DeviceControllerException
      */
-    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap,
+    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
                                                       String copyMode, Boolean targetsExist, TaskCompleter completer)
             throws DeviceControllerException;
 

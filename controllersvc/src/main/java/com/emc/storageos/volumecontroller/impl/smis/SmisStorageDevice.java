@@ -2806,17 +2806,16 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * {@inheritDoc}
      */
     @Override
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void doCreateSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException {
         try {
-            if (checkSnapshotSessionConsistencyGroup(snapSessionURIs.get(0), _dbClient, completer)) {
+            if (checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer)) {
                 // Note that this will need to be changed when we add group support.
                 // Because RP+VPLEX requires groups, even if we aren't really doing
                 // a group operation, it will be determined this is a group operation.
                 // For now we just call the single snapshot session create.
-                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURIs, completer);
+                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURI, completer);
             } else {
-                URI snapSessionURI = snapSessionURIs.get(0);
                 _snapshotOperations.createSnapshotSession(system, snapSessionURI, completer);
             }
         } catch (Exception e) {
@@ -2844,9 +2843,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
+    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs, String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         try {
-            _snapshotOperations.linkSnapshotSessionTargetGroup(system, snapSessionSnapshotMap, copyMode, targetsExist, completer);
+            _snapshotOperations.linkSnapshotSessionTargetGroup(system, snapshotSessionURI, snapSessionSnapshotURIs, copyMode, targetsExist, completer);
         } catch (Exception e) {
             // TODO Fix error message
             _log.error(String.format("Exception trying to create and link new target to block snapshot session %s on array %s",

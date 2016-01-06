@@ -29,8 +29,7 @@ import java.util.Map;
 
 import javax.xml.bind.DataBindingException;
 
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -2265,7 +2264,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 waitFor = workflow.createStep(CREATE_SNAPSHOT_SESSION_STEP_GROUP,
                         String.format("Create snapshot session %s for snapshot target volume %s", snapSessionURI, snapshot),
                         waitFor, storage, getDeviceType(storage), BlockDeviceController.class,
-                        createBlockSnapshotSessionMethod(storage, Arrays.asList(snapSessionURI)),
+                        createBlockSnapshotSessionMethod(storage, snapSessionURI),
                         deleteBlockSnapshotSessionMethod(storage, snapSessionURI, Boolean.TRUE), null);
 
                 // Create a workflow step to link the source volume for the passed snapshot
@@ -5446,11 +5445,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * {@inheritDoc}
      */
     @Override
-    public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode, String opId)
+    public void createSnapshotSession(URI systemURI, URI snapSessionURI,
+            List<List<URI>> sessionSnapshotURIs, String copyMode, String opId)
             throws InternalException {
 
-        TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(snapSessionURIs, sessionSnapshotURIMap, opId);
+        TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(snapSessionURI, sessionSnapshotURIs, opId);
         try {
             // Get a new workflow to execute creation of the snapshot session and if
             // necessary creation and linking of target volumes to the new session.
@@ -5460,27 +5459,23 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // Create a step to create the session.
             String waitFor = workflow.createStep(CREATE_SNAPSHOT_SESSION_STEP_GROUP, String.format("Creating block snapshot session"),
                     null, systemURI, getDeviceType(systemURI), getClass(),
-                    createBlockSnapshotSessionMethod(systemURI, snapSessionURIs),
+                    createBlockSnapshotSessionMethod(systemURI, snapSessionURI),
                     rollbackMethodNullMethod(), null);
 
-            // FIXME
-            // We can assume that only a single session will exist for CG/non-CG cases, so grab the target list like
-            // this to see if any exist.
-            List tgtList = sessionSnapshotURIMap.get(snapSessionURIs.get(0));
-
             // If necessary add a step for each session to create the new targets and link them to the session.
-            if ((sessionSnapshotURIMap != null) && (!tgtList.isEmpty())) {
+            if ((sessionSnapshotURIs != null) && (!sessionSnapshotURIs.isEmpty())) {
 
-                if (checkSnapshotSessionConsistencyGroup(snapSessionURIs.get(0), _dbClient, completer)) {
-                    workflow.createStep(LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
-                            String.format("Linking group targets snapshot sessions %s", snapSessionURIs),
-                            waitFor, systemURI, getDeviceType(systemURI), getClass(),
-                            linkBlockSnapshotSessionTargetGroupMethod(systemURI, sessionSnapshotURIMap, copyMode, Boolean.FALSE),
-                            null,
-                            null);
+                if (checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer)) {
+                    for (List<URI> snapshotURIs : sessionSnapshotURIs) {
+                        workflow.createStep(LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
+                                String.format("Linking group targets snapshot sessions %s", snapSessionURI),
+                                waitFor, systemURI, getDeviceType(systemURI), getClass(),
+                                linkBlockSnapshotSessionTargetGroupMethod(systemURI, snapSessionURI, snapshotURIs, copyMode, Boolean.FALSE),
+                                null,
+                                null);
+                    }
                 } else {
-                    for (URI snapSessionURI : snapSessionURIs) {
-                        List<URI> snapshotURIs = sessionSnapshotURIMap.get(snapSessionURI);
+                    for (List<URI> snapshotURIs : sessionSnapshotURIs) {
                         if ((snapshotURIs != null) && (!snapshotURIs.isEmpty())) {
                             for (URI snapshotURI : snapshotURIs) {
                                 workflow.createStep(
@@ -5507,12 +5502,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * to create block snapshot sessions.
      *
      * @param systemURI The URI of the storage system on which the snapshot sessions are created.
-     * @param snapSessionURIs The URIs of the sessions in ViPR
-     *
+     * @param snapSessionURI The URIs of the sessions in ViPR
      * @return A reference to a Workflow.Method for creating an array snapshot.
      */
-    public static Workflow.Method createBlockSnapshotSessionMethod(URI systemURI, List<URI> snapSessionURIs) {
-        return new Workflow.Method(CREATE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURIs);
+    public static Workflow.Method createBlockSnapshotSessionMethod(URI systemURI, URI snapSessionURI) {
+        return new Workflow.Method(CREATE_SNAPSHOT_SESSION_METHOD, systemURI, snapSessionURI);
     }
 
     /**
@@ -5520,15 +5514,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * with the BlockSnapshotSession instances with the passed URIs.
      *
      * @param systemURI The URI of the storage system.
-     * @param snapSessionURIs The URIs of the BlockSnapshotSessioninstances representing the array snapshots.
+     * @param snapSessionURI The URIs of the BlockSnapshotSessioninstances representing the array snapshots.
      * @param stepId The unique id of the workflow step in which the snapshots are be created.
      */
-    public void createBlockSnapshotSession(URI systemURI, List<URI> snapSessionURIs, String stepId) {
+    public void createBlockSnapshotSession(URI systemURI, URI snapSessionURI, String stepId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            completer = new BlockSnapshotSessionCreateCompleter(snapSessionURIs, stepId);
-            getDevice(system.getSystemType()).doCreateSnapshotSession(system, snapSessionURIs, completer);
+            completer = new BlockSnapshotSessionCreateCompleter(snapSessionURI, stepId);
+            getDevice(system.getSystemType()).doCreateSnapshotSession(system, snapSessionURI, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -5552,9 +5546,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @return A reference to a Workflow.Method for linking a target volume to an array snapshot.
      */
     public static Workflow.Method linkBlockSnapshotSessionTargetGroupMethod(URI systemURI,
-                                                                       Map<URI, List<URI>> snapSessionSnapshotMap,
+                                                                            URI snapshotSessionURI,
+                                                                            List<URI> snapshotURIs,
                                                                             String copyMode, Boolean targetsExist) {
-        return new Workflow.Method(LINK_SNAPSHOT_SESSION_TARGET_GROUP_METHOD, systemURI, snapSessionSnapshotMap, copyMode,
+        return new Workflow.Method(LINK_SNAPSHOT_SESSION_TARGET_GROUP_METHOD, systemURI,
+                snapshotSessionURI,
+                snapshotURIs, copyMode,
                 targetsExist);
     }
 
@@ -5571,14 +5568,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param targetsExist true if the target exists, false if a new one needs to be created.
      * @param stepId The unique id of the workflow step in which the target is linked.
      */
-    public boolean linkBlockSnapshotSessionTargetGroup(URI systemURI, Map<URI, List<URI>> snapSessionSnapshotMap,
+    public boolean linkBlockSnapshotSessionTargetGroup(URI systemURI, URI snapshotSessionURI, List<URI> snapshotURIs,
                                                              String copyMode, Boolean targetsExist, String stepId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            completer = new BlockSnapshotSessionLinkTargetCompleter(snapSessionSnapshotMap, stepId);
-            getDevice(system.getSystemType()).doLinkBlockSnapshotSessionTargetGroup(system, snapSessionSnapshotMap,
-                    copyMode, targetsExist, completer);
+            completer = new BlockSnapshotSessionLinkTargetCompleter(snapshotSessionURI, snapshotURIs, stepId);
+            getDevice(system.getSystemType()).doLinkBlockSnapshotSessionTargetGroup(system, snapshotSessionURI,
+                    snapshotURIs, copyMode, targetsExist, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -5625,7 +5622,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            completer = new BlockSnapshotSessionLinkTargetCompleter(snapSessionURI, snapshotURI, stepId);
+            completer = new BlockSnapshotSessionLinkTargetCompleter(snapSessionURI, Lists.newArrayList(snapshotURI), stepId);
             getDevice(system.getSystemType()).doLinkBlockSnapshotSessionTarget(system, snapSessionURI,
                     snapshotURI, copyMode, targetExists, completer);
         } catch (Exception e) {

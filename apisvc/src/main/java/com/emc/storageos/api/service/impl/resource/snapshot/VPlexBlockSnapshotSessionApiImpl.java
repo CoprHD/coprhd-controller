@@ -93,15 +93,15 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
+    public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId) {
         if (URIUtil.isType(sourceObj.getId(), Volume.class)) {
             // Get the platform specific implementation for the source side
             // backend storage system and call the create method.
             Volume vplexVolume = (Volume) sourceObj;
             BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
-            snapSessionImpl.createSnapshotSession(srcSideBackendVolume, snapSessionURIs, snapSessionSnapshotMap, copyMode, taskId);
+            snapSessionImpl.createSnapshotSession(srcSideBackendVolume, snapSessionURI, snapSessionSnapshotURIs, copyMode, taskId);
         } else {
             // We don't currently support snaps of BlockSnapshot instances
             // so should never be called.

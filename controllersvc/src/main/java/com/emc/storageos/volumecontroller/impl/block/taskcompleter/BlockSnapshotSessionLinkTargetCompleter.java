@@ -35,24 +35,20 @@ public class BlockSnapshotSessionLinkTargetCompleter extends TaskLockingComplete
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionLinkTargetCompleter.class);
 
-    private Map<URI, List<URI>> _snapSessionSnapshotMap;
+    private URI _snapshotSessionURI;
+    private List<URI> _snapshotURIs;
 
     /**
      * Constructor
      * 
      * @param snapSessionURI The id of the BlockSnapshotSession instance in the database.
-     * @param snapshotURI The id of the BlockSnapshot instance representing the target.
+     * @param snapshotURIs The id of the BlockSnapshot instance representing the target.
      * @param stepId The id of the WF step in which the target is being created and linked.
      */
-    public BlockSnapshotSessionLinkTargetCompleter(URI snapSessionURI, URI snapshotURI, String stepId) {
-        super(BlockSnapshot.class, snapshotURI, stepId);
-        _snapSessionSnapshotMap = new HashMap<>();
-        _snapSessionSnapshotMap.put(snapSessionURI, newArrayList(snapshotURI));
-    }
-
-    public BlockSnapshotSessionLinkTargetCompleter(Map<URI, List<URI>> snapSessionSnapshotMap, String stepId) {
-        super(BlockSnapshot.class, newArrayList(concat(snapSessionSnapshotMap.values())), stepId);
-        _snapSessionSnapshotMap = snapSessionSnapshotMap;
+    public BlockSnapshotSessionLinkTargetCompleter(URI snapSessionURI, List<URI> snapshotURIs, String stepId) {
+        super(BlockSnapshot.class, snapshotURIs, stepId);
+        _snapshotSessionURI = snapSessionURI;
+        _snapshotURIs = snapshotURIs;
     }
 
     /**
@@ -66,20 +62,15 @@ public class BlockSnapshotSessionLinkTargetCompleter extends TaskLockingComplete
                     break;
                 case ready:
                     List<BlockSnapshotSession> sessionsToUpdate = newArrayList();
-                    for (Map.Entry<URI, List<URI>> entry : _snapSessionSnapshotMap.entrySet()) {
-                        URI snapSessionURI = entry.getKey();
-                        List<URI> snapshotTargets = entry.getValue();
+                    BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, _snapshotSessionURI);
+                    StringSet linkedTargets = snapSession.getLinkedTargets();
 
-                        BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-                        StringSet linkedTargets = snapSession.getLinkedTargets();
-
-                        if (linkedTargets == null) {
-                            linkedTargets = new StringSet();
-                            snapSession.setLinkedTargets(linkedTargets);
-                        }
-                        linkedTargets.addAll(transform(snapshotTargets, FCTN_URI_TO_STRING));
-                        sessionsToUpdate.add(snapSession);
+                    if (linkedTargets == null) {
+                        linkedTargets = new StringSet();
+                        snapSession.setLinkedTargets(linkedTargets);
                     }
+                    linkedTargets.addAll(transform(_snapshotURIs, FCTN_URI_TO_STRING));
+                    sessionsToUpdate.add(snapSession);
                     dbClient.updateObject(sessionsToUpdate);
                     break;
                 default:

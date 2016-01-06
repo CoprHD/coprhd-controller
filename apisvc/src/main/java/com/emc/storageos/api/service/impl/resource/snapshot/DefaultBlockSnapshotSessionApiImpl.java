@@ -284,34 +284,57 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<URI> snapSessionURIs, Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String taskId) {
-
-
+    public BlockSnapshotSession prepareSnapshotSession(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
+            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId) {
         // Create a single snap session for one volume in the CG
         BlockObject source = sourceObjList.get(0);
         BlockSnapshotSession snapSession =
                 prepareSnapshotSessionFromSource(source, snapSessionLabel, snapSessionLabel, taskId);
-        snapSessionURIs.add(snapSession.getId());
 
-        // For each volume in the CG, create X target BlockSnapshot instances
-        int sourceCount = 0;
-        for (BlockObject sourceObj : sourceObjList) {
+        /*
+         * If linked targets are requested...
+         *
+         * Non-CG case for source ["src"] with 2 targets named "linked":
+         * [
+         *  ["linked-1"],
+         *  ["linked-2"]
+         * ]
+         *
+         * CG case for sources ["src-1", "src-2"] with 2 targets named "linked":
+         * [
+         *  ["linked-1-1", "linked-1-2"],
+         *  ["linked-2-1", "linked-2-2"]
+         * ]
+         *
+         * i.e. treat non-CG single volumes as single member groups, then for however
+         * many target requests, copy each group.
+         *
+         */
+        if (newTargetCount > 0) {
+            // Create <newTargetCount> lists of targets
+            // Snapset labels use format <newTargetsName>-<currentTargetCount>
+            // Labels will look like <snapsetLabel>-<count>
+            for (int i = 0; i < newTargetCount; i++) {
+                int count = 0;
+                Map<URI, BlockSnapshot> targetMap = new HashMap<>();
+                for (BlockObject sourceObj : sourceObjList) {
+                    // Generate label here
+                    String snapsetLabel = String.format("%s-%s", newTargetsName, i + 1);
+                    String label = snapsetLabel;
+                    if (sourceObjList.size() > 1) {
+                        label = String.format("%s-%s", label, ++count);
+                    }
 
-            // If new targets are to be created and linked to the snapshot session, prepare
-            // the BlockSnapshot instances to represent those targets.
-            if (newTargetCount > 0) {
-                Map<URI, BlockSnapshot> snapshotMap =
-                        prepareSnapshotsForSession(sourceObj, sourceCount++, newTargetCount, newTargetsName);
-                snapSessionSnapshotMap.put(snapSession.getId(), snapshotMap);
-            } else {
-                snapSessionSnapshotMap.put(snapSession.getId(), new HashMap<URI, BlockSnapshot>());
+                    BlockSnapshot blockSnapshot = prepareSnapshotForSession(sourceObj, snapsetLabel, label);
+                    targetMap.put(blockSnapshot.getId(), blockSnapshot);
+                }
+                snapSessionSnapshots.add(targetMap);
             }
         }
 
         // Create and return the prepared snapshot session.
         _dbClient.createObject(snapSession);
-        return Lists.newArrayList(snapSession);
+        return snapSession;
     }
 
     /**
@@ -345,14 +368,38 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         return snapSession;
     }
 
+    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String label) {
+        BlockSnapshot snapshot = new BlockSnapshot();
+
+        snapshot.setId(URIUtil.createId(BlockSnapshot.class));
+        URI cgUri = sourceObj.getConsistencyGroup();
+        if (cgUri != null) {
+            snapshot.setConsistencyGroup(cgUri);
+        }
+        snapshot.setSourceNativeId(sourceObj.getNativeId());
+        snapshot.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
+        snapshot.setLabel(label);
+        snapshot.setStorageController(sourceObj.getStorageController());
+        snapshot.setVirtualArray(sourceObj.getVirtualArray());
+        snapshot.setProtocol(new StringSet());
+        snapshot.getProtocol().addAll(sourceObj.getProtocol());
+        Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
+        snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+        snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
+                snapsetLabel, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
+        snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
+
+        _dbClient.createObject(snapshot);
+        return snapshot;
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
     public Map<URI, BlockSnapshot> prepareSnapshotsForSession(BlockObject sourceObj, int sourceCount, int newTargetCount,
             String newTargetsName) {
-
-        Map<URI, BlockSnapshot> snapshotMap = new HashMap<URI, BlockSnapshot>();
+        Map<URI, BlockSnapshot> snapshotMap = new HashMap<>();
         for (int i = 1; i <= newTargetCount; i++) {
             // Create distinct snapset and instance labels for each snapshot
             String snapsetLabel = newTargetsName;
@@ -389,8 +436,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
+    public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId) {
         // Must be implemented by platform implementations for which this is supported.
         throw APIException.methodNotAllowed.notSupported();
     }

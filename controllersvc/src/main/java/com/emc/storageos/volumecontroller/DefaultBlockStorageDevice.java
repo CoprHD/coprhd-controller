@@ -728,7 +728,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
      * {@inheritDoc}
      */
     @Override
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void doCreateSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -743,7 +743,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
+    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs, String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 

@@ -467,10 +467,10 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
      * {@inheritDoc}
      */
     @Override
-    public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs, Map<URI,
-            List<URI>> sessionSnapshotURIMap, String copyMode, String opId)
+    public void createSnapshotSession(URI systemURI, URI snapSessionURI, List<List<URI>> sessionSnapshotURIs,
+                                      String copyMode, String opId)
             throws InternalException {
-        blockRMI("createSnapshotSession", systemURI, snapSessionURIs, sessionSnapshotURIMap, copyMode, opId);
+        blockRMI("createSnapshotSession", systemURI, snapSessionURI, sessionSnapshotURIs, copyMode, opId);
     }
 
     /**

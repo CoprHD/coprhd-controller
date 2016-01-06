@@ -6,18 +6,20 @@ package com.emc.storageos.systemservices.impl.restore;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.NodeListener;
@@ -41,7 +43,15 @@ public class DownloadExecutor implements  Runnable {
     private BackupRestoreStatus restoreStatus;
     DownloadListener listener = new DownloadListener();
 
-    public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps, boolean notifyOthers) {
+    public static DownloadExecutor create(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps, boolean notifyOthers) {
+
+        DownloadExecutor downloader = new DownloadExecutor(cfg, backupZipFileName, backupOps, notifyOthers);
+        downloader.registerListener();
+
+        return downloader;
+    }
+
+    private DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps, boolean notifyOthers) {
         if (cfg.uploadUrl == null) {
             try {
                 cfg.reload();
@@ -141,8 +151,8 @@ public class DownloadExecutor implements  Runnable {
             log.error("Failed to download e=", e);
         }finally {
             try {
-                backupOps.removeRestoreListener(listener);
                 backupOps.releaseLock(lock);
+                backupOps.removeRestoreListener(listener);
             }catch (Exception e) {
                 log.error("Failed to remove listener e=",e);
             }
@@ -153,34 +163,24 @@ public class DownloadExecutor implements  Runnable {
         log.info("download start");
         ZipInputStream zin = getDownloadStream();
 
-        if (notifyOthers) {
-            // This is the first node to download backup files
-            try {
-                long size = client.getFileSize(remoteBackupFileName);
-                log.info("lby size={}", size);
+        File backupFolder= backupOps.getDownloadDirectory(remoteBackupFileName);
 
-                setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOADING, size, 0);
-            } catch (IOException | InterruptedException e) {
-                log.error("Failed to get zip file size e=", e);
-                throw e;
-            }
-        }else {
-            setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOADING, 0, 0);
+        if (hasDownloaded(backupFolder)) {
+            log.info("The backup {} for this node has already been downloaded", remoteBackupFileName);
+            return; //already downloaded, no need to download again
         }
 
-        int dotIndex=remoteBackupFileName.lastIndexOf(".");
-        String backupFolder=remoteBackupFileName.substring(0, dotIndex);
-        log.info("lbyx backupFolder={}", backupFolder);
+        if (notifyOthers) {
+            // This is the first node to download backup files
+            long size = client.getFileSize(remoteBackupFileName);
 
-        String localHostName = InetAddress.getLocalHost().getHostName();
-        log.info("lby local hostname={}", localHostName);
+            setDownloadStatus(remoteBackupFileName, BackupRestoreStatus.Status.DOWNLOADING, size, 0);
+        }
 
         ZipEntry zentry = zin.getNextEntry();
         while (zentry != null) {
-            log.info("lbyy file {}", zentry.getName());
-            if (belongsTo(zentry.getName(), localHostName)) {
-                log.info("lbyy to download {}", backupFolder+"/"+zentry.getName());
-                downloadMyBackupFile(backupFolder+"/"+zentry.getName(), zin);
+            if (isMyBackupFile(zentry)) {
+                downloadMyBackupFile(backupFolder, zentry.getName(), zin);
             }
             zentry = zin.getNextEntry();
         }
@@ -188,43 +188,62 @@ public class DownloadExecutor implements  Runnable {
         // fix the download size
         postDownload(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS);
 
-        try {
-            zin.closeEntry();
-            zin.close();
-        }catch (IOException e) {
-            log.info("lbyu exception will close ignored e=", e);
+        zin.closeEntry();
+        zin.close();
+    }
+
+    private boolean hasDownloaded(File backupFolder) {
+        FilenameFilter filter = new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".zip");
+            }
+        };
+
+        File[] zipFiles = backupFolder.listFiles(filter);
+
+        if (zipFiles == null) {
+            return false;
         }
+
+        for (File zipFile : zipFiles) {
+            if (backupOps.checkMD5(zipFile) == false) {
+                log.info("MD5 of {} does not match its md5 file", zipFile.getAbsolutePath());
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void postDownload(BackupRestoreStatus.Status status) {
         restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName);
-        log.info("lbynn restoreStatus={}", restoreStatus);
         restoreStatus.increaseNodeCompleted();
         int completedNodes = restoreStatus.getNodeCompleted();
-        log.info("lbynn restoreStatus={} completedNodes={}", restoreStatus, completedNodes);
 
         if (restoreStatus.getStatus() == BackupRestoreStatus.Status.DOWNLOADING) {
             long nodeNumber = backupOps.getHosts().size();
-            log.info("lbynn nodeNumber={}", nodeNumber);
             if (completedNodes == nodeNumber) {
                 restoreStatus.setStatus(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS);
             }
         }
 
-        log.info("lbynn after restoreStatus={}", restoreStatus);
         backupOps.persistBackupRestoreStatus(restoreStatus);
     }
 
-    private boolean belongsTo(String filename, String hostname) {
-        log.info("lbyuu filename={} zk suffix={}", filename, BackupConstants.BACKUP_ZK_FILE_SUFFIX);
-        return filename.contains(hostname) ||
+    private boolean isMyBackupFile(ZipEntry backupEntry) throws UnknownHostException {
+        String filename = backupEntry.getName();
+
+        String localHostName = InetAddress.getLocalHost().getHostName();
+        return filename.contains(localHostName) ||
                 filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
                 filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
     }
 
-    private long downloadMyBackupFile(String backupFileName, ZipInputStream zin) throws IOException {
+    private long downloadMyBackupFile(File downloadDir, String backupFileName, ZipInputStream zin) throws IOException {
         long downloadSize = 0;
-        File file = new File(backupOps.getBackupDir(), backupFileName);
+
+        File file = new File(downloadDir, backupFileName);
         if (!file.exists()) {
             file.getParentFile().mkdirs();
             file.createNewFile();
@@ -260,10 +279,9 @@ public class DownloadExecutor implements  Runnable {
         List<Service> sysSvcs = backupOps.getAllSysSvc();
         for (Service svc : sysSvcs) {
             URI endpoint = svc.getEndpoint();
-            log.info("lbyy notify {} hostname={}", endpoint, svc.getNodeName());
+            log.info("Notify {} hostname={}", endpoint, svc.getNodeName());
 
             if (localHostName.equals(svc.getNodeName())) {
-                log.info("lbym local host skip");
                 continue;
             }
 
@@ -273,8 +291,6 @@ public class DownloadExecutor implements  Runnable {
     }
 
     private ZipInputStream getDownloadStream() throws IOException {
-        log.info("Get download stream backupfile={}", remoteBackupFileName);
-
         InputStream in = client.download(remoteBackupFileName);
         ZipInputStream zin = new ZipInputStream(in);
 

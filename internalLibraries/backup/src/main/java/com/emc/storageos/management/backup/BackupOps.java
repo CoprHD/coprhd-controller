@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.nio.charset.Charset;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -33,13 +34,16 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
-import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.google.common.hash.Hashing;
+import com.google.common.io.Files;
+import com.google.common.base.Preconditions;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -48,12 +52,13 @@ import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Service;
+
+import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.exceptions.RetryableBackupException;
-import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
-import com.google.common.base.Preconditions;
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 
 public class BackupOps {
     private static final Logger log = LoggerFactory.getLogger(BackupOps.class);
@@ -254,6 +259,13 @@ public class BackupOps {
         this.backupDir = backupDir;
     }
 
+    public File getDownloadDirectory(String remoteBackupFilename) {
+        int dotIndex=remoteBackupFilename.lastIndexOf(".");
+        String backupFolder=remoteBackupFilename.substring(0, dotIndex);
+
+        return new File("/tmp", backupFolder);
+    }
+
     /**
      * Create backup file on all nodes
      * 
@@ -304,11 +316,9 @@ public class BackupOps {
     public BackupRestoreStatus queryBackupRestoreStatus(String backupName) {
         Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
                 getBackupConfigKind(backupName), Constants.GLOBAL_ID);
-        log.info("lbymmm1 cfg={}", cfg);
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
 
         BackupRestoreStatus restoreStatus = new BackupRestoreStatus(allItems);
-        log.info("lbym Restore status is: {}", restoreStatus);
         return restoreStatus;
     }
 
@@ -320,10 +330,9 @@ public class BackupOps {
      * Persist upload status to ZK
      */
     public void persistBackupRestoreStatus(BackupRestoreStatus status) {
-        log.info("lbymm persist backup restore status {}", status);
+        log.info("Persist backup restore status {}", status);
         Map<String, String> allItems = (status != null) ? status.toMap(): null;
 
-        log.info("lbymm allItems={}", allItems);
         if (allItems == null || allItems.size() == 0){
             return;
         }
@@ -333,8 +342,6 @@ public class BackupOps {
         config.setKind(getBackupConfigKind(backupName));
         config.setId(Constants.GLOBAL_ID);
 
-        log.info("lbym Setting restore status: {}", status);
-
         for (Map.Entry<String, String> entry : allItems.entrySet()) {
             config.setConfig(entry.getKey(), entry.getValue());
         }
@@ -342,6 +349,51 @@ public class BackupOps {
         coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
         log.info("Persist backup restore status to zk successfully");
     }
+
+    /**
+     * To check if the MD5 of the file equals to MD5 in ${file}.md5
+     * The MD5 file is one-line file and should have following formate:
+     * MD5  FILE-SIZE  FILE
+     *
+     * @param file the file to be checked
+     * @return true the MD5 is matched
+     */
+    public boolean checkMD5(File file) {
+        log.info("To check {}", file.getAbsolutePath());
+
+        try {
+            String generatedMD5 = Files.hash(file, Hashing.md5()).toString();
+
+            String md5Filename = file.getAbsolutePath() + BackupConstants.MD5_SUFFIX;
+
+            File md5File = new File(md5Filename);
+
+            if (!md5File.exists()) {
+                log.info("The MD5 file {} not exist", md5File);
+                return false;
+            }
+
+            List<String> lines = Files.readLines(md5File, Charset.defaultCharset());
+            if (lines.size() != 1) {
+                log.error("Invalid md5 file {}: more than 1 line", md5Filename);
+                return false;
+            }
+
+            String[] tokens = lines.get(0).split("\\s");
+
+            if (tokens.length != 3) {
+                log.error("Invalid md5 file {} : only 3 fields allowed in a line", md5Filename);
+                return false;
+            }
+
+            return generatedMD5.equals(tokens[0]);
+        }catch (IOException e) {
+            log.error("Failed to check md5 e=",e);
+        }
+
+        return false;
+    }
+
 
     class CreateBackupCallable extends BackupCallable<Void> {
         @Override

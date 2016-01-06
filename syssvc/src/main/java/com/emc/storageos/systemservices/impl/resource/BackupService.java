@@ -367,11 +367,10 @@ public class BackupService {
     @POST
     @Path("internal/push")
     public Response downloadBackupFile(String backupName) {
-        log.info("lbyu To download backupName={}", backupName);
+        log.info("To download backupName={}", backupName);
 
-        //false = do not notify other nodes
-        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps, false);
-        downloadTask.registerListener();
+        DownloadExecutor downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
+                backupName, backupOps, false); //false= notify other nodes
 
         downloadThread = new Thread(downloadTask);
         downloadThread.setDaemon(true);
@@ -382,8 +381,8 @@ public class BackupService {
     }
 
     /**
-     *  Download backup from the backup FTP server
-     *  each node will only downloads its backup data
+     *  Download backup data from the backup FTP server
+     *  each node will only downloads its own backup data
      *
      * @param backupName the name of the backup on the FTP server
      * @return server response indicating if the operation succeeds.
@@ -392,10 +391,10 @@ public class BackupService {
     @Path("pull/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response restoreBackup(@QueryParam("file") String backupName ) {
-        log.info("The backup file {} to restore", backupName);
+        log.info("The backup file {} to download", backupName);
 
-        DownloadExecutor downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps, true); //true = notify other nodes
-        downloadTask.registerListener();
+        DownloadExecutor downloadTask = DownloadExecutor.create(backupScheduler.getCfg(),
+                backupName, backupOps, true); //true = notify other nodes
         downloadThread = new Thread(downloadTask);
         downloadThread.setDaemon(true);
         downloadThread.setName("backupDownloadThread");

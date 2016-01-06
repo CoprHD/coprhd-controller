@@ -17,15 +17,16 @@ public class BackupRestoreStatus {
     private static final String KEY_DOWNLOAD_SIZE = "downloadSize";
     private static final String KEY_STATUS = "status";
     private static final String KEY_NODE_COMPLETED= "nodeCompleted";
+    private static final String KEY_IS_GEO_ENV= "isGeo";
 
     private String backupName;
     private long backupSize = 0;
     private long downloadSize = 0;
     private Status status = Status.NOT_STARTED;
     private int nodeCompleted = 0;
+    private boolean isGeo = false;
 
     public BackupRestoreStatus() {
-
     }
 
     @XmlElement(name = "backup_name")
@@ -48,6 +49,15 @@ public class BackupRestoreStatus {
 
     public int getNodeCompleted() {
         return nodeCompleted;
+    }
+
+    @XmlElement (name = "is_geo")
+    public boolean isGeo() {
+        return isGeo;
+    }
+
+    public void setIsGeo(boolean isGeo) {
+        this.isGeo = isGeo;
     }
 
     public void increaseNodeCompleted() {
@@ -94,27 +104,24 @@ public class BackupRestoreStatus {
         map.put(KEY_DOWNLOAD_SIZE, Long.toString(downloadSize));
         map.put(KEY_STATUS, status.name());
         map.put(KEY_NODE_COMPLETED, Integer.toString(nodeCompleted));
+        map.put(KEY_IS_GEO_ENV, Boolean.toString(isGeo));
 
         return map;
     }
 
     public BackupRestoreStatus(Map<String, String> configs) {
-        log.info("lbymt0 configs={}", configs);
         update(configs);
     }
 
     private void update(Map<String, String> configs) {
-        log.info("lbymt");
         for (Map.Entry<String, String> config: configs.entrySet()) {
             String key = config.getKey();
             String value = config.getValue();
             switch (key) {
                 case KEY_BACKUP_NAME:
                     backupName = value;
-                    log.info("lbymt0");
                     break;
                 case KEY_BACKUP_SIZE:
-                    log.info("lbymt3");
                     backupSize = Long.parseLong(value);
                     break;
                 case KEY_DOWNLOAD_SIZE:
@@ -126,9 +133,11 @@ public class BackupRestoreStatus {
                 case KEY_NODE_COMPLETED:
                     nodeCompleted = Integer.parseInt(value);
                     break;
+                case KEY_IS_GEO_ENV:
+                    isGeo = Boolean.valueOf(value);
+                    break;
             }
         }
-        log.info("lbymt done");
     }
 
     @Override

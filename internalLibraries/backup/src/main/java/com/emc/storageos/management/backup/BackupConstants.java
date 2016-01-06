@@ -84,11 +84,12 @@ public interface BackupConstants {
     String FTP_URL_PREFIX = "ftp://";
     String CONTENT_LENGTH_HEADER = "Content-Length:";
     int FILE_DOES_NOT_EXIST = 19;
+    String MD5_SUFFIX = ".md5";
+    int LOCK_TIMEOUT = 1000;
 
     //constants for restore
-    public static final int DOWNLOAD_BUFFER_SIZE=KILOBYTE*4; //4k
-    public static final String BACKUP_RESTORE_STATUS = "RestoreStatus";
-    public static final String RESTORE_LOCK="restore";
+    int DOWNLOAD_BUFFER_SIZE=KILOBYTE*4; //4k
+    String BACKUP_RESTORE_STATUS = "RestoreStatus";
+    String RESTORE_LOCK="restore";
     String BACKUP_LOCK = "backup";
-    int LOCK_TIMEOUT = 1000;
 }

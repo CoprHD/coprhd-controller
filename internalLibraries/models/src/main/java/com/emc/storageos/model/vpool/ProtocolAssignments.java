@@ -28,7 +28,8 @@ public class ProtocolAssignments {
     }
 
     /**
-     * The set of protocols.
+     * The set of protocols.Valid values are
+     * FC, ISCSI, FCoE, NFS, NFSV4, CIFS
      * 
      */
     @XmlElement(name = "protocol")

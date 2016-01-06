@@ -22,6 +22,7 @@ public class NetworkCreate {
     private String transportType;
     private List<URI> varrays;
     private List<String> endpoints;
+    
 
     public NetworkCreate() {
     }
@@ -46,7 +47,7 @@ public class NetworkCreate {
     }
 
     /**
-     * Transport type of the network.
+     * Transport type of the network. Valid values: FC, IP, Ethernet
      * 
      */
     @XmlElement(required = true, name = "transport_type")

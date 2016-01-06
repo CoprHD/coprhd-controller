@@ -84,7 +84,7 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
 
     /**
      * @deprecated use getMaxPaths instead of getNumPaths
-     * getMaxPaths()
+     * @see #getMaxPaths()
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
@@ -96,7 +96,7 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
 
     /**
      * @deprecated use setMaxPaths instead of setNumPaths
-     * setMaxPaths()
+     * @see #setMaxPaths()
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
@@ -171,7 +171,7 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     }
 
     /**
-     * Supported Drive Type.
+     * Supported Drive Type. NONE, SSD, FC, SAS, SATA
      * 
      */
     @XmlElement(name = "drive_type")

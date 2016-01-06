@@ -13,6 +13,7 @@ public class ACLEntry {
 
     /**
      * List of privileges that make up this entry. Some privileges will apply to different APIs.
+     * Valid values: ALL, BACKUP, USE
      * 
      */
     private List<String> aces;

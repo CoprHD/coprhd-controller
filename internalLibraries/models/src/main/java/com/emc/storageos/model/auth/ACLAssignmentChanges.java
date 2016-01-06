@@ -13,13 +13,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "acl_assignment_changes")
 public class ACLAssignmentChanges {
     /**
-     * List of acl entries to add in this ACL change.
+     * List of acl entries to add in this ACL change. There needs to be atleast an add or remove element.
      * 
      */
     private List<ACLEntry> add;
 
     /**
-     * List of acl entries to remove in this ACL change.
+     * List of acl entries to remove in this ACL change.There needs to be atleast an add or remove element.
      * 
      */
     private List<ACLEntry> remove;

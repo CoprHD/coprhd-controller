@@ -57,7 +57,8 @@ public class VirtualPoolCommonParam {
 
     @XmlElementWrapper(name = "protocols", required = true)
     /**
-     * The set of supported protocols for the virtual pool.
+     * The set of supported protocols for the virtual pool. Valid values are
+     * FC, ISCSI, FCoE, NFS, NFSV4, CIFS
      * 
      */
     @XmlElement(name = "protocol", required = true)

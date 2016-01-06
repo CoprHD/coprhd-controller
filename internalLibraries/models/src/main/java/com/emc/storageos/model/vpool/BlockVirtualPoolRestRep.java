@@ -47,7 +47,7 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     }
 
     /**
-     * The supported disk drive type for the virtual pool.
+     * The supported disk drive type for the virtual pool. NONE, SSD, FC, SAS, SATA
      * 
      * 
      * @return The drive type.

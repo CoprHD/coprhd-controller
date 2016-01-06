@@ -13,6 +13,7 @@ public class RoleAssignmentEntry {
 
     /**
      * Roles to that are part of this assignment.
+     * Valid values: SYSTEM_ADMIN, SECURITY_ADMIN, SYSTEM_MONITOR, SYSTEM_AUDITOR, TENANT_ADMIN, PROJECT_ADMIN, TENANT_APPROVER
      * 
      */
     private List<String> roles;

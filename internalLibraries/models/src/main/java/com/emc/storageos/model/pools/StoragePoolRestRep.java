@@ -74,7 +74,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      */
     @XmlElementWrapper(name = "copy_types")
     /**
-     * The type of replication
+     * The type of replication. Valid values: ASYNC, SYNC, UNSYNC_UNASSOC, UNSYNC_ASSOC
      *
      */
     @XmlElement(name = "copy_type")

@@ -115,7 +115,7 @@ public class Copy implements Serializable {
 
     /**
      * User provided direction for the synchronization.
-     * 
+     * Valid values SOURCE_TO_TARGET, TARGET_TO_SOURCE
      * @return The Sync Direction
      */
     @XmlElement(name = "syncDirection", required = false)
@@ -129,7 +129,7 @@ public class Copy implements Serializable {
 
     /**
      * User provided SRDF copy mode for the synchronization.
-     * 
+     * Valid values: SYNCHRONOUS, ASYNCHRONOUS, ADAPTIVECOPY
      * @return
      */
     @XmlElement(name = "copyMode", required = false)

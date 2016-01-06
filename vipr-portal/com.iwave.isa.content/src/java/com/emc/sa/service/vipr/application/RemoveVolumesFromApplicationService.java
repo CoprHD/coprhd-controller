@@ -10,7 +10,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.vipr.client.Tasks;
 
-@Service("AddVolumesToApplication")
+@Service("RemoveVolumesFromApplication")
 public class RemoveVolumesFromApplicationService extends ViPRService {
 
     @Param(ServiceParams.APPLICATION)

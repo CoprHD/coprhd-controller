@@ -2311,9 +2311,24 @@
 		<property name="notifiers" value="backupscheduler" />
 		<property name="siteSpecific" value="true" />
 	</bean>
+	<bean id="backup_scheduler_time" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="Backup Time" />
+		<property name="description" value="The time scheduled backup starts, based on local time zone(hour:minute)" />
+		<property name="type" value="uint32" />
+		<property name="tag" value="Backup" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="true" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="false" />
+		<property name="value" value="100" />
+		<property name="controlNodeOnly" value="true" />
+		<property name="notifiers" value="backupscheduler" />
+		<property name="siteSpecific" value="true" />
+	</bean>
 	<bean id="backup_scheduler_interval" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Scheduling Frequency" />
-		<property name="description" value="The time interval between 2 backups." />
+		<property name="label" value="Backup Interval" />
+		<property name="description" value="The time interval between scheduled backups" />
 		<property name="type" value="string" />
 		<property name="maxLen" value="15" />
 		<property name="tag" value="Backup" />
@@ -2327,24 +2342,9 @@
 		<property name="notifiers" value="backupscheduler" />
 		<property name="siteSpecific" value="true" />
 	</bean>
-	<bean id="backup_scheduler_time" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Backup Time" />
-		<property name="description" value="The time backup starts, based on local time zone" />
-		<property name="type" value="uint32" />
-		<property name="tag" value="Backup" />
-		<property name="advanced" value="true" />
-		<property name="userMutable" value="true" />
-		<property name="userConfigurable" value="true" />
-		<property name="reconfigRequired" value="false" />
-		<property name="rebootRequired" value="false" />
-		<property name="value" value="100" />
-		<property name="controlNodeOnly" value="true" />
-		<property name="notifiers" value="backupscheduler" />
-		<property name="siteSpecific" value="true" />
-	</bean>
 	<bean id="backup_scheduler_copies_to_keep" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Copies to Keep" />
-		<property name="description" value="Number of schedule backup copies to keep" />
+		<property name="label" value="Backup Retention Number" />
+		<property name="description" value="Retain maximum number of scheduled backups" />
 		<property name="type" value="uint32" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Backup" />
@@ -2386,8 +2386,8 @@
 		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_max_manual_copies" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Backup Max Manual Copies" />
-		<property name="description" value="Max number of manually created backup copies" />
+		<property name="label" value="Backup Max Copies" />
+		<property name="description" value="Max number of manually created backup copies, keep on system" />
 		<property name="type" value="uint32" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Backup" />
@@ -2813,8 +2813,8 @@
 				<entry key="backup_external_location_username" value-ref="backup_external_location_username" />
 				<entry key="backup_external_location_password" value-ref="backup_external_location_password" />
 				<entry key="backup_scheduler_enable" value-ref="backup_scheduler_enable" />
-				<entry key="backup_scheduler_interval" value-ref="backup_scheduler_interval" />
 				<entry key="backup_scheduler_time" value-ref="backup_scheduler_time" />
+				<entry key="backup_scheduler_interval" value-ref="backup_scheduler_interval" />
 				<entry key="backup_scheduler_copies_to_keep" value-ref="backup_scheduler_copies_to_keep" />
 				<entry key="backup_max_used_disk_percentage" value-ref="backup_max_used_disk_percentage" />
 				<entry key="backup_threshold_disk_percentage" value-ref="backup_threshold_disk_percentage" />

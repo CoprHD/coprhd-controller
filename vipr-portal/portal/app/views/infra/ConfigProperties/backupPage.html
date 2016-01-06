@@ -81,6 +81,7 @@
     }
 </script>
 #{/set}
+#{ConfigProperties.propertySet titleKey:'configProperties.backup.scheduled'}
 #{ConfigProperties.property property:page.schedulerEnabled, disabled:unstable/}
 %{
   property = page.schedulerTime
@@ -136,13 +137,12 @@ disabled:unstable;
             <div class="col-md-6">
                 <input-text v-field="${id}_num" style="vertical-align: top"
                             onkeyup="setBackupSchedulerInterval()"></input-text>
-            #{if description}<p class="help-block clear">${description}#{if rebootRequired} <span
-                    class="text-danger">&{'configProperties.rebootRequired'}</span>#{/if}</p>#{/if}
             </div>
             <div class="col-md-6">
                 <select id="${id}_unit" class="form-control" onchange="setBackupSchedulerInterval()">
                 </select>
             </div>
+            <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
         </div>
     </div>
 
@@ -152,7 +152,12 @@ disabled:unstable;
 </div>
 
 #{ConfigProperties.property property:page.copiesToKeep, disabled:unstable/}
+#{/ConfigProperties.propertySet}
+#{ConfigProperties.propertySet titleKey:'configProperties.backup.manual'}
 #{ConfigProperties.property property:page.maxManualCopies, disabled:unstable/}
+#{/ConfigProperties.propertySet}
+#{ConfigProperties.propertySet titleKey:'configProperties.backup.server'}
 #{ConfigProperties.property property:page.externalLocationUrl, disabled:unstable/}
 #{ConfigProperties.property property:page.externalLocationUsername, disabled:unstable/}
 #{ConfigProperties.property property:page.externalLocationPassword, disabled:unstable/}
+#{/ConfigProperties.propertySet}

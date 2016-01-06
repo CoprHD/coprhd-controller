@@ -112,16 +112,14 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                 if (cgObj != null 
                         && cgObj.created(storage.getId())
-                        && !vol.checkForRp() && !Volume.checkForVplexBackEndVolume(dbClient, vol)) {
+                        && !vol.checkForRp()) {     
                     // Only set this flag to true if the CG reference is valid
                     // and it is already created on the storage system.
-                    // Also, exclude RP/VPLEX volumes.
+                    // Also, exclude RP volumes.
                     isCG = true;
                 } 
             }
             
-            _log.info("isCG {}", isCG);
-
             // find the project this volume belongs to.
             URI projectUri = volumes.get(0).getProject().getURI();
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
@@ -585,7 +583,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
+    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doCreateConsistencyGroup START ...", storage.getSerialNumber());
         try {
@@ -619,7 +617,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doAddToConsistencyGroup(StorageSystem storage,
-            URI consistencyGroupId, List<URI> blockObjects,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doAddToConsistencyGroup START ...", storage.getSerialNumber());
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);

@@ -563,7 +563,7 @@ public interface BlockStorageDevice {
      * @param consistencyGroup
      * @param taskCompleter
      */
-    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup,
+    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName,
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
@@ -719,7 +719,7 @@ public interface BlockStorageDevice {
     public void doWaitForGroupSynchronized(StorageSystem storageObj,
             List<URI> target, TaskCompleter completer);
 
-    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
+    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName,
             List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void doRemoveFromConsistencyGroup(StorageSystem storage, URI consistencyGroupId,

@@ -6,7 +6,7 @@ CERT_OPTIONS_1=options
 # You can specialize this file for each language.
 # For example, for French create a messages.fr file
 #
-application.name=EMC ViPR
+application.name=EMC ViPR Controller
 # Validation messages
 #   Most of these are exact copies from the play framework and are here to make
 #   it easier to find and change validation messages for the entire application.
@@ -45,7 +45,7 @@ nav.viewOrders=My Orders
 nav.allOrders=All Orders
 nav.pendingOrders=Scheduled Orders
 nav.user=User Mode
-nav.catalog=Service Catalog
+nav.catalog=Catalog
 nav.viewCatalog=View Catalog
 nav.editCatalog=Edit Catalog
 nav.approvals=Approvals
@@ -54,7 +54,7 @@ nav.preferences=Preferences
 nav.password=Change Password
 nav.logout=Logout
 nav.storage=Resources
-nav.virtualStorage=Virtual Assets
+nav.virtualStorage=Virtual
 nav.object=Object
 nav.settings=Settings
 nav.block=Block
@@ -73,7 +73,7 @@ nav.computeVirtualPools=Compute Virtual Pools
 nav.system=System
 nav.tenant=Tenant
 nav.tenants=Tenants
-nav.assets=Physical Assets
+nav.assets=Physical
 nav.security=Security
 nav.status=About
 nav.upgrade=Upgrade
@@ -96,7 +96,7 @@ nav.vdcRoles=VDC Role Assignments
 nav.certificates=Trusted Certificates
 nav.help=Help
 nav.object.virtualPools=Object Virtual Pools
-nav.tenantsettings=Tenant Settings
+nav.tenantsettings=Tenants
 nav.project=Tenant Groups
 nav.consistencygroups=Consistency Groups
 nav.tasks=Tasks
@@ -310,6 +310,7 @@ AutoManualType.manual=Manual
 
 AuthSourceType.ad=Active Directory
 AuthSourceType.ldap=LDAP
+AuthSourceType.keystone=Keystone
 
 SearchScope.ONELEVEL=One Level
 SearchScope.SUBTREE=Subtree
@@ -2077,6 +2078,7 @@ vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a 
 
 #Object Specefic
 vpool.maxRetention=Maximum Retention (Days)
+vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
 
 # Block Specific
@@ -2139,6 +2141,17 @@ vpool.rpVplex.source=Source
 vpool.rpVplex.ha=HA
 vpool.activeSite=Active Site
 vpool.activeSite.help=Specifies the VPLEX site for active protection with RecoverPoint.  The link to the other VPLEX site is configured as stand-by.
+vpool.replicationMode=Replication Mode
+vpool.replicationRpo=Min RPO
+vpool.replicationCopies=Replication Copies
+vpool.remoteVirtualArray=Virtual Array
+vpool.remoteVirtualPool=Virtual Pool
+vpool.replicationType=Replication Type
+
+# File Replication
+replicationCopy.virtualArray=Virtual Array
+replicationCopy.virtualPool=Virtual Pool
+replicationCopy.title=Replication Copy
 
 # Recoverpoint
 vpool.rpJournalSize=RecoverPoint Source Journal Size
@@ -2693,7 +2706,9 @@ computeImageServers.tftpBootDir=TFTPBOOT Directory
 computeImageServers.confirmPassword=Comfirm Password
 computeImageServers.computeImageServerStatus=Image Server Status
 computeImageServers.osInstallNetworkAddress=OS Install Network Address
-computeImageServers.osInstallTimeOut=OS Install Timeout
+computeImageServers.osInstallTimeOut=OS Install Timeout in seconds
+computeImageServers.sshTimeout=Timeout in seconds for SSH commands sent to Image Server
+computeImageServers.imageImportTimeout=Image Import Timeout in seconds
 computeImageServers.availableComputeImages=Available Images
 computeImageServers.failedComputeImages=Images Failed to import
 computeImageServers.confirmPassword.not.match=User Password and Confirm Password do not match
@@ -2810,7 +2825,7 @@ setup.no.proxy.password=Proxy User Password Not Set
 
 successfully.saved=Successfully Saved.
 
-dashboard.welcome=Welcome to EMC ViPR
+dashboard.welcome=Welcome to EMC ViPR Controller
 dashboard.welcomeMessage=To get started, browse the <a href="%s">Service Catalog</a> to order storage.
 dashboard.clusterState=state
 

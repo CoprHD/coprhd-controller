@@ -501,7 +501,7 @@
           "baseService": "AddVolumesToApplication"
         },
         {
-          "image": "icon_create_bucket.png",
+          "image": "icon_application_remove_volumes.png",
           "baseService": "RemoveVolumesFromApplication"
         }
       ]

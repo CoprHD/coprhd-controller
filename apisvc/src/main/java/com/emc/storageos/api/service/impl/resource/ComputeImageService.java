@@ -5,8 +5,8 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,11 +31,15 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageServer;
+import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.imageservercontroller.ImageServerController;
+import com.emc.storageos.imageservercontroller.impl.ImageServerControllerImpl;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -45,7 +49,6 @@ import com.emc.storageos.model.compute.ComputeImageCreate;
 import com.emc.storageos.model.compute.ComputeImageList;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
 import com.emc.storageos.model.compute.ComputeImageUpdate;
-import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -71,7 +74,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Show compute image attribute.
-     * 
+     *
      * @param id
      *            the URN of compute image
      * @brief Show compute image
@@ -91,7 +94,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Returns a list of all compute images.
-     * 
+     *
      * @brief Show compute images
      * @return List of all compute images.
      */
@@ -139,7 +142,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Create compute image from image URL or existing installable image URN.
-     * 
+     *
      * @param param
      *            The ComputeImageCreate object contains all the parameters for
      *            creation.
@@ -154,7 +157,7 @@ public class ComputeImageService extends TaskResourceService {
         log.info("createComputeImage");
         // unique name required
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
-        checkDuplicateLabel(ComputeImage.class, param.getName(), param.getName());
+        checkDuplicateLabel(ComputeImage.class, param.getName());
 
         ArgValidator.checkFieldNotEmpty(param.getImageUrl(), "image_url");
         ArgValidator.checkUrl(param.getImageUrl(), "image_url");
@@ -168,7 +171,7 @@ public class ComputeImageService extends TaskResourceService {
         ci.setComputeImageStatus(ComputeImageStatus.IN_PROGRESS.name());
 
         ci.setLabel(param.getName());
-        ci.setImageUrl(param.getImageUrl());
+        ci.setImageUrl(encryptImageURLPassword(param.getImageUrl(), false));
 
         _dbClient.createObject(ci);
 
@@ -179,7 +182,7 @@ public class ComputeImageService extends TaskResourceService {
             return doImportImage(ci);
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-            _dbClient.persistObject(ci);
+            _dbClient.updateObject(ci);
             throw e;
         }
     }
@@ -216,7 +219,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Updates an already present compute image.
-     * 
+     *
      * @param id
      *            compute image URN.
      * @param param
@@ -238,7 +241,7 @@ public class ComputeImageService extends TaskResourceService {
         ArgValidator.checkEntity(ci, id, isIdEmbeddedInURL(id));
 
         if (!ci.getLabel().equals(param.getName())) {
-            checkDuplicateLabel(ComputeImage.class, param.getName(), param.getName());
+            checkDuplicateLabel(ComputeImage.class, param.getName());
             ci.setLabel(param.getName());
         }
 
@@ -249,8 +252,36 @@ public class ComputeImageService extends TaskResourceService {
             ArgValidator.checkUrl(param.getImageUrl(), "image_url");
 
             // URL can only be update if image not successfully loaded
-            if (ci.getComputeImageStatus().equals(ComputeImageStatus.NOT_AVAILABLE.name())) {
-                ci.setImageUrl(param.getImageUrl());
+            if (ci.getComputeImageStatus().equals(
+                    ComputeImageStatus.NOT_AVAILABLE.name())) {
+                String prevImageUrl = ci.getImageUrl();
+                boolean isEncrypted = false;
+                String oldPassword = ImageServerControllerImpl
+                        .extractPasswordFromImageUrl(prevImageUrl);
+                String newPassword = ImageServerControllerImpl
+                        .extractPasswordFromImageUrl(param.getImageUrl());
+
+                if (StringUtils.isNotBlank(oldPassword)
+                        && StringUtils.isNotBlank(newPassword)) {
+                    //MASKED_PASSWORD is a constant string and UI/REST feeds displays it as bunch
+                    //of asterixk's, if user does not update the password then the newPassword and masked
+                    //password will be same there by we know that password is not updated and same as encrypted
+                    //password present in the DB.
+                    if (ImageServerControllerImpl.MASKED_PASSWORD.equals(newPassword)) {
+                        isEncrypted = true;
+                    }
+                }
+                //Any change to the password section of the URL, we will get to know that password is updated
+                //and we encrypt and updated the DB, if the user does not change the password part but
+                //changes any other parts (username, hostname or the file part) the password of masked asterisks
+                //and the constant will be same and we do not update the password but update other parts if changed.
+                if (isEncrypted) {
+                    ci.setImageUrl( StringUtils.replace(param.getImageUrl(), ":" + newPassword + "@", ":"
+                            + oldPassword + "@"));
+                } else {
+                    ci.setImageUrl(encryptImageURLPassword(param.getImageUrl(),
+                            isEncrypted));
+                }
                 ci.setComputeImageStatus(ComputeImageStatus.IN_PROGRESS.name());
                 reImport = true;
             } else {
@@ -258,7 +289,7 @@ public class ComputeImageService extends TaskResourceService {
             }
         }
 
-        _dbClient.persistObject(ci);
+        _dbClient.updateObject(ci);
 
         auditOp(OperationTypeEnum.UPDATE_COMPUTE_IMAGE, true, null,
                 ci.getId().toString(), ci.getImageUrl());
@@ -269,7 +300,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Delete existing compute image.
-     * 
+     *
      * @param id
      *            compute image URN.
      * @brief Delete compute image
@@ -362,7 +393,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * List data of compute images based on input ids.
-     * 
+     *
      * @param param
      *            POST data containing the id list.
      * @prereq none
@@ -430,7 +461,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Method to create and initiate task to controller.
-     * 
+     *
      * @param ci
      *            {@link ComputeImage} instance
      * @param reImport
@@ -462,7 +493,7 @@ public class ComputeImageService extends TaskResourceService {
             }
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-            _dbClient.persistObject(ci);
+            _dbClient.updateObject(ci);
             throw e;
         }
     }
@@ -482,8 +513,13 @@ public class ComputeImageService extends TaskResourceService {
                             ci.getId().toString())) {
                 imageServer.getFailedComputeImages().remove(
                         ci.getId().toString());
-                _dbClient.persistObject(imageServer);
+            } else if (imageServer.getComputeImages() != null
+                    && imageServer.getComputeImages().contains(
+                            ci.getId().toString())) {
+                imageServer.getComputeImages().remove(
+                        ci.getId().toString());
             }
+            _dbClient.updateObject(imageServer);
         }
     }
 
@@ -502,4 +538,27 @@ public class ComputeImageService extends TaskResourceService {
         }
         return imageServerExists;
     }
+
+    /**
+     * Method to mask/encrypt password of the ImageUrl
+     * @param imageUrl {@link String} compute image URL string
+     * @param isEncrypted boolean indicating if password is already encrypted.
+     * @return
+     */
+    private String encryptImageURLPassword(String imageUrl, boolean isEncrypted) {
+        String password = ImageServerControllerImpl
+                .extractPasswordFromImageUrl(imageUrl);
+        String encryptedPassword = password;
+        if (!isEncrypted && StringUtils.isNotBlank(password)) {
+            EncryptionProviderImpl encryptionProviderImpl = new EncryptionProviderImpl();
+            encryptionProviderImpl.setCoordinator(_coordinator);
+            encryptionProviderImpl.start();
+            EncryptionProvider encryptionProvider = encryptionProviderImpl;
+            encryptedPassword = encryptionProvider.getEncryptedString(password);
+            imageUrl = StringUtils.replace(imageUrl, ":" + password + "@", ":"
+                    + encryptedPassword + "@");
+        }
+        return imageUrl;
+    }
+
 }

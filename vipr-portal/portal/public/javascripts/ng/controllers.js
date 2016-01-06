@@ -342,7 +342,7 @@ angular.module("portalApp").controller({
     	$scope.$watch('acl', function(newVal) {
     		var accessList = [];
     		angular.forEach($scope.acl.accesscontrols, function(obj) {
-    			if (obj.name != '') {
+    			if (obj.name != '' && (obj.name.indexOf("\\") == -1)) {
     				accessList.push(obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission);
     			}
     		});
@@ -440,7 +440,8 @@ angular.module("portalApp").controller({
 
     	$scope.permOpt = [{id:'read', name:translate('resources.filesystem.nfsacl.read')}, 
     	                  {id:'write', name:translate('resources.filesystem.nfsacl.write')}, 
-    	                  {id:'execute', name:translate('resources.filesystem.nfsacl.execute')}];
+    	                  {id:'execute', name:translate('resources.filesystem.nfsacl.execute')},
+    	                  {id:'fullControl', name:translate('resources.filesystem.nfsacl.fullControl')},];
     	
     	var setData = function(data) {
     		$scope.acl = data;

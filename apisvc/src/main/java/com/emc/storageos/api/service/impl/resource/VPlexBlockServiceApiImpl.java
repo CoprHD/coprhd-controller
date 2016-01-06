@@ -24,14 +24,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
@@ -40,6 +38,7 @@ import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation.VolumeType;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
@@ -56,7 +55,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -538,6 +537,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     if (!snapshots.isEmpty()) {
                         return BlockSnapshot.class.getSimpleName();
                     }
+
+                    // Also check for snapshot sessions.
+                    List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                            BlockSnapshotSession.class,
+                            ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(snapshotSourceVolume.getId()));
+                    if (!snapSessions.isEmpty()) {
+                        return BlockSnapshotSession.class.getSimpleName();
+                    }
                 }
             }
         }
@@ -989,7 +996,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class,
                     vplexRecommendation.getVirtualArray());
             createVolume = prepareVolumeForRequest(getVolumeCapacity(existingVolume), vplexProject,
-                    haVirtualArray, vpool, vplexRecommendation.getSourceStorageSystem(),
+                    haVirtualArray, requestedHaVirtualPool, vplexRecommendation.getSourceStorageSystem(),
                     vplexRecommendation.getSourceStoragePool(), vplexVolume.getLabel() + "-1",
                     ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
@@ -2275,7 +2282,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
                 }
             }
-            
+
             // Check if the volumes have been in the CG, and not ingestion case
             if (consistencyGroup.getTypes().contains(Types.LOCAL.toString()) && !cgVolumes.isEmpty()) {
                 Set<String> cgVolumesURISet = new HashSet<String>();
@@ -2285,20 +2292,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 Iterator<URI> iter = addVolumes.iterator();
                 while (iter.hasNext()) {
                     if (cgVolumesURISet.contains(iter.next().toString())) {
-                         iter.remove();
+                        iter.remove();
                     }
                 }
-                
+
                 if (addVolumes.isEmpty()) {
                     // All volumes in the addVolumes list have been in the CG. return success
                     s_logger.info("The volumes have been added to the CG");
                     Operation op = new Operation();
                     op.setResourceType(ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
                     op.ready("Volumes have been added to the consistency group");
-                    _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(), taskId, op);      
+                    _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(), taskId, op);
                     return toTask(consistencyGroup, taskId, op);
                 }
-                
+
             }
         }
 
@@ -3025,23 +3032,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @return The number of snapshots on a VPLEX volume.
      */
     @Override
-    protected Integer getNumNativeSnapshots(Volume vplexVolume) {
-
-        Integer numSnapshots = 0;
+    protected int getNumNativeSnapshots(Volume vplexVolume) {
         Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
-        URI snapshotSourceVolumeURI = snapshotSourceVolume.getId();
-        URIQueryResultList snapshotURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-                snapshotSourceVolumeURI), snapshotURIs);
-        while (snapshotURIs.iterator().hasNext()) {
-            URI snapshotURI = snapshotURIs.iterator().next();
-            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-            if (snapshot != null && !snapshot.getInactive()
-                    && snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString())) {
-                numSnapshots++;
-            }
-        }
-        return numSnapshots;
+        return super.getNumNativeSnapshots(snapshotSourceVolume);
     }
 
     /**
@@ -3126,16 +3119,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     protected List<URI> getActiveMirrorsForVolume(Volume volume) {
-        List<URI> activeMirrorURIs = new ArrayList<>();
-        if (hasMirrors(volume)) {
-            List<VplexMirror> mirrors = _dbClient.queryObject(VplexMirror.class, StringSetUtil.stringSetToUriList(volume.getMirrors()));
-            for (VplexMirror mirror : mirrors) {
-                if (!mirror.getInactive()) {
-                    activeMirrorURIs.add(mirror.getId());
-                }
-            }
-        }
-        return activeMirrorURIs;
+        return BlockServiceUtils.getActiveMirrorsForVplexVolume(volume, _dbClient);
     }
 
     /**
@@ -3406,7 +3390,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
                     _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
                             volumesWithSameNativeGuid.get(0).getId().toString()));
-            throw APIException.badRequests.cantDeleteSnapshotExposedByVolume(snapshot.getId().toString(), vplexVolumes.get(0).getLabel());
+            throw APIException.badRequests
+                    .cantDeleteSnapshotExposedByVolume(snapshot.getLabel().toString(), vplexVolumes.get(0).getLabel());
         }
         super.deleteSnapshot(snapshot, taskId);
     }

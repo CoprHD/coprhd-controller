@@ -10,9 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.emc.storageos.db.client.model.VcenterDataCenter;
-import com.emc.storageos.volumecontroller.AsyncTask;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +29,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -44,6 +42,7 @@ import com.emc.storageos.vcentercontroller.VcenterController;
 import com.emc.storageos.vcentercontroller.exceptions.VcenterControllerException;
 import com.emc.storageos.vcentercontroller.exceptions.VcenterObjectConnectionException;
 import com.emc.storageos.vcentercontroller.exceptions.VcenterObjectNotFoundException;
+import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
@@ -138,6 +137,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         getDevice(cs.getSystemType()).createHost(cs, host, vcp, vArray, tc);
     }
 
+    @Override
     public String addStepsPreOsInstall(Workflow workflow, String waitFor, URI computeSystemId, URI hostId,
             String prepStepId) {
         log.info("addStepsPreOsInstall");
@@ -234,7 +234,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     /**
      * This is needed if any of the workflow steps have a real rollback method.
-     * 
+     *
      * @param stepId
      */
     public void rollbackNothingMethod(String stepId) {
@@ -291,6 +291,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
+    @Override
     public void setSanBootTarget(URI computeSystemId, URI computeElementId, URI hostId, URI volumeId, boolean waitForServerRestart)
             throws InternalException {
 
@@ -729,7 +730,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     /**
      * This will attempt to put host into maintenance mode on a Vcenter.
-     * 
+     *
      * @param hostId
      * @param stepId
      */
@@ -782,7 +783,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     /**
      * This will attempt to remove host from vCenter cluster.
-     * 
+     *
      * @param hostId
      * @param stepId
      */
@@ -858,7 +859,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     /**
      * Checks if the cluster in Vcenter has VMs. Exception is thrown if VMs are present.
-     * 
+     *
      * @param clusterId
      * @param datacenterId
      * @param stepId
@@ -904,7 +905,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     /**
      * Remove cluster from vCenter.
-     * 
+     *
      * @param clusterId
      * @param datacenterId
      * @param stepId
@@ -961,7 +962,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 return;
             } else {
                 ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-                if (computeElement.getDn() == null || computeElement.getDn().isEmpty()) {
+                if (NullColumnValueGetter.isNullValue(computeElement.getDn())) {
                     WorkflowStepCompleter.stepSucceded(stepId);
                     return;
                 }

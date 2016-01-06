@@ -54,6 +54,7 @@
     <bean id="auditLogManager"
         class="com.emc.storageos.security.audit.AuditLogManager">
       <property name="dbClient" ref="dbclient"/>
+      <property name="coordinator" ref="coordinator" />
     </bean>
         
     <bean id="blockstoragescheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
@@ -104,6 +105,7 @@
         <property name="scheduleUtils" ref="storagescheduler" />
         <property name="customConfigHandler" ref="customConfigHandler" />
         <property name="configInfo" ref="configinfo" />
+        <property name="permissionsHelper" ref="permissionsHelper"/>
     </bean>
 
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
@@ -235,10 +237,17 @@
         <property name="maskPerHostIngestOrchestrator" ref="maskPerHostIngestOrchestrator"/>
         <property name="multipleMaskPerHostIngestOrchestrator" ref="multipleMaskPerHostIngestOrchestrator"/>
         <property name="unexportedVolumeIngestOrchestrator" ref="unexportedVolumeIngestOrchestrator"/>
+        <property name="blockRecoverPointIngestOrchestrator" ref="blockRecoverPointIngestOrchestrator"/>
     </bean>
     
     <bean id ="blockVolumeIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockVolumeIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
+    </bean>
+
+    <bean id ="blockRecoverPointIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRecoverPointIngestOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
     </bean>
     
     <bean id ="blockSnapshotIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockSnapIngestOrchestrator">
@@ -349,7 +358,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
-
+        
     <bean id="userGroupService" class="com.emc.storageos.api.service.impl.resource.UserGroupService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -428,7 +437,50 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.InternalVdcService">
                     <property name="dbClient" ref="dbclient"/>
                 </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.VolumeService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="placementManager" ref="placementManager"/>
+                </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.ConsistencyGroupService">
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.ConsistencyGroupSnapshotService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="placementManager" ref="placementManager"/>
+                    <property name="blockServiceApis">
+                    <map>
+                        <entry key="group" value-ref="defaultBlockServiceApiImpl" />
+                        <entry key="vplex" value-ref="vplexBlockServiceApiImpl" />
+                        <entry key="rp" value-ref="rpBlockServiceApiImpl" />
+                    </map>
+                    </property>
+                </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.SnapshotService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="placementManager" ref="placementManager"/>
+                </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.QosService">
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.QuotaService">
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.MiscService">
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
                     
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.ExportService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="placementManager" ref="placementManager"/>
+                    <property name="nameGenerator" ref="exportGroupNameGenerator" />
+                </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.TypeService">
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.ExtensionService">
+                </bean>
                 <ref bean="fileVirtualPoolService"/>
                 <ref bean="objectVirtualPoolService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.BlockVirtualPoolService">
@@ -509,6 +561,10 @@
                     </map>
                     </property>
                 </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.BlockSnapshotSessionService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                </bean>                
                 <bean class="com.emc.storageos.api.service.impl.resource.BlockFullCopyService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
@@ -562,6 +618,7 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.AuthnConfigurationService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
+                    <property name="keystoneFactory" ref="keystoneFactory"/>
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.WorkflowService">
                     <property name="dbClient" ref="dbclient"/>
@@ -604,6 +661,16 @@
                 </bean>
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
                 <ref local="userGroupService"/>
+
+                <bean class="com.emc.storageos.api.service.impl.resource.DisasterRecoveryService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="apiSignatureGenerator" ref="keyGenerator"/>
+                    <property name="sysUtils" ref="sysUtils" />
+                    <property name="ipsecConfig" ref="ipsecConfig" />
+                    <property name="dbCommonInfo" ref="dbcommoninfo"/>
+                    <property name="drUtil" ref="drUtil" />
+                </bean>
             </set>
         </property>
     </bean>
@@ -662,10 +729,6 @@
     <bean id="userRepository" class="com.emc.storageos.security.authentication.StorageOSUserRepository">
         <property name="permissionsHelper" ref="permissionsHelper"/>
         <property name="localUsers" ref="localUserMap"/>
-    </bean>
-
-    <bean id="permissionsFilterFactory" class="com.emc.storageos.api.service.authorization.PermissionsFilterFactory">
-        <property name="permissionsHelper" ref="permissionsHelper"/>
     </bean>
 
     <bean id="responseFilter" class="com.emc.storageos.api.errorhandling.filters.TaskResponseFilter"/>
@@ -733,5 +796,6 @@
   	<property name="dbClient" ref="dbclient"/>
   </bean>
   
+  <bean id="sysUtils" class="com.emc.storageos.services.util.SysUtils" />
 </beans>
 

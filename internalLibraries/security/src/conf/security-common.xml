@@ -40,6 +40,19 @@
         <property name="tsVersionFilePath" value="${product.home:/opt/storageos}/conf/cacerts_version"/>
         <property name="caCertFile" value="${product.home:/opt/storageos}/conf/cacerts"/>
     </bean>
+    <bean id="keystoneFactory" class="com.emc.storageos.keystone.restapi.KeystoneRestClientFactory"
+          init-method="init" destroy-method="shutdown">
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="maxConnections" value="300"/>
+        <property name="maxConnectionsPerHost" value="100"/>
+        <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="needCertificateManager" value="true"/>
+    </bean>
+
+    <bean id="ipsecConfig" class="com.emc.storageos.security.ipsec.IPsecConfig">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="defaultPskFile" value="${product.home:/opt/storageos}/conf/psk.default"/>
+    </bean>
 
     <!-- Uncomment this to disable token encoding/decoding, signing
     <bean id="tokenEncodingDisabler" class="com.emc.storageos.security.TokenEncodingDisabler"/>

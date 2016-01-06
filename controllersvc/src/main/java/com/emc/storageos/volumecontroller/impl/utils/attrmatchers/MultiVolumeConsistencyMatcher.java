@@ -90,7 +90,8 @@ public class MultiVolumeConsistencyMatcher extends AttributeMatcher {
     private boolean checkStorageSystemType(StorageSystem system) {
         if (StorageSystem.Type.scaleio.name().equalsIgnoreCase(system.getSystemType())
                 || StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
-                || StorageSystem.Type.hds.name().equalsIgnoreCase(system.getSystemType())) {
+                || StorageSystem.Type.hds.name().equalsIgnoreCase(system.getSystemType())
+                || StorageSystem.Type.openstack.name().equalsIgnoreCase(system.getSystemType())) {
             return true;
         }
         return false;

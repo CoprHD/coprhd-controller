@@ -6,7 +6,7 @@ CERT_OPTIONS_1=options
 # You can specialize this file for each language.
 # For example, for French create a messages.fr file
 #
-application.name=EMC ViPR
+application.name=EMC ViPR Controller
 # Validation messages
 #   Most of these are exact copies from the play framework and are here to make
 #   it easier to find and change validation messages for the entire application.
@@ -45,7 +45,7 @@ nav.viewOrders=My Orders
 nav.allOrders=All Orders
 nav.pendingOrders=Scheduled Orders
 nav.user=User Mode
-nav.catalog=Service Catalog
+nav.catalog=Catalog
 nav.viewCatalog=View Catalog
 nav.editCatalog=Edit Catalog
 nav.approvals=Approvals
@@ -54,7 +54,7 @@ nav.preferences=Preferences
 nav.password=Change Password
 nav.logout=Logout
 nav.storage=Resources
-nav.virtualStorage=Virtual Assets
+nav.virtualStorage=Virtual
 nav.object=Object
 nav.settings=Settings
 nav.block=Block
@@ -73,7 +73,7 @@ nav.computeVirtualPools=Compute Virtual Pools
 nav.system=System
 nav.tenant=Tenant
 nav.tenants=Tenants
-nav.assets=Physical Assets
+nav.assets=Physical
 nav.security=Security
 nav.status=About
 nav.upgrade=Upgrade
@@ -96,7 +96,7 @@ nav.vdcRoles=VDC Role Assignments
 nav.certificates=Trusted Certificates
 nav.help=Help
 nav.object.virtualPools=Object Virtual Pools
-nav.tenantsettings=Tenant Settings
+nav.tenantsettings=Tenants
 nav.project=Tenant Groups
 nav.consistencygroups=Consistency Groups
 nav.tasks=Tasks
@@ -137,6 +137,8 @@ nav.computeImageServers=Compute Image Servers
 nav.sites=Sites
 nav.userGroups=User Groups
 nav.object.buckets=Buckets
+nav.disasterRecovery=Disaster Recovery
+nav.ipsec=IPsec
 # Override messages in the Secure plugin
 secure.title=
 secure.username=Username:
@@ -306,6 +308,7 @@ AutoManualType.manual=Manual
 
 AuthSourceType.ad=Active Directory
 AuthSourceType.ldap=LDAP
+AuthSourceType.keystone=Keystone
 
 SearchScope.ONELEVEL=One Level
 SearchScope.SUBTREE=Subtree
@@ -833,8 +836,73 @@ datetime.units.h=Hours
 datetime.units.min=Minutes
 datetime.units.d=Days
 datetime.units.s=Seconds
-
 datetime.dayOfMonth.L=Last
+
+#DisasterRecovery
+disasterRecovery.title=Disaster Recovery
+disasterRecovery.name=Site Name
+disasterRecovery.VirtualIP=Site Virtual IP
+disasterRecovery.status=Status
+disasterRecovery.id=Site UUId
+disasterRecovery.actions=Actions
+disasterRecovery.userName=User Name
+disasterRecovery.userPassword=Password
+disasterRecovery.confirmPassword=Confirm Password
+disasterRecovery.description=Description
+disasterRecovery.confirmPassword.not.match=User Password and Confirm Password do not match.
+disasterRecovery.deleteConfirm=Are you sure you want to delete this standby cluster?
+
+disasterRecovery.testButton=Test
+disasterRecovery.pauseButton=Pause
+disasterRecovery.resumeButton=Resume
+disasterRecovery.FailoverButton=Failover
+disasterRecovery.save.success=Added standby: '%s'
+disasterRecovery.pause.success=Pause request initiated...
+disasterRecovery.resume.success=Resume request initiated for site: '%s'
+disasterRecovery.test.success=Test Mode request initiated for site: '%s'
+disasterRecovery.save.error=Failed to add standby '%s'
+disasterRecovery.pause.error=Failed to pause standby '%s'
+disasterRecovery.update.success=Updated Site: '%s'
+disasterRecovery.update.failed=Failed to update Site: '%s'
+disasterRecovery.switchover.success=Switchover successful
+disasterRecovery.switchover.error=Switchover failed
+disasterRecovery.failover.success=Failover successful
+disasterRecovery.failover.error=Failover failed
+disasterRecovery.failover.progress=Failing over in Progress....
+disasterRecovery.switchover.progress=Switching over in Progress....
+disasterRecovery.resume.error=Failed to resume standby'%s'
+disasterRecovery.test.error=Failed to initiated test mode for site: '%s'
+disasterRecovery.delete.success=Standby removal initiated...
+disasterRecovery.delete.error='%s' of '%s' selected Standby deleted: '%s'.  Please check server log for more details.
+disasterRecovery.unknown=Unknown Standby with ID '%s'
+disasterRecovery.standby.testLink=Test Mode
+disasterRecovery.standby.pauseLink=Pause Synchronization
+disasterRecovery.standby.resumeLink=Resume Synchronization
+disasterRecovery.standby.deleteConfirm=Are you sure you want to delete this Standby cluster?
+disasterRecovery.standby.stopConfirm=Are you sure you want to pause standby synchronization?
+
+disasterRecovery.create.title=Add Standby
+disasterRecovery.edit.title=Edit Standby
+disasterRecovery.list.title=Disaster Recovery
+disasterRecovery.edit.title=Edit Standby
+disasterRecovery.add.title=Enter the information needed to discover standby cluster.
+disasterRecovery.switchover=Switchover Site
+disasterRecovery.Failover=Failover Site
+disasterRecovery.switchover.active=Active Site
+disasterRecovery.switchover.standby=Standby Site
+disasterRecovery.switchover.subtitle=Site Switchover
+disasterRecovery.failover.subtitile=Site Failover
+disasterRecovery.switchover.description=Switching over to %s as the Active site...
+disasterRecovery.switchover.setting=Setting site
+disasterRecovery.switchover.active.to=as Active site and
+disasterRecovery.switchover.standby.to= as Standby site
+disasterRecovery.switchover.login.instruction=Please click here for login to new Active site:
+disasterRecovery.switchover.standby.vip= with site VIP:
+disasterRecovery.confirm.switchover=Are you sure you want to Failover?
+disasterRecovery.error.code=Error Code
+disasterRecovery.error.code.name=Error Code Name
+disasterRecovery.error.message=Error Message
+disasterRecovery.error.creation.time=Creation Time
 
 # About
 system.about.introspection.title=Discovery
@@ -859,8 +927,9 @@ backup.create.description=Enter the information needed to create backup
 BackupForm.title=Add Backup
 backupForm.name=Backup Name
 backupForm.force=Force Creation
-backupForm.force.help=When checked it ignores the error during operation and force creation of backup
+backupForm.force.help=When checked, it forces backup creation even when minortity nodes are unavailable
 backup.save.success=Saved '%s'
+backup.name.invalid=Backup name cannot have character "
 backup.deleteConfirm=Are you sure you want to delete these Backup(s)?
 backups.deleted=Backup(s) deleted successfully.
 backup.upload.title=Backup Upload
@@ -1191,6 +1260,13 @@ keystore.certs.both.error=When updating the Keystore both the Private Key and Ce
 keystore.task.description=Error Message
 keystore.task.message=Error Details
 keystore.task.code=Error Code
+
+ipsec.title=IPsec
+ipsec.description=Enables a secured communication between nodes in a ViPR cluster and between ViPR clusters and uses Pre-Shared Keys to secure the communication.
+ipsec.key.rotation.label=Rotate Pre-Shared keys
+ipsec.key.rotation.description=Generates a new set of Pre-Shared keys. The IPsec communication will be momentarily stopped while restarting the IPsec service.
+ipsec.key.rotation.error=Failed To rotate the IPsec Pre-Shared Keys. '%s'.
+ipsec.key.rotation.success=Successfully rotated the IPsec Pre-Shared Keys.
 
 disk.name=Name
 disk.status=Status
@@ -1984,6 +2060,7 @@ vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a 
 
 #Object Specefic
 vpool.maxRetention=Maximum Retention (Days)
+vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
 
 # Block Specific
@@ -2046,6 +2123,17 @@ vpool.rpVplex.source=Source
 vpool.rpVplex.ha=HA
 vpool.activeSite=Active Site
 vpool.activeSite.help=Specifies the VPLEX site for active protection with RecoverPoint.  The link to the other VPLEX site is configured as stand-by.
+vpool.replicationMode=Replication Mode
+vpool.replicationRpo=Min RPO
+vpool.replicationCopies=Replication Copies
+vpool.remoteVirtualArray=Virtual Array
+vpool.remoteVirtualPool=Virtual Pool
+vpool.replicationType=Replication Type
+
+# File Replication
+replicationCopy.virtualArray=Virtual Array
+replicationCopy.virtualPool=Virtual Pool
+replicationCopy.title=Replication Copy
 
 # Recoverpoint
 vpool.rpJournalSize=RecoverPoint Source Journal Size
@@ -2427,6 +2515,7 @@ adminDashboard.fileCapacity=File
 adminDashboard.blockCapacity=Block
 adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File/Object
+adminDashboard.disasterRecovery=Disaster Recovery
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object
@@ -2599,7 +2688,9 @@ computeImageServers.tftpBootDir=TFTPBOOT Directory
 computeImageServers.confirmPassword=Comfirm Password
 computeImageServers.computeImageServerStatus=Image Server Status
 computeImageServers.osInstallNetworkAddress=OS Install Network Address
-computeImageServers.osInstallTimeOut=OS Install Timeout
+computeImageServers.osInstallTimeOut=OS Install Timeout in seconds
+computeImageServers.sshTimeout=Timeout in seconds for SSH commands sent to Image Server
+computeImageServers.imageImportTimeout=Image Import Timeout in seconds
 computeImageServers.availableComputeImages=Available Images
 computeImageServers.failedComputeImages=Images Failed to import
 computeImageServers.confirmPassword.not.match=User Password and Confirm Password do not match
@@ -2716,7 +2807,7 @@ setup.no.proxy.password=Proxy User Password Not Set
 
 successfully.saved=Successfully Saved.
 
-dashboard.welcome=Welcome to EMC ViPR
+dashboard.welcome=Welcome to EMC ViPR Controller
 dashboard.welcomeMessage=To get started, browse the <a href="%s">Service Catalog</a> to order storage.
 dashboard.clusterState=state
 
@@ -2861,7 +2952,8 @@ affectedResources.blockSnapshot.volume=Volume
 affectedResources.blockSnapshot.varray=Virtual Array
 
 affectedResources.blockConsistencyGroup=Consistency Group
-affectedResources.blockConsistencyGroup.image=serviceCatalog/Snapshot.png
+affectedResources.blockConsistencyGroup.image=assets/Consistency_Group.png
+affectedResources.blockConsistencyGroup.name=Name
 
 affectedResources.fileSnapshot=File Snapshot
 affectedResources.fileSnapshot.image=serviceCatalog/Snapshot.png
@@ -3164,6 +3256,7 @@ resources.filesystem.acl.fullcontrol=FullControl
 resources.filesystem.nfsacl.read=Read
 resources.filesystem.nfsacl.write=Write
 resources.filesystem.nfsacl.execute=Execute
+resources.filesystem.nfsacl.fullControl=FullControl
 resources.filesystem.nfsacl.allow=Allow
 resources.filesystem.nfsacl.deny=Deny
 resources.filesystem.share.add.subdir=Add Share
@@ -3171,6 +3264,7 @@ resources.filesystem.share.acl.deleted=Task initiated to delete selected ACEs.
 resources.filesystem.share.acl.deleteConfirm=Are you sure you want delete these access control setting(s)?
 resources.filesystem.share.acl.added=Task created to add Access Control Entry, You may need to refresh this view to see new  changes.
 resources.filesystem.share.acl.invalid.settings=Please Enter valid access control setting(s)
+resources.filesystem.share.acl.invalid.name=Name cannot be empty or cannot contain a backslash ('\\') character.
 resources.filesystem.share.acl.add=Add Access Control Entry
 resources.filesystem.share.mountpoint=Mount Point
 resources.filesystem.share.description=Description
@@ -3460,7 +3554,8 @@ button.copy=Copy To Clipboard
 button.actions=Actions
 button.associate=Associate Project
 button.dissociate=Dissociate Project
-
+button.failover=Failover
+button.ipsec.rotate.keys=Rotate IPsec Keys
 selectOne.chooseOption=-- Please Choose --
 
 common.yes=Yes
@@ -3928,6 +4023,22 @@ renderFunctions.recovery.error.internal=Internal error
 renderFunctions.recovery.error.helpMsg=Please contact EMC support
 renderFunctions.manage=Manage
 
+renderFunctions.disasterRecovery.status.primary=Active
+renderFunctions.disasterRecovery.status.primary.switchingover=Primary Switching Over
+renderFunctions.disasterRecovery.status.primary.failingover=Primary Failing Over
+renderFunctions.disasterRecovery.status.standby.adding=Adding Standby
+renderFunctions.disasterRecovery.status.standby.syncing=Syncing Standby
+renderFunctions.disasterRecovery.status.standby.synced=Standby Synced
+renderFunctions.disasterRecovery.status.standby.pausing=Pausing Standby
+renderFunctions.disasterRecovery.status.standby.paused=Standby Paused
+renderFunctions.disasterRecovery.status.standby.testing=Standby Testing
+renderFunctions.disasterRecovery.status.standby.switchingover=Standby Switching Over
+renderFunctions.disasterRecovery.status.standby.failingover=Standby Failing Over
+renderFunctions.disasterRecovery.status.standby.removing=Deleting Standby
+renderFunctions.disasterRecovery.status.standby.resuming=Resuming Standby
+renderFunctions.disasterRecovery.status.standby.error=Standby Error
+renderFunctions.disasterRecovery.status.unknown=Unknown
+
 templates.knob.label=%s of %s
 
 datatable.length.menu=_MENU_ records per page
@@ -4002,7 +4113,9 @@ nfsAccessControlList.permissions=Permissions
 nfsAccessControlList.name=Name
 nfsAccessControlList.type=Type
 nfsAccessControlList.domain=Domain
+nfsAccessControlList.permissionType=Permissions Type
 nfs.subdirectory=Sub Directory
+
 
 
 subdir.share.name=Share Name

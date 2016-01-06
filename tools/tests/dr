@@ -1,0 +1,244 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+import time
+import sysmgr as SysMgr
+
+#----------------------------------------------------------------------
+# dr cli functions
+#----------------------------------------------------------------------
+
+def dr_add_standby(args):
+    bourne.connect(args.ip)
+    standby=bourne.dr_add_standby(args.name, args.description, args.vip, args.username, args.password)
+    uuid=standby['uuid']
+    print uuid
+
+def dr_list_standby(args):
+    bourne.connect(args.ip)
+    sites=bourne.dr_list_standby()
+    if args.name:
+        for site in sites['site']:
+            if args.name in site['name']:
+                print site['uuid']
+                return
+        raise ValueError("site %s doesn't exist" % (args.name))
+
+def dr_find_site(args):
+    bourne.connect(args.ip)
+    sites=bourne.dr_list_standby()
+    for site in sites['site']:
+        for key, value in site.iteritems():
+            if args.key == key and args.value == value:
+                print site['uuid']
+                return
+    raise ValueError("site with key value pair %s:%s doesn't exist" % (args.key,args.value))
+
+def dr_get_standby(args):
+    bourne.connect(args.ip)
+    standby=bourne.dr_get_standby(args.uuid)
+    if args.property:
+    	print standby[args.property]
+
+def dr_delete_standby(args):
+    bourne.connect(args.ip)
+    bourne.dr_delete_standby(args.uuid)
+
+def dr_pause_standby(args):
+    bourne.connect(args.ip)
+    bourne.dr_pause_standby(args.uuid)
+
+def dr_resume_standby(args):
+    bourne.connect(args.ip)
+    bourne.dr_resume_standby(args.uuid)
+
+def wait_for_state(args):
+    timeCounter = 0
+    modifier=''
+    if args.n:
+        modifier='not '
+    print "Waiting for standby state to "+modifier+"be "+args.state
+    bourne.connect(args.ip)
+    while True:
+        try:
+            resp=bourne.dr_get_standby(args.uuid)
+            if args.n != (resp['state'] == args.state):
+                print "Standby state is "+modifier+args.state
+                return
+        except:
+            print "Exception while checking for api success"
+            raise
+        time.sleep(args.sleep)
+        timeCounter += args.sleep
+        print  "Retrying... time elapsed: [" + str(timeCounter) + "s]"
+        if (timeCounter >= args.length):
+            print "giving up wait_for_state. counter %s args.length %s" % (timeCounter, args.length)
+            raise Exception("Timeout occurred while waiting for standby state to %sbe %s" % (modifier,args.state))
+
+def dr_switch_over(args):
+    bourne.connect(args.ip)
+    bourne.dr_switchover(args.uuid)
+
+def wait_for_stable(args):
+    SysMgr.wait_for_stable_state(args)
+
+def dr_failover_over(args):
+    bourne.connect(args.ip)
+    bourne.dr_failover(args.uuid)
+
+def poweroff_cluster(args):
+    SysMgr.poweroff_cluster(args)
+
+def dr_check_standby(args):
+    bourne.connect(args.ip)
+    # check if API exception is thrown on standby for POST 
+    uri="/tenants/%s/projects" % bourne.tenant_getid()
+    errcode=1013
+    message="Disallowed operation on standby site. Please redirect your request to active site %s." % args.activeSiteVip
+    bourne.api_check_error("POST", uri, 403, errcode, message)
+    print "PASS. Successfully catch API exception for POST %s" % uri
+    try:
+       bourne.api_check_error("GET", uri, 403, errcode, message)
+    except Exception as ex:
+       if "Unexpected HTTP" not in ex.message:
+            raise ex
+       else:
+            print "PASS. No API exception for GET %s" % uri
+   
+    
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# dr <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
+parser.add_argument('cmd', help = 'cmd = (add|list|get|delete|pause|resume|waitforstate|waitforstable|switchover|failover|find|checkstandby|poweroffcluster)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# add dr standby
+draddstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+draddstandby.add_argument('name',	     help = 'name of standby site')
+draddstandby.add_argument('description', help = 'the description of standby site to be added')
+draddstandby.add_argument('vip',         help = 'the vip of standby site to be added')
+draddstandby.add_argument('username',    help = 'the username  of standby site to be added')
+draddstandby.add_argument('password',    help = 'the password  of standby site to be added')
+
+# list dr standby
+drliststandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drliststandby.add_argument('name', nargs='?',        help = 'return uuid of stanby site name')
+
+# get dr standby
+drgetstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drgetstandby.add_argument('uuid',    		 	help = 'uuid of standby site')
+drgetstandby.add_argument('property', nargs='?',	help = 'return property of standby site')
+
+# delete dr standby
+drdeletestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drdeletestandby.add_argument('uuid', help = 'uuid of standby site')
+
+# "waitforsync"
+waitforsync = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+waitforsync.add_argument('uuid',		help = 'uuid of standby site')
+waitforsync.add_argument('state',         help = 'state of standby site')
+waitforsync.add_argument('sleep', help = 'sleep of waiting time', type=float)
+waitforsync.add_argument('length', help = 'the whole waiting time', type=float)
+waitforsync.add_argument('-n', action='store_true',  help = 'wait for state to NOT equal')
+
+# switchover dr
+drswitchover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drswitchover.add_argument('uuid', help = 'uuid of standby site to be switched to')
+
+# pause dr standby
+drpausestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drpausestandby.add_argument('uuid', help = 'uuid of standby site')
+
+# resume dr standby
+drresumestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drresumestandby.add_argument('uuid', help = 'uuid of standby site')
+
+# dr wait for stable state
+waitforstable = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+waitforstable.add_argument('sleep', help = 'sleep of waiting time', type=float)
+waitforstable.add_argument('length', help = 'the whole waiting time', type=float)
+
+# failover dr
+drfailover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drfailover.add_argument('uuid', help = 'uuid of standby site to be failover')
+
+# power off cluster
+poweroffcluster = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+poweroffcluster.add_argument('ip', metavar = 'ipaddr', help = 'IP address of a ViPR system', default=bourne_ip)
+
+# find dr standby
+drfindsite = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drfindsite.add_argument('key', help = 'key to search sites for')
+drfindsite.add_argument('value', help = 'value to find in site key')
+
+#check standby mode
+drcheckstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drcheckstandby.add_argument('activeSiteVip', help = 'Vip for active site')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+if (len(sys.argv) > 1):
+    cmd = sys.argv[1]
+else:
+    cmd = None
+
+bourne = Bourne()
+
+if   (cmd == "add"):
+    args = draddstandby.parse_args()
+    dr_add_standby(args)
+elif (cmd == "list"):
+    args = drliststandby.parse_args()
+    dr_list_standby(args)
+elif (cmd == "get"):
+    args = drgetstandby.parse_args()
+    dr_get_standby(args)
+elif (cmd == "delete"):
+    args = drdeletestandby.parse_args()
+    dr_delete_standby(args)
+elif (cmd == "pause"):
+    args = drpausestandby.parse_args()
+    dr_pause_standby(args)
+elif (cmd == "resume"):
+    args = drresumestandby.parse_args()
+    dr_resume_standby(args)
+elif (cmd == "waitforstate"):
+    args = waitforsync.parse_args()
+    wait_for_state(args)
+elif (cmd == "switchover"):
+    args = drswitchover.parse_args()
+    dr_switch_over(args)
+elif (cmd == "waitforstable"):
+    args = waitforstable.parse_args()
+    wait_for_stable(args)
+elif (cmd == "failover"):
+    args = drfailover.parse_args()
+    dr_failover_over(args)
+elif (cmd == "poweroffcluster"):
+    args = poweroffcluster.parse_args()
+    poweroff_cluster(args)
+elif (cmd == "find"):
+    args = drfindsite.parse_args()
+    dr_find_site(args)
+elif (cmd == "checkstandby"):
+    args = drcheckstandby.parse_args()
+    dr_check_standby(args)
+else:
+    parser.print_help()

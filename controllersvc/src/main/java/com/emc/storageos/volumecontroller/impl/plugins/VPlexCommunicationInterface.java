@@ -24,14 +24,13 @@ import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sun.net.util.IPAddressUtil;
-
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -43,11 +42,9 @@ import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
@@ -92,6 +89,8 @@ import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+
+import sun.net.util.IPAddressUtil;
 
 /**
  * Discovery framework plug-in class for discovering VPlex storage systems.
@@ -614,6 +613,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     }
 
                     Volume managedVolume = findVirtualVolumeManagedByVipr(info);
+                    UnManagedVolume unmanagedVolume = findUnmanagedVolumeKnownToVipr(info);
 
                     // check for volumes ingested with no public access flags set.
                     // this would indicate the volume has been partially ingested (due to outstanding replicas)
@@ -631,8 +631,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         } else {
                             s_logger.info("Virtual Volume {} is not managed by ViPR", name);
                         }
-
-                        UnManagedVolume unmanagedVolume = findUnmanagedVolumeKnownToVipr(info);
 
                         if (null != unmanagedVolume) {
                             // just refresh / update the existing unmanaged volume
@@ -680,13 +678,16 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         }
 
                         persistUnManagedVolumes(newUnmanagedVolumes, knownUnmanagedVolumes, false);
-                        allUnmanagedVolumes.add(unmanagedVolume.getId());
 
                     } else {
                         s_logger.info("Virtual Volume {} is already managed by "
                                 + "ViPR as Volume URI {}", name, managedVolume.getId());
                     }
 
+                    if (null != unmanagedVolume && !unmanagedVolume.getInactive()) {
+                        allUnmanagedVolumes.add(unmanagedVolume.getId());
+                    }
+                    
                     tracker.volumeTimeResults.put(name, System.currentTimeMillis() - timer);
                     tracker.totalVolumesDiscovered++;
 
@@ -758,8 +759,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 .getStorageSystemUnManagedVolumeConstraint(vplexUri), results);
 
         List<UnManagedVolume> changedVolumes = new ArrayList<UnManagedVolume>();
-        List<UnManagedVolume> allUnmanagedVolumes = _dbClient.queryObject(UnManagedVolume.class, results);
-        for (UnManagedVolume unManagedVolume : allUnmanagedVolumes) {
+        Iterator<UnManagedVolume> allUnmanagedVolumes = 
+                _dbClient.queryIterativeObjects(UnManagedVolume.class, results, true);
+        while (allUnmanagedVolumes.hasNext()) {
+            UnManagedVolume unManagedVolume = allUnmanagedVolumes.next();
             String isFullCopyStr = unManagedVolume.getVolumeCharacterstics()
                     .get(SupportedVolumeCharacterstics.IS_FULL_COPY.toString());
             boolean isFullCopy = (null != isFullCopyStr && Boolean.parseBoolean(isFullCopyStr));
@@ -899,6 +902,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         String isExported = info.isExported() ? TRUE : FALSE;
         unManagedVolumeCharacteristics.put(
                 SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isExported);
+        unManagedVolumeCharacteristics.put(
+                SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), isExported);
 
         // Set up default MAXIMUM_IO_BANDWIDTH and MAXIMUM_IOPS
         StringSet bwValues = new StringSet();

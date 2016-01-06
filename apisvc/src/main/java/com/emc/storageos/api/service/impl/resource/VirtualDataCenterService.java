@@ -264,11 +264,11 @@ public class VirtualDataCenterService extends TaskResourceService {
                     "key and certification", "update");
         }
 
-        if (StringUtils.isNotEmpty(param.getName())) {
+        VirtualDataCenter vdc = queryResource(id);
+
+        if (StringUtils.isNotEmpty(param.getName()) && !param.getName().equals(vdc.getLabel())) {
             checkForDuplicateName(param.getName(), VirtualDataCenter.class);
         }
-
-        VirtualDataCenter vdc = queryResource(id);
 
         /*
          * If vdc is in failed state:
@@ -330,7 +330,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/disconnect")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN }, blockProxies = true)
     public TaskResourceRep disconnectVirtualDataCenter(@PathParam("id") URI id) {
         blockRoot();
         ArgValidator.checkFieldUriType(id, VirtualDataCenter.class, "id");
@@ -349,7 +349,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/reconnect")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN }, blockProxies = true)
     public TaskResourceRep reconnectVirtualDataCenter(@PathParam("id") URI id) {
         blockRoot();
         ArgValidator.checkFieldUriType(id, VirtualDataCenter.class, "id");

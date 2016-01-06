@@ -696,7 +696,7 @@ public abstract class VdcOpHandler {
 
         @Override
         public void execute() throws Exception {
-            reconfigVdc();
+            reconfigVdc(false);
         }
         
     }
@@ -789,12 +789,21 @@ public abstract class VdcOpHandler {
     }
     
     protected void reconfigVdc() throws Exception {
-        syncFlushVdcConfigToLocal();
+        reconfigVdc(true);
+    }
+    
+    protected void reconfigVdc(boolean allNodeSyncRequired) throws Exception {
+        if (allNodeSyncRequired) {
+            syncFlushVdcConfigToLocal();
+        } else {
+            flushVdcConfigToLocal();
+        }
         refreshIPsec();
         refreshFirewall();
         refreshSsh();
         refreshCoordinator();
     }
+    
 
     protected void refreshFirewall() {
         localRepository.reconfigProperties("firewall");

@@ -21,9 +21,9 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
  * 
  */
 public class ConfigurationImpl implements Configuration {
-    private static final String ID_KEY = "_id";
-    private static final String KIND_KEY = "_kind";
     private static final char RESERVED_CHAR = '_';
+    private static final String KIND_KEY = "_kind";
+    private static final String ID_KEY = "_id";
 
     private Properties _map = new Properties();
 

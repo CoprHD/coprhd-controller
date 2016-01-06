@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -48,9 +49,7 @@ import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
@@ -99,6 +98,7 @@ public class CoordinatorClientExt {
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
     private ServiceImpl _svc;
+    private Properties dbCommonInfo;
     private InterProcessLock _remoteDownloadLock = null;
     private volatile InterProcessLock _targetLock = null;
     private InterProcessLock _newVersionLock = null;
@@ -132,6 +132,10 @@ public class CoordinatorClientExt {
         _myNodeId= _svc.getNodeId();
         _myNodeName= _svc.getNodeName();
         mySvcId = _svc.getId();
+    }
+
+    public void setDbCommonInfo(Properties dbCommonInfo) {
+        this.dbCommonInfo = dbCommonInfo;
     }
 
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -1424,7 +1428,7 @@ public class CoordinatorClientExt {
                     return new Thread(r, "DbsvcQuorumMonitor");
                 }
             });
-            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(drUtil, getMyNodeId(), _coordinator)
+            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(drUtil, getMyNodeId(), _coordinator, dbCommonInfo)
                     , 0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
     }

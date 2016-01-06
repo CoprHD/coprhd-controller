@@ -176,8 +176,9 @@ public abstract class BlockIngestOrchestrator {
      */
     protected void checkHostIOLimits(VirtualPool vpool, UnManagedVolume unManagedVolume, boolean isExportedVolumeIngest) {
 
-        // Skip validation for unExportedVolumes and VPLEX virtual volumes
-        if (!isExportedVolumeIngest || VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
+        // Skip validation for unExportedVolumes and VPLEX virtual volumes & non-vmax volumes
+        if (!isExportedVolumeIngest || VolumeIngestionUtil.isVplexVolume(unManagedVolume)
+                || !VolumeIngestionUtil.isVmaxVolume(unManagedVolume)) {
             return;
         }
 
@@ -611,7 +612,7 @@ public abstract class BlockIngestOrchestrator {
     protected boolean markUnManagedVolumeInactive(
             IngestionRequestContext requestContext, BlockObject currentBlockObject) {
         UnManagedVolume currentUnmanagedVolume = requestContext.getCurrentUnmanagedVolume();
-        
+
         _logger.info("Running unmanagedvolume {} replica ingestion status", currentUnmanagedVolume.getNativeGuid());
         boolean markUnManagedVolumeInactive = false;
 
@@ -739,7 +740,7 @@ public abstract class BlockIngestOrchestrator {
                         VolumeIngestionUtil.getUnManagedVolumeUris(processedUnManagedGUIDS, _dbClient));
 
                 if (!parentReplicaMap.isEmpty()) {
-                    setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap, 
+                    setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap,
                             requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getObjectsToBeCreatedMap(),
                             requestContext.getObjectsToBeUpdatedMap(),
                             processedUnManagedVolumes);
@@ -772,8 +773,8 @@ public abstract class BlockIngestOrchestrator {
                     VolumeIngestionUtil.getUnManagedVolumeUris(processedUnManagedGUIDS, _dbClient));
 
             if (!parentReplicaMap.isEmpty()) {
-                setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap, 
-                        requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getObjectsToBeCreatedMap(), 
+                setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap,
+                        requestContext.getUnManagedVolumesToBeDeleted(), requestContext.getObjectsToBeCreatedMap(),
                         requestContext.getObjectsToBeUpdatedMap(), processedUnManagedVolumes);
                 return true;
             }
@@ -797,12 +798,12 @@ public abstract class BlockIngestOrchestrator {
                     VolumeIngestionUtil.setupMirrorParentRelations(replica, parent, _dbClient);
                 } else if (replica instanceof Volume) {
                     if (isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
-                    VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
+                        VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
                     } else if (VolumeIngestionUtil.isVplexVolume(parent, _dbClient)
                             && VolumeIngestionUtil.isVplexBackendVolume(replica, _dbClient)) {
                         VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);
                     } else {
-                    VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);
+                        VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);
                     }
                 } else if (replica instanceof BlockSnapshot) {
                     VolumeIngestionUtil.setupSnapParentRelations(replica, parent, _dbClient);

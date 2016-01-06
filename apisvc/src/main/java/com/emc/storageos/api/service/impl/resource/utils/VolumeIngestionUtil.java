@@ -427,7 +427,7 @@ public class VolumeIngestionUtil {
     /**
      * Check to see if an unmanaged resource is RP enabled (part of an RP CG) or not
      * 
-     * @param unManagedVolume unmanaged volume 
+     * @param unManagedVolume unmanaged volume
      * @return true if it's part of an RP CG
      */
     public static boolean checkUnManagedResourceIsRecoverPointEnabled(UnManagedVolume unManagedVolume) {
@@ -443,7 +443,7 @@ public class VolumeIngestionUtil {
 
     /**
      * Check to see if an unmanaged resource is exported to anything non-RP.
-     * Note: Being exported to RP doesn't not mean this returns false.  It's a way
+     * Note: Being exported to RP doesn't not mean this returns false. It's a way
      * to check if something is exported to something other than RP, regardless of RP.
      * 
      * @param unManagedVolume unmanaged volume
@@ -465,7 +465,7 @@ public class VolumeIngestionUtil {
      * the volume is "locked-down" in a target operation.
      * 
      * @param unManagedVolume unmanaged volume
-     * @return true if the voume is in an image access mode.  Several modes qualify.
+     * @return true if the voume is in an image access mode. Several modes qualify.
      */
     public static boolean isRPUnManagedVolumeInImageAccessState(UnManagedVolume unManagedVolume) {
         boolean isImageAccessState = false;
@@ -777,6 +777,22 @@ public class VolumeIngestionUtil {
         String status = volume.getVolumeCharacterstics()
                 .get(SupportedVolumeCharacterstics.IS_VPLEX_VOLUME.toString());
         return TRUE.equals(status);
+    }
+
+    /**
+     * Verifies whether given UnManagedVolume is a vmax volume or not.
+     * 
+     * @param volume
+     * @return
+     */
+    public static boolean isVmaxVolume(UnManagedVolume volume) {
+        if (null == volume || null == volume.getVolumeInformation()) {
+            return false;
+        }
+
+        StringSet systemTypes = volume.getVolumeInformation()
+                .get(SupportedVolumeInformation.SYSTEM_TYPE.toString());
+        return systemTypes.contains(StorageSystem.Type.vmax.name());
     }
 
     /**
@@ -1930,7 +1946,7 @@ public class VolumeIngestionUtil {
     /**
      * Get the export group associated with initiator URIs
      * 
-     * Note: Once it finds an export group associated with any initiator, it returns that export group.  This may not
+     * Note: Once it finds an export group associated with any initiator, it returns that export group. This may not
      * be what the caller wants.
      * 
      * @param project project

@@ -108,7 +108,7 @@ public class SchedulerConfig {
         
         getSofttwareWithRetry();
 
-        PropertyInfo propInfo = coordinator.getTargetProperties();
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
 
         this.nodeCount = coordinator.getNodeCount();
 

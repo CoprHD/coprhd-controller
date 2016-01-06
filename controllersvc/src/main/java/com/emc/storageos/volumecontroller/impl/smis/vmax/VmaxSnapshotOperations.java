@@ -62,7 +62,6 @@ import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.call
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Collections2.transform;
-import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.text.MessageFormat.format;
 
@@ -879,6 +878,22 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             throw new SmisException(errMsg, e);
         }
 
+    }
+
+    /**
+     * Method will invoke the SMI-S operation to delete the ReplicationGroup.
+     *
+     * @param system StorageSystem where the pool and volume exist
+     * @param replicationGroupInstance InstanceID of the SMI-S ReplicationGroup
+     * @throws Exception
+     */
+    private void deleteTargetGroup(StorageSystem system, String replicationGroupInstance) throws Exception {
+        CIMObjectPath groupPath = _cimPath.getReplicationGroupObjectPath(system, replicationGroupInstance);
+        CIMArgument[] outArgs = new CIMArgument[5];
+
+        CIMArgument[] deleteGroupInArgs = _helper.getDeleteReplicationGroupInputArguments(system, groupPath, true);
+        _helper.invokeMethod(system, _cimPath.getControllerReplicationSvcPath(system),
+                DELETE_GROUP, deleteGroupInArgs, outArgs);
     }
 
     /**
@@ -1717,6 +1732,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 if (deleteTarget) {
                     _log.info("Delete target device {}:{}", targetDeviceId, snapshotURI);
                     Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
+
+                    if (snapshot.hasConsistencyGroup()) {
+                        deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+                    }
                     deleteTargetDevices(system, nativeIds.toArray(new String[]{}), completer);
                     _log.info("Delete target device complete");
                 } else if (!syncObjectFound) {

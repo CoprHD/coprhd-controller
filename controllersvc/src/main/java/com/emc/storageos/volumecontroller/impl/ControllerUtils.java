@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Event;
@@ -880,6 +881,26 @@ public class ControllerUtils {
     }
 
     /**
+     * Gets the volumes part of a given replication group.
+     * TODO remove this method when the above method (getVolumesPartOfRG) takes in RepGroup name instead of CG.
+     */
+    public static List<Volume> getVolumesPartOfRG(String replicationGroupInstance, DbClient dbClient) {
+        List<Volume> volumes = new ArrayList<Volume>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getVolumeReplicationGroupInstanceConstraint(replicationGroupInstance), uriQueryResultList);
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                uriQueryResultList, true);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume != null && !volume.getInactive()) {
+                volumes.add(volume);
+            }
+        }
+        return volumes;
+    }
+
+    /**
      * Gets the mirrors part of a given replication group.
      */
     public static List<BlockMirror> getMirrorsPartOfReplicationGroup(
@@ -1361,7 +1382,7 @@ public class ControllerUtils {
     }
 
     /**
-     * Get volume group volumes
+     * Get volume group's volumes
      *
      * @param volumeGroup
      * @return The list of volumes in volume group
@@ -1373,7 +1394,7 @@ public class ControllerUtils {
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
         for (Volume vol : volumes) {
             // TODO return only visible volumes. i.e skip backend or internal volumes?
-            if (!vol.getInactive()) {
+            if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                 result.add(vol);
             }
         }

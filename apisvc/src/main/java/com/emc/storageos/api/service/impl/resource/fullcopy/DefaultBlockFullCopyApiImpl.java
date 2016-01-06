@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource.fullcopy;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -100,12 +101,14 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         int sourceCounter = 0;
         List<Volume> volumesList = new ArrayList<Volume>();
         BlockObject aFCSource = null;
+        Map<URI, VirtualArray> vArrayCache = new HashMap<URI, VirtualArray>();
         List<BlockObject> sortedSourceObjectList = sortFullCopySourceList(fcSourceObjList);
         for (BlockObject fcSourceObj : sortedSourceObjectList) {
             // Make sure when there are multiple source objects,
             // each full copy has a unique name.
             aFCSource = fcSourceObj;
-            // TODO name across multiple AG/CGs
+            // volumes in VolumeGroup can be from different vArrays
+            varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
             String copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
             VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
             VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(
@@ -118,6 +121,21 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         // Invoke the controller.
         return invokeFullCopyCreate(aFCSource, volumesList, createInactive, taskId);
+    }
+
+    /**
+     * Gets the varray from cache.
+     *
+     * @param vArrayCache the varray cache
+     * @param vArrayURI the virtual array
+     * @return the varray from cache
+     */
+    private VirtualArray getVarrayFromCache(Map<URI, VirtualArray> vArrayCache, URI vArrayURI) {
+        if (vArrayCache.get(vArrayURI) == null) {
+            VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, vArrayURI);
+            vArrayCache.put(vArrayURI, vArray);
+        }
+        return vArrayCache.get(vArrayURI);
     }
 
     /**
@@ -200,11 +218,11 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             taskList.getTaskList().add(volumeTask);
         }
 
-        if (fcSourceObj instanceof Volume && ((Volume) fcSourceObj).isInVolumeGroup()) {
-            // TODO get COPY VolumeGroup
-            URI volumeGroupURI = URI.create(((Volume) fcSourceObj).getVolumeGroupIds().iterator().next());
-            VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupURI);
-            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroupURI, taskId,
+        // if Volume is part of Application (COPY type VolumeGroup)
+        VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
+                ? ((Volume) fcSourceObj).getCopyTypeVolumeGroup(_dbClient) : null;
+        if (volumeGroup != null) {
+            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
                     ResourceOperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY);
             taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
             

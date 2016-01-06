@@ -4,6 +4,48 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_MIXED_INT_VALUE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_UNIQUE_ID;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_STORAGE_EXTENT_INITIAL_USAGE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_SETTING;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELETE_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELTA_REPLICA_TARGET_VALUE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.NEW_SETTING;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.PS_COPY_STATE_AND_DESC;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SE_GROUP_SYNCHRONIZED_RG_RG;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SE_REPLICATION_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_SNAP_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_STORAGE_POOL_CAPABILITIES;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_STORAGE_POOL_SETTING;
+import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
+import static java.text.MessageFormat.format;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.cim.CIMArgument;
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -32,39 +74,27 @@ import com.emc.storageos.volumecontroller.impl.smis.AbstractSnapshotOperations;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
-import com.emc.storageos.volumecontroller.impl.smis.job.*;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResyncSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionCGCreateJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionCreateJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionDeleteJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionLinkTargetGroupJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionLinkTargetJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRelinkTargetJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRestoreJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionUnlinkTargetJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMArgument;
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
-import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
-import static com.google.common.collect.Collections2.filter;
-import static com.google.common.collect.Collections2.transform;
-import static com.google.common.collect.Iterables.concat;
-import static com.google.common.collect.Lists.newArrayList;
-import static java.text.MessageFormat.format;
 
 public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     private static final Logger _log = LoggerFactory.getLogger(VmaxSnapshotOperations.class);
@@ -1508,7 +1538,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
     @Override
     public void linkSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
-                                               String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
+            String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         _log.info("Link new target group to snapshot session group START");
 
         CIMObjectPath targetGroupPath = null;
@@ -1719,7 +1749,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 if (deleteTarget) {
                     _log.info("Delete target device {}:{}", targetDeviceId, snapshotURI);
                     Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
-                    deleteTargetDevices(system, nativeIds.toArray(new String[]{}), completer);
+                    deleteTargetDevices(system, nativeIds.toArray(new String[] {}), completer);
                     _log.info("Delete target device complete");
                 } else if (!syncObjectFound) {
                     // Need to be sure the completer is called.
@@ -1780,22 +1810,25 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             try {
                 _log.info("Restore snapshot session {} START", snapSessionURI);
                 BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-                terminateAnyRestoreSessions(system, null, snapSession.getParent().getURI(), completer);
-                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                URI sourceURI = snapSession.getParent().getURI();
-                BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
-                CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
                 String syncAspectPath = snapSession.getSessionInstance();
-
                 CIMObjectPath settingsStatePath = null;
-                if (sourceObj.hasConsistencyGroup()) {
+                BlockObject sourceObj = null;
+                if (snapSession.hasConsistencyGroup()) {
+                    List<Volume> volumesPartOfCG = ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), _dbClient);
+                    sourceObj = volumesPartOfCG.get(0);
                     String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
-                    settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName,
-                            syncAspectPath);
+                    settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
                 } else {
+                    sourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
+                    CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
                     settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
                 }
 
+                // Terminate restore sessions.
+                terminateAnyRestoreSessions(system, null, sourceObj.getId(), completer);
+
+                // Invoke SMI-S method to restore snapshot session.
+                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                 CIMArgument[] inArgs = null;
                 CIMArgument[] outArgs = new CIMArgument[5];
                 inArgs = _helper.getRestoreFromSettingsStateInputArguments(settingsStatePath);

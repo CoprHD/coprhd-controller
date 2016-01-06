@@ -151,9 +151,9 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      * {@inheritDoc}
      */
     @Override
-    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
-        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
-        snapSessionImpl.validateRestoreSnapshotSession(snapSessionSourceObj, project);
+    public void validateRestoreSnapshotSession(List<BlockObject> snapSessionSourceObjs, Project project) {
+        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObjs.get(0).getStorageController());
+        snapSessionImpl.validateRestoreSnapshotSession(snapSessionSourceObjs, project);
     }
 
     /**

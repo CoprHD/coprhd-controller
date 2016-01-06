@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -237,20 +238,27 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
-        if (URIUtil.isType(snapSessionSourceObj.getId(), Volume.class)) {
+    public void validateRestoreSnapshotSession(List<BlockObject> snapSessionSourceObjs, Project project) {
+        if (URIUtil.isType(snapSessionSourceObjs.get(0).getId(), Volume.class)) {
             // Get the platform specific implementation for the source side
             // backend storage system and call the validation routine.
-            Volume vplexVolume = (Volume) snapSessionSourceObj;
-            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
-            BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
-            snapSessionImpl.validateRestoreSnapshotSession(srcSideBackendVolume, project);
+            List<BlockObject> srcSideBackendVolumes = new ArrayList<>();
+            for (BlockObject snapSessionSourceObj : snapSessionSourceObjs) {
+                Volume vplexVolume = (Volume) snapSessionSourceObj;
+                srcSideBackendVolumes.add(VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient));
+            }
+            BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolumes.get(0).getStorageController());
+            snapSessionImpl.validateRestoreSnapshotSession(srcSideBackendVolumes, project);
 
-            // Check for pending tasks on the VPLEX source volume.
-            checkForPendingTasks(vplexVolume, vplexVolume.getTenant().getURI());
+            for (BlockObject snapSessionSourceObj : snapSessionSourceObjs) {
+                Volume vplexVolume = (Volume) snapSessionSourceObj;
 
-            // Verify no active mirrors on the VPLEX volume.
-            verifyActiveMirrors(vplexVolume);
+                // Check for pending tasks on the VPLEX source volume.
+                checkForPendingTasks(vplexVolume, vplexVolume.getTenant().getURI());
+
+                // Verify no active mirrors on the VPLEX volume.
+                verifyActiveMirrors(vplexVolume);
+            }
         } else {
             // We don't currently support snaps of BlockSnapshot instances
             // so should never be called.

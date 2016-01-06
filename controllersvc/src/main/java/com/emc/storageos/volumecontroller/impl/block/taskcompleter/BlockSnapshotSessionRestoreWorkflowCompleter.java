@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.Iterator;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -15,9 +14,11 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Task completer invoked when a workflow restoring a BlockSnapshotSession completes.
@@ -46,43 +47,39 @@ public class BlockSnapshotSessionRestoreWorkflowCompleter extends BlockSnapshotS
         _updateOpStatus = updateOpStatus;
     }
 
-    public BlockSnapshotSessionRestoreWorkflowCompleter(List<URI> snapSessionURIs, Boolean updateOpStatus, String taskId) {
-        super(snapSessionURIs, taskId);
-        _updateOpStatus = updateOpStatus;
-    }
-
     /**
      * {@inheritDoc}
      */
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
-        List<URI> snapSessionURIs = getIds();
+        URI snapSessionURI = getId();
         try {
             if (_updateOpStatus) {
+                BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                BlockObject sourceObj = null;
+                if (snapSession.hasConsistencyGroup()) {
+                    List<Volume> volumesPartOfCG = ControllerUtils.getVolumesPartOfCG(snapSession.getConsistencyGroup(), dbClient);
+                    sourceObj = volumesPartOfCG.get(0);
+                } else {
+                    sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+                }
 
-                Iterator<BlockSnapshotSession> iterator = dbClient.queryIterativeObjects(BlockSnapshotSession.class,
-                        snapSessionURIs);
-                while (iterator.hasNext()) {
-                    BlockSnapshotSession snapSession = iterator.next();
-                    BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+                // Record the results.
+                recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.RESTORE_SNAPSHOT_SESSION,
+                        status, snapSession, sourceObj);
 
-                    // Record the results.
-                    recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.RESTORE_SNAPSHOT_SESSION,
-                            status, snapSession, sourceObj);
-
-                    // Update the status map of the snapshot session.
-                    switch (status) {
-                        case error:
-                            setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSession.getId(), coded);
-                            break;
-                        case ready:
-                            setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSession.getId());
-                            break;
-                        default:
-                            String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
-                            s_logger.info(errMsg);
-                            throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
-                    }
+                // Update the status map of the snapshot session.
+                switch (status) {
+                    case error:
+                        setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSession.getId(), coded);
+                        break;
+                    case ready:
+                        setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSession.getId());
+                        break;
+                    default:
+                        String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
+                        s_logger.info(errMsg);
+                        throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
                 }
             }
 

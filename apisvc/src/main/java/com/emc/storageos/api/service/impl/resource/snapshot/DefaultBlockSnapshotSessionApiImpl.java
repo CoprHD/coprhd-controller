@@ -4,6 +4,24 @@
  */
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+import static com.emc.storageos.volumecontroller.impl.ControllerUtils.getVolumesPartOfCG;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriInfo;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
@@ -36,22 +54,6 @@ import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriInfo;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
-import static com.emc.storageos.volumecontroller.impl.ControllerUtils.getVolumesPartOfCG;
 
 /**
  * 
@@ -292,22 +294,21 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
         /*
          * If linked targets are requested...
-         *
+         * 
          * Non-CG case for source ["src"] with 2 targets named "linked":
          * [
-         *  ["linked-1"],
-         *  ["linked-2"]
+         * ["linked-1"],
+         * ["linked-2"]
          * ]
-         *
+         * 
          * CG case for sources ["src-1", "src-2"] with 2 targets named "linked":
          * [
-         *  ["linked-1-1", "linked-1-2"],
-         *  ["linked-2-1", "linked-2-2"]
+         * ["linked-1-1", "linked-1-2"],
+         * ["linked-2-1", "linked-2-2"]
          * ]
-         *
+         * 
          * i.e. treat non-CG single volumes as single member groups, then for however
          * many target requests, copy each group.
-         *
          */
         if (newTargetCount > 0) {
             // Create <newTargetCount> lists of targets
@@ -350,7 +351,6 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         snapSession.setLabel(instanceLabel);
         snapSession.setSessionLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(snapSessionLabel,
                 SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
-
 
         snapSession.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
         snapSession.setOpStatus(new OpStatusMap());
@@ -572,7 +572,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
+    public void validateRestoreSnapshotSession(List<BlockObject> snapSessionSourceObjs, Project project) {
         // Validate the project tenant.
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
         ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
@@ -581,15 +581,17 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project,
                 BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
 
-        if (URIUtil.isType(snapSessionSourceObj.getId(), Volume.class)) {
-            // Make sure that we don't have some pending
-            // operation against the volume.
-            Volume sourceVolume = (Volume) snapSessionSourceObj;
-            checkForPendingTasks(sourceVolume, sourceVolume.getTenant().getURI());
+        for (BlockObject snapSessionSourceObj : snapSessionSourceObjs) {
+            if (URIUtil.isType(snapSessionSourceObj.getId(), Volume.class)) {
+                // Make sure that we don't have some pending
+                // operation against the volume.
+                Volume sourceVolume = (Volume) snapSessionSourceObj;
+                checkForPendingTasks(sourceVolume, sourceVolume.getTenant().getURI());
 
-            // On some platforms it is not possible to restore an array snapshot
-            // point-in-time copy to a source volume if the volume has active mirrors.
-            verifyActiveMirrors(sourceVolume);
+                // On some platforms it is not possible to restore an array snapshot
+                // point-in-time copy to a source volume if the volume has active mirrors.
+                verifyActiveMirrors(sourceVolume);
+            }
         }
     }
 

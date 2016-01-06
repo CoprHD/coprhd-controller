@@ -189,10 +189,10 @@ public interface BlockSnapshotSessionApi {
     /**
      * Validates a restore snapshot session request.
      * 
-     * @param snapSessionSourceObj A reference to the snapshot session source.
+     * @param snapSessionSourceObjs A list of the snapshot session source objects.
      * @param project A reference to the source project.
      */
-    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project);
+    public void validateRestoreSnapshotSession(List<BlockObject> snapSessionSourceObjs, Project project);
 
     /**
      * Restores the source with the data from the array snapshot point-in-time
@@ -232,7 +232,7 @@ public interface BlockSnapshotSessionApi {
 
     /**
      * Get all BlockSnapshotSessions for the passed consistency group.
-     *
+     * 
      * @param groupObj A reference to the consistency group object.
      */
     public List<BlockSnapshotSession> getSnapshotSessionsForConsistencyGroup(BlockConsistencyGroup groupObj);
@@ -247,7 +247,7 @@ public interface BlockSnapshotSessionApi {
 
     /**
      * Gets all snapshot sessions with a common session instance.
-     *
+     * 
      * @param instance
      * @return
      */

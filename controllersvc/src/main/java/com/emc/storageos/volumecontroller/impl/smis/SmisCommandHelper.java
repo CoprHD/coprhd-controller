@@ -4320,6 +4320,7 @@ public class SmisCommandHelper implements SmisConstants {
                     _log.info(String.format("Sleep for %d msecs before calling refresh because last "
                             + "refresh was done %d msecs ago", sleepDuration, deltaLastRefreshValue));
                     pauseThread(sleepDuration);
+                    deltaLastRefreshValue = currentMillis - storage.getLastRefresh();
                 }
 
                 // Do a basic calculation of how long we had to wait for the

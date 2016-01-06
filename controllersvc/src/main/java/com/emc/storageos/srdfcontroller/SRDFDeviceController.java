@@ -376,24 +376,27 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     .getNativeGuid());
         }
 
+        String createSrdfPairStep = null;
         if (volumesInRDFGroupsOnProvider.isEmpty() && SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
             log.info("RA Group {} was empty", group.getId());
-            waitFor = createNonCGSrdfPairStepsOnEmptyGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor, workflow);
+            createSrdfPairStep = createNonCGSrdfPairStepsOnEmptyGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor, workflow);
         } else {
             log.info("RA Group {} not empty", group.getId());
-            waitFor = createNonCGSrdfPairStepsOnPopulatedGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor,
+            createSrdfPairStep = createNonCGSrdfPairStepsOnPopulatedGroup(sourceDescriptors, targetDescriptors, group, uriVolumeMap, waitFor,
                     workflow);
         }
         // Generate workflow step to refresh source and target system .
+        String refreshSourceSystemStep = null;
         if (null != system) {
-            waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, system, null, waitFor, workflow);
+        	refreshSourceSystemStep = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, system, null, createSrdfPairStep, workflow);
         }
+        String refreshTargetSystemStep = null;
         if (null != targetSystem) {
-            waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, waitFor, workflow);
+        	refreshTargetSystemStep = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, refreshSourceSystemStep, workflow);
         }
 
         // Refresh target volume properties
-        refreshVolumeProperties(targetDescriptors, targetSystem, waitFor, workflow);
+        refreshVolumeProperties(targetDescriptors, targetSystem, refreshTargetSystemStep, workflow);
     }
 
     /**
@@ -948,24 +951,25 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
         }
 
+        String lastDeleteSRDFMirrorStep = null;
         if (!srdfGroupMap.isEmpty()) {
             // Add step to resume each Active SRDF group
             for (URI srdfGroupURI : srdfGroupMap.keySet()) {
                 RemoteDirectorGroup group = srdfGroupMap.get(srdfGroupURI);
                 List<URI> sourceVolumes = srdfGroupToSourceVolumeMap.get(srdfGroupURI);
                 List<URI> targetVolumes = srdfGroupToTargetVolumeMap.get(srdfGroupURI);
-                waitFor = srdfGroupToLastWaitFor.get(srdfGroupURI);
+                String lastWaitFor = srdfGroupToLastWaitFor.get(srdfGroupURI);
                 system = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
                 Workflow.Method resumeSRDFGroupMethod = resumeSRDFGroupMethod(system.getId(), group, sourceVolumes, targetVolumes);
-                waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
-                        RESUME_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                lastDeleteSRDFMirrorStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                        RESUME_SRDF_MIRRORS_STEP_DESC, lastWaitFor, system.getId(),
                         system.getSystemType(), getClass(), resumeSRDFGroupMethod, null, null);
             }
         }
 
         // refresh provider before invoking deleteVolume call
         if (null != targetSystem) {
-            addStepToRefreshSystem(DELETE_SRDF_MIRRORS_STEP_GROUP, targetSystem, targetVolumeURIs, waitFor, workflow);
+            addStepToRefreshSystem(DELETE_SRDF_MIRRORS_STEP_GROUP, targetSystem, targetVolumeURIs, lastDeleteSRDFMirrorStep, workflow);
         }
         return DELETE_SRDF_MIRRORS_STEP_GROUP;
     }

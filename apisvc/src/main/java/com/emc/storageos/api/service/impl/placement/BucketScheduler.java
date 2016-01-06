@@ -90,7 +90,6 @@ public class BucketScheduler {
         for (Recommendation recommendation : poolRecommends) {
             BucketRecommendation rec = new BucketRecommendation(recommendation);
             URI storageUri = recommendation.getSourceStorageSystem();
-            URI storagePoolUri = recommendation.getSourceStoragePool();
 
             // Verify if the Storage System is an Object Store
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageUri);
@@ -100,27 +99,32 @@ public class BucketScheduler {
             baseResult.add(rec);
         }
         
-        //sort the storage pools based on the number of datacenters spread 
-        storagePoolSort(baseResult);
-        
-        //get the value of datacenters in the sorted first storage pool
-        StoragePool pool = _dbClient.queryObject(StoragePool.class, baseResult.get(0).getSourceStoragePool());
-        Integer baseDC = pool.getDataCenters();
-        
-        //make the first sub-set of pools
-        List<BucketRecommendation> finalResult = new ArrayList<BucketRecommendation>();
-        for (BucketRecommendation bkRec:baseResult) {
-            URI storagePoolUri = bkRec.getSourceStoragePool();
-            pool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
+        List<BucketRecommendation> finalResult = null;
+        //Make sure pool list is not empty
+        if (!baseResult.isEmpty()) {
+            finalResult = new ArrayList<BucketRecommendation>();
+            //sort the storage pools based on the number of datacenters spread 
+            storagePoolSort(baseResult);
 
-            if (pool.getDataCenters() == baseDC) {
-                finalResult.add(bkRec);
+            //get the value of datacenters in the sorted first storage pool
+            StoragePool pool = _dbClient.queryObject(StoragePool.class, baseResult.get(0).getSourceStoragePool());
+            Integer baseDC = pool.getDataCenters();
+
+            //make the first sub-set of pools
+            for (BucketRecommendation bkRec:baseResult) {
+                URI storagePoolUri = bkRec.getSourceStoragePool();
+                pool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
+
+                if (pool.getDataCenters() == baseDC) {
+                    finalResult.add(bkRec);
+                }
+                else {
+                    break;
+                }
             }
-            else {
-                break;
-            }
+        } else {
+            finalResult = baseResult;
         }
-        
         return finalResult;
     }
     

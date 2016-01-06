@@ -53,10 +53,8 @@ public abstract class VdcOpHandler {
     private static final int VDC_RPOP_BARRIER_TIMEOUT = 5*60; // 5 mins
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int FAILOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 15;
-    private static final int FAILBACK_ZK_WRITALE_WAIT_INTERVAL = 1000 * 15;
     private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
     private static final int FAILOVER_BARRIER_TIMEOUT = 300;
-    private static final int FAILBACK_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 20;
     // data revision time out - 5 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
@@ -698,19 +696,7 @@ public abstract class VdcOpHandler {
 
         @Override
         public void execute() throws Exception {
-            Site localSite = drUtil.getLocalSite();
-            
             reconfigVdc();
-            coordinator.reconfigZKToWritable(false);
-            coordinator.blockUntilZookeeperIsWritableConnected(FAILBACK_ZK_WRITALE_WAIT_INTERVAL);
-            
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILBACK_BARRIER, FAILBACK_BARRIER_TIMEOUT, drUtil.getLocalSite().getNodeCount(), false);
-            barrier.enter();
-            
-            localSite.setState(SiteState.ACTIVE_FAILBACK_DEGRADED);
-            coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
-            
-            barrier.leave();
         }
         
     }

@@ -150,7 +150,6 @@ public interface Constants {
     public static final String SWITCHOVER_BARRIER_ACTIVE_SITE = "switchoverBarrierActiveSite";
     public static final String SWITCHOVER_BARRIER_STANDBY_SITE = "switchoverBarrierStandbySite";
     public static final String FAILOVER_BARRIER = "failoverBarrier";
-    public static final String FAILBACK_BARRIER = "failbackBarrier";
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
     public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";
     public static final String FAILBACK_DETECT_LEADER = "failbackDetectLeader";

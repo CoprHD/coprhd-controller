@@ -1551,8 +1551,7 @@ public class DisasterRecoveryService {
         @Override
         public void run() {
             try {
-                if (!drUtil.getLocalSite().getState().equals(SiteState.ACTIVE)) {
-                    log.info("Current site is not active site, no need to detail failback");
+                if (!needCheckFailback()) {
                     return;
                 }
                 
@@ -1563,7 +1562,7 @@ public class DisasterRecoveryService {
                     } else {
                         if (hasActiveSiteInRemote(site)) {
                             Site localSite = drUtil.getLocalSite();
-                            localSite.setState(SiteState.ACTIVE_FAILBACK_DEGRADING);
+                            localSite.setState(SiteState.ACTIVE_FAILBACK_DEGRADED);
                             coordinator.persistServiceConfiguration(localSite.toConfiguration());
                             drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_FAILBACK_DEGRADE);
                             return;
@@ -1575,6 +1574,34 @@ public class DisasterRecoveryService {
             } catch (Exception e) {
                 log.error("Error occurs during failback detect monitor", e);
             }
+        }
+        
+        private boolean needCheckFailback() {
+            if (drUtil.getLocalSite().getState().equals(SiteState.ACTIVE)) {
+                log.info("Current site is active site, need to detail failback");
+                return true;
+            }
+            
+            Site localSite = drUtil.getLocalSite();
+            if (localSite.getState().equals(SiteState.ACTIVE_FAILBACK_DEGRADED)) {
+                log.info("Site is already ACTIVE_FAILBACK_DEGRADED");
+                if (coordinator.locateAllServices(localSite.getUuid(), "controllersvc", "1", null, null).size() > 0) {
+                    log.info("there are some controller service alive, process to degrade");
+                    return true;
+                }
+                
+                if (coordinator.locateAllServices(localSite.getUuid(), "sasvc", "1", null, null).size() > 0) {
+                    log.info("there are some sa service alive, process to degrade");
+                    return true;
+                }
+                
+                if (coordinator.locateAllServices(localSite.getUuid(), "vasasvc", "1", null, null).size() > 0) {
+                    log.info("there are some vasa service alive, process to degrade");
+                    return true;
+                }
+            }
+            
+            return false;
         }
         
         private boolean hasActiveSiteInRemote(Site site) {

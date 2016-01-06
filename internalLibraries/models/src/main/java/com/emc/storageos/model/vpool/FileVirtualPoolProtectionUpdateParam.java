@@ -8,15 +8,15 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "file_protection")
-public class FileVirtualPoolProtectionParam extends VirtualPoolProtectionParam {
+public class FileVirtualPoolProtectionUpdateParam extends VirtualPoolProtectionParam {
 	
-	FileVirtualPoolReplicationParam replicationParam;
+	FileVirtualPoolReplicationUpdateParam replicationParam;
 	
-	public FileVirtualPoolProtectionParam() {
+	public FileVirtualPoolProtectionUpdateParam() {
     }
 
-    public FileVirtualPoolProtectionParam(
-    		FileVirtualPoolReplicationParam replicationParam) {
+    public FileVirtualPoolProtectionUpdateParam(
+    		FileVirtualPoolReplicationUpdateParam replicationParam) {
         this.replicationParam = replicationParam;
     }
     
@@ -26,11 +26,11 @@ public class FileVirtualPoolProtectionParam extends VirtualPoolProtectionParam {
      * @valid none
      */
     @XmlElement(name = "replication_params")
-    public FileVirtualPoolReplicationParam getReplicationParam() {
+    public FileVirtualPoolReplicationUpdateParam getReplicationParam() {
         return replicationParam;
     }
 
-    public void setReplicationParam(FileVirtualPoolReplicationParam replParam) {
+    public void setReplicationParam(FileVirtualPoolReplicationUpdateParam replParam) {
         this.replicationParam = replParam;
     }
 }

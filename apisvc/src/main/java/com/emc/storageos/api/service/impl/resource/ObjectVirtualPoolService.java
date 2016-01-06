@@ -179,6 +179,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
                 allPools,
                 null,
                 null,
+                null,
                 _dbClient,
                 _coordinator, AttributeMatcher.VPOOL_MATCHERS);
         for (StoragePool pool : matchedPools) {

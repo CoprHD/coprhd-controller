@@ -18,6 +18,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1011,8 +1012,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByVolume(volumeId, new DefaultResourceFilter<BlockSnapshotRestRep>());            
-            return constructSnapshotOptions(snapshots);
+            List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByVolume(volumeId, new DefaultResourceFilter<BlockSnapshotRestRep>());
+            List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().getByVolume(volumeId, new DefaultResourceFilter<BlockSnapshotSessionRestRep>());
+            return constructSnapshotWithSnapshotSessionOptions(snapshots, snapshotSessions);
         } else {
             return getConsistencyGroupSnapshots(ctx, volumeId);
         }
@@ -1832,6 +1834,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         return blockObject.getName();
     }
+    
+    private static String getBlockSnapshotLinkedLabel(BlockSnapshotRestRep snapshot, Map<URI, String> linkedSnapshotToSnapshotSessionMap) {        
+        String snapshotSessionName = linkedSnapshotToSnapshotSessionMap.get(snapshot.getId());
+        if (snapshotSessionName != null && !snapshotSessionName.isEmpty()) {
+            return getMessage("block.snapshot.linked", snapshot.getName(), snapshotSessionName);
+        }          
+        return getMessage("block.snapshot.linked.unknown", snapshot.getName());
+    }
 
     protected static String getBlockSnapshotParentVolumeName(Map<URI, VolumeRestRep> volumeNames, BlockSnapshotRestRep snapshot) {
         if (snapshot.getParent() != null &&
@@ -1880,6 +1890,23 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         for (BlockSnapshotRestRep snapshot : snapshots) {
             options.add(new AssetOption(snapshot.getId(), snapshot.getName()));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    protected List<AssetOption> constructSnapshotWithSnapshotSessionOptions(List<BlockSnapshotRestRep> snapshots, List<BlockSnapshotSessionRestRep> snapshotSessions) {
+        List<AssetOption> options = Lists.newArrayList();       
+        // Create a map of linked target URIs to snapshot session names for convenience when creating
+        // the option labels.
+        Map<URI, String> linkedSnapshotToSnapshotSessionMap = new HashMap<URI, String>();
+        for (BlockSnapshotSessionRestRep snapshotSession : snapshotSessions) {
+            for (RelatedResourceRep linkedTarget : snapshotSession.getLinkedTarget()) {
+                linkedSnapshotToSnapshotSessionMap.put(linkedTarget.getId(), snapshotSession.getName());
+            }
+        }        
+        for (BlockSnapshotRestRep snapshot : snapshots) {
+            options.add(new AssetOption(snapshot.getId(), getBlockSnapshotLinkedLabel(snapshot, linkedSnapshotToSnapshotSessionMap)));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

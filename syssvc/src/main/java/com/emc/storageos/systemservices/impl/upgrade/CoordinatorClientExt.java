@@ -1457,7 +1457,7 @@ public class CoordinatorClientExt {
                     return new Thread(r, "DbsvcQuorumMonitor");
                 }
             });
-            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(drUtil, getMyNodeId(), _coordinator, dbCommonInfo)
+            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(getMyNodeId(), _coordinator, dbCommonInfo)
                     , 0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
     }

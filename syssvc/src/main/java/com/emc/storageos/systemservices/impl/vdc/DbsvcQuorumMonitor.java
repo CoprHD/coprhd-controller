@@ -34,9 +34,8 @@ public class DbsvcQuorumMonitor implements Runnable {
     private CoordinatorClient coordinatorClient;
     private Properties dbCommonInfo;
 
-    public DbsvcQuorumMonitor(DrUtil drUtil, String myNodeId, CoordinatorClient coordinatorClient,
-                              Properties dbCommonInfo) {
-        this.drUtil = drUtil;
+    public DbsvcQuorumMonitor(String myNodeId, CoordinatorClient coordinatorClient, Properties dbCommonInfo) {
+        this.drUtil = new DrUtil(coordinatorClient);
         this.myNodeId = myNodeId;
         this.coordinatorClient = coordinatorClient;
         this.dbCommonInfo = dbCommonInfo;

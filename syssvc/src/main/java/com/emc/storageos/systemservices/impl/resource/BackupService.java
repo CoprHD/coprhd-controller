@@ -26,7 +26,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
-import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +55,7 @@ import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 

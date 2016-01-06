@@ -4,14 +4,14 @@
  */
 package com.emc.vipr.model.sys.backup;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @XmlRootElement(name = "restore_status")
 public class BackupRestoreStatus {
@@ -155,6 +155,8 @@ public class BackupRestoreStatus {
         sb.append(getDownoadSize());
         sb.append(", nodeCompleted:");
         sb.append(getNodeCompleted());
+        sb.append(", isGeo:");
+        sb.append(isGeo());
         sb.append(", status:");
         sb.append(getStatus());
 

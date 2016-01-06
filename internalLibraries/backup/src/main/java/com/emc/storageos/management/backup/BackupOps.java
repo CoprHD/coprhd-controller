@@ -206,12 +206,6 @@ public class BackupOps {
         return this.quorumSize;
     }
 
-    /*
-    public List<Integer> getPorts() {
-        return ports;
-    }
-    */
-
     /**
      * Sets jmx service ports
      * 
@@ -231,12 +225,6 @@ public class BackupOps {
     public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
         this.coordinatorClient = coordinatorClient;
     }
-
-    /*
-    public CoordinatorClient getCoordinatorClient() {
-        return coordinatorClient;
-    }
-    */
 
     /**
      * Gets vdc list
@@ -944,7 +932,7 @@ public class BackupOps {
         return false;
     }
 
-    public List<String> getAvailableNodes() {
+    private List<String> getAvailableNodes() {
         List<String> goodNodes = new ArrayList<String>();
         try {
             List<Service> svcs = coordinatorClient.locateAllServices(

@@ -7,11 +7,10 @@ package com.emc.sa.service.vipr.block;
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT;
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_COUNT;
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_NAME;
+import static com.emc.sa.service.ServiceParams.SNAPSHOT_SESSION;
 import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
-import static com.emc.sa.service.ServiceParams.SNAPSHOT_SESSION;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -20,9 +19,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.LinkBlockSnapshot;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.vipr.client.Task;
-import com.emc.vipr.client.Tasks;
 
 @Service("LinkBlockSnapshot")
 public class LinkBlockSnapshotService extends ViPRService {
@@ -45,13 +42,9 @@ public class LinkBlockSnapshotService extends ViPRService {
     @Param(value = LINKED_SNAPSHOT_COUNT, required = false)
     protected Integer linkedSnapshotCount;
 
-    private List<BlockObjectRestRep> snapshotSessions;
-
     @Override
     public void precheck() {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-            //snapshotSessions = new ArrayList<>();
-            //snapshotSessions = BlockStorageUtils.getBlockResources(uris(snapshotSessionIds));
             // If trying to create a new Snapshot Session and the optional linkedSnapshotName 
             // is populated, make sure that linkedSnapshotCount > 0.                      
             if (linkedSnapshotName != null && !linkedSnapshotName.isEmpty()) {

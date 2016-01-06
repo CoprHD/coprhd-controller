@@ -70,7 +70,6 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
 import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshot;
-import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshotSessions;
 import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshots;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
@@ -102,7 +101,6 @@ import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
-import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
@@ -201,16 +199,11 @@ public class BlockStorageUtils {
     private static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
         return execute(new GetBlockSnapshots(uris));
     }
-    
-    private static List<BlockSnapshotSessionRestRep> getBlockSnapshotSessions(List<URI> uris) {
-        return execute(new GetBlockSnapshotSessions(uris));
-    }
 
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();
         List<URI> blockVolumes = new ArrayList<URI>();
         List<URI> blockSnapshots = new ArrayList<URI>();
-        List<URI> blockSnapshotSessions = new ArrayList<URI>();
         for (URI resourceId : resourceIds) {
             ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
             switch (volumeType) {
@@ -220,16 +213,12 @@ public class BlockStorageUtils {
                 case BLOCK_SNAPSHOT:
                     blockSnapshots.add(resourceId);
                     break;
-                case BLOCK_SNAPSHOT_SESSION:
-                    blockSnapshotSessions.add(resourceId);
-                    break;
                 default:
                     break;
             }
         }
         blockResources.addAll(getVolumes(blockVolumes));
         blockResources.addAll(getBlockSnapshots(blockSnapshots));
-        blockResources.addAll(getBlockSnapshotSessions(blockSnapshotSessions));
         return blockResources;
     }
 

@@ -19,6 +19,7 @@ import java.util.Map;
 import javax.xml.bind.JAXBElement;
 import javax.xml.namespace.QName;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -487,26 +488,40 @@ public class UCSMServiceImpl implements UCSMService {
 
         List<LsServer> existingLsServers = getAllLsServers(ucsmURL, username, password);
 
-        if (serviceProfileName != null && !serviceProfileName.isEmpty()) {
+        if (StringUtils.isNotBlank(serviceProfileName)) {
             String serviceProfileNameToUse = serviceProfileName;
             int index = 0;
-            boolean serviceProfileNameIsDuplicate = false;
-            for (LsServer lsServer : existingLsServers) {
-                if (lsServer.getName().equals(serviceProfileNameToUse)) {
-                    serviceProfileNameIsDuplicate = true;
-                    break;
+            boolean serviceProfileNameIsDuplicate = isServiceProfileDuplicate(
+                    existingLsServers, serviceProfileNameToUse);
+            if (!serviceProfileNameIsDuplicate) {
+                if (serviceProfileNameToUse.length() > 32) {
+                    serviceProfileNameToUse = StringUtils.substringBefore(
+                            serviceProfileName, ".");
+                    if (serviceProfileNameToUse.length() > 32) {
+                        serviceProfileNameToUse = StringUtils.substring(
+                                serviceProfileNameToUse, 0, 32);
+                    }
+                    serviceProfileNameIsDuplicate = isServiceProfileDuplicate(
+                            existingLsServers, serviceProfileNameToUse);
                 }
             }
             while (serviceProfileNameIsDuplicate) {
                 index++;
-                serviceProfileNameToUse = serviceProfileName + "_" + Integer.toString(index);
-                serviceProfileNameIsDuplicate = false;
-                for (LsServer lsServer : existingLsServers) {
-                    if (lsServer.getName().equals(serviceProfileNameToUse)) {
-                        serviceProfileNameIsDuplicate = true;
-                        break;
+                serviceProfileNameToUse = serviceProfileName + "_"
+                        + Integer.toString(index);
+                if (serviceProfileNameToUse.length() > 32) {
+                    serviceProfileNameToUse = StringUtils.substringBefore(
+                            serviceProfileName, ".")
+                            + "_"
+                            + Integer.toString(index);
+                    if (serviceProfileNameToUse.length() > 32) {
+                        serviceProfileNameToUse = StringUtils.substring(
+                                serviceProfileNameToUse, 0, 32 - (Integer
+                                        .toString(index).length() + 1));
                     }
                 }
+                serviceProfileNameIsDuplicate = isServiceProfileDuplicate(
+                        existingLsServers, serviceProfileNameToUse);
             }
 
             try {
@@ -1579,5 +1594,22 @@ public class UCSMServiceImpl implements UCSMService {
             }
         }
         return new ArrayList<JAXBElement<?>>();
+    }
+
+    /**
+     * This method checks to see if a service profile by the given name exists already
+     * @param existingLsServers {@link List} of LsServer instances
+     * @param serviceProfileNameToUse {@link String} serviceprofile name that has to be checked if it already exists
+     * @return true if a duplicate is found else false
+     */
+    private boolean isServiceProfileDuplicate(List<LsServer> existingLsServers, String serviceProfileNameToUse) {
+        boolean serviceProfileNameIsDuplicate = false;
+        for (LsServer lsServer : existingLsServers) {
+            if (lsServer.getName().equals(serviceProfileNameToUse)) {
+                serviceProfileNameIsDuplicate = true;
+                break;
+            }
+        }
+        return serviceProfileNameIsDuplicate;
     }
 }

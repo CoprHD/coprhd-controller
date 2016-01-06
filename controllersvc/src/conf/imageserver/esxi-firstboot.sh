@@ -130,7 +130,9 @@ fi
 #enable SSH access
 if [ -n "$ENABLE_SSH" ]; then
    $LOG $LOG_OPT "Permit root access via SSH"
-   if [ $ESX_MAJOR_VERSION == 5 ]; then
+   if [ $ESX_MAJOR_VERSION == 6 ]; then
+        chkconfig SSH on
+   elif [ $ESX_MAJOR_VERSION == 5 ]; then
         chkconfig SSH on
    elif [ $ESX_MAJOR_VERSION == 4 ]; then
         chkconfig TSM-SSH on

@@ -322,7 +322,8 @@ public class SRDFOperations implements SmisConstants {
         try {
             CIMObjectPath replicationSettingCapabilities = cimPath
                     .getReplicationServiceCapabilitiesPath(sourceSystem);
-            int replicationType = Mode.ASYNCHRONOUS.getMode() == modeValue ? ASYNC_MIRROR_REMOTE_REPLICATION_TYPE : SYNC_MIRROR_REMOTE_REPLICATION_TYPE;
+            int replicationType = Mode.ASYNCHRONOUS.getMode() == modeValue ? ASYNC_MIRROR_REMOTE_REPLICATION_TYPE
+                    : SYNC_MIRROR_REMOTE_REPLICATION_TYPE;
             CIMArgument[] inArgs = helper.getReplicationSettingDataInstance(replicationType);
             CIMArgument[] outArgs = new CIMArgument[5];
             helper.invokeMethod(sourceSystem, replicationSettingCapabilities,
@@ -356,7 +357,7 @@ public class SRDFOperations implements SmisConstants {
                                 UINT16_T, new UnsignedInteger16(IMPLEMENTATION_DECIDES));
                         propList.add(targetElementSupplier);
 
-                        modifiedInstance = repInstance.deriveInstance(propList.toArray(new CIMProperty<?>[]{}));
+                        modifiedInstance = repInstance.deriveInstance(propList.toArray(new CIMProperty<?>[] {}));
                         break;
                     }
                 }
@@ -2152,10 +2153,10 @@ public class SRDFOperations implements SmisConstants {
 
     /**
      * Given a list of target volumes, find a source volume and its associated BlockConsistencyGroup.
-     *
+     * 
      * Using this BlockConsistencyGroup, find or create a group for the targets and apply to it all
      * targets.
-     *
+     * 
      * @param targetVolumes List of target volumes
      */
     private void findOrCreateTargetBlockConsistencyGroup(List<? extends BlockObject> targetVolumes) {
@@ -2227,7 +2228,7 @@ public class SRDFOperations implements SmisConstants {
         if (null != mode && Mode.ACTIVE.equals(Mode.valueOf(mode))) {
             // For Active mode SUSPEND, RESUME, RESTORE is done on all volumes in the RDF group
             // so we need to refresh all target volumes as there access state changes.
-            callEMCRefresh(helper, targetSystem);
+            callEMCRefresh(helper, targetSystem, true);
             RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
             List<URI> targetVolumeURIs = utils.getTargetVolumesForRAGroup(group);
             refreshVolumeProperties(targetSystem.getId(), targetVolumeURIs);

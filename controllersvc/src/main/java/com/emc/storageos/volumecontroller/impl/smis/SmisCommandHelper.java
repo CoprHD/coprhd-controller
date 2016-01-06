@@ -4297,6 +4297,12 @@ public class SmisCommandHelper implements SmisConstants {
     public Object callRefreshSystem(StorageSystem storage,
             SimpleFunction toCallAfterRefresh)
             throws WBEMException {
+        return callRefreshSystem(storage, toCallAfterRefresh, false);
+    }
+
+    public Object callRefreshSystem(StorageSystem storage,
+            SimpleFunction toCallAfterRefresh, boolean force)
+            throws WBEMException {
         Object result = null;
         String lockKey = String.format("callRefreshSystem-%s",
                 storage.getId().toString());
@@ -4305,7 +4311,7 @@ public class SmisCommandHelper implements SmisConstants {
                 storage = _dbClient.queryObject(StorageSystem.class, storage.getId());
                 long currentMillis = Calendar.getInstance().getTimeInMillis();
                 long deltaLastRefreshValue = currentMillis - storage.getLastRefresh();
-                if (deltaLastRefreshValue < REFRESH_THRESHOLD) {
+                if (deltaLastRefreshValue < REFRESH_THRESHOLD && force) {
                     // In case of SRDF Active mode resume operation, its possible that second call
                     // to refreshSystem might be done where REFRESH_THRESHOLD value might not be met so we
                     // will pause thread for the remainder of the time as we need to make sure refresh

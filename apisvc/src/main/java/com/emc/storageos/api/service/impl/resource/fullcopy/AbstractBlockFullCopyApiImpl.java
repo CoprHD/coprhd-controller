@@ -109,10 +109,9 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             Volume fcSourceVolume = (Volume) fcSourceObj;
             URI cgURI = fcSourceVolume.getConsistencyGroup();
             if (!isNullURI(cgURI)) {
-                // if volume is part of Volume Group, get only the Array Group volumes
-                // TODO check other Implementations
+                // if volume is part of COPY type Volume Group, get only the Array Group volumes
                 // TODO block CG operations for volumes in VolumeGroup
-                if (fcSourceVolume.isInVolumeGroup()) {
+                if (fcSourceVolume.isInVolumeGroup() && fcSourceVolume.getCopyTypeVolumeGroup(_dbClient) != null) {
                     fcSourceObjList.addAll(
                             ControllerUtils.getVolumesPartOfRG(fcSourceVolume.getReplicationGroupInstance(), _dbClient));
                 } else {

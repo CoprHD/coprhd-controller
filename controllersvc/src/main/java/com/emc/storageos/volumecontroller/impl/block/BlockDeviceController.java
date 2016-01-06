@@ -3238,9 +3238,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 isCG = true;    // VolumeGroup Volumes will be in CG
                 List<Volume> allVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
                 Map<String, List<Volume>> arrayGroupToVolumes = ControllerUtils.groupVolumesByArrayGroup(allVolumes);
-                for (String arrayGroupName : arrayGroupToVolumes.keySet()) {
+                for (String arrayGroupName : arrayGroupToVolumes.keySet()) {    // AG - Array Group
                     List<Volume> arrayGroupVolumes = arrayGroupToVolumes.get(arrayGroupName);
                     List<URI> fullCopyVolumesAG = getFullCopiesForVolumes(fullCopyVolumes, arrayGroupVolumes);
+                    if (fullCopyVolumesAG.isEmpty()) {
+                        _log.debug("Looks Full copy not requested for array group {}", arrayGroupName);
+                        // This is to support future case where there may be a request for subset of array groups
+                        continue;
+                    }
                     Volume sourceVolumeAG = arrayGroupVolumes.iterator().next();
                     // add CG to taskCompleter
                     if (!NullColumnValueGetter.isNullURI(sourceVolumeAG.getConsistencyGroup())) {

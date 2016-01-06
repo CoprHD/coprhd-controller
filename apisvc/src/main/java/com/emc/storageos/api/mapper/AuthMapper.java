@@ -40,6 +40,30 @@ public class AuthMapper {
 
     public static final AuthnProvider map(AuthnCreateParam from) {
         AuthnProvider authn = new AuthnProvider();
+        if (from.getManagerDn() != null) {
+            authn.setManagerDN(from.getManagerDn());
+        }
+        if (from.getManagerPassword() != null) {
+            authn.setManagerPassword(from.getManagerPassword());
+        }
+        if (from.getDisable() != null) {
+            authn.setDisable(from.getDisable());
+        }
+        StringSet urlStringSet = null;
+        if (from.getServerUrls() != null && !from.getServerUrls().isEmpty()) {
+        	urlStringSet = new StringSet();
+        	urlStringSet.addAll(from.getServerUrls());
+            authn.setServerUrls(urlStringSet);
+        }
+        if (from.getMode() != null) {
+            authn.setMode(from.getMode());
+        }
+        if (from.getLabel() != null) {
+            authn.setLabel(from.getLabel());
+        }
+        if (from.getDescription() != null) {
+            authn.setDescription(from.getDescription());
+        }
         if (from.getGroupAttribute() != null) {
             authn.setGroupAttribute(from.getGroupAttribute());
         }
@@ -57,15 +81,7 @@ public class AuthMapper {
             }
             authn.setDomains(trimmedDomains);
         }
-        if (from.getDisable() != null) {
-            authn.setDisable(from.getDisable());
-        }
-        if (from.getManagerDn() != null) {
-            authn.setManagerDN(from.getManagerDn());
-        }
-        if (from.getManagerPassword() != null) {
-            authn.setManagerPassword(from.getManagerPassword());
-        }
+        
         if (from.getSearchBase() != null) {
             authn.setSearchBase(from.getSearchBase());
         }
@@ -74,20 +90,6 @@ public class AuthMapper {
         }
         if (from.getSearchScope() != null) {
             authn.setSearchScope(from.getSearchScope());
-        }
-        if (from.getServerUrls() != null && !from.getServerUrls().isEmpty()) {
-            ss = new StringSet();
-            ss.addAll(from.getServerUrls());
-            authn.setServerUrls(ss);
-        }
-        if (from.getMode() != null) {
-            authn.setMode(from.getMode());
-        }
-        if (from.getLabel() != null) {
-            authn.setLabel(from.getLabel());
-        }
-        if (from.getDescription() != null) {
-            authn.setDescription(from.getDescription());
         }
 
         if (from.getMaxPageSize() != null) {

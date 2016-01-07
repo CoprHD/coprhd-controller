@@ -11,7 +11,7 @@ public class IsilonSyncPolicy {
      * on the source cluster and files that no longer match the selection criteria are deleted from the target directory.
      */
     public static enum Action {
-        copy,                   // for archival
+        copy,                    // for archival
         sync       // for fail over
     }
 
@@ -126,15 +126,9 @@ public class IsilonSyncPolicy {
 
     @Override
     public String toString() {
-        return "IsilonSyncPolicy{" +
-                "name='" + name + '\'' +
-                ", source_root_path='" + source_root_path + '\'' +
-                ", target_path='" + target_path + '\'' +
-                ", target_host='" + target_host + '\'' +
-                ", enabled='" + enabled + '\'' +
-                ", action='" + action + '\'' +
-                ", description='" + description + '\'' +
-                '}';
+        return "IsilonSyncPolicy [name=" + name + ", source_root_path=" + source_root_path + ", action=" + action + ", target_path="
+                + target_path + ", target_host=" + target_host + ", schedule=" + schedule + ", description=" + description
+                + ", last_job_state=" + last_job_state + ", enabled=" + enabled + "]";
     }
 
 }

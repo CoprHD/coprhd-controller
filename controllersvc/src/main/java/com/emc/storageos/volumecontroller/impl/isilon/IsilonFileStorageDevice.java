@@ -137,6 +137,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 	/**
 	 * Get isilon device represented by the StorageDevice
 	 * 
+	 * @param StorageSystem
+	 *            object
+	 * @return IsilonSshApi object
+	 */
+	IsilonSshApi getIsilonDeviceSsh(StorageSystem device) throws IsilonException {
+		IsilonSshApi sshDmApi = new IsilonSshApi();
+		sshDmApi.setConnParams(device.getIpAddress(), device.getUsername(), device.getPassword());
+		return sshDmApi;
+	}
+
+	/**
+	 * Get isilon device represented by the StorageDevice
+	 * 
 	 * @param device
 	 *            StorageDevice object
 	 * @return IsilonApi object
@@ -2191,18 +2204,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
 	// mirror related operation
 
-	public BiosCommandResult doCreateReplicationPolicy(StorageSystem system, FileDeviceInputOutput args) {
+	public BiosCommandResult doCreateReplicationPolicy(StorageSystem system, String name, String source_root_path,
+			String target_host, String target_path, IsilonSyncPolicy.Action action, String description,
+			String schedule) {
 		try {
-			// dummy *********************************************
-			String name = "";
-			String source_root_path = "";
-			String target_host = "";
-			String target_path = "";
-			IsilonSyncPolicy.Action action = IsilonSyncPolicy.Action.copy;
-			String description = "";
-			String schedule = "";
-			// dummy*****************************************************
-			_log.info("IsilonFileStorageDevice doCreateReplicationPolicy {} - start", args.getFsId());
+			_log.info("IsilonFileStorageDevice doCreateReplicationPolicy {} - start", source_root_path);
 			IsilonApi isi = getIsilonDevice(system);
 
 			IsilonSyncPolicy policy = new IsilonSyncPolicy(name, source_root_path, target_host, target_path, action);
@@ -2256,8 +2262,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 	}
 
 	public IsilonXMLApiResult isiStartReplicationJob(StorageSystem system, String policyName) {
-		IsilonSshApi sshDmApi = new IsilonSshApi();
-		sshDmApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+		IsilonSshApi sshDmApi = getIsilonDeviceSsh(system);
 		IsilonXMLApiResult result = sshDmApi.executeSsh("sync jobs" + "" + "start" + "" + policyName, "");
 		return result;
 	}
@@ -2269,8 +2274,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 				IsilonSyncJob job = isi.getReplicationJob(policyName);
 				if (job != null) {
 					if (job.getState().equals(IsilonSyncJob.State.running)) {
-						IsilonSshApi sshDmApi = new IsilonSshApi();
-						sshDmApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+						IsilonSshApi sshDmApi = getIsilonDeviceSsh(system);
 						IsilonXMLApiResult result = sshDmApi.executeSsh("sync jobs" + "" + "pause" + "" + policyName,
 								"");
 						if (result.isCommandSuccess()) {
@@ -2300,8 +2304,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 				IsilonSyncJob job = isi.getReplicationJob(policyName);
 				if (job != null) {
 					if (job.getState().equals(IsilonSyncJob.State.paused)) {
-						IsilonSshApi sshDmApi = new IsilonSshApi();
-						sshDmApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+						IsilonSshApi sshDmApi = getIsilonDeviceSsh(system);
 						IsilonXMLApiResult result = sshDmApi.executeSsh("sync jobs" + "" + "resume" + "" + policyName,
 								"");
 						if (result.isCommandSuccess()) {
@@ -2334,8 +2337,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 					IsilonSyncJob.State jobState = job.getState();
 					if (jobState.equals(IsilonSyncJob.State.running) || jobState.equals(IsilonSyncJob.State.paused)) {
 						_log.info("Cancelling Replication Policy -{} active Job -{}", policy, job.toString());
-						IsilonSshApi sshDmApi = new IsilonSshApi();
-						sshDmApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+						IsilonSshApi sshDmApi = getIsilonDeviceSsh(system);
 						IsilonXMLApiResult result = sshDmApi.executeSsh("sync jobs" + "" + "cancel" + "" + policyName,
 								"");
 						if (result.isCommandSuccess()) {
@@ -2387,8 +2389,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 			// At least one successful replication job completion prior to
 			// failover.
 			IsilonApi isi = getIsilonDevice(system);
-			IsilonSshApi sshDmApi = new IsilonSshApi();
-			sshDmApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+			IsilonSshApi sshDmApi = getIsilonDeviceSsh(system);
 
 			// Failover
 			IsilonXMLApiResult result = sshDmApi.executeSsh("sync recovery" + "" + "allow-write" + "" + policyName, "");
@@ -2420,15 +2421,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
 			// Primary Cluster API,CLI client
 			IsilonApi isiPrimary = getIsilonDevice(primarySystem);
-			IsilonSshApi sshDmApiPrimary = new IsilonSshApi();
-			sshDmApiPrimary.setConnParams(primarySystem.getIpAddress(), primarySystem.getUsername(),
-					primarySystem.getPassword());
+			IsilonSshApi sshDmApiPrimary = getIsilonDeviceSsh(primarySystem);
 
 			// Secondary Cluster API,CLI client
 			IsilonApi isiSecondary = getIsilonDevice(secondarySystem);
-			IsilonSshApi sshDmApiSecondary = new IsilonSshApi();
-			sshDmApiSecondary.setConnParams(secondarySystem.getIpAddress(), secondarySystem.getUsername(),
-					secondarySystem.getPassword());
+			IsilonSshApi sshDmApiSecondary = getIsilonDeviceSsh(secondarySystem);
 
 			/*
 			 * Step 1. Creates a mirror replication policy for the secondary
@@ -2479,7 +2476,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 			 * Step 4. Resync-prep on secondary cluster , same as step 1 but
 			 * will be executed on secondary cluster instead of primary cluster.
 			 */
-			result = sshDmApiPrimary.executeSsh("sync recovery" + "" + "resync-prep" + "" + mirrorPolicyName, "");
+			result = sshDmApiSecondary.executeSsh("sync recovery" + "" + "resync-prep" + "" + mirrorPolicyName, "");
 			// TODO wait till the mirror policy is created , it may take time..
 			mirrorPolicy = isiSecondary.getReplicationPolicy(mirrorPolicyName);
 			sourcePolicy = isiPrimary.getReplicationPolicy(policyName);

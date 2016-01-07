@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.isilon.restapi;
 
 public class IsilonSyncJob {
@@ -18,7 +22,7 @@ public class IsilonSyncJob {
 
     public static enum Action {
         resync_prep,
-        allow_write,                                                  // for fail over to secondary cluster
+        allow_write,                                                      // for fail over to secondary cluster
         allow_write_revert,
         test,
         run
@@ -45,9 +49,6 @@ public class IsilonSyncJob {
 
     /* The time the job started and ended in unix epoch seconds.The field is null if the job hasn't started or ended. */
     private Integer startTime;
-
-    /* This field is true if the node running this job is dead. */
-    private boolean dead_node;
 
     /* The time the job ended in UNIX epoch seconds. The field is null if the job hasn't ended. */
     private Integer endTime;
@@ -115,26 +116,14 @@ public class IsilonSyncJob {
         return syncType;
     }
 
-    public boolean getIsDeadNode() {
-        return dead_node;
-    }
-
     public Integer getDuration() {
         return duration;
     }
 
     @Override
     public String toString() {
-        return "IsilonSyncJob{" +
-                "id='" + id + '\'' +
-                ", job_id=" + job_id +
-                ", policyName='" + policy_name + '\'' +
-                ", startTime=" + startTime +
-                ", endTime=" + endTime +
-                ", state=" + state +
-                ", action=" + action +
-                ", syncType=" + syncType +
-                '}';
+        return "IsilonSyncJob [policy_name=" + policy_name + ", id=" + id + ", job_id=" + job_id + ", startTime=" + startTime + ", endTime="
+                + endTime + ", duration=" + duration + ", state=" + state + ", action=" + action + ", syncType=" + syncType + "]";
     }
 
 }

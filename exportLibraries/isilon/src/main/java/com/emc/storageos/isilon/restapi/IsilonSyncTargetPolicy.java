@@ -41,4 +41,10 @@ public class IsilonSyncTargetPolicy {
         return source_host;
     }
 
+    @Override
+    public String toString() {
+        return "IsilonSyncTargetPolicy [name=" + name + ", fofbState=" + fofbState + ", target_path=" + target_path + ", source_host="
+                + source_host + ", last_job_state=" + last_job_state + "]";
+    }
+
 }

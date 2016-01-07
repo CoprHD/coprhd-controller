@@ -616,6 +616,12 @@ public class ControllerUtils {
                     policyName = policy.getPolicyName();
                 }
             }
+        } else if (URIUtil.isType(uri, BlockMirror.class)) {
+            BlockMirror mirror = dbClient.queryObject(BlockMirror.class, uri);
+            if (!NullColumnValueGetter.isNullURI(mirror.getAutoTieringPolicyUri())) {
+                AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class, mirror.getAutoTieringPolicyUri());
+                policyName = policy.getPolicyName();
+            }
         }
 
         return policyName;
@@ -1264,6 +1270,28 @@ public class ControllerUtils {
     public static boolean isInVNXVirtualRG(Volume volume, DbClient dbClient) {
         return volume != null && ControllerUtils.isVnxVolume(volume, dbClient) &&
                 StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG);
+    }
+
+    public static String generateReplicationGroupName(StorageSystem storage, URI cgUri, String replicationGroupName, DbClient dbClient) {
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+        if (cg == null || cg.getInactive()) {
+            s_logger.warn(String.format("BlockConsistencyGroup with uri %s does not exist or is inactive", cgUri.toString()));
+        }
+        return generateReplicationGroupName(storage, cg, replicationGroupName);
+    }
+    
+    public static String generateReplicationGroupName(StorageSystem storage, BlockConsistencyGroup cg, String replicationGroupName) {
+        String groupName = replicationGroupName;
+        
+        if (groupName == null && cg != null) {
+            groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+        }
+        if (storage != null && storage.deviceIsType(Type.vnxblock)) {
+            groupName = SmisConstants.VNX_VIRTUAL_RG + groupName;
+            s_logger.info("VNX virtual replication group {}", groupName);
+        }
+
+        return groupName;
     }
 
     /**

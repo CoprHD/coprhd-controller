@@ -279,7 +279,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doCreateConsistencyGroup(StorageSystem storage,
-            URI consistencyGroup, TaskCompleter taskCompleter)
+            URI consistencyGroup, String replicationGroupName, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
@@ -376,7 +376,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doAddToConsistencyGroup(StorageSystem storage,
-            URI consistencyGroupId, List<URI> blockObjects,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();

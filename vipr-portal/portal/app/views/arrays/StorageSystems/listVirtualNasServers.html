@@ -24,7 +24,7 @@
   #{DataTable.buttonBar}
    
     #{Form.button name:'button.associate', class:'info', icon:'plus', action:'showDialogClick()', data:['enabled':'selected']/}
-    #{Form.button name:'button.dissociate', class:'warning', icon:'trash', submit:'dissociateProject', data:['enabled':'selected', 'property':'project', 'not-value':'']/}
+    #{Form.button name:'button.dissociate', class:'warning', icon:'trash', action:'showDissociateDialog()', data:['enabled':'selected', 'selection':'single']/}
    
   #{/DataTable.buttonBar}
  #{/if} 
@@ -49,13 +49,13 @@
            </div>
            <div class="row">
                 <control-group v-field='project' labelWidth="1" required >
-                    <select-one options="projectOptions" onChange="enableButton()"></select-one>
+                    <select-many options="projectOptions" onChange="enableButton()"></select-many>
                 </control-group>
            </div>
            
            <br>
            #{form @associateProject(), id:'associateForm',  class:'form form-horizontal', autocomplete:"off"}
-             <input type="hidden" name="projectId" ng-value="project" />
+             <input type="hidden" name="projectIds" ng-value="project" />
              <input type="hidden" name="projectsFromTenant" ng-value="tenant" />
              <input type="hidden" name="nasIds" ng-value="nasIds"/>
              <input type="hidden" name="storageId" value="${storageId}"/>
@@ -70,13 +70,43 @@
   #{/Modal.body}
 #{/Modal.dialog}
 
+#{Modal.dialog id:'dissociateFromProject'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'vNasServers.dissociateToProject'}</h4>
+  #{/Modal.header}
+  #{Modal.body}
+    <div ng-controller="DissociateProjectCtrl" id="dissociateForm">
+       <div class="container-fluid" >
+       
+           <div class="row">
+                <control-group v-field='projectsToDissociate' labelWidth="1" required >
+                    <select-many options="projectsToDissociateOptions" onChange="enableButton()"></select-many>
+                </control-group>
+           </div>
+           
+           <br>
+           #{form @dissociateProject(), id:'dissociateForm',  class:'form form-horizontal', autocomplete:"off"}
+             <input type="hidden" name="projectIdsToDissociate" ng-value="projectsToDissociate" />
+             <input type="hidden" name="nasId" />
+             <input type="hidden" name="storageId" value="${storageId}"/>
+             <div class="row">
+               #{Modal.buttonBar}
+                 <button type="submit" id="myBtn" style="margin-left:45px;" class="btn btn-primary" ><i v-icon=ok-sign></i> &{'button.save'}</button>
+               #{/Modal.buttonBar}
+             </div>
+           #{/form}
+       </div>
+    </div>
+  #{/Modal.body}
+#{/Modal.dialog}
+
 <script type="text/javascript">
 function renderLink(o, val) {
     
     return "";
 }
 
-function enableButton(){
+function enableButton() {
 	document.getElementById("myBtn").disabled = false;
 }
 
@@ -87,7 +117,8 @@ function showDialogClick() {
       for (var i=0, n=checkboxes.length;i<n;i++) {
         if (checkboxes[i].checked) 
         {
-           nasIds += ","+checkboxes[i].value;
+        	var nasid = checkboxes[i].value.split("~~~");
+           nasIds += "," + nasid[0];
         }
       }
       if (nasIds) {
@@ -96,6 +127,27 @@ function showDialogClick() {
       var scope = angular.element($('#associateForm')).scope();
 	  scope.populateModal(nasIds);
 	  $('#associateToProject').modal('show');
+}
+
+function showDissociateDialog() {
+    var checkboxes = document.getElementsByName('selected');
+    var projectIds = "";
+    var nasId = "";
+    
+    for (var i=0, n=checkboxes.length;i<n;i++) {
+      if (checkboxes[i].checked) 
+      {
+      	var project = checkboxes[i].value.split("~~~");
+      	projectIds += "," + project[1];
+      	document.getElementsByName("nasId").value = project[0];
+      }
+    }
+    if (projectIds) {
+    	projectIds = projectIds.substring(1);
+    } 
+    var scope = angular.element($('#dissociateForm')).scope();
+	  scope.populateModal(projectIds, nasId);
+	  $('#dissociateFromProject').modal('show');
 }
 
 </script>

@@ -428,6 +428,31 @@ angular.module("portalApp").controller({
     	    $scope.$apply();
        }
     },
+    DissociateProjectCtrl: function($scope, $http, $window, translate) {
+    	
+    	var resetModal = function() {
+    		$scope.dissociateForm = {};
+    		$scope.projectsToDissociate = {};
+    	}
+    	
+    	$scope.populateModal = function(ids, nasIdString) {
+    		
+    		resetModal();
+    		$scope.projectsToDissociateOptions = [];
+    		
+    		var myNewOptions = [];
+    		var projects = ids.split(",");
+    		
+    		for(var i = 0; i < projects.length; i++) {
+    			var projectInfo = projects[i].split("+");
+    			myNewOptions.push({ id: projectInfo[1], name: projectInfo[0] });
+    		}
+            	
+            $scope.projectsToDissociateOptions = myNewOptions;
+            $scope.nasId = nasIdString;
+    	    $scope.$apply();
+       }
+    },
     NfsAclCtrl: function($scope, $http, $window, translate) {
     	
     	$scope.add = {type:'user', name:'', domain:'', permission:'read', permissionType:'allow'};

@@ -19,9 +19,12 @@ public class AddVolumesToApplicationService extends ViPRService {
     @Param(ServiceParams.VOLUME)
     private List<String> volumeIds;
 
+    @Param(ServiceParams.REPLICATION_GROUP)
+    private String replicationGroup;
+
     @Override
     public void execute() throws Exception {
-        Tasks<? extends DataObjectRestRep> tasks = execute(new AddVolumesToApplication(applicationId, uris(volumeIds)));
+        Tasks<? extends DataObjectRestRep> tasks = execute(new AddVolumesToApplication(applicationId, uris(volumeIds), replicationGroup));
         addAffectedResources(tasks);
     }
 }

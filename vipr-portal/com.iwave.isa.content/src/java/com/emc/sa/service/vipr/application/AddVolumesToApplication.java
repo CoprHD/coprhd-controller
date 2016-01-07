@@ -17,11 +17,13 @@ import com.emc.vipr.client.Tasks;
 public class AddVolumesToApplication extends WaitForTasks<TaskResourceRep> {
     private final List<URI> volumeIds;
     private final URI applicationId;
+    private final String replicationGroup;
 
-    public AddVolumesToApplication(URI applicationId, List<URI> volumeIds) {
+    public AddVolumesToApplication(URI applicationId, List<URI> volumeIds, String replicationGroup) {
         this.volumeIds = volumeIds;
         this.applicationId = applicationId;
-        provideDetailArgs(applicationId, volumeIds);
+        this.replicationGroup = replicationGroup;
+        provideDetailArgs(applicationId, volumeIds, replicationGroup);
     }
 
     @Override
@@ -29,6 +31,9 @@ public class AddVolumesToApplication extends WaitForTasks<TaskResourceRep> {
         VolumeGroupUpdateParam input = new VolumeGroupUpdateParam();
         VolumeGroupVolumeList addVolumesList = new VolumeGroupVolumeList();
         addVolumesList.setVolumes(volumeIds);
+        if (replicationGroup != null && !replicationGroup.isEmpty()) {
+            addVolumesList.setReplicationGroupName(replicationGroup);
+        }
         input.setAddVolumesList(addVolumesList);
 
         TaskList taskList = getClient().application().updateApplication(applicationId, input);

@@ -220,12 +220,15 @@ public class BlockServiceUtils {
      * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or
      * higher
      * 
+     * Fox XtremIO creating/deleting volume in/from CG with existing CG is supported.
+     * 
      * @param volume Volume part of the CG
      * @return true if the operation is supported.
      */
     public static boolean checkCGVolumeCanBeAddedOrRemoved(Volume volume, DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-        return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
+        return (storage != null && (storage.deviceIsType(Type.vmax) &&
+                storage.getUsingSmis80()) || storage.deviceIsType(Type.xtremio));
     }
 
     /**

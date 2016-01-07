@@ -549,7 +549,7 @@ public class DisasterRecoveryService {
         siteConfigRestRep.setHostIPv4AddressMap(site.getHostIPv4AddressMap());
         siteConfigRestRep.setHostIPv6AddressMap(site.getHostIPv6AddressMap());
         siteConfigRestRep.setDbSchemaVersion(coordinator.getCurrentDbSchemaVersion());
-        siteConfigRestRep.setFreshInstallation(isFreshInstallation());
+        siteConfigRestRep.setFreshInstallation(isFreshInstallation() || site.getState().equals(SiteState.ACTIVE_FAILBACK_DEGRADED));
         siteConfigRestRep.setClusterStable(isClusterStable());
         siteConfigRestRep.setNodeCount(site.getNodeCount());
         siteConfigRestRep.setState(site.getState().toString());

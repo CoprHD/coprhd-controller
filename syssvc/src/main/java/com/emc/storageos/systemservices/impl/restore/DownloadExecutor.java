@@ -32,7 +32,7 @@ import com.emc.storageos.management.backup.BackupOps;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 
-public class DownloadExecutor implements  Runnable {
+public final class DownloadExecutor implements  Runnable {
     private static final Logger log = LoggerFactory.getLogger(DownloadExecutor.class);
 
     private FtpClient client;
@@ -41,7 +41,7 @@ public class DownloadExecutor implements  Runnable {
     private boolean notifyOthers;
     private String localHostName;
     private BackupRestoreStatus restoreStatus;
-    DownloadListener listener = new DownloadListener();
+    private DownloadListener listener = new DownloadListener();
 
     public static DownloadExecutor create(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps, boolean notifyOthers) {
 

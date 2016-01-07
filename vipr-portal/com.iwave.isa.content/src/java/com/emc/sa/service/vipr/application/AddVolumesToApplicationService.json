@@ -10,18 +10,18 @@
     project:{
       type:"assetType.vipr.projectFilter",
       lockable: true,
-      required: "false"
+      initialValue: "All"
     },
     
     virtualPool:{
      type:"assetType.vipr.blockVirtualPoolFilter",
      lockable: true,
-     required: "false"
+     initialValue: "All"
     },
     
     consistencyGroup:{
      type:"assetType.vipr.consistencyGroupFilter",
-     required:false
+      initialValue: "All"
     },
     
     replicationGroup:{

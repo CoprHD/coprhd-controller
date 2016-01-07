@@ -8,9 +8,8 @@
     },
   
     project:{
-      type:"assetType.vipr.projectFilter",
-      lockable: true,
-      initialValue: "All"
+      type:"assetType.vipr.project",
+      lockable: true
     },
     
     virtualPool:{
@@ -21,7 +20,7 @@
     
     consistencyGroup:{
      type:"assetType.vipr.consistencyGroupFilter",
-      initialValue: "All"
+      initialValue: "None"
     },
     
     replicationGroup:{

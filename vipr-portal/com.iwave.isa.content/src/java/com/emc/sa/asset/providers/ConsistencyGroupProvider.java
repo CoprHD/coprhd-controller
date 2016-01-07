@@ -38,7 +38,7 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
         }
 
         List<AssetOption> options = createBaseResourceOptions(cgs);
-        options.add(0, new AssetOption("All", "All"));
+        options.add(0, new AssetOption("None", "None"));
         return options;
     }
 

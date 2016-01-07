@@ -26,9 +26,10 @@ import util.datatable.DataTablesSupport;
 public class BlockSnapshotSessions extends ResourceController {
     private static final String UNKNOWN = "resources.snapshot.unknown";
 
-    // Re-using BlockSnapshotsDataTable for now
+    // Update for Session
     private static BlockSnapshotsDataTable blockSnapshotsDataTable = new BlockSnapshotsDataTable();
 
+    // Update for Session
     public static void snapshotSessions(String projectId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockSnapshotsDataTable);
@@ -36,6 +37,7 @@ public class BlockSnapshotSessions extends ResourceController {
         render();
     }
 
+    // Update for Session
     public static void snapshotsJson(String projectId) {
         if (StringUtils.isNotBlank(projectId)) {
             setActiveProjectId(projectId);

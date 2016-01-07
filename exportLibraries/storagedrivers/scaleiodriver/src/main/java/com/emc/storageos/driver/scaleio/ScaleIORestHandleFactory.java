@@ -1,15 +1,19 @@
+/*
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.driver.scaleio;
-
-import java.net.URI;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClientFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ScaleIORestHandleFactory {
     private static final Logger log = LoggerFactory.getLogger(ScaleIORestHandleFactory.class);
@@ -58,6 +62,8 @@ public class ScaleIORestHandleFactory {
                     } catch (Exception e) {
                         log.error("Failed to get Rest Handle", e);
                     }
+                }else{
+                    log.error("Some of the following are Missing: IP Address, username, password.");
                 }
             }
         }

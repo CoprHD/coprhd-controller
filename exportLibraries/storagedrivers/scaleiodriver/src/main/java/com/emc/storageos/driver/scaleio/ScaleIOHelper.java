@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
@@ -43,7 +48,7 @@ public class ScaleIOHelper {
      */
     public static boolean isFromSameStorageSystem(List<VolumeSnapshot> snapshots) {
         boolean isSameSys = false;
-        if (snapshots != null) {
+        if (snapshots != null && snapshots.size() > 0) {
             String storageSystemId = snapshots.get(0).getStorageSystemId();
             isSameSys = true;
             for (VolumeSnapshot snapshot : snapshots) {
@@ -64,7 +69,7 @@ public class ScaleIOHelper {
      */
     public static boolean isFromSameCGgroup(List<VolumeSnapshot> snapshots) {
         boolean isSameCG = false;
-        if (snapshots != null) {
+        if (snapshots != null && snapshots.size() > 0 ) {
             String groupId = snapshots.get(0).getConsistencyGroup();
             isSameCG = true;
             for (VolumeSnapshot snapshot : snapshots) {

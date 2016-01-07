@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.driver.scaleio;
 
 import org.slf4j.Logger;

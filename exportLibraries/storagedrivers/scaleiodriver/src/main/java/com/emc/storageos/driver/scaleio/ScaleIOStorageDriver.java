@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
@@ -20,7 +25,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
     private ScaleIORestHandleFactory handleFactory;
-    private String errMsg = "";
     private ScaleIORestClient client;
     private int countSucc;
 
@@ -84,6 +88,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 if (client != null) {
                     ScaleIOSnapshotVolumeResponse result = null;
                     try {
+                        log.info("Create snapshot for volume {} - start", snapshot.getParentId());
                         result = client.snapshotVolume(snapshot.getParentId(), snapshot.getDisplayName(),
                                 snapshot.getStorageSystemId());
                         // set value to the output
@@ -95,25 +100,22 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                             Map<String, String> snapNameIdMap = client.getVolumes(result.getVolumeIdList());
                             snapshot.setDeviceLabel(snapNameIdMap.get(snapshot.getNativeId()));
                             countSucc++;
+                            log.info("Create snapshot for volume {} - end", snapshot.getParentId());
                         } else {
-                            errMsg = "Exception while creating snapshot";
-                            log.error(errMsg);
+                            log.info("Nothing return for volume {}", snapshot.getParentId());
                         }
                     } catch (Exception e) {
-                        errMsg = "Exception while creating snapshot";
-                        log.error(errMsg, e);
+                        log.error("Exception while creating snapshot for volume {}", snapshot.getParentId(), e);
                     }
                 } else {
-                    errMsg = "Exception while getting client instance";
+                    log.error("Exception while getting client instance for volume {}", snapshot.getParentId());
                 }
             }
             this.setTaskStatus(snapshots.size(), countSucc, task);
         } else {
-            errMsg = "Empty snapshot input List";
-            log.error(errMsg);
+            log.error("Empty snapshot input List");
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }
-        task.setMessage(errMsg);
         task.setEndTime(Calendar.getInstance());
         return task;
     }
@@ -143,27 +145,26 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         // Assume snapshots could be from different storage system
         if (snapshots != null && snapshots.size() > 0) {
             for (VolumeSnapshot snapshot : snapshots) {
+                log.info("Delete snapshot {} - start", snapshot.getNativeId());
                 client = this.getClientBySystemId(snapshot.getStorageSystemId());
                 // delete snapshot
                 if (client != null) {
                     try {
                         client.removeVolume(snapshot.getNativeId());
                         countSucc++;
+                        log.info("Delete snapshot {} - end", snapshot.getNativeId());
                     } catch (Exception e) {
-                        errMsg = "Exception while deleting snapshot";
-                        log.error(errMsg, e);
+                        log.error("Exception while deleting snapshot {}", snapshot.getNativeId(), e);
                     }
                 } else {
-                    errMsg = "Exception while getting client instance";
+                    log.error("Exception while getting client instance for snapshot {}", snapshot.getNativeId());
                 }
             }
             this.setTaskStatus(snapshots.size(), countSucc, task);
         } else {
-            errMsg = "Can't delete empty snapshot list";
-            log.error(errMsg);
+            log.error("Can't delete empty snapshot list");
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }
-        task.setMessage(errMsg);
         task.setEndTime(Calendar.getInstance());
         return task;
     }
@@ -382,21 +383,17 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     }
                     this.setTaskStatus(snapshots.size(), countSucc, task);
                 } catch (Exception e) {
-                    errMsg = "Exception while performing Rest requests";
-                    log.error(errMsg, e);
+                    log.error("Exception while performing Rest requests", e);
                     task.setStatus(DriverTask.TaskStatus.FAILED);
                 }
             } else {
-                errMsg = "Exception while getting Rest client instance";
-                log.error(errMsg);
+                log.error("Exception while getting Rest client instance");
                 task.setStatus(DriverTask.TaskStatus.FAILED);
             }
         } else {
-            errMsg = "Snapshots are not from same storage system";
-            log.error(errMsg);
+            log.error("Snapshots are not from same storage system");
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }
-        task.setMessage(errMsg);
         task.setEndTime(Calendar.getInstance());
         return task;
     }
@@ -418,21 +415,17 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     client.removeConsistencyGroupSnapshot(snapshots.get(0).getConsistencyGroup());
                     task.setStatus(DriverTask.TaskStatus.READY);
                 } catch (Exception e) {
-                    errMsg = "Exception while sending Rest Request";
-                    log.error(errMsg, e);
+                    log.error("Exception while sending Rest Request", e);
                     task.setStatus(DriverTask.TaskStatus.FAILED);
                 }
             } else {
-                errMsg = "Exception while getting client instance";
-                log.error(errMsg);
+                log.error("Exception while getting client instance");
                 task.setStatus(DriverTask.TaskStatus.FAILED);
             }
         } else {
-            errMsg = "Snapshots are not from same consistency group";
-            log.error(errMsg);
+            log.error("Snapshots are not from same consistency group");
             task.setStatus(DriverTask.TaskStatus.FAILED);
         }
-        task.setMessage(errMsg);
         task.setEndTime(Calendar.getInstance());
         return task;
     }
@@ -754,7 +747,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * get Rest Client
      * 
      * @param systemId storage system id
-     * @return
+     * @return rest client handler
      */
     private ScaleIORestClient getClientBySystemId(String systemId) {
         String ip_address, port, username, password;
@@ -794,6 +787,12 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         }
     }
 
+    /**
+     * Set up Driver Task for NonSupported operations
+     * 
+     * @param taskType
+     * @return task
+     */
     private DriverTask setUpNonSupportedTask(ScaleIOConstants.TaskType taskType) {
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(taskType));
         task.setStatus(DriverTask.TaskStatus.ABORTED);
